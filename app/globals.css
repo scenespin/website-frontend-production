@@ -1,6 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: cyberpunk --default;
+}
 
 html,
 body {
@@ -12,11 +13,23 @@ progress::-webkit-progress-value {
   transition: 0.6s width ease-out;
 }
 
-@layer base {
+@layer components {
   .btn-gradient {
-    @apply !bg-gradient !bg-[length:300%_300%] hover:saturate-[1.2] shadow duration-100 !border-0 !border-transparent !bg-transparent animate-shimmer disabled:!bg-none disabled:!bg-gray-500/30  !text-white;
+    background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82);
+    background-size: 300% 300%;
+    animation: shimmer 3s ease-out infinite alternate;
+    @apply hover:saturate-[1.2] shadow duration-100 !border-0 !border-transparent disabled:!bg-none disabled:!bg-gray-500/30 !text-white;
   }
   .btn {
     @apply !capitalize;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
   }
 }
