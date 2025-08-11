@@ -25,7 +25,6 @@ Reach out at hello@shipfa.st
 
 Let's ship it, FAST ⚡️
 
-\_
 
 **📈 Grow your startup with [DataFast](https://datafa.st?ref=shipfast_readme)**
 

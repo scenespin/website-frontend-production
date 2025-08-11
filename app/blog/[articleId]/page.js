@@ -7,7 +7,8 @@ import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
 
 export async function generateMetadata({ params }) {
-  const article = articles.find((article) => article.slug === params.articleId);
+  const resolvedParams = await params;
+  const article = articles.find((article) => article.slug === resolvedParams.articleId);
 
   return getSEOTags({
     title: article.title,
@@ -33,11 +34,12 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function Article({ params }) {
-  const article = articles.find((article) => article.slug === params.articleId);
+  const resolvedParams = await params;
+  const article = articles.find((article) => article.slug === resolvedParams.articleId);
   const articlesRelated = articles
     .filter(
       (a) =>
-        a.slug !== params.articleId &&
+        a.slug !== resolvedParams.articleId &&
         a.categories.some((c) =>
           article.categories.map((c) => c.slug).includes(c.slug)
         )
