@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: light --default;
+}
+
+@theme {
+  --font-display: "Satoshi", "sans-serif";
+  
+  --animate-shimmer: shimmer 3s ease-out infinite alternate;
+  --animate-opacity: opacity 0.25s ease-in-out;
+  --animate-appearFromRight: appearFromRight 300ms ease-in-out;
+  --animate-wiggle: wiggle 1.5s ease-in-out infinite;
+  --animate-popup: popup 0.25s ease-in-out;
+
+  @keyframes shimmer {
+    0% { background-position: 0 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes opacity {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes appearFromRight {
+    0% { opacity: 0.3; transform: translate(15%, 0px); }
+    100% { opacity: 1; transform: translate(0); }
+  }
+
+  @keyframes wiggle {
+    0%, 20%, 80%, 100% { transform: rotate(0deg); }
+    30%, 60% { transform: rotate(-2deg); }
+    40%, 70% { transform: rotate(2deg); }
+    45% { transform: rotate(-4deg); }
+    55% { transform: rotate(4deg); }
+  }
+
+  @keyframes popup {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+}
+
+html,
+body {
+  scroll-behavior: smooth !important;
+}
+
+progress::-webkit-progress-value {
+  transition: 0.6s width ease-out;
+}
+
+.btn-gradient {
+  background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82) !important;
+  background-size: 300% 300% !important;
+  animation: var(--animate-shimmer) !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  color: white !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+.btn-gradient:hover {
+  filter: saturate(1.2) !important;
+}
+
+.btn-gradient:disabled {
+  background: rgb(107 114 128 / 0.3) !important;
+  color: rgb(156 163 175) !important;
+}
+
+.btn {
+  text-transform: capitalize !important;
+}

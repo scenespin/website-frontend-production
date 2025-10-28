@@ -41,3 +41,5 @@ public/sitemap-0.xml
 
 # environment variables
 .env*
+# clerk configuration (can include secrets)
+/.clerk/

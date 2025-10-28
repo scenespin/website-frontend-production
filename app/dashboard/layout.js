@@ -1,18 +1,23 @@
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { auth } from "@/libs/auth";
-import config from "@/config";
+import Navigation from "@/components/Navigation";
+import { DrawerProvider } from "@/contexts/DrawerContext";
 
-// This is a server-side component to ensure the user is logged in.
-// If not, it will redirect to the login page.
-// It's applied to all subpages of /dashboard in /app/dashboard/*** pages
-// You can also add custom static UI elements like a Navbar, Sidebar, Footer, etc..
-// See https://shipfa.st/docs/tutorials/private-page
+// Protected layout for authenticated pages
+// Applies to: /dashboard, /chat, /production, /editor, /write
 export default async function LayoutPrivate({ children }) {
-  const session = await auth();
+  const { userId } = await auth();
 
-  if (!session) {
-    redirect(config.auth.loginUrl);
+  if (!userId) {
+    redirect("/sign-in");
   }
 
-  return <>{children}</>;
+  return (
+    <DrawerProvider>
+      <div className="min-h-screen bg-base-100">
+        <Navigation />
+        {children}
+      </div>
+    </DrawerProvider>
+  );
 }
