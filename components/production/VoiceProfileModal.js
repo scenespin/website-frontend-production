@@ -348,6 +348,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
               )}
             </>
           )}
+        </div>
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-base-100 border-t border-base-300 p-6 flex items-center justify-between">
