@@ -35,7 +35,7 @@ const config = {
         isFeatured: true,
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_pro_dev_TODO" // TODO: Replace with Stripe price ID
+            ? "price_1SKx4VICG7b2tCpeJWQJnGER" // $29/mo
             : "price_pro_prod_TODO",
         name: "Pro",
         description: "Same features. Just more credits.",
@@ -51,7 +51,7 @@ const config = {
       {
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_ultra_dev_TODO"
+            ? "price_1SNesiICG7b2tCpeTKDjOfHU" // $149/mo
             : "price_ultra_prod_TODO",
         name: "Ultra",
         description: "Production volume. Same features.",
@@ -68,7 +68,7 @@ const config = {
       {
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_studio_dev_TODO"
+            ? "price_1SN5tWICG7b2tCpecu9dNwif" // $399/mo
             : "price_studio_prod_TODO",
         name: "Studio",
         description: "Enterprise teams. Same features.",
