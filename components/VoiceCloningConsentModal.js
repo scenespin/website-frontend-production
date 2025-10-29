@@ -265,7 +265,7 @@ export default function VoiceCloningConsentModal({ isOpen, onClose, onAccept, on
                     disabled={isSubmitting}
                   />
                   <div className="flex-1">
-                    <div className="font-semibold">Someone Else's Voice</div>
+                    <div className="font-semibold">Someone Else&apos;s Voice</div>
                     <div className="text-sm opacity-70">I have written consent from the voice owner</div>
                   </div>
                 </label>
@@ -278,7 +278,7 @@ export default function VoiceCloningConsentModal({ isOpen, onClose, onAccept, on
                   <div className="flex-1">
                     <h4 className="font-bold">⚠️ Third-Party Voice Requirements</h4>
                     <p className="text-sm mt-1">
-                      Cloning someone else's voice without their consent is illegal. 
+                      Cloning someone else&apos;s voice without their consent is illegal. 
                       You MUST have written authorization from the voice owner.
                     </p>
                   </div>

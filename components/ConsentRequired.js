@@ -93,7 +93,7 @@ export default function ConsentRequired({ onRequestConsent, variant = 'full' }) 
               <div>
                 <h3 className="font-semibold mb-1">Your Protection</h3>
                 <p className="text-sm text-base-content/70">
-                  You can revoke consent anytime, and we'll delete your voice data within 30 days. 
+                  You can revoke consent anytime, and we&apos;ll delete your voice data within 30 days. 
                   Data is automatically deleted after 3 years.
                 </p>
               </div>
