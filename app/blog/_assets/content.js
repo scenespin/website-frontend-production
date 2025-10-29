@@ -10,10 +10,19 @@ import introducingSupabaseImg from "@/public/blog/introducing-supabase/header.pn
 const categorySlugs = {
   feature: "feature",
   tutorial: "tutorial",
+  announcement: "announcement",
 };
 
 // All the blog categories data display in the /blog/category/[categoryI].js pages.
 export const categories = [
+  {
+    slug: categorySlugs.announcement,
+    title: "Announcements",
+    titleShort: "News",
+    description:
+      "Major announcements and product updates from Wryda.ai. Stay up-to-date with what's new.",
+    descriptionShort: "Latest news and announcements from Wryda.ai.",
+  },
   {
     // The slug to use in the URL, from the categorySlugs object above.
     slug: categorySlugs.feature,
@@ -23,18 +32,18 @@ export const categories = [
     titleShort: "Features",
     // The description of the category to display in the category page. Up to 160 characters.
     description:
-      "Here are the latest features we've added to App. I'm constantly improving our product to help you ship faster.",
+      "Here are the latest features we've added to Wryda.ai. We're constantly improving our product to help you create better.",
     // A short version of the description above, only displayed in the <Header /> on mobile. Up to 60 characters.
-    descriptionShort: "Latest features added to App.",
+    descriptionShort: "Latest features added to Wryda.ai.",
   },
   {
     slug: categorySlugs.tutorial,
     title: "How Tos & Tutorials",
     titleShort: "Tutorials",
     description:
-      "Learn how to use App with these step-by-step tutorials. I'll show you how to ship faster and save time.",
+      "Learn how to use Wryda.ai with these step-by-step tutorials. Create professional videos faster.",
     descriptionShort:
-      "Learn how to use App with these step-by-step tutorials.",
+      "Learn how to use Wryda.ai with these step-by-step tutorials.",
   },
 ];
 
@@ -95,39 +104,29 @@ const socialIcons = {
 
 // These slugs are used to generate pages in the /blog/author/[authorId].js. It's a way to show all articles from an author.
 const authorSlugs = {
-  marc: "marc",
+  wryda: "wryda",
 };
 
 // All the blog authors data display in the /blog/author/[authorId].js pages.
 export const authors = [
   {
     // The slug to use in the URL, from the authorSlugs object above.
-    slug: authorSlugs.marc,
+    slug: authorSlugs.wryda,
     // The name to display in the author's bio. Up to 60 characters.
-    name: "Marc Lou",
+    name: "Wryda Team",
     // The job to display in the author's bio. Up to 60 characters.
-    job: "Maker of ByeDispute",
+    job: "Founders of Wryda.ai",
     // The description of the author to display in the author's bio. Up to 160 characters.
     description:
-      "Marc is a developer and an entrepreneur. He's built 20 startups in the last 3 years. 6 were profitable and 3 were acquired. He's currently building ByeDispute, the #1 Stripe Chargebacks Protection tool.",
+      "Building the future of AI-powered video production. Professional tools for screenwriters, filmmakers, and creators.",
     // The avatar of the author to display in the author's bio and avatar badge. It's better to use a local image, but you can also use an external image (https://...)
-    avatar: marcImg,
+    avatar: marcImg, // TODO: Replace with Wryda logo
     // A list of social links to display in the author's bio.
     socials: [
       {
         name: socialIcons.twitter.name,
         icon: socialIcons.twitter.svg,
-        url: "https://twitter.com/marc_louvion",
-      },
-      {
-        name: socialIcons.linkedin.name,
-        icon: socialIcons.linkedin.svg,
-        url: "https://www.linkedin.com/in/marclouvion/",
-      },
-      {
-        name: socialIcons.github.name,
-        icon: socialIcons.github.svg,
-        url: "https://github.com/Marc-Lou-Org/ship-fast",
+        url: "https://twitter.com/wrydaai",
       },
     ],
   },
@@ -154,89 +153,201 @@ const styles = {
 export const articles = [
   {
     // The unique slug to use in the URL. It's also used to generate the canonical URL.
-    slug: "introducing-supabase",
+    slug: "wryda-ai-launch",
     // The title to display in the article page (h1). Less than 60 characters. It's also used to generate the meta title.
-    title: "Introducing Supabase to App",
+    title: "Wryda.ai Launch: Professional Film at 1% Cost",
     // The description of the article to display in the article page. Up to 160 characters. It's also used to generate the meta description.
     description:
-      "Supabase is an open-source Firebase alternative. It's a great tool for building a backend for your app. It's now integrated with App!",
+      "Introducing Wryda.ai - the all-in-one platform combining screenplay writing, AI video generation, and Hollywood-grade editing. Everything unlocked. Pure credit economy.",
     // An array of categories of the article. It's used to generate the category badges, the category filter, and more.
     categories: [
-      categories.find((category) => category.slug === categorySlugs.feature),
+      categories.find((category) => category.slug === categorySlugs.announcement),
     ],
     // The author of the article. It's used to generate a link to the author's bio page.
-    author: authors.find((author) => author.slug === authorSlugs.marc),
+    author: authors.find((author) => author.slug === authorSlugs.wryda),
     // The date of the article. It's used to generate the meta date.
-    publishedAt: "2023-11-20",
+    publishedAt: "2025-10-29",
     image: {
       // The image to display in <CardArticle /> components.
-      src: introducingSupabaseImg,
+      src: introducingSupabaseImg, // TODO: Replace with Wryda launch image
       // The relative URL of the same image to use in the Open Graph meta tags & the Schema Markup JSON-LD.
-      urlRelative: "/blog/introducing-supabase/header.jpg",
-      alt: "Supabase and App logo combined",
+      urlRelative: "/blog/wryda-ai-launch/header.jpg",
+      alt: "Wryda.ai Launch - Professional Film at 1% Cost",
     },
     // The actual content of the article that will be shown under the <h1> title in the article page.
     content: (
       <>
         <Image
           src={introducingSupabaseImg}
-          alt="Supabase and App logo combined"
+          alt="Wryda.ai platform overview"
           width={700}
           height={500}
           priority={true}
           className="rounded-box"
           placeholder="blur"
         />
+        
         <section>
-          <h2 className={styles.h2}>Introduction</h2>
+          <h2 className={styles.h2}>Revolutionary Pricing Model</h2>
           <p className={styles.p}>
-            Supabase is an open-source Firebase alternative. It&apos;s a great
-            tool for building a backend for your app. It&apos;s now integrated
-            with App!
+            Today, we're launching something different. Wryda.ai breaks the traditional "feature tier" model.
+            <strong> Everyone gets everything. You just buy credits.</strong>
+          </p>
+          <p className={styles.p}>
+            No paywalls. No feature restrictions. No watermarks. No vendor lock-in. Pure credit economy.
           </p>
         </section>
 
         <section>
-          <h3 className={styles.h3}>1. Create a supabase account</h3>
-          <p className={styles.p}>
-            First, go to{" "}
-            <a href="https://supabase.com/" className="link link-primary">
-              Supabase
-            </a>{" "}
-            and create an account. It&apos;s free for up to 10,000 rows per
-            table.
-            <br />
-            Then create a new project and a new table. You can use the following
-            SQL schema:
-          </p>
-
-          <pre className={styles.code}>
-            <code>
-              {`CREATE TABLE public.users (
-  id bigint NOT NULL DEFAULT nextval('users_id_seq'::regclass),
-  email text NOT NULL,
-  password text NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT users_pkey PRIMARY KEY (id)
-);`}
-            </code>
-          </pre>
-        </section>
-
-        <section>
-          <h3 className={styles.h3}>2. Add your credentials to App</h3>
-          <p className={styles.p}>
-            Copy the <span className={styles.codeInline}>API URL</span> and{" "}
-            <span className={styles.codeInline}>API Key</span> from your
-            Supabase project settings and add them to your App project
-            settings. Add these files to your project:
-          </p>
-
+          <h2 className={styles.h2}>What You Get (Everyone Gets This)</h2>
           <ul className={styles.ul}>
-            <li className={styles.li}>.env.local</li>
-            <li className={styles.li}>.env.production</li>
+            <li className={styles.li}><strong>Professional Screenplay Editor</strong> - Full Fountain format support</li>
+            <li className={styles.li}><strong>8-Track Timeline Editor</strong> - Video + audio editing</li>
+            <li className={styles.li}><strong>65 Professional Compositions</strong> - Split screens, PIP, grids, audio mixing</li>
+            <li className={styles.li}><strong>30 Hollywood Transitions</strong> - Whip pans, glitch effects, vintage burns</li>
+            <li className={styles.li}><strong>All Quality Tiers</strong> - Professional 1080p, Premium 4K, Ultra Native 4K</li>
+            <li className={styles.li}><strong>All Aspect Ratios</strong> - 16:9, 9:16, 1:1, 4:3, 21:9</li>
+            <li className={styles.li}><strong>Upload Your Own Footage</strong> - Unlimited, completely FREE</li>
+            <li className={styles.li}><strong>Character Bank</strong> - Consistent characters across scenes</li>
+            <li className={styles.li}><strong>Voice Cloning</strong> - FREE (bring your 11 Labs voice)</li>
+            <li className={styles.li}><strong>3D Model Export</strong> - GLB, OBJ, USDZ formats</li>
+            <li className={styles.li}><strong>Cloud Storage</strong> - Export to Google Drive or Dropbox</li>
           </ul>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>How Credits Work</h2>
+          <p className={styles.p}>
+            Credits are only used when generating AI video or images. Everything else is FREE.
+          </p>
+          
+          <h3 className={styles.h3}>Pricing Plans</h3>
+          <ul className={styles.ul}>
+            <li className={styles.li}><strong>Free:</strong> 100 signup + 10/month = ~2 professional videos</li>
+            <li className={styles.li}><strong>Pro ($29/mo):</strong> 3,000 credits = ~60 professional videos</li>
+            <li className={styles.li}><strong>Ultra ($149/mo):</strong> 20,000 credits = ~400 professional videos</li>
+            <li className={styles.li}><strong>Studio ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</li>
+          </ul>
+          
+          <h3 className={styles.h3}>Credit Costs by Quality</h3>
+          <ul className={styles.ul}>
+            <li className={styles.li}>Professional 1080p: 50 credits per 5s</li>
+            <li className={styles.li}>Premium 4K: 75 credits per 5s</li>
+            <li className={styles.li}>Ultra Native 4K: 150 credits per 5s</li>
+          </ul>
+          
+          <p className={styles.p}>
+            All aspect ratios are base price except 21:9 Cinema (+15 credits).
+          </p>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>Mix Your Footage with AI</h2>
+          <p className={styles.p}>
+            This is what makes Wryda.ai unique. We're not just another AI video generator.
+          </p>
+          <p className={styles.p}>
+            <strong>Upload your camera footage</strong> (100% FREE, unlimited), then enhance it with:
+          </p>
+          <ul className={styles.ul}>
+            <li className={styles.li}>AI-generated VFX shots</li>
+            <li className={styles.li}>AI-generated B-roll</li>
+            <li className={styles.li}>AI-generated locations and backgrounds</li>
+            <li className={styles.li}>65 professional compositions</li>
+            <li className={styles.li}>30 Hollywood transitions</li>
+          </ul>
+          <p className={styles.p}>
+            <strong>Your Camera Footage + AI Shots + Hollywood Tools = Professional Film at 1% Cost</strong>
+          </p>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>Save $1,583/Year vs Traditional Stack</h2>
+          <p className={styles.p}>
+            Traditional video production stack costs $1,931/year:
+          </p>
+          <ul className={styles.ul}>
+            <li className={styles.li}>Final Draft (Screenwriting): $250/yr</li>
+            <li className={styles.li}>Premiere Pro (Video Editing): $263/yr</li>
+            <li className={styles.li}>Midjourney (AI Images): $360/yr</li>
+            <li className={styles.li}>After Effects (VFX): $263/yr</li>
+            <li className={styles.li}>DaVinci Resolve Studio: $295</li>
+            <li className={styles.li}>Stock Footage & Music: $500/yr</li>
+          </ul>
+          <p className={styles.p}>
+            <strong>Wryda.ai Pro: $348/year</strong> (save $1,583/year)
+          </p>
+          <p className={styles.p}>
+            Plus, traditional tools can't generate AI video. Wryda.ai replaces 6+ tools with one platform.
+          </p>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>Revolutionary Features</h2>
+          <h3 className={styles.h3}>1. Seamless Timeline ↔ Composition</h3>
+          <p className={styles.p}>
+            Round-trip editing without data loss. Edit in composition, changes sync to timeline automatically.
+            No other platform has this.
+          </p>
+          
+          <h3 className={styles.h3}>2. Screenplay-Driven Builder</h3>
+          <p className={styles.p}>
+            Generate complete scenes directly from script. Intelligent scene analysis means no wasted credits.
+          </p>
+          
+          <h3 className={styles.h3}>3. Character Consistency</h3>
+          <p className={styles.p}>
+            Upload 1-3 character references, get consistent characters across all your scenes.
+            Character Bank stores all your characters for reuse.
+          </p>
+          
+          <h3 className={styles.h3}>4. 95% Time Savings</h3>
+          <p className={styles.p}>
+            Intelligent automation eliminates repetitive tasks entirely. Professional workflows built-in.
+          </p>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>Who Is Wryda.ai For?</h2>
+          <ul className={styles.ul}>
+            <li className={styles.li}><strong>Screenwriters</strong> - Visualize your scripts as you write</li>
+            <li className={styles.li}><strong>Filmmakers</strong> - Pre-visualize scenes before shooting, create pitch decks</li>
+            <li className={styles.li}><strong>Content Creators</strong> - High-volume social media content for YouTube, TikTok, Instagram</li>
+            <li className={styles.li}><strong>Marketing Teams</strong> - Generate video ads at scale</li>
+            <li className={styles.li}><strong>Agencies</strong> - Produce client content efficiently with team collaboration</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>Start Creating Today</h2>
+          <p className={styles.p}>
+            Sign up for free and get 100 credits to start. All features unlocked from day one.
+            No credit card required.
+          </p>
+          <p className={styles.p}>
+            <a href="/dashboard" className="link link-primary text-lg font-semibold">
+              Start Free →
+            </a>
+          </p>
+        </section>
+
+        <section>
+          <h2 className={styles.h2}>Early Access</h2>
+          <p className={styles.p}>
+            We're in early access and building with our community. Your feedback shapes the product.
+          </p>
+          <p className={styles.p}>
+            Questions? Email us at{" "}
+            <a href="mailto:hello@wryda.ai" className="link link-primary">
+              hello@wryda.ai
+            </a>
+          </p>
+        </section>
+
+        <section>
+          <p className={styles.p}>
+            <strong>Founded 2025 • Building with creators</strong>
+          </p>
         </section>
       </>
     ),

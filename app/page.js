@@ -33,15 +33,15 @@ export default function Page() {
 
           {/* Main Headline */}
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Everyone Gets Everything.
+            Professional Tools for Screenwriters,
             <br />
-            <span className="text-[#DC143C]">You Just Buy Credits.</span>
+            Filmmakers & Creators
           </h1>
 
           <p className="text-xl md:text-2xl opacity-90 max-w-3xl">
-            No paywalls. No feature tiers. No watermarks. 
+            Your Camera Footage + AI-Generated Shots (VFX, B-roll, locations) + Hollywood Transitions & Compositions
             <br />
-            <strong>Pure credit economy.</strong>
+            <strong className="text-[#DC143C]">= Professional Film at 1% Cost</strong>
           </p>
 
           {/* Value Props */}
@@ -52,7 +52,7 @@ export default function Page() {
               </svg>
               <div>
                 <strong>All Tools FREE</strong>
-                <p className="text-sm opacity-70">Screenplay editor, timeline, 50+ LUTs, 30+ transitions</p>
+                <p className="text-sm opacity-70">Screenplay editor, timeline, 65+ compositions, 30 transitions</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -134,9 +134,9 @@ export default function Page() {
               <div className="card bg-base-100 shadow-xl">
                 <div className="card-body">
                   <div className="text-4xl mb-2">🤖</div>
-                  <h3 className="card-title text-lg">Multi-Provider Intelligence</h3>
+                  <h3 className="card-title text-lg">Intelligent Quality Optimization</h3>
                   <p className="text-sm opacity-80">
-                    Auto-select best AI model for each scene. You don&apos;t think—system optimizes automatically.
+                    Smart scene analysis automatically optimizes quality for each shot. Professional results, minimal effort.
                   </p>
                 </div>
               </div>
@@ -168,7 +168,7 @@ export default function Page() {
         <section className="py-16 px-8 max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Save $1,980+/Year vs Traditional Stack
+              Save $1,583+/Year vs Traditional Stack
             </h2>
             <p className="text-lg opacity-80">
               One platform. Everything included. No subscriptions to juggle.
@@ -179,7 +179,7 @@ export default function Page() {
             {/* Traditional Stack */}
             <div className="card bg-base-200 shadow-xl">
               <div className="card-body">
-                <h3 className="card-title text-2xl mb-4">Traditional Stack: $2,448/year</h3>
+                <h3 className="card-title text-2xl mb-4">Traditional Stack: $1,931/year</h3>
                 <ul className="space-y-3">
                   <li className="flex justify-between items-center">
                     <span className="opacity-80">Final Draft (Screenwriting)</span>
@@ -194,20 +194,20 @@ export default function Page() {
                     <span className="font-semibold">$360/yr</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="opacity-80">Runway Gen-3 (AI Video)</span>
-                    <span className="font-semibold">$780/yr</span>
+                    <span className="opacity-80">After Effects (VFX & Compositing)</span>
+                    <span className="font-semibold">$263/yr</span>
                   </li>
                   <li className="flex justify-between items-center">
                     <span className="opacity-80">DaVinci Resolve Studio</span>
                     <span className="font-semibold">$295</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="opacity-80">LUTs, Transitions, Stock</span>
+                    <span className="opacity-80">Stock Footage & Music</span>
                     <span className="font-semibold">$500/yr</span>
                   </li>
                   <li className="border-t border-base-content/20 pt-3 flex justify-between items-center">
                     <span className="font-bold text-xl">Total</span>
-                    <span className="font-bold text-2xl text-error">$2,448/yr</span>
+                    <span className="font-bold text-2xl text-error">$1,931/yr</span>
                   </li>
                 </ul>
               </div>
@@ -270,7 +270,7 @@ export default function Page() {
                     <svg className="w-5 h-5 text-success shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>50+ LUTs, 30+ Transitions (FREE)</span>
+                    <span>65 Compositions (split screens, PIP, grids) + 30 Transitions (FREE)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <svg className="w-5 h-5 text-success shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,7 +393,7 @@ export default function Page() {
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>50+ LUTs + 30+ Transitions (FREE)</span>
+                  <span>65 Compositions + 30 Transitions (FREE)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -411,13 +411,13 @@ export default function Page() {
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>3D Model Export (GLB, OBJ, USDZ)</span>
+                  <span>3D Model Export (20 credits per export)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Voice Cloning (BIPA compliant)</span>
+                  <span>Voice Cloning (FREE - bring your 11 Labs voice)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -7,22 +7,100 @@ import { useRef, useState } from "react";
 
 const faqList = [
   {
-    question: "What do I get exactly?",
-    answer: <div className="space-y-2 leading-relaxed">Loreum Ipseum</div>,
-  },
-  {
-    question: "Can I get a refund?",
+    question: "Do I really get all features for free?",
     answer: (
-      <p>
-        Yes! You can request a refund within 7 days of your purchase. Reach out
-        by email.
-      </p>
+      <div className="space-y-2 leading-relaxed">
+        <p>Yes! Every user gets full access to all tools, quality tiers, and aspect ratios from day one.</p>
+        <p><strong>What's included FREE:</strong></p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Professional screenplay editor & timeline (8 tracks)</li>
+          <li>65 compositions + 30 Hollywood transitions</li>
+          <li>Upload unlimited footage</li>
+          <li>Character Bank, Voice Cloning, Cloud Storage</li>
+          <li>All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
+          <li>All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
+        </ul>
+        <p>You only pay credits when generating AI video/image content. Everything else is 100% free.</p>
+      </div>
     ),
   },
   {
-    question: "I have another question",
+    question: "How do credits work? What can I make with them?",
     answer: (
-      <div className="space-y-2 leading-relaxed">Cool, contact us by email</div>
+      <div className="space-y-2 leading-relaxed">
+        <p><strong>Free Plan:</strong> 100 signup credits + 10/month = ~2 professional 1080p videos</p>
+        <p><strong>Pro Plan ($29/mo):</strong> 3,000 credits = ~60 professional 1080p videos</p>
+        <p><strong>Ultra Plan ($149/mo):</strong> 20,000 credits = ~400 professional videos</p>
+        <p><strong>Studio Plan ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</p>
+        <p className="pt-2"><strong>Credit costs by quality tier:</strong></p>
+        <ul className="list-disc pl-5">
+          <li>Professional 1080p: 50 credits per 5s</li>
+          <li>Premium 4K: 75 credits per 5s</li>
+          <li>Ultra Native 4K: 150 credits per 5s</li>
+        </ul>
+        <p>All aspect ratios are base price except 21:9 Cinema (+15 credits).</p>
+      </div>
+    ),
+  },
+  {
+    question: "Can I use my own footage, or is it all AI-generated?",
+    answer: (
+      <div className="space-y-2 leading-relaxed">
+        <p><strong>Both!</strong> This is what makes Wryda.ai unique:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>Upload your own footage:</strong> 100% FREE, unlimited uploads</li>
+          <li><strong>Mix & match:</strong> Combine your camera shots with AI-generated VFX, B-roll, and locations</li>
+          <li><strong>Apply Hollywood tools:</strong> Use our 65 compositions and 30 transitions on any footage</li>
+          <li><strong>Professional editing:</strong> Full timeline editor with 8 tracks</li>
+        </ul>
+        <p>Think of it as: <strong>Your Camera Footage + AI Shots + Hollywood Tools = Pro Film at 1% Cost</strong></p>
+      </div>
+    ),
+  },
+  {
+    question: "What's the difference between Free, Pro, Ultra, and Studio?",
+    answer: (
+      <div className="space-y-2 leading-relaxed">
+        <p><strong>Simple answer: Just the number of credits per month.</strong></p>
+        <p>Every tier gets:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>✅ All features unlocked</li>
+          <li>✅ All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
+          <li>✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
+          <li>✅ Upload unlimited footage</li>
+          <li>✅ 65 compositions + 30 transitions</li>
+          <li>✅ No watermarks, no vendor lock-in</li>
+          <li>✅ Character consistency, voice cloning, 3D export</li>
+        </ul>
+        <p>Choose based on how many AI videos you need per month. That's it!</p>
+      </div>
+    ),
+  },
+  {
+    question: "Is this really cheaper than Premiere Pro + Runway + Final Draft?",
+    answer: (
+      <div className="space-y-2 leading-relaxed">
+        <p><strong>Way cheaper. Here's the breakdown:</strong></p>
+        <p><strong>Traditional Stack:</strong> $1,931/year</p>
+        <ul className="list-disc pl-5 text-sm">
+          <li>Final Draft: $250/yr</li>
+          <li>Premiere Pro: $263/yr</li>
+          <li>Midjourney: $360/yr</li>
+          <li>After Effects: $263/yr</li>
+          <li>DaVinci Resolve Studio: $295</li>
+          <li>Stock footage & music: $500/yr</li>
+        </ul>
+        <p><strong>Wryda.ai Pro:</strong> $348/year (save $1,583/year)</p>
+        <p><strong>Plus you get:</strong></p>
+        <ul className="list-disc pl-5">
+          <li>All-in-one platform (no tool juggling)</li>
+          <li>AI video generation built-in</li>
+          <li>Character consistency across scenes</li>
+          <li>Screenplay-driven automation</li>
+          <li>No vendor lock-in - export to Drive/Dropbox</li>
+        </ul>
+        <p>Traditional tools can't generate AI video. Wryda.ai replaces 6+ tools with one.</p>
+      </div>
     ),
   },
 ];

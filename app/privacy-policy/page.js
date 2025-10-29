@@ -54,7 +54,7 @@ const PrivacyPolicy = () => {
         </h1>
 
         <pre
-          className="leading-relaxed whitespace-pre-wrap"
+          className="leading-relaxed whitespace-pre-wrap overflow-x-auto"
           style={{ fontFamily: "sans-serif" }}
         >
           {`Last Updated: October 29, 2025
