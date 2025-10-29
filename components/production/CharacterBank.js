@@ -520,7 +520,7 @@ function CharacterCard({
                     api.characters.update(character.id, { description: desc })
                       .then(() => {
                         toast.success('Description added!');
-                        fetchCharacters();
+                        loadCharacters();
                       });
                   }
                 }}

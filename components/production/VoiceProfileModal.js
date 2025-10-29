@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Mic, AlertCircle, Check, Shield, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
+import VoiceCloningConsentModal from '../VoiceCloningConsentModal';
+import ConsentRequired from '../ConsentRequired';
+import { checkVoiceConsent } from '@/libs/voiceConsentUtils';
 
 export default function VoiceProfileModal({ character, isOpen, onClose, onSave }) {
   const [elevenLabsApiKey, setElevenLabsApiKey] = useState('');
@@ -13,6 +16,37 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // ✅ BIPA COMPLIANCE: Check voice consent before allowing voice cloning
+  const [hasVoiceConsent, setHasVoiceConsent] = useState(false);
+  const [checkingConsent, setCheckingConsent] = useState(true);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+
+  // Check consent when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      checkConsent();
+    }
+  }, [isOpen]);
+
+  const checkConsent = async () => {
+    setCheckingConsent(true);
+    try {
+      const { hasConsent } = await checkVoiceConsent();
+      setHasVoiceConsent(hasConsent);
+    } catch (error) {
+      console.error('Error checking consent:', error);
+      setHasVoiceConsent(false);
+    } finally {
+      setCheckingConsent(false);
+    }
+  };
+
+  const handleConsentAccepted = () => {
+    setShowConsentModal(false);
+    setHasVoiceConsent(true);
+    toast.success('Voice cloning consent provided! You can now proceed.');
+  };
 
   if (!isOpen) return null;
 
@@ -110,17 +144,36 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Info Banner */}
-          <div className="alert alert-info">
-            <AlertCircle className="w-5 h-5" />
-            <div>
-              <h4 className="font-bold">ElevenLabs Integration</h4>
-              <p className="text-sm">
-                You&apos;ll need your own ElevenLabs account with verified voices. 
-                We only show <strong>minimal branding</strong> during setup.
-              </p>
+          {/* ✅ BIPA COMPLIANCE: Show consent gate if user hasn't provided consent */}
+          {checkingConsent && (
+            <div className="flex items-center justify-center py-12">
+              <span className="loading loading-spinner loading-lg"></span>
             </div>
-          </div>
+          )}
+
+          {!checkingConsent && !hasVoiceConsent && (
+            <>
+              <ConsentRequired 
+                onRequestConsent={() => setShowConsentModal(true)}
+                variant="full"
+              />
+            </>
+          )}
+
+          {/* Show voice profile setup only if consent is provided */}
+          {!checkingConsent && hasVoiceConsent && (
+            <>
+              {/* Info Banner */}
+              <div className="alert alert-info">
+                <AlertCircle className="w-5 h-5" />
+                <div>
+                  <h4 className="font-bold">ElevenLabs Integration</h4>
+                  <p className="text-sm">
+                    You&apos;ll need your own ElevenLabs account with verified voices. 
+                    We only show <strong>minimal branding</strong> during setup.
+                  </p>
+                </div>
+              </div>
 
           {/* Step 1: ElevenLabs API Key */}
           <div className="card bg-base-200 shadow-lg">
@@ -306,7 +359,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
           </button>
           <button
             onClick={handleSave}
-            disabled={!isVerified || !rightsConfirmed || isSaving || !voiceName}
+            disabled={!isVerified || !rightsConfirmed || isSaving || !voiceName || !hasVoiceConsent}
             className="btn btn-primary btn-lg"
           >
             {isSaving ? (
@@ -323,6 +376,14 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
           </button>
         </div>
       </div>
+
+      {/* ✅ BIPA COMPLIANCE: Voice Consent Modal */}
+      <VoiceCloningConsentModal
+        isOpen={showConsentModal}
+        onClose={() => setShowConsentModal(false)}
+        onAccept={handleConsentAccepted}
+        onDecline={() => setShowConsentModal(false)}
+      />
     </div>
   );
 }
