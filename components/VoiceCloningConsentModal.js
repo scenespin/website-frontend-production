@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Shield, AlertTriangle, FileText, CheckCircle, Info, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { CONSENT_TEXT, CONSENT_VERSION } from '@/libs/voiceConsentText';
+import { VOICE_CONSENT_AGREEMENT_TEXT as CONSENT_TEXT, VOICE_CONSENT_TEXT_VERSION as CONSENT_VERSION } from '@/libs/voiceConsentText';
 
 /**
  * Voice Cloning Consent Modal

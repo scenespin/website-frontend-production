@@ -175,178 +175,179 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                 </div>
               </div>
 
-          {/* Step 1: ElevenLabs API Key */}
-          <div className="card bg-base-200 shadow-lg">
-            <div className="card-body">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="badge badge-primary">Step 1</div>
-                <h3 className="text-lg font-bold">Enter Your ElevenLabs API Key</h3>
-              </div>
-              
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">API Key</span>
-                  <span className="label-text-alt">
-                    <a 
-                      href="https://elevenlabs.io/app/settings/api-keys" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="link link-primary"
-                    >
-                      Get your key →
-                    </a>
-                  </span>
-                </label>
-                <input
-                  type="password"
-                  value={elevenLabsApiKey}
-                  onChange={(e) => setElevenLabsApiKey(e.target.value)}
-                  placeholder="sk_..."
-                  className="input input-bordered w-full font-mono"
-                  disabled={isVerified}
-                />
-                <label className="label">
-                  <span className="label-text-alt text-base-content/60">
-                    🔒 Your API key is encrypted and stored securely with AWS KMS
-                  </span>
-                </label>
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">Voice ID</span>
-                  <span className="label-text-alt">
-                    <a 
-                      href="https://elevenlabs.io/app/voice-lab" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="link link-primary"
-                    >
-                      Find voice ID →
-                    </a>
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  value={elevenLabsVoiceId}
-                  onChange={(e) => setElevenLabsVoiceId(e.target.value)}
-                  placeholder="21m00Tcm4TlvDq8ikWAM"
-                  className="input input-bordered w-full font-mono"
-                  disabled={isVerified}
-                />
-              </div>
-
-              {!isVerified && (
-                <button
-                  onClick={handleVerify}
-                  disabled={isVerifying || !elevenLabsApiKey || !elevenLabsVoiceId}
-                  className="btn btn-primary w-full"
-                >
-                  {isVerifying ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm"></span>
-                      Verifying...
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-4 h-4" />
-                      Verify Voice
-                    </>
-                  )}
-                </button>
-              )}
-
-              {isVerified && (
-                <div className="alert alert-success">
-                  <Check className="w-5 h-5" />
-                  <span>Voice verified: <strong>{voiceName}</strong></span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Step 2: Voice Name */}
-          {isVerified && (
-            <div className="card bg-base-200 shadow-lg">
-              <div className="card-body">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="badge badge-primary">Step 2</div>
-                  <h3 className="text-lg font-bold">Voice Name</h3>
-                </div>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-semibold">Display Name</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={voiceName}
-                    onChange={(e) => setVoiceName(e.target.value)}
-                    placeholder="E.g., Hero Voice, Narrator, Character Voice 1"
-                    className="input input-bordered w-full"
-                  />
-                  <label className="label">
-                    <span className="label-text-alt text-base-content/60">
-                      This is how the voice will appear in your project
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Rights Confirmation */}
-          {isVerified && (
-            <div className="card bg-base-200 shadow-lg border-2 border-warning">
-              <div className="card-body">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="badge badge-warning">Step 3 - REQUIRED</div>
-                  <h3 className="text-lg font-bold">Legal Rights Confirmation</h3>
-                </div>
-                
-                <div className="alert alert-warning">
-                  <AlertCircle className="w-5 h-5" />
-                  <span className="text-sm">
-                    You must have legal permission to use this voice. Voice verification is handled by ElevenLabs.
-                  </span>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start gap-3">
+              {/* Step 1: ElevenLabs API Key */}
+              <div className="card bg-base-200 shadow-lg">
+                <div className="card-body">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="badge badge-primary">Step 1</div>
+                    <h3 className="text-lg font-bold">Enter Your ElevenLabs API Key</h3>
+                  </div>
+                  
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-semibold">API Key</span>
+                      <span className="label-text-alt">
+                        <a 
+                          href="https://elevenlabs.io/app/settings/api-keys" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="link link-primary"
+                        >
+                          Get your key →
+                        </a>
+                      </span>
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={rightsConfirmed}
-                      onChange={(e) => setRightsConfirmed(e.target.checked)}
-                      className="checkbox checkbox-warning"
+                      type="password"
+                      value={elevenLabsApiKey}
+                      onChange={(e) => setElevenLabsApiKey(e.target.value)}
+                      placeholder="sk_..."
+                      className="input input-bordered w-full font-mono"
+                      disabled={isVerified}
                     />
-                    <span className="label-text font-semibold">
-                      I confirm that I have the legal rights to use this voice for my creative projects
-                    </span>
-                  </label>
-                </div>
+                    <label className="label">
+                      <span className="label-text-alt text-base-content/60">
+                        🔒 Your API key is encrypted and stored securely with AWS KMS
+                      </span>
+                    </label>
+                  </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Optional: Rights Statement</span>
-                  </label>
-                  <textarea
-                    value={rightsStatement}
-                    onChange={(e) => setRightsStatement(e.target.value)}
-                    placeholder="E.g., This is my own voice, I have written permission from the voice owner, etc."
-                    className="textarea textarea-bordered w-full h-20"
-                  />
-                </div>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-semibold">Voice ID</span>
+                      <span className="label-text-alt">
+                        <a 
+                          href="https://elevenlabs.io/app/voice-lab" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="link link-primary"
+                        >
+                          Find voice ID →
+                        </a>
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={elevenLabsVoiceId}
+                      onChange={(e) => setElevenLabsVoiceId(e.target.value)}
+                      placeholder="21m00Tcm4TlvDq8ikWAM"
+                      className="input input-bordered w-full font-mono"
+                      disabled={isVerified}
+                    />
+                  </div>
 
-                <div className="text-xs text-base-content/60 mt-2 space-y-1">
-                  <p>• ElevenLabs handles voice verification on their platform</p>
-                  <p>• You are responsible for ensuring proper voice permissions</p>
-                  <p>• Misuse may result in account termination</p>
-                  <p>• See our <a href="/legal/voice-cloning" className="link">Voice Cloning Terms</a> for details</p>
+                  {!isVerified && (
+                    <button
+                      onClick={handleVerify}
+                      disabled={isVerifying || !elevenLabsApiKey || !elevenLabsVoiceId}
+                      className="btn btn-primary w-full"
+                    >
+                      {isVerifying ? (
+                        <>
+                          <span className="loading loading-spinner loading-sm"></span>
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-4 h-4" />
+                          Verify Voice
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {isVerified && (
+                    <div className="alert alert-success">
+                      <Check className="w-5 h-5" />
+                      <span>Voice verified: <strong>{voiceName}</strong></span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+
+              {/* Step 2: Voice Name */}
+              {isVerified && (
+                <div className="card bg-base-200 shadow-lg">
+                  <div className="card-body">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="badge badge-primary">Step 2</div>
+                      <h3 className="text-lg font-bold">Voice Name</h3>
+                    </div>
+                    
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold">Display Name</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={voiceName}
+                        onChange={(e) => setVoiceName(e.target.value)}
+                        placeholder="E.g., Hero Voice, Narrator, Character Voice 1"
+                        className="input input-bordered w-full"
+                      />
+                      <label className="label">
+                        <span className="label-text-alt text-base-content/60">
+                          This is how the voice will appear in your project
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Rights Confirmation */}
+              {isVerified && (
+                <div className="card bg-base-200 shadow-lg border-2 border-warning">
+                  <div className="card-body">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="badge badge-warning">Step 3 - REQUIRED</div>
+                      <h3 className="text-lg font-bold">Legal Rights Confirmation</h3>
+                    </div>
+                    
+                    <div className="alert alert-warning">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="text-sm">
+                        You must have legal permission to use this voice. Voice verification is handled by ElevenLabs.
+                      </span>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label cursor-pointer justify-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={rightsConfirmed}
+                          onChange={(e) => setRightsConfirmed(e.target.checked)}
+                          className="checkbox checkbox-warning"
+                        />
+                        <span className="label-text font-semibold">
+                          I confirm that I have the legal rights to use this voice for my creative projects
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text">Optional: Rights Statement</span>
+                      </label>
+                      <textarea
+                        value={rightsStatement}
+                        onChange={(e) => setRightsStatement(e.target.value)}
+                        placeholder="E.g., This is my own voice, I have written permission from the voice owner, etc."
+                        className="textarea textarea-bordered w-full h-20"
+                      />
+                    </div>
+
+                    <div className="text-xs text-base-content/60 mt-2 space-y-1">
+                      <p>• ElevenLabs handles voice verification on their platform</p>
+                      <p>• You are responsible for ensuring proper voice permissions</p>
+                      <p>• Misuse may result in account termination</p>
+                      <p>• See our <a href="/legal/voice-cloning" className="link">Voice Cloning Terms</a> for details</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </div>
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-base-100 border-t border-base-300 p-6 flex items-center justify-between">
@@ -375,7 +376,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
             )}
           </button>
         </div>
-      </div>
+        </div>
 
       {/* ✅ BIPA COMPLIANCE: Voice Consent Modal */}
       <VoiceCloningConsentModal

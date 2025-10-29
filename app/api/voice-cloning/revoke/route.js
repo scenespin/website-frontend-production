@@ -12,9 +12,7 @@ import { auth } from "@clerk/nextjs";
 import connectMongo from "@/libs/mongoose";
 import VoiceConsent from "@/models/VoiceConsent";
 import VoiceConsentAuditLog from "@/models/VoiceConsentAuditLog";
-
-// TODO: Import DynamoDB functions when integrating with voice profiles
-// import { deleteVoiceProfilesByConsent } from "@/libs/voiceProfile";
+import { deleteAllUserVoiceProfiles } from "@/libs/voiceProfileDeletion";
 
 /**
  * POST - Revoke consent and delete all voice data
@@ -63,61 +61,50 @@ export async function POST(req) {
       },
     });
 
-    // TODO Phase 4: Delete voice profiles from DynamoDB
-    // This will be implemented when integrating with the existing voice profile system
-    // For now, we'll return a success response with a note
-    
+    // ✅ PHASE 4 COMPLETE: Delete voice profiles from DynamoDB
     let voiceProfilesDeleted = 0;
-    let deletionNote = "Voice profile deletion will be implemented in Phase 4 integration";
+    let deletionNote = "No voice profiles found";
 
-    /* 
-    PHASE 4 IMPLEMENTATION (uncomment when ready):
-    
     try {
-      // Get all voice profiles linked to this consent
-      const profiles = await getVoiceProfilesByUserId(userId);
+      // Delete all voice profiles from DynamoDB
+      voiceProfilesDeleted = await deleteAllUserVoiceProfiles(userId);
       
-      for (const profile of profiles) {
-        // Delete from ElevenLabs API
-        if (profile.elevenLabsVoiceId) {
-          await deleteElevenLabsVoice(profile.elevenLabsVoiceId, profile.elevenLabsApiKey);
-        }
-        
-        // Delete S3 voice files
-        if (profile.voiceFileUrls && Array.isArray(profile.voiceFileUrls)) {
-          for (const fileUrl of profile.voiceFileUrls) {
-            await deleteS3File(fileUrl);
-          }
-        }
-        
-        // Mark as deleted in DynamoDB
-        await updateVoiceProfile(profile.characterId, userId, {
-          status: 'revoked',
-          deletedAt: new Date().toISOString(),
-        });
-        
-        voiceProfilesDeleted++;
+      if (voiceProfilesDeleted > 0) {
+        deletionNote = `Successfully deleted ${voiceProfilesDeleted} voice profile(s) from DynamoDB`;
         
         // Log each profile deletion
         await VoiceConsentAuditLog.logAction({
           consentId: consent._id,
-          action: "voice_profile_deleted",
+          action: "voice_profiles_deleted",
           performedBy: userId,
+          performedAt: new Date(),
+          ipAddress,
           details: {
-            profileId: profile.id,
-            characterId: profile.characterId,
+            profilesDeleted: voiceProfilesDeleted,
             reason: "consent_revoked",
           },
         });
+      } else {
+        deletionNote = "No voice profiles to delete";
       }
-      
-      deletionNote = `Successfully deleted ${voiceProfilesDeleted} voice profile(s)`;
       
     } catch (deleteError) {
       console.error("Voice profile deletion error:", deleteError);
       deletionNote = `Consent revoked but voice profile deletion encountered errors: ${deleteError.message}`;
+      
+      // Log the error
+      await VoiceConsentAuditLog.logAction({
+        consentId: consent._id,
+        action: "deletion_error",
+        performedBy: userId,
+        performedAt: new Date(),
+        ipAddress,
+        details: {
+          error: deleteError.message,
+          reason: "consent_revoked",
+        },
+      });
     }
-    */
 
     return NextResponse.json({
       success: true,
