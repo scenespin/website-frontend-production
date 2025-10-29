@@ -24,8 +24,8 @@ const Pricing = () => {
         "✅ Cloud Storage (Drive/Dropbox)",
         "✅ No watermarks, no vendor lock-in"
       ],
-      cta: "Start Free",
-      href: "/dashboard",
+      cta: "Get 100 Free Credits →",
+      href: "/sign-up",
       popular: false
     },
     {

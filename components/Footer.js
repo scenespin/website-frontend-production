@@ -67,7 +67,7 @@ const Footer = () => {
             </a>
           </div>
           <div className="flex-grow flex flex-wrap justify-center -mb-10 md:mt-0 mt-10 text-center">
-            <div className="lg:w-1/3 md:w-1/2 w-full px-4">
+            <div className="lg:w-1/4 md:w-1/2 w-full px-4">
               <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
                 LINKS
               </div>
@@ -86,13 +86,41 @@ const Footer = () => {
                 <Link href="/blog" className="link link-hover">
                   Blog
                 </Link>
-                <a href="/#" target="_blank" className="link link-hover">
-                  Affiliates
+                <Link href="/features" className="link link-hover">
+                  Features
+                </Link>
+              </div>
+            </div>
+
+            <div className="lg:w-1/4 md:w-1/2 w-full px-4">
+              <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
+                HELP & SUPPORT
+              </div>
+
+              <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
+                <Link href="/help" className="link link-hover">
+                  Help Center
+                </Link>
+                <Link href="/help/quick-start" className="link link-hover">
+                  Quick Start
+                </Link>
+                <Link href="/help/video-generation" className="link link-hover">
+                  Video Generation
+                </Link>
+                <Link href="/help/reference/troubleshooting" className="link link-hover">
+                  Troubleshooting
+                </Link>
+                <a
+                  href="mailto:support@wryda.ai"
+                  className="link link-hover"
+                  aria-label="Contact Support"
+                >
+                  Contact Support
                 </a>
               </div>
             </div>
 
-            <div className="lg:w-1/3 md:w-1/2 w-full px-4">
+            <div className="lg:w-1/4 md:w-1/2 w-full px-4">
               <div className="footer-title font-semibold text-base-content tracking-widest text-sm md:text-left mb-3">
                 LEGAL
               </div>

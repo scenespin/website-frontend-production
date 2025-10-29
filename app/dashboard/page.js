@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import WelcomeModal from '@/components/WelcomeModal';
 import { 
   Film, 
   Clapperboard, 
@@ -21,10 +22,41 @@ export default function Dashboard() {
   const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
   const [recentVideos, setRecentVideos] = useState([]);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
+    checkFirstVisit();
   }, []);
+
+  const checkFirstVisit = async () => {
+    try {
+      // Check if user has seen welcome modal
+      const hasSeenWelcome = user?.publicMetadata?.hasSeenWelcome;
+      
+      if (!hasSeenWelcome) {
+        setShowWelcomeModal(true);
+      }
+    } catch (error) {
+      console.error('Error checking first visit:', error);
+    }
+  };
+
+  const handleCloseWelcome = async () => {
+    setShowWelcomeModal(false);
+    
+    // Update user metadata to mark welcome as seen
+    try {
+      await user?.update({
+        publicMetadata: {
+          ...user.publicMetadata,
+          hasSeenWelcome: true,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating user metadata:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -55,6 +87,13 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-base-100">
+      {/* Welcome Modal for First-Time Users */}
+      <WelcomeModal 
+        isOpen={showWelcomeModal}
+        onClose={handleCloseWelcome}
+        userCredits={credits?.balance || 100}
+      />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white p-8">
         <div className="max-w-7xl mx-auto">

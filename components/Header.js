@@ -18,6 +18,10 @@ const links = [
     label: "Reviews",
   },
   {
+    href: "/help",
+    label: "Help",
+  },
+  {
     href: "/#faq",
     label: "FAQ",
   },
