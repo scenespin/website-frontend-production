@@ -518,9 +518,9 @@ function CharacterCard({
                   const desc = prompt('Enter character description:', '');
                   if (desc) {
                     api.characters.update(character.id, { description: desc })
-                      .then(() => {
+                      .then(async () => {
                         toast.success('Description added!');
-                        loadCharacters();
+                        await loadCharacters();
                       });
                   }
                 }}
