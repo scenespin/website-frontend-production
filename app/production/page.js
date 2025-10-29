@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '@/lib/api';
+import { VoiceProfileModal } from '@/components/production/VoiceProfileModal';
+import { Export3DModal } from '@/components/production/Export3DModal';
+import CharacterBank from '@/components/production/CharacterBank';
 import { 
   Video, 
   Zap, 
@@ -12,7 +15,10 @@ import {
   Globe,
   Sparkles,
   Clock,
-  Check
+  Check,
+  Users,
+  Box,
+  Mic
 } from 'lucide-react';
 
 // Platform icons mapping
@@ -37,6 +43,13 @@ export default function ProductionPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState(null);
   const [estimatedCost, setEstimatedCost] = useState(50);
+  
+  // Character Bank state
+  const [showCharacterBank, setShowCharacterBank] = useState(false);
+  const [characters, setCharacters] = useState([]);
+  const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [export3DModalOpen, setExport3DModalOpen] = useState(false);
 
   const qualityTiers = [
     {
@@ -167,14 +180,16 @@ export default function ProductionPage() {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white p-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl font-bold mb-2">AI Video Generation 🎬</h1>
-          <p className="text-white/80">Create professional videos from text in seconds</p>
+    <div className="flex h-screen">
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white p-6">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-4xl font-bold mb-2">AI Video Generation 🎬</h1>
+            <p className="text-white/80">Create professional videos from text in seconds</p>
+          </div>
         </div>
-      </div>
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -427,6 +442,11 @@ export default function ProductionPage() {
             )}
           </div>
         </div>
+      </div>
+      
+      {/* Character Bank Sidebar */}
+      <div className="w-96 border-l border-base-300 bg-base-100 hidden lg:block">
+        <CharacterBank />
       </div>
     </div>
   );

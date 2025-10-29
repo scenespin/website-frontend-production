@@ -35,7 +35,7 @@ export default function EditorPage() {
       setContent(`Title: My Screenplay
 Credit: Written by
 Author: ${user?.fullName || 'Your Name'}
-Source: Created with Wryda.ai
+Source: Created with App
 
 FADE IN:
 

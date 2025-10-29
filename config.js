@@ -1,11 +1,11 @@
 const config = {
   // REQUIRED
-  appName: "Wryda.ai",
+  appName: "App",
   // REQUIRED: a short description of your app for SEO tags (can be overwritten)
   appDescription:
-    "AI-Powered Screenplay Writing & Video Generation. Transform your screenplay into professional videos with AI.",
+    "Modern web application built with Next.js",
   // REQUIRED (no https://, not trialing slash at the end, just the naked domain)
-  domainName: "wryda.ai",
+  domainName: "example.com",
   crisp: {
     // Crisp website ID. IF YOU DON'T USE CRISP: just remove this => Then add a support email in this config file (resend.supportEmail) otherwise customer support won't work.
     id: "",
@@ -70,11 +70,11 @@ const config = {
   },
   resend: {
     // REQUIRED — Email 'From' field to be used when sending magic login links
-    fromNoReply: `Wryda.ai <noreply@wryda.ai>`,
+    fromNoReply: `App <noreply@example.com>`,
     // REQUIRED — Email 'From' field to be used when sending other emails, like abandoned carts, updates etc..
-    fromAdmin: `Wryda.ai Support <hello@wryda.ai>`,
+    fromAdmin: `App Support <support@example.com>`,
     // Email shown to customer if need support. Leave empty if not needed => if empty, set up Crisp above, otherwise you won't be able to offer customer support."
-    supportEmail: "hello@wryda.ai",
+    supportEmail: "support@example.com",
   },
   colors: {
     // REQUIRED — The DaisyUI theme to use (added to the main layout.js). Leave blank for default (light & dark mode). If you any other theme than light/dark, you need to add it in config.tailwind.js in daisyui.themes.

@@ -43,3 +43,12 @@ public/sitemap-0.xml
 .env*
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Documentation & Strategy Files (DO NOT COMMIT TO PUBLIC REPO)
+*.md
+!node_modules/**/README.md
+docs/
+ORIGINAL_CONFIGS/
+
+# PowerShell Scripts
+*.ps1

@@ -1,37 +1,59 @@
-# ShipFast — Javascript
+# Website Frontend
 
-Hey maker 👋 it's Marc from [ShipFast](https://shipfa.st/docs). Let's get your startup off the ground, FAST ⚡️
+A modern Next.js application built with React 19 and Tailwind CSS 4.
 
-<sub>**Watch/Star the repo to be notified when updates are pushed**</sub>
+## Features
 
-## Get Started
+- Next.js 15 with App Router
+- React 19 for modern UI development
+- Clerk authentication
+- Stripe integration
+- Responsive design with Tailwind CSS 4
+- DaisyUI components
 
-1. Follow the [Get Started Tutorial](https://shipfa.st/docs) to clone the repo and run your local server 💻
+## Getting Started
 
-<sub>**Looking for the /pages router version?** Use this [documentation](https://shipfa.st/docs-old) instead</sub>
+Install dependencies:
 
-2. Follow the [Ship In 5 Minutes Tutorial](https://shipfa.st/docs/tutorials/ship-in-5-minutes) to learn the foundation and ship your app quickly ⚡️
+```bash
+npm install
+```
 
-## Links
+Run the development server:
 
--   [📚 Documentation](https://shipfa.st/docs)
--   [📣 Updates](https://shipfast.beehiiv.com/)
--   [🧑‍💻 Discord](https://shipfa.st/dashboard)
--   [🥇 Leaderboard](https://shipfa.st/leaderboard)
+```bash
+npm run dev
+```
 
-## Support
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Reach out at hello@shipfa.st
+## Build
 
-Let's ship it, FAST ⚡️
+```bash
+npm run build
+npm start
+```
 
+## Environment Variables
 
-**📈 Grow your startup with [DataFast](https://datafa.st?ref=shipfast_readme)**
+Required environment variables:
 
--   Analyze your traffic
--   Get insights on your customers
--   Make data-driven decisions
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `STRIPE_PUBLIC_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
 
-ShipFast members get 30% OFF on all plans! 🎁
+## Tech Stack
 
-![datafast](https://github.com/user-attachments/assets/085453a6-8a66-45be-b7ea-a7a08e856ed8)
+- **Framework:** Next.js 15
+- **UI:** React 19, Tailwind CSS 4, DaisyUI
+- **Authentication:** Clerk
+- **Payments:** Stripe
+- **Database:** MongoDB with Mongoose
+- **Email:** Resend
+
+## License
+
+Proprietary
+

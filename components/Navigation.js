@@ -85,7 +85,7 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-gradient-to-r from-cinema-red to-cinema-blue rounded-lg flex items-center justify-center">
               <span className="text-white font-bold">W</span>
             </div>
-            <span className="font-bold">Wryda.ai</span>
+            <span className="font-bold">App</span>
           </Link>
 
           {/* Mobile Menu Button */}

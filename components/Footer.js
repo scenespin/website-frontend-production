@@ -37,8 +37,8 @@ const Footer = () => {
               Copyright © {new Date().getFullYear()} - All rights reserved
             </p>
             <a
-              href="https://shipfa.st/?ref=shipfast_badge"
-              title="Go to ShipFast"
+              href="https://example.com"
+              title="Go to Homepage"
               target="_blank"
               className="mt-4 inline-block cursor-pointer rounded bg-neutral px-2 py-1 text-sm text-neutral-content ring-1 ring-base-content/10 duration-200 hover:ring-neutral"
             >
@@ -58,7 +58,7 @@ const Footer = () => {
                       strokeWidth="20"
                     />
                   </svg>
-                  ShipFast
+                  App
                 </span>
               </div>
             </a>
