@@ -16,9 +16,7 @@ import { NextResponse } from "next/server";
 import connectMongo from "@/libs/mongoose";
 import VoiceConsent from "@/models/VoiceConsent";
 import VoiceConsentAuditLog from "@/models/VoiceConsentAuditLog";
-
-// TODO: Import email service when ready
-// import { sendEmail } from "@/libs/email";
+import { sendExpirationWarning } from "@/libs/emailService";
 
 /**
  * POST - Send expiration warnings
@@ -182,78 +180,8 @@ export async function POST(req) {
   }
 }
 
-/**
- * Send expiration warning email
- */
-async function sendExpirationWarning(consent, daysRemaining) {
-  try {
-    // TODO: Implement email sending when email service is ready
-    // For now, just log
-    console.log(`Sending ${daysRemaining}-day warning to: ${consent.voiceOwnerEmail}`);
-
-    /*
-    const subject = daysRemaining === 30 
-      ? "Voice Data Expiration Notice - 30 Days"
-      : "FINAL NOTICE: Voice Data Expiration - 7 Days";
-
-    const html = `
-      <h2>Voice Cloning Consent Expiration Notice</h2>
-      <p>Hello ${consent.voiceOwnerName},</p>
-      <p>
-        This is a ${daysRemaining === 30 ? "" : "final "}reminder that your voice cloning consent 
-        will expire in <strong>${daysRemaining} days</strong>.
-      </p>
-      <p>
-        <strong>Expiration Date:</strong> ${new Date(consent.retentionDeadline).toLocaleDateString('en-US', { dateStyle: 'full' })}
-      </p>
-      <p>
-        Under the Illinois Biometric Information Privacy Act (BIPA), we are required to delete your 
-        voice data after 3 years. When your consent expires:
-      </p>
-      <ul>
-        <li>All your voice profiles will be permanently deleted</li>
-        <li>Your voice data will be removed from our systems</li>
-        <li>You will no longer be able to use voice cloning features</li>
-      </ul>
-      <h3>What You Can Do:</h3>
-      <ul>
-        <li><strong>Revoke Early:</strong> You can revoke consent now and have your data deleted immediately</li>
-        <li><strong>Let It Expire:</strong> Do nothing and your data will be automatically deleted on the expiration date</li>
-        <li><strong>Provide New Consent:</strong> After deletion, you can provide fresh consent to continue using voice cloning</li>
-      </ul>
-      <p>
-        To manage your consent, visit your 
-        <a href="https://wryda.ai/settings">Account Settings</a>.
-      </p>
-      <p>
-        If you have questions, contact us at 
-        <a href="mailto:privacy@wryda.ai">privacy@wryda.ai</a>
-      </p>
-      <p>
-        <small>
-          This email was sent in compliance with BIPA requirements. <br>
-          Garden State Concentrate LLC (DBA: Wryda.ai)<br>
-          479 State Rt 17 UNIT 2008, Mahwah, NJ 07430-2116
-        </small>
-      </p>
-    `;
-
-    await sendEmail({
-      to: consent.voiceOwnerEmail,
-      subject,
-      html,
-    });
-    */
-
-    // Return true when email sending is implemented
-    // For now, return true to allow logging
-    return true;
-
-  } catch (error) {
-    console.error("Error sending warning email:", error);
-    return false;
-  }
-}
+// sendExpirationWarning is now imported from emailService
+// No need to redefine it here
 
 /**
  * GET - Manual trigger for testing (development only)

@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
 // Define protected routes
 const isProtectedRoute = createRouteMatcher([
@@ -6,19 +7,86 @@ const isProtectedRoute = createRouteMatcher([
   '/api/protected(.*)',
 ])
 
-// Define admin routes
+// Define admin routes (frontend pages)
 const isAdminRoute = createRouteMatcher([
   '/dashboard/admin(.*)',
+  '/admin(.*)',
 ])
 
+// Define admin API routes
+const isAdminAPIRoute = createRouteMatcher([
+  '/api/admin(.*)',
+])
+
+// Define voice cloning API routes (for rate limiting)
+const isVoiceConsentRoute = createRouteMatcher([
+  '/api/voice-cloning/consent',
+  '/api/voice-cloning/revoke',
+])
+
+// Simple in-memory rate limiter
+// In production, use Redis or Upstash for distributed rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(identifier: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(identifier);
+  
+  if (!record || now > record.resetTime) {
+    // New window or expired
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+  
+  if (record.count >= limit) {
+    // Rate limit exceeded
+    return false;
+  }
+  
+  // Increment count
+  record.count++;
+  return true;
+}
+
+// Cleanup old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  
+  rateLimitMap.forEach((record, key) => {
+    if (now > record.resetTime) {
+      keysToDelete.push(key);
+    }
+  });
+  
+  keysToDelete.forEach(key => rateLimitMap.delete(key));
+}, 60000); // Cleanup every minute
+
 export default clerkMiddleware(async (auth, req) => {
+  // Apply rate limiting to voice consent routes
+  if (isVoiceConsentRoute(req)) {
+    const { userId } = await auth();
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    const identifier = userId || ip;
+    
+    // Allow 10 requests per minute
+    const allowed = checkRateLimit(`consent:${identifier}`, 10, 60000);
+    
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again in a minute.' },
+        { status: 429 }
+      );
+    }
+  }
+  
   // Protect dashboard routes
   if (isProtectedRoute(req)) {
     await auth.protect()
   }
   
   // Protect admin routes and check for admin role
-  if (isAdminRoute(req)) {
+  if (isAdminRoute(req) || isAdminAPIRoute(req)) {
     await auth.protect((has) => {
       return has({ role: 'admin' })
     })

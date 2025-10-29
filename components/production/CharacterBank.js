@@ -45,11 +45,6 @@ export default function CharacterBank() {
   
   const fileInputRef = useRef(null);
 
-  // Load characters on mount
-  useEffect(() => {
-    loadCharacters();
-  }, []);
-
   const loadCharacters = async () => {
     try {
       const response = await api.characters.list();
@@ -60,6 +55,11 @@ export default function CharacterBank() {
       setCharacters([]);
     }
   };
+
+  // Load characters on mount
+  useEffect(() => {
+    loadCharacters();
+  }, []);
 
   const handleImageUpload = async (characterId, file) => {
     if (!file) return;

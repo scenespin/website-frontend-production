@@ -54,7 +54,8 @@ export default function VoiceCloningConsentModal({ isOpen, onClose, onAccept, on
 
   const handleConsentScroll = (e) => {
     const element = e.target;
-    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50;
+    // Reduced buffer from 50px to 20px for more accurate scroll detection
+    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 20;
     if (isAtBottom && !hasScrolledToBottom) {
       setHasScrolledToBottom(true);
     }
