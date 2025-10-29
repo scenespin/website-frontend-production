@@ -443,6 +443,7 @@ export default function ProductionPage() {
           </div>
         </div>
       </div>
+      </div>
       
       {/* Character Bank Sidebar */}
       <div className="w-96 border-l border-base-300 bg-base-100 hidden lg:block">
