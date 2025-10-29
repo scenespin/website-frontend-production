@@ -520,6 +520,7 @@ function CharacterCard({
                     api.characters.update(character.id, { description: desc })
                       .then(async () => {
                         toast.success('Description added!');
+                        // eslint-disable-next-line no-undef
                         await loadCharacters();
                       });
                   }
