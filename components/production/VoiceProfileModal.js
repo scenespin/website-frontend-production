@@ -116,7 +116,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
             <div>
               <h4 className="font-bold">ElevenLabs Integration</h4>
               <p className="text-sm">
-                You'll need your own ElevenLabs account with verified voices. 
+                You&apos;ll need your own ElevenLabs account with verified voices. 
                 We only show <strong>minimal branding</strong> during setup.
               </p>
             </div>

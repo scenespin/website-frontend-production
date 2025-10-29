@@ -61,7 +61,7 @@ const TOS = () => {
 
 TERMS OF SERVICE
 
-Welcome to Wryda.ai ("we," "us," "our," or the "Platform"). These Terms of Service ("Terms") constitute a legally binding agreement between you ("you," "your," or "User") and Wryda.ai governing your access to and use of our AI-powered screenplay writing and video generation services.
+Welcome to Wryda.ai, a product of Garden State Concentrate LLC ("we," "us," "our," "Garden State Concentrate," or the "Platform"). These Terms of Service ("Terms") constitute a legally binding agreement between you ("you," "your," or "User") and Garden State Concentrate LLC, operating as Wryda.ai, governing your access to and use of our AI-powered screenplay writing and video generation services.
 
 BY ACCESSING OR USING OUR SERVICES, YOU AGREE TO BE BOUND BY THESE TERMS. IF YOU DO NOT AGREE TO THESE TERMS, YOU MAY NOT ACCESS OR USE THE SERVICES.
 
@@ -93,7 +93,15 @@ Wryda.ai provides an AI-powered platform that enables users to:
 - Collaborate on creative projects
 
 2.2 Third-Party Technology
-Our Services integrate multiple third-party artificial intelligence technologies to deliver video generation, audio synthesis, voice cloning, music creation, and other AI-powered features. While we facilitate access to these technologies, we do not directly control or own the underlying AI models. Your use of these features may be subject to additional restrictions and requirements set forth in these Terms.
+Our Services integrate multiple third-party artificial intelligence technologies to deliver video generation, audio synthesis, voice cloning, music creation, and other AI-powered features. These include:
+
+- Video Generation Services: AI video generation providers for text-to-video and video editing
+- Audio & Music Generation Services: AI audio synthesis providers for music and sound creation
+- Voice Cloning Services: AI voice synthesis providers for voice cloning and text-to-speech (subject to additional provider terms)
+- 3D Modeling Services: AI 3D generation providers for object and scene creation
+- Payment Processing: Third-party payment processors for billing and subscriptions
+
+While we facilitate access to these technologies, we do not directly control or own the underlying AI models. Your use of these features may be subject to additional restrictions and requirements set forth in these Terms and the third-party providers' terms of service.
 
 2.3 Service Availability
 We strive to provide continuous service availability but do not guarantee uninterrupted access. We reserve the right to modify, suspend, or discontinue any aspect of the Services at any time, with or without notice, for maintenance, updates, or other operational reasons.
@@ -325,7 +333,7 @@ We are not responsible for issues related to internet connectivity, bandwidth li
 10. LIMITATION OF LIABILITY
 
 10.1 Exclusion of Damages
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, WRYDA.AI, ITS AFFILIATES, OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AND LICENSORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO:
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, GARDEN STATE CONCENTRATE LLC (DBA WRYDA.AI), ITS AFFILIATES, OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, AND LICENSORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO:
 - Loss of profits, revenue, or business opportunities
 - Loss of data or content
 - Loss of goodwill or reputation
@@ -334,10 +342,10 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, WRYDA.AI, ITS AFFILIATES, OFFICERS, DIRE
 ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICES, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 10.2 Liability Cap
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICES SHALL NOT EXCEED THE GREATER OF (A) ONE HUNDRED DOLLARS ($100) OR (B) THE TOTAL AMOUNT PAID BY YOU TO WRYDA.AI IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO LIABILITY.
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICES SHALL NOT EXCEED THE GREATER OF (A) ONE HUNDRED DOLLARS ($100) OR (B) THE TOTAL AMOUNT PAID BY YOU TO GARDEN STATE CONCENTRATE LLC IN THE TWELVE (12) MONTHS PRECEDING THE EVENT GIVING RISE TO LIABILITY.
 
 10.3 Basis of the Bargain
-You acknowledge that the limitations of liability in this section are fundamental elements of the basis of the bargain between you and Wryda.ai, and that we would not provide the Services without these limitations.
+You acknowledge that the limitations of liability in this section are fundamental elements of the basis of the bargain between you and Garden State Concentrate LLC, and that we would not provide the Services without these limitations.
 
 10.4 Applicable Law
 Some jurisdictions do not allow the exclusion or limitation of certain damages. In such jurisdictions, our liability is limited to the maximum extent permitted by law.
@@ -347,7 +355,7 @@ Some jurisdictions do not allow the exclusion or limitation of certain damages. 
 11. INDEMNIFICATION
 
 11.1 Your Indemnification Obligations
-You agree to indemnify, defend, and hold harmless Wryda.ai, its affiliates, officers, directors, employees, agents, licensors, and service providers from and against any and all claims, liabilities, damages, losses, costs, expenses, and fees (including reasonable attorneys' fees) arising out of or related to:
+You agree to indemnify, defend, and hold harmless Garden State Concentrate LLC (DBA Wryda.ai), its affiliates, officers, directors, employees, agents, licensors, and service providers from and against any and all claims, liabilities, damages, losses, costs, expenses, and fees (including reasonable attorneys' fees) arising out of or related to:
 
 a) Your use or misuse of the Services
 b) Your User Content or Generated Content
@@ -375,7 +383,7 @@ If we cannot resolve the dispute informally, any dispute, claim, or controversy 
 The arbitration shall be conducted by a single arbitrator and will take place in the United States. The arbitrator's decision shall be final and binding and may be entered as a judgment in any court of competent jurisdiction.
 
 12.4 Class Action Waiver
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, YOU AND WRYDA.AI AGREE THAT EACH PARTY MAY BRING CLAIMS AGAINST THE OTHER ONLY IN AN INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS, CONSOLIDATED, OR REPRESENTATIVE PROCEEDING.
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, YOU AND GARDEN STATE CONCENTRATE LLC (DBA WRYDA.AI) AGREE THAT EACH PARTY MAY BRING CLAIMS AGAINST THE OTHER ONLY IN AN INDIVIDUAL CAPACITY AND NOT AS A PLAINTIFF OR CLASS MEMBER IN ANY PURPORTED CLASS, CONSOLIDATED, OR REPRESENTATIVE PROCEEDING.
 
 12.5 Exceptions
 Notwithstanding the above, either party may seek equitable relief in court to protect intellectual property rights or confidential information.
@@ -388,10 +396,10 @@ You may opt out of arbitration by sending written notice within thirty (30) days
 13. GOVERNING LAW AND JURISDICTION
 
 13.1 Governing Law
-These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, United States, without regard to its conflict of law principles.
+These Terms shall be governed by and construed in accordance with the laws of the State of New Jersey, United States, without regard to its conflict of law principles.
 
 13.2 Jurisdiction
-Subject to the arbitration provisions above, you agree to submit to the personal and exclusive jurisdiction of the courts located in Delaware for any legal proceedings.
+Subject to the arbitration provisions above, you agree to submit to the personal and exclusive jurisdiction of the courts located in New Jersey for any legal proceedings.
 
 13.3 International Use
 The Services are controlled and operated from the United States. If you access the Services from outside the United States, you do so at your own risk and are responsible for compliance with local laws.
@@ -442,7 +450,7 @@ Except as required by law, we will not provide refunds or credits for any fees p
 16. GENERAL PROVISIONS
 
 16.1 Entire Agreement
-These Terms, together with our Privacy Policy and any other policies referenced herein, constitute the entire agreement between you and Wryda.ai regarding the Services and supersede all prior agreements and understandings.
+These Terms, together with our Privacy Policy and any other policies referenced herein, constitute the entire agreement between you and Garden State Concentrate LLC regarding the Services and supersede all prior agreements and understandings.
 
 16.2 Severability
 If any provision of these Terms is held to be invalid, illegal, or unenforceable, the remaining provisions shall continue in full force and effect, and the invalid provision shall be modified to reflect the parties' intent to the maximum extent permitted by law.
@@ -477,11 +485,18 @@ Headings are for convenience only and do not affect interpretation. The words "i
 
 For questions, concerns, or notices regarding these Terms of Service, please contact us at:
 
-Wryda.ai
+Garden State Concentrate LLC
+DBA: Wryda.ai
+479 State Rt 17 UNIT 2008
+Mahwah, NJ 07430-2116
 Email: legal@wryda.ai
 Support: support@wryda.ai
 
-For DMCA copyright notices, please use the email address above with the subject line "DMCA Notice."
+For DMCA copyright notices:
+Email: dmca@wryda.ai (or legal@wryda.ai)
+Subject Line: "DMCA Notice"
+
+Note: A designated DMCA agent must be registered with the US Copyright Office. Please register at https://www.copyright.gov/dmca-directory/ and update this section with your agent's information once registered.
 
 ═════════════════════════════════════════════════════════
 

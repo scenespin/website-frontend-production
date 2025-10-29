@@ -72,9 +72,9 @@ export function DialogueModePanel({ onInsert }) {
             <div className="mt-6 text-xs text-left bg-base-200 p-3 rounded-lg max-w-sm mx-auto">
               <p className="font-semibold mb-1">💡 Dialogue Writing Tips:</p>
               <ul className="list-disc list-inside space-y-1 text-base-content/70">
-                <li>Subtext is king - what's NOT said matters</li>
+                <li>Subtext is king - what&apos;s NOT said matters</li>
                 <li>Each character speaks differently</li>
-                <li>Avoid "on the nose" dialogue</li>
+                <li>Avoid &quot;on the nose&quot; dialogue</li>
                 <li>Use interruptions and pauses</li>
               </ul>
             </div>

@@ -61,7 +61,7 @@ const PrivacyPolicy = () => {
 
 PRIVACY POLICY
 
-Welcome to Wryda.ai ("we," "us," "our," or the "Platform"). This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you use our AI-powered screenplay writing and video generation services.
+Welcome to Wryda.ai, operated by Garden State Concentrate LLC ("we," "us," "our," "Garden State Concentrate," or the "Platform"). This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you use our AI-powered screenplay writing and video generation services.
 
 BY USING OUR SERVICES, YOU CONSENT TO THE DATA PRACTICES DESCRIBED IN THIS POLICY. IF YOU DO NOT AGREE WITH THIS POLICY, PLEASE DO NOT USE OUR SERVICES.
 
@@ -175,7 +175,7 @@ We may use your information to:
 - Enforce our Terms of Service and other policies
 - Protect against fraud, abuse, and security threats
 - Investigate and prevent illegal activities
-- Protect the rights, property, and safety of Wryda.ai, our users, and the public
+- Protect the rights, property, and safety of Garden State Concentrate LLC, our users, and the public
 
 ═════════════════════════════════════════════════════════
 
@@ -194,17 +194,24 @@ We share information with trusted third-party service providers who assist us in
 These providers are contractually obligated to protect your information and use it only for the specific services they provide to us.
 
 3.2 Third-Party AI Technologies
-To provide our Services, we integrate with third-party AI platforms that process:
+To provide our Services, we integrate with third-party AI platforms including:
+
+- Video Generation Services: AI video generation providers for text-to-video and video editing
+- Audio & Music Generation Services: AI audio synthesis providers for music and sound creation
+- Voice Cloning Services: AI voice synthesis providers for voice cloning and text-to-speech
+- 3D Modeling Services: AI 3D generation providers for object and scene creation
+
+These providers process:
 - Text and screenplay content for analysis and generation
 - Video generation requests and outputs
 - Audio generation and music creation requests
 - Voice cloning data and synthesis
 - 3D modeling and animation requests
 
-These third parties process data in accordance with their own privacy policies. While we select reputable partners, we are not responsible for their data practices.
+IMPORTANT: These third parties process data in accordance with their own privacy policies. While we select reputable partners with strong privacy practices, we are not responsible for their data practices. Voice cloning features use third-party services subject to additional terms.
 
 3.3 Business Transfers
-If Wryda.ai is involved in a merger, acquisition, bankruptcy, or sale of assets, your information may be transferred as part of that transaction. We will notify you of any such change in ownership or control of your information.
+If Garden State Concentrate LLC is involved in a merger, acquisition, bankruptcy, or sale of assets, your information may be transferred as part of that transaction. We will notify you of any such change in ownership or control of your information.
 
 3.4 Legal Requirements
 We may disclose your information when required by law or in response to:
@@ -460,7 +467,10 @@ Subject Line: "Privacy Inquiry"
 
 For questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us at:
 
-Wryda.ai
+Garden State Concentrate LLC
+DBA: Wryda.ai
+479 State Rt 17 UNIT 2008
+Mahwah, NJ 07430-2116
 Email: privacy@wryda.ai
 Support: support@wryda.ai
 Website: https://wryda.ai
@@ -479,7 +489,7 @@ BY USING OUR SERVICES, YOU ACKNOWLEDGE THAT YOU HAVE READ AND UNDERSTOOD THIS PR
 
 ═════════════════════════════════════════════════════════
 
-Thank you for trusting Wryda.ai with your information. We are committed to protecting your privacy and handling your data responsibly.`}
+Thank you for trusting Garden State Concentrate LLC (Wryda.ai) with your information. We are committed to protecting your privacy and handling your data responsibly.`}
         </pre>
       </div>
     </main>
