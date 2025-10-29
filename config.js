@@ -13,52 +13,74 @@ const config = {
     onlyShowOnRoutes: ["/"],
   },
   stripe: {
-    // Create multiple plans in your Stripe dashboard, then add them here. You can add as many plans as you want, just make sure to add the priceId
+    // Wryda.ai Pricing - Pure Credit Economy
+    // Everyone gets everything. Only difference is credits per month.
+    // TODO: Create these products in Stripe Dashboard, then replace price IDs
     plans: [
       {
-        // REQUIRED — we use this to find the plan in the webhook (for instance if you want to update the user's credits based on the plan)
-        priceId:
-          process.env.NODE_ENV === "development"
-            ? "price_1Niyy5AxyNprDp7iZIqEyD2h"
-            : "price_456",
-        //  REQUIRED - Name of the plan, displayed on the pricing page
-        name: "Starter",
-        // A friendly description of the plan, displayed on the pricing page. Tip: explain why this plan and not others
-        description: "Perfect for small projects",
-        // The price you want to display, the one user will be charged on Stripe.
-        price: 79,
-        // If you have an anchor price (i.e. $29) that you want to display crossed out, put it here. Otherwise, leave it empty
-        priceAnchor: 99,
+        priceId: "price_free", // Free tier doesn't use Stripe
+        name: "Free",
+        description: "All features unlocked. Try everything.",
+        price: 0,
+        priceAnchor: null,
         features: [
-          {
-            name: "NextJS boilerplate",
-          },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
+          { name: "100 signup + 10/month credits" },
+          { name: "All quality tiers & aspect ratios" },
+          { name: "Upload your own footage" },
+          { name: "50+ LUTs, 30+ Transitions" },
         ],
+        isFeatured: false,
       },
       {
-        // This plan will look different on the pricing page, it will be highlighted. You can only have one plan with isFeatured: true
         isFeatured: true,
         priceId:
           process.env.NODE_ENV === "development"
-            ? "price_1O5KtcAxyNprDp7iftKnrrpw"
-            : "price_456",
-        name: "Advanced",
-        description: "You need more power",
-        price: 99,
-        priceAnchor: 149,
+            ? "price_pro_dev_TODO" // TODO: Replace with Stripe price ID
+            : "price_pro_prod_TODO",
+        name: "Pro",
+        description: "Same features. Just more credits.",
+        price: 29,
+        priceAnchor: null,
         features: [
-          {
-            name: "NextJS boilerplate",
-          },
-          { name: "User oauth" },
-          { name: "Database" },
-          { name: "Emails" },
-          { name: "1 year of updates" },
-          { name: "24/7 support" },
+          { name: "3,000 credits/month" },
+          { name: "Everything in Free" },
+          { name: "~60 Professional 1080p videos" },
+          { name: "Save $1,980/year vs traditional" },
         ],
+      },
+      {
+        priceId:
+          process.env.NODE_ENV === "development"
+            ? "price_ultra_dev_TODO"
+            : "price_ultra_prod_TODO",
+        name: "Ultra",
+        description: "Production volume. Same features.",
+        price: 149,
+        priceAnchor: null,
+        features: [
+          { name: "20,000 credits/month" },
+          { name: "Everything in Free" },
+          { name: "~400 Professional videos" },
+          { name: "Perfect for studios & agencies" },
+        ],
+        isFeatured: false,
+      },
+      {
+        priceId:
+          process.env.NODE_ENV === "development"
+            ? "price_studio_dev_TODO"
+            : "price_studio_prod_TODO",
+        name: "Studio",
+        description: "Enterprise teams. Same features.",
+        price: 399,
+        priceAnchor: null,
+        features: [
+          { name: "75,000 credits/month" },
+          { name: "Everything in Free" },
+          { name: "~1,500 Professional videos" },
+          { name: "Massive production capacity" },
+        ],
+        isFeatured: false,
       },
     ],
   },

@@ -34,6 +34,9 @@ const Footer = () => {
               {config.appDescription}
             </p>
             <p className="mt-3 text-sm text-base-content/60">
+              Founded 2025 • Building with creators
+            </p>
+            <p className="mt-2 text-sm text-base-content/60">
               Copyright © {new Date().getFullYear()} - All rights reserved
             </p>
             <a
@@ -70,16 +73,13 @@ const Footer = () => {
               </div>
 
               <div className="flex flex-col justify-center items-center md:items-start gap-2 mb-10 text-sm">
-                {config.resend.supportEmail && (
-                  <a
-                    href={`mailto:${config.resend.supportEmail}`}
-                    target="_blank"
-                    className="link link-hover"
-                    aria-label="Contact Support"
-                  >
-                    Support
-                  </a>
-                )}
+                <a
+                  href="mailto:hello@wryda.ai"
+                  className="link link-hover"
+                  aria-label="Contact Us"
+                >
+                  hello@wryda.ai
+                </a>
                 <Link href="/#pricing" className="link link-hover">
                   Pricing
                 </Link>
