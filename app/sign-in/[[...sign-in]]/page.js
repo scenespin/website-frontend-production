@@ -10,15 +10,6 @@ export default function SignInPage() {
             card: "bg-base-200 shadow-xl"
           }
         }}
-        localization={{
-          formFieldLabel__emailAddress: 'Email address',
-          signIn: {
-            start: {
-              title: 'Sign in to App',
-              subtitle: 'Welcome back! Please sign in to continue',
-            },
-          },
-        }}
       />
     </div>
   )

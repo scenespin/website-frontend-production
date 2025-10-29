@@ -10,15 +10,6 @@ export default function SignUpPage() {
             card: "bg-base-200 shadow-xl"
           }
         }}
-        localization={{
-          formFieldLabel__emailAddress: 'Email address',
-          signUp: {
-            start: {
-              title: 'Create your account',
-              subtitle: 'Get started with App today',
-            },
-          },
-        }}
       />
     </div>
   )
