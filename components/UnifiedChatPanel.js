@@ -6,6 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { ChatModePanel } from './modes/ChatModePanel';
 import { DirectorModePanel } from './modes/DirectorModePanel';
+import { DialogueModePanel } from './modes/DialogueModePanel';
 import { ImageModePanel } from './modes/ImageModePanel';
 import { VideoModePanel } from './modes/VideoModePanel';
 import { SceneVisualizerModePanel } from './modes/SceneVisualizerModePanel';
@@ -23,11 +24,12 @@ const MODE_CONFIG = {
   'try-on': { icon: Users, label: 'Try-On', color: 'text-pink-500' },
   chat: { icon: MessageSquare, label: 'Chat', color: 'text-cinema-red' },
   director: { icon: Clapperboard, label: 'Director', color: 'text-cinema-gold' },
+  dialogue: { icon: MessageSquare, label: 'Dialogue', color: 'text-cinema-blue' },
   workflows: { icon: Zap, label: 'Workflows', color: 'text-orange-500' },
 };
 
 // Mode order for selector
-const MODE_ORDER = ['image', 'quick-video', 'audio', 'try-on', 'chat', 'director', 'workflows'];
+const MODE_ORDER = ['image', 'quick-video', 'audio', 'try-on', 'chat', 'director', 'dialogue', 'workflows'];
 
 // ============================================================================
 // MODE SELECTOR COMPONENT
@@ -197,6 +199,9 @@ function UnifiedChatPanelInner({
 
       case 'director':
         return <DirectorModePanel {...commonProps} />;
+
+      case 'dialogue':
+        return <DialogueModePanel {...commonProps} />;
 
       case 'workflows':
         return (
