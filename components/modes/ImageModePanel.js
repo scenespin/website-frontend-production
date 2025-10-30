@@ -16,8 +16,7 @@ export function ImageModePanel({ onInsert, imageEntityContext }) {
     { id: 'photon', name: 'Luma Photon', description: 'Photorealistic', credits: 10 },
     { id: 'imagen-nano', name: 'Imagen Nano', description: 'Fast Edits & Variations', credits: 5 },
     { id: 'imagen', name: 'Google Imagen', description: 'Versatile & Fast', credits: 8 },
-    { id: 'dalle', name: 'DALL-E 3', description: 'Creative & Artistic', credits: 12 },
-    { id: 'midjourney', name: 'Midjourney v6', description: 'Stylized Art', credits: 15 }
+    { id: 'dalle', name: 'DALL-E 3', description: 'Creative & Artistic', credits: 12 }
   ];
   
   const aspectRatios = [
@@ -78,12 +77,12 @@ export function ImageModePanel({ onInsert, imageEntityContext }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 bg-gradient-to-r from-cinema-red to-cinema-blue text-white">
+      <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
         <div className="flex items-center gap-2">
-          <ImageIcon className="w-5 h-5" />
-          <h3 className="font-bold">Image Generation</h3>
+          <ImageIcon className="w-5 h-5 text-cinema-red" />
+          <h3 className="font-bold text-base-content">Image Generation</h3>
         </div>
-        <p className="text-xs text-white/80 mt-1">Create character portraits, location concepts, and more</p>
+        <p className="text-xs text-base-content/60 mt-1">Create character portraits, location concepts, and more</p>
       </div>
       
       {/* Entity Context Banner */}

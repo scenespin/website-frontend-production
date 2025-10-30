@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { api } from '@/lib/api';
-import { Film, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Film, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function VideoModePanel({ onInsert }) {
@@ -12,8 +12,27 @@ export function VideoModePanel({ onInsert }) {
   const [generatedVideo, setGeneratedVideo] = useState(null);
   
   // Video settings
+  const [videoMode, setVideoMode] = useState('text-only'); // 'text-only' | 'image-start' | 'image-interpolation' | 'reference-images'
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [qualityTier, setQualityTier] = useState('professional');
+  
+  // Image uploads
+  const [startImage, setStartImage] = useState(null);
+  const [endImage, setEndImage] = useState(null);
+  const [referenceImages, setReferenceImages] = useState([null, null, null]);
+  
+  const startImageRef = useRef(null);
+  const endImageRef = useRef(null);
+  const refImage1Ref = useRef(null);
+  const refImage2Ref = useRef(null);
+  const refImage3Ref = useRef(null);
+  
+  const videoModes = [
+    { value: 'text-only', label: 'Text Only', icon: '📝', description: 'Pure text-to-video' },
+    { value: 'image-start', label: 'Image Start', icon: '📸', description: 'Animate from image' },
+    { value: 'image-interpolation', label: 'First & Last', icon: '🎬', description: 'Between 2 frames' },
+    { value: 'reference-images', label: 'Character Ref', icon: '🎭', description: 'Consistency (1-3 imgs)' }
+  ];
   
   const aspectRatios = [
     { value: '16:9', label: 'YouTube (16:9)', icon: '🎥' },
@@ -29,8 +48,80 @@ export function VideoModePanel({ onInsert }) {
     { value: 'ultra', label: 'Ultra Native 4K', credits: 100 }
   ];
   
+  // Image upload handlers
+  const handleImageUpload = (file, type, index = null) => {
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    
+    // Validate file size (max 20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Image must be under 20MB');
+      return;
+    }
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    file.preview = previewUrl;
+    
+    if (type === 'start') {
+      setStartImage(file);
+    } else if (type === 'end') {
+      setEndImage(file);
+    } else if (type === 'reference' && index !== null) {
+      const newRefs = [...referenceImages];
+      newRefs[index] = file;
+      setReferenceImages(newRefs);
+    }
+  };
+  
+  const clearImage = (type, index = null) => {
+    if (type === 'start') {
+      if (startImage?.preview) URL.revokeObjectURL(startImage.preview);
+      setStartImage(null);
+    } else if (type === 'end') {
+      if (endImage?.preview) URL.revokeObjectURL(endImage.preview);
+      setEndImage(null);
+    } else if (type === 'reference' && index !== null) {
+      const newRefs = [...referenceImages];
+      if (newRefs[index]?.preview) URL.revokeObjectURL(newRefs[index].preview);
+      newRefs[index] = null;
+      setReferenceImages(newRefs);
+    }
+  };
+  
+  // Upload image to backend
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const response = await api.video.uploadImage(formData);
+    return {
+      s3Key: response.data.s3Key,
+      url: response.data.url
+    };
+  };
+  
   const handleGenerate = async (prompt) => {
     if (!prompt.trim() || isGenerating) return;
+    
+    // Validate images based on mode
+    if (videoMode === 'image-start' && !startImage) {
+      toast.error('Please upload a start image');
+      return;
+    }
+    if (videoMode === 'image-interpolation' && (!startImage || !endImage)) {
+      toast.error('Please upload both start and end images');
+      return;
+    }
+    if (videoMode === 'reference-images' && !referenceImages.some(img => img !== null)) {
+      toast.error('Please upload at least 1 reference image');
+      return;
+    }
     
     setIsGenerating(true);
     
@@ -42,12 +133,48 @@ export function VideoModePanel({ onInsert }) {
         mode: 'video'
       });
       
-      // Call API
-      const response = await api.video.generateAsync({
+      // Upload images if needed
+      let requestData = {
         prompt: prompt.trim(),
+        videoMode,
         aspectRatio,
         qualityTier
-      });
+      };
+      
+      if (videoMode === 'image-start' && startImage) {
+        toast.loading('Uploading start image...');
+        const uploaded = await uploadImage(startImage);
+        requestData.startImageS3Key = uploaded.s3Key;
+        requestData.startImageUrl = uploaded.url;
+        toast.dismiss();
+      }
+      
+      if (videoMode === 'image-interpolation' && startImage && endImage) {
+        toast.loading('Uploading images...');
+        const [uploadedStart, uploadedEnd] = await Promise.all([
+          uploadImage(startImage),
+          uploadImage(endImage)
+        ]);
+        requestData.startImageS3Key = uploadedStart.s3Key;
+        requestData.startImageUrl = uploadedStart.url;
+        requestData.endImageS3Key = uploadedEnd.s3Key;
+        requestData.endImageUrl = uploadedEnd.url;
+        toast.dismiss();
+      }
+      
+      if (videoMode === 'reference-images') {
+        const validRefs = referenceImages.filter(img => img !== null);
+        if (validRefs.length > 0) {
+          toast.loading(`Uploading ${validRefs.length} reference image(s)...`);
+          const uploaded = await Promise.all(validRefs.map(img => uploadImage(img)));
+          requestData.referenceImageS3Keys = uploaded.map(u => u.s3Key);
+          requestData.referenceImageUrls = uploaded.map(u => u.url);
+          toast.dismiss();
+        }
+      }
+      
+      // Call API
+      const response = await api.video.generateAsync(requestData);
       
       // Add success message
       addMessage({
@@ -58,6 +185,11 @@ export function VideoModePanel({ onInsert }) {
       
       setGeneratedVideo(response.data);
       toast.success('Video generation started!');
+      
+      // Clear images
+      clearImage('start');
+      clearImage('end');
+      setReferenceImages([null, null, null]);
       
       if (onInsert) {
         onInsert({ type: 'video_job', jobId: response.data.jobId });
@@ -79,16 +211,154 @@ export function VideoModePanel({ onInsert }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 bg-gradient-to-r from-cinema-red to-cinema-blue text-white">
+      <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
         <div className="flex items-center gap-2">
-          <Film className="w-5 h-5" />
-          <h3 className="font-bold">Quick Video Generation</h3>
+          <Film className="w-5 h-5 text-cinema-red" />
+          <h3 className="font-bold text-base-content">Quick Video Generation</h3>
         </div>
-        <p className="text-xs text-white/80 mt-1">Generate professional video clips from text prompts</p>
+        <p className="text-xs text-base-content/60 mt-1">Generate professional video clips from text prompts</p>
       </div>
       
       {/* Settings */}
-      <div className="px-4 py-3 bg-base-200 border-b border-base-300 space-y-3">
+      <div className="px-4 py-3 bg-base-200 border-b border-base-300 space-y-3 max-h-[50vh] overflow-y-auto">
+        {/* Video Mode */}
+        <div>
+          <label className="text-xs font-semibold text-base-content/70 mb-2 block">VIDEO MODE</label>
+          <div className="grid grid-cols-2 gap-2">
+            {videoModes.map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => setVideoMode(mode.value)}
+                className={`btn btn-sm flex-col h-auto py-2 ${
+                  videoMode === mode.value 
+                    ? 'btn-primary' 
+                    : 'btn-outline'
+                }`}
+                title={mode.description}
+              >
+                <span className="text-lg">{mode.icon}</span>
+                <span className="text-xs">{mode.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Image Upload - Start Image */}
+        {(videoMode === 'image-start' || videoMode === 'image-interpolation') && (
+          <div>
+            <label className="text-xs font-semibold text-base-content/70 mb-2 block">
+              {videoMode === 'image-interpolation' ? 'FIRST FRAME' : 'START IMAGE'}
+            </label>
+            <input
+              ref={startImageRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e.target.files[0], 'start')}
+            />
+            {startImage ? (
+              <div className="relative aspect-video rounded-lg overflow-hidden border-2 border-cinema-red/30">
+                <img src={startImage.preview} alt="Start" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => clearImage('start')}
+                  className="absolute top-2 right-2 btn btn-xs btn-circle btn-error"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => startImageRef.current?.click()}
+                className="w-full aspect-video border-2 border-dashed border-base-content/30 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-cinema-red/50 hover:bg-base-300 transition-colors"
+              >
+                <Upload className="w-8 h-8 text-base-content/50" />
+                <span className="text-xs text-base-content/60">Click to upload</span>
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* Image Upload - End Image */}
+        {videoMode === 'image-interpolation' && (
+          <div>
+            <label className="text-xs font-semibold text-base-content/70 mb-2 block">LAST FRAME</label>
+            <input
+              ref={endImageRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e.target.files[0], 'end')}
+            />
+            {endImage ? (
+              <div className="relative aspect-video rounded-lg overflow-hidden border-2 border-cinema-red/30">
+                <img src={endImage.preview} alt="End" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => clearImage('end')}
+                  className="absolute top-2 right-2 btn btn-xs btn-circle btn-error"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => endImageRef.current?.click()}
+                className="w-full aspect-video border-2 border-dashed border-base-content/30 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-cinema-red/50 hover:bg-base-300 transition-colors"
+              >
+                <Upload className="w-8 h-8 text-base-content/50" />
+                <span className="text-xs text-base-content/60">Click to upload</span>
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* Reference Images */}
+        {videoMode === 'reference-images' && (
+          <div>
+            <label className="text-xs font-semibold text-base-content/70 mb-2 block">
+              REFERENCE IMAGES (1-3)
+              <span className="ml-2 text-[10px] opacity-60">For character/location consistency</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((index) => {
+                const img = referenceImages[index];
+                const inputRef = index === 0 ? refImage1Ref : index === 1 ? refImage2Ref : refImage3Ref;
+                
+                return (
+                  <div key={index}>
+                    <input
+                      ref={inputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageUpload(e.target.files[0], 'reference', index)}
+                    />
+                    {img ? (
+                      <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-cinema-gold/30">
+                        <img src={img.preview} alt={`Ref ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => clearImage('reference', index)}
+                          className="absolute top-1 right-1 btn btn-xs btn-circle btn-error"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => inputRef.current?.click()}
+                        className="w-full aspect-square border-2 border-dashed border-base-content/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:border-cinema-gold/50 hover:bg-base-300 transition-colors"
+                      >
+                        <ImageIcon className="w-6 h-6 text-base-content/40" />
+                        <span className="text-[10px] text-base-content/50">{index + 1}</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-base-content/50 mt-1">💡 Tip: Use front, side, and 3/4 angles for best results</p>
+          </div>
+        )}
+        
         {/* Aspect Ratio */}
         <div>
           <label className="text-xs font-semibold text-base-content/70 mb-2 block">ASPECT RATIO</label>

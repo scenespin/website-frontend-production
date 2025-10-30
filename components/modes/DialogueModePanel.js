@@ -15,12 +15,12 @@ export function DialogueModePanel({ onInsert }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 bg-gradient-to-r from-cinema-red to-cinema-blue text-white">
+      <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5" />
-          <h3 className="font-bold">Dialogue Writing</h3>
+          <MessageSquare className="w-5 h-5 text-cinema-red" />
+          <h3 className="font-bold text-base-content">Dialogue Writing</h3>
         </div>
-        <p className="text-xs text-white/80 mt-1">Craft compelling dialogue with subtext and character voice</p>
+        <p className="text-xs text-base-content/60 mt-1">Craft compelling dialogue with subtext and character voice</p>
       </div>
       
       {/* Messages Area */}

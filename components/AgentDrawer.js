@@ -135,16 +135,16 @@ export default function AgentDrawer({ children }) {
         }`}
         style={{ width: '480px' }}
       >
-        {/* Header (Desktop) */}
-        <div className="h-16 flex items-center justify-between px-4 bg-base-300 border-b border-cinema-red/20">
-          <h3 className="text-lg font-bold text-base-content">AI Assistant</h3>
-          <button
-            onClick={closeDrawer}
-            className="btn btn-sm btn-ghost btn-circle"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+             {/* Header (Desktop) */}
+             <div className="h-16 flex items-center justify-between px-4 bg-base-300 border-b border-cinema-red/20">
+               <h3 className="text-lg font-bold text-base-content">Screenwriting Assistant</h3> {/* Changed from AI Assistant */}
+               <button
+                 onClick={closeDrawer}
+                 className="btn btn-sm btn-ghost btn-circle"
+               >
+                 <ChevronRight className="w-5 h-5" />
+               </button>
+             </div>
 
         {/* Content */}
         <div className="h-[calc(100%-64px)] overflow-auto">
