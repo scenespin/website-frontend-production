@@ -18,7 +18,8 @@ import {
   Check,
   Users,
   Box,
-  Mic
+  Mic,
+  X
 } from 'lucide-react';
 
 // Platform icons mapping
@@ -50,6 +51,9 @@ export default function ProductionPage() {
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [export3DModalOpen, setExport3DModalOpen] = useState(false);
+  
+  // Mobile-specific state
+  const [showMobileCharacterBank, setShowMobileCharacterBank] = useState(false);
 
   const qualityTiers = [
     {
@@ -191,7 +195,7 @@ export default function ProductionPage() {
           </div>
         </div>
 
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6 pb-32 lg:pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -445,10 +449,69 @@ export default function ProductionPage() {
       </div>
       </div>
       
-      {/* Character Bank Sidebar */}
+      {/* Character Bank Sidebar - Desktop Only */}
       <div className="w-96 border-l border-base-300 bg-base-100 hidden lg:block">
         <CharacterBank />
       </div>
+
+      {/* Mobile FAB - Generate Button */}
+      <div className="lg:hidden fixed bottom-6 left-6 right-6 z-50">
+        <button
+          onClick={handleGenerate}
+          disabled={!prompt.trim() || isGenerating}
+          className="btn btn-lg w-full bg-gradient-to-r from-cinema-red to-cinema-blue text-white border-none shadow-2xl"
+        >
+          {isGenerating ? (
+            <>
+              <span className="loading loading-spinner"></span>
+              Generating...
+            </>
+          ) : (
+            <>
+              <Video className="w-5 h-5" />
+              Generate • {calculateCost()} cr
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Character Bank Button */}
+      <button
+        onClick={() => setShowMobileCharacterBank(true)}
+        className="lg:hidden fixed bottom-24 right-6 btn btn-circle btn-lg bg-cinema-gold text-base-100 shadow-2xl z-50 border-none hover:bg-cinema-gold/90"
+        title="Character Bank"
+      >
+        <Users className="w-6 h-6" />
+      </button>
+
+      {/* Mobile Character Bank Drawer */}
+      {showMobileCharacterBank && (
+        <div className="lg:hidden fixed inset-0 z-[60] bg-black/50" onClick={() => setShowMobileCharacterBank(false)}>
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-3xl max-h-[80vh] overflow-hidden shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="sticky top-0 bg-base-100 border-b border-base-300 px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-cinema-gold" />
+                <h3 className="font-bold text-lg">Character Bank</h3>
+              </div>
+              <button 
+                onClick={() => setShowMobileCharacterBank(false)}
+                className="btn btn-circle btn-ghost btn-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Content - Scrollable */}
+            <div className="overflow-y-auto max-h-[calc(80vh-5rem)] pb-safe">
+              <CharacterBank />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
