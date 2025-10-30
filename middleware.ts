@@ -1,19 +1,8 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware } from '@clerk/nextjs/server'
 
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/admin(.*)',
-  '/production(.*)',
-  '/editor(.*)',
-  '/write(.*)',
-])
-
-export default clerkMiddleware((auth, req) => {
-  // Only call protect() for protected routes
-  if (isProtectedRoute(req)) {
-    auth.protect()
-  }
-})
+// Let Clerk handle everything automatically
+// No manual protection - Clerk will redirect unauthenticated users from protected pages
+export default clerkMiddleware()
 
 export const config = {
   matcher: [
