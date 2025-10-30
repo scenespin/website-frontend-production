@@ -85,7 +85,10 @@ export default function Navigation() {
             <div className="w-8 h-8 bg-gradient-to-r from-cinema-red to-cinema-blue rounded-lg flex items-center justify-center">
               <span className="text-white font-bold">W</span>
             </div>
-            <span className="font-bold">App</span>
+            <span className="font-bold">
+              <span className="text-cinema-red">Wryda</span>
+              <span className="text-base-content">.ai</span>
+            </span>
           </Link>
 
           {/* Mobile Menu Button */}

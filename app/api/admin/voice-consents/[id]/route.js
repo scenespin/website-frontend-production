@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import connectMongo from "@/libs/mongoose";
 import VoiceConsent from "@/models/VoiceConsent";
 import VoiceConsentAuditLog from "@/models/VoiceConsentAuditLog";
@@ -42,7 +42,7 @@ async function isAdmin(userId) {
 export async function GET(req, { params }) {
   try {
     // Authenticate user
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json(

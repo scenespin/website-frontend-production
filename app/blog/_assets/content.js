@@ -190,7 +190,7 @@ export const articles = [
         <section>
           <h2 className={styles.h2}>Revolutionary Pricing Model</h2>
           <p className={styles.p}>
-            Today, we're launching something different. Wryda.ai breaks the traditional "feature tier" model.
+            Today, we&apos;re launching something different. Wryda.ai breaks the traditional &quot;feature tier&quot; model.
             <strong> Everyone gets everything. You just buy credits.</strong>
           </p>
           <p className={styles.p}>
@@ -277,7 +277,7 @@ export const articles = [
             <strong>Wryda.ai Pro: $348/year</strong> (save $1,223/year)
           </p>
           <p className={styles.p}>
-            Plus, traditional tools can't generate AI video. Wryda.ai replaces 6+ tools with one platform.
+            Plus, traditional tools can&apos;t generate AI video. Wryda.ai replaces 6+ tools with one platform.
           </p>
         </section>
 
@@ -333,7 +333,7 @@ export const articles = [
         <section>
           <h2 className={styles.h2}>Early Access</h2>
           <p className={styles.p}>
-            We're in early access and building with our community. Your feedback shapes the product.
+            We&apos;re in early access and building with our community. Your feedback shapes the product.
           </p>
           <p className={styles.p}>
             Questions? Email us at{" "}

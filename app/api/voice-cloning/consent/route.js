@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import connectMongo from "@/libs/mongoose";
 import VoiceConsent from "@/models/VoiceConsent";
 import VoiceConsentAuditLog from "@/models/VoiceConsentAuditLog";
@@ -20,7 +20,7 @@ import { getConsentMetadata } from "@/libs/voiceConsentText";
 export async function GET(req) {
   try {
     // Authenticate user
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json(
@@ -74,7 +74,7 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     // Authenticate user
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json(

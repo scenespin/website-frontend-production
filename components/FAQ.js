@@ -11,7 +11,7 @@ const faqList = [
     answer: (
       <div className="space-y-2 leading-relaxed">
         <p>Yes! Every user gets full access to all tools, quality tiers, and aspect ratios from day one.</p>
-        <p><strong>What's included FREE:</strong></p>
+        <p><strong>What&apos;s included FREE:</strong></p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Professional screenplay editor & timeline (8 tracks)</li>
           <li>65 compositions + 30 Hollywood transitions</li>
@@ -72,7 +72,7 @@ const faqList = [
           <li>✅ No watermarks, no vendor lock-in</li>
           <li>✅ Character consistency, voice cloning, 3D export</li>
         </ul>
-        <p>Choose based on how many AI videos you need per month. That's it!</p>
+        <p>Choose based on how many AI videos you need per month. That&apos;s it!</p>
       </div>
     ),
   },
@@ -80,7 +80,7 @@ const faqList = [
     question: "Is this really cheaper than traditional video production tools?",
     answer: (
       <div className="space-y-2 leading-relaxed">
-        <p><strong>Way cheaper. Here's the breakdown:</strong></p>
+        <p><strong>Way cheaper. Here&apos;s the breakdown:</strong></p>
         <p><strong>Traditional Stack:</strong> $1,571/year</p>
         <ul className="list-disc pl-5 text-sm">
           <li>Screenwriting software: $250/yr</li>
@@ -98,7 +98,7 @@ const faqList = [
           <li>Screenplay-driven automation</li>
           <li>No vendor lock-in - export to Drive/Dropbox</li>
         </ul>
-        <p>Traditional tools can't generate AI video. Wryda.ai replaces 6+ tools with one.</p>
+        <p>Traditional tools can&apos;t generate AI video. Wryda.ai replaces 6+ tools with one.</p>
       </div>
     ),
   },
