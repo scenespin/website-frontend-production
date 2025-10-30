@@ -88,11 +88,11 @@ export default function WorkflowsPage() {
   }
 
   const categories = [
-    { id: 'all', name: 'All Workflows', icon: '🎬', count: 42 },
+    { id: 'all', name: 'All Workflows', icon: '🎬', count: 47 },
     { id: 'character-consistency', name: 'Character Consistency', icon: '🎭', count: 32 },
     { id: 'text-only', name: 'Text Only', icon: '✍️', count: 18 },
     { id: 'text-with-images', name: 'Text + Images', icon: '🖼️', count: 14 },
-    { id: 'video-transform', name: 'Video Transform', icon: '🎬', count: 10 },
+    { id: 'video-transform', name: 'Video Transform', icon: '🎥', count: 13 },
   ];
 
   return (
