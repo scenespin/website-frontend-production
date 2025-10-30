@@ -26,7 +26,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-    checkFirstVisit();
+    // Temporarily disable welcome modal to debug login loop
+    // checkFirstVisit();
   }, []);
 
   const checkFirstVisit = async () => {
@@ -34,7 +35,7 @@ export default function Dashboard() {
       // Check if user has seen welcome modal
       const hasSeenWelcome = user?.publicMetadata?.hasSeenWelcome;
       
-      if (!hasSeenWelcome) {
+      if (!hasSeenWelcome && user) {
         setShowWelcomeModal(true);
       }
     } catch (error) {
