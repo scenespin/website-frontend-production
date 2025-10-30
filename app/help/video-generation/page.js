@@ -99,7 +99,7 @@ export default function VideoGenerationPage() {
           {/* Method 3: Character Consistency */}
           <div className="card bg-base-200 my-8 not-prose">
             <div className="card-body">
-              <h3 className="card-title text-xl">3. Character Consistency (1-3 References)</h3>
+              <h3 className="card-title text-xl">3. Character Consistency (1-2 References)</h3>
               <div className="grid grid-cols-2 gap-4 text-sm my-4">
                 <div><strong>What:</strong> Keep characters looking the same across multiple shots</div>
                 <div><strong>Credits:</strong> Same as standard generation</div>
@@ -107,7 +107,7 @@ export default function VideoGenerationPage() {
               </div>
               <h4 className="font-bold">How It Works:</h4>
               <ol className="text-sm list-decimal list-inside space-y-1">
-                <li>Upload 1-3 reference images of character</li>
+                <li>Upload 1-2 reference images of character</li>
                 <li>Generate first video</li>
                 <li>Use that video as reference for next shots</li>
                 <li>Character stays consistent</li>

@@ -206,11 +206,11 @@ export default function WorkflowsPage() {
           <h2>🎭 Understanding Character Consistency (32 Workflows)</h2>
           <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>32 out of 47 workflows</strong> support character consistency—but they work differently!</p>
 
-          <div className="alert alert-warning my-8 not-prose">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <div className="alert alert-info my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <div>
-              <div className="font-bold">Image Requirements Update</div>
-              <div className="text-sm">All workflows that support character consistency use <strong>1-2 reference images</strong>—not 3. The old &quot;three images&quot; requirement was provider-specific and no longer applies.</div>
+              <div className="font-bold">Image Requirements for Character Consistency</div>
+              <div className="text-sm">Workflows that support character consistency use <strong>1-2 reference images</strong> to maintain your character&apos;s appearance across multiple scenes.</div>
             </div>
           </div>
 

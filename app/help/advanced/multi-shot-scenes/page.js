@@ -99,7 +99,7 @@ export default function MultiShotScenesPage() {
 
           <h3>Step 2: Upload Character References</h3>
           <ul>
-            <li>Upload 1-3 images of each character</li>
+            <li>Upload 1-2 images of each character</li>
             <li>Use the Character Bank for consistency</li>
             <li>Keep references accessible during generation</li>
           </ul>
@@ -154,19 +154,68 @@ export default function MultiShotScenesPage() {
           </ol>
 
           <h2>Using Workflows for Multi-Shot Scenes</h2>
-          <div className="card bg-base-200 my-8 not-prose">
+          <div className="card bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/30 my-8 not-prose">
             <div className="card-body">
-              <h3 className="card-title">Complete Scene Workflow</h3>
-              <p className="text-sm mb-4">Automatically generates all shots for a scene with perfect consistency.</p>
-              <div className="badge badge-primary">100-550 credits (depends on tier)</div>
-              <div className="mt-4 text-sm">
-                <strong>What You Get:</strong>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>1 establishing shot</li>
-                  <li>2-3 medium shots</li>
-                  <li>2-3 close-ups</li>
-                  <li>All with perfect character consistency</li>
+              <h3 className="card-title text-xl">🎬 Complete Scene Workflow</h3>
+              <p className="text-sm mb-4 opacity-90">Automatically generates a complete scene package with perfect consistency across all shots. The easiest way to create professional multi-shot scenes!</p>
+              <div className="badge badge-primary">145-689 credits</div>
+              
+              <div className="divider my-2"></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-xs font-bold mb-2">📝 WHAT YOU PROVIDE (Simple!):</div>
+                  <ol className="text-sm space-y-2">
+                    <li><strong>1. Scene Description</strong>
+                      <div className="text-xs opacity-70 ml-4">Plain text or screenplay format</div>
+                      <div className="text-xs italic ml-4">&quot;A detective interrogates a suspect in a dimly lit room&quot;</div>
+                    </li>
+                    <li><strong>2. Character Images (Optional)</strong>
+                      <div className="text-xs opacity-70 ml-4">Upload 1-2 images per character</div>
+                    </li>
+                    <li><strong>3. Settings</strong>
+                      <div className="text-xs opacity-70 ml-4">Aspect ratio (16:9, 9:16, etc.), Duration (5s or 10s), Quality (1080p or 4K)</div>
+                    </li>
+                  </ol>
+                </div>
+                
+                <div>
+                  <div className="text-xs font-bold mb-2">🎁 WHAT YOU GET:</div>
+                  <ul className="text-sm space-y-1">
+                    <li>✅ <strong>1 Master Establishing Shot</strong>
+                      <div className="text-xs opacity-70 ml-5">Sets the scene aesthetic, lighting, mood</div>
+                    </li>
+                    <li>✅ <strong>3 Character Coverage Shots</strong>
+                      <div className="text-xs opacity-70 ml-5">Close-up, medium, action angle (if you uploaded character images)</div>
+                    </li>
+                    <li>✅ <strong>OR 3 Scene Exploration Shots</strong>
+                      <div className="text-xs opacity-70 ml-5">Different angles of the scene (if no character images)</div>
+                    </li>
+                    <li>✅ <strong>Perfect Scene Consistency</strong>
+                      <div className="text-xs opacity-70 ml-5">All shots match lighting, color, atmosphere</div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="divider my-2"></div>
+              
+              <div className="text-xs">
+                <strong>💰 Cost Breakdown:</strong>
+                <ul className="mt-2 space-y-1 opacity-80">
+                  <li>• Basic (1080p, scene only): <strong>145-325 credits</strong></li>
+                  <li>• With Characters (1080p): <strong>175-250 credits</strong></li>
+                  <li>• Premium 4K Enhancement: <strong>+80 credits</strong></li>
+                  <li>• Full Package (4K with characters): <strong>up to 689 credits</strong></li>
                 </ul>
+              </div>
+              
+              <div className="alert alert-success mt-4 text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                  <div className="font-bold">Pro Tip:</div>
+                  <div>Start with the basic version (no characters) to test your scene idea, then add characters for the final production.</div>
+                </div>
               </div>
             </div>
           </div>

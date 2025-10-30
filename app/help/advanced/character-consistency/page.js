@@ -42,7 +42,7 @@ export default function CharacterConsistencyPage() {
           <div className="alert alert-success my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <div>
-              <div className="font-bold">Upload 1-3 reference images of your character</div>
+              <div className="font-bold">Upload 1-2 reference images of your character</div>
               <div className="text-sm">The AI will use these to keep the character consistent across all generations.</div>
             </div>
           </div>

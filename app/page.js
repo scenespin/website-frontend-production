@@ -165,19 +165,25 @@ export default function Page() {
         {/* Savings Calculator */}
         <section className="py-16 px-8 max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Save $1,223+/Year vs Traditional Stack
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-4">
+              End Subscription Fatigue
             </h2>
-            <p className="text-lg opacity-80">
-              One platform. Everything included. No subscriptions to juggle.
+            <p className="text-xl opacity-90 max-w-3xl mx-auto mb-2">
+              <strong>Our software is 100% free.</strong> You only pay for the AI services you actually use.
+            </p>
+            <p className="text-lg opacity-70 max-w-2xl mx-auto">
+              While competitors charge $1,776/year just for software licenses, we give you everything for <strong>$0</strong>. Zero subscriptions. Zero licensing fees. Just pay-as-you-go for AI.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Traditional Stack */}
-            <div className="card bg-base-200 shadow-xl">
+            <div className="card bg-gradient-to-br from-error/20 to-error/10 shadow-xl border-2 border-error/30">
               <div className="card-body">
-                <h3 className="card-title text-2xl mb-4">Traditional Stack: $1,776/year</h3>
+                <div className="badge badge-error mb-2">The Old Way 😫</div>
+                <h3 className="card-title text-2xl mb-2">Traditional Stack</h3>
+                <p className="text-sm opacity-70 mb-4">6 separate subscriptions. $1,776/year in software fees. <strong>BEFORE</strong> you even start creating.</p>
+                
                 <ul className="space-y-3">
                   <li className="flex justify-between items-center">
                     <span className="opacity-80">Final Draft (Screenwriting)</span>
@@ -203,97 +209,121 @@ export default function Page() {
                     <span className="opacity-80">Cloud storage (200GB+)</span>
                     <span className="font-semibold">$200/yr</span>
                   </li>
-                  <li className="border-t border-base-content/20 pt-3 flex justify-between items-center">
-                    <span className="font-bold text-xl">Total</span>
+                  <li className="border-t border-error/30 pt-3 flex justify-between items-center">
+                    <span className="font-bold text-lg">Software Fees Alone</span>
                     <span className="font-bold text-2xl text-error">$1,776/yr</span>
+                  </li>
+                  <li className="text-xs opacity-60 italic">
+                    ⚠️ Plus you still need to pay for AI services on top of this
                   </li>
                 </ul>
               </div>
             </div>
 
-            {/* Wryda All-In-One */}
-            <div className="card bg-gradient-to-br from-primary/20 to-secondary/20 shadow-xl border-2 border-primary">
+            {/* Wryda Revolutionary Model */}
+            <div className="card bg-gradient-to-br from-success/20 to-primary/20 shadow-xl border-2 border-success">
               <div className="card-body">
-                <div className="badge badge-primary mb-2">All-In-One Solution</div>
-                <h3 className="card-title text-2xl mb-4">{config.appName}: From $0</h3>
+                <div className="badge badge-success mb-2">The Future ✨</div>
+                <h3 className="card-title text-2xl mb-2">{config.appName}: Software is FREE</h3>
+                <p className="text-sm opacity-80 mb-4">
+                  <strong>All features. All tools. All workflows.</strong> Unlock everything for <span className="text-success font-bold">$0/year</span> in software fees. Only pay for AI when you use it.
+                </p>
+                
                 <ul className="space-y-3">
                   <li className="flex justify-between items-center">
-                    <span className="font-semibold">Free Plan</span>
-                    <span className="font-bold text-2xl text-success">$0</span>
+                    <span className="font-semibold">✅ Professional Screenplay Editor</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="text-sm opacity-80 pl-4">
-                    100 signup + 10 credits/month • All features unlocked
+                  <li className="flex justify-between items-center">
+                    <span className="font-semibold">✅ 8-Track Timeline Editor</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-                  
-                  <li className="flex justify-between items-center pt-3">
-                    <span className="font-semibold">Pro Plan</span>
-                    <span className="font-bold text-xl">$29/mo</span>
+                  <li className="flex justify-between items-center">
+                    <span className="font-semibold">✅ 65 Compositions + 30 Transitions</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="text-sm opacity-80 pl-4">
-                    3,000 credits/mo • Same features, more credits
+                  <li className="flex justify-between items-center">
+                    <span className="font-semibold">✅ Character Bank</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="text-sm text-success font-semibold pl-4">
-                    💰 Save $1,428/year (80% savings!)
+                  <li className="flex justify-between items-center">
+                    <span className="font-semibold">✅ Upload Your Own Footage</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-
-                  <li className="flex justify-between items-center pt-3">
-                    <span className="font-semibold">Ultra Plan</span>
-                    <span className="font-bold text-xl">$149/mo</span>
+                  <li className="flex justify-between items-center">
+                    <span className="font-semibold">✅ Cloud Export (Drive/Dropbox)</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="text-sm opacity-80 pl-4">
-                    20,000 credits/mo • Production volume
+                  <li className="flex justify-between items-center">
+                    <span className="font-semibold">✅ 47 AI Workflows</span>
+                    <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="text-sm text-success font-semibold pl-4">
-                    💰 Save $660/year + 10x more credits
+                  <li className="border-t border-success/30 pt-3 flex justify-between items-center">
+                    <span className="font-bold text-lg">Software Cost</span>
+                    <span className="font-bold text-3xl text-success">$0/yr</span>
                   </li>
-
-                  <li className="flex justify-between items-center pt-3">
-                    <span className="font-semibold">Studio Plan</span>
-                    <span className="font-bold text-xl">$399/mo</span>
-                  </li>
-                  <li className="text-sm opacity-80 pl-4">
-                    75,000 credits/mo • Enterprise teams
+                  <li className="text-sm font-semibold text-success">
+                    💰 Save $1,776/year in subscription fees!
                   </li>
                 </ul>
 
-                <div className="divider">What You Get</div>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-success shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>All the tools above + AI generation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-success shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>65 Compositions (split screens, PIP, grids) + 30 Transitions (FREE)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-success shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span><strong>Upload your own footage</strong> (FREE)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-success shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>No vendor lock-in, export anywhere</span>
-                  </li>
-                </ul>
+                <div className="divider text-sm opacity-70">How Payment Works</div>
+                <div className="bg-base-200 rounded-lg p-4 space-y-2">
+                  <p className="text-sm"><strong>Free Plan:</strong> 100 signup credits + 10 credits/month</p>
+                  <p className="text-sm"><strong>Pro Plan ($29/mo):</strong> 3,000 credits/month when you need more</p>
+                  <p className="text-sm"><strong>Ultra Plan ($149/mo):</strong> 20,000 credits/month for production</p>
+                  <p className="text-sm"><strong>Studio Plan ($399/mo):</strong> 75,000 credits/month for teams</p>
+                  <p className="text-xs opacity-60 italic mt-3">
+                    You&apos;re only paying for AI compute. Everything else? Completely free forever.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="text-center">
-            <p className="text-2xl font-bold text-success mb-4">
-              Replace 6+ tools with one platform. Save thousands.
-            </p>
-            <Link href="#pricing" className="btn btn-primary btn-lg">
-              See Full Pricing Details
-            </Link>
+            <div className="card bg-gradient-to-r from-primary/10 to-secondary/10 shadow-xl border-2 border-primary/30 max-w-4xl mx-auto">
+              <div className="card-body">
+                <h3 className="text-2xl font-bold mb-4">🚀 The Revolution: Pay for Value, Not Access</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                  <div>
+                    <div className="text-error font-bold mb-2">❌ Old Model</div>
+                    <ul className="text-sm space-y-1 opacity-80">
+                      <li>• Pay for software licenses</li>
+                      <li>• Monthly subscription treadmill</li>
+                      <li>• Paying even when not using</li>
+                      <li>• Expensive barriers to entry</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="text-success font-bold mb-2">✅ {config.appName} Model</div>
+                    <ul className="text-sm space-y-1 opacity-80">
+                      <li>• Software is 100% free</li>
+                      <li>• Pay only for AI you use</li>
+                      <li>• Credits never expire</li>
+                      <li>• Start creating immediately</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="text-primary font-bold mb-2">💡 Your Savings</div>
+                    <ul className="text-sm space-y-1 opacity-80">
+                      <li>• $0 software costs</li>
+                      <li>• No subscription fatigue</li>
+                      <li>• Only pay when creating</li>
+                      <li>• <strong className="text-success">Save $1,776/year</strong></li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <Link href="/sign-up" className="btn btn-primary btn-lg">
+                    Start Free - No Credit Card Required
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                      <path fillRule="evenodd" d="M5 10a.75.75 0 01.75-.75h6.638L10.23 7.29a.75.75 0 111.04-1.08l3.5 3.25a.75.75 0 010 1.08l-3.5 3.25a.75.75 0 11-1.04-1.08l2.158-1.96H5.75A.75.75 0 015 10z" clipRule="evenodd" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

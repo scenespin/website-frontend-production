@@ -187,7 +187,7 @@ export default function QuickStartPage() {
             <div className="card bg-base-200">
               <div className="card-body">
                 <h3 className="card-title text-base">2. Use References</h3>
-                <p className="text-sm">Upload 1-3 character images for consistency</p>
+                <p className="text-sm">Upload 1-2 character images for consistency</p>
               </div>
             </div>
             <div className="card bg-base-200">

@@ -297,7 +297,7 @@ export const articles = [
           
           <h3 className={styles.h3}>3. Character Consistency</h3>
           <p className={styles.p}>
-            Upload 1-3 character references, get consistent characters across all your scenes.
+            Upload 1-2 character references, get consistent characters across all your scenes.
             Character Bank stores all your characters for reuse.
           </p>
           

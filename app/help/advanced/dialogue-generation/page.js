@@ -100,7 +100,7 @@ export default function DialogueGenerationPage() {
 
           <h3>Step 2: Set Up Characters</h3>
           <ul>
-            <li>Upload 1-3 reference images of each character</li>
+            <li>Upload 1-2 reference images of each character</li>
             <li>Or use characters from your Character Bank</li>
             <li>Assign voice to each character (AI or cloned)</li>
           </ul>

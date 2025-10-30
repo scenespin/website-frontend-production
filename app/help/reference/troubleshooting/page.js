@@ -83,7 +83,7 @@ export default function TroubleshootingPage() {
               <div className="collapse-content text-sm"> 
                 <p><strong>Solutions:</strong></p>
                 <ul className="list-disc list-inside space-y-1 mt-2">
-                  <li>Upload 1-3 reference images of character</li>
+                  <li>Upload 1-2 reference images of character</li>
                   <li>Use video-to-video reference</li>
                   <li>Generate all shots in one session</li>
                   <li>Be very specific about character details</li>
