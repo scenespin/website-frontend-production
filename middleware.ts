@@ -12,11 +12,11 @@ const isPublicRoute = createRouteMatcher([
   '/help(.*)',
 ])
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   // Protect all routes except public ones
   // Don't use auth.protect() - it can cause redirect loops
   if (!isPublicRoute(req)) {
-    const { userId } = auth()
+    const { userId } = await auth()
     
     // If not authenticated and trying to access protected route, redirect to sign-in
     if (!userId) {
