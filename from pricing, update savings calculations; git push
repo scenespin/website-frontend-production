@@ -1,0 +1,224 @@
+[1mdiff --git a/app/sign-up/[[...sign-up]]/page.js b/app/sign-up/[[...sign-up]]/page.js[m
+[1mindex 7485f8e..f15b82d 100644[m
+[1m--- a/app/sign-up/[[...sign-up]]/page.js[m
+[1m+++ b/app/sign-up/[[...sign-up]]/page.js[m
+[36m@@ -1,9 +1,23 @@[m
+[32m+[m[32m'use client'[m
+[32m+[m
+ import { SignUp } from '@clerk/nextjs'[m
+ import Link from 'next/link'[m
+[32m+[m[32mimport { useSearchParams } from 'next/navigation'[m
+ import config from '@/config'[m
+[31m-import { CheckCircle, Shield, Zap, Sparkles } from 'lucide-react'[m
+[32m+[m[32mimport { CheckCircle, Shield, Zap, Sparkles, Video } from 'lucide-react'[m
+ [m
+ export default function SignUpPage() {[m
+[32m+[m[32m  const searchParams = useSearchParams()[m
+[32m+[m[32m  const planParam = searchParams?.get('plan') || 'free'[m
+[32m+[m[41m  [m
+[32m+[m[32m  // Find matching plan (case-insensitive)[m
+[32m+[m[32m  const selectedPlan = config.stripe.plans.find([m
+[32m+[m[32m    p => p.name.toLowerCase() === planParam.toLowerCase()[m
+[32m+[m[32m  ) || config.stripe.plans[0] // Default to Free[m
+[32m+[m[41m  [m
+[32m+[m[32m  // Determine if it's a paid plan[m
+[32m+[m[32m  const isPaidPlan = selectedPlan.price > 0[m
+[32m+[m
+   return ([m
+     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-100">[m
+       {/* Header */}[m
+[36m@@ -22,70 +36,114 @@[m [mexport default function SignUpPage() {[m
+       <div className="max-w-6xl mx-auto px-4 py-8 md:py-16">[m
+         <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">[m
+           [m
+[31m-          {/* LEFT: Value Proposition */}[m
+[32m+[m[32m          {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}[m
+           <div className="space-y-6 order-2 md:order-1">[m
+[31m-            {/* Main Headline */}[m
+[32m+[m[32m            {/* Main Headline - Dynamic */}[m
+             <div>[m
+               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">[m
+[31m-                Start Creating Professional Videos[m
+[32m+[m[32m                {selectedPlan.signupHeadline || "Start Creating Professional Videos"}[m
+               </h1>[m
+               <p className="text-lg opacity-80">[m
+[31m-                Join the future of AI-powered video production. Everything unlocked from day one.[m
+[32m+[m[32m                {selectedPlan.signupSubheadline || "Join the future of AI-powered video production. Everything unlocked from day one."}[m
+               </p>[m
+             </div>[m
+ [m
+[31m-            {/* What You Get */}[m
+[31m-            <div className="bg-base-200 rounded-box p-6 space-y-4">[m
+[31m-              <h3 className="font-semibold text-lg flex items-center gap-2">[m
+[31m-                <Sparkles className="w-5 h-5 text-[#DC143C]" />[m
+[31m-                What you get instantly:[m
+[31m-              </h3>[m
+[31m-              <ul className="space-y-3">[m
+[31m-                <li className="flex items-start gap-3">[m
+[31m-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[31m-                  <div>[m
+[31m-                    <strong>100 signup credits</strong>[m
+[31m-                    <p className="text-sm opacity-70">Worth $1.00 - create ~2 professional videos</p>[m
+[31m-                  </div>[m
+[31m-                </li>[m
+[31m-                <li className="flex items-start gap-3">[m
+[31m-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[31m-                  <div>[m
+[31m-                    <strong>10 credits every month forever</strong>[m
+[31m-                    <p className="text-sm opacity-70">On the Free plan, no strings attached</p>[m
+[31m-                  </div>[m
+[31m-                </li>[m
+[31m-                <li className="flex items-start gap-3">[m
+[31m-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[31m-                  <div>[m
+[31m-                    <strong>All features unlocked</strong>[m
+[31m-                    <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>[m
+[31m-                  </div>[m
+[31m-                </li>[m
+[31m-                <li className="flex items-start gap-3">[m
+[31m-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[31m-                  <div>[m
+[31m-                    <strong>Upload your own footage</strong>[m
+[31m-                    <p className="text-sm opacity-70">Combine your camera footage with AI-generated shots - completely free</p>[m
+[31m-                  </div>[m
+[31m-                </li>[m
+[31m-              </ul>[m
+[31m-            </div>[m
+[31m-[m
+[31m-            {/* Trust Badges */}[m
+[32m+[m[32m            {/* Trust Signals - Always show */}[m
+             <div className="flex flex-wrap gap-4 items-center text-sm">[m
+               <div className="flex items-center gap-2 opacity-80">[m
+                 <Shield className="w-4 h-4 text-[#DC143C]" />[m
+                 <span>Secure signup</span>[m
+               </div>[m
+[31m-              <div className="flex items-center gap-2 opacity-80">[m
+[31m-                <span className="text-xl">💳</span>[m
+[31m-                <span>No card required</span>[m
+[31m-              </div>[m
+               <div className="flex items-center gap-2 opacity-80">[m
+                 <Zap className="w-4 h-4 text-[#DC143C]" />[m
+                 <span>Instant access</span>[m
+               </div>[m
+[32m+[m[32m              {!isPaidPlan && ([m
+[32m+[m[32m                <div className="flex items-center gap-2 opacity-80">[m
+[32m+[m[32m                  <span className="text-xl">💳</span>[m
+[32m+[m[32m                  <span>No card required</span>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              )}[m
+[32m+[m[32m            </div>[m
+[32m+[m
+[32m+[m[32m            {/* Value Proposition Banner - Only for paid plans */}[m
+[32m+[m[32m            {isPaidPlan && selectedPlan.signupValueProp && ([m
+[32m+[m[32m              <div className="bg-gradient-to-r from-success/20 to-transparent rounded-box p-4 border-l-4 border-success">[m
+[32m+[m[32m                <div className="flex items-start gap-3">[m
+[32m+[m[32m                  <Video className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                  <div>[m
+[32m+[m[32m                    <p className="font-semibold mb-1">[m
+[32m+[m[32m                      {selectedPlan.signupValueProp}[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <p className="text-sm opacity-70">[m
+[32m+[m[32m                      Perfect for: {selectedPlan.targetAudience}[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m            )}[m
+[32m+[m
+[32m+[m[32m            {/* What You Get */}[m
+[32m+[m[32m            <div className="bg-base-200 rounded-box p-6 space-y-4">[m
+[32m+[m[32m              <h3 className="font-semibold text-lg flex items-center gap-2">[m
+[32m+[m[32m                <Sparkles className="w-5 h-5 text-[#DC143C]" />[m
+[32m+[m[32m                {isPaidPlan ? `What's included in ${selectedPlan.name}:` : "What you get instantly:"}[m
+[32m+[m[32m              </h3>[m
+[32m+[m[41m              [m
+[32m+[m[32m              {/* Free Plan Benefits */}[m
+[32m+[m[32m              {!isPaidPlan && ([m
+[32m+[m[32m                <ul className="space-y-3">[m
+[32m+[m[32m                  <li className="flex items-start gap-3">[m
+[32m+[m[32m                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                      <strong>100 signup credits</strong>[m
+[32m+[m[32m                      <p className="text-sm opacity-70">Worth $1.00 - create ~2 professional videos</p>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </li>[m
+[32m+[m[32m                  <li className="flex items-start gap-3">[m
+[32m+[m[32m                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                      <strong>10 credits every month forever</strong>[m
+[32m+[m[32m                      <p className="text-sm opacity-70">On the Free plan, no strings attached</p>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </li>[m
+[32m+[m[32m                  <li className="flex items-start gap-3">[m
+[32m+[m[32m                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                      <strong>All features unlocked</strong>[m
+[32m+[m[32m                      <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </li>[m
+[32m+[m[32m                  <li className="flex items-start gap-3">[m
+[32m+[m[32m                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                      <strong>Upload your own footage</strong>[m
+[32m+[m[32m                      <p className="text-sm opacity-70">Combine your camera footage with AI-generated shots - completely free</p>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </li>[m
+[32m+[m[32m                </ul>[m
+[32m+[m[32m              )}[m
+[32m+[m
+[32m+[m[32m              {/* Paid Plan Benefits */}[m
+[32m+[m[32m              {isPaidPlan && ([m
+[32m+[m[32m                <ul className="space-y-3">[m
+[32m+[m[32m                  {selectedPlan.features.map((feature, idx) => ([m
+[32m+[m[32m                    <li key={idx} className="flex items-start gap-3">[m
+[32m+[m[32m                      <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                      <div>[m
+[32m+[m[32m                        <strong>{feature.name}</strong>[m
+[32m+[m[32m                      </div>[m
+[32m+[m[32m                    </li>[m
+[32m+[m[32m                  ))}[m
+[32m+[m[32m                  <li className="flex items-start gap-3">[m
+[32m+[m[32m                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                      <strong>All features unlocked</strong>[m
+[32m+[m[32m                      <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </li>[m
+[32m+[m[32m                </ul>[m
+[32m+[m[32m              )}[m
+             </div>[m
+ [m
+             {/* Cost Comparison Highlight */}[m
+[36m@@ -102,6 +160,27 @@[m [mexport default function SignUpPage() {[m
+             <p className="text-xs opacity-60">[m
+               By signing up, you agree to our <Link href="/tos" className="link">Terms of Service</Link> and <Link href="/privacy-policy" className="link">Privacy Policy</Link>.[m
+             </p>[m
+[32m+[m
+[32m+[m[32m            {/* Social Proof Placeholder - Ready for when you have testimonials */}[m
+[32m+[m[32m            {/* Uncomment when you have real testimonials:[m
+[32m+[m[32m            <div className="bg-base-200 rounded-box p-4">[m
+[32m+[m[32m              <div className="flex items-start gap-3">[m
+[32m+[m[32m                <div className="avatar placeholder">[m
+[32m+[m[32m                  <div className="bg-gradient-to-br from-[#DC143C] to-purple-600 text-white rounded-full w-10">[m
+[32m+[m[32m                    <span className="text-sm">J</span>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m                <div className="flex-1">[m
+[32m+[m[32m                  <p className="text-sm italic opacity-80">[m
+[32m+[m[32m                    "Created my first professional video in 5 minutes. This is incredible."[m
+[32m+[m[32m                  </p>[m
+[32m+[m[32m                  <p className="text-xs opacity-60 mt-2">[m
+[32m+[m[32m                    — Jane D., Content Creator[m
+[32m+[m[32m                  </p>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            */}[m
+           </div>[m
+ [m
+           {/* RIGHT: Clerk Signup */}[m
+[36m@@ -130,4 +209,3 @@[m [mexport default function SignUpPage() {[m
+     </div>[m
+   )[m
+ }[m
+[31m-[m

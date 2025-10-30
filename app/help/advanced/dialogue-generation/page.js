@@ -131,16 +131,16 @@ export default function DialogueGenerationPage() {
             <li>Emotion support</li>
           </ul>
 
-          <h3>Cloned Voices (11 Labs)</h3>
+          <h3>Cloned Voices (External Service)</h3>
           <div className="alert alert-info my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <div>
-              <div className="font-bold">FREE to add your 11 Labs voice!</div>
-              <div className="text-sm">You only pay for 11 Labs subscription, not extra in Wryda.ai</div>
+              <div className="font-bold">FREE to connect your voice cloning service!</div>
+              <div className="text-sm">You only pay for your voice cloning subscription, not extra in Wryda.ai</div>
             </div>
           </div>
           <ul>
-            <li>Clone your own voice (requires 11 Labs)</li>
+            <li>Clone your own voice using external service</li>
             <li>Perfect for narration, characters</li>
             <li>Maintains voice consistency</li>
             <li>Emotion and intonation support</li>

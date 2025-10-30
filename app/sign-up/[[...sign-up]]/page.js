@@ -149,7 +149,7 @@ export default function SignUpPage() {
             {/* Cost Comparison Highlight */}
             <div className="bg-gradient-to-r from-[#DC143C]/10 to-transparent rounded-box p-4 border-l-4 border-[#DC143C]">
               <p className="text-sm font-semibold mb-1">
-                💰 Save $1,583+/year vs traditional tools
+                💰 Save $1,223+/year vs traditional tools
               </p>
               <p className="text-xs opacity-70">
                 Compare: Final Draft ($149) + Premiere Pro ($263) + After Effects ($263) + Stock Footage ($500) + more

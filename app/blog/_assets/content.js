@@ -262,20 +262,19 @@ export const articles = [
         </section>
 
         <section>
-          <h2 className={styles.h2}>Save $1,583/Year vs Traditional Stack</h2>
+          <h2 className={styles.h2}>Save $1,223/Year vs Traditional Stack</h2>
           <p className={styles.p}>
-            Traditional video production stack costs $1,931/year:
+            Traditional video production stack costs $1,571/year:
           </p>
           <ul className={styles.ul}>
             <li className={styles.li}>Final Draft (Screenwriting): $250/yr</li>
             <li className={styles.li}>Premiere Pro (Video Editing): $263/yr</li>
-            <li className={styles.li}>Midjourney (AI Images): $360/yr</li>
             <li className={styles.li}>After Effects (VFX): $263/yr</li>
             <li className={styles.li}>DaVinci Resolve Studio: $295</li>
             <li className={styles.li}>Stock Footage & Music: $500/yr</li>
           </ul>
           <p className={styles.p}>
-            <strong>Wryda.ai Pro: $348/year</strong> (save $1,583/year)
+            <strong>Wryda.ai Pro: $348/year</strong> (save $1,223/year)
           </p>
           <p className={styles.p}>
             Plus, traditional tools can't generate AI video. Wryda.ai replaces 6+ tools with one platform.

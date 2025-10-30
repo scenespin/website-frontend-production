@@ -1,0 +1,25 @@
+[1mdiff --git a/app/help/advanced/dialogue-generation/page.js b/app/help/advanced/dialogue-generation/page.js[m
+[1mindex 0bd6dfd..27b6e37 100644[m
+[1m--- a/app/help/advanced/dialogue-generation/page.js[m
+[1m+++ b/app/help/advanced/dialogue-generation/page.js[m
+[36m@@ -131,16 +131,16 @@[m [mexport default function DialogueGenerationPage() {[m
+             <li>Emotion support</li>[m
+           </ul>[m
+ [m
+[31m-          <h3>Cloned Voices (11 Labs)</h3>[m
+[32m+[m[32m          <h3>Cloned Voices (External Service)</h3>[m
+           <div className="alert alert-info my-8 not-prose">[m
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>[m
+             <div>[m
+[31m-              <div className="font-bold">FREE to add your 11 Labs voice!</div>[m
+[31m-              <div className="text-sm">You only pay for 11 Labs subscription, not extra in Wryda.ai</div>[m
+[32m+[m[32m              <div className="font-bold">FREE to connect your voice cloning service!</div>[m
+[32m+[m[32m              <div className="text-sm">You only pay for your voice cloning subscription, not extra in Wryda.ai</div>[m
+             </div>[m
+           </div>[m
+           <ul>[m
+[31m-            <li>Clone your own voice (requires 11 Labs)</li>[m
+[32m+[m[32m            <li>Clone your own voice using external service</li>[m
+             <li>Perfect for narration, characters</li>[m
+             <li>Maintains voice consistency</li>[m
+             <li>Emotion and intonation support</li>[m

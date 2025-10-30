@@ -77,20 +77,19 @@ const faqList = [
     ),
   },
   {
-    question: "Is this really cheaper than Premiere Pro + Runway + Final Draft?",
+    question: "Is this really cheaper than traditional video production tools?",
     answer: (
       <div className="space-y-2 leading-relaxed">
         <p><strong>Way cheaper. Here's the breakdown:</strong></p>
-        <p><strong>Traditional Stack:</strong> $1,931/year</p>
+        <p><strong>Traditional Stack:</strong> $1,571/year</p>
         <ul className="list-disc pl-5 text-sm">
-          <li>Final Draft: $250/yr</li>
-          <li>Premiere Pro: $263/yr</li>
-          <li>Midjourney: $360/yr</li>
-          <li>After Effects: $263/yr</li>
-          <li>DaVinci Resolve Studio: $295</li>
+          <li>Screenwriting software: $250/yr</li>
+          <li>Video editing suite: $263/yr</li>
+          <li>Motion graphics software: $263/yr</li>
+          <li>Professional video editor: $295</li>
           <li>Stock footage & music: $500/yr</li>
         </ul>
-        <p><strong>Wryda.ai Pro:</strong> $348/year (save $1,583/year)</p>
+        <p><strong>Wryda.ai Pro:</strong> $348/year (save $1,223/year)</p>
         <p><strong>Plus you get:</strong></p>
         <ul className="list-disc pl-5">
           <li>All-in-one platform (no tool juggling)</li>

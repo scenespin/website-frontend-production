@@ -165,7 +165,7 @@ export default function Page() {
         <section className="py-16 px-8 max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Save $1,583+/Year vs Traditional Stack
+              Save $1,223+/Year vs Traditional Stack
             </h2>
             <p className="text-lg opacity-80">
               One platform. Everything included. No subscriptions to juggle.
@@ -187,10 +187,6 @@ export default function Page() {
                     <span className="font-semibold">$263/yr</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="opacity-80">Midjourney (AI Images)</span>
-                    <span className="font-semibold">$360/yr</span>
-                  </li>
-                  <li className="flex justify-between items-center">
                     <span className="opacity-80">After Effects (VFX & Compositing)</span>
                     <span className="font-semibold">$263/yr</span>
                   </li>
@@ -204,7 +200,7 @@ export default function Page() {
                   </li>
                   <li className="border-t border-base-content/20 pt-3 flex justify-between items-center">
                     <span className="font-bold text-xl">Total</span>
-                    <span className="font-bold text-2xl text-error">$1,931/yr</span>
+                    <span className="font-bold text-2xl text-error">$1,571/yr</span>
                   </li>
                 </ul>
               </div>
@@ -232,7 +228,7 @@ export default function Page() {
                     3,000 credits/mo • Same features, more credits
                   </li>
                   <li className="text-sm text-success font-semibold pl-4">
-                    💰 Save $1,980/year (81% savings!)
+                    💰 Save $1,223/year (78% savings!)
                   </li>
 
                   <li className="flex justify-between items-center pt-3">
