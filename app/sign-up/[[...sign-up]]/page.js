@@ -184,8 +184,8 @@ export default function SignUpPage() {
           </div>
 
           {/* RIGHT: Clerk Signup */}
-          <div className="order-1 md:order-2">
-            <div className="bg-base-100 rounded-box shadow-2xl p-6 md:p-8">
+          <div className="order-1 md:order-2 flex justify-center md:justify-start">
+            <div className="w-full max-w-md bg-base-100 rounded-box shadow-2xl p-6 md:p-8">
               <SignUp 
                 appearance={{
                   baseTheme: undefined,
@@ -207,22 +207,22 @@ export default function SignUpPage() {
                     },
                   },
                   elements: {
-                    rootBox: "w-full",
-                    card: "bg-transparent shadow-none",
-                    headerTitle: "text-base-content",
-                    headerSubtitle: "text-base-content/70",
-                    socialButtonsBlockButton: "bg-base-200 hover:bg-base-300 text-base-content border-2 border-base-content/30 hover:border-base-content/50 transition-all duration-200",
+                    rootBox: "w-full mx-auto",
+                    card: "bg-transparent shadow-none w-full",
+                    headerTitle: "text-base-content text-center",
+                    headerSubtitle: "text-base-content/70 text-center",
+                    socialButtonsBlockButton: "!bg-base-200 hover:!bg-base-300 !text-base-content !border-2 !border-base-content/30 hover:!border-base-content/50 transition-all duration-200",
                     socialButtonsBlockButtonText: "font-medium",
-                    formButtonPrimary: "bg-[#DC143C] hover:bg-[#B8112F] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200",
-                    footerActionLink: "text-[#DC143C] hover:text-[#B8112F] font-medium",
-                    formFieldLabel: "text-base-content font-medium mb-2",
-                    formFieldInput: "bg-base-200 text-base-content border-2 border-base-content/30 focus:border-[#DC143C] hover:border-base-content/50 transition-all duration-200 px-4 py-2",
-                    formFieldInputShowPasswordButton: "text-base-content/70 hover:text-base-content",
-                    identityPreviewText: "text-base-content",
-                    identityPreviewEditButton: "text-[#DC143C] hover:text-[#B8112F]",
-                    otpCodeFieldInput: "border-2 border-base-content/30 focus:border-[#DC143C]",
-                    dividerLine: "bg-base-content/20",
-                    dividerText: "text-base-content/60",
+                    formButtonPrimary: "!bg-[#DC143C] hover:!bg-[#B8112F] !text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200",
+                    footerActionLink: "!text-[#DC143C] hover:!text-[#B8112F] font-medium",
+                    formFieldLabel: "!text-base-content font-medium mb-2",
+                    formFieldInput: "!bg-base-200 !text-base-content !border-2 !border-base-content/30 focus:!border-[#DC143C] hover:!border-base-content/50 transition-all duration-200 !px-4 !py-2",
+                    formFieldInputShowPasswordButton: "!text-base-content/70 hover:!text-base-content",
+                    identityPreviewText: "!text-base-content",
+                    identityPreviewEditButton: "!text-[#DC143C] hover:!text-[#B8112F]",
+                    otpCodeFieldInput: "!border-2 !border-base-content/30 focus:!border-[#DC143C]",
+                    dividerLine: "!bg-base-content/20",
+                    dividerText: "!text-base-content/60",
                     footer: "hidden",
                   },
                 }}
@@ -230,7 +230,7 @@ export default function SignUpPage() {
             </div>
             
             {/* Additional Trust Signal Below Form */}
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center w-full max-w-md mx-auto">
               <p className="text-xs opacity-60">
                 🔒 Your data is encrypted and secure
               </p>
