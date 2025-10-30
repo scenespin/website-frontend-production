@@ -68,8 +68,9 @@ export default function Dashboard() {
       setLoading(true);
       
       // Set the auth token getter for API calls
+      // Use JWT template if configured, otherwise use default
       const { setAuthTokenGetter } = await import('@/lib/api');
-      setAuthTokenGetter(getToken);
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       
       const [creditsRes, projectsRes, videosRes] = await Promise.all([
         api.user.getCredits(),
