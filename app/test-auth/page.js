@@ -101,9 +101,9 @@ export default function AuthTestPage() {
           <div>
             <h3 className="font-bold">How to use this test page:</h3>
             <ol className="list-decimal list-inside mt-2 space-y-1">
-              <li>Check that you're signed in (should show user info above)</li>
-              <li>Click "Go to Dashboard" - should load without looping</li>
-              <li>Click "Go to Admin Analytics" - should redirect if not admin</li>
+              <li>Check that you&apos;re signed in (should show user info above)</li>
+              <li>Click &quot;Go to Dashboard&quot; - should load without looping</li>
+              <li>Click &quot;Go to Admin Analytics&quot; - should redirect if not admin</li>
               <li>Watch browser Network tab for redirect loops</li>
               <li>Check console for any errors</li>
             </ol>
