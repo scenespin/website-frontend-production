@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -20,7 +20,7 @@ import {
   Keyboard
 } from 'lucide-react';
 
-export default function EditorPage() {
+function EditorContent() {
   const { user } = useUser();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('project');
@@ -650,5 +650,17 @@ Dialogue goes here.
         </div>
       )}
     </div>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-base-100 flex items-center justify-center">
+        <div className="loading loading-spinner loading-lg text-primary"></div>
+      </div>
+    }>
+      <EditorContent />
+    </Suspense>
   );
 }
