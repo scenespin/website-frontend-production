@@ -90,8 +90,8 @@ export default function Features() {
             <FeatureCard
               title="Custom Voice-Overs (11 Labs Integration)"
               description="Add custom narration and voice-overs using your own 11 Labs voices. Perfect for tutorials, documentaries, and background narration. Does NOT include character lip-sync."
-              free={false}
-              note="(Requires separate 11 Labs subscription - voice-overs only)"
+              free={true}
+              note="(FREE integration - bring your own 11 Labs API key)"
             />
             <FeatureCard
               title="Character Dialogue & Lip-Sync (AI Workflows)"

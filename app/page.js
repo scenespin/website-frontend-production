@@ -52,8 +52,8 @@ export default function Page() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
               <div>
-                <strong>All Tools FREE</strong>
-                <p className="text-sm opacity-70">Screenplay editor, timeline, 65+ compositions, 30 transitions</p>
+                <strong>Software is 100% FREE</strong>
+                <p className="text-sm opacity-70">Screenplay editor, timeline, 65 compositions, 30 transitions - $0 forever</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -61,8 +61,8 @@ export default function Page() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
               <div>
-                <strong>All Quality Tiers</strong>
-                <p className="text-sm opacity-70">Professional 1080p, Premium 4K, Ultra Native 4K</p>
+                <strong>All Quality Tiers Unlocked</strong>
+                <p className="text-sm opacity-70">Professional 1080p, Premium 4K, Ultra Native 4K - no paywalls</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -70,8 +70,8 @@ export default function Page() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
               <div>
-                <strong>All Aspect Ratios</strong>
-                <p className="text-sm opacity-70">16:9, 9:16, 1:1, 4:3, 21:9 - choose what fits your project</p>
+                <strong>Only Pay for AI Compute</strong>
+                <p className="text-sm opacity-70">Pay-as-you-go credits. No subscriptions. No software fees.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
