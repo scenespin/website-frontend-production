@@ -1,29 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks(.*)',
-  '/features',
-  '/pricing',
-  '/tos',
-  '/privacy-policy',
-  '/help(.*)',
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/admin(.*)',
+  '/production(.*)',
+  '/editor(.*)',
+  '/write(.*)',
 ])
 
-export default clerkMiddleware(async (auth, req) => {
-  // Protect all routes except public ones
-  // Don't use auth.protect() - it can cause redirect loops
-  if (!isPublicRoute(req)) {
-    const { userId } = await auth()
-    
-    // If not authenticated and trying to access protected route, redirect to sign-in
-    if (!userId) {
-      const signInUrl = new URL('/sign-in', req.url)
-      signInUrl.searchParams.set('redirect_url', req.url)
-      return Response.redirect(signInUrl)
-    }
+export default clerkMiddleware((auth, req) => {
+  // Only call protect() for protected routes
+  if (isProtectedRoute(req)) {
+    auth.protect()
   }
 })
 
