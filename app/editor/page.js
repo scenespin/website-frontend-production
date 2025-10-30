@@ -570,7 +570,7 @@ Dialogue goes here.
                     </div>
                     <div>
                       <strong>Dialogue:</strong>
-                      <pre className="text-xs bg-base-300 p-2 rounded mt-1">Character's words here</pre>
+                      <pre className="text-xs bg-base-300 p-2 rounded mt-1">Character&apos;s words here</pre>
                     </div>
                     <div>
                       <strong>Action/Description:</strong>

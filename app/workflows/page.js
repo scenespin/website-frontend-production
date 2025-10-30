@@ -280,7 +280,7 @@ export default function WorkflowsPage() {
                 <div className="card-body">
                   <h3 className="font-bold text-sm mb-2">💡 Quick Tip</h3>
                   <p className="text-xs opacity-70">
-                    Start with <strong>Beginner</strong> workflows if you're new. They require minimal setup and deliver great results!
+                    Start with <strong>Beginner</strong> workflows if you&apos;re new. They require minimal setup and deliver great results!
                   </p>
                 </div>
               </div>
