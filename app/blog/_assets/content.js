@@ -1,6 +1,5 @@
 import Image from "next/image";
 import wrydaImg from "@/app/blog/_assets/images/authors/wryda.png";
-import introducingSupabaseImg from "@/public/blog/introducing-supabase/header.png";
 
 // ==================================================================================================================================================================
 // BLOG CATEGORIES 🏷️
@@ -169,7 +168,7 @@ export const articles = [
     publishedAt: "2025-10-29",
     image: {
       // The image to display in <CardArticle /> components.
-      src: introducingSupabaseImg, // TODO: Replace with Wryda launch image
+      src: wrydaImg,
       // The relative URL of the same image to use in the Open Graph meta tags & the Schema Markup JSON-LD.
       urlRelative: "/blog/wryda-ai-launch/header.jpg",
       alt: "Wryda.ai Launch - Professional Film at 1% Cost",
@@ -177,15 +176,6 @@ export const articles = [
     // The actual content of the article that will be shown under the <h1> title in the article page.
     content: (
       <>
-        <Image
-          src={introducingSupabaseImg}
-          alt="Wryda.ai platform overview"
-          width={700}
-          height={500}
-          priority={true}
-          className="rounded-box"
-          placeholder="blur"
-        />
         
         <section>
           <h2 className={styles.h2}>Revolutionary Pricing Model</h2>
@@ -262,9 +252,9 @@ export const articles = [
         </section>
 
         <section>
-          <h2 className={styles.h2}>Save $1,428/Year vs Traditional Stack</h2>
+          <h2 className={styles.h2}>End Subscription Fatigue - Get Everything Free</h2>
           <p className={styles.p}>
-            Traditional video production stack costs $1,776/year:
+            <strong>Here&apos;s the truth:</strong> Traditional video production stack costs $1,776/year just for the <em>software</em>:
           </p>
           <ul className={styles.ul}>
             <li className={styles.li}>Final Draft (Screenwriting): $250/yr</li>
@@ -275,10 +265,20 @@ export const articles = [
             <li className={styles.li}>Cloud storage (200GB+): $200/yr</li>
           </ul>
           <p className={styles.p}>
-            <strong>Wryda.ai Pro: $348/year</strong> (save $1,428/year)
+            <strong>With Wryda.ai?</strong> All of that software is <strong>completely FREE.</strong>
           </p>
           <p className={styles.p}>
-            Plus, traditional tools can&apos;t generate AI video. Wryda.ai replaces 6+ tools with one platform.
+            Screenplay editor? FREE. Timeline editor? FREE. 65 compositions? FREE. 30 transitions? FREE. 
+            Cloud storage? FREE. Upload unlimited footage? FREE.
+          </p>
+          <p className={styles.p}>
+            <strong>You only pay for AI generation.</strong> That&apos;s it. No software subscriptions. 
+            No feature paywalls. No vendor lock-in.
+          </p>
+          <p className={styles.p}>
+            <strong>Wryda.ai Pro: $348/year</strong> - but that&apos;s <em>just for AI services</em>, 
+            not software. You&apos;re getting $1,776 worth of professional tools for free. 
+            End subscription fatigue. Start creating.
           </p>
         </section>
 
