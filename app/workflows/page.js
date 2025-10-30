@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Filter, X, Info } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import WorkflowCard from '@/components/workflows/WorkflowCard';
 import {
   getAllWorkflows,
@@ -11,6 +12,12 @@ import {
   getWorkflowsByLevel,
   searchWorkflows,
 } from '@/lib/workflowMetadata';
+import {
+  trackWorkflowDiscovery,
+  trackWorkflowSelection,
+  trackWorkflowFilter,
+  trackWorkflowSearch,
+} from '@/lib/workflowAnalytics';
 
 /**
  * Desktop Workflows Browse Page
@@ -23,6 +30,7 @@ import {
  * - Desktop-optimized grid layout
  */
 export default function WorkflowsPage() {
+  const { user } = useUser();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -34,6 +42,16 @@ export default function WorkflowsPage() {
     action: null,
   });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Track page view on mount
+  useEffect(() => {
+    trackWorkflowDiscovery({
+      source: 'navigation',
+      workflowCount: getAllWorkflows().length,
+      category: 'all',
+      userId: user?.id,
+    });
+  }, [user]);
 
   // Load workflows on mount and when filters change
   useEffect(() => {
@@ -70,10 +88,54 @@ export default function WorkflowsPage() {
     if (searchQuery.trim()) {
       const searched = searchWorkflows(searchQuery);
       result = result.filter(w => searched.some(s => s.id === w.id));
+      
+      // Track search
+      trackWorkflowSearch({
+        query: searchQuery,
+        resultCount: result.length,
+        userId: user?.id,
+      });
     }
 
     setWorkflows(result);
     setLoading(false);
+  }
+  
+  function handleCategoryChange(categoryId) {
+    setActiveCategory(categoryId);
+    if (categoryId !== 'character-consistency') {
+      setCharacterConsistencyType('all');
+    }
+    
+    // Track filter change
+    trackWorkflowFilter({
+      filterType: 'category',
+      value: categoryId,
+      resultCount: workflows.length,
+      userId: user?.id,
+    });
+  }
+  
+  function handleFilterChange(filterType, value) {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: prev[filterType] === value ? null : value,
+    }));
+    
+    // Track filter change
+    trackWorkflowFilter({
+      filterType,
+      value: value || 'cleared',
+      resultCount: workflows.length,
+      userId: user?.id,
+    });
+  }
+  
+  function handleWorkflowClick(workflow) {
+    trackWorkflowSelection(workflow, {
+      source: 'desktop',
+      userId: user?.id,
+    });
   }
 
   function clearFilters() {
@@ -124,12 +186,7 @@ export default function WorkflowsPage() {
             {categories.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => {
-                  setActiveCategory(cat.id);
-                  if (cat.id !== 'character-consistency') {
-                    setCharacterConsistencyType('all');
-                  }
-                }}
+                onClick={() => handleCategoryChange(cat.id)}
                 className={`btn btn-sm whitespace-nowrap ${
                   activeCategory === cat.id ? 'btn-primary' : 'btn-ghost'
                 }`}
@@ -227,7 +284,7 @@ export default function WorkflowsPage() {
                             type="radio"
                             name="level"
                             checked={filters.experienceLevel === level}
-                            onChange={() => setFilters({ ...filters, experienceLevel: level })}
+                            onChange={() => handleFilterChange('experienceLevel', level)}
                             className="radio radio-sm radio-primary"
                           />
                           <span className="text-sm capitalize">
@@ -253,7 +310,7 @@ export default function WorkflowsPage() {
                             type="radio"
                             name="action"
                             checked={filters.action === action}
-                            onChange={() => setFilters({ ...filters, action })}
+                            onChange={() => handleFilterChange('action', action)}
                             className="radio radio-sm radio-primary"
                           />
                           <span className="text-sm capitalize">{action}</span>
@@ -349,6 +406,7 @@ export default function WorkflowsPage() {
                     key={workflow.id}
                     workflow={workflow}
                     helpLink="/help/workflows"
+                    onClick={() => handleWorkflowClick(workflow)}
                   />
                 ))}
               </div>

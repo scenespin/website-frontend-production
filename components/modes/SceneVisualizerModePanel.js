@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { Zap, Sparkles, Loader2 } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import WorkflowCard from '@/components/workflows/WorkflowCard';
 import {
@@ -11,6 +12,11 @@ import {
   getBeginnerWorkflows,
   getFastWorkflows
 } from '@/lib/workflowMetadata';
+import {
+  trackWorkflowDiscovery,
+  trackWorkflowSelection,
+  trackWorkflowFilter,
+} from '@/lib/workflowAnalytics';
 
 /**
  * SceneVisualizerModePanel - Mobile-optimized workflow selector for AgentDrawer
@@ -24,6 +30,7 @@ import {
  */
 export function SceneVisualizerModePanel({ onInsert, onWorkflowComplete }) {
   const { state, addMessage } = useChatContext();
+  const { user } = useUser();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
@@ -32,6 +39,16 @@ export function SceneVisualizerModePanel({ onInsert, onWorkflowComplete }) {
   // Mobile-simplified filters
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'beginner', 'fast'
   const [showCharacterConsistency, setShowCharacterConsistency] = useState(false);
+  
+  // Track page view on mount
+  useEffect(() => {
+    trackWorkflowDiscovery({
+      source: 'mobile_chat_panel',
+      workflowCount: getAllWorkflows().length,
+      category: 'all',
+      userId: user?.id,
+    });
+  }, [user]);
   
   useEffect(() => {
     fetchWorkflows();
@@ -62,6 +79,12 @@ export function SceneVisualizerModePanel({ onInsert, onWorkflowComplete }) {
   
   const handleWorkflowSelect = async (workflow) => {
     setSelectedWorkflow(workflow);
+    
+    // Track selection
+    trackWorkflowSelection(workflow, {
+      source: 'mobile_chat_panel',
+      userId: user?.id,
+    });
     
     // Show workflow details and requirements via AI message
     const characterRequirement = workflow.inputRequirements.requiresImages 
@@ -132,13 +155,22 @@ export function SceneVisualizerModePanel({ onInsert, onWorkflowComplete }) {
         
         {/* Character Consistency Toggle */}
         <div className="flex items-center gap-2 mt-2">
-          <input
-            type="checkbox"
-            checked={showCharacterConsistency}
-            onChange={(e) => setShowCharacterConsistency(e.target.checked)}
-            className="checkbox checkbox-sm checkbox-primary"
-            id="char-consistency-toggle"
-          />
+            <input
+              type="checkbox"
+              checked={showCharacterConsistency}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setShowCharacterConsistency(checked);
+                trackWorkflowFilter({
+                  filterType: 'character_consistency_toggle',
+                  value: checked ? 'enabled' : 'disabled',
+                  resultCount: workflows.length,
+                  userId: user?.id,
+                });
+              }}
+              className="checkbox checkbox-sm checkbox-primary"
+              id="char-consistency-toggle"
+            />
           <label htmlFor="char-consistency-toggle" className="text-sm cursor-pointer">
             🎭 Character Consistency Only (32)
           </label>

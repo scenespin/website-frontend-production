@@ -4,7 +4,7 @@ import config from "@/config";
 
 export const metadata = getSEOTags({
   title: `AI Workflows Guide | ${config.appName}`,
-  description: "Use 42 pre-built professional workflows for instant content creation. Character consistency guaranteed, saves time and credits.",
+  description: "Use 47 pre-built professional workflows for instant content creation. Character consistency guaranteed, organized by what you have: text, images, or video.",
   canonicalUrlRelative: "/help/workflows",
 });
 
@@ -38,7 +38,7 @@ export default function WorkflowsPage() {
           <h1>AI Workflows Guide 🎭</h1>
 
           <h2>What are Workflows?</h2>
-          <p>Pre-configured, multi-step processes that guide you through complex video production tasks.</p>
+          <p>Pre-configured, multi-step processes that guide you through complex video production tasks. Think of workflows as professional production templates that ensure consistent quality, character consistency, and efficient credit usage.</p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 not-prose my-8">
             <div className="card bg-base-200 text-center">
@@ -65,6 +65,254 @@ export default function WorkflowsPage() {
                 <div className="text-sm font-bold">Quality assurance</div>
               </div>
             </div>
+          </div>
+
+          <h2>How Workflows are Organized (47 Total)</h2>
+          <p>We&apos;ve organized all 47 workflows based on <strong>what you have right now</strong>. This makes it easy to find the perfect workflow for your current situation.</p>
+
+          <div className="alert alert-info my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">New User? Start Here!</div>
+              <div className="text-sm">If you&apos;re just starting, use <strong>Text-Only</strong> workflows. No images or video needed—just write a description and generate!</div>
+            </div>
+          </div>
+
+          <h3>🎯 Three-Tier Organization System</h3>
+
+          {/* Tier 1: Text-Only */}
+          <div className="card bg-gradient-to-br from-green-500/10 to-green-600/10 border-2 border-green-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h3 className="card-title text-2xl">
+                <span className="text-green-500">📝 Text-Only (18 workflows)</span>
+              </h3>
+              <p className="text-sm opacity-90 mb-4">
+                <strong>Perfect for beginners.</strong> Just write what you want—no images or video required. You can optionally add Character Bank images later for consistency across multiple generations.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="text-xs font-bold text-green-500 mb-2">✨ HOW IT WORKS:</div>
+                  <ul className="text-sm space-y-1">
+                    <li>✅ Describe your scene in text</li>
+                    <li>✅ Generate your first video</li>
+                    <li>💡 <em>Optional:</em> Add 1-2 Character Bank images for future consistency</li>
+                  </ul>
+                </div>
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="text-xs font-bold text-green-500 mb-2">🎯 PERFECT FOR:</div>
+                  <ul className="text-sm space-y-1">
+                    <li>• Testing concepts quickly</li>
+                    <li>• Beginners with no assets</li>
+                    <li>• One-off content</li>
+                    <li>• Rapid prototyping</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="divider my-2"></div>
+              <div className="text-xs opacity-70">
+                <strong>Examples:</strong> Hollywood Standard, Speed Demon, Anime Master, Perfect Loop Generator, B-Roll Master, and 13 more
+              </div>
+            </div>
+          </div>
+
+          {/* Tier 2: Text + Images */}
+          <div className="card bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h3 className="card-title text-2xl">
+                <span className="text-orange-500">🖼️ Text + Images (14 workflows)</span>
+              </h3>
+              <p className="text-sm opacity-90 mb-4">
+                <strong>For series and recurring characters.</strong> These workflows require 1-2 character images from the start. Perfect when you need guaranteed character consistency across all your content.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="text-xs font-bold text-orange-500 mb-2">⚠️ REQUIRED INPUTS:</div>
+                  <ul className="text-sm space-y-1">
+                    <li>✅ Text description of the scene</li>
+                    <li>✅ 1-2 character reference images</li>
+                    <li>✅ Character Bank integration</li>
+                  </ul>
+                </div>
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="text-xs font-bold text-orange-500 mb-2">🎯 PERFECT FOR:</div>
+                  <ul className="text-sm space-y-1">
+                    <li>• Series with recurring characters</li>
+                    <li>• Brand mascots</li>
+                    <li>• Character-driven stories</li>
+                    <li>• Multi-episode content</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="divider my-2"></div>
+              <div className="text-xs opacity-70">
+                <strong>Examples:</strong> Coverage Master, Shot Type Variants, Genre Camera Variants, Scene Variants, Video Chain Builder, and 9 more
+              </div>
+            </div>
+          </div>
+
+          {/* Tier 3: Video Transform */}
+          <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h3 className="card-title text-2xl">
+                <span className="text-purple-500">🎬 Video Transform (15 workflows)</span>
+              </h3>
+              <p className="text-sm opacity-90 mb-4">
+                <strong>Transform existing video footage.</strong> Upload your own video and transform it with AI: add VFX, change styles, remove objects, or capture your performance.
+              </p>
+              
+              <div className="text-xs font-bold text-purple-500 mb-2">TWO TYPES:</div>
+              
+              {/* Post-Production */}
+              <div className="bg-base-100 rounded-lg p-4 mb-3">
+                <div className="font-bold text-sm mb-2">🎨 Post-Production (7 workflows)</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-xs opacity-70 mb-1">Enhance existing footage:</div>
+                    <ul className="text-xs space-y-1">
+                      <li>• Scene Bridge (connect clips)</li>
+                      <li>• Video Chain Builder</li>
+                      <li>• VFX Magic (add effects)</li>
+                      <li>• Scene Transformer (change environment)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <ul className="text-xs space-y-1">
+                      <li>• Element Eraser (remove objects)</li>
+                      <li>• Product Reshoot (transform products)</li>
+                      <li>• Still Photo Performer (animate photos)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Performance Capture */}
+              <div className="bg-base-100 rounded-lg p-4">
+                <div className="font-bold text-sm mb-2">🎭 Performance Capture (8 workflows)</div>
+                <div className="text-xs opacity-70 mb-2">&quot;Be the Character&quot; - Film yourself, AI transforms your performance</div>
+                <ul className="text-xs space-y-1">
+                  <li>• Anime Performance Capture</li>
+                  <li>• 3D Performance Capture</li>
+                  <li>• Cartoon Performance Capture</li>
+                  <li>• Anthro Performance Capture</li>
+                  <li>• Action Director Performance</li>
+                  <li>• Reality-to-Toon Performance</li>
+                  <li>• Complete Scene Performance</li>
+                  <li>• Production Pipeline Performance</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <h2>🎭 Understanding Character Consistency (32 Workflows)</h2>
+          <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>32 out of 47 workflows</strong> support character consistency—but they work differently!</p>
+
+          <div className="alert alert-warning my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+              <div className="font-bold">Image Requirements Update</div>
+              <div className="text-sm">All workflows that support character consistency use <strong>1-2 reference images</strong>—not 3. The old &quot;three images&quot; requirement was provider-specific and no longer applies.</div>
+            </div>
+          </div>
+
+          {/* Optional vs Required */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 not-prose my-8">
+            {/* Optional */}
+            <div className="card bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-2 border-blue-500/30">
+              <div className="card-body">
+                <h3 className="card-title text-lg">
+                  <span className="text-2xl mr-2">💡</span>
+                  <span>Optional (18 workflows)</span>
+                </h3>
+                <div className="divider my-1"></div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-bold text-blue-500 mb-1">HOW IT WORKS:</div>
+                    <ul className="text-sm space-y-1">
+                      <li>✅ <strong>First use:</strong> Text only → Generate video</li>
+                      <li>✅ <strong>Later use:</strong> Text + 1-2 images → Consistent character</li>
+                      <li>✅ <strong>Result:</strong> Same character across multiple videos</li>
+                    </ul>
+                  </div>
+                  <div className="bg-base-100 rounded p-3">
+                    <div className="text-xs font-bold mb-1">EXAMPLE WORKFLOW:</div>
+                    <div className="text-xs opacity-80">
+                      <strong>Speed Demon:</strong><br/>
+                      Day 1: &quot;Warrior in forest&quot; → Get video<br/>
+                      Day 2: Add Character Bank images → &quot;Same warrior in castle&quot; → Consistent look!
+                    </div>
+                  </div>
+                  <div className="badge badge-info badge-sm">Perfect for testing & iteration</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Required */}
+            <div className="card bg-gradient-to-br from-amber-500/10 to-amber-600/10 border-2 border-amber-500/30">
+              <div className="card-body">
+                <h3 className="card-title text-lg">
+                  <span className="text-2xl mr-2">⚠️</span>
+                  <span>Required (14 workflows)</span>
+                </h3>
+                <div className="divider my-1"></div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-bold text-amber-500 mb-1">HOW IT WORKS:</div>
+                    <ul className="text-sm space-y-1">
+                      <li>⚠️ <strong>Must have:</strong> 1-2 character images before starting</li>
+                      <li>⚠️ <strong>No images:</strong> Workflow won&apos;t work</li>
+                      <li>✅ <strong>Result:</strong> Guaranteed consistency from the start</li>
+                    </ul>
+                  </div>
+                  <div className="bg-base-100 rounded p-3">
+                    <div className="text-xs font-bold mb-1">EXAMPLE WORKFLOW:</div>
+                    <div className="text-xs opacity-80">
+                      <strong>Coverage Master:</strong><br/>
+                      Upload 1-2 character images first<br/>
+                      Then: &quot;Action scene&quot; → Get 7 shots with same character in all
+                    </div>
+                  </div>
+                  <div className="badge badge-warning badge-sm">Perfect for series & recurring characters</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Reference Table */}
+          <div className="overflow-x-auto my-8">
+            <table className="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Count</th>
+                  <th>Badge</th>
+                  <th>Images Required?</th>
+                  <th>Best For</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Optional</strong></td>
+                  <td>18</td>
+                  <td><span className="badge badge-info badge-sm">💡 Optional</span></td>
+                  <td>No (add later)</td>
+                  <td>Testing, beginners, one-offs</td>
+                </tr>
+                <tr>
+                  <td><strong>Required</strong></td>
+                  <td>14</td>
+                  <td><span className="badge badge-warning badge-sm">⚠️ Required</span></td>
+                  <td>Yes (1-2 images)</td>
+                  <td>Series, recurring characters</td>
+                </tr>
+                <tr>
+                  <td><strong>No Support</strong></td>
+                  <td>15</td>
+                  <td>—</td>
+                  <td>N/A</td>
+                  <td>Video transforms, post-production</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <h2>Why Use Workflows?</h2>
@@ -101,181 +349,74 @@ export default function WorkflowsPage() {
             <li>✅ Often costs fewer credits (optimized)</li>
           </ul>
 
-          <h2>Workflow Categories (42 Total)</h2>
+          <h2>🚀 Quick Start: Finding Your Perfect Workflow</h2>
+          <p>Not sure where to start? Use these simple filters to find the right workflow for your needs:</p>
 
-          {/* Category 1: Photorealistic */}
-          <div className="card bg-base-200 my-8 not-prose">
-            <div className="card-body">
-              <h3 className="card-title">1. Photorealistic Production (6 workflows)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Hollywood Standard</h4>
-                    <p className="text-xs mb-2">Premium 5-star quality</p>
-                    <ul className="text-xs list-disc list-inside space-y-1">
-                      <li>Multiple angles of same scene</li>
-                      <li>Character consistency built-in</li>
-                    </ul>
-                    <div className="badge badge-primary mt-2">139 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Multi-Platform Hero</h4>
-                    <p className="text-xs mb-2">Generate once, get all formats</p>
-                    <ul className="text-xs list-disc list-inside space-y-1">
-                      <li>16:9, 9:16, 1:1 automatically</li>
-                      <li>Smart reframing</li>
-                    </ul>
-                    <div className="badge badge-primary mt-2">50-120 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Budget Photorealistic</h4>
-                    <p className="text-xs mb-2">Fast & affordable</p>
-                    <ul className="text-xs list-disc list-inside space-y-1">
-                      <li>Still great quality</li>
-                      <li>Optimized workflow</li>
-                    </ul>
-                    <div className="badge badge-primary mt-2">85 credits</div>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 not-prose my-8">
+            {/* Beginner */}
+            <div className="card bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border-2 border-emerald-500">
+              <div className="card-body">
+                <h3 className="card-title text-lg">
+                  <span className="text-3xl mr-2">🟢</span>
+                  <span>Beginner-Friendly</span>
+                </h3>
+                <div className="divider my-1"></div>
+                <p className="text-sm opacity-90 mb-3">Quick, simple, low credit cost</p>
+                <ul className="text-sm space-y-2">
+                  <li><strong>• Speed Demon</strong> (15-25 credits) - Ultra-fast, text-only</li>
+                  <li><strong>• Budget Photorealistic</strong> (60-100 credits) - Great quality, affordable</li>
+                  <li><strong>• Perfect Loop Generator</strong> (75-100 credits) - Seamless loops for social media</li>
+                  <li><strong>• Product Reshoot</strong> (75-100 credits) - Transform product photos</li>
+                </ul>
+                <div className="mt-4">
+                  <Link href="/workflows?filter=beginner" className="btn btn-sm btn-success w-full">
+                    Browse Beginner Workflows
+                  </Link>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Category 2: Animated */}
-          <div className="card bg-base-200 my-8 not-prose">
-            <div className="card-body">
-              <h3 className="card-title">2. Animated Content (3 workflows)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Anime Master</h4>
-                    <p className="text-xs mb-2">Anime art style</p>
-                    <div className="badge badge-primary mt-2">173 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Cartoon Classic</h4>
-                    <p className="text-xs mb-2">Western cartoon style</p>
-                    <div className="badge badge-primary mt-2">160 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">3D Character</h4>
-                    <p className="text-xs mb-2">Pixar-style 3D</p>
-                    <div className="badge badge-primary mt-2">165 credits</div>
-                  </div>
+            {/* Fast & Budget */}
+            <div className="card bg-gradient-to-br from-amber-500/20 to-amber-600/20 border-2 border-amber-500">
+              <div className="card-body">
+                <h3 className="card-title text-lg">
+                  <span className="text-3xl mr-2">⚡</span>
+                  <span>Fast & Budget</span>
+                </h3>
+                <div className="divider my-1"></div>
+                <p className="text-sm opacity-90 mb-3">Speed and cost-efficiency first</p>
+                <ul className="text-sm space-y-2">
+                  <li><strong>• Speed Demon</strong> - Under 2 minutes</li>
+                  <li><strong>• Micro Action Loop</strong> - 2-4 second clips</li>
+                  <li><strong>• Budget Loop 2</strong> - Lowest cost loops</li>
+                  <li><strong>• Speed Loop V2</strong> - Alternative fast option</li>
+                </ul>
+                <div className="mt-4">
+                  <Link href="/workflows?filter=fast" className="btn btn-sm btn-warning w-full">
+                    Browse Fast Workflows
+                  </Link>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Category 3: Action & VFX */}
-          <div className="card bg-base-200 my-8 not-prose">
-            <div className="card-body">
-              <h3 className="card-title">3. Action & VFX (6 workflows)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Action Director</h4>
-                    <p className="text-xs mb-2">Multi-angle action sequences</p>
-                    <div className="badge badge-primary mt-2">155 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Superhero Transform</h4>
-                    <p className="text-xs mb-2">Transformation & power effects</p>
-                    <div className="badge badge-primary mt-2">180 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Fantasy Epic</h4>
-                    <p className="text-xs mb-2">Fantasy worlds with magic</p>
-                    <div className="badge badge-primary mt-2">195 credits</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category 4: Professional Production */}
-          <div className="card bg-base-200 my-8 not-prose">
-            <div className="card-body">
-              <h3 className="card-title">4. Professional Production (9 workflows)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">B-Roll Master</h4>
-                    <p className="text-xs mb-2">Professional B-roll shots</p>
-                    <div className="badge badge-primary mt-2">75-150 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Location Previs</h4>
-                    <p className="text-xs mb-2">Multiple location angles</p>
-                    <div className="badge badge-primary mt-2">120 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">VFX Elements</h4>
-                    <p className="text-xs mb-2">Fire, smoke, particles</p>
-                    <div className="badge badge-primary mt-2">Varies</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category 5: Budget-Friendly */}
-          <div className="card bg-base-200 my-8 not-prose">
-            <div className="card-body">
-              <h3 className="card-title">5. Budget-Friendly (6 workflows)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Speed Demon</h4>
-                    <p className="text-xs mb-2">Ultra-fast generation</p>
-                    <div className="badge badge-primary mt-2">40 credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Loop Variations</h4>
-                    <p className="text-xs mb-2">Seamless looping videos</p>
-                    <div className="badge badge-primary mt-2">110 credits</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category 6: Character Animation */}
-          <div className="card bg-base-200 my-8 not-prose">
-            <div className="card-body">
-              <h3 className="card-title">6. Character Animation (12 workflows)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Performance Capture</h4>
-                    <p className="text-xs mb-2">Facial animation & emotion tracking</p>
-                    <div className="badge badge-primary mt-2">200+ credits</div>
-                  </div>
-                </div>
-                <div className="card bg-base-100">
-                  <div className="card-body p-4">
-                    <h4 className="font-bold text-sm">Lip Sync Master</h4>
-                    <p className="text-xs mb-2">Perfect dialogue animation</p>
-                    <div className="badge badge-primary mt-2">185 credits</div>
-                  </div>
+            {/* Character Consistency */}
+            <div className="card bg-gradient-to-br from-violet-500/20 to-violet-600/20 border-2 border-violet-500">
+              <div className="card-body">
+                <h3 className="card-title text-lg">
+                  <span className="text-3xl mr-2">🎭</span>
+                  <span>Character Consistency</span>
+                </h3>
+                <div className="divider my-1"></div>
+                <p className="text-sm opacity-90 mb-3">Keep characters consistent across scenes</p>
+                <ul className="text-sm space-y-2">
+                  <li><strong>💡 18 Optional</strong> - Add images later for consistency</li>
+                  <li><strong>⚠️ 14 Required</strong> - Must have 1-2 images from start</li>
+                  <li><strong>32 total</strong> workflows support this feature</li>
+                </ul>
+                <div className="mt-4">
+                  <Link href="/workflows?filter=character-consistency" className="btn btn-sm btn-secondary w-full">
+                    Browse Character Workflows
+                  </Link>
                 </div>
               </div>
             </div>

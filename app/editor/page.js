@@ -316,58 +316,58 @@ FADE OUT.`);
                 Collapse
               </button>
 
-              {/* Characters */}
+            {/* Characters */}
               <div className="card bg-base-200 shadow-sm">
                 <div className="card-body p-3">
                   <h3 className="font-bold text-sm flex items-center gap-2">
-                    <Users className="w-4 h-4 text-cinema-red" />
-                    Characters ({characters.length})
-                  </h3>
-                  <div className="space-y-1">
+                  <Users className="w-4 h-4 text-cinema-red" />
+                  Characters ({characters.length})
+                </h3>
+                <div className="space-y-1">
                     {characters.slice(0, 8).map((char, idx) => (
                       <div key={idx} className="text-xs py-1 px-2 bg-base-300 rounded truncate">
-                        {char}
-                      </div>
-                    ))}
-                    {characters.length === 0 && (
-                      <p className="text-xs opacity-50">
+                      {char}
+                    </div>
+                  ))}
+                  {characters.length === 0 && (
+                    <p className="text-xs opacity-50">
                         Will appear as you write
-                      </p>
-                    )}
-                  </div>
+                    </p>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* Locations */}
+            {/* Locations */}
               <div className="card bg-base-200 shadow-sm">
                 <div className="card-body p-3">
                   <h3 className="font-bold text-sm flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-cinema-blue" />
-                    Locations ({locations.length})
-                  </h3>
-                  <div className="space-y-1">
+                  <MapPin className="w-4 h-4 text-cinema-blue" />
+                  Locations ({locations.length})
+                </h3>
+                <div className="space-y-1">
                     {locations.slice(0, 8).map((loc, idx) => (
                       <div key={idx} className="text-xs py-1 px-2 bg-base-300 rounded truncate">
-                        {loc}
-                      </div>
-                    ))}
-                    {locations.length === 0 && (
-                      <p className="text-xs opacity-50">
+                      {loc}
+                    </div>
+                  ))}
+                  {locations.length === 0 && (
+                    <p className="text-xs opacity-50">
                         Will appear as you write
-                      </p>
-                    )}
-                  </div>
+                    </p>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {/* AI Assistant */}
+            {/* AI Assistant */}
               <div className="card bg-gradient-to-br from-cinema-gold/20 to-cinema-red/20 border border-cinema-gold/30 shadow-sm">
                 <div className="card-body p-3">
                   <h3 className="font-bold text-sm flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-cinema-gold" />
-                    AI Assistant
-                  </h3>
-                  <p className="text-xs opacity-70 mb-2">
+                  <Sparkles className="w-4 h-4 text-cinema-gold" />
+                  AI Assistant
+                </h3>
+                <p className="text-xs opacity-70 mb-2">
                     7 AI modes available
                   </p>
                   <button 
@@ -376,32 +376,32 @@ FADE OUT.`);
                     title="Open AI Assistant (Ctrl+/)"
                   >
                     <Sparkles className="w-3 h-3" />
-                    Open Chat
-                  </button>
-                </div>
+                  Open Chat
+                </button>
               </div>
+            </div>
 
-              {/* Fountain Format Guide */}
+            {/* Fountain Format Guide */}
               <div className="card bg-base-200 shadow-sm">
                 <div className="card-body p-3">
                   <h3 className="font-bold text-xs">Fountain Format</h3>
                   <div className="text-[10px] space-y-2 opacity-70">
-                    <div>
+                  <div>
                       <strong>Scene:</strong>
                       <pre className="text-[9px] bg-base-300 p-1 rounded mt-1">INT. LOCATION - DAY</pre>
-                    </div>
-                    <div>
-                      <strong>Character:</strong>
+                  </div>
+                  <div>
+                    <strong>Character:</strong>
                       <pre className="text-[9px] bg-base-300 p-1 rounded mt-1">CHARACTER NAME</pre>
-                    </div>
-                    <div>
-                      <strong>Dialogue:</strong>
+                  </div>
+                  <div>
+                    <strong>Dialogue:</strong>
                       <pre className="text-[9px] bg-base-300 p-1 rounded mt-1">Their words</pre>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
           )}
         </div>
 
@@ -422,9 +422,9 @@ FADE OUT.`);
         <div className="flex-1 flex flex-col overflow-hidden bg-base-100">
           <div className="flex-1 overflow-hidden p-3 lg:p-6">
             <div className="h-full card bg-base-200 shadow-xl">
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
                 className="h-full w-full textarea textarea-ghost font-mono text-sm p-4 lg:p-6 focus:outline-none resize-none"
                 placeholder="Start writing your screenplay in Fountain format...
 
@@ -435,13 +435,13 @@ Action description here.
 CHARACTER NAME
 Dialogue goes here.
 "
-                style={{
-                  fontFamily: '"Courier Prime", "Courier New", monospace',
-                  lineHeight: '1.8',
-                }}
-              />
+                  style={{
+                    fontFamily: '"Courier Prime", "Courier New", monospace',
+                    lineHeight: '1.8',
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
           {/* Mobile: Tips Bar */}
           <div className="lg:hidden px-3 pb-2">
@@ -643,10 +643,10 @@ Dialogue goes here.
                 <div>
                   <h4 className="font-bold">Pro Tip!</h4>
                   <p className="text-sm">Your screenplay auto-saves every 30 seconds while you write.</p>
-                </div>
-              </div>
             </div>
           </div>
+        </div>
+      </div>
         </div>
       )}
     </div>

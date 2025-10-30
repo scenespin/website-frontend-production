@@ -127,9 +127,9 @@ export default function QualityTiersPage() {
               
               <h4 className="font-bold mt-4">Technical Difference:</h4>
               <ul className="list-disc list-inside text-sm space-y-1">
-                <li>Native 4K generation (not upscaled)</li>
+                <li>Maximum native resolution</li>
                 <li>Superior detail and sharpness</li>
-                <li>Best for large screens</li>
+                <li>Best for large screens and cinema</li>
                 <li>Professional color grading</li>
               </ul>
             </div>

@@ -22,6 +22,7 @@ export default function Navigation() {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'AI Chat', href: '/chat', icon: MessageSquare },
+    { name: 'Workflows', href: '/workflows', icon: Zap },
     { name: 'Generate Video', href: '/production', icon: Video },
     { name: 'Screenplay', href: '/editor', icon: FileText },
   ];
