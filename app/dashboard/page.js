@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import WelcomeModal from '@/components/WelcomeModal';
@@ -18,6 +18,7 @@ import {
 
 export default function Dashboard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -25,10 +26,13 @@ export default function Dashboard() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
-    fetchDashboardData();
-    // Temporarily disable welcome modal to debug login loop
-    // checkFirstVisit();
-  }, []);
+    // Only fetch data once user and auth are loaded
+    if (user && getToken) {
+      fetchDashboardData();
+      // Temporarily disable welcome modal to debug login loop
+      // checkFirstVisit();
+    }
+  }, [user, getToken]);
 
   const checkFirstVisit = async () => {
     try {
@@ -62,6 +66,11 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      
+      // Set the auth token getter for API calls
+      const { setAuthTokenGetter } = await import('@/lib/api');
+      setAuthTokenGetter(getToken);
+      
       const [creditsRes, projectsRes, videosRes] = await Promise.all([
         api.user.getCredits(),
         api.projects.list(),
