@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/libs/auth";
+import { auth } from "@clerk/nextjs/server";
 import { createCheckout } from "@/libs/stripe";
 import connectMongo from "@/libs/mongoose";
 import User from "@/models/User";
@@ -31,11 +31,11 @@ export async function POST(req) {
   }
 
   try {
-    const session = await auth();
+    const { userId } = await auth();
 
     await connectMongo();
 
-    const user = await User.findById(session?.user?.id);
+    const user = userId ? await User.findById(userId) : null;
 
     const { priceId, mode, successUrl, cancelUrl } = body;
 

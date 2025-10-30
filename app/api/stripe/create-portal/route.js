@@ -1,21 +1,19 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/libs/auth";
+import { auth } from "@clerk/nextjs/server";
 import connectMongo from "@/libs/mongoose";
 import { createCustomerPortal } from "@/libs/stripe";
 import User from "@/models/User";
 
 export async function POST(req) {
-  const session = await auth();
+  const { userId } = await auth();
 
-  if (session) {
+  if (userId) {
     try {
       await connectMongo();
 
       const body = await req.json();
 
-      const { id } = session.user;
-
-      const user = await User.findById(id);
+      const user = await User.findById(userId);
 
       if (!user?.customerId) {
         return NextResponse.json(
