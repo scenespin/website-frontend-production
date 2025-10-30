@@ -1,6 +1,5 @@
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { signIn } from "next-auth/react";
 import config from "@/config";
 
 // use this to interact with our own API (/app/api folder) from the front-end side
@@ -17,10 +16,13 @@ apiClient.interceptors.response.use(
     let message = "";
 
     if (error.response?.status === 401) {
-      // User not auth, ask to re login
+      // User not auth, redirect to sign-in
       toast.error("Please login");
-      // automatically redirect to /dashboard page after login
-      return signIn(undefined, { callbackUrl: config.auth.callbackUrl });
+      // Redirect to sign-in page (Clerk will handle the rest)
+      if (typeof window !== 'undefined') {
+        window.location.href = '/sign-in';
+      }
+      return Promise.reject(error);
     } else if (error.response?.status === 403) {
       // User not authorized, must subscribe/purchase/pick a plan
       message = "Pick a plan to use this feature";

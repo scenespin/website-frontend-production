@@ -29,8 +29,7 @@ export default function Dashboard() {
     // Only fetch data once user and auth are loaded
     if (user && getToken) {
       fetchDashboardData();
-      // Temporarily disable welcome modal to debug login loop
-      // checkFirstVisit();
+      checkFirstVisit();
     }
   }, [user, getToken]);
 
@@ -106,45 +105,45 @@ export default function Dashboard() {
       />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white p-8">
+      <div className="bg-cinema-red text-white p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.firstName || 'Creator'}! 🎬</h1>
-          <p className="text-white/80">Ready to create something amazing?</p>
+          <h1 className="text-2xl md:text-4xl font-bold mb-2">Welcome back, {user?.firstName || 'Creator'}! 🎬</h1>
+          <p className="text-white/80 text-sm md:text-base">Ready to create something amazing?</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Credits */}
           <div className="card bg-base-200 shadow-xl border border-cinema-red/20">
-            <div className="card-body">
+            <div className="card-body p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-base-content/60 text-sm">Available Credits</p>
-                  <p className="text-3xl font-bold text-cinema-red">
+                  <p className="text-base-content/60 text-xs md:text-sm">Available Credits</p>
+                  <p className="text-2xl md:text-3xl font-bold text-cinema-red">
                     {credits?.balance?.toLocaleString() || '0'}
                   </p>
                 </div>
-                <Zap className="w-12 h-12 text-cinema-gold" />
+                <Zap className="w-8 h-8 md:w-12 md:h-12 text-cinema-gold" />
               </div>
-              <Link href="/pricing" className="btn btn-sm btn-outline mt-2">
+              <Link href="/pricing" className="btn btn-sm btn-outline mt-2 hover:bg-cinema-red hover:text-white hover:border-cinema-red">
                 Add Credits
               </Link>
             </div>
           </div>
 
           {/* Projects */}
-          <div className="card bg-base-200 shadow-xl border border-cinema-blue/20">
-            <div className="card-body">
+          <div className="card bg-base-200 shadow-xl border border-base-300">
+            <div className="card-body p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-base-content/60 text-sm">Active Projects</p>
-                  <p className="text-3xl font-bold text-cinema-blue">
+                  <p className="text-base-content/60 text-xs md:text-sm">Active Projects</p>
+                  <p className="text-2xl md:text-3xl font-bold text-primary">
                     {projects.length}
                   </p>
                 </div>
-                <FileText className="w-12 h-12 text-cinema-blue" />
+                <FileText className="w-8 h-8 md:w-12 md:h-12 text-primary" />
               </div>
               <button 
                 onClick={() => window.location.href = '/editor'}
@@ -156,16 +155,16 @@ export default function Dashboard() {
           </div>
 
           {/* Videos */}
-          <div className="card bg-base-200 shadow-xl border border-cinema-gold/20">
-            <div className="card-body">
+          <div className="card bg-base-200 shadow-xl border border-base-300">
+            <div className="card-body p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-base-content/60 text-sm">Videos Created</p>
-                  <p className="text-3xl font-bold text-cinema-gold">
+                  <p className="text-base-content/60 text-xs md:text-sm">Videos Created</p>
+                  <p className="text-2xl md:text-3xl font-bold text-accent">
                     {recentVideos.length}
                   </p>
                 </div>
-                <Video className="w-12 h-12 text-cinema-gold" />
+                <Video className="w-8 h-8 md:w-12 md:h-12 text-accent" />
               </div>
               <Link href="/production" className="btn btn-sm btn-outline mt-2">
                 Generate Video
@@ -176,39 +175,39 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="card bg-base-200 shadow-xl">
-          <div className="card-body">
-            <h2 className="card-title text-2xl mb-4">
-              <Film className="w-6 h-6 text-cinema-red" />
+          <div className="card-body p-4 md:p-6">
+            <h2 className="card-title text-xl md:text-2xl mb-4">
+              <Film className="w-5 h-5 md:w-6 md:h-6 text-cinema-red" />
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <Link 
                 href="/editor" 
-                className="btn btn-lg bg-gradient-to-r from-cinema-red to-cinema-blue text-white border-none hover:opacity-90"
+                className="btn btn-md md:btn-lg bg-cinema-red hover:opacity-90 text-white border-none"
               >
-                <FileText className="w-5 h-5" />
-                Write Screenplay
+                <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-sm md:text-base">Write Screenplay</span>
               </Link>
               <Link 
                 href="/production" 
-                className="btn btn-lg btn-outline"
+                className="btn btn-md md:btn-lg btn-outline hover:bg-cinema-red hover:text-white hover:border-cinema-red"
               >
-                <Video className="w-5 h-5" />
-                Generate Video
+                <Video className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-sm md:text-base">Generate Video</span>
               </Link>
               <Link 
                 href="/composition" 
-                className="btn btn-lg btn-outline"
+                className="btn btn-md md:btn-lg btn-outline hover:bg-cinema-red hover:text-white hover:border-cinema-red"
               >
-                <Clapperboard className="w-5 h-5" />
-                Compose Clips
+                <Clapperboard className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-sm md:text-base">Compose Clips</span>
               </Link>
               <Link 
                 href="/timeline" 
-                className="btn btn-lg btn-outline"
+                className="btn btn-md md:btn-lg btn-outline hover:bg-cinema-red hover:text-white hover:border-cinema-red"
               >
-                <Clock className="w-5 h-5" />
-                Edit Timeline
+                <Clock className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-sm md:text-base">Edit Timeline</span>
               </Link>
             </div>
           </div>

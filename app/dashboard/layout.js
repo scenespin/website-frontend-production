@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { DrawerProvider } from "@/contexts/DrawerContext";
+import { ChatProvider } from "@/contexts/ChatContext";
+import AgentDrawer from "@/components/AgentDrawer";
+import UnifiedChatPanel from "@/components/UnifiedChatPanel";
 
 // Client-side auth check - cleaner and no server redirect loops
 export default function LayoutPrivate({ children }) {
@@ -33,10 +36,15 @@ export default function LayoutPrivate({ children }) {
 
   return (
     <DrawerProvider>
-      <div className="min-h-screen bg-base-100">
-        <Navigation />
-        {children}
-      </div>
+      <ChatProvider>
+        <div className="min-h-screen bg-base-100">
+          <Navigation />
+          {children}
+          <AgentDrawer>
+            <UnifiedChatPanel />
+          </AgentDrawer>
+        </div>
+      </ChatProvider>
     </DrawerProvider>
   );
 }

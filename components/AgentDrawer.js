@@ -5,7 +5,7 @@ import { X, GripHorizontal, ChevronRight } from 'lucide-react';
 import { useDrawer } from '@/contexts/DrawerContext';
 
 export default function AgentDrawer({ children }) {
-  const { isDrawerOpen, closeDrawer } = useDrawer();
+  const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
   const [height, setHeight] = useState(500);
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -155,8 +155,8 @@ export default function AgentDrawer({ children }) {
       {/* Floating Open Button (Desktop - when closed) */}
       {!isDrawerOpen && (
         <button
-          onClick={() => {}}
-          className="fixed top-1/2 right-0 -translate-y-1/2 btn btn-primary btn-sm rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30"
+          onClick={() => openDrawer('chat')}
+          className="fixed top-1/2 right-0 -translate-y-1/2 btn bg-cinema-red hover:opacity-90 text-white btn-sm rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none"
           style={{ writingMode: 'vertical-rl' }}
         >
           AI Assistant
