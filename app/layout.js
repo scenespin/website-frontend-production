@@ -20,7 +20,13 @@ export const metadata = getSEOTags();
 
 export default function RootLayout({ children }) {
 	return (
-		<ClerkProvider>
+		<ClerkProvider
+			signInUrl="/sign-in"
+			signUpUrl="/sign-up"
+			afterSignInUrl="/dashboard"
+			afterSignUpUrl="/dashboard"
+			publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+		>
 			<html
 				lang="en"
 				data-theme={config.colors.theme}
