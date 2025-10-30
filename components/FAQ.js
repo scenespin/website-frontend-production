@@ -16,7 +16,7 @@ const faqList = [
           <li>Professional screenplay editor & timeline (8 tracks)</li>
           <li>65 compositions + 30 Hollywood transitions</li>
           <li>Upload unlimited footage</li>
-          <li>Character Bank, Voice Cloning, Cloud Storage</li>
+          <li>Character Bank, Cloud Storage</li>
           <li>All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
           <li>All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
         </ul>
@@ -28,7 +28,7 @@ const faqList = [
     question: "How do credits work? What can I make with them?",
     answer: (
       <div className="space-y-2 leading-relaxed">
-        <p><strong>Free Plan:</strong> 100 signup credits + 10/month = ~2 professional 1080p videos</p>
+        <p><strong>Free Plan:</strong> 100 signup credits + 10 credits/month = ~2 professional 1080p videos</p>
         <p><strong>Pro Plan ($29/mo):</strong> 3,000 credits = ~60 professional 1080p videos</p>
         <p><strong>Ultra Plan ($149/mo):</strong> 20,000 credits = ~400 professional videos</p>
         <p><strong>Studio Plan ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</p>
@@ -49,6 +49,7 @@ const faqList = [
         <p><strong>Both!</strong> This is what makes Wryda.ai unique:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Upload your own footage:</strong> 100% FREE, unlimited uploads</li>
+          <li><strong>Put yourself in action shots:</strong> Use First Frame and Character Bank to place yourself or your actors in AI-generated scenes</li>
           <li><strong>Mix & match:</strong> Combine your camera shots with AI-generated VFX, B-roll, and locations</li>
           <li><strong>Apply Hollywood tools:</strong> Use our 65 compositions and 30 transitions on any footage</li>
           <li><strong>Professional editing:</strong> Full timeline editor with 8 tracks</li>
@@ -70,7 +71,7 @@ const faqList = [
           <li>✅ Upload unlimited footage</li>
           <li>✅ 65 compositions + 30 transitions</li>
           <li>✅ No watermarks, no vendor lock-in</li>
-          <li>✅ Character consistency, voice cloning, 3D export</li>
+          <li>✅ Character Bank</li>
         </ul>
         <p>Choose based on how many AI videos you need per month. That&apos;s it!</p>
       </div>
@@ -81,15 +82,16 @@ const faqList = [
     answer: (
       <div className="space-y-2 leading-relaxed">
         <p><strong>Way cheaper. Here&apos;s the breakdown:</strong></p>
-        <p><strong>Traditional Stack:</strong> $1,571/year</p>
+        <p><strong>Traditional Stack:</strong> $1,776/year</p>
         <ul className="list-disc pl-5 text-sm">
-          <li>Screenwriting software: $250/yr</li>
-          <li>Video editing suite: $263/yr</li>
-          <li>Motion graphics software: $263/yr</li>
-          <li>Professional video editor: $295</li>
-          <li>Stock footage & music: $500/yr</li>
+          <li>Final Draft (Screenwriting): $250/yr</li>
+          <li>Adobe Premiere Pro (Video Editing): $263/yr</li>
+          <li>Adobe After Effects (VFX/Motion Graphics): $263/yr</li>
+          <li>Stock footage subscription (Artgrid/Storyblocks): $500/yr</li>
+          <li>Stock music/SFX (Epidemic Sound): $300/yr</li>
+          <li>Cloud storage (200GB+): $200/yr</li>
         </ul>
-        <p><strong>Wryda.ai Pro:</strong> $348/year (save $1,223/year)</p>
+        <p><strong>Wryda.ai Pro:</strong> $348/year (save $1,428/year)</p>
         <p><strong>Plus you get:</strong></p>
         <ul className="list-disc pl-5">
           <li>All-in-one platform (no tool juggling)</li>

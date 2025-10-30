@@ -88,10 +88,10 @@ export default function Features() {
               free={true}
             />
             <FeatureCard
-              title="Voice Cloning"
-              description="FREE to add your 11 Labs voice, perfect lip-sync, facial animation, emotion and expression support"
+              title="Voice Cloning & Lip-Sync"
+              description="Add custom voices to your characters with perfect lip-sync, facial animation, and emotional expression support through third-party integration"
               free={true}
-              note="(11 Labs subscription required)"
+              note="(Third-party subscription required)"
             />
             <FeatureCard
               title="3D Model Export"
@@ -125,33 +125,39 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Hollywood Standard"
-                description="Premium 5-star quality with Photon-1 → Photon Flash → Veo → Runway 4K upscale"
+                description="Premium 5-star quality workflow with multi-step AI processing, advanced upscaling, and cinema-grade output. Best for final deliverables and client work."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Budget Photorealistic"
-                description="Fast & affordable (Photon Flash → Photon Flash x3 → Ray Flash)"
+                description="Fast and affordable photorealistic generation optimized for speed and cost efficiency. Perfect for rapid prototyping and social media content."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Multi-Platform Hero"
-                description="Single generation optimized for multiple social platforms with smart reframing"
+                description="Generate once, optimize for all platforms automatically. Intelligent reframing for YouTube (16:9), TikTok (9:16), Instagram (1:1), and more."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Precision Poser"
-                description="Character positioning with keyframes for exact poses"
+                description="Control exact character positioning using keyframe-based pose guidance. Perfect for matching specific choreography or reference footage."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Cinematic Camera Suite"
-                description="Professional camera movements (dolly, crane, tracking shots)"
+                description="Professional camera movements including dollies, crane shots, tracking moves, and complex camera choreography. Hollywood-grade cinematography."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Scene Composer"
-                description="Professional composition templates (Rule of Thirds, Golden Ratio)"
+                description="Apply professional composition rules automatically: Rule of Thirds, Golden Ratio, leading lines, and balanced framing for visual storytelling."
                 stars={5}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -162,18 +168,21 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Anime Master"
-                description="Anime-style character generation with consistent art style"
+                description="Generate authentic anime-style characters with consistent art direction, proper shading techniques, and maintained character features across all scenes."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Cartoon Classic"
-                description="Western cartoon style with exaggerated animations"
+                description="Western cartoon aesthetics with exaggerated expressions, squash-and-stretch animation principles, and vibrant color palettes perfect for comedy or family content."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="3D Character"
-                description="Pixar-style 3D animated characters"
+                description="High-quality 3D animated characters with professional lighting, realistic materials, and Pixar-quality rendering for premium animated content."
                 stars={5}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -184,38 +193,45 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Action Director"
-                description="Multi-angle action sequences with perfect character consistency"
+                description="Create multi-angle action sequences with guaranteed character consistency. Automatically generate master shots, close-ups, and reaction angles for dynamic scenes."
                 stars={5}
+                helpLink="/help/advanced/multi-shot-scenes"
               />
               <WorkflowCard
                 title="Reality-to-Toon"
-                description="Transform live-action reference to animated style"
+                description="Transform live-action reference footage into any animated style while preserving motion, timing, and performance. Perfect for mocap-style workflows."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Style Chameleon"
-                description="Same scene in multiple artistic styles"
+                description="Generate the same scene across multiple artistic styles (photorealistic, anime, 3D, oil painting, etc.) for client presentations or creative exploration."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Reverse Action Builder"
-                description="Generate action sequence, then play in reverse for creative effects"
+                description="Create action sequences designed to play in reverse. Generates physics-accurate motion that looks intentional when reversed for dramatic effect."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Bidirectional Storytelling"
-                description="Scene plays forward and backward seamlessly"
+                description="Scenes that work perfectly playing forward or backward. Used for loop-based content, time-travel narratives, or artistic reversals."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Voice Actor Match"
-                description="Generate character dialog with perfect lip-sync using AI"
+                description="Generate character dialogue with perfect lip-sync, facial animation, and emotional performance. Sync any audio track to your characters automatically."
                 stars={5}
+                helpLink="/help/advanced/dialogue-generation"
               />
               <WorkflowCard
                 title="Production Pipeline"
-                description="Complete production from script to final edit"
+                description="Complete end-to-end workflow from script breakdown to final edit. Automated scene generation, coverage, and assembly for full production efficiency."
                 stars={5}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -226,13 +242,15 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Fantasy Epic"
-                description="Fantasy worlds with creatures, magic effects"
+                description="Create immersive fantasy worlds with mythical creatures, magical effects, and otherworldly environments. Includes particle effects, atmospheric lighting, and epic scale."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Superhero Transform"
-                description="Superhero transformations and power effects"
+                description="Dramatic transformation sequences with power effects, energy auras, costume changes, and heroic poses. Perfect for action and superhero content."
                 stars={5}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -243,13 +261,15 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Animal Kingdom"
-                description="Realistic animal characters and behaviors"
+                description="Realistic animal characters with accurate anatomy, natural behaviors, and lifelike movements. From domestic pets to wildlife documentary footage."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Anthro Character"
-                description="Anthropomorphic animal characters (Zootopia-style)"
+                description="Anthropomorphic animal characters with expressive faces and human-like gestures. Zootopia-style talking animals perfect for animated storytelling."
                 stars={5}
+                helpLink="/help/advanced/character-consistency"
               />
             </div>
           </div>
@@ -260,38 +280,45 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Speed Demon"
-                description="Ultra-fast generation (under 2 minutes)"
+                description="Ultra-fast generation optimized for speed over quality. Generate content in under 2 minutes. Perfect for rapid ideation, storyboarding, and quick tests."
                 stars={3}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Micro Action Loop"
-                description="Short looping action clips for social media"
+                description="Short, seamless looping action clips (2-4 seconds) perfect for social media, GIFs, and attention-grabbing content. Optimized for TikTok and Reels."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Multi-Platform Loop"
-                description="Single loop reframed for all social platforms"
+                description="Generate one perfect loop, automatically reframed for all social platforms. Creates 16:9, 9:16, 1:1, and 4:3 versions from a single generation."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Perfect Loop Generator"
-                description="Seamless looping videos (start frame = end frame)"
+                description="Mathematically perfect seamless loops where the end frame matches the start frame exactly. Creates infinite replay-able content for backgrounds and ambiance."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Loop Variations"
-                description="Generate 5 variations of a looping clip"
+                description="Generate 5 style variations of the same looping clip. Test different moods, colors, times of day, or weather conditions to find the perfect look."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Budget Loop 2"
-                description="Additional budget loop variation"
+                description="Additional budget-friendly loop variation with lower credit cost. Great for bulk content creation and testing loop concepts before investing in premium quality."
                 stars={3}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Speed Loop V2"
-                description="Alternative fast loop generation"
+                description="Alternative ultra-fast loop generation with different optimization settings. Balances speed and loop quality for rapid content production."
                 stars={3}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -302,38 +329,45 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Scene Bridge"
-                description="Generate transition between two existing video clips"
+                description="Generate smooth transitions between two existing clips. AI analyzes both scenes to create a seamless bridge shot that connects them naturally."
                 stars={4}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Video Chain Builder"
-                description="Chain multiple videos with consistent style"
+                description="Chain multiple video clips together while maintaining consistent style, lighting, and atmosphere. Perfect for montages and sequences with unified visual language."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Genre Camera Variants"
-                description="Same scene with genre-specific camera styles (horror, comedy, action)"
+                description="Generate the same scene with different genre-specific camera work: horror (handheld shaky), comedy (bright steady), action (dynamic tracking), etc."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Shot Type Variants"
-                description="Same scene with different shot types (close-up, medium, wide)"
+                description="Automatically generate multiple shot types from one scene: wide establishing, medium coverage, close-ups, and inserts. Complete coverage from a single prompt."
                 stars={5}
+                helpLink="/help/advanced/multi-shot-scenes"
               />
               <WorkflowCard
                 title="B-Roll Master"
-                description="Professional B-roll: establishing shots, cutaways, environmental footage"
+                description="Generate professional B-roll footage: establishing shots, cutaways, environmental details, and atmospheric footage to enhance your main narrative."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Coverage Master"
-                description="Generate complete coverage for a scene (master, OTS, close-ups)"
+                description="Complete scene coverage workflow: generates master shot, over-the-shoulder angles, close-ups, and reaction shots. TV/film production standard coverage."
                 stars={5}
+                helpLink="/help/advanced/multi-shot-scenes"
               />
               <WorkflowCard
                 title="Scene Variants"
-                description="Multiple variations of same scene (different lighting, time of day)"
+                description="Generate multiple variations of the same scene with different lighting conditions, time of day, weather, or mood. Perfect for client options or creative exploration."
                 stars={4}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -345,43 +379,51 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Anime Performance Capture"
-                description="Upload your performance, get anime-style output"
+                description="Upload your own video performance, get it transformed into anime style while preserving your movements, expressions, and timing. Perfect for content creators."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="3D Performance Capture"
-                description="Upload your performance, get 3D animated output"
+                description="Convert your performance into high-quality 3D animation. Your acting drives the 3D character - no mocap suit required. Pixar-quality output."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Cartoon Performance Capture"
-                description="Upload your performance, get cartoon-style output"
+                description="Transform your performance into classic Western cartoon style with exaggerated expressions and squash-and-stretch animation. Your performance, cartoonified."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Anthro Performance Capture"
-                description="Upload your performance, get anthro animal character output"
+                description="Become an anthropomorphic animal character. Upload your performance, get a talking animal version. Ideal for animated stories and mascot content."
                 stars={5}
+                helpLink="/help/advanced/character-consistency"
               />
               <WorkflowCard
                 title="Action Director Performance"
-                description="Upload action performance, get multi-angle action sequence"
+                description="Upload one action performance, get multi-angle coverage automatically. Creates master, close-ups, and reaction shots from your single performance."
                 stars={5}
+                helpLink="/help/advanced/multi-shot-scenes"
               />
               <WorkflowCard
                 title="Reality-to-Toon Performance"
-                description="Upload live-action, get animated transformation"
+                description="Hybrid workflow combining live-action with animated transformation. Start realistic, transform mid-scene, or blend both styles throughout."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Complete Scene Performance"
-                description="Upload performance for complete scene package"
+                description="Full scene package from your performance upload. Generates character consistency, proper coverage, and scene assembly automatically."
                 stars={5}
+                helpLink="/help/workflows"
               />
               <WorkflowCard
                 title="Production Pipeline Performance"
-                description="Upload performance for full production pipeline"
+                description="Enterprise workflow: upload your performance, get complete production pipeline output including all necessary deliverables and formats."
                 stars={5}
+                helpLink="/help/workflows"
               />
             </div>
           </div>
@@ -392,15 +434,17 @@ export default function Features() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <WorkflowCard
                 title="Standard Dialogue Generation"
-                description="AI-generated character dialogue with video + voice + perfect lip-sync (4-8 seconds)"
+                description="Generate AI-powered character dialogue with video, voice synthesis, and perfectly synced lip animation. Supports 4-8 second clips with emotion control."
                 stars={5}
                 credits="400 credits"
+                helpLink="/help/advanced/dialogue-generation"
               />
               <WorkflowCard
                 title="Extended & Cinema Dialogue"
-                description="Extended dialogue clips with cinema format support (4-12 seconds, 21:9 cinema)"
+                description="Longer dialogue clips (4-12 seconds) with cinema format (21:9) support. Perfect for dramatic scenes, monologues, and extended conversations."
                 stars={5}
                 credits="450-750 credits"
+                helpLink="/help/advanced/dialogue-generation"
               />
             </div>
           </div>
@@ -441,18 +485,13 @@ export default function Features() {
           <h2 className="text-3xl font-bold mb-6">🚀 Advanced Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
-              title="Multi-Provider Orchestration"
-              description="Intelligent routing across multiple AI providers for optimal quality and cost"
+              title="Intelligent AI Routing"
+              description="Automatic provider selection for optimal quality and cost based on your needs"
               free={true}
             />
             <FeatureCard
               title="GitHub Integration"
               description="Version control for screenplays, multi-user collaboration, branch management"
-              free={true}
-            />
-            <FeatureCard
-              title="Stripe Billing System"
-              description="Credit-based billing (1 credit = $0.01), subscription management, usage tracking"
               free={true}
             />
             <FeatureCard
@@ -468,6 +507,11 @@ export default function Features() {
             <FeatureCard
               title="Collaboration Tools"
               description="Role-based access control, real-time collaboration, activity tracking"
+              free={true}
+            />
+            <FeatureCard
+              title="Credit Management"
+              description="Simple credit-based billing (1 credit = $0.01), subscription management, usage tracking"
               free={true}
             />
           </div>
@@ -510,21 +554,38 @@ function FeatureCard({ title, description, free, credits, note }) {
   );
 }
 
-function WorkflowCard({ title, description, stars, credits }) {
+function WorkflowCard({ title, description, stars, credits, helpLink }) {
+  const CardContent = (
+    <div className="card-body p-4">
+      <div className="flex justify-between items-start">
+        <h4 className="font-semibold text-sm">{title}</h4>
+        <div className="text-yellow-500 text-xs">
+          {"⭐".repeat(stars)}
+        </div>
+      </div>
+      <p className="text-xs opacity-70">{description}</p>
+      {credits && (
+        <div className="text-xs text-primary font-semibold mt-1">{credits}</div>
+      )}
+      {helpLink && (
+        <div className="text-xs text-[#DC143C] mt-2 hover:underline">
+          Learn more →
+        </div>
+      )}
+    </div>
+  );
+
+  if (helpLink) {
+    return (
+      <Link href={helpLink} className="card bg-base-100 border border-base-300 hover:border-primary transition-colors">
+        {CardContent}
+      </Link>
+    );
+  }
+
   return (
     <div className="card bg-base-100 border border-base-300">
-      <div className="card-body p-4">
-        <div className="flex justify-between items-start">
-          <h4 className="font-semibold text-sm">{title}</h4>
-          <div className="text-yellow-500 text-xs">
-            {"⭐".repeat(stars)}
-          </div>
-        </div>
-        <p className="text-xs opacity-70">{description}</p>
-        {credits && (
-          <div className="text-xs text-primary font-semibold mt-1">{credits}</div>
-        )}
-      </div>
+      {CardContent}
     </div>
   );
 }

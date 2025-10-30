@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import config from "@/config";
-import ButtonSignin from "@/components/ButtonSignin";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
@@ -16,7 +15,9 @@ export default function Page() {
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <ButtonSignin text="Login" />
+        <Link href="/sign-in" className="btn btn-ghost">
+          Login
+        </Link>
       </header>
 
       <main>
@@ -176,31 +177,35 @@ export default function Page() {
             {/* Traditional Stack */}
             <div className="card bg-base-200 shadow-xl">
               <div className="card-body">
-                <h3 className="card-title text-2xl mb-4">Traditional Stack: $1,931/year</h3>
+                <h3 className="card-title text-2xl mb-4">Traditional Stack: $1,776/year</h3>
                 <ul className="space-y-3">
                   <li className="flex justify-between items-center">
                     <span className="opacity-80">Final Draft (Screenwriting)</span>
                     <span className="font-semibold">$250/yr</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="opacity-80">Premiere Pro (Video Editing)</span>
+                    <span className="opacity-80">Adobe Premiere Pro (Video Editing)</span>
                     <span className="font-semibold">$263/yr</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="opacity-80">After Effects (VFX & Compositing)</span>
+                    <span className="opacity-80">Adobe After Effects (VFX/Motion Graphics)</span>
                     <span className="font-semibold">$263/yr</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="opacity-80">DaVinci Resolve Studio</span>
-                    <span className="font-semibold">$295</span>
-                  </li>
-                  <li className="flex justify-between items-center">
-                    <span className="opacity-80">Stock Footage & Music</span>
+                    <span className="opacity-80">Stock footage (Artgrid/Storyblocks)</span>
                     <span className="font-semibold">$500/yr</span>
+                  </li>
+                  <li className="flex justify-between items-center">
+                    <span className="opacity-80">Stock music/SFX (Epidemic Sound)</span>
+                    <span className="font-semibold">$300/yr</span>
+                  </li>
+                  <li className="flex justify-between items-center">
+                    <span className="opacity-80">Cloud storage (200GB+)</span>
+                    <span className="font-semibold">$200/yr</span>
                   </li>
                   <li className="border-t border-base-content/20 pt-3 flex justify-between items-center">
                     <span className="font-bold text-xl">Total</span>
-                    <span className="font-bold text-2xl text-error">$1,571/yr</span>
+                    <span className="font-bold text-2xl text-error">$1,776/yr</span>
                   </li>
                 </ul>
               </div>
@@ -217,7 +222,7 @@ export default function Page() {
                     <span className="font-bold text-2xl text-success">$0</span>
                   </li>
                   <li className="text-sm opacity-80 pl-4">
-                    100 signup + 10/mo credits • All features unlocked
+                    100 signup + 10 credits/month • All features unlocked
                   </li>
                   
                   <li className="flex justify-between items-center pt-3">
@@ -228,7 +233,7 @@ export default function Page() {
                     3,000 credits/mo • Same features, more credits
                   </li>
                   <li className="text-sm text-success font-semibold pl-4">
-                    💰 Save $1,223/year (78% savings!)
+                    💰 Save $1,428/year (80% savings!)
                   </li>
 
                   <li className="flex justify-between items-center pt-3">

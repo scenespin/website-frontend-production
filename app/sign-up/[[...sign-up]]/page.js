@@ -34,7 +34,7 @@ export default function SignUpPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-16">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-start">
           
           {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}
           <div className="space-y-6 order-2 md:order-1">
@@ -188,10 +188,31 @@ export default function SignUpPage() {
             <div className="bg-base-100 rounded-box shadow-2xl p-6 md:p-8">
               <SignUp 
                 appearance={{
+                  baseTheme: undefined,
+                  variables: {
+                    colorPrimary: '#DC143C',
+                    colorBackground: 'hsl(var(--b1))',
+                    colorInputBackground: 'hsl(var(--b2))',
+                    colorInputText: 'hsl(var(--bc))',
+                    colorText: 'hsl(var(--bc))',
+                    colorTextSecondary: 'hsl(var(--bc) / 0.7)',
+                    colorNeutral: 'hsl(var(--b3))',
+                    borderRadius: '0.5rem',
+                  },
                   elements: {
                     rootBox: "w-full",
-                    card: "bg-transparent shadow-none"
-                  }
+                    card: "bg-transparent shadow-none",
+                    headerTitle: "text-base-content",
+                    headerSubtitle: "text-base-content/70",
+                    socialButtonsBlockButton: "bg-base-200 hover:bg-base-300 text-base-content border border-base-content/20",
+                    formButtonPrimary: "bg-[#DC143C] hover:bg-[#B8112F] text-white",
+                    footerActionLink: "text-[#DC143C] hover:text-[#B8112F]",
+                    formFieldLabel: "text-base-content",
+                    formFieldInput: "bg-base-200 text-base-content border-base-content/20",
+                    identityPreviewText: "text-base-content",
+                    identityPreviewEditButton: "text-[#DC143C]",
+                    footer: "hidden", // Hides "Secured by Clerk"
+                  },
                 }}
               />
             </div>

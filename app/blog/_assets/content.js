@@ -209,8 +209,8 @@ export const articles = [
             <li className={styles.li}><strong>All Aspect Ratios</strong> - 16:9, 9:16, 1:1, 4:3, 21:9</li>
             <li className={styles.li}><strong>Upload Your Own Footage</strong> - Unlimited, completely FREE</li>
             <li className={styles.li}><strong>Character Bank</strong> - Consistent characters across scenes</li>
-            <li className={styles.li}><strong>Voice Cloning</strong> - FREE (bring your 11 Labs voice)</li>
-            <li className={styles.li}><strong>3D Model Export</strong> - GLB, OBJ, USDZ formats</li>
+            <li className={styles.li}><strong>Voice & Lip-Sync</strong> - Add custom voices with perfect lip-sync</li>
+            <li className={styles.li}><strong>3D Model Export</strong> - GLB, OBJ, USDZ formats (costs credits)</li>
             <li className={styles.li}><strong>Cloud Storage</strong> - Export to Google Drive or Dropbox</li>
           </ul>
         </section>
@@ -223,7 +223,7 @@ export const articles = [
           
           <h3 className={styles.h3}>Pricing Plans</h3>
           <ul className={styles.ul}>
-            <li className={styles.li}><strong>Free:</strong> 100 signup + 10/month = ~2 professional videos</li>
+            <li className={styles.li}><strong>Free:</strong> 100 signup + 10 credits/month = ~2 professional videos</li>
             <li className={styles.li}><strong>Pro ($29/mo):</strong> 3,000 credits = ~60 professional videos</li>
             <li className={styles.li}><strong>Ultra ($149/mo):</strong> 20,000 credits = ~400 professional videos</li>
             <li className={styles.li}><strong>Studio ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</li>
@@ -262,19 +262,20 @@ export const articles = [
         </section>
 
         <section>
-          <h2 className={styles.h2}>Save $1,223/Year vs Traditional Stack</h2>
+          <h2 className={styles.h2}>Save $1,428/Year vs Traditional Stack</h2>
           <p className={styles.p}>
-            Traditional video production stack costs $1,571/year:
+            Traditional video production stack costs $1,776/year:
           </p>
           <ul className={styles.ul}>
             <li className={styles.li}>Final Draft (Screenwriting): $250/yr</li>
-            <li className={styles.li}>Premiere Pro (Video Editing): $263/yr</li>
-            <li className={styles.li}>After Effects (VFX): $263/yr</li>
-            <li className={styles.li}>DaVinci Resolve Studio: $295</li>
-            <li className={styles.li}>Stock Footage & Music: $500/yr</li>
+            <li className={styles.li}>Adobe Premiere Pro (Video Editing): $263/yr</li>
+            <li className={styles.li}>Adobe After Effects (VFX/Motion Graphics): $263/yr</li>
+            <li className={styles.li}>Stock footage subscription (Artgrid/Storyblocks): $500/yr</li>
+            <li className={styles.li}>Stock music/SFX (Epidemic Sound): $300/yr</li>
+            <li className={styles.li}>Cloud storage (200GB+): $200/yr</li>
           </ul>
           <p className={styles.p}>
-            <strong>Wryda.ai Pro: $348/year</strong> (save $1,223/year)
+            <strong>Wryda.ai Pro: $348/year</strong> (save $1,428/year)
           </p>
           <p className={styles.p}>
             Plus, traditional tools can&apos;t generate AI video. Wryda.ai replaces 6+ tools with one platform.

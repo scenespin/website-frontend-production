@@ -12,15 +12,14 @@ const Pricing = () => {
       name: "Free",
       price: "$0",
       period: "forever",
-      credits: "100 signup + 10/month",
+      credits: "100 signup + 10 credits/month",
       description: "All features unlocked. Try everything.",
       features: [
         "✅ All quality tiers (Professional/Premium/Ultra)",
         "✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)",
         "✅ Upload your own footage",
-        "✅ 50+ LUTs, 30+ Transitions",
+        "✅ 65 compositions, 30 transitions",
         "✅ Screenplay Editor + Timeline (8 tracks)",
-        "✅ Character Bank, Voice Cloning, 3D Export",
         "✅ Cloud Storage (Drive/Dropbox)",
         "✅ No watermarks, no vendor lock-in"
       ],
@@ -43,7 +42,7 @@ const Pricing = () => {
         "✅ Cancel anytime"
       ],
       cta: "Get Pro",
-      href: "/dashboard",
+      href: "/sign-up?plan=pro",
       popular: true
     },
     {
@@ -61,7 +60,7 @@ const Pricing = () => {
         "✅ Cancel anytime"
       ],
       cta: "Get Ultra",
-      href: "/dashboard",
+      href: "/sign-up?plan=ultra",
       popular: false
     },
     {
@@ -79,7 +78,7 @@ const Pricing = () => {
         "✅ Cancel anytime"
       ],
       cta: "Get Studio",
-      href: "/dashboard",
+      href: "/sign-up?plan=studio",
       popular: false
     }
   ];
@@ -172,11 +171,10 @@ const Pricing = () => {
             <div>
               <h4 className="font-semibold mb-2">✨ What&apos;s FREE</h4>
               <ul className="space-y-1 opacity-80">
-                <li>• Upload your own footage</li>
-                <li>• 50+ LUTs, 30+ Transitions</li>
+                <li>• Upload your own footage (unlimited)</li>
+                <li>• 65 compositions, 30 transitions</li>
                 <li>• Screenplay + Timeline editor</li>
-                <li>• Character Bank, 3D Export</li>
-                <li>• Voice Cloning, Cloud Storage</li>
+                <li>• Cloud Storage (Drive/Dropbox)</li>
               </ul>
             </div>
           </div>
