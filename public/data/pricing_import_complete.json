@@ -1,0 +1,2498 @@
+{
+  "version": "2.0",
+  "last_updated": "2025-10-27",
+  "source": "masterDocs - Complete 3-Tier + Duration Strategy",
+  "verified": true,
+  "duration_options": [5, 10],
+  "quality_tiers": 3,
+  "total_options": 6,
+  "provider_duration_limits": {
+    "runway": {
+      "min": 5,
+      "max": 10,
+      "fixed_durations": true,
+      "note": "Only 5 or 10 seconds allowed"
+    },
+    "veo": {
+      "min": 1,
+      "max": 8,
+      "fixed_durations": false,
+      "note": "FIRM 8-second maximum - cannot be used for 10-second tier"
+    },
+    "luma": {
+      "min": 5,
+      "max": 10,
+      "fixed_durations": false,
+      "note": "Flexible duration between 5-10 seconds"
+    }
+  },
+  "prices": [
+    {
+      "provider_id": "runway-gen4-turbo-5sec",
+      "provider_name": "Runway ML",
+      "model": "gen4_turbo",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "1080p",
+      "base_cost_usd": 0.25,
+      "cost_per_second": 0.05,
+      "retail_credits": 50,
+      "retail_price_usd": 0.50,
+      "margin_percent": 100,
+      "priority": "primary",
+      "quality_tier": "excellent",
+      "tier_name": "Professional Grade",
+      "notes": "PRIMARY provider for Professional 1080p 5-second"
+    },
+    {
+      "provider_id": "runway-gen4-turbo-10sec",
+      "provider_name": "Runway ML",
+      "model": "gen4_turbo",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "1080p",
+      "base_cost_usd": 0.50,
+      "cost_per_second": 0.05,
+      "retail_credits": 100,
+      "retail_price_usd": 1.00,
+      "margin_percent": 100,
+      "priority": "primary",
+      "quality_tier": "excellent",
+      "tier_name": "Professional Grade",
+      "notes": "PRIMARY provider for Professional 1080p 10-second"
+    },
+    {
+      "provider_id": "runway-upscale-v1-5sec",
+      "provider_name": "Runway ML",
+      "model": "upscale_v1",
+      "operation_type": "video-enhancement",
+      "duration_seconds": 5,
+      "source_resolution": "1080p",
+      "target_resolution": "4k",
+      "base_cost_usd": 0.10,
+      "cost_per_second": 0.02,
+      "retail_credits": 25,
+      "retail_price_usd": 0.25,
+      "margin_percent": 150,
+      "priority": "primary",
+      "quality_tier": "excellent",
+      "tier_name": "Premium Grade (Enhancement)",
+      "notes": "Part of Premium 4K workflow - 5 second upscale"
+    },
+    {
+      "provider_id": "runway-upscale-v1-10sec",
+      "provider_name": "Runway ML",
+      "model": "upscale_v1",
+      "operation_type": "video-enhancement",
+      "duration_seconds": 10,
+      "source_resolution": "1080p",
+      "target_resolution": "4k",
+      "base_cost_usd": 0.20,
+      "cost_per_second": 0.02,
+      "retail_credits": 50,
+      "retail_price_usd": 0.50,
+      "margin_percent": 150,
+      "priority": "primary",
+      "quality_tier": "excellent",
+      "tier_name": "Premium Grade (Enhancement)",
+      "notes": "Part of Premium 4K workflow - 10 second upscale"
+    },
+    {
+      "provider_id": "luma-ray-flash-2-1080p-5sec",
+      "provider_name": "Luma Labs",
+      "model": "ray-flash-2",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "base_cost_usd": 0.39,
+      "retail_credits": 75,
+      "retail_price_usd": 0.75,
+      "margin_percent": 92,
+      "priority": "backup",
+      "quality_tier": "good",
+      "tier_name": "Professional Grade (Backup)",
+      "notes": "BACKUP provider for Professional 1080p 5-second when Runway unavailable"
+    },
+    {
+      "provider_id": "luma-ray-flash-2-1080p-10sec",
+      "provider_name": "Luma Labs",
+      "model": "ray-flash-2",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "base_cost_usd": 0.71,
+      "retail_credits": 140,
+      "retail_price_usd": 1.40,
+      "margin_percent": 97,
+      "priority": "backup",
+      "quality_tier": "good",
+      "tier_name": "Professional Grade (Backup)",
+      "notes": "BACKUP provider for Professional 1080p 10-second when Runway unavailable"
+    },
+    {
+      "provider_id": "luma-ray-flash-2-4k-5sec",
+      "provider_name": "Luma Labs",
+      "model": "ray-flash-2",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "4k",
+      "aspect_ratio": "16:9",
+      "base_cost_usd": 0.49,
+      "retail_credits": 100,
+      "retail_price_usd": 1.00,
+      "margin_percent": 104,
+      "priority": "primary",
+      "quality_tier": "good",
+      "tier_name": "Ultra Grade",
+      "notes": "PRIMARY for Ultra Native 4K 5-second tier"
+    },
+    {
+      "provider_id": "luma-ray-flash-2-4k-10sec",
+      "provider_name": "Luma Labs",
+      "model": "ray-flash-2",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "4k",
+      "aspect_ratio": "16:9",
+      "base_cost_usd": 0.89,
+      "retail_credits": 180,
+      "retail_price_usd": 1.80,
+      "margin_percent": 102,
+      "priority": "backup",
+      "quality_tier": "good",
+      "tier_name": "Ultra Grade (Backup)",
+      "notes": "BACKUP for Ultra Native 4K 10-second when Ray 2 unavailable"
+    },
+    {
+      "provider_id": "luma-ray-2-4k-10sec",
+      "provider_name": "Luma Labs",
+      "model": "ray-2",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "4k",
+      "aspect_ratio": "16:9",
+      "base_cost_usd": 1.54,
+      "retail_credits": 300,
+      "retail_price_usd": 3.00,
+      "margin_percent": 95,
+      "priority": "primary",
+      "quality_tier": "premium",
+      "tier_name": "Ultra Grade",
+      "notes": "PRIMARY for Ultra Native 4K 10-second - BEST QUALITY AVAILABLE"
+    },
+    {
+      "provider_id": "veo-3-fast-5sec",
+      "provider_name": "Google Vertex AI",
+      "model": "veo-3-fast",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "1080p",
+      "base_cost_usd": 0.50,
+      "cost_per_second": 0.10,
+      "retail_credits": 100,
+      "retail_price_usd": 1.00,
+      "margin_percent": 100,
+      "priority": "emergency-dialog-only",
+      "quality_tier": "excellent",
+      "tier_name": "Professional Grade (Last Resort)",
+      "notes": "DIALOG ONLY - NOT for standard video fallback. Emergency use only if explicitly requested."
+    },
+    {
+      "provider_id": "veo-3-fast-audio-5sec",
+      "provider_name": "Google Vertex AI",
+      "model": "veo-3-fast",
+      "operation_type": "video-generation-with-dialog",
+      "duration_seconds": 5,
+      "resolution": "1080p",
+      "includes_audio": true,
+      "includes_dialog": true,
+      "base_cost_usd": 0.75,
+      "cost_per_second": 0.15,
+      "retail_credits": 150,
+      "retail_price_usd": 1.50,
+      "margin_percent": 100,
+      "priority": "specialized",
+      "quality_tier": "premium",
+      "tier_name": "Dialog Generation (Specialized)",
+      "usage_restriction": "Use sparingly - expensive and has content restrictions",
+      "safety_restrictions": true,
+      "notes": "ONLY for explicit dialog/speech requests - subject to Google safety policies. Use as little as possible."
+    },
+    {
+      "provider_id": "veo-3-fast-audio-8sec",
+      "provider_name": "Google Vertex AI",
+      "model": "veo-3-fast",
+      "operation_type": "video-generation-with-dialog",
+      "duration_seconds": 8,
+      "resolution": "1080p",
+      "includes_audio": true,
+      "includes_dialog": true,
+      "base_cost_usd": 1.20,
+      "cost_per_second": 0.15,
+      "retail_credits": 200,
+      "retail_price_usd": 2.00,
+      "margin_percent": 67,
+      "priority": "specialized",
+      "quality_tier": "premium",
+      "tier_name": "Dialog Generation Extended (Specialized)",
+      "usage_restriction": "Use sparingly - expensive and has content restrictions",
+      "safety_restrictions": true,
+      "notes": "Maximum 8 seconds - ONLY for explicit dialog/speech requests. Subject to Google safety policies."
+    },
+    {
+      "provider_id": "video-tier-professional-5sec",
+      "provider_name": "Tier-Based Routing",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "1080p",
+      "base_cost_usd": 0.50,
+      "retail_credits": 50,
+      "retail_price_usd": 0.50,
+      "margin_percent": 0,
+      "user_tier": "Pro",
+      "priority": "tier-based",
+      "actual_provider": "runway or luma-flash",
+      "notes": "Tier-based pricing for Free/Pro users - routes to cost-effective providers (Runway or Luma Flash)"
+    },
+    {
+      "provider_id": "video-tier-professional-10sec",
+      "provider_name": "Tier-Based Routing",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "1080p",
+      "base_cost_usd": 1.00,
+      "retail_credits": 100,
+      "retail_price_usd": 1.00,
+      "margin_percent": 0,
+      "user_tier": "Pro",
+      "priority": "tier-based",
+      "actual_provider": "runway or luma-flash",
+      "notes": "Tier-based pricing for Free/Pro users - 10 second duration"
+    },
+    {
+      "provider_id": "video-tier-premium-5sec",
+      "provider_name": "Tier-Based Routing",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "4k",
+      "base_cost_usd": 0.35,
+      "retail_credits": 75,
+      "retail_price_usd": 0.75,
+      "margin_percent": 114,
+      "user_tier": "Ultra",
+      "priority": "tier-based",
+      "actual_provider": "runway + upscale",
+      "notes": "Premium 4K tier - Runway + Upscale workflow for Ultra users"
+    },
+    {
+      "provider_id": "video-tier-premium-10sec",
+      "provider_name": "Tier-Based Routing",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "4k",
+      "base_cost_usd": 0.70,
+      "retail_credits": 150,
+      "retail_price_usd": 1.50,
+      "margin_percent": 114,
+      "user_tier": "Ultra",
+      "priority": "tier-based",
+      "actual_provider": "runway + upscale",
+      "notes": "Premium 4K tier - 10 second duration with upscale"
+    },
+    {
+      "provider_id": "video-tier-ultra-5sec",
+      "provider_name": "Tier-Based Routing",
+      "operation_type": "video-generation",
+      "duration_seconds": 5,
+      "resolution": "4k-native",
+      "base_cost_usd": 0.96,
+      "retail_credits": 150,
+      "retail_price_usd": 1.50,
+      "margin_percent": 56,
+      "user_tier": "Ultra",
+      "priority": "tier-based",
+      "actual_provider": "luma-ray-2",
+      "notes": "Ultra tier native 4K - Luma Ray 2 for highest quality"
+    },
+    {
+      "provider_id": "video-tier-ultra-10sec",
+      "provider_name": "Tier-Based Routing",
+      "operation_type": "video-generation",
+      "duration_seconds": 10,
+      "resolution": "4k-native",
+      "base_cost_usd": 1.72,
+      "retail_credits": 300,
+      "retail_price_usd": 3.00,
+      "margin_percent": 74,
+      "user_tier": "Ultra",
+      "priority": "tier-based",
+      "actual_provider": "luma-ray-2",
+      "notes": "Ultra tier native 4K - 10 second duration"
+    },
+    {
+      "provider_id": "dialogue-tier-wrapper",
+      "provider_name": "Dialog Generation Wrapper",
+      "operation_type": "dialog-generation",
+      "duration_seconds": 8,
+      "resolution": "1080p",
+      "base_cost_usd": 1.50,
+      "retail_credits": 150,
+      "retail_price_usd": 1.50,
+      "margin_percent": 0,
+      "user_tier": "all",
+      "priority": "wrapper",
+      "actual_provider": "veo-3.1 → sora-2-pro fallback",
+      "break_even": "64% Veo success rate",
+      "notes": "Wrapper pricing: Try Veo first ($1.00), fallback to Sora Standard 720p ($2.40). Break-even at 64% Veo success. Expected 70-80% success."
+    },
+    {
+      "provider_id": "sora-2-pro-4sec",
+      "provider_name": "OpenAI Sora 2 Pro (via Replicate)",
+      "model": "sora-2-pro",
+      "operation_type": "video-generation",
+      "duration_seconds": 4,
+      "resolution": "720p",
+      "base_cost_usd": 1.20,
+      "cost_per_second": 0.30,
+      "retail_credits": 120,
+      "retail_price_usd": 1.20,
+      "margin_percent": 0,
+      "priority": "fallback",
+      "quality_tier": "cinematic",
+      "notes": "Sora 2 Pro Standard 720p - 4 second clips. Fallback only for dialog generation."
+    },
+    {
+      "provider_id": "sora-2-pro-8sec",
+      "provider_name": "OpenAI Sora 2 Pro (via Replicate)",
+      "model": "sora-2-pro",
+      "operation_type": "video-generation",
+      "duration_seconds": 8,
+      "resolution": "720p",
+      "base_cost_usd": 2.40,
+      "cost_per_second": 0.30,
+      "retail_credits": 240,
+      "retail_price_usd": 2.40,
+      "margin_percent": 0,
+      "priority": "fallback",
+      "quality_tier": "cinematic",
+      "notes": "Sora 2 Pro Standard 720p - 8 second clips. Most common fallback duration."
+    },
+    {
+      "provider_id": "sora-2-pro-12sec",
+      "provider_name": "OpenAI Sora 2 Pro (via Replicate)",
+      "model": "sora-2-pro",
+      "operation_type": "video-generation",
+      "duration_seconds": 12,
+      "resolution": "720p",
+      "base_cost_usd": 3.60,
+      "cost_per_second": 0.30,
+      "retail_credits": 360,
+      "retail_price_usd": 3.60,
+      "margin_percent": 0,
+      "priority": "fallback",
+      "quality_tier": "cinematic",
+      "notes": "Sora 2 Pro Standard 720p - 12 second clips. For clips exceeding Veo's 8s limit."
+    }
+  ],
+  "workflows": [
+    {
+      "workflow_id": "professional-1080p-5sec",
+      "name": "Professional Grade 1080p (5 seconds)",
+      "tier": "professional",
+      "duration_seconds": 5,
+      "description": "Single-step 1080p generation using Runway Gen4 Turbo",
+      "steps": [
+        {
+          "step_number": 1,
+          "provider_id": "runway-gen4-turbo-5sec",
+          "operation": "video-generation",
+          "cost_usd": 0.25
+        }
+      ],
+      "total_cost_usd": 0.25,
+      "retail_credits": 50,
+      "retail_price_usd": 0.50,
+      "margin_percent": 100,
+      "priority": "primary",
+      "notes": "Most popular tier - best value for 5 seconds"
+    },
+    {
+      "workflow_id": "professional-1080p-10sec",
+      "name": "Professional Grade 1080p (10 seconds)",
+      "tier": "professional",
+      "duration_seconds": 10,
+      "description": "Single-step 1080p generation using Runway Gen4 Turbo",
+      "steps": [
+        {
+          "step_number": 1,
+          "provider_id": "runway-gen4-turbo-10sec",
+          "operation": "video-generation",
+          "cost_usd": 0.50
+        }
+      ],
+      "total_cost_usd": 0.50,
+      "retail_credits": 100,
+      "retail_price_usd": 1.00,
+      "margin_percent": 100,
+      "priority": "primary",
+      "notes": "Extended professional content - 2x 5-second pricing"
+    },
+    {
+      "workflow_id": "premium-4k-5sec",
+      "name": "Premium Grade 4K (5 seconds)",
+      "tier": "premium",
+      "duration_seconds": 5,
+      "description": "Two-step pipeline: Generate 1080p with Runway, upscale to 4K",
+      "steps": [
+        {
+          "step_number": 1,
+          "provider_id": "runway-gen4-turbo-5sec",
+          "operation": "video-generation",
+          "cost_usd": 0.25
+        },
+        {
+          "step_number": 2,
+          "provider_id": "runway-upscale-v1-5sec",
+          "operation": "video-enhancement",
+          "cost_usd": 0.10
+        }
+      ],
+      "total_cost_usd": 0.35,
+      "retail_credits": 75,
+      "retail_price_usd": 0.75,
+      "margin_percent": 114,
+      "priority": "primary",
+      "notes": "RECOMMENDED - Best margins (114%), excellent quality"
+    },
+    {
+      "workflow_id": "premium-4k-10sec",
+      "name": "Premium Grade 4K (10 seconds)",
+      "tier": "premium",
+      "duration_seconds": 10,
+      "description": "Two-step pipeline: Generate 1080p with Runway, upscale to 4K",
+      "steps": [
+        {
+          "step_number": 1,
+          "provider_id": "runway-gen4-turbo-10sec",
+          "operation": "video-generation",
+          "cost_usd": 0.50
+        },
+        {
+          "step_number": 2,
+          "provider_id": "runway-upscale-v1-10sec",
+          "operation": "video-enhancement",
+          "cost_usd": 0.20
+        }
+      ],
+      "total_cost_usd": 0.70,
+      "retail_credits": 150,
+      "retail_price_usd": 1.50,
+      "margin_percent": 114,
+      "priority": "primary",
+      "notes": "RECOMMENDED - Best margins (114%) maintained for 10 seconds"
+    },
+    {
+      "workflow_id": "ultra-4k-native-5sec",
+      "name": "Ultra Grade Native 4K (5 seconds)",
+      "tier": "ultra",
+      "duration_seconds": 5,
+      "description": "Single-step native 4K generation using Luma Ray Flash 2",
+      "steps": [
+        {
+          "step_number": 1,
+          "provider_id": "luma-ray-flash-2-4k-5sec",
+          "operation": "video-generation",
+          "cost_usd": 0.49
+        }
+      ],
+      "total_cost_usd": 0.49,
+      "retail_credits": 100,
+      "retail_price_usd": 1.00,
+      "margin_percent": 104,
+      "priority": "primary",
+      "notes": "Premium positioning - native 4K for power users"
+    },
+    {
+      "workflow_id": "ultra-4k-native-10sec",
+      "name": "Ultra Grade Native 4K (10 seconds)",
+      "tier": "ultra",
+      "duration_seconds": 10,
+      "description": "Single-step PREMIUM native 4K generation using Luma Ray 2",
+      "steps": [
+        {
+          "step_number": 1,
+          "provider_id": "luma-ray-2-4k-10sec",
+          "operation": "video-generation",
+          "cost_usd": 1.54
+        }
+      ],
+      "total_cost_usd": 1.54,
+      "retail_credits": 300,
+      "retail_price_usd": 3.00,
+      "margin_percent": 95,
+      "priority": "primary",
+      "notes": "ABSOLUTE BEST QUALITY - Luma Ray 2 premium model for 10 seconds"
+    }
+  ],
+  "retail_tiers": [
+    {
+      "tier_id": "professional-5sec",
+      "display_name": "Professional Grade",
+      "resolution": "1080p",
+      "duration": "5 seconds",
+      "credits": 50,
+      "price_usd": 0.50,
+      "recommended_workflow": "professional-1080p-5sec",
+      "target_users": "Standard users, high volume",
+      "marketing_position": "Best Value - Professional Quality HD"
+    },
+    {
+      "tier_id": "professional-10sec",
+      "display_name": "Professional Grade",
+      "resolution": "1080p",
+      "duration": "10 seconds",
+      "credits": 100,
+      "price_usd": 1.00,
+      "recommended_workflow": "professional-1080p-10sec",
+      "target_users": "Standard users, extended content",
+      "marketing_position": "Best Value - Extended Professional HD"
+    },
+    {
+      "tier_id": "premium-5sec",
+      "display_name": "Premium Grade",
+      "resolution": "4K",
+      "duration": "5 seconds",
+      "credits": 75,
+      "price_usd": 0.75,
+      "recommended_workflow": "premium-4k-5sec",
+      "target_users": "Quality-conscious users, sweet spot",
+      "marketing_position": "Most Popular - Stunning 4K Detail",
+      "badge": "BEST VALUE"
+    },
+    {
+      "tier_id": "premium-10sec",
+      "display_name": "Premium Grade",
+      "resolution": "4K",
+      "duration": "10 seconds",
+      "credits": 150,
+      "price_usd": 1.50,
+      "recommended_workflow": "premium-4k-10sec",
+      "target_users": "Quality-conscious users, extended content",
+      "marketing_position": "Most Popular - Extended 4K Cinematic",
+      "badge": "BEST MARGIN"
+    },
+    {
+      "tier_id": "ultra-5sec",
+      "display_name": "Ultra Grade",
+      "resolution": "Native 4K",
+      "duration": "5 seconds",
+      "credits": 100,
+      "price_usd": 1.00,
+      "recommended_workflow": "ultra-4k-native-5sec",
+      "target_users": "Power users, professionals",
+      "marketing_position": "Maximum Quality - Native 4K Generation",
+      "badge": "PREMIUM"
+    },
+    {
+      "tier_id": "ultra-10sec",
+      "display_name": "Ultra Grade",
+      "resolution": "Native 4K",
+      "duration": "10 seconds",
+      "credits": 300,
+      "price_usd": 3.00,
+      "recommended_workflow": "ultra-4k-native-10sec",
+      "target_users": "Enterprise, agencies, professionals",
+      "marketing_position": "Ultimate Quality - Premium Native 4K",
+      "badge": "BEST QUALITY"
+    }
+  ],
+  "margin_targets": {
+    "minimum_acceptable": 50,
+    "target": 90,
+    "excellent": 100,
+    "outstanding": 110
+  },
+  "provider_priority": {
+    "primary": "runway-ml",
+    "backup": "luma-labs",
+    "emergency_fallback": "cross-tier-upgrade-downgrade",
+    "dialog_only": "google-veo-audio",
+    "note": "Veo is EXCLUDED from standard video fallbacks - use cross-tier strategy instead"
+  },
+  "notes": {
+    "credit_system": "1 credit = $0.01 USD",
+    "duration_options": "5 seconds or 10 seconds",
+    "quality_tiers": "3 tiers (Professional, Premium, Ultra)",
+    "total_combinations": "6 pricing options (3 tiers × 2 durations)",
+    "all_costs_verified": "2025-10-27",
+    "next_verification": "2025-11-27",
+    "source_documentation": [
+      "https://docs.dev.runwayml.com/guides/models/",
+      "https://lumalabs.ai/api/pricing",
+      "https://cloud.google.com/vertex-ai/generative-ai/pricing"
+    ],
+    "critical_findings": [
+      "Veo has 8-second maximum - CANNOT be used for 10-second tier",
+      "Luma Ray 2 is premium model for Ultra 10-second (best quality)",
+      "Luma uses per-pixel pricing, NOT per-second",
+      "Runway Gen4 Turbo offers best cost/quality ratio",
+      "Premium 4K workflow (Runway+Upscale) delivers 114% margin consistently",
+      "Ultra 10-second uses Luma Ray 2 at $1.54 for absolute best quality (95% margin)",
+      "Veo is EXCLUDED from standard video fallbacks - too expensive and unreliable",
+      "Cross-tier fallback strategy maintains profitability better than expensive providers"
+    ],
+    "duration_constraints": {
+      "runway": "Fixed durations: 5 or 10 seconds only",
+      "veo": "FIRM 8-second maximum limit",
+      "luma": "Flexible 5-10 seconds"
+    },
+    "veo_specialized_usage": {
+      "purpose": "Dialog/speech generation ONLY",
+      "model": "Veo 3 Fast + Audio",
+      "cost_5sec": "$0.75",
+      "cost_8sec": "$1.20 (maximum duration)",
+      "retail_pricing": "150-200 credits (premium tier)",
+      "usage_guideline": "USE SPARINGLY - expensive and has Google content restrictions",
+      "safety_restrictions": true,
+      "restrictions_note": "Subject to Google's content policy - may reject certain prompts",
+      "fallback_strategy": "Always have fallback to generate video without audio if Veo rejects",
+      "when_to_use": "ONLY when user explicitly requests automatic dialog/speech generation",
+      "wrapper_strategy": "Don't advertise Veo by name - offer as 'AI-Generated Dialog' feature",
+      "backend_note": "We ARE using Veo on backend for dialog workflows, but minimizing usage due to cost and restrictions",
+      "excluded_from": "Standard video generation fallback chains - too expensive and unreliable"
+    },
+    "cross_tier_fallback_strategy": {
+      "philosophy": "Better to upgrade/downgrade tiers than use expensive providers",
+      "professional_to_premium_upgrade": {
+        "trigger": "Both Runway and Luma unavailable for 1080p",
+        "action": "QUEUE request or REFUND credits (do NOT upgrade to 4K)",
+        "user_charge": "Keep original (50 or 100 credits)",
+        "cost_range": "$0 (wait for provider recovery)",
+        "margin_range": "Maintain 100% by not using expensive providers",
+        "user_experience": "Queue with transparent communication OR full refund",
+        "message_option_a": "High demand - your video is queued and will process shortly",
+        "message_option_b": "Service temporarily unavailable. Credits refunded.",
+        "reason": "Upgrading to 4K costs $0.35-$0.49, leaving <20% margin - not sustainable"
+      },
+      "premium_to_professional_downgrade": {
+        "trigger": "Both Runway and Luma unavailable for 4K",
+        "action": "Generate Professional 1080p + refund difference, OR queue/refund if no 1080p available",
+        "refund_amount": "25 or 50 credits",
+        "cost_range": "$0.25-$0.39",
+        "user_experience": "Refunded credits - maintains trust",
+        "message": "Generated Professional 1080p due to high demand. Credits refunded.",
+        "alternative": "If no 1080p providers available: Full refund or queue request"
+      },
+      "ultra_to_premium_fallback": {
+        "trigger": "All Luma providers unavailable",
+        "action": "Use Premium 4K workflow (Runway)",
+        "user_charge": "Keep original (100 or 300 credits)",
+        "cost": "$0.35 or $0.70",
+        "margin_range": "186-329%",
+        "user_experience": "Massive value - still gets excellent 4K",
+        "message": "Generated Premium 4K with enhanced processing"
+      },
+      "benefits": [
+        "Always maintains profitability (queue or refund vs thin margins)",
+        "Better user experience (transparent queue/refund communication)",
+        "Avoids expensive providers (Veo) completely",
+        "More reliable (no content restrictions)",
+        "Builds customer trust (honest communication)",
+        "Professional tier: Queue/refund better than <20% margin upgrades",
+        "Premium tier: Refund maintains trust when downgrading",
+        "Ultra tier: Cross-tier to Premium works perfectly (high margins)"
+      ]
+    }
+  },
+  
+  "vertical_video": {
+    "aspect_ratio": "9:16",
+    "format": "portrait",
+    "platforms": ["tiktok", "instagram-reels", "instagram-stories", "youtube-shorts", "snapchat"],
+    "note": "IDENTICAL COSTS to 16:9 landscape - all providers charge same for vertical",
+    "tiers": [
+      {
+        "pricing_key": "video-tier-professional-5sec-vertical",
+        "tier_name": "Professional (Vertical)",
+        "platform_label": "TikTok Pack",
+        "aspect_ratio": "9:16",
+        "duration_seconds": 5,
+        "retail_credits": 50,
+        "retail_price_usd": 0.50,
+        "provider": "runway-gen4-turbo",
+        "base_cost_usd": 0.25,
+        "margin_percent": 100,
+        "resolution": "1080p (768×1280)",
+        "quality": "Excellent",
+        "use_case": "TikTok, Reels, Stories",
+        "metadata": {
+          "aspect_ratio": "9:16",
+          "format": "vertical",
+          "platforms": ["tiktok", "instagram-reels", "instagram-stories", "youtube-shorts"],
+          "tier": "professional",
+          "primary_provider": "runway-gen4-turbo",
+          "backup_provider": "luma-ray-flash-2",
+          "emergency_provider": "veo-3-fast",
+          "runway_dimensions": "768:1280",
+          "luma_aspect": "9:16",
+          "veo_aspect": "9:16"
+        }
+      },
+      {
+        "pricing_key": "video-tier-professional-10sec-vertical",
+        "tier_name": "Professional (Vertical)",
+        "platform_label": "TikTok Pack (Extended)",
+        "aspect_ratio": "9:16",
+        "duration_seconds": 10,
+        "retail_credits": 100,
+        "retail_price_usd": 1.00,
+        "provider": "runway-gen4-turbo",
+        "base_cost_usd": 0.50,
+        "margin_percent": 100,
+        "resolution": "1080p (768×1280)",
+        "quality": "Excellent",
+        "use_case": "Extended TikTok, Reels",
+        "metadata": {
+          "aspect_ratio": "9:16",
+          "format": "vertical",
+          "platforms": ["tiktok", "instagram-reels", "youtube-shorts"],
+          "tier": "professional",
+          "primary_provider": "runway-gen4-turbo",
+          "backup_provider": "luma-ray-flash-2",
+          "runway_dimensions": "768:1280",
+          "luma_aspect": "9:16"
+        }
+      },
+      {
+        "pricing_key": "video-tier-premium-5sec-vertical",
+        "tier_name": "Premium 4K (Vertical)",
+        "platform_label": "Premium TikTok Pack",
+        "aspect_ratio": "9:16",
+        "duration_seconds": 5,
+        "retail_credits": 75,
+        "retail_price_usd": 0.75,
+        "workflow": "runway-gen4-turbo + upscale",
+        "base_cost_usd": 0.35,
+        "margin_percent": 114,
+        "resolution": "4K upscaled (1536×2560)",
+        "quality": "Premium",
+        "use_case": "High-quality social media content",
+        "metadata": {
+          "aspect_ratio": "9:16",
+          "format": "vertical",
+          "platforms": ["tiktok", "instagram-reels", "instagram-stories"],
+          "tier": "premium",
+          "workflow": "two_step",
+          "step1": "runway-gen4-turbo (1080p vertical)",
+          "step2": "runway-upscale-v1 (to 4K)",
+          "total_cost": "0.25 + 0.10 = 0.35"
+        }
+      },
+      {
+        "pricing_key": "video-tier-premium-10sec-vertical",
+        "tier_name": "Premium 4K (Vertical)",
+        "platform_label": "Premium TikTok Pack (Extended)",
+        "aspect_ratio": "9:16",
+        "duration_seconds": 10,
+        "retail_credits": 150,
+        "retail_price_usd": 1.50,
+        "workflow": "runway-gen4-turbo + upscale",
+        "base_cost_usd": 0.70,
+        "margin_percent": 114,
+        "resolution": "4K upscaled (1536×2560)",
+        "quality": "Premium",
+        "use_case": "Extended high-quality content",
+        "metadata": {
+          "aspect_ratio": "9:16",
+          "format": "vertical",
+          "platforms": ["tiktok", "instagram-reels"],
+          "tier": "premium",
+          "workflow": "two_step",
+          "step1": "runway-gen4-turbo (1080p vertical)",
+          "step2": "runway-upscale-v1 (to 4K)",
+          "total_cost": "0.50 + 0.20 = 0.70"
+        }
+      },
+      {
+        "pricing_key": "video-tier-ultra-5sec-vertical",
+        "tier_name": "Ultra Native 4K (Vertical)",
+        "platform_label": "Ultra TikTok Pack",
+        "aspect_ratio": "9:16",
+        "duration_seconds": 5,
+        "retail_credits": 150,
+        "retail_price_usd": 1.50,
+        "provider": "luma-ray-2",
+        "base_cost_usd": 0.96,
+        "margin_percent": 56,
+        "resolution": "Native 4K (2160×3840)",
+        "quality": "Ultra",
+        "use_case": "Premium social media, brand content",
+        "metadata": {
+          "aspect_ratio": "9:16",
+          "format": "vertical",
+          "platforms": ["tiktok", "instagram-reels", "instagram-stories"],
+          "tier": "ultra",
+          "primary_provider": "luma-ray-2",
+          "backup_provider": "runway-premium-workflow",
+          "luma_aspect": "9:16",
+          "native_4k": true,
+          "best_quality": true
+        }
+      },
+      {
+        "pricing_key": "video-tier-ultra-10sec-vertical",
+        "tier_name": "Ultra Native 4K (Vertical)",
+        "platform_label": "Ultra TikTok Pack (Extended)",
+        "aspect_ratio": "9:16",
+        "duration_seconds": 10,
+        "retail_credits": 300,
+        "retail_price_usd": 3.00,
+        "provider": "luma-ray-2",
+        "base_cost_usd": 1.72,
+        "margin_percent": 74,
+        "resolution": "Native 4K (2160×3840)",
+        "quality": "Ultra",
+        "use_case": "Extended premium content",
+        "metadata": {
+          "aspect_ratio": "9:16",
+          "format": "vertical",
+          "platforms": ["tiktok", "instagram-reels"],
+          "tier": "ultra",
+          "primary_provider": "luma-ray-2",
+          "backup_provider": "runway-premium-workflow",
+          "luma_aspect": "9:16",
+          "native_4k": true,
+          "best_quality": true
+        }
+      }
+    ]
+  },
+  
+  "classic_format_video": {
+    "aspect_ratio": "4:3",
+    "format": "classic",
+    "platforms": ["facebook", "retro-content", "nostalgia", "broadcast-tv"],
+    "note": "SAME COST as 16:9 (fewer pixels but same provider pricing) - Perfect for retro/nostalgia content",
+    "tiers": [
+      {
+        "pricing_key": "video-tier-professional-5sec-classic",
+        "tier_name": "Professional (Classic 4:3)",
+        "platform_label": "Classic Pack",
+        "aspect_ratio": "4:3",
+        "duration_seconds": 5,
+        "retail_credits": 50,
+        "retail_price_usd": 0.50,
+        "provider": "runway-gen4-turbo",
+        "base_cost_usd": 0.25,
+        "margin_percent": 100,
+        "resolution": "1080p (1024×768)",
+        "quality": "Excellent",
+        "use_case": "Retro content, nostalgia videos, Facebook",
+        "metadata": {
+          "aspect_ratio": "4:3",
+          "format": "classic",
+          "platforms": ["facebook", "retro", "nostalgia"],
+          "tier": "professional",
+          "primary_provider": "runway-gen4-turbo",
+          "backup_provider": "luma-ray-flash-2",
+          "runway_dimensions": "1024:768",
+          "luma_aspect": "4:3"
+        }
+      },
+      {
+        "pricing_key": "video-tier-professional-10sec-classic",
+        "tier_name": "Professional (Classic 4:3)",
+        "platform_label": "Classic Pack (Extended)",
+        "aspect_ratio": "4:3",
+        "duration_seconds": 10,
+        "retail_credits": 100,
+        "retail_price_usd": 1.00,
+        "provider": "runway-gen4-turbo",
+        "base_cost_usd": 0.50,
+        "margin_percent": 100,
+        "resolution": "1080p (1024×768)",
+        "quality": "Excellent",
+        "use_case": "Extended retro content",
+        "metadata": {
+          "aspect_ratio": "4:3",
+          "format": "classic",
+          "platforms": ["facebook", "retro"],
+          "tier": "professional",
+          "primary_provider": "runway-gen4-turbo",
+          "backup_provider": "luma-ray-flash-2",
+          "runway_dimensions": "1024:768",
+          "luma_aspect": "4:3"
+        }
+      }
+    ]
+  },
+  
+  "cinema_format_video": {
+    "aspect_ratio": "21:9",
+    "format": "cinematic_widescreen",
+    "platforms": ["film-festivals", "trailers", "music-videos", "cinema"],
+    "note": "PREMIUM PRICING - 33% more pixels than 16:9, targets filmmakers and premium content creators",
+    "tiers": [
+      {
+        "pricing_key": "video-tier-professional-5sec-cinema",
+        "tier_name": "Professional (Cinema 21:9)",
+        "platform_label": "Cinema Pack",
+        "aspect_ratio": "21:9",
+        "duration_seconds": 5,
+        "retail_credits": 65,
+        "retail_price_usd": 0.65,
+        "provider": "runway-gen4-turbo",
+        "base_cost_usd": 0.25,
+        "margin_percent": 160,
+        "resolution": "1080p (1920×816)",
+        "quality": "Excellent",
+        "use_case": "Cinema widescreen, trailers, film festivals",
+        "metadata": {
+          "aspect_ratio": "21:9",
+          "format": "cinema",
+          "platforms": ["film-festivals", "trailers", "music-videos"],
+          "tier": "professional",
+          "primary_provider": "runway-gen4-turbo",
+          "backup_provider": "luma-ray-flash-2",
+          "runway_dimensions": "1920:816",
+          "luma_aspect": "21:9",
+          "premium": true,
+          "pixel_count_vs_16_9": "+33%"
+        }
+      },
+      {
+        "pricing_key": "video-tier-professional-10sec-cinema",
+        "tier_name": "Professional (Cinema 21:9)",
+        "platform_label": "Cinema Pack (Extended)",
+        "aspect_ratio": "21:9",
+        "duration_seconds": 10,
+        "retail_credits": 130,
+        "retail_price_usd": 1.30,
+        "provider": "runway-gen4-turbo",
+        "base_cost_usd": 0.50,
+        "margin_percent": 160,
+        "resolution": "1080p (1920×816)",
+        "quality": "Excellent",
+        "use_case": "Extended cinema widescreen content",
+        "metadata": {
+          "aspect_ratio": "21:9",
+          "format": "cinema",
+          "platforms": ["film-festivals", "trailers"],
+          "tier": "professional",
+          "primary_provider": "runway-gen4-turbo",
+          "backup_provider": "luma-ray-flash-2",
+          "runway_dimensions": "1920:816",
+          "luma_aspect": "21:9",
+          "premium": true
+        }
+      },
+      {
+        "pricing_key": "video-tier-premium-5sec-cinema",
+        "tier_name": "Premium 4K (Cinema 21:9)",
+        "platform_label": "Premium Cinema Pack",
+        "aspect_ratio": "21:9",
+        "duration_seconds": 5,
+        "retail_credits": 100,
+        "retail_price_usd": 1.00,
+        "workflow": "runway-gen4-turbo + upscale",
+        "base_cost_usd": 0.35,
+        "margin_percent": 186,
+        "resolution": "4K upscaled (3840×1632)",
+        "quality": "Premium",
+        "use_case": "High-quality cinema content for festivals",
+        "metadata": {
+          "aspect_ratio": "21:9",
+          "format": "cinema",
+          "platforms": ["film-festivals", "cinema", "trailers"],
+          "tier": "premium",
+          "workflow": "two_step",
+          "step1": "runway-gen4-turbo (1080p cinema)",
+          "step2": "runway-upscale-v1 (to 4K)",
+          "primary_provider": "runway-gen4-turbo",
+          "upscale_provider": "runway-upscale-v1",
+          "backup_provider": "luma-ray-2",
+          "runway_dimensions": "1920:816",
+          "luma_aspect": "21:9",
+          "premium": true
+        }
+      },
+      {
+        "pricing_key": "video-tier-premium-10sec-cinema",
+        "tier_name": "Premium 4K (Cinema 21:9)",
+        "platform_label": "Premium Cinema Pack (Extended)",
+        "aspect_ratio": "21:9",
+        "duration_seconds": 10,
+        "retail_credits": 200,
+        "retail_price_usd": 2.00,
+        "workflow": "runway-gen4-turbo + upscale",
+        "base_cost_usd": 0.70,
+        "margin_percent": 186,
+        "resolution": "4K upscaled (3840×1632)",
+        "quality": "Premium",
+        "use_case": "Extended premium cinema content",
+        "metadata": {
+          "aspect_ratio": "21:9",
+          "format": "cinema",
+          "platforms": ["film-festivals", "cinema"],
+          "tier": "premium",
+          "workflow": "two_step",
+          "step1": "runway-gen4-turbo (1080p cinema)",
+          "step2": "runway-upscale-v1 (to 4K)",
+          "primary_provider": "runway-gen4-turbo",
+          "upscale_provider": "runway-upscale-v1",
+          "runway_dimensions": "1920:816",
+          "luma_aspect": "21:9",
+          "premium": true
+        }
+      },
+      {
+        "pricing_key": "video-tier-ultra-5sec-cinema",
+        "tier_name": "Ultra Native 4K (Cinema 21:9)",
+        "platform_label": "Ultra Cinema Pack",
+        "aspect_ratio": "21:9",
+        "duration_seconds": 5,
+        "retail_credits": 200,
+        "retail_price_usd": 2.00,
+        "provider": "luma-ray-2",
+        "base_cost_usd": 0.86,
+        "margin_percent": 133,
+        "resolution": "Native 4K (3840×1632)",
+        "quality": "Hollywood-grade",
+        "use_case": "Professional film production, cinema release",
+        "metadata": {
+          "aspect_ratio": "21:9",
+          "format": "cinema",
+          "platforms": ["cinema", "film-festivals", "professional-production"],
+          "tier": "ultra",
+          "primary_provider": "luma-ray-2",
+          "backup_provider": "runway-gen4-turbo + upscale",
+          "luma_aspect": "21:9",
+          "luma_resolution": "4k",
+          "premium": true
+        }
+      },
+      {
+        "pricing_key": "video-tier-ultra-10sec-cinema",
+        "tier_name": "Ultra Native 4K (Cinema 21:9)",
+        "platform_label": "Ultra Cinema Pack (Extended)",
+        "aspect_ratio": "21:9",
+        "duration_seconds": 10,
+        "retail_credits": 400,
+        "retail_price_usd": 4.00,
+        "provider": "luma-ray-2",
+        "base_cost_usd": 1.72,
+        "margin_percent": 133,
+        "resolution": "Native 4K (3840×1632)",
+        "quality": "Hollywood-grade",
+        "use_case": "Extended professional cinema content",
+        "metadata": {
+          "aspect_ratio": "21:9",
+          "format": "cinema",
+          "platforms": ["cinema", "professional-production"],
+          "tier": "ultra",
+          "primary_provider": "luma-ray-2",
+          "backup_provider": "runway-gen4-turbo + upscale",
+          "luma_aspect": "21:9",
+          "luma_resolution": "4k",
+          "premium": true
+        }
+      }
+    ],
+    "multi_format_bundles": {
+      "note": "Generate once, export to all platforms with intelligent reframing",
+      "bundles": [
+        {
+          "pricing_key": "multi-format-2pack-5sec",
+          "bundle_name": "2-Format Pack",
+          "duration_seconds": 5,
+          "formats_included": 2,
+          "retail_credits": 85,
+          "retail_price_usd": 0.85,
+          "savings_credits": 15,
+          "savings_percent": 15,
+          "workflow": "Generate primary (50cr) + Luma reframe (10cr) + Bundle discount (15cr off)",
+          "use_case": "YouTube + TikTok, or TikTok + Instagram"
+        },
+        {
+          "pricing_key": "multi-format-3pack-5sec",
+          "bundle_name": "Social Media Bundle",
+          "platform_label": "All Platforms Pack",
+          "duration_seconds": 5,
+          "formats_included": 3,
+          "aspect_ratios": ["16:9", "9:16", "1:1"],
+          "platforms": ["youtube", "tiktok", "instagram"],
+          "retail_credits": 120,
+          "retail_price_usd": 1.20,
+          "savings_credits": 30,
+          "savings_percent": 20,
+          "workflow": "Generate primary (50cr) + Reframe to 2nd (10cr) + Reframe to 3rd (10cr) + Bundle discount (30cr off)",
+          "actual_cost": "0.25 + 0.10 + 0.10 = 0.45",
+          "margin_percent": 167,
+          "use_case": "Complete social media package",
+          "recommended": true
+        }
+      ]
+    },
+    "platform_presets": {
+      "note": "User-friendly presets that map to pricing keys",
+      "presets": [
+        {
+          "preset_name": "YouTube Pack",
+          "icon": "📺",
+          "aspect_ratio": "16:9",
+          "platforms": ["youtube", "web", "vimeo"],
+          "pricing_key": "video-tier-professional-5sec",
+          "credits": 50
+        },
+        {
+          "preset_name": "TikTok Pack",
+          "icon": "📱",
+          "aspect_ratio": "9:16",
+          "platforms": ["tiktok", "instagram-reels", "youtube-shorts", "snapchat"],
+          "pricing_key": "video-tier-professional-5sec-vertical",
+          "credits": 50,
+          "new": true
+        },
+        {
+          "preset_name": "Instagram Pack",
+          "icon": "⬛",
+          "aspect_ratio": "1:1",
+          "platforms": ["instagram-feed", "twitter", "linkedin"],
+          "pricing_key": "video-tier-professional-5sec-square",
+          "credits": 50,
+          "note": "Square format - not yet priced"
+        },
+        {
+          "preset_name": "Classic Pack",
+          "icon": "📼",
+          "aspect_ratio": "4:3",
+          "platforms": ["facebook", "retro", "nostalgia"],
+          "pricing_key": "video-tier-professional-5sec-classic",
+          "credits": 50,
+          "new": true
+        },
+        {
+          "preset_name": "Cinema Pack",
+          "icon": "🎬",
+          "aspect_ratio": "21:9",
+          "platforms": ["film-festivals", "trailers", "cinema"],
+          "pricing_key": "video-tier-professional-5sec-cinema",
+          "credits": 65,
+          "premium": true
+        },
+        {
+          "preset_name": "Social Bundle",
+          "icon": "🌐",
+          "aspect_ratios": ["16:9", "9:16", "1:1"],
+          "platforms": ["all"],
+          "pricing_key": "multi-format-3pack-5sec",
+          "credits": 120,
+          "savings": "30 credits",
+          "recommended": true,
+          "new": true
+        }
+      ]
+    }
+  },
+  
+  "dialogue_generation": {
+    "description": "AI-generated dialogue with voice sync - uses Veo 3.1 primary, Sora 2 Pro for extended clips",
+    "strategy": "Premium pricing for complex multi-step workflow (video + voice + sync)",
+    "note": "All formats supported including Cinema 21:9 with intelligent reframing",
+    "tiers": [
+      {
+        "pricing_key": "dialogue-standard-8sec-landscape",
+        "tier_name": "Standard Dialogue (≤8 seconds)",
+        "formats": ["16:9", "9:16", "1:1", "4:3"],
+        "duration_max_seconds": 8,
+        "retail_credits": 400,
+        "retail_price_usd": 4.00,
+        "provider": "veo-3.1-with-audio",
+        "base_cost_usd": 3.20,
+        "margin_percent": 25,
+        "quality": "Best (Veo 3.1)",
+        "use_case": "Character dialogue, conversations, voice-over",
+        "metadata": {
+          "primary_provider": "veo-3.1",
+          "audio_sync": true,
+          "max_duration": 8,
+          "cost_per_second": 0.40,
+          "reframe_cost": 0.24,
+          "all_formats_supported": true
+        }
+      },
+      {
+        "pricing_key": "dialogue-cinema-8sec",
+        "tier_name": "Cinema Dialogue (≤8 seconds, 21:9)",
+        "format": "21:9",
+        "duration_max_seconds": 8,
+        "retail_credits": 450,
+        "retail_price_usd": 4.50,
+        "workflow": "veo-3.1-with-audio + luma-reframe",
+        "base_cost_usd": 3.44,
+        "margin_percent": 31,
+        "quality": "Best (Veo 3.1)",
+        "use_case": "Hollywood-format dialogue, film festivals",
+        "metadata": {
+          "primary_provider": "veo-3.1",
+          "audio_sync": true,
+          "max_duration": 8,
+          "cost_per_second": 0.40,
+          "reframe_cost": 0.24,
+          "aspect_ratio": "21:9",
+          "premium": true,
+          "reframe_to_cinema": true
+        }
+      },
+      {
+        "pricing_key": "dialogue-extended-12sec-landscape",
+        "tier_name": "Extended Dialogue (9-12 seconds)",
+        "formats": ["16:9", "9:16", "1:1", "4:3"],
+        "duration_max_seconds": 12,
+        "retail_credits": 700,
+        "retail_price_usd": 7.00,
+        "provider": "sora-2-pro-high",
+        "base_cost_usd": 6.00,
+        "margin_percent": 17,
+        "quality": "Excellent (Sora 2 Pro)",
+        "use_case": "Extended dialogue scenes, longer conversations",
+        "metadata": {
+          "primary_provider": "sora-2-pro",
+          "fallback_from": "veo-3.1",
+          "audio_sync": true,
+          "max_duration": 12,
+          "cost_per_second": 0.50,
+          "resolution": "1024p",
+          "reframe_cost": 0.24,
+          "all_formats_supported": true
+        }
+      },
+      {
+        "pricing_key": "dialogue-cinema-extended-12sec",
+        "tier_name": "Extended Cinema Dialogue (9-12 seconds, 21:9)",
+        "format": "21:9",
+        "duration_max_seconds": 12,
+        "retail_credits": 750,
+        "retail_price_usd": 7.50,
+        "workflow": "sora-2-pro-high + luma-reframe",
+        "base_cost_usd": 6.24,
+        "margin_percent": 20,
+        "quality": "Excellent (Sora 2 Pro)",
+        "use_case": "Extended Hollywood-format dialogue",
+        "metadata": {
+          "primary_provider": "sora-2-pro",
+          "audio_sync": true,
+          "max_duration": 12,
+          "cost_per_second": 0.50,
+          "resolution": "1024p",
+          "reframe_cost": 0.24,
+          "aspect_ratio": "21:9",
+          "premium": true,
+          "reframe_to_cinema": true
+        }
+      }
+    ],
+    "routing_logic": {
+      "description": "Smart routing based on duration and content safety",
+      "rules": [
+        {
+          "condition": "duration <= 8 seconds AND content is safe",
+          "provider": "veo-3.1-with-audio",
+          "cost": "$0.40 per second",
+          "quality": "Best"
+        },
+        {
+          "condition": "duration > 8 seconds OR content rejected by Veo",
+          "provider": "sora-2-pro-high",
+          "cost": "$0.50 per second",
+          "quality": "Excellent",
+          "note": "Sora 2 Pro handles longer clips and rejected content"
+        },
+        {
+          "condition": "aspect_ratio === '21:9'",
+          "additional_step": "luma-reframe",
+          "additional_cost": "$0.24",
+          "note": "Generate in 16:9, intelligently reframe to 21:9"
+        }
+      ]
+    }
+  },
+  
+  "image_models": {
+    "description": "11 image generation models with transparent pricing - users choose based on artistic style",
+    "strategy": "NO AUTOMATIC FALLBACKS - refund on failure to maintain artistic integrity",
+    "models": [
+      {
+        "id": "luma-photon-flash",
+        "provider_id": "luma",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.002,
+        "retail_credits": 3,
+        "margin_percentage": 97,
+        "metadata": {
+          "model_name": "Luma Photon Flash",
+          "category": "fast_affordable",
+          "speed": "ultra_fast",
+          "quality": "good",
+          "best_for": "Rapid prototyping, concept testing, storyboards",
+          "artistic_style": "Clean, balanced, realistic",
+          "resolution": "Up to 1536×1536",
+          "generation_time_seconds": "2-3",
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "luma-photon-1",
+        "provider_id": "luma",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.006,
+        "retail_credits": 8,
+        "margin_percentage": 96,
+        "metadata": {
+          "model_name": "Luma Photon (Standard)",
+          "category": "production_ready",
+          "speed": "fast",
+          "quality": "high",
+          "best_for": "Most production work, default choice",
+          "artistic_style": "High-quality, realistic, versatile",
+          "resolution": "Up to 2048×2048",
+          "generation_time_seconds": "5-7",
+          "recommended_default": true,
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "imagen-3-fast",
+        "provider_id": "google",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.02,
+        "retail_credits": 12,
+        "margin_percentage": 83,
+        "metadata": {
+          "model_name": "Google Imagen 3 Fast",
+          "category": "production_ready",
+          "speed": "fast",
+          "quality": "high",
+          "best_for": "Fast photorealistic generation",
+          "artistic_style": "Photorealistic, balanced",
+          "resolution": "1024×1024",
+          "generation_time_seconds": "5-7",
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "imagen-4-fast",
+        "provider_id": "google",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.02,
+        "retail_credits": 12,
+        "margin_percentage": 83,
+        "metadata": {
+          "model_name": "Google Imagen 4 Fast",
+          "category": "production_ready",
+          "speed": "fast",
+          "quality": "high",
+          "best_for": "Quick photorealistic generation",
+          "artistic_style": "Natural, photorealistic",
+          "resolution": "1024×1024",
+          "generation_time_seconds": "4-6",
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "imagen-3",
+        "provider_id": "google",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.04,
+        "retail_credits": 15,
+        "margin_percentage": 93,
+        "metadata": {
+          "model_name": "Google Imagen 3",
+          "category": "production_ready",
+          "speed": "medium",
+          "quality": "very_high",
+          "best_for": "Photorealistic imagery, product shots",
+          "artistic_style": "Highly photorealistic, natural lighting",
+          "resolution": "Up to 1536×1536",
+          "generation_time_seconds": "8-12",
+          "features": ["Excellent text rendering", "Superior photorealism", "Consistent results"],
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "imagen-4",
+        "provider_id": "google",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.04,
+        "retail_credits": 20,
+        "margin_percentage": 80,
+        "metadata": {
+          "model_name": "Google Imagen 4",
+          "category": "premium_creative",
+          "speed": "medium",
+          "quality": "premium",
+          "best_for": "High-end photorealistic work",
+          "artistic_style": "Top-tier photorealism",
+          "resolution": "Up to 2048×2048",
+          "generation_time_seconds": "10-15",
+          "features": ["Latest Imagen model", "Best photorealistic quality", "Superior detail and lighting"],
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "imagen-4-ultra",
+        "provider_id": "google",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.08,
+        "retail_credits": 30,
+        "margin_percentage": 88,
+        "metadata": {
+          "model_name": "Google Imagen 4 Ultra",
+          "category": "premium_creative",
+          "speed": "slow",
+          "quality": "ultra_premium",
+          "best_for": "Flagship photorealistic imagery",
+          "artistic_style": "Absolute best photorealism",
+          "resolution": "Up to 4096×4096",
+          "generation_time_seconds": "15-20",
+          "features": ["Highest quality available", "Professional-grade output", "Premium positioning"],
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "gpt-image-1-low",
+        "provider_id": "openai",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.01,
+        "retail_credits": 10,
+        "margin_percentage": 90,
+        "metadata": {
+          "model_name": "OpenAI GPT-image-1 (Low Quality)",
+          "category": "premium_creative",
+          "speed": "fast",
+          "quality": "good",
+          "best_for": "Quick creative concepts",
+          "artistic_style": "Artistic, creative, unique interpretations",
+          "resolution": "1024×1024",
+          "generation_time_seconds": "5-8",
+          "features": ["Best text understanding", "Creative interpretations", "Budget-friendly"],
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "gpt-image-1-medium",
+        "provider_id": "openai",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.04,
+        "retail_credits": 20,
+        "margin_percentage": 80,
+        "metadata": {
+          "model_name": "OpenAI GPT-image-1 (Medium Quality)",
+          "category": "premium_creative",
+          "speed": "medium",
+          "quality": "high",
+          "best_for": "Standard creative work",
+          "artistic_style": "Artistic, expressive, detailed",
+          "resolution": "1792×1024 or 1024×1792",
+          "generation_time_seconds": "8-12",
+          "features": ["Excellent prompt understanding", "Consistent style across generations", "Better text-in-image rendering"],
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "gpt-image-1-high",
+        "provider_id": "openai",
+        "operation_type": "image_generation",
+        "enabled": true,
+        "api_cost_usd": 0.17,
+        "retail_credits": 50,
+        "margin_percentage": 84,
+        "metadata": {
+          "model_name": "OpenAI GPT-image-1 (High Quality)",
+          "category": "premium_creative",
+          "speed": "slow",
+          "quality": "premium_creative",
+          "best_for": "Marketing materials, hero imagery",
+          "artistic_style": "Highly artistic, refined, professional",
+          "resolution": "Up to 2048×2048",
+          "generation_time_seconds": "15-25",
+          "features": ["Maximum creative quality", "Superior brand guideline adherence", "Professional marketing grade"],
+          "launch_ready": true
+        }
+      },
+      {
+        "id": "nano-banana",
+        "provider_id": "google",
+        "operation_type": "image_edit",
+        "enabled": true,
+        "api_cost_usd": 0.001,
+        "retail_credits": 1,
+        "margin_percentage": 99,
+        "metadata": {
+          "model_name": "Nano-Banana 🍌 (Imagen 3 Fast Edit)",
+          "category": "special_tools",
+          "speed": "instant",
+          "quality": "high",
+          "best_for": "Quick image editing, touch-ups, variations",
+          "artistic_style": "Maintains source style",
+          "resolution": "Matches source image",
+          "generation_time_seconds": "1-3",
+          "features": ["CHEAPEST EDITING OPTION", "Perfect for unified chat panel", "Mask-based editing support", "Inpainting and outpainting"],
+          "special_tool": true,
+          "hidden_from_generation_ui": true,
+          "edit_only": true,
+          "already_live_in_production": true,
+          "api_endpoint": "POST /api/image/edit",
+          "launch_ready": false
+        }
+      }
+    ],
+    "pricing_summary": {
+      "total_models": 11,
+      "generation_models": 10,
+      "editing_tools": 1,
+      "average_margin": 88.5,
+      "best_margin": 99,
+      "lowest_margin": 80,
+      "credit_range": "1-50 credits per image",
+      "cost_range": "$0.001-$0.17 per image"
+    },
+    "failure_strategy": {
+      "policy": "NO AUTOMATIC FALLBACKS - REFUND ON FAILURE",
+      "rationale": "Each model has unique artistic capabilities - switching models changes the output style",
+      "on_failure": [
+        "Refund credits immediately",
+        "Log failure for monitoring",
+        "Return error to user with refund confirmation",
+        "Let user retry with same or different model"
+      ],
+      "exception": "Rate limiting - may queue and retry SAME model only",
+      "never_do": [
+        "Automatically try another model",
+        "Switch providers silently",
+        "Change artistic style without user consent"
+      ]
+    }
+  },
+  
+  "virtual_try_on": {
+    "description": "Google Vertex AI Virtual Try-On - Generate realistic images of people wearing products",
+    "provider": "google-vertex-ai",
+    "api_endpoint": "virtual-try-on-preview-08-04:predict",
+    "official_pricing": "$0.06 per image (verified from Google Cloud Pricing)",
+    "strategy": "Affordable pricing for specialized AI workflow - targets fashion, film, marketing use cases",
+    "use_cases": [
+      "Character costume design",
+      "Product placement visualization",
+      "Fashion & wardrobe testing",
+      "Marketing content creation",
+      "E-commerce product demos"
+    ],
+    "pricing": [
+      {
+        "id": "virtual-try-on-1-sample",
+        "provider_id": "google-vertex-ai",
+        "operation_type": "virtual_try_on",
+        "enabled": true,
+        "sample_count": 1,
+        "api_cost_usd": 0.06,
+        "retail_credits": 15,
+        "retail_price_usd": 0.15,
+        "margin_percentage": 150,
+        "metadata": {
+          "model_name": "Google Virtual Try-On",
+          "category": "specialized_ai",
+          "speed": "medium",
+          "quality": "high",
+          "best_for": "Single try-on visualization",
+          "generation_time_seconds": "60-90",
+          "launch_ready": true,
+          "requires_two_images": true,
+          "image_sources": ["local_upload", "dropbox", "google_drive"],
+          "max_image_size_mb": 10,
+          "supported_formats": ["jpeg", "png"],
+          "output_format": "png",
+          "storage_duration_days": 7,
+          "value_proposition": "AFFORDABLE - Only 15 credits!"
+        }
+      },
+      {
+        "id": "virtual-try-on-2-samples",
+        "provider_id": "google-vertex-ai",
+        "operation_type": "virtual_try_on",
+        "enabled": true,
+        "sample_count": 2,
+        "api_cost_usd": 0.12,
+        "retail_credits": 25,
+        "retail_price_usd": 0.25,
+        "margin_percentage": 108,
+        "metadata": {
+          "model_name": "Google Virtual Try-On",
+          "category": "specialized_ai",
+          "speed": "medium",
+          "quality": "high",
+          "best_for": "Multiple angle variations",
+          "generation_time_seconds": "60-90",
+          "launch_ready": true,
+          "calculation": "Base 15cr + (1 × 10cr)"
+        }
+      },
+      {
+        "id": "virtual-try-on-3-samples",
+        "provider_id": "google-vertex-ai",
+        "operation_type": "virtual_try_on",
+        "enabled": true,
+        "sample_count": 3,
+        "api_cost_usd": 0.18,
+        "retail_credits": 35,
+        "retail_price_usd": 0.35,
+        "margin_percentage": 94,
+        "metadata": {
+          "model_name": "Google Virtual Try-On",
+          "category": "specialized_ai",
+          "speed": "medium",
+          "quality": "high",
+          "best_for": "Multiple options for client review",
+          "generation_time_seconds": "60-90",
+          "launch_ready": true,
+          "calculation": "Base 15cr + (2 × 10cr)"
+        }
+      },
+      {
+        "id": "virtual-try-on-4-samples",
+        "provider_id": "google-vertex-ai",
+        "operation_type": "virtual_try_on",
+        "enabled": true,
+        "sample_count": 4,
+        "api_cost_usd": 0.24,
+        "retail_credits": 45,
+        "retail_price_usd": 0.45,
+        "margin_percentage": 88,
+        "metadata": {
+          "model_name": "Google Virtual Try-On",
+          "category": "specialized_ai",
+          "speed": "medium",
+          "quality": "high",
+          "best_for": "Maximum variation options",
+          "generation_time_seconds": "60-90",
+          "launch_ready": true,
+          "calculation": "Base 15cr + (3 × 10cr)",
+          "recommended": true
+        }
+      }
+    ],
+    "pricing_formula": {
+      "base_cost": 15,
+      "additional_sample_cost": 10,
+      "formula": "credits = 15 + ((sample_count - 1) × 10)",
+      "examples": [
+        "1 image: 15 credits ($0.15)",
+        "2 images: 25 credits ($0.25)",
+        "3 images: 35 credits ($0.35)",
+        "4 images: 45 credits ($0.45)"
+      ]
+    },
+    "technical_details": {
+      "input_requirements": {
+        "person_image": {
+          "formats": ["jpeg", "png"],
+          "max_size_mb": 10,
+          "sources": ["local_upload", "dropbox_oauth", "google_drive_oauth"],
+          "validation": "Automatic format and size check"
+        },
+        "product_image": {
+          "formats": ["jpeg", "png"],
+          "max_size_mb": 10,
+          "sources": ["local_upload", "dropbox_oauth", "google_drive_oauth"],
+          "validation": "Automatic format and size check"
+        }
+      },
+      "storage_policy": {
+        "platform_wide": "All uploads stored in S3 for 7 days maximum",
+        "generated_images": "S3 with 7-day expiration (automatic deletion)",
+        "user_action_required": "Download or save to Dropbox/Google Drive for persistence",
+        "lifecycle_rule": "S3 bucket lifecycle policy auto-deletes try-on/* after 7 days",
+        "expiration_warning": "Displayed prominently in UI with countdown"
+      },
+      "output": {
+        "format": "png",
+        "storage": "S3 with 7-day expiration",
+        "delivery": [
+          "Immediate download",
+          "Save to Dropbox",
+          "Save to Google Drive"
+        ]
+      },
+      "api_endpoint": {
+        "base_url": "https://{location}-aiplatform.googleapis.com/v1",
+        "path": "/projects/{project}/locations/{location}/publishers/google/models/virtual-try-on-preview-08-04:predict",
+        "method": "POST",
+        "auth": "Google Cloud OAuth2"
+      }
+    },
+    "user_experience": {
+      "ui_location": "Unified Chat Panel - 7th Mode (after Image, Video, Audio)",
+      "mode_order": ["Image", "Video", "Audio", "Try-On", "Chat", "Director", "Workflows"],
+      "upload_methods": [
+        {
+          "method": "local_upload",
+          "description": "Drag-drop or file picker",
+          "destination": "S3 with 7-day expiration",
+          "ui": "Upload button with progress bar"
+        },
+        {
+          "method": "dropbox",
+          "description": "Import from Dropbox",
+          "requires": "OAuth connection",
+          "ui": "Cloud file picker modal"
+        },
+        {
+          "method": "google_drive",
+          "description": "Import from Google Drive",
+          "requires": "OAuth connection",
+          "ui": "Cloud file picker modal"
+        }
+      ],
+      "generation_flow": [
+        "1. User selects person image (3 methods)",
+        "2. User selects product image (3 methods)",
+        "3. User chooses sample count (1-4)",
+        "4. Credits displayed and validated",
+        "5. Generate button enabled",
+        "6. Generation starts (60-90 seconds)",
+        "7. Results displayed with 3 action buttons",
+        "8. 7-day expiration warning shown",
+        "9. User prompted to save to cloud storage"
+      ],
+      "post_generation_actions": [
+        "Download to device (immediate)",
+        "Save to Dropbox (persistent)",
+        "Save to Google Drive (persistent)"
+      ]
+    },
+    "credit_policy": {
+      "deduction": "Upfront before generation",
+      "refund_on_failure": true,
+      "refund_scenarios": [
+        "API failure",
+        "Invalid images",
+        "Google service unavailable",
+        "Content policy violation"
+      ],
+      "no_refund_scenarios": [
+        "Successful generation (even if user dislikes result)",
+        "User error after generation completes"
+      ]
+    },
+    "competitive_analysis": {
+      "market_position": "Premium but accessible",
+      "target_customers": [
+        "Screenwriters (costume design)",
+        "Filmmakers (wardrobe testing)",
+        "Marketing agencies (product visualization)",
+        "E-commerce (product demos)",
+        "Fashion designers (digital prototyping)"
+      ],
+      "value_proposition": [
+        "No subscription required",
+        "Pay-per-use credits",
+        "Professional-grade results",
+        "Fast turnaround (60-90 seconds)",
+        "Multiple variations per generation"
+      ]
+    },
+    "margin_analysis": {
+      "cost_structure": {
+        "google_api_cost_official": "$0.06 per image (verified from Google Cloud Pricing)",
+        "infrastructure_cost": "$0.00 per request (negligible S3, compute)",
+        "total_cost_per_sample": "$0.06",
+        "retail_price_per_sample": "$0.15 (base) or $0.10 (additional)"
+      },
+      "margin_breakdown": {
+        "1_sample": {
+          "cost": "$0.06",
+          "retail": "$0.15",
+          "margin": "$0.09",
+          "margin_percent": "150%"
+        },
+        "2_samples": {
+          "cost": "$0.12",
+          "retail": "$0.25",
+          "margin": "$0.13",
+          "margin_percent": "108%"
+        },
+        "3_samples": {
+          "cost": "$0.18",
+          "retail": "$0.35",
+          "margin": "$0.17",
+          "margin_percent": "94%"
+        },
+        "4_samples": {
+          "cost": "$0.24",
+          "retail": "$0.45",
+          "margin": "$0.21",
+          "margin_percent": "88%"
+        }
+      },
+      "profitability": "PROFITABLE - 88-150% margins across all tiers, MUCH MORE AFFORDABLE FOR USERS!"
+    },
+    "failure_strategy": {
+      "policy": "REFUND ON FAILURE - No fallback providers",
+      "rationale": "Specialized API with unique capabilities - no equivalent fallback",
+      "on_failure": [
+        "Refund credits immediately",
+        "Log failure for monitoring",
+        "Return detailed error message",
+        "Suggest retry or contact support"
+      ],
+      "common_failures": [
+        "Image size too large (>10MB)",
+        "Invalid image format",
+        "Google API unavailable",
+        "Content policy violation",
+        "Insufficient credits"
+      ]
+    },
+    "integration_status": {
+      "frontend": "Complete - TryOnModePanel.js",
+      "backend": "Complete - try-on.ts route",
+      "services": "Complete - GoogleVertexAIService.ts",
+      "storage": "Complete - S3Service with 7-day expiration",
+      "oauth": "Leveraging existing Dropbox/Google Drive integration",
+      "launch_ready": true,
+      "documentation": "Feature 0089 - Virtual Try-On Mode"
+    },
+    "notes": {
+      "google_api_preview": "API is in preview (virtual-try-on-preview-08-04) - may have availability limits",
+      "content_restrictions": "Subject to Google's content policy",
+      "max_samples": "4 images per generation (Google API limit)",
+      "storage_duration": "7 days (platform-wide policy for all generated content)",
+      "cloud_storage_encouraged": "Users strongly encouraged to save to Dropbox/Google Drive",
+      "no_local_persistence": "Platform does not store generated content beyond 7 days",
+      "oauth_optional": "Users can upload locally OR use cloud storage",
+      "wrapper_strategy": "NOT wrapped - Virtual Try-On advertised by name (unlike video/audio models)"
+    }
+  },
+  
+  "imagen_vision_apis": {
+    "description": "Google Vertex AI Imagen Vision APIs - 4 specialized computer vision APIs for automation",
+    "provider": "google-vertex-ai",
+    "official_pricing_source": "Google Cloud Pricing Page (verified 2025-10-28)",
+    "strategy": "Ultra-affordable automation APIs - use as optional enhancements with safety rejection handling",
+    "apis": [
+      {
+        "id": "visual-captioning",
+        "name": "Visual Captioning",
+        "description": "Auto-generate text captions for images",
+        "api_endpoint": "imagetext:predict",
+        "api_cost_usd": 0.0015,
+        "retail_credits": 1,
+        "retail_price_usd": 0.01,
+        "margin_percentage": 567,
+        "use_cases": [
+          "Auto-describe character portraits",
+          "Auto-describe location images",
+          "Asset management descriptions",
+          "Searchable image metadata"
+        ],
+        "safety_risk": "low",
+        "launch_ready": true
+      },
+      {
+        "id": "visual-qa",
+        "name": "Visual Q&A",
+        "description": "Answer specific questions about images",
+        "api_endpoint": "imagetext:predict (with question prompt)",
+        "api_cost_usd": 0.0015,
+        "retail_credits": 1,
+        "retail_price_usd": 0.01,
+        "margin_percentage": 567,
+        "use_cases": [
+          "Scene categorization (day/night, indoor/outdoor)",
+          "Continuity checking (what props are visible?)",
+          "Smart tagging (what's the mood?)",
+          "Asset detection (what vehicles are present?)"
+        ],
+        "safety_risk": "low",
+        "launch_ready": true
+      },
+      {
+        "id": "product-recontext",
+        "name": "Product Recontext",
+        "description": "Place products in new scenes/environments",
+        "api_endpoint": "imagegeneration:predict (product-recontext mode)",
+        "api_cost_usd": 0.12,
+        "retail_credits": 20,
+        "retail_price_usd": 0.20,
+        "margin_percentage": 67,
+        "use_cases": [
+          "Prop placement visualization",
+          "Product placement in scenes",
+          "Set design mockups",
+          "Furniture/vehicle placement"
+        ],
+        "safety_risk": "medium",
+        "safety_warning": "Avoid weapons, political symbols, controversial items",
+        "launch_ready": true
+      },
+      {
+        "id": "imagen-upscaling",
+        "name": "Imagen Upscaling",
+        "description": "Upscale images to 2K or 4K resolution",
+        "api_endpoint": "imagegeneration:predict (upscale mode)",
+        "api_cost_usd": 0.003,
+        "retail_credits_2k": 2,
+        "retail_credits_4k": 3,
+        "retail_price_2k_usd": 0.02,
+        "retail_price_4k_usd": 0.03,
+        "margin_percentage": 567,
+        "use_cases": [
+          "Enhance generated character portraits",
+          "High-res location concepts",
+          "Marketing materials",
+          "Premium quality exports"
+        ],
+        "safety_risk": "low",
+        "launch_ready": true
+      }
+    ],
+    "pricing_summary": {
+      "total_apis": 4,
+      "cheapest_operation": "$0.0015 (captioning, Q&A)",
+      "most_expensive_operation": "$0.12 (product recontext)",
+      "average_margin": "467%",
+      "best_margin": "567%",
+      "lowest_margin": "67%",
+      "credit_range": "1-20 credits per operation",
+      "cost_range": "$0.0015-$0.12 per operation"
+    },
+    "safety_handling": {
+      "policy": "All APIs throw SAFETY_REJECTION on Google content policy violations",
+      "on_rejection": [
+        "Refund credits immediately",
+        "Log rejection (userId, apiType, timestamp)",
+        "Return generic message: 'Enhancement unavailable for this content'",
+        "Never expose Google rejection to user"
+      ],
+      "safety_tiers": {
+        "tier_1_always_safe": [
+          "Character portraits (non-violent)",
+          "Landscapes & locations",
+          "Products/props (everyday items)",
+          "Upscaling existing images"
+        ],
+        "tier_2_moderate_risk": [
+          "Action scenes (no visible weapons)",
+          "Props (avoid weapons/controversial items)",
+          "Scene descriptions (avoid violent language)"
+        ],
+        "tier_3_never_use_google": [
+          "Weapons & violence",
+          "Horror content",
+          "Political content",
+          "Explicit content"
+        ]
+      },
+      "best_practices": [
+        "Use as optional enhancements only",
+        "Always have non-Google fallback",
+        "Don't make core features depend on Google APIs",
+        "Log rejections to learn patterns"
+      ]
+    },
+    "integration_status": {
+      "backend_service": "Complete - GoogleImagenVisionService.ts",
+      "api_routes": "Complete - imagen-vision.ts (4 endpoints)",
+      "provider_costs": "Complete - provider-costs.ts",
+      "frontend_api": "Complete - lib/api.js",
+      "server_registration": "Complete - server.ts",
+      "launch_ready": true,
+      "documentation": "Feature 0090 - Google Imagen Vision APIs"
+    },
+    "workflow_integration_opportunities": {
+      "character_bank": "Auto-caption new character images (1 credit)",
+      "location_bank": "Auto-caption new location images (1 credit)",
+      "scene_builder": "Auto-categorize via Q&A: day/night, indoor/outdoor (1 credit each)",
+      "prop_visualizer": "Show props in different scenes (20 credits)",
+      "image_export": "Offer 2K/4K upscale option (2-3 credits)"
+    },
+    "competitive_analysis": {
+      "vs_manual_captioning": "567% more efficient than manual description",
+      "vs_runway_upscaling": "Cheapest upscaling available ($0.003 vs Runway higher costs)",
+      "vs_custom_ai_models": "No training/maintenance costs, instant API access",
+      "unique_value": "Product Recontext - no direct competitor for prop visualization"
+    },
+    "notes": {
+      "google_safety": "Stricter than OpenAI, Runway, Luma - use as enhancements only",
+      "captioning_qa_identical_cost": "Both $0.0015 - extremely affordable automation",
+      "upscaling_cheapest": "Best upscaling option available at $0.003",
+      "product_recontext_unique": "Only API that can place products in new scenes",
+      "all_apis_profitable": "67-567% margins across all 4 APIs",
+      "no_ui_integration_yet": "Backend utilities only - workflows will integrate as needed"
+    }
+  },
+  
+  "luma_3d_nerf": {
+    "description": "Luma NeRF API - Convert 2D images to photorealistic 3D models (GLB, OBJ, USDZ formats)",
+    "provider": "luma-labs",
+    "api_documentation": "https://lumalabs.ai/api/pricing",
+    "official_pricing_verified": "2025-10-28 from Luma pricing page",
+    "pricing_model": "Per-capture pricing (~$1.00 per 3D model generation)",
+    "strategy": "Break-even to low-margin premium feature - targets virtual production, game dev, AR creators",
+    "use_cases": [
+      "Character 3D model export (for Unity, Unreal, Blender)",
+      "Location/environment 3D scanning",
+      "Virtual production assets",
+      "AR/VR content creation",
+      "Game development character assets",
+      "3D printing preparation",
+      "Metaverse avatar creation",
+      "Film pre-visualization"
+    ],
+    "target_market": {
+      "primary": [
+        "Game developers (Unity, Unreal Engine)",
+        "Virtual production studios",
+        "AR/VR developers",
+        "3D artists & animators",
+        "Film pre-vis teams",
+        "Indie filmmakers"
+      ],
+      "secondary": [
+        "3D printing enthusiasts",
+        "Metaverse creators",
+        "Architecture visualization",
+        "E-commerce (3D product views)",
+        "Education & training"
+      ],
+      "competitive_advantage": [
+        "No 3D scanning hardware required",
+        "Generate from existing character images",
+        "Professional quality NeRF output",
+        "Multiple export formats (GLB, OBJ, USDZ)",
+        "Integrated with character/location banks",
+        "Pay-per-use, no subscription"
+      ]
+    },
+    "pricing": [
+      {
+        "id": "luma-3d-character-export",
+        "provider_id": "luma-nerf-api",
+        "operation_type": "3d_model_generation",
+        "entity_type": "character",
+        "enabled": true,
+        "api_cost_usd": 1.00,
+        "retail_credits": 500,
+        "retail_price_usd": 5.00,
+        "margin_percentage": 400,
+        "metadata": {
+          "model_name": "Luma NeRF Character Export - Professional",
+          "category": "3d_generation",
+          "speed": "slow",
+          "quality": "photorealistic",
+          "best_for": "Professional game-ready character 3D models from 2D images",
+          "generation_time_seconds": "1800-3600",
+          "generation_time_display": "30-60 minutes",
+          "input_requirements": {
+            "min_images": 2,
+            "max_images": 10,
+            "recommended_images": "4-6 (base + multiple angles)",
+            "image_sources": ["character_bank", "dropbox", "google_drive"],
+            "image_formats": ["jpeg", "png"],
+            "max_image_size_mb": 10
+          },
+          "output_formats": ["glb", "obj", "usdz"],
+          "output_quality": "Photorealistic NeRF",
+          "storage_policy": {
+            "s3_temporary": "7 days with lifecycle auto-delete",
+            "permanent_storage": "User's Dropbox or Google Drive (required)",
+            "expiration_warning": "Prominently displayed with countdown"
+          },
+          "launch_ready": true,
+          "value_proposition": "PROFESSIONAL PRICING - 100-500x cheaper than hiring 3D artists ($500-2000)"
+        }
+      },
+      {
+        "id": "luma-3d-location-export",
+        "provider_id": "luma-nerf-api",
+        "operation_type": "3d_model_generation",
+        "entity_type": "location",
+        "enabled": true,
+        "api_cost_usd": 1.00,
+        "retail_credits": 1000,
+        "retail_price_usd": 10.00,
+        "margin_percentage": 900,
+        "metadata": {
+          "model_name": "Luma NeRF Location Export",
+          "category": "3d_generation",
+          "speed": "slow",
+          "quality": "photorealistic",
+          "best_for": "Environment/location 3D models from 2D images",
+          "generation_time_seconds": "1800-3600",
+          "generation_time_display": "30-60 minutes",
+          "input_requirements": {
+            "min_images": 2,
+            "max_images": 10,
+            "recommended_images": "6-10 (multiple angles, lighting conditions)",
+            "image_sources": ["location_bank", "dropbox", "google_drive"],
+            "image_formats": ["jpeg", "png"],
+            "max_image_size_mb": 10
+          },
+          "output_formats": ["glb", "obj", "usdz"],
+          "output_quality": "Photorealistic NeRF environment",
+          "storage_policy": {
+            "s3_temporary": "7 days with lifecycle auto-delete",
+            "permanent_storage": "User's Dropbox or Google Drive (required)",
+            "expiration_warning": "Prominently displayed with countdown"
+          },
+          "launch_ready": true,
+          "value_proposition": "PREMIUM PRICING - 100x cheaper than traditional 3D scanning hardware ($1000+)"
+        }
+      }
+    ],
+    "technical_details": {
+      "nerf_algorithm": "Neural Radiance Fields (NeRF) - photorealistic 3D reconstruction",
+      "input_processing": {
+        "image_sources": ["character_bank", "location_bank", "cloud_storage"],
+        "cloud_storage_required": true,
+        "cloud_providers": ["dropbox", "google_drive"],
+        "local_upload": false,
+        "validation": [
+          "Minimum 2 images required",
+          "Maximum 10 images accepted",
+          "Automatic format and size validation",
+          "Cloud storage connection check"
+        ]
+      },
+      "generation_process": {
+        "step_1": "Download images from user's cloud storage",
+        "step_2": "Create Luma NeRF capture job",
+        "step_3": "Poll status every 30 seconds (max 60 attempts = 30 minutes)",
+        "step_4": "Download generated 3D models (GLB, OBJ, USDZ)",
+        "step_5": "Upload to S3 with 7-day expiration",
+        "step_6": "Generate presigned URLs for download",
+        "step_7": "Prompt user to save to cloud storage",
+        "estimated_time": "30-60 minutes",
+        "max_timeout": "60 minutes"
+      },
+      "output_delivery": {
+        "formats": {
+          "glb": {
+            "name": "GL Transmission Format Binary",
+            "use_case": "Unity, Unreal, Web (Three.js, Babylon.js)",
+            "pros": "Universal, efficient, single file",
+            "file_size": "Medium"
+          },
+          "obj": {
+            "name": "Wavefront OBJ",
+            "use_case": "Blender, Maya, 3ds Max, traditional 3D tools",
+            "pros": "Universal, human-readable, widely supported",
+            "file_size": "Larger (includes .mtl material file)"
+          },
+          "usdz": {
+            "name": "Universal Scene Description (Apple)",
+            "use_case": "iOS AR apps, Apple AR Quick Look, Vision Pro",
+            "pros": "Optimized for AR, native iOS support",
+            "file_size": "Medium-large"
+          }
+        },
+        "delivery_methods": [
+          "Immediate download via presigned S3 URLs",
+          "Save to Dropbox (OAuth integration)",
+          "Save to Google Drive (OAuth integration)"
+        ],
+        "storage_duration": "7 days in S3, then auto-deleted"
+      },
+      "api_details": {
+        "base_url": "https://api.lumalabs.ai/v1",
+        "endpoints": {
+          "create_capture": "POST /captures",
+          "get_capture": "GET /captures/{id}",
+          "list_captures": "GET /captures"
+        },
+        "auth": "Bearer token (LUMA_API_KEY)",
+        "rate_limits": "TBD - contact Luma for details"
+      }
+    },
+    "user_experience": {
+      "ui_location": "Production Page → Character Bank → Character Card",
+      "trigger": "'Export to 3D' button on character cards",
+      "modal": "Export3DModal.js",
+      "flow": [
+        "1. User clicks 'Export to 3D' on character",
+        "2. Modal opens with cloud storage check",
+        "3. User selects output formats (GLB, OBJ, USDZ)",
+        "4. Credit cost displayed (100 or 150 credits)",
+        "5. User confirms generation",
+        "6. Credits deducted upfront",
+        "7. Job starts (30-60 minute wait)",
+        "8. Progress polling every 5 seconds in UI",
+        "9. Completion notification",
+        "10. Download buttons + cloud save prompts",
+        "11. 7-day expiration warning displayed",
+        "12. User saves to Dropbox/Google Drive"
+      ],
+      "quality_of_life": [
+        "Real-time progress updates",
+        "Estimated time remaining",
+        "Background processing (user can navigate away)",
+        "Email/notification when complete (future feature)",
+        "Expiration countdown timer",
+        "One-click cloud storage save"
+      ]
+    },
+    "credit_policy": {
+      "deduction": "Upfront before generation starts",
+      "refund_on_failure": true,
+      "refund_scenarios": [
+        "Luma API failure",
+        "Insufficient input images",
+        "Cloud storage unavailable",
+        "Generation timeout (>60 minutes)",
+        "Network errors during processing"
+      ],
+      "no_refund_scenarios": [
+        "Successful generation (even if user dislikes quality)",
+        "User deletes S3 files before saving to cloud",
+        "User error after generation completes"
+      ],
+      "partial_refund": false
+    },
+    "storage_policy": {
+      "platform_wide_rule": "All generated assets stored in S3 for maximum 7 days",
+      "s3_bucket": "screenplay-assets",
+      "s3_prefix": "luma-3d-models/{userId}/{entityId}/",
+      "lifecycle_policy": "Automatic deletion after 7 days",
+      "presigned_urls": "7-day expiration",
+      "permanent_storage": {
+        "required": true,
+        "options": ["Dropbox", "Google Drive"],
+        "prompt_timing": "Immediately after generation completes",
+        "ui_warning": "⚠️ Files expire in 7 days! Save to cloud storage now.",
+        "countdown_display": "Days remaining shown in UI"
+      },
+      "cloud_storage_tracking": {
+        "saved_flags": "Track which formats saved to cloud",
+        "file_ids": "Store cloud provider file IDs",
+        "user_confidence": "User can verify files saved successfully"
+      }
+    },
+    "dynamodb_schema": {
+      "table_name": "Luma3DJobs",
+      "primary_key": "jobId (String)",
+      "gsi": "UserJobsIndex (userId + createdAt)",
+      "ttl": "30 days (job records kept longer than S3 files)",
+      "attributes": [
+        "jobId: job-{timestamp}-{random}",
+        "userId: User ID",
+        "characterId or locationId: Entity ID",
+        "entityName: Display name",
+        "type: 'character' or 'location'",
+        "status: 'pending' | 'processing' | 'completed' | 'failed'",
+        "progress: 0-100",
+        "lumaGenerationId: Luma API generation ID",
+        "inputImages: Array of source image URLs",
+        "outputFormats: ['glb', 'obj', 'usdz']",
+        "s3Keys: Object with format-specific S3 keys",
+        "presignedUrls: Object with 7-day presigned URLs",
+        "s3ExpiresAt: ISO timestamp (7 days from completion)",
+        "cloudStorageSaved: Object tracking saved formats",
+        "cloudFileIds: Object with cloud provider file IDs",
+        "creditsUsed: 100 or 150",
+        "error: Error message if failed",
+        "createdAt: ISO timestamp",
+        "completedAt: ISO timestamp",
+        "lastPolledAt: ISO timestamp (for debugging)"
+      ]
+    },
+    "competitive_analysis": {
+      "vs_traditional_3d_scanning": {
+        "traditional": "Requires $1000+ hardware (LiDAR, depth cameras)",
+        "wryda": "Generate from existing photos - no hardware needed",
+        "advantage": "100x cheaper entry cost"
+      },
+      "vs_photogrammetry_software": {
+        "traditional": "Requires 50-200 photos, manual processing, expensive software",
+        "wryda": "2-10 photos, automatic processing, pay-per-use",
+        "advantage": "10x faster, no software purchase"
+      },
+      "vs_hiring_3d_artists": {
+        "traditional": "$500-2000 per character model (freelancer rates)",
+        "wryda": "$1.00 per character, $1.50 per location",
+        "advantage": "500-2000x cheaper"
+      },
+      "vs_other_nerf_services": {
+        "competitors": "Polycam ($20/mo), Luma Dream Machine (consumer-focused)",
+        "wryda": "API-integrated, no subscription, production-ready workflow",
+        "advantage": "Seamless integration with existing character/location banks"
+      }
+    },
+    "business_model": {
+      "pricing_philosophy": "Professional pricing - highly profitable while remaining 100-500x cheaper than alternatives",
+      "character_pricing": {
+        "cost": "$1.00",
+        "retail": "$5.00 (500 credits)",
+        "margin": "$4.00 (400%)",
+        "rationale": "Professional positioning - still 100-500x cheaper than hiring ($500-2000), attracts serious game developers"
+      },
+      "location_pricing": {
+        "cost": "$1.00",
+        "retail": "$10.00 (1000 credits)",
+        "margin": "$9.00 (900%)",
+        "rationale": "Premium pricing for complex environments - 100x cheaper than 3D scanning hardware ($1000+)"
+      },
+      "revenue_strategy": [
+        "Professional pricing builds credibility ($5 vs $1 looks more serious)",
+        "High margins (400-900%) fund platform development",
+        "Still massively cheaper than all alternatives",
+        "Lock-in via character/location bank integration",
+        "Future add-ons: texture packs, rigging, animation-ready models"
+      ],
+      "target_lifetime_value": {
+        "game_developer": "50-200 character exports + 20-50 location exports = $350-1,500 LTV (5x increase)",
+        "virtual_production": "10-30 character exports + 5-15 location exports = $100-300 per project (5x increase)",
+        "hobbyist": "5-10 character exports = $25-50 LTV (5x increase)"
+      }
+    },
+    "margin_analysis": {
+      "character_export": {
+        "api_cost": "$1.00 (Luma NeRF generation)",
+        "infrastructure": "$0.00 (negligible S3, compute)",
+        "total_cost": "$1.00",
+        "retail_price": "$5.00",
+        "margin": "$4.00",
+        "margin_percent": "400%",
+        "positioning": "PROFESSIONAL - highly profitable, credible pricing"
+      },
+      "location_export": {
+        "api_cost": "$1.00 (Luma NeRF generation)",
+        "infrastructure": "$0.00 (negligible S3, compute)",
+        "total_cost": "$1.00",
+        "retail_price": "$10.00",
+        "margin": "$9.00",
+        "margin_percent": "900%",
+        "positioning": "PREMIUM - extremely profitable while maintaining value"
+      },
+      "blended_margin": {
+        "assumption": "70% characters, 30% locations",
+        "weighted_margin": "550% blended",
+        "profitability": "HIGHLY PROFITABLE - sustainable margins for growth"
+      },
+      "revenue_projections": {
+        "1k_users_monthly": "$13,500 (vs $2,550 at old pricing = 5.3x increase)",
+        "1k_users_annual": "$162,000 (vs $30,600 at old pricing)",
+        "10k_users_annual": "$1,620,000 (vs $306,000 at old pricing)",
+        "profit_margin": "~85% after API costs"
+      }
+    },
+    "failure_strategy": {
+      "policy": "REFUND ON FAILURE - No fallback providers",
+      "rationale": "Luma is the only production-quality NeRF API available",
+      "on_failure": [
+        "Refund credits immediately",
+        "Log failure with detailed error info",
+        "Return user-friendly error message",
+        "Suggest retry with different images",
+        "Offer to contact support for complex issues"
+      ],
+      "common_failures": [
+        "Insufficient images (<2)",
+        "Low-quality images (blurry, dark)",
+        "Luma API unavailable",
+        "Generation timeout (>60 minutes)",
+        "Cloud storage unavailable"
+      ],
+      "retry_strategy": [
+        "Suggest adding more images (4-6 recommended)",
+        "Recommend better lighting/angles",
+        "Wait for Luma service recovery",
+        "Check cloud storage connection"
+      ]
+    },
+    "integration_status": {
+      "backend": {
+        "types": "Complete - luma-3d.ts (Luma3DJob, requests, responses)",
+        "service": "Complete - Luma3DService.ts (NeRF API integration, polling, S3 upload)",
+        "routes": "Complete - luma-3d.ts (5 endpoints: character, location, job status, save to cloud, cancel)",
+        "provider_costs": "Complete - LUMA_3D_COSTS in provider-costs.ts",
+        "server_registration": "Complete - server.ts (/api/3d routes)",
+        "dynamodb": "Script ready - CREATE_LUMA_3D_JOBS_TABLE.ps1"
+      },
+      "frontend": {
+        "modal": "Complete - Export3DModal.js (cloud storage integration, expiration warnings)",
+        "api_client": "Complete - lib/api.js (luma3D endpoints)",
+        "integration_point": "Character Bank (CharacterCard.js - needs 'Export to 3D' button)"
+      },
+      "launch_ready": "85% - needs button integration + DynamoDB table creation + deployment",
+      "documentation": "Feature 0092 - Luma 3D/NeRF Integration"
+    },
+    "future_enhancements": {
+      "short_term": [
+        "Email notification when generation completes",
+        "Batch export (multiple characters at once)",
+        "Auto-save to cloud storage option",
+        "Generation history page"
+      ],
+      "medium_term": [
+        "Texture optimization presets (game-ready, film-quality)",
+        "Automatic rigging for animation",
+        "LOD (Level of Detail) generation",
+        "3D model preview in browser (Three.js viewer)"
+      ],
+      "long_term": [
+        "Animation-ready character exports",
+        "Facial blend shapes for lip-sync",
+        "Clothing/prop separation",
+        "Integration with Unity/Unreal plugins"
+      ]
+    },
+    "marketing_messaging": {
+      "headline": "Turn Your Characters Into 3D Models",
+      "subheadline": "Generate photorealistic 3D assets from photos. No scanning hardware required.",
+      "value_props": [
+        "✨ Generate from existing photos",
+        "🎮 Export to Unity, Unreal, Blender",
+        "📱 AR-ready (USDZ for iOS)",
+        "⚡ 30-60 minute turnaround",
+        "💰 $1-1.50 per model (no subscription)",
+        "🔄 Multiple export formats (GLB, OBJ, USDZ)"
+      ],
+      "target_use_cases": [
+        "Game character creation",
+        "Virtual production pre-vis",
+        "AR/VR content",
+        "3D printing preparation",
+        "Film asset pipeline",
+        "Metaverse avatars"
+      ],
+      "social_proof_angles": [
+        "Used by indie game developers",
+        "Trusted by virtual production teams",
+        "Powering AR experiences",
+        "Enabling the next generation of creators"
+      ]
+    },
+    "notes": {
+      "luma_api_stability": "Production-ready, used by major studios",
+      "generation_time": "30-60 minutes typical, can vary based on image complexity",
+      "image_quality_matters": "Better input images = better 3D models",
+      "recommended_workflow": "Use character bank images for consistent results",
+      "cloud_storage_mandatory": "Platform-wide policy - enforced by UI flow",
+      "no_local_storage": "All generated files expire after 7 days",
+      "strategic_pricing": "Break-even on characters to acquire customers, profit on locations",
+      "future_revenue": "Add-ons (rigging, animation, textures) can increase margins"
+    }
+  }
+}
+
