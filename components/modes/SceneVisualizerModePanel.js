@@ -1,108 +1,86 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
-import { Zap, Upload, Sparkles, Image as ImageIcon, Video, Loader2 } from 'lucide-react';
+import { Zap, Sparkles, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import WorkflowCard from '@/components/workflows/WorkflowCard';
+import {
+  getAllWorkflows,
+  getCharacterConsistencyWorkflows,
+  getBeginnerWorkflows,
+  getFastWorkflows
+} from '@/lib/workflowMetadata';
 
-// Top 42 Workflows organized by category
-const WORKFLOWS = {
-  'Quick Content': [
-    { id: 'talking-head', name: 'Talking Head Video', icon: '🗣️', credits: 50, description: 'Upload your photo, speak your script' },
-    { id: 'product-demo', name: 'Product Demo', icon: '📦', credits: 75, description: 'Showcase your product professionally' },
-    { id: 'social-reel', name: 'Social Media Reel', icon: '📱', credits: 50, description: 'Viral-ready vertical content' },
-    { id: 'testimonial', name: 'Customer Testimonial', icon: '⭐', credits: 60, description: 'AI-generated testimonials' },
-  ],
-  'Character Videos': [
-    { id: 'character-intro', name: 'Character Introduction', icon: '👤', credits: 100, description: 'Introduce characters cinematically' },
-    { id: 'character-dialogue', name: 'Character Dialogue', icon: '💬', credits: 120, description: 'Characters having conversations' },
-    { id: 'character-action', name: 'Character Action Scene', icon: '⚡', credits: 150, description: 'Dynamic action sequences' },
-  ],
-  'Marketing': [
-    { id: 'brand-video', name: 'Brand Story', icon: '🎬', credits: 100, description: 'Tell your brand story' },
-    { id: 'explainer', name: 'Explainer Video', icon: '📊', credits: 90, description: 'Explain complex concepts simply' },
-    { id: 'ad-campaign', name: 'Ad Campaign', icon: '📺', credits: 120, description: 'Professional advertising content' },
-  ],
-  'Cinematic': [
-    { id: 'scene-to-video', name: 'Scene to Video', icon: '🎭', credits: 150, description: 'Turn screenplay scenes into video' },
-    { id: 'montage', name: 'Cinematic Montage', icon: '🎞️', credits: 180, description: 'Multi-clip montage sequences' },
-    { id: 'trailer', name: 'Movie Trailer', icon: '🍿', credits: 200, description: 'Generate epic trailers' },
-  ],
-};
-
-export function SceneVisualizerModePanel({ onInsert }) {
+/**
+ * SceneVisualizerModePanel - Mobile-optimized workflow selector for AgentDrawer
+ * 
+ * Features:
+ * - Simple 3-button filters (All, Beginner, Fast & Budget)
+ * - Character Consistency toggle (shows all 32 workflows)
+ * - Inline badges on workflow cards (💡 Optional / ⚠️ Required)
+ * - Tap for AI explanation before starting
+ * - Compact single-column layout
+ */
+export function SceneVisualizerModePanel({ onInsert, onWorkflowComplete }) {
   const { state, addMessage } = useChatContext();
+  const [workflows, setWorkflows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadPreview, setUploadPreview] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Mobile-simplified filters
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'beginner', 'fast'
+  const [showCharacterConsistency, setShowCharacterConsistency] = useState(false);
+  
+  useEffect(() => {
+    fetchWorkflows();
+  }, [activeFilter, showCharacterConsistency]);
+  
+  function fetchWorkflows() {
+    setLoading(true);
     
-    // Validate file
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please upload an image (JPG, PNG, WEBP) or video (MP4, MOV)');
-      return;
+    let result = [];
+    
+    // Apply Character Consistency toggle first
+    if (showCharacterConsistency) {
+      result = getCharacterConsistencyWorkflows('all'); // Show all 32
+    } else {
+      // Then apply simple filters
+      if (activeFilter === 'beginner') {
+        result = getBeginnerWorkflows();
+      } else if (activeFilter === 'fast') {
+        result = getFastWorkflows();
+      } else {
+        result = getAllWorkflows();
+      }
     }
     
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      toast.error('File too large. Maximum size is 50MB');
-      return;
-    }
-    
-    setUploadedFile(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadPreview(e.target?.result);
-    };
-    reader.readAsDataURL(file);
-    
-    toast.success('File uploaded! Select a workflow to get started');
-  };
+    setWorkflows(result);
+    setLoading(false);
+  }
   
   const handleWorkflowSelect = async (workflow) => {
     setSelectedWorkflow(workflow);
     
-    if (!uploadedFile) {
-      toast.info('Upload a photo or video to use this workflow');
-      return;
-    }
+    // Show workflow details and requirements via AI message
+    const characterRequirement = workflow.inputRequirements.requiresImages 
+      ? '⚠️ **Requires 1-2 character images** - You must upload Character Bank images before using this workflow.' 
+      : workflow.inputRequirements.supportsCharacterBank
+      ? '💡 **Supports optional Character Bank** - Works from text alone, or add 1-2 character images for consistent characters across multiple generations.'
+      : '✍️ **Text description only** - No images needed! Perfect for beginners.';
     
-    setIsGenerating(true);
+    const videoRequirement = workflow.inputRequirements.requiresVideo
+      ? '\n🎬 **Requires video upload** - This workflow transforms existing video.'
+      : '';
     
-    try {
-      addMessage({
-        role: 'user',
-        content: `Generate ${workflow.name} using my uploaded ${uploadedFile.type.startsWith('image') ? 'image' : 'video'}`,
-        mode: 'scene-visualizer'
-      });
-      
-      // TODO: Call workflow API
-      // const response = await api.workflows.execute({ workflowId: workflow.id, file: uploadedFile });
-      
-      // Simulated success
-      setTimeout(() => {
-        addMessage({
-          role: 'assistant',
-          content: `🎬 ${workflow.name} workflow started!\n\nYour content is being generated. This will take 2-3 minutes depending on complexity.\n\nCost: ${workflow.credits} credits`,
-          mode: 'scene-visualizer'
-        });
-        
-        toast.success('Workflow started!');
-        setIsGenerating(false);
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error executing workflow:', error);
-      toast.error('Failed to execute workflow');
-      setIsGenerating(false);
-    }
+    addMessage({
+      role: 'assistant',
+      content: `# 🎬 ${workflow.name} ${Array(workflow.stars).fill('⭐').join('')}\n\n${workflow.heroDescription}\n\n## What It Does\n\n${workflow.whatItDoes}\n\n## Requirements\n\n${characterRequirement}${videoRequirement}\n\n## Perfect For\n\n${workflow.perfectFor.map(p => `• ${p}`).join('\n')}\n\n💡 **Pro Tip:** ${workflow.proTip}\n\n**Credits:** ${workflow.creditRange.min}-${workflow.creditRange.max}\n\n---\n\nReady to start this workflow?`,
+      mode: 'scene-visualizer'
+    });
+    
+    toast.success(`${workflow.name} selected!`);
   };
   
   return (
@@ -113,50 +91,73 @@ export function SceneVisualizerModePanel({ onInsert }) {
           <Zap className="w-5 h-5" />
           <h3 className="font-bold">AI Workflow Selector</h3>
         </div>
-        <p className="text-xs text-white/80 mt-1">42 pre-built workflows • Upload & create instantly</p>
+        <p className="text-xs text-white/80 mt-1">
+          {showCharacterConsistency 
+            ? `32 Character Consistency workflows` 
+            : `${workflows.length} professional workflows`}
+        </p>
       </div>
       
-      {/* Upload Section */}
+      {/* Simple Mobile Filters */}
       <div className="px-4 py-3 bg-base-200 border-b border-base-300">
-        <label className="text-xs font-semibold text-base-content/70 mb-2 block">UPLOAD YOUR CONTENT</label>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => {
+              setActiveFilter('all');
+              setShowCharacterConsistency(false);
+            }}
+            className={`btn btn-sm ${activeFilter === 'all' && !showCharacterConsistency ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => {
+              setActiveFilter('beginner');
+              setShowCharacterConsistency(false);
+            }}
+            className={`btn btn-sm ${activeFilter === 'beginner' && !showCharacterConsistency ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap`}
+          >
+            🟢 Beginner
+          </button>
+          <button
+            onClick={() => {
+              setActiveFilter('fast');
+              setShowCharacterConsistency(false);
+            }}
+            className={`btn btn-sm ${activeFilter === 'fast' && !showCharacterConsistency ? 'btn-primary' : 'btn-ghost'} whitespace-nowrap`}
+          >
+            ⚡ Fast & Budget
+          </button>
+        </div>
         
-        {!uploadedFile ? (
-          <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-base-300 rounded-lg cursor-pointer hover:border-cinema-red/50 transition-colors">
-            <Upload className="w-8 h-8 text-base-content/40 mb-2" />
-            <span className="text-sm text-base-content/60">Upload photo or video</span>
-            <span className="text-xs text-base-content/40 mt-1">JPG, PNG, MP4 (max 50MB)</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+        {/* Character Consistency Toggle */}
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="checkbox"
+            checked={showCharacterConsistency}
+            onChange={(e) => setShowCharacterConsistency(e.target.checked)}
+            className="checkbox checkbox-sm checkbox-primary"
+            id="char-consistency-toggle"
+          />
+          <label htmlFor="char-consistency-toggle" className="text-sm cursor-pointer">
+            🎭 Character Consistency Only (32)
           </label>
-        ) : (
-          <div className="relative">
-            {uploadedFile.type.startsWith('image') ? (
-              <img src={uploadPreview} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
-            ) : (
-              <video src={uploadPreview} className="w-full h-32 object-cover rounded-lg" />
-            )}
-            <button
-              onClick={() => {
-                setUploadedFile(null);
-                setUploadPreview(null);
-              }}
-              className="absolute top-2 right-2 btn btn-xs btn-circle btn-error"
-            >
-              ×
-            </button>
-            <div className="absolute bottom-2 left-2 badge badge-sm bg-black/70 text-white border-none">
-              {uploadedFile.type.startsWith('image') ? <ImageIcon className="w-3 h-3 mr-1" /> : <Video className="w-3 h-3 mr-1" />}
-              {uploadedFile.name}
-            </div>
+        </div>
+        
+        {/* Explanation when toggled */}
+        {showCharacterConsistency && (
+          <div className="alert alert-info mt-2 py-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p className="text-xs">
+              <strong>18 workflows</strong> work from text (add images later) + <strong>14 require</strong> images from the start
+            </p>
           </div>
         )}
       </div>
       
-      {/* Workflows */}
+      {/* Workflows Grid */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {state.messages.filter(m => m.mode === 'scene-visualizer').length > 0 ? (
           /* Messages Area */
@@ -176,7 +177,7 @@ export function SceneVisualizerModePanel({ onInsert }) {
                         ? 'bg-cinema-red text-white' 
                         : 'bg-base-200 text-base-content'
                     }`}>
-                      <div className="whitespace-pre-wrap break-words">
+                      <div className="whitespace-pre-wrap break-words prose prose-sm max-w-none">
                         {message.content}
                       </div>
                     </div>
@@ -188,60 +189,46 @@ export function SceneVisualizerModePanel({ onInsert }) {
               <div className="flex justify-start">
                 <div className="bg-base-200 px-4 py-3 rounded-lg flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-cinema-blue" />
-                  <span className="text-sm">Executing workflow...</span>
+                  <span className="text-sm">Loading workflow details...</span>
                 </div>
               </div>
             )}
           </div>
         ) : (
           /* Workflow Grid */
-          <div className="space-y-6">
-            {Object.entries(WORKFLOWS).map(([category, workflows]) => (
-              <div key={category}>
-                <h4 className="text-sm font-bold text-base-content/80 mb-3">{category.toUpperCase()}</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {workflows.map((workflow) => (
-                    <button
-                      key={workflow.id}
-                      onClick={() => handleWorkflowSelect(workflow)}
-                      disabled={!uploadedFile || isGenerating}
-                      className={`btn btn-sm h-auto py-3 flex-col items-start text-left ${
-                        selectedWorkflow?.id === workflow.id 
-                          ? 'btn-primary' 
-                          : 'btn-outline'
-                      } ${!uploadedFile ? 'opacity-50' : ''}`}
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <span className="text-lg">{workflow.icon}</span>
-                        <div className="flex-1">
-                          <div className="font-semibold text-xs">{workflow.name}</div>
-                          <div className="text-[10px] opacity-70">{workflow.description}</div>
-                        </div>
-                        <span className="badge badge-xs">{workflow.credits}cr</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            
-            {!uploadedFile && (
-              <div className="text-center text-base-content/60 py-6 bg-base-200 rounded-lg">
-                <Sparkles className="w-12 h-12 mx-auto mb-2 text-cinema-gold" />
-                <p className="text-sm font-semibold">Upload a photo or video to get started!</p>
-                <p className="text-xs mt-1">Choose from 42 pre-built AI workflows</p>
-              </div>
-            )}
-          </div>
+          loading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-8 h-8 animate-spin text-cinema-blue" />
+            </div>
+          ) : workflows.length === 0 ? (
+            <div className="text-center text-base-content/60 py-6">
+              <Sparkles className="w-12 h-12 mx-auto mb-2 text-cinema-gold" />
+              <p className="text-sm font-semibold">No workflows found</p>
+              <p className="text-xs mt-1">Try adjusting your filters</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {workflows.map((workflow) => (
+                <WorkflowCard
+                  key={workflow.id}
+                  workflow={workflow}
+                  compact={true}
+                  onClick={handleWorkflowSelect}
+                />
+              ))}
+            </div>
+          )
         )}
       </div>
       
       {/* Info footer */}
       <div className="px-4 py-2 border-t border-base-300 text-xs text-base-content/60">
-        <p>⚡ 42 AI Workflows • Upload once • Generate multiple variations instantly</p>
+        <p>
+          💡 Tap any workflow for details • {workflows.length} workflows shown
+        </p>
       </div>
     </div>
   );
 }
 
-
+export default SceneVisualizerModePanel;
