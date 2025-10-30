@@ -26,6 +26,8 @@ export default function RootLayout({ children }) {
 			afterSignInUrl="/dashboard"
 			afterSignUpUrl="/dashboard"
 			publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+			isSatellite={false}
+			dynamic
 		>
 			<html
 				lang="en"
