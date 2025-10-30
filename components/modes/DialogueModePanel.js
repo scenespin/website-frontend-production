@@ -1,10 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { MessageSquare, Mic, Sparkles } from 'lucide-react';
+import { ModelSelector } from '../ModelSelector';
 
 export function DialogueModePanel({ onInsert }) {
   const { state } = useChatContext();
+  
+  // Model selection for Dialogue agent
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   
   const quickActions = [
     { label: 'Write Scene Dialogue', prompt: 'Write compelling dialogue for this scene with subtext' },
@@ -14,13 +19,17 @@ export function DialogueModePanel({ onInsert }) {
   
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
+      {/* Header with Model Selector */}
       <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-3">
           <MessageSquare className="w-5 h-5 text-cinema-red" />
           <h3 className="font-bold text-base-content">Dialogue Writing</h3>
         </div>
-        <p className="text-xs text-base-content/60 mt-1">Craft compelling dialogue with subtext and character voice</p>
+        <ModelSelector 
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+        />
+        <p className="text-xs text-base-content/60 mt-2">Craft compelling dialogue with subtext and character voice</p>
       </div>
       
       {/* Messages Area */}

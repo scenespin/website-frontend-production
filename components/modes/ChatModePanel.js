@@ -1,17 +1,88 @@
 'use client';
 
+import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { FileText, Sparkles, User, Bot } from 'lucide-react';
+import { ModelSelector } from '../ModelSelector';
+import { api } from '@/lib/api';
+import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
+import toast from 'react-hot-toast';
 
-export function ChatModePanel({ onInsert, onWorkflowComplete }) {
-  const { state } = useChatContext();
+export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
+  const { state, addMessage, setInput } = useChatContext();
   const {
     activeWorkflow,
     workflowCompletionData,
     clearWorkflowCompletion,
     isScreenplayContent
   } = useChatMode();
+  
+  // Model selection for AI chat
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
+  const [isSending, setIsSending] = useState(false);
+  
+  // Handle sending messages to AI
+  const handleSend = async (prompt) => {
+    if (!prompt || !prompt.trim() || isSending) return;
+    
+    setIsSending(true);
+    
+    try {
+      // Detect current scene for context
+      const sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      const contextPrompt = sceneContext ? buildContextPrompt(sceneContext) : '';
+      
+      // Add user message
+      addMessage({
+        role: 'user',
+        content: prompt,
+        mode: 'chat'
+      });
+      
+      // Build conversation history (last 10 messages)
+      const chatMessages = state.messages.filter(m => m.mode === 'chat').slice(-10);
+      const conversationHistory = chatMessages.map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+      
+      // Call AI API
+      const response = await api.chat.generate({
+        userPrompt: prompt + contextPrompt,
+        desiredModelId: selectedModel,
+        conversationHistory,
+        sceneContext: sceneContext ? {
+          heading: sceneContext.heading,
+          act: sceneContext.act,
+          characters: sceneContext.characters,
+          pageNumber: sceneContext.pageNumber
+        } : null
+      });
+      
+      // Add AI response
+      addMessage({
+        role: 'assistant',
+        content: response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.',
+        mode: 'chat'
+      });
+      
+      // Clear input
+      setInput('');
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error(error.response?.data?.message || 'Failed to get AI response');
+      
+      addMessage({
+        role: 'assistant',
+        content: '❌ Sorry, I encountered an error. Please try again.',
+        mode: 'chat'
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
   
   const handleInsertAndCreate = () => {
     if (!workflowCompletionData || !onWorkflowComplete) return;
@@ -27,6 +98,21 @@ export function ChatModePanel({ onInsert, onWorkflowComplete }) {
   
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header with Model Selector */}
+      <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-cinema-red" />
+            <h3 className="font-bold text-base-content">General Screenwriting</h3>
+          </div>
+        </div>
+        <ModelSelector 
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+        />
+        <p className="text-xs text-base-content/60 mt-2">Brainstorming, world-building, character development, and general Q&A</p>
+      </div>
+      
       {/* Workflow Completion Banner */}
       {workflowCompletionData && (
         <div className="flex items-center justify-between px-4 py-3 bg-base-300 border-b border-cinema-red/20">
