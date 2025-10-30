@@ -1,14 +1,29 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhooks(.*)',
+  '/features',
+  '/pricing',
+  '/tos',
+  '/privacy-policy',
+  '/help(.*)',
 ])
 
 export default clerkMiddleware((auth, req) => {
-  // Only call protect() for dashboard routes
-  // Let Clerk handle auth state for all other routes
-  if (isProtectedRoute(req)) {
-    auth.protect()
+  // Protect all routes except public ones
+  // Don't use auth.protect() - it can cause redirect loops
+  if (!isPublicRoute(req)) {
+    const { userId } = auth()
+    
+    // If not authenticated and trying to access protected route, redirect to sign-in
+    if (!userId) {
+      const signInUrl = new URL('/sign-in', req.url)
+      signInUrl.searchParams.set('redirect_url', req.url)
+      return Response.redirect(signInUrl)
+    }
   }
 })
 
