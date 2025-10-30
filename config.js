@@ -30,6 +30,11 @@ const config = {
           { name: "50+ LUTs, 30+ Transitions" },
         ],
         isFeatured: false,
+        // Signup page specific
+        signupHeadline: "Start Your Creative Journey",
+        signupSubheadline: "Explore professional screenwriting tools — completely free",
+        signupValueProp: "Perfect for writers getting started with professional screenplay formatting",
+        targetAudience: "Students, hobbyists, and aspiring screenwriters",
       },
       {
         isFeatured: true,
@@ -47,6 +52,11 @@ const config = {
           { name: "~60 Professional 1080p videos" },
           { name: "Save $1,980/year vs traditional" },
         ],
+        // Signup page specific
+        signupHeadline: "Power Your Content Creation",
+        signupSubheadline: "Professional tools for creators who demand more",
+        signupValueProp: "Generate 60+ professional videos per month with AI writing assistance",
+        targetAudience: "YouTube creators, content marketers, and freelancers",
       },
       {
         priceId:
@@ -64,6 +74,11 @@ const config = {
           { name: "Perfect for studios & agencies" },
         ],
         isFeatured: false,
+        // Signup page specific
+        signupHeadline: "Scale Your Production",
+        signupSubheadline: "Enterprise-grade tools for teams and agencies",
+        signupValueProp: "Unlimited creative power with priority support and advanced features",
+        targetAudience: "Production companies, agencies, and high-volume creators",
       },
       {
         priceId:
@@ -81,6 +96,11 @@ const config = {
           { name: "Massive production capacity" },
         ],
         isFeatured: false,
+        // Signup page specific
+        signupHeadline: "Enterprise-Level Power",
+        signupSubheadline: "Built for studios and large production teams",
+        signupValueProp: "Massive production capacity with enterprise-grade reliability",
+        targetAudience: "Large studios, streaming platforms, and enterprise teams",
       },
     ],
   },

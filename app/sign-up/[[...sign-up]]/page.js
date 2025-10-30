@@ -1,9 +1,23 @@
+'use client'
+
 import { SignUp } from '@clerk/nextjs'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import config from '@/config'
-import { CheckCircle, Shield, Zap, Sparkles } from 'lucide-react'
+import { CheckCircle, Shield, Zap, Sparkles, Video } from 'lucide-react'
 
 export default function SignUpPage() {
+  const searchParams = useSearchParams()
+  const planParam = searchParams?.get('plan') || 'free'
+  
+  // Find matching plan (case-insensitive)
+  const selectedPlan = config.stripe.plans.find(
+    p => p.name.toLowerCase() === planParam.toLowerCase()
+  ) || config.stripe.plans[0] // Default to Free
+  
+  // Determine if it's a paid plan
+  const isPaidPlan = selectedPlan.price > 0
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-300 via-base-200 to-base-100">
       {/* Header */}
@@ -22,70 +36,114 @@ export default function SignUpPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-16">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
           
-          {/* LEFT: Value Proposition */}
+          {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}
           <div className="space-y-6 order-2 md:order-1">
-            {/* Main Headline */}
+            {/* Main Headline - Dynamic */}
             <div>
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                Start Creating Professional Videos
+                {selectedPlan.signupHeadline || "Start Creating Professional Videos"}
               </h1>
               <p className="text-lg opacity-80">
-                Join the future of AI-powered video production. Everything unlocked from day one.
+                {selectedPlan.signupSubheadline || "Join the future of AI-powered video production. Everything unlocked from day one."}
               </p>
             </div>
 
-            {/* What You Get */}
-            <div className="bg-base-200 rounded-box p-6 space-y-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#DC143C]" />
-                What you get instantly:
-              </h3>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                  <div>
-                    <strong>100 signup credits</strong>
-                    <p className="text-sm opacity-70">Worth $1.00 - create ~2 professional videos</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                  <div>
-                    <strong>10 credits every month forever</strong>
-                    <p className="text-sm opacity-70">On the Free plan, no strings attached</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                  <div>
-                    <strong>All features unlocked</strong>
-                    <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Upload your own footage</strong>
-                    <p className="text-sm opacity-70">Combine your camera footage with AI-generated shots - completely free</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-
-            {/* Trust Badges */}
+            {/* Trust Signals - Always show */}
             <div className="flex flex-wrap gap-4 items-center text-sm">
               <div className="flex items-center gap-2 opacity-80">
                 <Shield className="w-4 h-4 text-[#DC143C]" />
                 <span>Secure signup</span>
               </div>
               <div className="flex items-center gap-2 opacity-80">
-                <span className="text-xl">💳</span>
-                <span>No card required</span>
-              </div>
-              <div className="flex items-center gap-2 opacity-80">
                 <Zap className="w-4 h-4 text-[#DC143C]" />
                 <span>Instant access</span>
               </div>
+              {!isPaidPlan && (
+                <div className="flex items-center gap-2 opacity-80">
+                  <span className="text-xl">💳</span>
+                  <span>No card required</span>
+                </div>
+              )}
+            </div>
+
+            {/* Value Proposition Banner - Only for paid plans */}
+            {isPaidPlan && selectedPlan.signupValueProp && (
+              <div className="bg-gradient-to-r from-success/20 to-transparent rounded-box p-4 border-l-4 border-success">
+                <div className="flex items-start gap-3">
+                  <Video className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold mb-1">
+                      {selectedPlan.signupValueProp}
+                    </p>
+                    <p className="text-sm opacity-70">
+                      Perfect for: {selectedPlan.targetAudience}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* What You Get */}
+            <div className="bg-base-200 rounded-box p-6 space-y-4">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#DC143C]" />
+                {isPaidPlan ? `What's included in ${selectedPlan.name}:` : "What you get instantly:"}
+              </h3>
+              
+              {/* Free Plan Benefits */}
+              {!isPaidPlan && (
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <strong>100 signup credits</strong>
+                      <p className="text-sm opacity-70">Worth $1.00 - create ~2 professional videos</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <strong>10 credits every month forever</strong>
+                      <p className="text-sm opacity-70">On the Free plan, no strings attached</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <strong>All features unlocked</strong>
+                      <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Upload your own footage</strong>
+                      <p className="text-sm opacity-70">Combine your camera footage with AI-generated shots - completely free</p>
+                    </div>
+                  </li>
+                </ul>
+              )}
+
+              {/* Paid Plan Benefits */}
+              {isPaidPlan && (
+                <ul className="space-y-3">
+                  {selectedPlan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                      <div>
+                        <strong>{feature.name}</strong>
+                      </div>
+                    </li>
+                  ))}
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                    <div>
+                      <strong>All features unlocked</strong>
+                      <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>
+                    </div>
+                  </li>
+                </ul>
+              )}
             </div>
 
             {/* Cost Comparison Highlight */}
@@ -102,6 +160,27 @@ export default function SignUpPage() {
             <p className="text-xs opacity-60">
               By signing up, you agree to our <Link href="/tos" className="link">Terms of Service</Link> and <Link href="/privacy-policy" className="link">Privacy Policy</Link>.
             </p>
+
+            {/* Social Proof Placeholder - Ready for when you have testimonials */}
+            {/* Uncomment when you have real testimonials:
+            <div className="bg-base-200 rounded-box p-4">
+              <div className="flex items-start gap-3">
+                <div className="avatar placeholder">
+                  <div className="bg-gradient-to-br from-[#DC143C] to-purple-600 text-white rounded-full w-10">
+                    <span className="text-sm">J</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm italic opacity-80">
+                    "Created my first professional video in 5 minutes. This is incredible."
+                  </p>
+                  <p className="text-xs opacity-60 mt-2">
+                    — Jane D., Content Creator
+                  </p>
+                </div>
+              </div>
+            </div>
+            */}
           </div>
 
           {/* RIGHT: Clerk Signup */}
@@ -130,4 +209,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-
