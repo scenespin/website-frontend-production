@@ -244,7 +244,7 @@ export const articles = [
         <section>
           <h2 className={styles.h2}>Mix Your Footage with AI</h2>
           <p className={styles.p}>
-            This is what makes Wryda.ai unique. We're not just another AI video generator.
+            This is what makes Wryda.ai unique. We&apos;re not just another AI video generator.
           </p>
           <p className={styles.p}>
             <strong>Upload your camera footage</strong> (100% FREE, unlimited), then enhance it with:
