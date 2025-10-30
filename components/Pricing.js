@@ -87,7 +87,7 @@ const Pricing = () => {
     <section className="bg-base-100 overflow-hidden" id="pricing">
       <div className="py-24 px-8 max-w-7xl mx-auto">
         <div className="flex flex-col text-center w-full mb-12">
-          <p className="font-medium text-primary mb-4">Pricing</p>
+          <p className="font-medium text-primary mb-2">Pricing</p>
           <h2 className="font-bold text-3xl lg:text-5xl tracking-tight mb-4">
             Everyone Gets Everything.
             <br />

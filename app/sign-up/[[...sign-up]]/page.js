@@ -230,8 +230,8 @@ export default function SignUpPage() {
             </div>
             
             {/* Additional Trust Signal Below Form */}
-            <div className="mt-4 text-center w-full max-w-md mx-auto">
-              <p className="text-xs opacity-60">
+            <div className="mt-4 w-full flex justify-center">
+              <p className="text-xs opacity-60 text-center">
                 🔒 Your data is encrypted and secure
               </p>
             </div>
