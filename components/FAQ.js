@@ -43,18 +43,28 @@ const faqList = [
     ),
   },
   {
-    question: "Can I use my own footage, or is it all AI-generated?",
+    question: "Can I upload my own footage? What formats do you support?",
     answer: (
       <div className="space-y-2 leading-relaxed">
-        <p><strong>Both!</strong> This is what makes Wryda.ai unique:</p>
+        <p><strong>Yes! Upload unlimited footage for FREE—100% of it, 0 credits, forever.</strong></p>
+        <p><strong>Supported Formats:</strong></p>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>Upload your own footage:</strong> 100% FREE, unlimited uploads</li>
-          <li><strong>Put yourself in action shots:</strong> Use First Frame and Character Bank to place yourself or your actors in AI-generated scenes</li>
-          <li><strong>Mix & match:</strong> Combine your camera shots with AI-generated VFX, B-roll, and locations</li>
-          <li><strong>Apply Hollywood tools:</strong> Use our 65 compositions and 30 transitions on any footage</li>
-          <li><strong>Professional editing:</strong> Full timeline editor with 8 tracks</li>
+          <li><strong>Video:</strong> MP4, MOV, WebM, MKV (up to 100MB per file)</li>
+          <li><strong>Audio:</strong> MP3, WAV, AAC, OGG (up to 10MB per file)</li>
+          <li><strong>Images:</strong> JPG, PNG, GIF, WebP (up to 10MB per file)</li>
+          <li><strong>Resolution:</strong> ANY (4K, 8K, RED camera footage, DaVinci exports, etc.)</li>
+          <li><strong>Aspect Ratio:</strong> ANY (we handle it all)</li>
         </ul>
-        <p>Think of it as: <strong>Your Camera Footage + AI Shots + Hollywood Tools = Pro Film at 1% Cost</strong></p>
+        <p><strong>Your footage workflow:</strong></p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>✅ Upload for FREE (0 credits)</li>
+          <li>✅ Edit on 8-track timeline for FREE</li>
+          <li>✅ Apply 30 Hollywood transitions for FREE</li>
+          <li>✅ Mix with AI-generated clips (pay for AI only)</li>
+          <li>✅ Export final render (pay for rendering only)</li>
+        </ul>
+        <p><strong>Storage:</strong> Save to YOUR Google Drive or Dropbox—we just reference the URLs. No vendor lock-in. Same approach as Premiere Pro & DaVinci Resolve.</p>
+        <p className="font-semibold text-primary">Think of it as: Replace your entire software stack for $0, only pay for AI & rendering.</p>
       </div>
     ),
   },
