@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Zap, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { Character as ScreenplayCharacter, StoryBeat as ScreenplayStoryBeat } from '../../../types/screenplay';
+import { Character as ScreenplayCharacter, StoryBeat as ScreenplayStoryBeat } from '@/types/screenplay';
 
 interface Character {
   id: string;
