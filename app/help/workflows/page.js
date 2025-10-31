@@ -67,8 +67,8 @@ export default function WorkflowsPage() {
             </div>
           </div>
 
-          <h2>How Workflows are Organized (47 Total)</h2>
-          <p>We&apos;ve organized all 47 workflows based on <strong>what you have right now</strong>. This makes it easy to find the perfect workflow for your current situation.</p>
+          <h2>How Workflows are Organized (51 Total)</h2>
+          <p>We&apos;ve organized all 51 workflows based on <strong>what you have right now</strong>. This makes it easy to find the perfect workflow for your current situation.</p>
 
           <div className="alert alert-info my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -204,7 +204,7 @@ export default function WorkflowsPage() {
           </div>
 
           <h2>🎭 Understanding Character Consistency (32 Workflows)</h2>
-          <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>32 out of 47 workflows</strong> support character consistency—but they work differently!</p>
+          <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>32 out of 51 workflows</strong> support character consistency—but they work differently!</p>
 
           <div className="alert alert-info my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

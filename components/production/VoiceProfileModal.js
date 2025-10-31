@@ -291,20 +291,20 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
               <div className="alert alert-info">
                 <AlertCircle className="w-5 h-5" />
                 <div>
-                  <h4 className="font-bold">ElevenLabs Integration</h4>
+                  <h4 className="font-bold">Voice Cloning Setup</h4>
                   <p className="text-sm">
-                    You&apos;ll need your own ElevenLabs account with verified voices. 
-                    We only show <strong>minimal branding</strong> during setup.
+                    Connect your third-party voice cloning account to get started. 
+                    Your API keys are encrypted and stored securely with AWS KMS.
                   </p>
                 </div>
               </div>
 
-              {/* Step 1: ElevenLabs API Key */}
+              {/* Step 1: API Key */}
               <div className="card bg-base-200 shadow-lg">
                 <div className="card-body">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="badge badge-primary">Step 1</div>
-                    <h3 className="text-lg font-bold">Enter Your ElevenLabs API Key</h3>
+                    <h3 className="text-lg font-bold">Connect Your Voice Cloning Account</h3>
                   </div>
                   
                   <div className="form-control">
@@ -315,9 +315,9 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                           href="https://elevenlabs.io/app/settings/api-keys" 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="link link-primary"
+                          className="link link-primary text-xs"
                         >
-                          Get your key →
+                          Get API key from provider →
                         </a>
                       </span>
                     </label>
@@ -331,7 +331,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                     />
                     <label className="label">
                       <span className="label-text-alt text-base-content/60">
-                        🔒 Your API key is encrypted and stored securely with AWS KMS
+                        🔒 Your API key is encrypted and stored securely
                       </span>
                     </label>
                   </div>
@@ -344,9 +344,9 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                           href="https://elevenlabs.io/app/voice-lab" 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="link link-primary"
+                          className="link link-primary text-xs"
                         >
-                          Find voice ID →
+                          Find voice ID in your account →
                         </a>
                       </span>
                     </label>
@@ -431,7 +431,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                     <div className="alert alert-warning">
                       <AlertCircle className="w-5 h-5" />
                       <span className="text-sm">
-                        You must have legal permission to use this voice. Voice verification is handled by ElevenLabs.
+                        You must have legal permission to use this voice. Voice verification is handled by your voice cloning provider.
                       </span>
                     </div>
 
@@ -444,7 +444,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                           className="checkbox checkbox-warning"
                         />
                         <span className="label-text font-semibold">
-                          I confirm that I have the legal rights to use this voice for my creative projects
+                          ✅ I confirm that I have the legal rights to use this voice for my creative projects
                         </span>
                       </label>
                     </div>
@@ -461,11 +461,13 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                       />
                     </div>
 
-                    <div className="text-xs text-base-content/60 mt-2 space-y-1">
-                      <p>• ElevenLabs handles voice verification on their platform</p>
+                    <div className="text-xs text-base-content/60 mt-2 space-y-1 bg-base-300 p-3 rounded">
+                      <p className="font-semibold mb-2">📋 Voice Rights Requirements:</p>
+                      <p>• Your voice cloning provider handles voice verification</p>
                       <p>• You are responsible for ensuring proper voice permissions</p>
-                      <p>• Misuse may result in account termination</p>
-                      <p>• See our <a href="/legal/voice-cloning" className="link">Voice Cloning Terms</a> for details</p>
+                      <p>• Only use voices you own or have explicit permission to use</p>
+                      <p>• Misuse of voice cloning may result in account termination</p>
+                      <p className="mt-2">• See our <a href="/legal/voice-cloning" className="link link-primary">Voice Cloning Terms</a> for full details</p>
                     </div>
                   </div>
                 </div>

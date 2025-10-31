@@ -4,7 +4,7 @@ import config from "@/config";
 
 export const metadata = getSEOTags({
   title: `Complete Features | ${config.appName}`,
-  description: "Explore all 47 AI workflows, professional screenplay writing tools, multi-track timeline editor, Hollywood transitions & compositions, and more. Everything unlocked from day one.",
+  description: "Explore all 51 AI workflows, professional screenplay writing tools, multi-track timeline editor, Hollywood transitions & compositions, and more. Everything unlocked from day one.",
   canonicalUrlRelative: "/features",
 });
 
@@ -28,7 +28,7 @@ export default function Features() {
             Complete Feature List
           </h1>
           <p className="text-xl opacity-80 max-w-3xl mx-auto">
-            <strong>80+ features. 47 AI workflows. All unlocked from day one.</strong>
+            <strong>80+ features. 51 AI workflows. All unlocked from day one.</strong>
             <br />
             Free users get everything. Pro/Ultra/Studio just get more credits.
           </p>
@@ -38,7 +38,7 @@ export default function Features() {
         <section className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           <div className="card bg-base-200">
             <div className="card-body text-center">
-              <div className="text-4xl font-bold text-[#DC143C]">47</div>
+              <div className="text-4xl font-bold text-[#DC143C]">51</div>
               <div className="text-sm opacity-70">AI Workflows</div>
             </div>
           </div>
@@ -162,9 +162,9 @@ export default function Features() {
           </div>
         </section>
 
-        {/* 47 AI Workflows */}
+        {/* 51 AI Workflows */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-6">⚡ 47 AI Workflows</h2>
+          <h2 className="text-3xl font-bold mb-6">⚡ 51 AI Workflows</h2>
           <p className="text-lg opacity-80 mb-8">
             Pre-built professional workflows for instant content creation. All workflows support vertical video (TikTok, Reels) and multi-format bundles.
           </p>
@@ -461,11 +461,35 @@ export default function Features() {
               <div className="collapse collapse-arrow bg-base-200">
                 <input type="radio" name="workflow-category" />
                 <div className="collapse-title text-lg font-semibold">
-                  🎭 Performance Capture <span className="text-sm opacity-70">(8 workflows)</span>
+                  🎭 Performance Capture <span className="text-sm opacity-70">(12 workflows)</span>
                 </div>
                 <div className="collapse-content">
                   <p className="text-sm opacity-70 mb-4 pt-2">&quot;Be the Character&quot; - Upload your performance, get stylized output</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <WorkflowCard
+                title="🎯 AI Avatar (NEW!)"
+                description="Clone ANY voice and create photorealistic talking avatars! Two options: (1) Clone a voice + type dialogue = instant avatar, OR (2) Upload your own audio file + photo = instant lip-sync video. Perfect for scaling personal brands, creating digital spokespersons, or making any audio visual."
+                stars={5}
+                helpLink="/help/advanced/ai-avatar"
+              />
+              <WorkflowCard
+                title="🎨 Image to Speech (NEW!)"
+                description="Make ANY image speak! Upload artwork, cartoons, mascots, or photos and add audio. Perfect for viral content—make Mona Lisa talk, anime characters come alive, or brand mascots pitch products."
+                stars={5}
+                helpLink="/help/advanced/image-to-speech"
+              />
+              <WorkflowCard
+                title="🎙️ Podcast to Video (NEW!)"
+                description="Turn podcast episodes into YouTube videos! Upload your podcast audio + host photo = instant talking-head video. Perfect for repurposing audio content without re-recording. Batch process entire seasons!"
+                stars={5}
+                helpLink="/help/advanced/podcast-to-video"
+              />
+              <WorkflowCard
+                title="🌍 Multilingual Dubbing (NEW!)"
+                description="Create videos in multiple languages instantly! Same face, different languages with perfect lip sync. One recording → 20+ language versions. Massive B2B opportunity for global content creators!"
+                stars={5}
+                helpLink="/help/advanced/multilingual-dubbing"
+              />
               <WorkflowCard
                 title="Anime Performance Capture"
                 description="Upload your own video performance, get it transformed into anime style while preserving your movements, expressions, and timing. Perfect for anime creators without traditional animation skills."

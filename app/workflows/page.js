@@ -49,7 +49,7 @@ export default function WorkflowsPage() {
   useEffect(() => {
     trackWorkflowDiscovery({
       source: 'navigation',
-      workflowCount: getAllWorkflows().length,
+      workflowCount: 51,
       category: 'all',
       userId: user?.id,
     });
@@ -58,7 +58,7 @@ export default function WorkflowsPage() {
   // Load workflows on mount and when filters change
   useEffect(() => {
     loadWorkflows();
-  }, [activeCategory, characterConsistencyType, filters, searchQuery]);
+  }, [activeCategory, characterConsistencyType, allWorkflowsType, filters, searchQuery]);
 
   function loadWorkflows() {
     setLoading(true);
@@ -68,7 +68,28 @@ export default function WorkflowsPage() {
     if (activeCategory === 'character-consistency') {
       result = getCharacterConsistencyWorkflows(characterConsistencyType);
     } else if (activeCategory === 'all') {
-      result = getAllWorkflows();
+      // Handle All Workflows subcategories
+      if (allWorkflowsType === 'all-all') {
+        result = getAllWorkflows();
+      } else {
+        // Filter by category based on categoryOrder
+        const categoryMap = {
+          'photorealistic': 1,
+          'animated': 2,
+          'fantasy-vfx': 4,
+          'animals': 5,
+          'budget-speed': 6,
+          'production-tools': 7,
+          'performance-capture': 8,
+          'video-enhancement': 9,
+        };
+        const categoryOrder = categoryMap[allWorkflowsType];
+        if (categoryOrder) {
+          result = getAllWorkflows().filter(w => w.categoryOrder === categoryOrder);
+        } else {
+          result = getAllWorkflows();
+        }
+      }
     } else if (activeCategory === 'text-only') {
       result = getWorkflowsByInputType('text-only');
     } else if (activeCategory === 'text-with-images') {
@@ -76,6 +97,9 @@ export default function WorkflowsPage() {
     } else if (activeCategory === 'video-transform') {
       result = getWorkflowsByInputType('video-transform');
     }
+
+    // Sort by subcategoryOrder (most viral/sellable first)
+    result = result.sort((a, b) => (a.subcategoryOrder || 999) - (b.subcategoryOrder || 999));
 
     // Apply additional filters
     if (filters.experienceLevel) {
@@ -107,6 +131,9 @@ export default function WorkflowsPage() {
     setActiveCategory(categoryId);
     if (categoryId !== 'character-consistency') {
       setCharacterConsistencyType('all');
+    }
+    if (categoryId !== 'all') {
+      setAllWorkflowsType('all-all');
     }
     
     // Track filter change
@@ -179,15 +206,31 @@ export default function WorkflowsPage() {
     setSearchQuery('');
     setActiveCategory('all');
     setCharacterConsistencyType('all');
+    setAllWorkflowsType('all-all');
   }
 
   const categories = [
-    { id: 'all', name: 'All Workflows', icon: '🎬', count: 47 },
+    { id: 'all', name: 'All Workflows', icon: '🎬', count: 51 },
     { id: 'character-consistency', name: 'Character Consistency', icon: '🎭', count: 32 },
     { id: 'text-only', name: 'Text Only', icon: '✍️', count: 18 },
     { id: 'text-with-images', name: 'Text + Images', icon: '🖼️', count: 14 },
     { id: 'video-transform', name: 'Video Transform', icon: '🎥', count: 13 },
   ];
+
+  // All Workflows subcategories - organized by workflow type
+  const allWorkflowsSubcategories = [
+    { id: 'all-all', name: 'All', count: 51 },
+    { id: 'photorealistic', name: 'Photorealistic', count: 6, icon: '🎥' },
+    { id: 'animated', name: 'Animated Styles', count: 3, icon: '🎨' },
+    { id: 'fantasy-vfx', name: 'Fantasy & VFX', count: 2, icon: '✨' },
+    { id: 'animals', name: 'Animals & Creatures', count: 2, icon: '🦁' },
+    { id: 'budget-speed', name: 'Budget & Speed', count: 6, icon: '⚡' },
+    { id: 'production-tools', name: 'Production Tools', count: 9, icon: '🎬' },
+    { id: 'performance-capture', name: 'Performance Capture', count: 12, icon: '🎭' },
+    { id: 'video-enhancement', name: 'Video Enhancement', count: 5, icon: '✨' },
+  ];
+
+  const [allWorkflowsType, setAllWorkflowsType] = useState('all-all');
 
   return (
     <div className="min-h-screen bg-base-200">
@@ -200,7 +243,7 @@ export default function WorkflowsPage() {
                 AI Workflows
               </h1>
               <p className="text-lg opacity-70">
-                42 professional workflows organized by what you have, what you want, and where you are
+                51 professional workflows organized by what you have, what you want, and where you are
               </p>
             </div>
             <Link href="/help/workflows" className="btn btn-outline gap-2">
@@ -229,6 +272,59 @@ export default function WorkflowsPage() {
           </div>
         </div>
       </div>
+
+      {/* All Workflows Subtabs */}
+      {activeCategory === 'all' && (
+        <div className="bg-base-200 border-b border-base-300">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex gap-2 flex-wrap">
+              {allWorkflowsSubcategories.map(subcat => (
+                <button
+                  key={subcat.id}
+                  onClick={() => setAllWorkflowsType(subcat.id)}
+                  className={`btn btn-sm ${allWorkflowsType === subcat.id ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  {subcat.icon && `${subcat.icon} `}{subcat.name} ({subcat.count})
+                </button>
+              ))}
+            </div>
+            
+            {/* Explanation Box */}
+            <div className="alert alert-info mt-3">
+              <Info className="w-5 h-5" />
+              <div className="text-sm">
+                {allWorkflowsType === 'all-all' && (
+                  <p><strong>51 professional workflows</strong> organized by category: Photorealistic (6), Animated (3), Fantasy/VFX (2), Animals (2), Budget/Speed (6), Production Tools (9), Performance Capture (12), Video Enhancement (5).</p>
+                )}
+                {allWorkflowsType === 'photorealistic' && (
+                  <p><strong>Photorealistic / Live-Action (6):</strong> Hollywood-grade video production. From budget-friendly to cinema-quality, these workflows create ultra-realistic characters and scenes.</p>
+                )}
+                {allWorkflowsType === 'animated' && (
+                  <p><strong>Animated Styles (3):</strong> Anime, Western cartoon, and Pixar-quality 3D animation. Perfect for animation creators and storytellers.</p>
+                )}
+                {allWorkflowsType === 'fantasy-vfx' && (
+                  <p><strong>Fantasy & VFX (2):</strong> Magical worlds, mythical creatures, and superhero transformations. Create immersive fantasy content with VFX-level quality.</p>
+                )}
+                {allWorkflowsType === 'animals' && (
+                  <p><strong>Animals & Creatures (2):</strong> Realistic wildlife and anthropomorphic characters. From documentary-quality animals to talking animal characters.</p>
+                )}
+                {allWorkflowsType === 'budget-speed' && (
+                  <p><strong>Budget & Speed (6):</strong> Ultra-fast generation and perfect loops optimized for social media. Create high-volume content without breaking the bank.</p>
+                )}
+                {allWorkflowsType === 'production-tools' && (
+                  <p><strong>Production Tools (9):</strong> Professional coverage, B-roll packages, multi-angle shots, and complete production workflows. Industry-standard tools for serious creators.</p>
+                )}
+                {allWorkflowsType === 'performance-capture' && (
+                  <p><strong>Performance Capture (12):</strong> 🔥 NEW! AI Avatar (voice cloning), Image to Speech (make any image talk), Podcast to Video (audio → YouTube), Multilingual Dubbing (speak every language) + "Be the Character" performance capture workflows. Upload performances, clone voices, animate photos, and transform yourself into any style!</p>
+                )}
+                {allWorkflowsType === 'video-enhancement' && (
+                  <p><strong>Video Enhancement (5):</strong> Transform existing footage with VFX, style changes, element removal, product reshoots, and photo animation. Hollywood effects for your footage.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Character Consistency Subtabs */}
       {activeCategory === 'character-consistency' && (
