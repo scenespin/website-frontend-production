@@ -16,7 +16,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { ChatProvider } from './ChatContext';
-import { useChatContext } from './ChatContext';
+import { useChatContext } from './useChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { ChatModePanel } from './modes/ChatMode/ChatModePanel';
 import { DirectorModePanel } from './modes/DirectorMode/DirectorModePanel';
