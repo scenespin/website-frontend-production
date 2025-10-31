@@ -62,6 +62,49 @@ export default function Features() {
           </div>
         </section>
 
+        {/* HERO: Upload Your Footage */}
+        <section className="mb-16 bg-gradient-to-br from-[#DC143C]/10 to-purple-600/10 border-2 border-[#DC143C]/30 rounded-2xl p-8">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="text-5xl mb-4">🎬</div>
+            <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
+              Replace Your Entire Software Stack for $0
+            </h2>
+            <p className="text-xl mb-6 opacity-90">
+              Upload <strong>unlimited footage</strong> in <strong>any format, any resolution</strong> — 100% FREE forever
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-base-200/50 rounded-lg p-4">
+                <div className="text-2xl mb-2">📹</div>
+                <div className="font-bold mb-1">ANY Format</div>
+                <div className="text-sm opacity-70">MP4, MOV, WebM, MKV</div>
+              </div>
+              <div className="bg-base-200/50 rounded-lg p-4">
+                <div className="text-2xl mb-2">🎥</div>
+                <div className="font-bold mb-1">ANY Resolution</div>
+                <div className="text-sm opacity-70">4K, 8K, RED, Cinema</div>
+              </div>
+              <div className="bg-base-200/50 rounded-lg p-4">
+                <div className="text-2xl mb-2">💰</div>
+                <div className="font-bold mb-1">$0 Forever</div>
+                <div className="text-sm opacity-70">Never pay for your footage</div>
+              </div>
+            </div>
+            <div className="bg-base-300/50 rounded-lg p-6 text-left">
+              <div className="font-semibold mb-3 text-lg">🎯 How It Works:</div>
+              <div className="space-y-2 text-sm">
+                <div>✅ <strong>Upload your footage</strong> — MP4, MOV, WebM, MKV up to 100MB per file (FREE)</div>
+                <div>✅ <strong>Upload audio & images</strong> — MP3, WAV, JPG, PNG (FREE)</div>
+                <div>✅ <strong>Edit on 8-track timeline</strong> — Keyframes, transitions, compositions (FREE)</div>
+                <div>✅ <strong>Mix with AI-generated clips</strong> — Only pay for AI generations (50-300 credits)</div>
+                <div>✅ <strong>Export final render</strong> — Only pay for rendering (30-75 credits/min)</div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-base-content/10">
+                <strong>💡 The Value:</strong> Use Wryda.ai as your complete video editor. Only pay for AI and final export—never for using your own footage. Rival Premiere Pro & DaVinci Resolve at a fraction of the cost.
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Core Platform Features */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-6">🎬 Core Platform Features</h2>
@@ -111,9 +154,10 @@ export default function Features() {
               free={true}
             />
             <FeatureCard
-              title="Upload Your Own Footage"
-              description="Unlimited uploads, FREE forever, combine with AI-generated content, apply transitions & compositions"
+              title="🎥 Upload Your Own Footage - 100% FREE Forever"
+              description="Replace your entire software stack for $0. Upload MP4, MOV, WebM, MKV in ANY resolution (4K, 8K, RED camera footage, DaVinci exports). Mix with AI, apply Hollywood transitions, export pro-quality renders. Only pay for AI generation & final export—never for your own footage."
               free={true}
+              highlight={true}
             />
           </div>
         </section>
