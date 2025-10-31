@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, Filter, X, Info } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
 import WorkflowCard from '@/components/workflows/WorkflowCard';
 import {
   getAllWorkflows,
@@ -136,7 +138,37 @@ export default function WorkflowsPage() {
       source: 'desktop',
       userId: user?.id,
     });
+    
+    // Start workflow execution
+    executeWorkflow(workflow);
   }
+  
+  const executeWorkflow = async (workflow) => {
+    try {
+      toast.loading(`Starting ${workflow.name}...`);
+      
+      const response = await api.workflows.execute({
+        workflowId: workflow.id,
+        userId: user?.id,
+      });
+      
+      toast.dismiss();
+      toast.success(`${workflow.name} started!`);
+      
+      // Redirect to appropriate page based on workflow type
+      if (workflow.inputType === 'text-only') {
+        window.location.href = '/production';
+      } else if (workflow.inputType === 'text-with-images') {
+        window.location.href = '/production?mode=image-start';
+      } else if (workflow.inputType === 'video-transform') {
+        window.location.href = '/composition';
+      }
+    } catch (error) {
+      console.error('Workflow execution failed:', error);
+      toast.dismiss();
+      toast.error('Failed to start workflow');
+    }
+  };
 
   function clearFilters() {
     setFilters({

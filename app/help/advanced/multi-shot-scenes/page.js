@@ -160,61 +160,109 @@ export default function MultiShotScenesPage() {
               <p className="text-sm mb-4 opacity-90">Automatically generates a complete scene package with perfect consistency across all shots. The easiest way to create professional multi-shot scenes!</p>
               <div className="badge badge-primary">145-689 credits</div>
               
-              <div className="divider my-2"></div>
+              <div className="divider my-4"></div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <div className="text-xs font-bold mb-2">📝 WHAT YOU PROVIDE (Simple!):</div>
-                  <ol className="text-sm space-y-2">
-                    <li><strong>1. Scene Description</strong>
-                      <div className="text-xs opacity-70 ml-4">Plain text or screenplay format</div>
-                      <div className="text-xs italic ml-4">&quot;A detective interrogates a suspect in a dimly lit room&quot;</div>
-                    </li>
-                    <li><strong>2. Character Images (Optional)</strong>
-                      <div className="text-xs opacity-70 ml-4">Upload 1-2 images per character</div>
-                    </li>
-                    <li><strong>3. Settings</strong>
-                      <div className="text-xs opacity-70 ml-4">Aspect ratio (16:9, 9:16, etc.), Duration (5s or 10s), Quality (1080p or 4K)</div>
-                    </li>
-                  </ol>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-bold mb-3 flex items-center gap-2">
+                      <span className="badge badge-sm badge-primary">STEP 1</span>
+                      📝 What You Provide
+                    </div>
+                    <div className="space-y-3 ml-2">
+                      <div className="bg-base-200 rounded-lg p-3">
+                        <div className="font-semibold text-sm mb-1">Scene Description</div>
+                        <div className="text-xs opacity-70">Plain text or screenplay format</div>
+                        <div className="text-xs italic mt-1 text-primary">&quot;A detective interrogates a suspect in a dimly lit room&quot;</div>
+                      </div>
+                      
+                      <div className="bg-base-200 rounded-lg p-3">
+                        <div className="font-semibold text-sm mb-1">Character Images <span className="text-xs opacity-60">(Optional)</span></div>
+                        <div className="text-xs opacity-70">Upload 1-2 images per character for consistency</div>
+                      </div>
+                      
+                      <div className="bg-base-200 rounded-lg p-3">
+                        <div className="font-semibold text-sm mb-1">Settings</div>
+                        <div className="text-xs opacity-70">• Aspect ratio (16:9, 9:16, 1:1, 4:3, 21:9)</div>
+                        <div className="text-xs opacity-70">• Duration (5s or 10s per shot)</div>
+                        <div className="text-xs opacity-70">• Quality (1080p, Premium 4K, Ultra 4K)</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <div>
-                  <div className="text-xs font-bold mb-2">🎁 WHAT YOU GET:</div>
-                  <ul className="text-sm space-y-1">
-                    <li>✅ <strong>1 Master Establishing Shot</strong>
-                      <div className="text-xs opacity-70 ml-5">Sets the scene aesthetic, lighting, mood</div>
-                    </li>
-                    <li>✅ <strong>3 Character Coverage Shots</strong>
-                      <div className="text-xs opacity-70 ml-5">Close-up, medium, action angle (if you uploaded character images)</div>
-                    </li>
-                    <li>✅ <strong>OR 3 Scene Exploration Shots</strong>
-                      <div className="text-xs opacity-70 ml-5">Different angles of the scene (if no character images)</div>
-                    </li>
-                    <li>✅ <strong>Perfect Scene Consistency</strong>
-                      <div className="text-xs opacity-70 ml-5">All shots match lighting, color, atmosphere</div>
-                    </li>
-                  </ul>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-bold mb-3 flex items-center gap-2">
+                      <span className="badge badge-sm badge-success">STEP 2</span>
+                      🎁 What You Get
+                    </div>
+                    <div className="space-y-2 ml-2">
+                      <div className="flex items-start gap-2 bg-success/10 rounded-lg p-2">
+                        <div className="badge badge-success badge-sm mt-0.5">1</div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm">Master Establishing Shot</div>
+                          <div className="text-xs opacity-70">Sets the scene aesthetic, lighting, and mood</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-2 bg-success/10 rounded-lg p-2">
+                        <div className="badge badge-success badge-sm mt-0.5">2-4</div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm">Character Coverage Shots</div>
+                          <div className="text-xs opacity-70">Close-up, medium, and action angles (if you uploaded character images)</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-2 bg-success/10 rounded-lg p-2">
+                        <div className="badge badge-success badge-sm mt-0.5">2-4</div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm">OR Scene Exploration Shots</div>
+                          <div className="text-xs opacity-70">Different angles of the scene (if no character images provided)</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-2 bg-primary/10 rounded-lg p-2 mt-3">
+                        <span className="text-lg">✨</span>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm text-primary">Perfect Scene Consistency</div>
+                          <div className="text-xs opacity-70">All shots automatically match lighting, color, and atmosphere</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="divider my-2"></div>
+              <div className="divider my-3"></div>
               
-              <div className="text-xs">
-                <strong>💰 Cost Breakdown:</strong>
-                <ul className="mt-2 space-y-1 opacity-80">
-                  <li>• Basic (1080p, scene only): <strong>145-325 credits</strong></li>
-                  <li>• With Characters (1080p): <strong>175-250 credits</strong></li>
-                  <li>• Premium 4K Enhancement: <strong>+80 credits</strong></li>
-                  <li>• Full Package (4K with characters): <strong>up to 689 credits</strong></li>
-                </ul>
+              <div className="bg-base-200 rounded-lg p-4">
+                <div className="text-sm font-bold mb-3">💰 Cost Breakdown</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="opacity-80">Basic (1080p, scene only):</span>
+                    <span className="font-semibold">145-325 credits</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="opacity-80">With Characters (1080p):</span>
+                    <span className="font-semibold">175-250 credits</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="opacity-80">Premium 4K Enhancement:</span>
+                    <span className="font-semibold">+80 credits</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="opacity-80">Full Package (4K + characters):</span>
+                    <span className="font-semibold text-primary">up to 689 credits</span>
+                  </div>
+                </div>
               </div>
               
               <div className="alert alert-success mt-4 text-xs">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <div>
                   <div className="font-bold">Pro Tip:</div>
-                  <div>Start with the basic version (no characters) to test your scene idea, then add characters for the final production.</div>
+                  <div>Start with the basic version (no characters) to test your scene idea at 145 credits, then add characters for the final production.</div>
                 </div>
               </div>
             </div>

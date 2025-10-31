@@ -37,6 +37,11 @@ function EditorContent() {
   const [showSidebar, setShowSidebar] = useState(false); // Mobile sidebar bottom sheet
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop sidebar collapse
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [showAIAssistantCard, setShowAIAssistantCard] = useState(true); // Show AI Assistant card initially
+  
+  // Mobile text selection state
+  const [selectedText, setSelectedText] = useState('');
+  const [showRewriteFAB, setShowRewriteFAB] = useState(false);
 
   // Load project
   useEffect(() => {
@@ -74,6 +79,23 @@ She takes a sip and smiles, then returns to typing.
 FADE OUT.`);
     }
   }, [projectId]);
+
+  // Check if user has dismissed AI Assistant card (localStorage)
+  useEffect(() => {
+    const dismissed = localStorage.getItem('aiAssistantCardDismissed');
+    const openCount = parseInt(localStorage.getItem('editorOpenCount') || '0', 10);
+    
+    if (dismissed === 'true') {
+      setShowAIAssistantCard(false);
+    } else if (openCount >= 2) {
+      // Auto-hide after 2 visits
+      setShowAIAssistantCard(false);
+      localStorage.setItem('aiAssistantCardDismissed', 'true');
+    } else {
+      // Increment open count
+      localStorage.setItem('editorOpenCount', String(openCount + 1));
+    }
+  }, []);
 
   const loadProject = async () => {
     try {
@@ -134,6 +156,11 @@ FADE OUT.`);
       console.error('Export failed:', error);
       alert('Failed to export PDF');
     }
+  };
+
+  const handleDismissAICard = () => {
+    setShowAIAssistantCard(false);
+    localStorage.setItem('aiAssistantCardDismissed', 'true');
   };
 
   // Auto-save every 30 seconds
@@ -205,6 +232,33 @@ FADE OUT.`);
     setCharacters(Array.from(foundChars).slice(0, 10));
     setLocations(Array.from(foundLocs).slice(0, 10));
   }, [content]);
+
+  // Handle text selection (mobile only)
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      // Only on mobile
+      if (window.innerWidth >= 1024) return;
+      
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      
+      if (text && text.length > 0) {
+        setSelectedText(text);
+        setShowRewriteFAB(true);
+      } else {
+        setShowRewriteFAB(false);
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
+
+  const handleRewriteClick = () => {
+    // Open drawer in 'precision-editor' mode with selected text
+    openDrawer('precision-editor', { selectedText });
+    setShowRewriteFAB(false);
+  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -360,9 +414,17 @@ FADE OUT.`);
               </div>
             </div>
 
-            {/* AI Assistant */}
-              <div className="card bg-gradient-to-br from-cinema-gold/20 to-cinema-red/20 border border-cinema-gold/30 shadow-sm">
-                <div className="card-body p-3">
+            {/* AI Assistant - Dismissible onboarding card */}
+            {showAIAssistantCard && (
+              <div className="card bg-gradient-to-br from-cinema-gold/20 to-cinema-red/20 border border-cinema-gold/30 shadow-sm relative">
+                <button 
+                  onClick={handleDismissAICard}
+                  className="absolute top-2 right-2 btn btn-xs btn-ghost btn-circle"
+                  title="Dismiss"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                <div className="card-body p-3 pr-8">
                   <h3 className="font-bold text-sm flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-cinema-gold" />
                   AI Assistant
@@ -380,6 +442,7 @@ FADE OUT.`);
                 </button>
               </div>
             </div>
+            )}
 
             {/* Fountain Format Guide */}
               <div className="card bg-base-200 shadow-sm">
@@ -462,6 +525,21 @@ Dialogue goes here.
           </div>
         </div>
       </div>
+
+      {/* ========================================================================
+          MOBILE FAB - REWRITE (appears on text selection)
+      ======================================================================== */}
+      {showRewriteFAB && (
+        <div className="lg:hidden fixed bottom-28 right-6 z-50 animate-bounce-in">
+          <button
+            onClick={handleRewriteClick}
+            className="btn btn-lg btn-circle bg-gradient-to-br from-purple-500 to-purple-700 text-white border-none shadow-2xl hover:from-purple-600 hover:to-purple-800"
+            title="Rewrite selected text"
+          >
+            <Sparkles className="w-6 h-6" />
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================
           MOBILE FAB - SAVE & EXPORT

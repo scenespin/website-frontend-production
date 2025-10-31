@@ -1,0 +1,441 @@
+/**
+ * Unified Design Token System
+ * 
+ * Single source of truth for all colors, spacing, typography, and effects.
+ * Compatible with shadcn/ui components and Tailwind CSS v4.
+ * 
+ * THEME SETUP:
+ * - :root = DARK THEME (Night Mode) - Current site design, DEFAULT
+ * - .light = LIGHT THEME (Day Mode) - Warm neutral/beige, easy on eyes
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* ===== RESPONSIVE BREAKPOINTS (Required for v4!) ===== */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ===== CUSTOM SLATE COLOR SCALE ===== */
+  /* Darker, more blue-tinted slate colors that complement the blue theme */
+  /* Original slate was too light/neutral - these are deeper with cool undertones */
+  
+  --color-slate-50: 220 18% 97%;   /* Very light blue-gray (was 210 40% 98%) */
+  --color-slate-100: 220 15% 93%;  /* Light blue-gray (was 210 40% 96%) */
+  --color-slate-200: 220 13% 85%;  /* Soft blue-gray (was 214 32% 91%) */
+  --color-slate-300: 220 13% 65%;  /* Medium-light blue-gray (was 213 27% 84%) - DARKER */
+  --color-slate-400: 220 13% 45%;  /* Medium blue-gray (was 215 20% 65%) - MUCH DARKER */
+  --color-slate-500: 220 13% 35%;  /* Medium-dark blue-gray (was 215 16% 47%) - DARKER */
+  --color-slate-600: 220 13% 25%;  /* Dark blue-gray (was 215 19% 35%) - DARKER */
+  --color-slate-700: 220 13% 18%;  /* Very dark blue-gray (was 215 25% 27%) - DARKER */
+  --color-slate-800: 220 13% 14%;  /* Deep blue-gray (was 217 33% 17%) */
+  --color-slate-900: 220 13% 11%;  /* Almost black blue-gray (was 222 47% 11%) */
+  --color-slate-950: 220 13% 9%;   /* Pure dark blue-gray (was 229 84% 5%) */
+}
+
+@layer base {
+  /* ===== ROOT VARIABLES (DARK THEME - NIGHT MODE - DEFAULT) ===== */
+  /* This is your existing site design that looks great! */
+  :root {
+    /* --- Colors (HSL Format for shadcn compatibility) --- */
+    --background: 220 13% 11%;                  /* #171a21 - Deep dark blue-gray */
+    --foreground: 0 0% 98%;                     /* #fafafa - Off-white */
+    
+    --card: 220 13% 14%;                        /* #1e2229 - Card background */
+    --card-foreground: 0 0% 98%;                /* #fafafa - White text */
+    
+    --popover: 220 13% 16%;                     /* #252931 - Slightly lighter */
+    --popover-foreground: 0 0% 98%;             /* #fafafa - White text */
+    
+    --primary: 217 91% 60%;                     /* #3d67ff - Vibrant blue */
+    --primary-foreground: 0 0% 100%;            /* #ffffff - Pure white */
+    
+    --secondary: 220 10% 20%;                   /* #2d3139 - Subtle gray */
+    --secondary-foreground: 0 0% 95%;           /* #f2f2f2 - Light gray */
+    
+    --muted: 220 10% 25%;                       /* #383e48 - Muted element bg */
+    --muted-foreground: 220 9% 60%;             /* #8f96a3 - Muted text */
+    
+    --accent: 217 91% 60%;                      /* #3d67ff - Blue accent */
+    --accent-foreground: 0 0% 100%;             /* #ffffff - White */
+    
+    --destructive: 0 72% 51%;                   /* #dc2626 - Red */
+    --destructive-foreground: 0 0% 100%;        /* #ffffff - White */
+    
+    --success: 142 71% 45%;                     /* #22c55e - Green */
+    --success-foreground: 0 0% 100%;            /* #ffffff - White */
+    
+    --warning: 38 92% 50%;                      /* #f59e0b - Amber */
+    --warning-foreground: 220 13% 11%;          /* Dark text for contrast */
+    
+    --border: 220 13% 20%;                      /* #2a2f39 - Subtle border */
+    --input: 220 13% 20%;                       /* #2a2f39 - Input background */
+    --ring: 217 91% 60%;                        /* #3d67ff - Focus ring */
+    
+    /* Sidebar (for shadcn sidebar components) */
+    --sidebar: 220 13% 13%;                     /* #1b1f27 - Dark sidebar bg */
+    --sidebar-foreground: 0 0% 95%;             /* #f2f2f2 - Light text */
+    --sidebar-primary: 217 91% 60%;             /* #3d67ff - Blue primary */
+    --sidebar-primary-foreground: 0 0% 100%;    /* #ffffff - White */
+    --sidebar-accent: 220 10% 20%;              /* #2d3139 - Accent bg */
+    --sidebar-accent-foreground: 0 0% 95%;      /* #f2f2f2 - Light text */
+    --sidebar-border: 220 13% 18%;              /* #252931 - Sidebar border */
+    --sidebar-ring: 217 91% 60%;                /* #3d67ff - Blue ring */
+    
+    /* Charts */
+    --chart-1: 217 91% 60%;                     /* #3d67ff - Blue */
+    --chart-2: 142 71% 45%;                     /* #22c55e - Green */
+    --chart-3: 38 92% 50%;                      /* #f59e0b - Amber */
+    --chart-4: 271 81% 56%;                     /* #a855f7 - Purple */
+    --chart-5: 340 82% 52%;                     /* #ec4899 - Pink */
+    
+    /* --- Spacing & Layout --- */
+    --spacing: 0.25rem;                         /* 4px base unit */
+    --radius: 0.5rem;                           /* 8px default border radius */
+    
+    /* --- Typography --- */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Courier Prime", "Courier New", Courier, monospace;
+    
+    /* --- Transitions --- */
+    --transition-fast: 150ms ease-in-out;
+    --transition-base: 200ms ease-in-out;
+    --transition-slow: 300ms ease-in-out;
+    
+    /* --- Shadows --- */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+    
+    /* --- LEGACY VARIABLES (for old components) --- */
+    /* These map to the new design tokens above for backward compatibility */
+    --color-bg-primary: var(--background);          /* #171a21 - Main background */
+    --color-bg-secondary: var(--card);              /* #1e2229 - Card/panel bg */
+    --color-bg-tertiary: var(--muted);              /* #383e48 - Muted element bg */
+    --color-text-primary: var(--foreground);        /* #fafafa - Main text */
+    --color-text-secondary: var(--muted-foreground);/* #8f96a3 - Muted text */
+    --color-text-tertiary: var(--muted-foreground); /* Same as secondary */
+    --color-border-primary: var(--border);          /* #2a2f39 - Borders */
+  }
+
+  /* ===== LIGHT THEME (DAY MODE - WARM NEUTRAL/BEIGE) ===== */
+  /* Warm, neutral colors that are easy on the eyes for daytime use */
+  .light {
+    /* Warm beige/cream background palette */
+    --background: 40 20% 97%;                   /* #faf8f5 - Warm off-white (cream) */
+    --foreground: 30 10% 15%;                   /* #282420 - Warm dark brown */
+    
+    --card: 40 25% 99%;                         /* #fefdfb - Almost white with warmth */
+    --card-foreground: 30 10% 15%;              /* #282420 - Warm dark brown */
+    
+    --popover: 40 30% 98%;                      /* #fefcf9 - Bright warm white */
+    --popover-foreground: 30 10% 15%;           /* #282420 - Warm dark brown */
+    
+    --primary: 217 91% 60%;                     /* #3d67ff - Same vibrant blue (brand) */
+    --primary-foreground: 0 0% 100%;            /* #ffffff - Pure white */
+    
+    --secondary: 35 15% 92%;                    /* #ece8e1 - Light warm beige */
+    --secondary-foreground: 30 10% 20%;         /* #342f29 - Warm dark */
+    
+    --muted: 35 20% 94%;                        /* #f2efe9 - Soft warm beige */
+    --muted-foreground: 30 8% 45%;              /* #6e6963 - Muted warm brown */
+    
+    --accent: 217 91% 60%;                      /* #3d67ff - Blue accent (brand) */
+    --accent-foreground: 0 0% 100%;             /* #ffffff - White */
+    
+    --destructive: 0 70% 50%;                   /* #db3030 - Warm red */
+    --destructive-foreground: 0 0% 100%;        /* #ffffff - White */
+    
+    --success: 142 65% 42%;                     /* #24a855 - Slightly muted green */
+    --success-foreground: 0 0% 100%;            /* #ffffff - White */
+    
+    --warning: 35 90% 55%;                      /* #f5a623 - Warm amber/gold */
+    --warning-foreground: 30 10% 15%;           /* #282420 - Dark text */
+    
+    --border: 35 18% 88%;                       /* #e4ded5 - Light warm border */
+    --input: 35 20% 96%;                        /* #f8f5f0 - Light warm input bg */
+    --ring: 217 91% 60%;                        /* #3d67ff - Blue focus ring */
+    
+    /* Sidebar (for shadcn sidebar components) */
+    --sidebar: 40 22% 95%;                      /* #f5f1ea - Light warm sidebar */
+    --sidebar-foreground: 30 10% 15%;           /* #282420 - Dark text */
+    --sidebar-primary: 217 91% 60%;             /* #3d67ff - Blue primary */
+    --sidebar-primary-foreground: 0 0% 100%;    /* #ffffff - White */
+    --sidebar-accent: 35 15% 92%;               /* #ece8e1 - Light warm beige */
+    --sidebar-accent-foreground: 30 10% 20%;    /* #342f29 - Dark text */
+    --sidebar-border: 35 18% 90%;               /* #e9e3da - Light warm border */
+    --sidebar-ring: 217 91% 60%;                /* #3d67ff - Blue ring */
+    
+    /* Charts (same colors work in both themes) */
+    --chart-1: 217 91% 60%;                     /* #3d67ff - Blue */
+    --chart-2: 142 71% 45%;                     /* #22c55e - Green */
+    --chart-3: 38 92% 50%;                      /* #f59e0b - Amber */
+    --chart-4: 271 81% 56%;                     /* #a855f7 - Purple */
+    --chart-5: 340 82% 52%;                     /* #ec4899 - Pink */
+    
+    /* Shadows (softer for light mode) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08);
+    
+    /* --- LEGACY VARIABLES (for old components) --- */
+    /* These map to the new design tokens above for backward compatibility */
+    --color-bg-primary: var(--background);          /* #faf8f5 - Warm off-white */
+    --color-bg-secondary: var(--card);              /* #fefdfb - Almost white */
+    --color-bg-tertiary: var(--muted);              /* #f2efe9 - Soft warm beige */
+    --color-text-primary: var(--foreground);        /* #282420 - Warm dark brown */
+    --color-text-secondary: var(--muted-foreground);/* #6e6963 - Muted warm brown */
+    --color-text-tertiary: var(--muted-foreground); /* Same as secondary */
+    --color-border-primary: var(--border);          /* #e4ded5 - Light warm border */
+  }
+
+  /* ===== BASE STYLES ===== */
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Proper line-height for headings */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  
+  /* Proper spacing for paragraphs */
+  p {
+    line-height: 1.6;
+    margin-bottom: 1em;
+  }
+  
+  /* Proper spacing for lists */
+  ul, ol {
+    line-height: 1.6;
+    padding-left: 1.5em;
+  }
+  
+  li {
+    margin-bottom: 0.5em;
+  }
+
+  /* Disable transitions on theme change to prevent flash */
+  .disable-transitions * {
+    transition: none !important;
+  }
+
+  /* Apply transitions only to specific elements, not universal */
+  body, 
+  [data-slot="button"],
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="select-trigger"] {
+    transition-property: background-color, border-color, color;
+    transition-duration: var(--transition-fast);
+    transition-timing-function: ease-in-out;
+  }
+
+  /* Custom scrollbar - Cursor-style */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted));
+    border-radius: 5px;
+    border: 2px solid hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: hsl(var(--background));
+  }
+
+  /* Selection - Cursor-style */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+    color: inherit;
+  }
+
+  ::-moz-selection {
+    background-color: hsl(var(--primary) / 0.3);
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* ===== REUSABLE COMPONENT PATTERNS ===== */
+  /* These classes are for convenience but components can use Tailwind directly */
+  
+  /* Cards with consistent styling */
+  .card-base {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-radius: 0.75rem;
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Buttons (if not using shadcn Button) */
+  .btn-base {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all var(--transition-base);
+  }
+
+  .btn-base:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+  }
+
+  .btn-base:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .btn-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .btn-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+
+  .btn-secondary {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .btn-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.8);
+  }
+
+  .btn-destructive {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+
+  .btn-destructive:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+
+  .btn-ghost:hover {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  /* Input fields */
+  .input-base {
+    display: flex;
+    height: 2.5rem;
+    width: 100%;
+    border-radius: 0.375rem;
+    border: 1px solid hsl(var(--input));
+    background-color: hsl(var(--background));
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .input-base::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .input-base:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+  }
+
+  .input-base:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* Focus ring utility - Cursor-style */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+  }
+}
+
+@layer utilities {
+  /* ===== UTILITY CLASSES ===== */
+  
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation: enter 200ms ease-out;
+  }
+
+  .animate-out {
+    animation: exit 150ms ease-in forwards;
+  }
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes exit {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  /* Elevation utilities */
+  .elevation-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .elevation-md {
+    box-shadow: var(--shadow-md);
+  }
+
+  .elevation-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .elevation-xl {
+    box-shadow: var(--shadow-xl);
+  }
+}
+

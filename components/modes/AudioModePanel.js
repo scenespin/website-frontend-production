@@ -4,12 +4,24 @@ import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { Music, Loader2, Sparkles, Volume2, Disc3 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
+import AudioResultActions from '@/components/shared/AudioResultActions';
+import { CloudSavePrompt } from '@/components/CloudSavePrompt';
 
 export function AudioModePanel({ onInsert }) {
   const { state, addMessage } = useChatContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioType, setAudioType] = useState('music'); // 'soundtrack', 'music', 'sfx'
   const [selectedQuality, setSelectedQuality] = useState('premium');
+  
+  // Cloud save prompt state
+  const [cloudSavePrompt, setCloudSavePrompt] = useState({
+    isOpen: false,
+    fileUrl: null,
+    fileType: 'audio',
+    fileName: null,
+    metadata: {}
+  });
   
   const qualityLevels = [
     { id: 'fast', name: 'Fast', description: 'Quick generation', credits: 80 },
@@ -56,32 +68,56 @@ export function AudioModePanel({ onInsert }) {
         mode: 'audio'
       });
       
-      // TODO: Call audio generation API
-      // const response = await api.audio.generate({ prompt, type: audioType, quality: selectedQuality });
+      // Call audio generation API
+      const response = await api.audio.generate({ 
+        prompt: prompt.trim(), 
+        type: audioType, 
+        quality: selectedQuality 
+      });
       
-      // Simulated success
-      setTimeout(() => {
-        const typeInfo = audioType === 'sfx' ? 'Sound effect' : audioType === 'soundtrack' ? 'Soundtrack' : 'Background music';
-        addMessage({
-          role: 'assistant',
-          content: `🎵 ${typeInfo} generation started!\n\nYour audio is being generated with ${qualityLevels.find(q => q.id === selectedQuality)?.name} quality.\n\nThis will take 1-2 minutes. We'll notify you when it's ready!`,
-          mode: 'audio'
-        });
-        
-        toast.success(`${typeInfo} generation started!`);
-        setIsGenerating(false);
-      }, 1000);
+      // Calculate expiration (7 days)
+      const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
+      
+      const typeInfo = audioType === 'sfx' ? 'Sound effect' : audioType === 'soundtrack' ? 'Soundtrack' : 'Background music';
+      addMessage({
+        role: 'assistant',
+        content: `🎵 ${typeInfo} generated successfully!\n\n⚠️ **7-Day Expiration**: Audio files will be automatically deleted after 7 days. Please download or save to cloud storage immediately.`,
+        mode: 'audio',
+        audioUrl: response.data.audioUrl,
+        audioType: typeInfo,
+        expiresAt
+      });
+      
+      toast.success(`${typeInfo} generated! Remember to save it.`);
+      
+      // PROMPT TO SAVE TO CLOUD STORAGE
+      setCloudSavePrompt({
+        isOpen: true,
+        fileUrl: response.data.audioUrl,
+        fileType: 'audio',
+        fileName: `${audioType}-${Date.now()}.mp3`,
+        metadata: {
+          audioType,
+          quality: selectedQuality,
+          prompt: prompt.trim(),
+          generatedAt: new Date().toISOString()
+        }
+      });
+      
+      if (onInsert) {
+        onInsert({ type: 'audio', url: response.data.audioUrl });
+      }
       
     } catch (error) {
       console.error('Error generating audio:', error);
-      toast.error('Failed to generate audio');
+      toast.error(error.response?.data?.message || 'Failed to generate audio');
       
       addMessage({
         role: 'assistant',
         content: '❌ Sorry, audio generation failed. Please try again.',
         mode: 'audio'
       });
-      
+    } finally {
       setIsGenerating(false);
     }
   };
@@ -165,13 +201,17 @@ export function AudioModePanel({ onInsert }) {
                     {message.content}
                   </div>
                   
-                  {/* Audio player if available */}
+                  {/* Show generated audio with download/save actions */}
                   {message.audioUrl && (
-                    <div className="mt-2">
-                      <audio 
-                        controls 
-                        src={message.audioUrl} 
-                        className="w-full"
+                    <div className="mt-3 space-y-2">
+                      {/* Audio Result Actions */}
+                      <AudioResultActions
+                        audioUrl={message.audioUrl}
+                        filename={`wryda-${message.audioType?.toLowerCase().replace(/\s+/g, '-') || 'audio'}`}
+                        expiresAt={message.expiresAt}
+                        showExpirationWarning={true}
+                        size="small"
+                        showPreview={true}
                       />
                     </div>
                   )}
@@ -219,6 +259,22 @@ export function AudioModePanel({ onInsert }) {
       <div className="px-4 py-2 border-t border-base-300 text-xs text-base-content/60">
         <p>🎵 AI-powered audio generation • Takes 1-2 minutes • {currentType.description}</p>
       </div>
+      
+      {/* Cloud Save Prompt */}
+      <CloudSavePrompt
+        isOpen={cloudSavePrompt.isOpen}
+        fileUrl={cloudSavePrompt.fileUrl}
+        fileType={cloudSavePrompt.fileType}
+        fileName={cloudSavePrompt.fileName}
+        metadata={cloudSavePrompt.metadata}
+        onClose={(result) => {
+          setCloudSavePrompt(prev => ({ ...prev, isOpen: false }));
+          if (result?.saved) {
+            console.log('[AudioModePanel] Audio saved to cloud:', result.cloudUrl);
+            toast.success('Audio saved to cloud storage!');
+          }
+        }}
+      />
     </div>
   );
 }

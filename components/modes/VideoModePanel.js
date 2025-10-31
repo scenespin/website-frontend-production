@@ -5,6 +5,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { api } from '@/lib/api';
 import { Film, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { CloudSavePrompt } from '@/components/CloudSavePrompt';
 
 export function VideoModePanel({ onInsert }) {
   const { state, addMessage } = useChatContext();
@@ -26,6 +27,15 @@ export function VideoModePanel({ onInsert }) {
   const refImage1Ref = useRef(null);
   const refImage2Ref = useRef(null);
   const refImage3Ref = useRef(null);
+  
+  // Cloud save prompt state
+  const [cloudSavePrompt, setCloudSavePrompt] = useState({
+    isOpen: false,
+    fileUrl: null,
+    fileType: 'video',
+    fileName: null,
+    metadata: {}
+  });
   
   const videoModes = [
     { value: 'text-only', label: 'Text Only', icon: '📝', description: 'Pure text-to-video' },
@@ -176,15 +186,20 @@ export function VideoModePanel({ onInsert }) {
       // Call API
       const response = await api.video.generateAsync(requestData);
       
-      // Add success message
+      // Add success message with save reminder
       addMessage({
         role: 'assistant',
-        content: `✅ Video generation started! Job ID: ${response.data.jobId}\n\nYour video is being generated. You can check the status in the Jobs tab or continue working - we'll notify you when it's ready!`,
-        mode: 'video'
+        content: `✅ Video generation started! Job ID: ${response.data.jobId}\n\nYour video is being generated. You can check the status in the Jobs tab or continue working - we'll notify you when it's ready!\n\n⚠️ **Remember**: Videos are stored with 7-day expiration. Download or save to cloud storage once complete.`,
+        mode: 'video',
+        jobId: response.data.jobId
       });
       
       setGeneratedVideo(response.data);
       toast.success('Video generation started!');
+      
+      // NOTE: Cloud save prompt for videos will trigger when the video completes processing
+      // This is handled by the job status polling or webhook notification
+      // For now, we remind users in the message above
       
       // Clear images
       clearImage('start');

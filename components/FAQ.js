@@ -20,7 +20,7 @@ const faqList = [
           <li>All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
           <li>All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
         </ul>
-        <p>You only pay credits when generating AI video/image content. Everything else is 100% free.</p>
+        <p><strong>You only pay for AI compute when generating videos.</strong> The software itself, all editing tools, compositions, transitions, and uploads are 100% free forever.</p>
       </div>
     ),
   },
@@ -73,7 +73,8 @@ const faqList = [
           <li>✅ No watermarks, no vendor lock-in</li>
           <li>✅ Character Bank</li>
         </ul>
-        <p>Choose based on how many AI videos you need per month. That&apos;s it!</p>
+        <p><strong>Choose based on how many AI videos you need per month. That&apos;s it!</strong></p>
+        <p className="text-sm opacity-70 mt-2 italic">Remember: You&apos;re never charged for using the software, editing tools, or uploading footage. You only pay credits when generating AI videos.</p>
       </div>
     ),
   },
@@ -168,8 +169,8 @@ const Item = ({ item }) => {
 
 const FAQ = () => {
   return (
-    <section className="bg-base-200" id="faq">
-      <div className="py-24 px-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-12">
+    <section className="bg-base-200 py-24 px-8" id="faq">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12">
         <div className="flex flex-col text-left basis-1/2">
           <p className="inline-block font-semibold text-primary mb-4">FAQ</p>
           <p className="sm:text-4xl text-3xl font-extrabold text-base-content">

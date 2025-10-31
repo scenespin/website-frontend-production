@@ -33,7 +33,7 @@ import { api } from '@/lib/api';
 import VoiceProfileModal from './VoiceProfileModal';
 import Export3DModal from './Export3DModal';
 
-export default function CharacterBank() {
+export default function CharacterBank({ onCharacterSelect }) {
   const [characters, setCharacters] = useState([]);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -61,6 +61,14 @@ export default function CharacterBank() {
     loadCharacters();
   }, []);
 
+  // Handle character selection
+  const handleSelectCharacter = (character) => {
+    setSelectedCharacter(character);
+    if (onCharacterSelect) {
+      onCharacterSelect(character);
+    }
+  };
+
   const handleImageUpload = async (characterId, file) => {
     if (!file) return;
 
@@ -77,6 +85,12 @@ export default function CharacterBank() {
       const imageUrl = uploadResponse.imageUrl;
 
       toast.success('Image uploaded! Analyzing...');
+      
+      // Show S3 expiration warning
+      toast('⚠️ Image will expire in 7 days from S3. Character Bank stores references, so save to cloud if needed.', {
+        duration: 6000,
+        icon: '💾'
+      });
 
       // 2. Auto-generate description using Visual Captioning
       try {
@@ -307,6 +321,7 @@ export default function CharacterBank() {
             <CharacterCard
               key={character.id}
               character={character}
+              onSelect={() => handleSelectCharacter(character)}
               onUploadImage={(file) => handleImageUpload(character.id, file)}
               onExport3D={() => handleExport3D(character)}
               onVoiceProfile={() => handleVoiceProfile(character)}
@@ -358,6 +373,7 @@ export default function CharacterBank() {
 
 function CharacterCard({
   character,
+  onSelect,
   onUploadImage,
   onExport3D,
   onVoiceProfile,
@@ -384,17 +400,35 @@ function CharacterCard({
               </p>
             )}
           </div>
-          <button
-            onClick={onDelete}
-            className="btn btn-ghost btn-sm btn-circle text-error"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={onSelect}
+              className="btn btn-xs btn-primary gap-1"
+              title="Use in video generation"
+            >
+              <Check className="w-3 h-3" />
+              Use
+            </button>
+            <button
+              onClick={onDelete}
+              className="btn btn-ghost btn-sm btn-circle text-error"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Images Grid */}
         {imageCount > 0 && (
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-base-content/60">{imageCount} image{imageCount > 1 ? 's' : ''}</span>
+              <div className="badge badge-warning badge-xs">
+                <Clock className="w-3 h-3 mr-1" />
+                7-day S3 expiry
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
             {character.images.slice(0, 6).map((img, idx) => (
               <div key={idx} className="relative aspect-square">
                 <img
@@ -409,6 +443,7 @@ function CharacterCard({
                 <span className="text-xs font-semibold">+{imageCount - 6} more</span>
               </div>
             )}
+            </div>
           </div>
         )}
 

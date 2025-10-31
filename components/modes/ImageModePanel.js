@@ -5,12 +5,23 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { api } from '@/lib/api';
 import { Image as ImageIcon, Loader2, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ImageResultActions from '@/components/shared/ImageResultActions';
+import { CloudSavePrompt } from '@/components/CloudSavePrompt';
 
 export function ImageModePanel({ onInsert, imageEntityContext }) {
   const { state, addMessage } = useChatContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedModel, setSelectedModel] = useState('photon');
   const [aspectRatio, setAspectRatio] = useState('1:1');
+  
+  // Cloud save prompt state
+  const [cloudSavePrompt, setCloudSavePrompt] = useState({
+    isOpen: false,
+    fileUrl: null,
+    fileType: 'image',
+    fileName: null,
+    metadata: {}
+  });
   
   const imageModels = [
     { id: 'photon', name: 'Luma Photon', description: 'Photorealistic', credits: 10 },
@@ -47,15 +58,34 @@ export function ImageModePanel({ onInsert, imageEntityContext }) {
         aspectRatio
       });
       
-      // Add success message with image
+      // Add success message with image and expiration warning
+      const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days from now
+      
       addMessage({
         role: 'assistant',
-        content: '✅ Image generated!',
+        content: '✅ Image generated!\n\n⚠️ **7-Day Expiration**: This image will be automatically deleted after 7 days. Please download or save to cloud storage immediately.',
         mode: 'image',
-        imageUrl: response.data.imageUrl
+        imageUrl: response.data.imageUrl,
+        s3Key: response.data.s3Key,
+        expiresAt
       });
       
-      toast.success('Image generated!');
+      toast.success('Image generated! Remember to save it.');
+      
+      // PROMPT TO SAVE TO CLOUD STORAGE
+      setCloudSavePrompt({
+        isOpen: true,
+        fileUrl: response.data.imageUrl,
+        fileType: 'image',
+        fileName: `image-${Date.now()}.png`,
+        metadata: {
+          model: selectedModel,
+          aspectRatio,
+          prompt: prompt.trim(),
+          generatedAt: new Date().toISOString(),
+          entityContext: imageEntityContext || null
+        }
+      });
       
       if (onInsert) {
         onInsert({ type: 'image', url: response.data.imageUrl, s3Key: response.data.s3Key });
@@ -162,13 +192,24 @@ export function ImageModePanel({ onInsert, imageEntityContext }) {
                     {message.content}
                   </div>
                   
-                  {/* Show generated image */}
+                  {/* Show generated image with download/save actions */}
                   {message.imageUrl && (
-                    <img 
-                      src={message.imageUrl} 
-                      alt="Generated" 
-                      className="mt-2 rounded-lg max-w-full border border-cinema-gold/20"
-                    />
+                    <div className="mt-3 space-y-2">
+                      <img 
+                        src={message.imageUrl} 
+                        alt="Generated" 
+                        className="rounded-lg max-w-full border border-cinema-gold/20"
+                      />
+                      
+                      {/* Download & Save Actions */}
+                      <ImageResultActions
+                        imageUrl={message.imageUrl}
+                        filename="wryda-image-generation"
+                        expiresAt={message.expiresAt}
+                        showExpirationWarning={true}
+                        size="small"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -225,6 +266,22 @@ export function ImageModePanel({ onInsert, imageEntityContext }) {
       <div className="px-4 py-2 border-t border-base-300 text-xs text-base-content/60">
         <p>💡 Tip: Include details about lighting, angle, and mood for better results</p>
       </div>
+      
+      {/* Cloud Save Prompt */}
+      <CloudSavePrompt
+        isOpen={cloudSavePrompt.isOpen}
+        fileUrl={cloudSavePrompt.fileUrl}
+        fileType={cloudSavePrompt.fileType}
+        fileName={cloudSavePrompt.fileName}
+        metadata={cloudSavePrompt.metadata}
+        onClose={(result) => {
+          setCloudSavePrompt(prev => ({ ...prev, isOpen: false }));
+          if (result?.saved) {
+            console.log('[ImageModePanel] Image saved to cloud:', result.cloudUrl);
+            toast.success('Image saved to cloud storage!');
+          }
+        }}
+      />
     </div>
   );
 }

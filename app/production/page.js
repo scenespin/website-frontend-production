@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 import { VoiceProfileModal } from '@/components/production/VoiceProfileModal';
 import { Export3DModal } from '@/components/production/Export3DModal';
 import CharacterBank from '@/components/production/CharacterBank';
@@ -19,7 +20,9 @@ import {
   Users,
   Box,
   Mic,
-  X
+  X,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 
 // Platform icons mapping
@@ -45,12 +48,23 @@ export default function ProductionPage() {
   const [result, setResult] = useState(null);
   const [estimatedCost, setEstimatedCost] = useState(50);
   
+  // Video mode state
+  const [videoMode, setVideoMode] = useState('text-only'); // 'text-only', 'image-start', 'image-end', 'interpolation'
+  const [startImage, setStartImage] = useState(null);
+  const [endImage, setEndImage] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(null);
+  
   // Character Bank state
   const [showCharacterBank, setShowCharacterBank] = useState(false);
   const [characters, setCharacters] = useState([]);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [export3DModalOpen, setExport3DModalOpen] = useState(false);
+  
+  // Bundle state
+  const [selectedBundle, setSelectedBundle] = useState(null);
+  const [isGeneratingBundle, setIsGeneratingBundle] = useState(false);
+  const [bundleResults, setBundleResults] = useState([]);
   
   // Mobile-specific state
   const [showMobileCharacterBank, setShowMobileCharacterBank] = useState(false);
@@ -119,6 +133,91 @@ export default function ProductionPage() {
     return Math.round(baseCost * multiplier);
   };
 
+  // Handle image upload for image-to-video
+  const handleImageUpload = async (file, type = 'start') => {
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await api.video.uploadImage(formData);
+      const imageUrl = response.data.imageUrl;
+      
+      if (type === 'start') {
+        setStartImage(imageUrl);
+        setUploadedImageUrl(imageUrl);
+        setVideoMode('image-start');
+      } else {
+        setEndImage(imageUrl);
+        if (startImage) {
+          setVideoMode('interpolation');
+        }
+      }
+      
+      toast.success(`${type === 'start' ? 'Start' : 'End'} image uploaded!`);
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      toast.error('Failed to upload image');
+    }
+  };
+
+  // Handle character selection from Character Bank
+  const handleCharacterSelect = (character) => {
+    setSelectedCharacter(character);
+    if (character.images && character.images.length > 0) {
+      setStartImage(character.images[0].url);
+      setVideoMode('image-start');
+      toast.success(`Using character: ${character.name}`);
+    }
+  };
+
+  // Handle bundle generation
+  const handleBundleGenerate = async (bundle) => {
+    if (!prompt.trim()) {
+      alert('Please enter a prompt!');
+      return;
+    }
+
+    setIsGeneratingBundle(true);
+    setBundleResults([]);
+    setSelectedBundle(bundle);
+
+    try {
+      // Generate video for each format in bundle
+      const jobs = [];
+      for (const format of bundle.formats) {
+        const response = await api.video.generateAsync({
+          prompt,
+          qualityTier: quality,
+          aspectRatio: format,
+          duration,
+          videoMode: videoMode,
+          imageUrl: startImage,
+          endImageUrl: endImage,
+          characterRef: selectedCharacter?.id,
+        });
+        
+        jobs.push({
+          jobId: response.data.jobId,
+          format,
+          status: 'processing',
+        });
+      }
+      
+      setBundleResults(jobs);
+      toast.success(`Bundle generation started for ${bundle.formats.length} formats!`);
+      
+      // Poll all jobs
+      jobs.forEach(job => pollJobStatus(job.jobId, true));
+    } catch (error) {
+      console.error('Bundle generation error:', error);
+      alert('Failed to start bundle generation');
+    } finally {
+      setIsGeneratingBundle(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       alert('Please enter a prompt!');
@@ -134,7 +233,10 @@ export default function ProductionPage() {
         qualityTier: quality,
         aspectRatio,
         duration,
-        videoMode: 'text-only',
+        videoMode: videoMode,
+        imageUrl: startImage,
+        endImageUrl: endImage,
+        characterRef: selectedCharacter?.id,
       });
 
       setResult({
@@ -143,7 +245,7 @@ export default function ProductionPage() {
         estimatedTime: qualityTiers.find(t => t.id === quality).time,
       });
 
-      // Poll for status (in real implementation, use webhooks or SSE)
+      // Poll for status
       pollJobStatus(response.data.jobId);
     } catch (error) {
       console.error('Generation error:', error);
@@ -152,26 +254,53 @@ export default function ProductionPage() {
     }
   };
 
-  const pollJobStatus = async (jobId) => {
+  const pollJobStatus = async (jobId, isBundle = false) => {
     const interval = setInterval(async () => {
       try {
         const status = await api.video.getJobStatus(jobId);
         
         if (status.data.status === 'completed') {
-          setResult({
-            jobId,
-            status: 'completed',
-            videoUrl: status.data.videoUrl,
-          });
-          setIsGenerating(false);
+          if (isBundle) {
+            // Update bundle results
+            setBundleResults(prev => prev.map(job => 
+              job.jobId === jobId 
+                ? { ...job, status: 'completed', videoUrl: status.data.videoUrl }
+                : job
+            ));
+            
+            // Check if all bundle jobs are complete
+            const allComplete = bundleResults.every(job => 
+              job.jobId === jobId || job.status === 'completed'
+            );
+            if (allComplete) {
+              toast.success('Bundle generation complete!');
+            }
+          } else {
+            setResult({
+              jobId,
+              status: 'completed',
+              videoUrl: status.data.videoUrl,
+            });
+            setIsGenerating(false);
+            toast.success('Video generated successfully!');
+          }
           clearInterval(interval);
         } else if (status.data.status === 'failed') {
-          setResult({
-            jobId,
-            status: 'failed',
-            error: status.data.error,
-          });
-          setIsGenerating(false);
+          if (isBundle) {
+            setBundleResults(prev => prev.map(job => 
+              job.jobId === jobId 
+                ? { ...job, status: 'failed', error: status.data.error }
+                : job
+            ));
+          } else {
+            setResult({
+              jobId,
+              status: 'failed',
+              error: status.data.error,
+            });
+            setIsGenerating(false);
+            toast.error('Video generation failed');
+          }
           clearInterval(interval);
         }
       } catch (error) {
@@ -215,6 +344,162 @@ export default function ProductionPage() {
                 />
               </div>
             </div>
+
+            {/* Video Mode Selector */}
+            <div className="card bg-base-200 shadow-xl">
+              <div className="card-body">
+                <h2 className="card-title">
+                  <Video className="w-5 h-5 text-cinema-blue" />
+                  Video Mode
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <button
+                    onClick={() => setVideoMode('text-only')}
+                    className={`btn ${videoMode === 'text-only' ? 'btn-primary' : 'btn-outline'}`}
+                    disabled={isGenerating}
+                  >
+                    📝 Text Only
+                  </button>
+                  <button
+                    onClick={() => setVideoMode('image-start')}
+                    className={`btn ${videoMode === 'image-start' ? 'btn-primary' : 'btn-outline'}`}
+                    disabled={isGenerating}
+                  >
+                    🖼️ Image Start
+                  </button>
+                  <button
+                    onClick={() => setVideoMode('image-end')}
+                    className={`btn ${videoMode === 'image-end' ? 'btn-primary' : 'btn-outline'}`}
+                    disabled={isGenerating}
+                  >
+                    🎬 Image End
+                  </button>
+                  <button
+                    onClick={() => setVideoMode('interpolation')}
+                    className={`btn ${videoMode === 'interpolation' ? 'btn-primary' : 'btn-outline'}`}
+                    disabled={isGenerating}
+                  >
+                    🔄 Interpolation
+                  </button>
+                </div>
+                <p className="text-xs opacity-60 mt-2">
+                  {videoMode === 'text-only' && '✨ Generate video from text prompt only'}
+                  {videoMode === 'image-start' && '🖼️ Start video from your image'}
+                  {videoMode === 'image-end' && '🎬 End video at your image'}
+                  {videoMode === 'interpolation' && '🔄 Transition between two images'}
+                </p>
+              </div>
+            </div>
+
+            {/* Image Upload (show if not text-only) */}
+            {videoMode !== 'text-only' && (
+              <div className="card bg-base-200 shadow-xl">
+                <div className="card-body">
+                  <h2 className="card-title">
+                    <ImageIcon className="w-5 h-5 text-cinema-gold" />
+                    Upload Images
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Start Image */}
+                    {(videoMode === 'image-start' || videoMode === 'interpolation') && (
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-semibold">
+                            {videoMode === 'interpolation' ? 'Start Image' : 'Reference Image'}
+                          </span>
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0], 'start')}
+                          className="file-input file-input-bordered w-full"
+                          disabled={isGenerating}
+                        />
+                        {startImage && (
+                          <div className="mt-2 relative">
+                            <img src={startImage} alt="Start" className="w-full h-32 object-cover rounded" />
+                            <button
+                              onClick={() => { setStartImage(null); setVideoMode('text-only'); }}
+                              className="btn btn-xs btn-circle btn-error absolute top-1 right-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* End Image (only for interpolation) */}
+                    {videoMode === 'interpolation' && (
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-semibold">End Image</span>
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0], 'end')}
+                          className="file-input file-input-bordered w-full"
+                          disabled={isGenerating}
+                        />
+                        {endImage && (
+                          <div className="mt-2 relative">
+                            <img src={endImage} alt="End" className="w-full h-32 object-cover rounded" />
+                            <button
+                              onClick={() => setEndImage(null)}
+                              className="btn btn-xs btn-circle btn-error absolute top-1 right-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* End Image Upload (for image-end mode) */}
+                    {videoMode === 'image-end' && (
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-semibold">Target End Image</span>
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0], 'end')}
+                          className="file-input file-input-bordered w-full"
+                          disabled={isGenerating}
+                        />
+                        {endImage && (
+                          <div className="mt-2 relative">
+                            <img src={endImage} alt="End" className="w-full h-32 object-cover rounded" />
+                            <button
+                              onClick={() => setEndImage(null)}
+                              className="btn btn-xs btn-circle btn-error absolute top-1 right-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {selectedCharacter && (
+                    <div className="alert alert-success mt-2">
+                      <Check className="w-5 h-5" />
+                      <span>Using character: <strong>{selectedCharacter.name}</strong></span>
+                      <button
+                        onClick={() => { setSelectedCharacter(null); setStartImage(null); }}
+                        className="btn btn-xs btn-ghost"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Quality Tier */}
             <div className="card bg-base-200 shadow-xl">
@@ -285,7 +570,10 @@ export default function ProductionPage() {
                   {bundles.map((bundle) => (
                     <div
                       key={bundle.id}
-                      className="card bg-base-300 border border-cinema-gold/30 hover:border-cinema-gold cursor-pointer"
+                      onClick={() => handleBundleGenerate(bundle)}
+                      className={`card bg-base-300 border border-cinema-gold/30 hover:border-cinema-gold cursor-pointer transition-all hover:shadow-lg ${
+                        isGeneratingBundle && selectedBundle?.id === bundle.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       <div className="card-body p-4">
                         <div className="flex items-center justify-between">
@@ -303,10 +591,52 @@ export default function ProductionPage() {
                             <p className="text-xs text-success">Save {bundle.savings}!</p>
                           </div>
                         </div>
+                        {isGeneratingBundle && selectedBundle?.id === bundle.id && (
+                          <div className="mt-2 flex items-center gap-2 text-sm">
+                            <span className="loading loading-spinner loading-sm"></span>
+                            Generating...
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Bundle Results */}
+                {bundleResults.length > 0 && (
+                  <div className="mt-4 p-4 bg-base-300 rounded-lg">
+                    <h3 className="font-bold mb-2">Bundle Progress</h3>
+                    <div className="space-y-2">
+                      {bundleResults.map((job) => (
+                        <div key={job.jobId} className="flex items-center justify-between p-2 bg-base-200 rounded">
+                          <span className="font-medium">{job.format}</span>
+                          <div className="flex items-center gap-2">
+                            {job.status === 'processing' && (
+                              <>
+                                <span className="loading loading-spinner loading-sm"></span>
+                                <span className="text-xs opacity-60">Processing...</span>
+                              </>
+                            )}
+                            {job.status === 'completed' && (
+                              <>
+                                <Check className="w-5 h-5 text-success" />
+                                <a href={job.videoUrl} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-primary">
+                                  View
+                                </a>
+                              </>
+                            )}
+                            {job.status === 'failed' && (
+                              <>
+                                <X className="w-5 h-5 text-error" />
+                                <span className="text-xs text-error">Failed</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -451,7 +781,7 @@ export default function ProductionPage() {
       
       {/* Character Bank Sidebar - Desktop Only */}
       <div className="w-96 border-l border-base-300 bg-base-100 hidden lg:block">
-        <CharacterBank />
+        <CharacterBank onCharacterSelect={handleCharacterSelect} />
       </div>
 
       {/* Mobile FAB - Generate Button */}
@@ -507,7 +837,10 @@ export default function ProductionPage() {
 
             {/* Drawer Content - Scrollable */}
             <div className="overflow-y-auto max-h-[calc(80vh-5rem)] pb-safe">
-              <CharacterBank />
+              <CharacterBank onCharacterSelect={(char) => {
+                handleCharacterSelect(char);
+                setShowMobileCharacterBank(false);
+              }} />
             </div>
           </div>
         </div>

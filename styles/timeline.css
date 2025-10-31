@@ -1,0 +1,275 @@
+/* Dark theme timeline container */
+:root {
+  font-family: var(--font-sans);
+  
+  /* Scene status colors */
+  --draft-color: var(--color-status-draft);
+  --review-color: var(--color-status-review);
+  --final-color: var(--color-status-final);
+  
+  /* Timeline dark theme colors */
+  --timeline-bg: var(--color-bg-primary);
+  --timeline-border: var(--color-border-primary);
+  --group-header-bg: var(--color-bg-tertiary);
+  --alternate-bg: rgba(255, 255, 255, 0.02);
+  --text-primary: #E5E7EB;
+  --text-secondary: #D1D5DB;
+}
+
+/* Timeline container */
+.timeline-container {
+  height: 100%;
+  overflow: hidden;
+  border: none;
+  background-color: var(--timeline-bg) !important;
+  position: relative;
+  direction: rtl; /* Right-to-left to move scrollbar to left */
+}
+
+/* Custom styling for vis-timeline elements */
+.vis-timeline {
+  border: none;
+  font-family: inherit;
+  background-color: var(--timeline-bg) !important;
+  min-height: 400px;
+  -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
+  direction: ltr; /* Reset direction for content */
+}
+
+/* Timeline background with alternating columns */
+.vis-time-axis .vis-grid.vis-odd {
+  background-color: var(--alternate-bg);
+}
+
+.vis-time-axis .vis-grid.vis-even {
+  background-color: transparent;
+}
+
+/* Timeline item styling - Dark theme */
+.timeline-item {
+  border-radius: var(--radius-default);
+  border: none !important;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--color-bg-tertiary) !important;
+  color: #E5E7EB !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  transition: var(--transition-fast);
+}
+
+.timeline-item:hover {
+  background-color: var(--color-interactive-hover) !important;
+  box-shadow: var(--shadow-default);
+  transform: translateY(-1px);
+}
+
+/* Scene status colors */
+.draft-status {
+  border-left: 4px solid var(--draft-color) !important;
+}
+
+.review-status {
+  border-left: 4px solid var(--review-color) !important;
+}
+
+.final-status {
+  border-left: 4px solid var(--final-color) !important;
+}
+
+/* Item content styling - Dark theme */
+.item-content {
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  height: 100%;
+  position: relative;
+}
+
+.item-title {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: #E5E7EB !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-synopsis {
+  font-size: var(--text-xs);
+  color: #D1D5DB !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: var(--leading-normal);
+}
+
+.item-characters,
+.item-location {
+  font-size: var(--text-xs);
+  color: #D1D5DB !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-status {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  width: fit-content;
+  margin-top: var(--space-1);
+}
+
+.item-status.draft {
+  color: var(--color-status-draft);
+  background-color: #6B728015;
+}
+
+.item-status.review {
+  color: var(--color-status-review);
+  background-color: #F59E0B15;
+}
+
+.item-status.final {
+  color: var(--color-status-final);
+  background-color: #10B98115;
+}
+
+/* Group styling - Dark theme */
+.vis-label.vis-group-level-0 {
+  background-color: var(--group-header-bg) !important;
+  color: #E5E7EB !important;
+  font-weight: 600;
+  border-bottom: 1px solid var(--timeline-border) !important;
+  border-top: 1px solid var(--timeline-border) !important;
+}
+
+.vis-labelset .vis-label {
+  border: none;
+  background-color: var(--timeline-bg) !important;
+  color: #E5E7EB !important;
+}
+
+.vis-inner {
+  border: none !important;
+}
+
+.vis-label.vis-group-level-0 .custom-group {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #E5E7EB !important;
+}
+
+.vis-label.vis-nesting-group {
+  cursor: pointer;
+}
+
+.vis-label .custom-group {
+  padding: var(--space-2);
+  font-size: var(--text-sm);
+  color: #D1D5DB !important;
+}
+
+/* Time axis styling - Dark theme */
+.vis-time-axis .vis-text {
+  color: var(--color-text-tertiary) !important;
+  padding: var(--space-1) 0;
+  font-size: var(--text-xs);
+}
+
+.vis-time-axis .vis-grid.vis-minor {
+  border-color: var(--timeline-border) !important;
+}
+
+.vis-time-axis .vis-grid.vis-major {
+  border-color: var(--timeline-border) !important;
+}
+
+.vis-time-axis .vis-text.vis-major {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary) !important;
+}
+
+/* Panel styling - Dark theme */
+.vis-panel.vis-center,
+.vis-panel.vis-left,
+.vis-panel.vis-right,
+.vis-panel.vis-top,
+.vis-panel.vis-bottom {
+  border-color: var(--timeline-border) !important;
+  background-color: var(--timeline-bg) !important;
+}
+
+.vis-content {
+  background-color: var(--timeline-bg) !important;
+}
+
+.vis-background {
+  background-color: var(--timeline-bg) !important;
+}
+
+/* Tooltip styling - Dark theme */
+.vis-tooltip {
+  border-radius: var(--radius-default);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  border: 1px solid var(--timeline-border);
+  background-color: var(--color-bg-tertiary) !important;
+  color: var(--color-text-primary) !important;
+  white-space: pre-wrap;
+}
+
+/* Styling for collapsible groups */
+.vis-label.vis-group-level-0.collapsed {
+  background-color: var(--color-bg-quaternary) !important;
+}
+
+.vis-label.vis-group-level-0.collapsed .custom-group::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.vis-label.vis-group-level-0 .custom-group::before {
+  content: "▼";
+  display: inline-block;
+  margin-right: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* Hover effect for group labels */
+.vis-label.vis-group-level-0 {
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.vis-label.vis-group-level-0:hover {
+  background-color: var(--color-interactive-hover) !important;
+}
+
+/* Animation for expanding/collapsing */
+.vis-label,
+.vis-group {
+  transition: var(--transition-default);
+}
+
+/* Hide scrollbars but keep scroll functionality */
+.vis-timeline::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.vis-timeline {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}

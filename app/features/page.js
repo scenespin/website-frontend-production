@@ -546,6 +546,7 @@ export default function Features() {
                   <li>• 38 Static Layouts (split screens, PIP, grids)</li>
                   <li>• 21 Audio-Enabled Layouts (spatial audio, auto-ducking, 5.1 surround, Dolby Atmos)</li>
                   <li>• 6 Animated Compositions (motion graphics, dynamic transitions)</li>
+                  <li>• Professional color grading & cinematic looks</li>
                 </ul>
                 <div className="badge badge-success">FREE</div>
               </div>

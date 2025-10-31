@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
-import { Film, Camera, Clapperboard } from 'lucide-react';
+import { useChatMode } from '@/hooks/useChatMode';
+import { Film, Camera, Clapperboard, FileText, User, Bot } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import toast from 'react-hot-toast';
 
-export function DirectorModePanel({ editorContent, cursorPosition }) {
+export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   const { state, addMessage, setInput } = useChatContext();
+  const { isScreenplayContent } = useChatMode();
   
   // Model selection for Director agent
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
@@ -109,24 +111,65 @@ export function DirectorModePanel({ editorContent, cursorPosition }) {
           .filter(m => m.mode === 'director')
           .map((message, index) => {
             const isUser = message.role === 'user';
+            const directorMessages = state.messages.filter(m => m.mode === 'director');
+            const isLastAssistantMessage = 
+              !isUser && 
+              index === directorMessages.length - 1;
+            
+            // Show insert button for screenplay content (dialogue, directions, etc.)
+            const showInsertButton = 
+              !isUser && 
+              isLastAssistantMessage && 
+              isScreenplayContent(message.content);
             
             return (
               <div
                 key={index}
-                className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+                className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
               >
+                {/* Message Bubble */}
                 <div className={`max-w-[85%] rounded-lg px-4 py-3 ${
                   isUser 
                     ? 'bg-cinema-red text-white' 
                     : 'bg-base-200 text-base-content'
                 }`}>
-                  <div className="whitespace-pre-wrap break-words">
-                    {message.content}
+                  <div className="flex items-start gap-2">
+                    {!isUser && <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />}
+                    <div className="whitespace-pre-wrap break-words flex-1">
+                      {message.content}
+                    </div>
+                    {isUser && <User className="w-5 h-5 mt-0.5 flex-shrink-0" />}
                   </div>
                 </div>
+                
+                {/* Insert Button */}
+                {showInsertButton && onInsert && (
+                  <button
+                    onClick={() => onInsert(message.content)}
+                    className="btn btn-xs btn-outline gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Insert into script
+                  </button>
+                )}
               </div>
             );
           })}
+        
+        {/* Streaming text */}
+        {state.isStreaming && state.streamingText && (
+          <div className="flex flex-col gap-2">
+            <div className="max-w-[85%] rounded-lg px-4 py-3 bg-base-200 text-base-content">
+              <div className="flex items-start gap-2">
+                <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <div className="whitespace-pre-wrap break-words flex-1">
+                  {state.streamingText}
+                  <span className="animate-pulse">▊</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Empty state */}
         {state.messages.filter(m => m.mode === 'director').length === 0 && (

@@ -1,13 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Mic, AlertCircle, Check, Shield, Upload } from 'lucide-react';
+import { X, Mic, AlertCircle, Check, Shield, Upload, Download, Cloud, Droplet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import VoiceCloningConsentModal from '../VoiceCloningConsentModal';
 import ConsentRequired from '../ConsentRequired';
 import { checkVoiceConsent } from '@/libs/voiceConsentUtils';
+import { api } from '@/lib/api';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { nanoid } from 'nanoid';
 
 export default function VoiceProfileModal({ character, isOpen, onClose, onSave }) {
+  // Screenplay context for dynamic paths
+  const { getFolderPath, trackAsset, currentProject } = useScreenplay();
+  
   const [elevenLabsApiKey, setElevenLabsApiKey] = useState('');
   const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState('');
   const [voiceName, setVoiceName] = useState('');
@@ -16,11 +22,19 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [voiceSampleUrl, setVoiceSampleUrl] = useState(null);
+  const [isGeneratingSample, setIsGeneratingSample] = useState(false);
+  const [savedProfileId, setSavedProfileId] = useState(null);
   
   // ✅ BIPA COMPLIANCE: Check voice consent before allowing voice cloning
   const [hasVoiceConsent, setHasVoiceConsent] = useState(false);
   const [checkingConsent, setCheckingConsent] = useState(true);
   const [showConsentModal, setShowConsentModal] = useState(false);
+  
+  // Get dynamic folder path based on screenplay context
+  const getTargetFolderPath = () => {
+    return getFolderPath('voice-profile', character?.name);
+  };
 
   // Check consent when modal opens
   useEffect(() => {
@@ -102,21 +116,126 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
         rightsStatement: rightsStatement || undefined,
       };
 
-      // TODO: Call backend to save
-      // const response = await api.voiceProfile.create(voiceProfileData);
+      const response = await api.voiceProfiles.create(voiceProfileData);
+      setSavedProfileId(response.data.profileId);
       
-      // Mock success
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Voice profile saved successfully!');
+      toast.success('Voice profile saved successfully! Generate a test sample to save it to cloud.');
       onSave?.(voiceProfileData);
-      onClose();
+      
+      // Don't close yet - allow user to generate and save sample
     } catch (error) {
+      console.error('Failed to save voice profile:', error);
       toast.error('Failed to save voice profile');
     } finally {
       setIsSaving(false);
     }
   };
+  
+  // Generate voice sample for testing
+  const handleGenerateSample = async () => {
+    if (!savedProfileId) {
+      toast.error('Please save the voice profile first');
+      return;
+    }
+    
+    setIsGeneratingSample(true);
+    try {
+      const response = await api.voiceProfiles.generateSample(savedProfileId, {
+        text: `Hello, this is ${character.name}. This is a test of the voice profile.`
+      });
+      
+      setVoiceSampleUrl(response.data.audioUrl);
+      toast.success('Voice sample generated! Listen and save to cloud storage.');
+    } catch (error) {
+      console.error('Failed to generate sample:', error);
+      toast.error('Failed to generate voice sample');
+    } finally {
+      setIsGeneratingSample(false);
+    }
+  };
+  
+  // Save voice sample to cloud storage with screenplay-centric paths
+  const handleSaveSampleToCloud = async (provider) => {
+    if (!voiceSampleUrl || !savedProfileId) return;
+    
+    const targetFolder = getTargetFolderPath();
+    const targetFilename = `${character.name}-voice-sample-${Date.now()}.mp3`;
+    
+    try {
+      toast.loading(`Saving to ${provider === 'dropbox' ? 'Dropbox' : 'Google Drive'}...`);
+      
+      const response = await api.voiceProfiles.saveSampleToCloud(savedProfileId, {
+        audioUrl: voiceSampleUrl,
+        provider,
+        folder: targetFolder,
+        filename: targetFilename
+      });
+      
+      toast.dismiss();
+      toast.success(`Voice sample saved to ${provider === 'dropbox' ? 'Dropbox' : 'Google Drive'}!`);
+      
+      // Track asset in GitHub manifest if project has GitHub integration
+      if (currentProject && character) {
+        try {
+          await trackAsset({
+            asset_id: `asset-${nanoid(12)}`,
+            asset_type: 'audio',
+            entity_type: 'character',
+            entity_id: character.id,
+            entity_name: character.name,
+            filename: targetFilename,
+            file_size: response.data?.fileSize || 0,
+            mime_type: 'audio/mpeg',
+            storage_location: provider,
+            storage_metadata: {
+              cloud_file_id: response.data?.fileId,
+              cloud_folder_id: response.data?.folderId,
+              webview_link: response.data?.webViewLink,
+            },
+            generation_metadata: {
+              generated_at: Date.now(),
+              model: 'elevenlabs',
+            },
+            created_at: Date.now(),
+            updated_at: Date.now(),
+          });
+          console.log('[VoiceProfileModal] Voice sample asset tracked in manifest');
+        } catch (error) {
+          console.warn('[VoiceProfileModal] Failed to track asset:', error);
+          // Non-critical - don't show error to user
+        }
+      }
+      
+    } catch (error) {
+      console.error('Failed to save to cloud:', error);
+      toast.dismiss();
+      toast.error(`Failed to save to ${provider === 'dropbox' ? 'Dropbox' : 'Google Drive'}`);
+    }
+  };
+  
+  // Download voice sample locally
+  const handleDownloadSample = async () => {
+    if (!voiceSampleUrl) return;
+    
+    try {
+      const response = await fetch(voiceSampleUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${character.name}-voice-sample.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Downloaded!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download');
+    }
+  };
+  
+  const targetFolder = getTargetFolderPath();
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -131,6 +250,11 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
               <div>
                 <h2 className="text-2xl font-bold">Add Voice Profile</h2>
                 <p className="text-sm text-white/80">Character: {character?.name}</p>
+                {currentProject && (
+                  <p className="text-xs text-white/60 font-mono mt-1">
+                    📁 {targetFolder}
+                  </p>
+                )}
               </div>
             </div>
             <button
@@ -346,6 +470,88 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
                   </div>
                 </div>
               )}
+              
+              {/* Step 4: Test Voice Sample (After Save) */}
+              {savedProfileId && (
+                <div className="card bg-base-200 shadow-lg border-2 border-success">
+                  <div className="card-body">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="badge badge-success">Step 4 - Optional</div>
+                      <h3 className="text-lg font-bold">Generate Test Sample</h3>
+                    </div>
+                    
+                    <p className="text-sm text-base-content/70 mb-4">
+                      Generate a test voice sample and save it to cloud storage for permanent access.
+                    </p>
+                    
+                    {!voiceSampleUrl && (
+                      <button
+                        onClick={handleGenerateSample}
+                        disabled={isGeneratingSample}
+                        className="btn btn-primary w-full"
+                      >
+                        {isGeneratingSample ? (
+                          <>
+                            <span className="loading loading-spinner loading-sm"></span>
+                            Generating Sample...
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="w-4 h-4" />
+                            Generate Test Sample
+                          </>
+                        )}
+                      </button>
+                    )}
+                    
+                    {voiceSampleUrl && (
+                      <div className="space-y-3">
+                        {/* Audio Player */}
+                        <div className="bg-base-300 rounded-lg p-4">
+                          <p className="text-xs font-semibold mb-2">Voice Sample Preview</p>
+                          <audio 
+                            controls 
+                            src={voiceSampleUrl} 
+                            className="w-full"
+                          />
+                          <p className="text-xs text-warning mt-2">
+                            ⚠️ This sample will expire in 7 days. Save to cloud storage!
+                          </p>
+                        </div>
+                        
+                        {/* Download & Save Buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleDownloadSample}
+                            className="btn btn-sm btn-primary flex-1"
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Download
+                          </button>
+                          <button
+                            onClick={() => handleSaveSampleToCloud('dropbox')}
+                            className="btn btn-sm btn-outline flex-1"
+                          >
+                            <Droplet className="w-4 h-4 mr-1" />
+                            Dropbox
+                          </button>
+                          <button
+                            onClick={() => handleSaveSampleToCloud('google-drive')}
+                            className="btn btn-sm btn-outline flex-1"
+                          >
+                            <Cloud className="w-4 h-4 mr-1" />
+                            Drive
+                          </button>
+                        </div>
+                        
+                        <p className="text-xs text-base-content/60 text-center">
+                          💡 Saved to: /Wryda Screenplays/Voice Profiles/{character.name}/
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -357,25 +563,27 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
             className="btn btn-ghost"
             disabled={isSaving}
           >
-            Cancel
+            {savedProfileId ? 'Done' : 'Cancel'}
           </button>
-          <button
-            onClick={handleSave}
-            disabled={!isVerified || !rightsConfirmed || isSaving || !voiceName || !hasVoiceConsent}
-            className="btn btn-primary btn-lg"
-          >
-            {isSaving ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Check className="w-5 h-5" />
-                Save Voice Profile
-              </>
-            )}
-          </button>
+          {!savedProfileId && (
+            <button
+              onClick={handleSave}
+              disabled={!isVerified || !rightsConfirmed || isSaving || !voiceName || !hasVoiceConsent}
+              className="btn btn-primary btn-lg"
+            >
+              {isSaving ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Save Voice Profile
+                </>
+              )}
+            </button>
+          )}
         </div>
         </div>
 

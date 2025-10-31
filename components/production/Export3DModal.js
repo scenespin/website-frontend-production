@@ -3,11 +3,19 @@
  * 
  * Modal for exporting characters/locations to 3D models.
  * Includes cloud storage integration, 7-day expiration warnings, and progress tracking.
+ * 
+ * SCREENPLAY-CENTRIC STORAGE:
+ * - Uses screenplay context for dynamic folder paths
+ * - Saves to /Wryda Screenplays/{Screenplay}/3D Models/{EntityName}/
+ * - Tracks 3D model assets in GitHub manifest
  */
 
 import { useState, useEffect } from 'react';
 import { X, Download, Cloud, AlertTriangle, Clock, Loader2, CheckCircle2 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useScreenplay } from '../../contexts/ScreenplayContext';
+import { nanoid } from 'nanoid';
+import toast from 'react-hot-toast';
 
 export default function Export3DModal({ 
   isOpen, 
@@ -17,6 +25,9 @@ export default function Export3DModal({
   type, // 'character' or 'location'
   entityName 
 }) {
+  // Screenplay context for dynamic paths
+  const { getFolderPath, trackAsset, currentProject } = useScreenplay();
+  
   // State
   const [formats, setFormats] = useState(['glb']); // Default to GLB
   const [loading, setLoading] = useState(false);
@@ -25,6 +36,11 @@ export default function Export3DModal({
   const [error, setError] = useState(null);
   const [cloudStorageConnected, setCloudStorageConnected] = useState(false);
   const [savingToCloud, setSavingToCloud] = useState(false);
+
+  // Get dynamic folder path based on screenplay context
+  const getTargetFolderPath = () => {
+    return getFolderPath('3d-model', entityName);
+  };
 
   // Check cloud storage connection on mount
   useEffect(() => {
@@ -111,25 +127,62 @@ export default function Export3DModal({
     }
   };
 
-  // Save to cloud storage
+  // Save to cloud storage with screenplay-centric paths
   const handleSaveToCloud = async (provider, format) => {
     setSavingToCloud(true);
 
     try {
+      const targetFolder = getTargetFolderPath();
+      const targetFilename = `${entityName}-3d-${Date.now()}.${format}`;
+      
       await api.luma3D.saveToCloud(jobId, {
         format,
         provider,
-        fileName: `${entityName}-3d.${format}`
+        fileName: targetFilename,
+        folder: targetFolder
       });
 
       // Update job status
       const response = await api.luma3D.getJobStatus(jobId);
       setJobStatus(response.job);
 
-      alert(`${format.toUpperCase()} saved to ${provider === 'google-drive' ? 'Google Drive' : 'Dropbox'}!`);
+      toast.success(`${format.toUpperCase()} saved to ${provider === 'google-drive' ? 'Google Drive' : 'Dropbox'}!`);
+      
+      // Track asset in GitHub manifest if project has GitHub integration
+      if (currentProject && (characterId || locationId)) {
+        try {
+          await trackAsset({
+            asset_id: `asset-${nanoid(12)}`,
+            asset_type: 'document', // 3D models are stored as documents
+            entity_type: type, // 'character' or 'location'
+            entity_id: characterId || locationId,
+            entity_name: entityName,
+            filename: targetFilename,
+            file_size: response.job?.fileSize || 0,
+            mime_type: format === 'glb' ? 'model/gltf-binary' : format === 'obj' ? 'model/obj' : 'model/vnd.usd+zip',
+            storage_location: provider,
+            storage_metadata: {
+              cloud_file_id: response.job?.cloudFileId,
+              cloud_folder_id: response.job?.cloudFolderId,
+              webview_link: response.job?.webViewLink,
+            },
+            generation_metadata: {
+              generated_at: Date.now(),
+              model: 'luma-3d',
+            },
+            created_at: Date.now(),
+            updated_at: Date.now(),
+          });
+          console.log('[Export3DModal] 3D model asset tracked in manifest');
+        } catch (error) {
+          console.warn('[Export3DModal] Failed to track asset:', error);
+          // Non-critical - don't show error to user
+        }
+      }
+      
     } catch (err) {
       console.error('Save to cloud error:', err);
-      alert(`Failed to save to ${provider}: ${err.response?.data?.error || 'Unknown error'}`);
+      toast.error(`Failed to save to ${provider === 'google-drive' ? 'Google Drive' : 'Dropbox'}`);
     } finally {
       setSavingToCloud(false);
     }
@@ -148,13 +201,21 @@ export default function Export3DModal({
 
   const creditsRequired = type === 'character' ? 100 : 150;
   const daysRemaining = getDaysRemaining();
+  const targetFolder = getTargetFolderPath();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-base-100 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-base-300">
-          <h2 className="text-2xl font-bold">Export to 3D</h2>
+          <div>
+            <h2 className="text-2xl font-bold">Export to 3D</h2>
+            {currentProject && (
+              <p className="text-xs text-base-content/50 mt-1">
+                📁 <span className="font-mono">{targetFolder}</span>
+              </p>
+            )}
+          </div>
           <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
             <X className="w-5 h-5" />
           </button>
