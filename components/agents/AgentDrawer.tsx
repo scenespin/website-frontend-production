@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import UnifiedChatPanel from './UnifiedChatPanel';
 import { Z_INDEX } from '@/config/z-index';
-import type { AgentMode, SceneContext } from './shared/types';
+import type { AgentMode, SceneContext } from '../shared/types';
 
 interface AgentDrawerProps {
     isOpen: boolean;
