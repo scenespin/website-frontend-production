@@ -66,7 +66,7 @@ function AlertDescription({ children, className }: { children: React.ReactNode; 
 // ===== INTERFACES =====
 
 export interface ExportSettings {
-  resolution: '720p' | '1080p' | '4K';
+  resolution: '1080p' | '4K';
   aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '21:9';
   frameRate: 24 | 30 | 60;
   speedTier: 'standard' | 'express';
@@ -154,7 +154,6 @@ function calculateExportCost(
 ): number {
   // Base cost per minute
   const baseCosts = {
-    '720p': { standard: 20, express: 35 },
     '1080p': { standard: 30, express: 45 },
     '4K': { standard: 50, express: 75 }
   };
@@ -212,7 +211,7 @@ export function ExportModal({
   userTier = 'free'
 }: ExportModalProps) {
   const [settings, setSettings] = useState<ExportSettings>({
-    resolution: project.resolution as '720p' | '1080p' | '4K' || '1080p',
+    resolution: project.resolution as '1080p' | '4K' || '1080p',
     aspectRatio: project.aspectRatio as '16:9' || '16:9',
     frameRate: project.frameRate as 24 | 30 | 60 || 30,
     speedTier: 'standard'
@@ -329,11 +328,11 @@ export function ExportModal({
             </Label>
             <RadioGroup
               value={settings.resolution}
-              onValueChange={(value: string) => setSettings({ ...settings, resolution: value as '720p' | '1080p' | '4K' })}
+              onValueChange={(value: string) => setSettings({ ...settings, resolution: value as '1080p' | '4K' })}
             >
-              <div className="grid grid-cols-3 gap-3">
-                {(['720p', '1080p', '4K'] as const).map((res) => {
-                  const dims = getAspectRatioDimensions(settings.aspectRatio, res === '720p' ? 720 : res === '1080p' ? 1080 : 2160);
+              <div className="grid grid-cols-2 gap-3">
+                {(['1080p', '4K'] as const).map((res) => {
+                  const dims = getAspectRatioDimensions(settings.aspectRatio, res === '1080p' ? 1080 : 2160);
                   const isLocked = res === '4K' && userTier === 'free';
                   
                   return (
