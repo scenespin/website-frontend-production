@@ -53,15 +53,13 @@ interface SceneVisualizerPanelProps {
   generatingSegments?: Set<number>;
 }
 
-type ResolutionOption = '720p' | '1080p' | '4K' | '8K';
+type ResolutionOption = '1080p' | '4K';
 type AspectRatioOption = '16:9' | '9:16' | '4:3' | '3:4' | '21:9' | '9:21' | '1:1';
 type ProviderType = 'luma' | 'veo-2' | 'veo-3' | 'veo-3.1' | 'runway-gen3' | 'runway-gen3-turbo';
 
 const RESOLUTION_PRESETS: Record<ResolutionOption, { width: number; height: number }> = {
-  '720p': { width: 1280, height: 720 },
   '1080p': { width: 1920, height: 1080 },
-  '4K': { width: 3840, height: 2160 },
-  '8K': { width: 7680, height: 4320 }
+  '4K': { width: 3840, height: 2160 }
 };
 
 const ASPECT_RATIO_MULTIPLIERS: Record<AspectRatioOption, { width: number; height: number }> = {
@@ -478,9 +476,8 @@ export function SceneVisualizerPanel({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[150]" sideOffset={5}>
-                  <SelectItem value="720p">720p (HD)</SelectItem>
-                  <SelectItem value="1080p">1080p (Full HD)</SelectItem>
-                  <SelectItem value="4K">4K (Ultra HD)</SelectItem>
+                  <SelectItem value="1080p">1080p (Professional)</SelectItem>
+                  <SelectItem value="4K">4K (Premium)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
