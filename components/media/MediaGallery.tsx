@@ -41,7 +41,7 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
   const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

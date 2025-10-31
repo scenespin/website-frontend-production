@@ -61,7 +61,7 @@ export function WorkflowProgressTracker({
    * Poll workflow status
    */
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
+    let pollInterval: ReturnType<typeof setInterval>;
     let isPolling = true;
 
     const pollStatus = async () => {

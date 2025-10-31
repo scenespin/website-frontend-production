@@ -911,7 +911,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                   <CardHeader className="border-b-2 border-yellow-300 dark:border-yellow-700">
                     <CardTitle className="text-sm flex items-center gap-2 text-yellow-900 dark:text-yellow-100">
                       <span>🎬</span>
-                      Director's Tips
+                      Director&apos;s Tips
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">

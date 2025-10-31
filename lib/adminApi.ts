@@ -121,7 +121,7 @@ export interface AffiliateOverview {
 // API Helper
 // ========================================
 
-async function adminFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function adminFetch<T>(endpoint: string, options: Record<string, any> = {}): Promise<T> {
   const token = localStorage.getItem('token');
   
   if (!token) {

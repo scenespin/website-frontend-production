@@ -304,7 +304,7 @@ export function PlatformPresets({ onSelect, className = '' }: PlatformPresetsPro
  * Allows users to generate for all platforms at once with a discount
  */
 
-interface BundleOption {
+interface BundleOptionData {
   formats: AspectRatio[];
   name: string;
   icon: string;
@@ -312,7 +312,7 @@ interface BundleOption {
   savings: number;
 }
 
-const BUNDLE_OPTION: BundleOption = {
+const BUNDLE_OPTION: BundleOptionData = {
   formats: ['16:9', '9:16', '1:1'],
   name: 'Social Bundle',
   icon: '🌐',
