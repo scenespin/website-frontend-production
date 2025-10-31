@@ -15,8 +15,8 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { ChatProvider } from './context/ChatContext';
-import { useChatContext } from './context/useChatContext';
+import { ChatProvider } from './ChatContext';
+import { useChatContext } from './ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { ChatModePanel } from './modes/ChatMode/ChatModePanel';
 import { DirectorModePanel } from './modes/DirectorMode/DirectorModePanel';
