@@ -181,7 +181,7 @@ export default function AssetBrowser() {
         <Github className="w-16 h-16 text-base-content/30 mb-4" />
         <h3 className="text-lg font-semibold mb-2">No GitHub Integration</h3>
         <p className="text-sm text-base-content/60 mb-4">
-          This project doesn't have a GitHub repository connected.<br />
+          This project doesn&apos;t have a GitHub repository connected.<br />
           Assets are not being tracked in a manifest.
         </p>
       </div>

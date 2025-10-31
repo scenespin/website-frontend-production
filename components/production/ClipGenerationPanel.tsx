@@ -364,7 +364,7 @@ function Step2ClipAssignment({
                 <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
                 <div>
                   <div className="text-xs text-green-700 dark:text-green-300 font-medium">
-                    You're saving
+                    You&apos;re saving
                   </div>
                   <div className="text-sm font-bold text-green-800 dark:text-green-200">
                     {savings} credits

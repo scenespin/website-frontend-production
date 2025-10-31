@@ -83,7 +83,7 @@ export function PipelineHelpModal({
                     Flexible Workflow
                   </h3>
                   <p className="text-blue-800 dark:text-blue-200 leading-relaxed">
-                    <strong>You don't have to complete every stage!</strong> The Production Pipeline is a guided workflow,
+                    <strong>You don&apos;t have to complete every stage!</strong> The Production Pipeline is a guided workflow,
                     not a required sequence. Each stage is optional except the Screenplay. Jump to whatever you need.
                   </p>
                 </div>
@@ -165,7 +165,7 @@ export function PipelineHelpModal({
                       AI Auto-Generation
                     </h4>
                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                      Click <strong>"Generate Shot List"</strong> and our AI analyzes your screenplay to suggest:
+                      Click <strong>&quot;Generate Shot List&quot;</strong> and our AI analyzes your screenplay to suggest:
                     </p>
                     <ul className="mt-2 space-y-1 text-sm text-slate-700 dark:text-slate-300 ml-4">
                       <li>• Shot types (Wide, Medium, Close-Up, OTS, POV)</li>
@@ -186,7 +186,7 @@ export function PipelineHelpModal({
                       After AI generation, you can:
                     </p>
                     <ul className="mt-2 space-y-1 text-sm text-slate-700 dark:text-slate-300 ml-4">
-                      <li>• Click <strong>"Edit Shot"</strong> on any shot card</li>
+                      <li>• Click <strong>&quot;Edit Shot&quot;</strong> on any shot card</li>
                       <li>• Modify descriptions and visual prompts</li>
                       <li>• Adjust shot types and camera movements</li>
                       <li>• Fine-tune AI video generation prompts</li>
@@ -202,7 +202,7 @@ export function PipelineHelpModal({
                           Manual Creation Coming Soon
                         </p>
                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          Currently, shot lists are AI-generated, then editable. We're adding manual shot creation
+                          Currently, shot lists are AI-generated, then editable. We&apos;re adding manual shot creation
                           in a future update so you can build shot lists from scratch.
                         </p>
                       </div>
@@ -216,7 +216,7 @@ export function PipelineHelpModal({
                     </h4>
                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                       You can skip the Shot List entirely and go straight to Timeline or direct video generation.
-                      It's most useful for:
+                      It&apos;s most useful for:
                     </p>
                     <ul className="mt-2 space-y-1 text-sm text-slate-700 dark:text-slate-300 ml-4">
                       <li>• Planning complex scenes with multiple shots</li>

@@ -243,7 +243,7 @@ export default function LocationDetailSidebar({
                     No images yet
                   </p>
                   <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
-                    Click "Add Image" to visualize this location
+                    Click &quot;Add Image&quot; to visualize this location
                   </p>
                 </div>
               )

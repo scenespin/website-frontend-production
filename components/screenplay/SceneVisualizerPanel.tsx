@@ -595,7 +595,7 @@ export function SceneVisualizerPanel({
               </Select>
               {cameraMotion && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  Will add "{cameraMotion}" to all prompts
+                  Will add &quot;{cameraMotion}&quot; to all prompts
                 </p>
               )}
             </div>

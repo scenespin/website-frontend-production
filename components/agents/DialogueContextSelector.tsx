@@ -214,7 +214,7 @@ export function DialogueContextSelector({
           {/* Conflict/Tension */}
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-              🎯 What's the conflict or tension? *
+              🎯 What&apos;s the conflict or tension? *
             </label>
             <Textarea
               value={context.conflict}

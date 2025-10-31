@@ -143,7 +143,7 @@ export function PostGenerationDialog({
                   Discard
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                  Don't save or download
+                  Don&apos;t save or download
                 </p>
               </div>
             </button>

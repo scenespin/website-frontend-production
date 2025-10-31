@@ -153,7 +153,7 @@ export function ElevenLabsConnectionModal({
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-foreground">Step 1: Get Your API Key</h3>
             <p className="text-sm text-muted-foreground">
-              You'll need an ElevenLabs API key to connect your account.
+              You&apos;ll need an ElevenLabs API key to connect your account.
             </p>
             <Button
               variant="outline"
@@ -164,7 +164,7 @@ export function ElevenLabsConnectionModal({
               Open ElevenLabs Dashboard
             </Button>
             <p className="text-xs text-muted-foreground">
-              💡 In ElevenLabs: Click your profile → "API Keys" → Create new API key
+              💡 In ElevenLabs: Click your profile → &quot;API Keys&quot; → Create new API key
             </p>
           </div>
 

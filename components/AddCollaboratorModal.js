@@ -112,7 +112,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                 className="w-full px-4 py-3 bg-[#0d0b14] border border-purple-500/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 disabled:opacity-50 transition-colors"
               />
               <p className="mt-2 text-xs text-gray-400">
-                They'll need a GitHub account to collaborate on the script
+                They&apos;ll need a GitHub account to collaborate on the script
               </p>
             </div>
 
@@ -186,9 +186,9 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                   <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-gray-300">
                     <strong className="text-blue-400">How it works:</strong> When you add this
-                    collaborator, they'll be invited to the GitHub repository
+                    collaborator, they&apos;ll be invited to the GitHub repository
                     {selectedRoleInfo.capabilities.canManageAssets &&
-                      " and given access to the project's cloud storage folder"}
+                      " and given access to the project&apos;s cloud storage folder"}
                     . They can manage permissions through those platforms.
                   </div>
                 </div>

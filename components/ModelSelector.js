@@ -188,7 +188,7 @@ export function ModelSelector({ selectedModel, onModelChange, compact = false })
         )}
       </div>
       <p className="text-[10px] text-base-content/50 mt-1">
-        💡 We don't mark up models - you pay the same cost as direct API usage
+        💡 We don&apos;t mark up models - you pay the same cost as direct API usage
       </p>
     </div>
   );

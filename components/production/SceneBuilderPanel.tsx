@@ -938,8 +938,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         <div className="text-xs text-amber-700 dark:text-amber-400">
                           <div className="font-medium mb-1">Audio Pre-Check</div>
                           <div>
-                            We'll validate your scene with audio first. If rejected due to content guidelines,
-                            you'll choose to continue without audio or cancel at no charge.
+                            We&apos;ll validate your scene with audio first. If rejected due to content guidelines,
+                            you&apos;ll choose to continue without audio or cancel at no charge.
                           </div>
                         </div>
                       </div>

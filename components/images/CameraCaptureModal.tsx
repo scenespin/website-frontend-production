@@ -79,7 +79,7 @@ export function CameraCaptureModal({ isOpen, onClose, onCapture }: CameraCapture
           {!isSupported ? (
             <div className="text-center p-8">
               <p className="text-red-400 mb-2">Camera not supported</p>
-              <p className="text-slate-400 text-sm">Your browser or device doesn't support camera access.</p>
+              <p className="text-slate-400 text-sm">Your browser or device doesn&apos;t support camera access.</p>
             </div>
           ) : isCapturing ? (
             <>

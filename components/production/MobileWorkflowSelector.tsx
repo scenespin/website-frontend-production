@@ -550,7 +550,7 @@ export function MobileWorkflowSelector({
               </p>
             )}
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              You'll be asked to upload your performance video in the next step.
+              You&apos;ll be asked to upload your performance video in the next step.
             </p>
           </div>
         )}

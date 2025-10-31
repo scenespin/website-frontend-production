@@ -271,7 +271,7 @@ export function AudioUseCaseGallery() {
   return (
     <div className="p-8">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">See What's Possible</h2>
+        <h2 className="text-3xl font-bold mb-2">See What&apos;s Possible</h2>
         <p className="text-gray-600">Real examples of audio in professional videos</p>
       </div>
 
@@ -362,7 +362,7 @@ export function AudioCostCalculator() {
   return (
     <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-lg">
       <h2 className="text-2xl font-bold mb-6">Audio Cost Calculator</h2>
-      <p className="text-gray-600 mb-8">Estimate your project's audio production cost</p>
+      <p className="text-gray-600 mb-8">Estimate your project&apos;s audio production cost</p>
 
       <div className="space-y-6">
         {/* Narration */}

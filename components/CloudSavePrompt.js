@@ -150,7 +150,7 @@ export function CloudSavePrompt({
           {/* Warning Banner */}
           <div className="alert alert-warning text-xs">
             <AlertCircle className="w-4 h-4" />
-            <span><strong>We don't store your files!</strong> Save to your Dropbox or Google Drive to keep them permanently.</span>
+            <span><strong>We don&apos;t store your files!</strong> Save to your Dropbox or Google Drive to keep them permanently.</span>
           </div>
 
           {/* Loading State */}

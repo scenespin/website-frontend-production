@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -900,7 +900,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="flex-shrink-0 w-6 h-6 bg-yellow-400 text-black rounded-full flex items-center justify-center text-xs font-bold">4</span>
-                        <span>Hit "Action!" to render</span>
+                        <span>Hit &quot;Action!&quot; to render</span>
                       </li>
                     </ol>
                   </CardContent>
@@ -1047,13 +1047,13 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       <div>
                         <p className="font-medium mb-1">Match the Mood</p>
                         <p className="text-muted-foreground">
-                          Generate music that matches your video's emotional tone
+                          Generate music that matches your video&apos;s emotional tone
                         </p>
                       </div>
                       <div>
                         <p className="font-medium mb-1">Instrumental Works Best</p>
                         <p className="text-muted-foreground">
-                          Instrumental tracks won't compete with dialogue
+                          Instrumental tracks won&apos;t compete with dialogue
                         </p>
                       </div>
                       <div>

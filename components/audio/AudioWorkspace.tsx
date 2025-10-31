@@ -514,7 +514,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
                 🎭 Use Your Own Voice!
               </p>
               <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
-                Connect your ElevenLabs account to use voices you've verified on elevenlabs.io
+                Connect your ElevenLabs account to use voices you&apos;ve verified on elevenlabs.io
               </p>
               <Button
                 onClick={() => setShowConnectionModal(true)}
@@ -1150,7 +1150,7 @@ function AudioDubbingTab({ isProcessing, setIsProcessing, setResult, setError }:
         <label htmlFor="preserve-voice" className="text-sm cursor-pointer select-none flex-1">
           🎭 Preserve Original Voice
           <span className="block text-xs text-muted-foreground mt-0.5">
-            Maintain speaker's voice characteristics in target language
+            Maintain speaker&apos;s voice characteristics in target language
           </span>
         </label>
       </div>

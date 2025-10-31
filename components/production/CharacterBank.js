@@ -26,7 +26,9 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Download,
-  Cloud
+  Cloud,
+  Check,
+  Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';

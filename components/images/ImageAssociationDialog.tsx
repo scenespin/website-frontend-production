@@ -184,7 +184,7 @@ export function ImageAssociationDialog({
                         {prompt && (
                             <div className="flex items-start justify-between gap-3 px-4 py-3 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
                                 <p className="text-xs text-white/70 italic flex-1 leading-relaxed">
-                                    <span className="text-purple-300 font-medium">Prompt:</span> "{prompt}"
+                                    <span className="text-purple-300 font-medium">Prompt:</span> &quot;{prompt}&quot;
                                 </p>
                                 <button
                                     onClick={handleDownload}

@@ -123,8 +123,8 @@ export default function TeamPage() {
           <div className="space-y-2 text-sm text-gray-300">
             <p>
               • <strong className="text-blue-400">Automatic Setup:</strong> When you add a
-              collaborator, they're automatically invited to your GitHub repository and granted
-              access to the project's cloud storage folder.
+              collaborator, they&apos;re automatically invited to your GitHub repository and granted
+              access to the project&apos;s cloud storage folder.
             </p>
             <p>
               • <strong className="text-blue-400">Role-Based Access:</strong> Each role (Director,

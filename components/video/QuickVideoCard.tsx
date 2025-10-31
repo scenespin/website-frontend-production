@@ -555,8 +555,8 @@ export function QuickVideoCard({
                   <div className="text-xs text-amber-700 dark:text-amber-400">
                     <div className="font-medium mb-1">Audio Pre-Check</div>
                     <div>
-                      We'll validate your scene with audio first. If rejected due to 
-                      content guidelines, you'll choose to continue without audio or 
+                      We&apos;ll validate your scene with audio first. If rejected due to 
+                      content guidelines, you&apos;ll choose to continue without audio or 
                       cancel at no charge.
                     </div>
                   </div>
@@ -647,7 +647,7 @@ export function QuickVideoCard({
             {/* What You'll Get Preview */}
             <div className="p-3 rounded-md bg-background/50 border border-border/50">
               <label className="text-sm font-medium mb-2 block">
-                📦 What You'll Get
+                📦 What You&apos;ll Get
               </label>
               
               <div className="space-y-2 text-xs">

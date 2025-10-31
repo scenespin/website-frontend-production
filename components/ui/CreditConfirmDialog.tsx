@@ -91,7 +91,7 @@ export function CreditConfirmDialog({
               <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
                 <strong>Warning:</strong> This will replace your cached <strong>{cachedPreset}</strong> enhancement.
-                You won't be able to restore it for free anymore.
+                You won&apos;t be able to restore it for free anymore.
               </div>
             </div>
           )}
@@ -111,7 +111,7 @@ export function CreditConfirmDialog({
             <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg flex gap-3">
               <Info className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <strong>💡 Free Alternative:</strong> Click "Revert to Original" first to try different presets
+                <strong>💡 Free Alternative:</strong> Click &quot;Revert to Original&quot; first to try different presets
                 without additional charges.
               </div>
             </div>

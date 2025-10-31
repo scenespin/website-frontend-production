@@ -71,7 +71,7 @@ export function PartialDeliveryModal({
                 Premium Quality Master Scene Delivered
               </h3>
               <p className="text-sm text-muted-foreground">
-                Character dialog couldn't be generated due to content guidelines
+                Character dialog couldn&apos;t be generated due to content guidelines
               </p>
             </div>
           </div>
@@ -88,7 +88,7 @@ export function PartialDeliveryModal({
               loop
               muted
             >
-              Your browser doesn't support video playback.
+              Your browser doesn&apos;t support video playback.
             </video>
           </div>
         </div>
@@ -136,7 +136,7 @@ export function PartialDeliveryModal({
               <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <div className="font-medium text-sm text-amber-900 dark:text-amber-100">
-                  Why Character Dialog Wasn't Generated
+                  Why Character Dialog Wasn&apos;t Generated
                 </div>
                 <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                   Content guidelines prevented generation of character dialog scenes

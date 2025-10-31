@@ -54,7 +54,7 @@ export function ImageEditedActionDialog({
                     {prompt && (
                         <div className="px-4 py-2.5 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
                             <p className="text-xs text-white/70 italic leading-relaxed">
-                                <span className="text-green-300 font-medium">Edit:</span> "{prompt}"
+                                <span className="text-green-300 font-medium">Edit:</span> &quot;{prompt}&quot;
                             </p>
                         </div>
                     )}
