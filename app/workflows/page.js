@@ -315,7 +315,7 @@ export default function WorkflowsPage() {
                   <p><strong>Production Tools (9):</strong> Professional coverage, B-roll packages, multi-angle shots, and complete production workflows. Industry-standard tools for serious creators.</p>
                 )}
                 {allWorkflowsType === 'performance-capture' && (
-                  <p><strong>Performance Capture (12):</strong> 🔥 NEW! AI Avatar (voice cloning), Image to Speech (make any image talk), Podcast to Video (audio → YouTube), Multilingual Dubbing (speak every language) + "Be the Character" performance capture workflows. Upload performances, clone voices, animate photos, and transform yourself into any style!</p>
+                  <p><strong>Performance Capture (12):</strong> 🔥 NEW! AI Avatar (voice cloning), Image to Speech (make any image talk), Podcast to Video (audio → YouTube), Multilingual Dubbing (speak every language) + &quot;Be the Character&quot; performance capture workflows. Upload performances, clone voices, animate photos, and transform yourself into any style!</p>
                 )}
                 {allWorkflowsType === 'video-enhancement' && (
                   <p><strong>Video Enhancement (5):</strong> Transform existing footage with VFX, style changes, element removal, product reshoots, and photo animation. Hollywood effects for your footage.</p>
