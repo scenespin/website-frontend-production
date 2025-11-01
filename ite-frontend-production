@@ -1,0 +1,69 @@
+[1mdiff --git a/lib/api.js b/lib/api.js[m
+[1mindex 568da70..ff70b16 100644[m
+[1m--- a/lib/api.js[m
+[1m+++ b/lib/api.js[m
+[36m@@ -64,13 +64,22 @@[m [mexport const api = {[m
+     getCreditHistory: () => apiClient.get('/api/credits/history'),[m
+   },[m
+ [m
+[31m-  // Projects[m
+[32m+[m[32m  // Projects (Screenplay Management)[m
+   projects: {[m
+     list: () => apiClient.get('/api/projects/list'),[m
+     get: (projectId) => apiClient.get(`/api/projects/${projectId}`),[m
+     create: (data) => apiClient.post('/api/projects/create', data),[m
+     update: (projectId, data) => apiClient.put(`/api/projects/${projectId}`, data),[m
+     delete: (projectId) => apiClient.delete(`/api/projects/${projectId}`),[m
+[32m+[m[32m    getStorageConfig: (projectId) => apiClient.get(`/api/projects/${projectId}/storage-config`),[m
+[32m+[m[32m    checkAccess: (projectId) => apiClient.get(`/api/projects/${projectId}/access`),[m
+[32m+[m[41m    [m
+[32m+[m[32m    // Collaboration Management[m
+[32m+[m[32m    listCollaborators: (projectId) => apiClient.get(`/api/projects/${projectId}/collaborators/list`).then(res => res.data),[m
+[32m+[m[32m    addCollaborator: (projectId, data) => apiClient.post(`/api/projects/${projectId}/collaborators/add`, data).then(res => res.data),[m
+[32m+[m[32m    removeCollaborator: (projectId, identifier) => apiClient.delete(`/api/projects/${projectId}/collaborators/remove`, { data: { identifier } }).then(res => res.data),[m
+[32m+[m[32m    updateCollaboratorRole: (projectId, identifier, role) => apiClient.put(`/api/projects/${projectId}/collaborators/update-role`, { identifier, role }).then(res => res.data),[m
+[32m+[m[32m    getCollaboratorRoles: (projectId) => apiClient.get(`/api/projects/${projectId}/collaborators/roles`).then(res => res.data),[m
+   },[m
+ [m
+   // Screenplay[m
+[36m@@ -115,6 +124,22 @@[m [mexport const api = {[m
+     generate: (data) => apiClient.post('/api/chat/generate', data),[m
+   },[m
+ [m
+[32m+[m[32m  // Audio Generation[m
+[32m+[m[32m  audio: {[m
+[32m+[m[32m    generate: (data) => apiClient.post('/api/audio/generate', data),[m
+[32m+[m[32m    getJobs: () => apiClient.get('/api/audio/jobs'),[m
+[32m+[m[32m    getJobStatus: (jobId) => apiClient.get(`/api/audio/jobs/${jobId}`),[m
+[32m+[m[32m  },[m
+[32m+[m
+[32m+[m[32m  // Voice Profiles[m
+[32m+[m[32m  voiceProfiles: {[m
+[32m+[m[32m    create: (data) => apiClient.post('/api/voice-profiles', data),[m
+[32m+[m[32m    update: (profileId, data) => apiClient.put(`/api/voice-profiles/${profileId}`, data),[m
+[32m+[m[32m    delete: (profileId) => apiClient.delete(`/api/voice-profiles/${profileId}`),[m
+[32m+[m[32m    generateSample: (profileId, data) => apiClient.post(`/api/voice-profiles/${profileId}/generate`, data),[m
+[32m+[m[32m    saveSampleToCloud: (profileId, data) => apiClient.post(`/api/voice-profiles/${profileId}/save-to-cloud`, data),[m
+[32m+[m[32m  },[m
+[32m+[m
+   // Composition (FFmpeg)[m
+   composition: {[m
+     compose: (data) => apiClient.post('/api/composition/compose', data),[m
+[36m@@ -196,6 +221,17 @@[m [mexport const api = {[m
+     productRecontext: (data) => apiClient.post('/api/imagen/product-recontext', data).then(res => res.data),[m
+     upscale: (data) => apiClient.post('/api/imagen/upscale', data).then(res => res.data),[m
+   },[m
+[32m+[m
+[32m+[m[32m  // Asset Manifest (GitHub Integration)[m
+[32m+[m[32m  assets: {[m
+[32m+[m[32m    track: (data) => apiClient.post('/api/assets/track', data),[m
+[32m+[m[32m    getManifest: (owner, repo) => apiClient.get(`/api/assets/manifest/${owner}/${repo}`),[m
+[32m+[m[32m    getEntityAssets: (owner, repo, entityType, entityId) =>[m[41m [m
+[32m+[m[32m      apiClient.get(`/api/assets/manifest/${owner}/${repo}/${entityType}/${entityId}`),[m
+[32m+[m[32m    updateAsset: (assetId, data) => apiClient.put(`/api/assets/${assetId}`, data),[m
+[32m+[m[32m    deleteAsset: (assetId) => apiClient.delete(`/api/assets/${assetId}`),[m
+[32m+[m[32m    validateAssets: (owner, repo) => apiClient.post(`/api/assets/manifest/${owner}/${repo}/validate`),[m
+[32m+[m[32m  },[m
+ };[m
+ [m
+ export default apiClient;[m

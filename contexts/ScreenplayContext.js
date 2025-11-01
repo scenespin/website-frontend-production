@@ -64,6 +64,8 @@ export function ScreenplayProvider({ children }) {
       setProjects(response.data.projects || []);
     } catch (error) {
       console.error('[ScreenplayContext] Error loading projects:', error);
+      // Don't throw - fail gracefully with empty projects
+      setProjects([]);
     }
   }, [user]);
 

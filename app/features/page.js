@@ -4,7 +4,7 @@ import config from "@/config";
 
 export const metadata = getSEOTags({
   title: `Complete Features | ${config.appName}`,
-  description: "Explore all 51 AI workflows, professional screenplay writing tools, multi-track timeline editor, Hollywood transitions & compositions, and more. Everything unlocked from day one.",
+  description: "Explore all 58 AI workflows including cinema-grade HDR finishing, professional screenplay writing tools, multi-track timeline editor, Hollywood transitions & compositions, and more. Everything unlocked from day one.",
   canonicalUrlRelative: "/features",
 });
 
@@ -28,7 +28,7 @@ export default function Features() {
             Complete Feature List
           </h1>
           <p className="text-xl opacity-80 max-w-3xl mx-auto">
-            <strong>80+ features. 51 AI workflows. All unlocked from day one.</strong>
+            <strong>80+ features. 58 AI workflows. All unlocked from day one.</strong>
             <br />
             Free users get everything. Pro/Ultra/Studio just get more credits.
           </p>
@@ -38,7 +38,7 @@ export default function Features() {
         <section className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
           <div className="card bg-base-200">
             <div className="card-body text-center">
-              <div className="text-4xl font-bold text-[#DC143C]">51</div>
+              <div className="text-4xl font-bold text-[#DC143C]">58</div>
               <div className="text-sm opacity-70">AI Workflows</div>
             </div>
           </div>
@@ -358,6 +358,66 @@ export default function Features() {
                 description="Animate still photos with your voice and expressions. Make grandma&apos;s photo speak again. Revolutionary for tribute videos and viral content."
                 stars={5}
               />
+                  </div>
+                </div>
+              </div>
+
+              {/* Post-Production & HDR Finishing - NEW! */}
+              <div className="collapse collapse-arrow bg-base-200 border-2 border-[#DC143C]/30">
+                <input type="radio" name="workflow-category" />
+                <div className="collapse-title text-lg font-semibold">
+                  🎬 Post-Production & HDR Finishing ✨ <span className="text-sm opacity-70">(7 workflows) - CINEMA-GRADE PROFESSIONAL</span>
+                </div>
+                <div className="collapse-content">
+                  <p className="text-sm opacity-70 mb-4 pt-2">
+                    <strong className="text-[#DC143C]">THE ONLY AI PLATFORM WITH HDR SUPPORT.</strong> Transform any video to cinema-grade 16-bit HDR. Export EXR for DaVinci Resolve. Film festival ready.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <WorkflowCard
+                title="SDR to HDR Upgrade 🔥"
+                description="Transform ANY video into cinema-grade 16-bit HDR—even videos from other AI platforms, iPhone footage, or stock libraries. The ultimate finishing tool that NO competitor offers."
+                stars={5}
+              />
+              <WorkflowCard
+                title="Hybrid 4K HDR Pipeline 🏆"
+                description="The ultimate quality workflow: Professional generation → 4K enhancement → HDR conversion → Cinema finishing. Combines multiple techniques for output quality impossible anywhere else."
+                stars={5}
+              />
+              <WorkflowCard
+                title="Cinema HDR Master (21:9)"
+                description="Generate professional 21:9 ultrawide content in native 16-bit HDR. Film festival ready with EXR export for professional color grading. The filmmaker's choice."
+                stars={5}
+              />
+              <WorkflowCard
+                title="Multi-Format HDR Delivery"
+                description="Generate once in HDR, intelligently reframe to ALL platforms—21:9 cinema, 9:16 vertical, 1:1 square, and more. All formats maintain 16-bit HDR quality. 60-75% cost savings."
+                stars={5}
+              />
+              <WorkflowCard
+                title="Native HDR Generation"
+                description="Generate cinema-grade 16-bit HDR video directly from text or images. Export as EXR frame sequence for professional color grading in DaVinci Resolve."
+                stars={4}
+              />
+              <WorkflowCard
+                title="EXR Export (Professional)"
+                description="Export any video as 16-bit EXR frame sequence for professional color grading. Industry-standard ACES2065-1 color space. The professional finishing workflow."
+                stars={4}
+              />
+              <WorkflowCard
+                title="Draft to HDR Master"
+                description="Iterate fast with Draft Mode (5x cheaper), then master your best shots to 4K HDR. Perfect for rapid exploration with professional delivery. Coming soon - Phase 2."
+                stars={5}
+              />
+                  </div>
+                  <div className="mt-6 p-4 bg-gradient-to-r from-[#DC143C]/10 to-purple-600/10 rounded-lg border border-[#DC143C]/20">
+                    <div className="text-sm font-semibold mb-2 text-[#DC143C]">🏆 Competitive Advantage:</div>
+                    <div className="text-xs space-y-1 opacity-80">
+                      <div>✅ <strong>ONLY platform with HDR support</strong> - No competitor offers this</div>
+                      <div>✅ <strong>21:9 Cinema + HDR + EXR</strong> - Complete professional pipeline</div>
+                      <div>✅ <strong>SDR → HDR Upgrade</strong> - Transform videos from ANY source</div>
+                      <div>✅ <strong>Film Festival Ready</strong> - 16-bit ACES2065-1 color space</div>
+                      <div>✅ <strong>DaVinci Resolve Integration</strong> - Industry-standard workflow</div>
+                    </div>
                   </div>
                 </div>
               </div>

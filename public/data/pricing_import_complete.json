@@ -98,9 +98,9 @@
       "notes": "Part of Premium 4K workflow - 10 second upscale"
     },
     {
-      "provider_id": "luma-ray-flash-2-1080p-5sec",
+      "provider_id": "luma-ray-3-1080p-5sec",
       "provider_name": "Luma Labs",
-      "model": "ray-flash-2",
+      "model": "ray-3",
       "operation_type": "video-generation",
       "duration_seconds": 5,
       "resolution": "1080p",
@@ -110,14 +110,14 @@
       "retail_price_usd": 0.75,
       "margin_percent": 92,
       "priority": "backup",
-      "quality_tier": "good",
+      "quality_tier": "excellent",
       "tier_name": "Professional Grade (Backup)",
-      "notes": "BACKUP provider for Professional 1080p 5-second when Runway unavailable"
+      "notes": "BACKUP provider for Professional 1080p 5-second - Ray-3 with superior quality (16 improvements over Ray-2)"
     },
     {
-      "provider_id": "luma-ray-flash-2-1080p-10sec",
+      "provider_id": "luma-ray-3-1080p-10sec",
       "provider_name": "Luma Labs",
-      "model": "ray-flash-2",
+      "model": "ray-3",
       "operation_type": "video-generation",
       "duration_seconds": 10,
       "resolution": "1080p",
@@ -127,14 +127,14 @@
       "retail_price_usd": 1.40,
       "margin_percent": 97,
       "priority": "backup",
-      "quality_tier": "good",
+      "quality_tier": "excellent",
       "tier_name": "Professional Grade (Backup)",
-      "notes": "BACKUP provider for Professional 1080p 10-second when Runway unavailable"
+      "notes": "BACKUP provider for Professional 1080p 10-second - Ray-3 with superior quality"
     },
     {
-      "provider_id": "luma-ray-flash-2-4k-5sec",
+      "provider_id": "luma-ray-3-4k-5sec",
       "provider_name": "Luma Labs",
-      "model": "ray-flash-2",
+      "model": "ray-3",
       "operation_type": "video-generation",
       "duration_seconds": 5,
       "resolution": "4k",
@@ -144,9 +144,9 @@
       "retail_price_usd": 1.00,
       "margin_percent": 104,
       "priority": "primary",
-      "quality_tier": "good",
+      "quality_tier": "excellent",
       "tier_name": "Ultra Grade",
-      "notes": "PRIMARY for Ultra Native 4K 5-second tier"
+      "notes": "PRIMARY for Ultra Native 4K 5-second - Ray-3 with 16 quality improvements over Ray-2"
     },
     {
       "provider_id": "luma-ray-flash-2-4k-10sec",
@@ -166,21 +166,21 @@
       "notes": "BACKUP for Ultra Native 4K 10-second when Ray 2 unavailable"
     },
     {
-      "provider_id": "luma-ray-2-4k-10sec",
+      "provider_id": "luma-ray-3-4k-10sec",
       "provider_name": "Luma Labs",
-      "model": "ray-2",
+      "model": "ray-3",
       "operation_type": "video-generation",
       "duration_seconds": 10,
       "resolution": "4k",
       "aspect_ratio": "16:9",
-      "base_cost_usd": 1.54,
+      "base_cost_usd": 0.89,
       "retail_credits": 300,
       "retail_price_usd": 3.00,
-      "margin_percent": 95,
+      "margin_percent": 237,
       "priority": "primary",
       "quality_tier": "premium",
       "tier_name": "Ultra Grade",
-      "notes": "PRIMARY for Ultra Native 4K 10-second - BEST QUALITY AVAILABLE"
+      "notes": "PRIMARY for Ultra Native 4K 10-second - Ray-3 BEST QUALITY (replaces Ray-2 at 33% lower cost, 237% margin!)"
     },
     {
       "provider_id": "veo-3-fast-5sec",
@@ -498,11 +498,11 @@
       "name": "Ultra Grade Native 4K (5 seconds)",
       "tier": "ultra",
       "duration_seconds": 5,
-      "description": "Single-step native 4K generation using Luma Ray Flash 2",
+      "description": "Single-step native 4K generation using Luma Ray-3",
       "steps": [
         {
           "step_number": 1,
-          "provider_id": "luma-ray-flash-2-4k-5sec",
+          "provider_id": "luma-ray-3-4k-5sec",
           "operation": "video-generation",
           "cost_usd": 0.49
         }
@@ -512,28 +512,28 @@
       "retail_price_usd": 1.00,
       "margin_percent": 104,
       "priority": "primary",
-      "notes": "Premium positioning - native 4K for power users"
+      "notes": "Premium positioning - Ray-3 native 4K with 16 quality improvements"
     },
     {
       "workflow_id": "ultra-4k-native-10sec",
       "name": "Ultra Grade Native 4K (10 seconds)",
       "tier": "ultra",
       "duration_seconds": 10,
-      "description": "Single-step PREMIUM native 4K generation using Luma Ray 2",
+      "description": "Single-step PREMIUM native 4K generation using Luma Ray-3",
       "steps": [
         {
           "step_number": 1,
-          "provider_id": "luma-ray-2-4k-10sec",
+          "provider_id": "luma-ray-3-4k-10sec",
           "operation": "video-generation",
-          "cost_usd": 1.54
+          "cost_usd": 0.89
         }
       ],
-      "total_cost_usd": 1.54,
+      "total_cost_usd": 0.89,
       "retail_credits": 300,
       "retail_price_usd": 3.00,
-      "margin_percent": 95,
+      "margin_percent": 237,
       "priority": "primary",
-      "notes": "ABSOLUTE BEST QUALITY - Luma Ray 2 premium model for 10 seconds"
+      "notes": "ABSOLUTE BEST QUALITY - Luma Ray-3 premium 4K with 237% margin!"
     }
   ],
   "retail_tiers": [
