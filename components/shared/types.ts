@@ -136,8 +136,8 @@ export interface ImageGenerationState {
  * Video generation state
  */
 export interface VideoGenerationState {
-    // Quick video settings
-    quickVideoProvider: 'veo-3.1' | 'veo-3.0' | 'veo-2' | 'luma-ray-2' | 'luma-ray-flash-2';
+    // Quick video settings - Wrapper-safe (NO provider names exposed)
+    quickVideoTier: 'professional' | 'premium' | 'cinema';  // Wrapper-safe quality tiers
     quickVideoResolution: '540p' | '720p' | '1080p' | '4k' | '8k';
     quickVideoAspectRatio: '16:9' | '9:16' | '4:3' | '3:4' | '21:9' | '9:21' | '1:1';
     quickVideoDuration: '4s' | '5s' | '6s' | '8s';

@@ -70,7 +70,7 @@ export function SceneToVideoPanel({
   const [sceneText, setSceneText] = useState(initialSceneText);
   const [segmentDuration, setSegmentDuration] = useState('5');
   const [resolution, setResolution] = useState('1080p');
-  const [provider, setProvider] = useState('veo-3.1');
+  const [provider, setProvider] = useState('premium');
   const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
   const [isGeneratingVideos, setIsGeneratingVideos] = useState(false);
   const [generatedPrompts, setGeneratedPrompts] = useState<any[]>([]);
@@ -409,15 +409,14 @@ I didn't expect you to actually come.`}
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="veo-3.1">
+                  <SelectItem value="premium">
                     <div className="flex items-center gap-2">
                       <span>Premium 4K</span>
                       <Badge className="bg-indigo-500 text-white border-0 text-xs">Best</Badge>
                     </div>
                   </SelectItem>
-                  <SelectItem value="veo-3.1-fast">Premium 4K (Fast)</SelectItem>
-                  <SelectItem value="luma">Cinematic</SelectItem>
-                  <SelectItem value="runway-gen3-turbo">Professional (Fast)</SelectItem>
+                  <SelectItem value="professional">Professional 1080p</SelectItem>
+                  <SelectItem value="cinema">Cinematic</SelectItem>
                 </SelectContent>
               </Select>
             </div>

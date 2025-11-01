@@ -55,7 +55,8 @@ interface SceneVisualizerPanelProps {
 
 type ResolutionOption = '1080p' | '4K';
 type AspectRatioOption = '16:9' | '9:16' | '4:3' | '3:4' | '21:9' | '9:21' | '1:1';
-type ProviderType = 'luma' | 'veo-2' | 'veo-3' | 'veo-3.1' | 'runway-gen3' | 'runway-gen3-turbo';
+// Internal provider routing (NOT exposed to users - wrapper strategy)
+type ProviderType = 'professional' | 'premium' | 'cinema';
 
 const RESOLUTION_PRESETS: Record<ResolutionOption, { width: number; height: number }> = {
   '1080p': { width: 1920, height: 1080 },
@@ -73,72 +74,40 @@ const ASPECT_RATIO_MULTIPLIERS: Record<AspectRatioOption, { width: number; heigh
 };
 
 // Quality tier metadata (matches backend costs)
+// Wrapper-safe provider metadata - NO provider names exposed to users
 const PROVIDER_METADATA = {
-  'runway-gen3-turbo': {
-    name: 'Fast',
-    description: 'Fast 5-10s generation',
-    creditsPerSec: 5,
-    minDuration: 5,
-    maxDuration: 10,
-    supportedRatios: ['16:9', '9:16', '1:1', '1280:768', '768:1280', '1024:1024'] as const,
-    features: ['Image prompts', 'Fast generation', 'Watermark-free'],
-    icon: '⚡',
-    color: 'orange',
-  },
-  'runway-gen3': {
+  'professional': {
     name: 'Professional',
-    description: 'Premium quality 5-10s',
+    description: 'High-quality 1080p generation',
     creditsPerSec: 10,
     minDuration: 5,
     maxDuration: 10,
-    supportedRatios: ['16:9', '9:16', '1:1', '1280:768', '768:1280', '1024:1024'] as const,
-    features: ['Image prompts', 'High quality', 'Watermark-free'],
+    supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9', '9:21'] as const,
+    features: ['Image prompts', 'Fast generation', 'Great quality'],
     icon: '👑',
     color: 'purple',
   },
-  'luma': {
+  'premium': {
+    name: 'Premium',
+    description: 'Best quality 4K',
+    creditsPerSec: 15,
+    minDuration: 4,
+    maxDuration: 8,
+    supportedRatios: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
+    features: ['Reference images', 'Best quality', 'Video chaining'],
+    icon: '✨',
+    color: 'yellow',
+  },
+  'cinema': {
     name: 'Cinematic',
-    description: 'Fast 5s cinematic clips',
-    creditsPerSec: 5,
+    description: 'Fast cinematic clips',
+    creditsPerSec: 10,
     minDuration: 5,
     maxDuration: 5,
     supportedRatios: ['16:9', '9:16', '4:3', '3:4', '21:9', '9:21', '1:1'] as const,
     features: ['Cinematic effects', 'Camera motions', 'Quick turnaround'],
     icon: '🌟',
     color: 'blue',
-  },
-  'veo-3.1': {
-    name: 'Premium 4K (Latest)',
-    description: 'Best quality 4-8s',
-    creditsPerSec: 12.5,
-    minDuration: 4,
-    maxDuration: 8,
-    supportedRatios: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
-    features: ['Reference images', 'Best quality', 'Latest tech'],
-    icon: '✨',
-    color: 'yellow',
-  },
-  'veo-3': {
-    name: 'Premium 4K (Stable)',
-    description: 'Great quality 5-8s',
-    creditsPerSec: 12.5,
-    minDuration: 5,
-    maxDuration: 8,
-    supportedRatios: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
-    features: ['Video extension', 'Chaining support', 'Very reliable'],
-    icon: '✅',
-    color: 'green',
-  },
-  'veo-2': {
-    name: 'Premium 4K (Mature)',
-    description: 'Stable 5-8s',
-    creditsPerSec: 12.5,
-    minDuration: 5,
-    maxDuration: 8,
-    supportedRatios: ['16:9', '9:16', '4:3', '3:4', '1:1'] as const,
-    features: ['Video extension', 'Object editing', 'Most reliable'],
-    icon: '💎',
-    color: 'indigo',
   },
 };
 
@@ -189,7 +158,7 @@ export function SceneVisualizerPanel({
   const [globalAspectRatio, setGlobalAspectRatio] = useState<AspectRatioOption>('16:9');
   const [useFastMode, setUseFastMode] = useState<boolean>(false);
   const [useVideoExtension, setUseVideoExtension] = useState<boolean>(false);
-  const [selectedProvider, setSelectedProvider] = useState<ProviderType>('runway-gen3-turbo');
+  const [selectedProvider, setSelectedProvider] = useState<ProviderType>('professional');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   
   // Quality tier specific options
@@ -418,10 +387,10 @@ export function SceneVisualizerPanel({
           <div className="grid grid-cols-2 gap-3">
             {/* Professional Tier (1080p) - 50 credits */}
             <button
-              onClick={() => setSelectedProvider('runway-gen3-turbo')}
+              onClick={() => setSelectedProvider('professional')}
               className={`
                 flex flex-col items-start p-3 rounded border text-left transition-all
-                ${(selectedProvider === 'runway-gen3-turbo' || selectedProvider === 'runway-gen3' || selectedProvider === 'luma')
+                ${selectedProvider === 'professional'
                   ? 'bg-indigo-500/10 border-indigo-500 shadow-md'
                   : 'bg-background border-border hover:border-indigo-400'
                 }
@@ -434,10 +403,10 @@ export function SceneVisualizerPanel({
             
             {/* Premium Tier (4K) - 75 credits */}
             <button
-              onClick={() => setSelectedProvider('veo-3.1')}
+              onClick={() => setSelectedProvider('premium')}
               className={`
                 flex flex-col items-start p-3 rounded border text-left transition-all
-                ${(selectedProvider === 'veo-3.1' || selectedProvider === 'veo-3' || selectedProvider === 'veo-2')
+                ${selectedProvider === 'premium'
                   ? 'bg-purple-500/10 border-purple-500 shadow-md'
                   : 'bg-background border-border hover:border-purple-400'
                 }
@@ -504,7 +473,7 @@ export function SceneVisualizerPanel({
         </div>
         
         {/* Professional Tier Controls */}
-        {(selectedProvider === 'runway-gen3' || selectedProvider === 'runway-gen3-turbo') && (
+        {selectedProvider === 'professional' && (
           <div className="mt-3 space-y-3">
             {/* Image Prompt URL */}
             <div className="p-3 rounded-md bg-background/50 border border-border/50">
@@ -539,7 +508,7 @@ export function SceneVisualizerPanel({
         )}
         
         {/* Cinematic Tier Controls - Camera Effects */}
-        {selectedProvider === 'luma' && (
+        {selectedProvider === 'cinema' && (
           <div className="mt-3 space-y-3">
             {/* Cinematic Concepts */}
             <div className="p-3 rounded-md bg-background/50 border border-border/50">
@@ -600,7 +569,7 @@ export function SceneVisualizerPanel({
         )}
         
         {/* Video Extension Toggle (Premium 4K tier) */}
-        {(selectedProvider === 'veo-2' || selectedProvider === 'veo-3' || selectedProvider === 'veo-3.1') && (
+        {selectedProvider === 'premium' && (
           <div className="mt-2 flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50">
             <input
               type="checkbox"
@@ -615,7 +584,7 @@ export function SceneVisualizerPanel({
             </label>
           </div>
         )}
-        {selectedProvider === 'veo-3.1' && useVideoExtension && (
+        {selectedProvider === 'premium' && useVideoExtension && (
           <p className="text-xs text-yellow-500 ml-2 mt-1">
             ⚠️ Video extension not supported on this tier. Will auto-switch to stable Premium 4K for chaining.
           </p>
