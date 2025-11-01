@@ -87,7 +87,6 @@ const Pricing = () => {
     <section className="bg-base-100 overflow-hidden" id="pricing">
       <div className="py-24 px-8 max-w-7xl mx-auto">
         <div className="flex flex-col text-center w-full mb-12">
-          <p className="font-medium text-primary mb-2">Pricing</p>
           <h2 className="font-bold text-3xl lg:text-5xl tracking-tight mb-4">
             Everyone Gets Everything.
             <br />
@@ -153,9 +152,10 @@ const Pricing = () => {
             <div>
               <h4 className="font-semibold mb-2">🎬 Video Quality Tiers</h4>
               <ul className="space-y-1 opacity-80">
-                <li>• Professional 1080p: 50 credits</li>
-                <li>• Premium 4K: 75 credits</li>
-                <li>• Ultra Native 4K: 150 credits</li>
+                <li>• Professional 1080p: 50 credits per 5s</li>
+                <li>• Premium 4K: 75 credits per 5s</li>
+                <li>• Ultra Native 4K: 150 credits per 5s</li>
+                <li>• HDR Upgrade: 30 credits per video</li>
               </ul>
             </div>
             <div>
@@ -175,6 +175,7 @@ const Pricing = () => {
                 <li>• 65 compositions, 30 transitions</li>
                 <li>• Screenplay + Timeline editor</li>
                 <li>• Cloud Storage (Drive/Dropbox)</li>
+                <li>• HDR Upgrade available (pay per use)</li>
               </ul>
             </div>
           </div>

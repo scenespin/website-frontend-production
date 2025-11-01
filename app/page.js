@@ -154,7 +154,7 @@ export default function Page() {
                   <div className="text-4xl mb-2">🎨</div>
                   <h3 className="card-title text-lg">Cinema-Grade HDR Upgrade</h3>
                   <p className="text-sm opacity-80">
-                    Convert ANY video to 16-bit HDR. The ONLY platform that can upgrade videos from other AI tools to cinema quality.
+                    Convert ANY video to 16-bit HDR. The ONLY platform that can upgrade videos from ANY tools to cinema quality.
                   </p>
                   <div className="badge badge-error gap-1 mt-2">🔥 Exclusive</div>
                 </div>
