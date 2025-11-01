@@ -33,6 +33,7 @@ import { ClipGenerationPanel } from './ClipGenerationPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
 import { LocationBankPanel } from './LocationBankPanel';
+import AssetBankPanel from './AssetBankPanel';  // Feature 0099: Asset Bank
 
 // Types for production state
 export interface ClipAssignment {
@@ -752,6 +753,15 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
           {activeTab === 'locations' && (
             <div className="flex-1 overflow-auto">
               <LocationBankPanel
+                projectId={projectId}
+                className="h-full"
+              />
+            </div>
+          )}
+          
+          {activeTab === 'assets' && (
+            <div className="flex-1 overflow-auto">
+              <AssetBankPanel
                 projectId={projectId}
                 className="h-full"
               />

@@ -43,7 +43,7 @@ export default function ProductionPageGuide() {
           </div>
 
           <h2>📑 Production Page Tabs</h2>
-          <p>The Production Page has 5 main tabs for different workflows:</p>
+          <p>The Production Page has 6 main tabs for different workflows:</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 not-prose my-8">
             <div className="card bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-2 border-blue-500/30">
@@ -76,6 +76,13 @@ export default function ProductionPageGuide() {
               <div className="card-body">
                 <h3 className="card-title text-base">📍 Tab 5: Locations</h3>
                 <p className="text-sm">Manage location references for consistent settings across scenes (Feature 0098!)</p>
+                <div className="badge badge-accent badge-sm">NEW!</div>
+              </div>
+            </div>
+            <div className="card bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 border-2 border-cyan-500/30">
+              <div className="card-body">
+                <h3 className="card-title text-base">📦 Tab 6: Assets</h3>
+                <p className="text-sm">Digital Prop Department - scan props, vehicles, furniture for perfect consistency (Feature 0099!)</p>
                 <div className="badge badge-accent badge-sm">NEW!</div>
               </div>
             </div>
@@ -535,6 +542,158 @@ export default function ProductionPageGuide() {
               <div className="text-sm space-y-2">
                 <p>Just like Character Bank revolutionized character consistency, Location Bank solves the &quot;different location every scene&quot; problem!</p>
                 <p className="mt-2"><strong>Example:</strong> Create &quot;Tony&apos;s Restaurant&quot; → Upload/generate references → Use in 8 different scenes → Perfect consistency!</p>
+              </div>
+            </div>
+          </div>
+
+          <h2>📦 Tab 6: Asset Bank (Digital Prop Department) - NEW!</h2>
+          <p>Scan real-world props, vehicles, and furniture once → Use in unlimited AI scenes with perfect consistency. Plus, export 3D models for games, AR, and external use!</p>
+
+          <div className="alert alert-info my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">🆕 Feature 0099: Digital Prop Department</div>
+              <div className="text-sm">The missing piece for perfect AI video consistency. Characters and locations are consistent - now your props can be too!</div>
+            </div>
+          </div>
+
+          <h3>What It Does:</h3>
+          <ul>
+            <li><strong>Scan Any Object</strong> - Props, weapons, vehicles, furniture, equipment</li>
+            <li><strong>Perfect Consistency</strong> - Same prop looks identical across unlimited scenes</li>
+            <li><strong>3D Model Export</strong> - Generate GLB/OBJ/USDZ files for games & AR (optional)</li>
+            <li><strong>Mobile Viewing</strong> - View and use assets on mobile, create on desktop</li>
+            <li><strong>4-Reference System</strong> - Use assets alongside characters & locations in Scene Builder</li>
+          </ul>
+
+          <div className="card bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 border-cyan-500/30 my-6 not-prose">
+            <div className="card-body">
+              <div className="text-sm space-y-3">
+                <p><strong>The Problem:</strong> Generate a gun in Scene 1 → Looks different in Scene 2 → Completely different in Scene 3!</p>
+                <p><strong>The Solution:</strong> Scan the gun once ($3) → Use in unlimited scenes → Perfect consistency every time!</p>
+                <p className="mt-3 font-bold text-cyan-400">ROI: $3 one-time cost → Unlimited use → Priceless for professional work!</p>
+              </div>
+            </div>
+          </div>
+
+          <h3>How to Create an Asset (Step-by-Step):</h3>
+          <ol>
+            <li>Production → <strong>Assets</strong> tab (Desktop only)</li>
+            <li>Click <strong>&quot;+ New Asset&quot;</strong></li>
+            <li><strong>Step 1: Details</strong>
+              <ul>
+                <li>Enter asset name (e.g., &quot;Vintage Red Revolver&quot;)</li>
+                <li>Select category: Props ($3), Vehicles ($7), Furniture ($7), or Other ($7)</li>
+                <li>Add description (optional but recommended)</li>
+                <li>Add tags for easy searching</li>
+              </ul>
+            </li>
+            <li><strong>Step 2: Upload Images</strong>
+              <ul>
+                <li>Drag & drop or click to upload <strong>2-10 photos</strong></li>
+                <li>Best results: 5-8 images from different angles</li>
+                <li>Recommended angles: front, side, back, top, 45°</li>
+                <li>Resolution: 1920x1080 to 4096x4096</li>
+                <li>Format: JPG, PNG, WebP (max 10MB each)</li>
+              </ul>
+            </li>
+            <li>Click <strong>&quot;Create Asset&quot;</strong></li>
+            <li><strong>(Optional) Generate 3D Model:</strong>
+              <ul>
+                <li>Click <strong>&quot;Generate 3D Model&quot;</strong> button</li>
+                <li>Select formats: GLB (Unity/Unreal), OBJ (Blender/Maya), USDZ (iOS AR)</li>
+                <li>Cost: $3-7 depending on category</li>
+                <li>Wait 20-40 minutes for generation</li>
+                <li>Download 3D files or save to cloud storage</li>
+              </ul>
+            </li>
+            <li>Now use the asset in Scene Builder alongside characters & locations!</li>
+          </ol>
+
+          <h3>Asset Bank Categories & Pricing:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose my-6">
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm mb-2">📦 Props & Small Items - $3</h4>
+                <p className="text-xs mb-2">Perfect for handheld objects and small details</p>
+                <p className="text-xs opacity-70">Examples: Weapons, phones, jewelry, books, tools, food items, bottles, glasses</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm mb-2">🚗 Vehicles - $7</h4>
+                <p className="text-xs mb-2">For cars, motorcycles, and transportation</p>
+                <p className="text-xs opacity-70">Examples: Cars, motorcycles, trucks, bicycles, boats, aircraft</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm mb-2">🪑 Furniture - $7</h4>
+                <p className="text-xs mb-2">For larger objects and equipment</p>
+                <p className="text-xs opacity-70">Examples: Chairs, tables, sofas, desks, lamps, musical instruments</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm mb-2">📦 Other Objects - $7</h4>
+                <p className="text-xs mb-2">Anything else that doesn't fit above</p>
+                <p className="text-xs opacity-70">Examples: Equipment, machinery, large props, electronics</p>
+              </div>
+            </div>
+          </div>
+
+          <h3>Using Assets in Scene Builder:</h3>
+          <div className="card bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border-2 border-purple-500/30 my-6 not-prose">
+            <div className="card-body">
+              <h4 className="font-bold text-base mb-3">🎯 4-Reference System</h4>
+              <div className="text-sm space-y-2">
+                <p>AI video generation supports up to <strong>4 reference images total</strong>. Mix and match:</p>
+                <ul className="space-y-1 mt-2">
+                  <li>✅ 1 Character + 1 Location + 2 Assets = 4 references</li>
+                  <li>✅ 2 Characters + 1 Location + 1 Asset = 4 references</li>
+                  <li>✅ 1 Character + 3 Assets = 4 references</li>
+                </ul>
+                <p className="mt-3 font-bold">Perfect consistency across ALL elements in your scene!</p>
+              </div>
+            </div>
+          </div>
+
+          <h3>3D Model Export (Optional):</h3>
+          <p>Turn any asset into a professional 3D model for use outside of video generation:</p>
+          <ul>
+            <li><strong>Game Development:</strong> Export GLB for Unity or Unreal Engine</li>
+            <li><strong>3D Animation:</strong> Export OBJ for Blender, Maya, 3ds Max</li>
+            <li><strong>AR Applications:</strong> Export USDZ for iOS AR apps</li>
+            <li><strong>E-Commerce:</strong> Create 360° product viewers</li>
+            <li><strong>3D Printing:</strong> Custom action figures and physical models</li>
+          </ul>
+
+          <div className="alert alert-warning my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div>
+              <div className="font-bold">⚠️ 3D Files Expire in 7 Days</div>
+              <div className="text-sm">3D models are temporarily stored for 7 days. Download immediately or save to your cloud storage (Google Drive/Dropbox).</div>
+            </div>
+          </div>
+
+          <h3>Mobile Experience:</h3>
+          <ul>
+            <li><strong>Mobile: View & Use</strong> - Browse assets, select for Scene Builder, check 3D status</li>
+            <li><strong>Desktop: Create & Manage</strong> - Upload images, generate 3D models, edit metadata, delete assets</li>
+          </ul>
+
+          <div className="card bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h4 className="font-bold text-lg">🎯 Asset Bank Pro Tip</h4>
+              <div className="text-sm space-y-2">
+                <p>Build your <strong>Digital Prop Department</strong> over time:</p>
+                <ol className="mt-2 space-y-1">
+                  <li>1. Scan props as you need them for productions ($3-7 each)</li>
+                  <li>2. Reuse them in future projects for FREE</li>
+                  <li>3. Export 3D models for game/AR side projects</li>
+                  <li>4. Build a valuable library of photorealistic assets</li>
+                </ol>
+                <p className="mt-3"><strong>Example ROI:</strong> Scan a gun once ($3) → Use in 20 scenes → Cost per scene: $0.15!</p>
               </div>
             </div>
           </div>

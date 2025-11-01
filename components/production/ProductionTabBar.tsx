@@ -11,10 +11,10 @@
  */
 
 import React from 'react';
-import { Film, Clapperboard, Users, BriefcaseBusiness, Sparkles, MapPin } from 'lucide-react';
+import { Film, Clapperboard, Users, BriefcaseBusiness, Sparkles, MapPin, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'workflows' | 'scene-builder' | 'characters' | 'locations' | 'jobs';
+export type ProductionTab = 'workflows' | 'scene-builder' | 'characters' | 'locations' | 'assets' | 'jobs';
 
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
@@ -55,6 +55,14 @@ const TABS = [
     description: 'Location references',
     color: 'text-pink-500',
     activeColor: 'text-pink-600 dark:text-pink-400',
+  },
+  {
+    id: 'assets' as ProductionTab,
+    label: 'Assets',
+    icon: Package,
+    description: 'Props, vehicles & furniture',
+    color: 'text-cyan-500',
+    activeColor: 'text-cyan-600 dark:text-cyan-400',
     badge: 'NEW!'
   },
   {
@@ -74,10 +82,9 @@ export function ProductionTabBar({
   jobCount = 0
 }: ProductionTabBarProps) {
   
-  // Mobile: Show only Workflows and Scene Builder (Advanced)
-  const visibleTabs = isMobile 
-    ? TABS.filter(t => t.id === 'workflows' || t.id === 'scene-builder')
-    : TABS;
+  // Mobile: Show all tabs (but some features are view-only on mobile)
+  // Asset creation/upload is desktop-only, but viewing/using assets works on mobile
+  const visibleTabs = TABS;
 
   return (
     <div className={cn(

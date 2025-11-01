@@ -132,6 +132,13 @@ export default function Features() {
               free={true}
             />
             <FeatureCard
+              title="🎨 Asset Bank - Digital Prop Department (NEW!)"
+              description="Scan any real-world object once (props, vehicles, furniture) → Use in unlimited scenes with perfect consistency. Generate photorealistic 3D models (GLB/OBJ/USDZ) for games, AR, and video. Never worry about inconsistent props again."
+              free={false}
+              credits="$3 per prop, $7 per vehicle/furniture"
+              highlight={true}
+            />
+            <FeatureCard
               title="Custom Voice-Overs (ElevenLabs Integration)"
               description="Connect your ElevenLabs account to add custom narration and voice-overs using your cloned voices. Perfect for tutorials, documentaries, and background narration."
               free={true}
@@ -145,9 +152,9 @@ export default function Features() {
             />
             <FeatureCard
               title="3D Model Export - Turn Your Screenplay into Games & AR"
-              description="Transform your characters AND locations into 3D models for Unity, Unreal Engine, or AR experiences. Create a video game from your screenplay, build AR series for mobile devices, or export to Blender for 3D animation. Your story, infinite possibilities."
+              description="Transform your characters, locations, AND props into 3D models for Unity, Unreal Engine, or AR experiences. Build complete digital asset libraries: $5 per character, $10 per location, $3-7 per prop. Your story, infinite possibilities."
               free={false}
-              credits="$5 per character, $10 per location"
+              credits="$3-10 per export"
             />
             <FeatureCard
               title="Cloud Storage Integration"
