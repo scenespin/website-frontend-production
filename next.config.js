@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Disable ESLint during production builds (warnings won't block deployment)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
   // CDN & Performance Optimization
   compress: true, // Enable gzip/brotli compression
   

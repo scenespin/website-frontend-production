@@ -175,7 +175,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     }
   }, [editorContext.currentSceneName, editorContext.activeCharacterId, activeTab]);
   
-  useEffect(() {
+  useEffect(() => {
     setIsMobileView(shouldSimplifyComposition());
     
     const handleResize = () => {
