@@ -145,7 +145,7 @@ export default function Features() {
             />
             <FeatureCard
               title="3D Model Export - Turn Your Screenplay into Games & AR"
-              description="Transform your characters into 3D models for Unity, Unreal Engine, or AR experiences. Create a video game from your screenplay, build AR series for mobile devices, or export to Blender for 3D animation. Your story, infinite possibilities."
+              description="Transform your characters AND locations into 3D models for Unity, Unreal Engine, or AR experiences. Create a video game from your screenplay, build AR series for mobile devices, or export to Blender for 3D animation. Your story, infinite possibilities."
               free={false}
               credits="$5 per character, $10 per location"
             />
