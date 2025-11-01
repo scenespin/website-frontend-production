@@ -7,14 +7,21 @@ import FolderTreeVisualization from '@/components/FolderTreeVisualization';
 import { Folder, Grid, Info, HardDrive, Cloud } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 
-// Force dynamic rendering (don't prerender this page)
-export const dynamic = 'force-dynamic';
-
 export default function MyAssetsPage() {
   const [activeTab, setActiveTab] = useState('browser');
-  const { currentProject, getStorageProvider } = useScreenplay();
   
-  const storageProvider = getStorageProvider();
+  // Safe access to screenplay context with fallback
+  let currentProject = null;
+  let storageProvider = null;
+  
+  try {
+    const screenplay = useScreenplay();
+    currentProject = screenplay?.currentProject;
+    storageProvider = screenplay?.getStorageProvider?.();
+  } catch (error) {
+    // Context not available during SSR/prerender - will be available on client
+    console.log('Screenplay context not available yet');
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
