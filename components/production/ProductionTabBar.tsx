@@ -11,10 +11,10 @@
  */
 
 import React from 'react';
-import { Film, Clapperboard, Users, BriefcaseBusiness, Sparkles } from 'lucide-react';
+import { Film, Clapperboard, Users, BriefcaseBusiness, Sparkles, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ProductionTab = 'workflows' | 'scene-builder' | 'characters' | 'jobs';
+export type ProductionTab = 'workflows' | 'scene-builder' | 'characters' | 'locations' | 'jobs';
 
 interface ProductionTabBarProps {
   activeTab: ProductionTab;
@@ -47,6 +47,15 @@ const TABS = [
     description: 'Character management',
     color: 'text-green-500',
     activeColor: 'text-green-600 dark:text-green-400'
+  },
+  {
+    id: 'locations' as ProductionTab,
+    label: 'Locations',
+    icon: MapPin,
+    description: 'Location references',
+    color: 'text-pink-500',
+    activeColor: 'text-pink-600 dark:text-pink-400',
+    badge: 'NEW!'
   },
   {
     id: 'jobs' as ProductionTab,
@@ -119,6 +128,13 @@ export function ProductionTabBar({
               )}>
                 {isMobile && tab.id === 'scene-builder' ? 'Advanced' : tab.label}
               </span>
+
+              {/* NEW Badge */}
+              {'badge' in tab && tab.badge && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white">
+                  {tab.badge}
+                </span>
+              )}
 
               {/* Badge for Jobs count */}
               {showBadge && (

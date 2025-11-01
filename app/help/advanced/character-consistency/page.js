@@ -98,6 +98,116 @@ export default function CharacterConsistencyPage() {
             </div>
           </div>
 
+          <h2>🎨 Feature 0098: Character Pose Packages (NEW!)</h2>
+          <p>For ultimate character consistency, generate complete pose packages with multiple pre-defined poses and angles in a single workflow.</p>
+
+          <div className="alert alert-info my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">🆕 Automated Pose Generation</div>
+              <div className="text-sm">Generate 6-30 poses automatically from a single character reference - perfect for complex productions requiring multiple character angles.</div>
+            </div>
+          </div>
+
+          <h3>Available Pose Packages:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 not-prose my-6">
+            <div className="card bg-base-200 border-2 border-base-300">
+              <div className="card-body p-4">
+                <h4 className="card-title text-sm">📦 Standard (6 poses)</h4>
+                <p className="text-xs mb-2">Front, Side, 3/4, Back, Close-up, Full Body</p>
+                <div className="badge badge-sm">120 credits</div>
+              </div>
+            </div>
+            <div className="card bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50">
+              <div className="card-body p-4">
+                <h4 className="card-title text-sm">⭐ Premium (12 poses)</h4>
+                <p className="text-xs mb-2">+ Expressions, emotions, poses</p>
+                <div className="badge badge-sm badge-primary">220 credits</div>
+                <div className="badge badge-sm badge-secondary mt-1">RECOMMENDED</div>
+              </div>
+            </div>
+            <div className="card bg-base-200 border-2 border-base-300">
+              <div className="card-body p-4">
+                <h4 className="card-title text-sm">🎬 Cinematic (20 poses)</h4>
+                <p className="text-xs mb-2">+ Action poses, complex movements</p>
+                <div className="badge badge-sm">360 credits</div>
+              </div>
+            </div>
+          </div>
+
+          <h3>When to Use Pose Packages:</h3>
+          <ul>
+            <li>✅ <strong>Multi-scene productions</strong> - Character appears in 5+ scenes</li>
+            <li>✅ <strong>Complex character movement</strong> - Need multiple angles and poses</li>
+            <li>✅ <strong>Professional series</strong> - Recurring characters across episodes</li>
+            <li>✅ <strong>Time-saving</strong> - Generate all poses once instead of one-by-one</li>
+            <li>✅ <strong>Maximum consistency</strong> - All poses generated together for perfect matching</li>
+          </ul>
+
+          <h3>How to Generate a Pose Package:</h3>
+          <ol>
+            <li>Go to Production → <strong>Characters</strong> tab</li>
+            <li>Select an existing character or create a new one</li>
+            <li>Click <strong>&quot;Generate Pose Package&quot;</strong></li>
+            <li>Choose package tier (Standard/Premium/Cinematic)</li>
+            <li>AI generates all poses automatically in 3-5 minutes</li>
+            <li>Review and use poses in Scene Builder or workflows</li>
+          </ol>
+
+          <div className="alert alert-success my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div>
+              <div className="font-bold">💡 Pro Workflow</div>
+              <div className="text-sm">Start with Standard package (6 poses) to test. If you like the results and need more variety, upgrade to Premium or Cinematic. Each tier builds on the previous one.</div>
+            </div>
+          </div>
+
+          <h3>What&apos;s Included in Each Tier:</h3>
+          <div className="overflow-x-auto my-6">
+            <table className="table table-sm">
+              <thead>
+                <tr>
+                  <th>Pose Type</th>
+                  <th>Standard</th>
+                  <th>Premium</th>
+                  <th>Cinematic</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Camera Angles</td>
+                  <td>4 angles</td>
+                  <td>4 angles</td>
+                  <td>6 angles</td>
+                </tr>
+                <tr>
+                  <td>Expressions</td>
+                  <td>Neutral only</td>
+                  <td>5 emotions</td>
+                  <td>8 emotions</td>
+                </tr>
+                <tr>
+                  <td>Body Poses</td>
+                  <td>2 basic</td>
+                  <td>3 poses</td>
+                  <td>6 complex poses</td>
+                </tr>
+                <tr>
+                  <td>Generation Time</td>
+                  <td>2-3 min</td>
+                  <td>4-5 min</td>
+                  <td>6-8 min</td>
+                </tr>
+                <tr>
+                  <td>Best For</td>
+                  <td>Testing</td>
+                  <td>Most projects</td>
+                  <td>Action scenes</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <h3>4. Use Character Bank</h3>
           <p>Save your character references in the Character Bank. This allows you to:</p>
           <ul>

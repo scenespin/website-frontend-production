@@ -38,7 +38,7 @@ const MODE_CONFIG = {
 // Mode order: Agents first, then generation features
 const MODE_ORDER = ['chat', 'director', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
 
-// LLM Models (Text Generation) - User Choice Strategy
+// LLM Models (Text Generation) - User Choice for Creative Style
 const LLM_MODELS = [
   // Claude (Anthropic)
   { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Best for creative writing', recommended: true },
@@ -138,7 +138,7 @@ function LLMModelSelector() {
         <ChevronDown className="w-3.5 h-3.5" />
       </label>
       <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-64 mb-2 border border-base-300 max-h-96 overflow-y-auto">
-        {/* Group by provider */}
+        {/* Group by provider - Users choose their preferred AI style */}
         {['Anthropic', 'OpenAI', 'Google'].map(provider => {
           const providerModels = LLM_MODELS.filter(m => m.provider === provider);
           return (
@@ -663,18 +663,18 @@ function UnifiedChatPanelInner({
       {/* Anchor for auto-scrolling */}
       <div ref={messagesEndRef} />
 
-      {/* Chat Input - Two-Tiered Design */}
-      <div className="flex-shrink-0 border-t border-base-300 bg-base-100">
+      {/* Chat Input - Modern AI Chat Style */}
+      <div className="flex-shrink-0 border-t border-base-300/50 bg-base-100">
         {/* Attached Files Display */}
         {attachedFiles.length > 0 && (
-          <div className="px-4 pt-3 flex flex-wrap gap-2">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 pt-3 flex flex-wrap gap-2">
             {attachedFiles.map((file, index) => (
-              <div key={index} className="badge badge-lg gap-2 py-3">
-                <Paperclip className="w-3 h-3" />
-                <span className="text-xs">{file.name}</span>
+              <div key={index} className="inline-flex items-center gap-2 px-3 py-1.5 bg-base-200 rounded-lg text-sm">
+                <Paperclip className="w-3 h-3 text-base-content/60" />
+                <span className="text-xs font-medium text-base-content">{file.name}</span>
                 <button
                   onClick={() => removeAttachedFile(index)}
-                  className="hover:text-error"
+                  className="hover:text-error transition-colors"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -683,9 +683,9 @@ function UnifiedChatPanelInner({
           </div>
         )}
         
-        {/* Main Input Area */}
-        <div className="px-4 py-3">
-          <div className="relative">
+        {/* Main Input Area - ChatGPT/Claude Style */}
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-4 md:py-6">
+          <div className="relative bg-base-200 rounded-2xl shadow-sm border border-base-300/50 focus-within:border-cinema-red/30 focus-within:shadow-md transition-all duration-200">
             <textarea
               value={state.input}
               onChange={(e) => setInput(e.target.value)}
@@ -697,18 +697,30 @@ function UnifiedChatPanelInner({
               }}
               placeholder={state.inputPlaceholder}
               disabled={state.isStreaming || isUploading}
-              className="w-full min-h-[52px] max-h-[120px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none pr-24 py-3 text-base"
+              className="w-full min-h-[60px] max-h-[200px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none px-4 md:px-5 py-4 text-base pr-28"
               rows={1}
               style={{ 
                 border: 'none',
                 boxShadow: 'none'
               }}
             />
-            {/* Icons on the right */}
-            <div className="absolute right-2 bottom-2 flex items-center gap-2">
+            {/* Action Buttons - Bottom Right */}
+            <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
+              <button
+                onClick={handleAttachment}
+                className={`p-2.5 rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
+                disabled={state.isStreaming || isUploading}
+                title="Attach files"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Paperclip className="w-5 h-5" />
+                )}
+              </button>
               <button
                 onClick={handleVoiceInput}
-                className={`p-2 rounded-lg hover:bg-base-200 text-base-content/60 hover:text-base-content transition-colors ${isRecording ? 'bg-cinema-red/20 animate-pulse' : ''}`}
+                className={`p-2.5 rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isRecording ? 'bg-cinema-red/20 text-cinema-red animate-pulse' : ''}`}
                 disabled={state.isStreaming || isUploading}
                 title={isRecording ? "Stop recording" : "Voice input"}
               >
@@ -717,7 +729,11 @@ function UnifiedChatPanelInner({
               <button
                 onClick={() => handleSend(state.input)}
                 disabled={!state.input.trim() || state.isStreaming || isUploading}
-                className="p-2 rounded-lg bg-base-200 hover:bg-base-300 text-base-content disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className={`p-2.5 rounded-lg transition-all duration-200 ${
+                  state.input.trim() && !state.isStreaming && !isUploading
+                    ? 'bg-cinema-red hover:bg-cinema-red/90 text-white shadow-sm'
+                    : 'bg-base-300 text-base-content/30 cursor-not-allowed'
+                }`}
                 title="Send message"
               >
                 {state.isStreaming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -726,26 +742,13 @@ function UnifiedChatPanelInner({
           </div>
         </div>
 
-        {/* Bottom Tier - Mode Selector & LLM Model Selector (agents only) */}
-        <div className="px-4 py-2 flex items-center gap-2 border-t border-base-300/50">
-          <button 
-            onClick={handleAttachment}
-            className="p-2 rounded-lg hover:bg-base-200 transition-colors"
-            disabled={state.isStreaming || isUploading}
-            title="Attach files or images"
-          >
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 text-base-content/60 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4 text-base-content/60" />
-            )}
-          </button>
-          
-          <div className="flex-1 flex items-center gap-2">
-            <ModeSelector />
-            {/* Only show LLM selector for AI Agents */}
-            {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
-          </div>
+        {/* Bottom Controls - Mode & Model Selector */}
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-4 flex items-center gap-3 text-xs">
+          <ModeSelector />
+          {/* Only show LLM selector for AI Agents */}
+          {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
+          <div className="flex-1"></div>
+          <span className="text-base-content/40">Shift + Enter for new line</span>
         </div>
         
         {/* Hidden file input */}

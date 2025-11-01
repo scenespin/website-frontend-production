@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PerformanceControls, PerformanceSettings } from '../characters/PerformanceControls';
+import PoseGenerationModal from '../character-bank/PoseGenerationModal';
+import { toast } from 'sonner';
 
 interface CharacterBankPanelProps {
   characters: CharacterProfile[];
@@ -42,6 +44,10 @@ export function CharacterBankPanel({
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [isGeneratingRefs, setIsGeneratingRefs] = useState<Record<string, boolean>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // Pose Generation Modal state
+  const [showPoseModal, setShowPoseModal] = useState(false);
+  const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string} | null>(null);
   
   // Advanced features availability
   const [hasAdvancedFeatures, setHasAdvancedFeatures] = useState(false);
@@ -306,6 +312,19 @@ export function CharacterBankPanel({
                     </>
                   )}
                 </button>
+                
+                {/* NEW: Generate Pose Package Button */}
+                <button
+                  onClick={() => {
+                    setPoseCharacter({id: selectedCharacter.id, name: selectedCharacter.name});
+                    setShowPoseModal(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-purple-500 hover:bg-purple-600 text-white"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generate Pose Package
+                  <span className="badge badge-sm bg-blue-400 text-white ml-1">NEW!</span>
+                </button>
 
                 <label className="block">
                   <input
@@ -346,6 +365,26 @@ export function CharacterBankPanel({
             </button>
           </div>
         </div>
+      )}
+      
+      {/* NEW: Pose Generation Modal */}
+      {showPoseModal && poseCharacter && (
+        <PoseGenerationModal
+          isOpen={showPoseModal}
+          onClose={() => {
+            setShowPoseModal(false);
+            setPoseCharacter(null);
+          }}
+          characterId={poseCharacter.id}
+          characterName={poseCharacter.name}
+          projectId={projectId}
+          onComplete={(result) => {
+            toast.success(`Generated ${result.poses.length} poses for ${poseCharacter.name}!`);
+            onCharactersUpdate();
+            setShowPoseModal(false);
+            setPoseCharacter(null);
+          }}
+        />
       )}
     </div>
   );

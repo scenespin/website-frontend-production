@@ -44,7 +44,7 @@ export default function Features() {
           </div>
           <div className="card bg-base-200">
             <div className="card-body text-center">
-              <div className="text-4xl font-bold text-[#DC143C]">65</div>
+              <div className="text-4xl font-bold text-[#DC143C]">68</div>
               <div className="text-sm opacity-70">Compositions</div>
             </div>
           </div>
@@ -115,9 +115,10 @@ export default function Features() {
               free={true}
             />
             <FeatureCard
-              title="8-Track Timeline Editor"
-              description="Multi-track editing with keyframe precision, professional timeline UI, real-time preview, frame-accurate editing"
+              title="🎬 8-Track Timeline Editor - Professional Non-Linear Editing"
+              description="Hollywood-grade timeline with round-trip editing, edge trimming, frame-accurate snapping, and seamless composition workflow. Edit like a pro - 100% FREE forever."
               free={true}
+              highlight={true}
             />
             <FeatureCard
               title="AI Video Generation"
@@ -143,10 +144,10 @@ export default function Features() {
               credits="400+ credits per scene"
             />
             <FeatureCard
-              title="3D Model Export"
-              description="Export to GLB, OBJ, USDZ formats for use in Blender, Unity, Unreal Engine, and other 3D software"
+              title="3D Model Export - Turn Your Screenplay into Games & AR"
+              description="Transform your characters into 3D models for Unity, Unreal Engine, or AR experiences. Create a video game from your screenplay, build AR series for mobile devices, or export to Blender for 3D animation. Your story, infinite possibilities."
               free={false}
-              credits="20 credits per export"
+              credits="100-150 credits per model"
             />
             <FeatureCard
               title="Cloud Storage Integration"
@@ -159,6 +160,118 @@ export default function Features() {
               free={true}
               highlight={true}
             />
+          </div>
+        </section>
+
+        {/* Timeline Editor Deep Dive */}
+        <section className="mb-16">
+          <h2 className="text-3xl font-bold mb-6">🎬 Timeline Editor - Professional Features</h2>
+          <p className="text-lg opacity-80 mb-8">
+            Hollywood-grade non-linear editing that rivals Premiere Pro & DaVinci Resolve. 100% FREE forever - never pay for using your own footage.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-purple-400 mb-3">🔄 Round-Trip Editing</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Seamlessly move between Timeline and Composition Studio infinitely. Edit clips on timeline, send to composition for layouts, return with composed video automatically replacing originals. Non-destructive - originals always preserved.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Select clips → "Re-compose" → Opens Composition Studio</li>
+                  <li>✅ Render composition → Auto-replaces original clips on timeline</li>
+                  <li>✅ Re-edit compositions anytime - full bidirectional workflow</li>
+                  <li>✅ Metadata preserved through entire production pipeline</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-2 border-blue-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-blue-400 mb-3">✂️ Edge Trimming & Precision Editing</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Frame-accurate editing with professional trimming tools. Drag clip edges to trim, snap to frame boundaries (30fps precision), split at playhead, and more.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Drag resize handles to trim clips non-destructively</li>
+                  <li>✅ Frame-accurate snapping (30fps default, customizable)</li>
+                  <li>✅ Split clips at playhead position</li>
+                  <li>✅ Duplicate clips with keyboard shortcuts</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-green-500/10 to-green-600/10 border-2 border-green-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-green-400 mb-3">🎨 Professional Color Grading</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Apply cinematic color grades (LUTs) directly on timeline. Preview in real-time, no render needed. Includes built-in Wryda signature look.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ One-click LUT application to any clip</li>
+                  <li>✅ Real-time preview before applying</li>
+                  <li>✅ Auto-apply Wryda LUT to imported clips (optional)</li>
+                  <li>✅ Mix different grades across tracks</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-red-500/10 to-red-600/10 border-2 border-red-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-red-400 mb-3">🎞️ Transitions & Effects</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Hollywood-quality transitions applied directly on timeline. Crossfades, wipes, dissolves, and custom durations with easing curves.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Drag & drop transitions between clips</li>
+                  <li>✅ Customizable duration and easing (ease-in, ease-out, etc.)</li>
+                  <li>✅ Real-time preview of transition effects</li>
+                  <li>✅ Access full transition library from timeline</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border-2 border-yellow-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-yellow-400 mb-3">🎵 8-Track Audio Mixing</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Multi-track audio with independent volume controls. Layer dialogue, music, sound effects, and voiceovers with precision.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ 4 video tracks + 4 audio tracks (8 total)</li>
+                  <li>✅ Independent volume faders per track</li>
+                  <li>✅ Keyframe volume automation (fade in/out)</li>
+                  <li>✅ Waveform visualization for precise audio editing</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-pink-500/10 to-pink-600/10 border-2 border-pink-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-pink-400 mb-3">🌐 HDR Video Upgrade</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Upload any standard video and upgrade it to professional 16-bit HDR with consistent cinema-grade color. Works with footage from any source.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Upgrade any video to cinema-grade HDR</li>
+                  <li>✅ Transform iPhone footage to professional quality</li>
+                  <li>✅ Consistent color grading across all clips</li>
+                  <li>✅ Turn $10 stock footage into $500 HDR assets</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="alert bg-gradient-to-r from-cinema-red/20 to-purple-500/20 border-2 border-cinema-red/50">
+            <div>
+              <h3 className="font-bold text-lg mb-2">💎 The Wryda Timeline Advantage</h3>
+              <p className="text-sm opacity-90 mb-3">
+                Replace Premiere Pro, DaVinci Resolve, and After Effects for <strong>$0/month</strong>. Upload unlimited footage in ANY resolution (4K, 8K, RED camera files). Only pay for AI generation and final exports - never for editing your own content.
+              </p>
+              <p className="text-sm opacity-90">
+                <strong>Unique Value:</strong> Complete production pipeline from script to final export. Generate videos with AI, edit professionally on timeline, apply cinema-grade HDR finishing, and export in any format - all in one platform.
+              </p>
+            </div>
           </div>
         </section>
 

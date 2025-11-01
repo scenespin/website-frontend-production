@@ -48,28 +48,53 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
   }, []);
 
   const navigation = [
-    { name: 'Dashboard', href: '/app/dashboard', description: 'Overview & quick access' },
-    { name: 'Write', href: '/app/write', description: 'Create your screenplay' },
+    { name: 'Dashboard', href: '/app/dashboard', description: 'Overview & quick access', icon: 'dashboard' },
+    { name: 'Write', href: '/app/write', description: 'Screenplay editor with Fountain format', icon: 'write' },
     { 
       name: 'Production', 
       href: '/app/production', 
-      description: 'Shot planning & clip generation',
-      desktopRecommended: true  // NEW: Feature 0069
+      description: 'AI video, audio & music generation',
+      desktopRecommended: true,
+      icon: 'production'
     },
-    // REMOVED: Jobs menu item was causing crashes on mobile
-    // { name: 'Jobs', href: '/app/jobs', description: 'Generation history & recovery', badge: 'orphaned' },
-    { name: 'Composition', href: '/app/composition', description: 'Layouts, pacing & effects', desktopRecommended: true }, // NEW: Feature 0068
-    { name: 'Timeline', href: '/app/timeline', description: '8-track video editor' },
-    { name: 'Library', href: '/app/transitions/marketplace', description: 'LUTs, Transitions & Compositions' },
+    { 
+      name: 'Composition', 
+      href: '/app/composition', 
+      description: 'Layouts, pacing & effects studio',
+      desktopRecommended: true,
+      icon: 'composition'
+    },
+    { 
+      name: 'Timeline', 
+      href: '/app/timeline', 
+      description: '8-track video & audio editor',
+      icon: 'timeline'
+    },
+    { 
+      name: 'My Assets', 
+      href: '/app/assets', 
+      description: 'Browse your cloud storage files',
+      icon: 'assets'
+    },
+    { 
+      name: 'Library', 
+      href: '/app/transitions/marketplace', 
+      description: 'Transitions & composition templates',
+      icon: 'library'
+    },
   ]
 
-  // Screenplay-specific views (shown in Write section)
-  const screenplayViews = [
-    { name: 'Story Beats', href: '/app/write?view=storybeats', description: 'Index card view' },
-    { name: 'Characters', href: '/app/write?view=characters', description: 'Character boards' },
-    { name: 'Locations', href: '/app/write?view=locations', description: 'Location management' },
-  ]
-
+  // Workflow stages for progress tracking
+  const workflowStages = ['Write', 'Production', 'Composition', 'Timeline']
+  
+  const getCurrentWorkflowStage = () => {
+    if (pathname?.includes('/app/write') || pathname?.includes('/app/editor')) return 0
+    if (pathname?.includes('/app/production')) return 1
+    if (pathname?.includes('/app/composition')) return 2
+    if (pathname?.includes('/app/timeline')) return 3
+    return -1
+  }
+  
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/')
 
   return (
@@ -89,6 +114,35 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                 Wryda<span className="text-[#DC143C]">.ai</span>
               </div>
             </Link>
+
+            {/* Workflow Progress Indicator - Only show when in production workflow */}
+            {getCurrentWorkflowStage() >= 0 && (
+              <div className="hidden xl:flex items-center gap-2 ml-6 px-4 py-2 bg-white/5 rounded-lg">
+                {workflowStages.map((stage, index) => (
+                  <React.Fragment key={stage}>
+                    <div className={`flex items-center gap-2 ${
+                      index === getCurrentWorkflowStage() 
+                        ? 'text-[#DC143C] font-semibold' 
+                        : index < getCurrentWorkflowStage()
+                        ? 'text-[#B3B3B3]'
+                        : 'text-[#808080]'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        index === getCurrentWorkflowStage()
+                          ? 'bg-[#DC143C] animate-pulse'
+                          : index < getCurrentWorkflowStage()
+                          ? 'bg-[#B3B3B3]'
+                          : 'bg-[#808080]/30'
+                      }`} />
+                      <span className="text-xs">{stage}</span>
+                    </div>
+                    {index < workflowStages.length - 1 && (
+                      <ChevronDown className="w-3 h-3 text-[#808080] rotate-[-90deg]" />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1">
@@ -357,26 +411,6 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                     </span>
                   </Link>
                 ))}
-
-                {/* Separator for Screenplay Views */}
-                <div className="my-4 border-t border-slate-200 dark:border-slate-800 pt-2">
-                  <p className="px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                    Screenplay Views
-                  </p>
-                  {screenplayViews.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex flex-col px-4 py-3 rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <span className="font-medium">{item.name}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {item.description}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
               </nav>
 
               {/* Menu Footer */}

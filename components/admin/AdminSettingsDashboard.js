@@ -182,7 +182,7 @@ export default function AdminSettingsDashboard() {
                 </div>
               </div>
 
-              {/* API Keys */}
+              {/* API Keys - Real Names for Admin Management */}
               <div>
                 <h3 className="font-semibold mb-2">AI Provider APIs</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

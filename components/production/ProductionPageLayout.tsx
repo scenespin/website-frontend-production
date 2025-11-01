@@ -15,7 +15,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEditorContext } from '@/lib/contextStore';
 import { toast } from 'sonner';
 import { useVideoGeneration } from '@/hooks/useVideoGeneration';
 import type { StoryBeat, Character } from '@/types/screenplay';
@@ -31,6 +32,7 @@ import { StoryBeatsPanel } from './StoryBeatsPanel';
 import { ClipGenerationPanel } from './ClipGenerationPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
+import { LocationBankPanel } from './LocationBankPanel';
 
 // Types for production state
 export interface ClipAssignment {
@@ -114,6 +116,10 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   // Screenplay context
   const screenplay = useScreenplay();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get context from editor (scene, character, etc.)
+  const editorContext = useEditorContext();
   
   // Tab navigation state
   const [activeTab, setActiveTab] = useState<ProductionTab>('workflows'); // Default to workflows
@@ -121,6 +127,9 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   // Selected beat state
   const [selectedBeatId, setSelectedBeatId] = useState<string | null>(null);
   const [selectedBeat, setSelectedBeat] = useState<StoryBeat | null>(null);
+  
+  // Contextual scene pre-loading
+  const [contextualScene, setContextualScene] = useState<string | null>(null);
   
   // AI suggestion state
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
@@ -147,7 +156,26 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   // Device detection (Feature 0069)
   const [isMobileView, setIsMobileView] = useState(false);
   
+  // Load contextual scene/character from editor
   useEffect(() => {
+    if (editorContext.currentSceneName) {
+      setContextualScene(editorContext.currentSceneName);
+      
+      // Show toast to inform user
+      toast.success(`Scene loaded: ${editorContext.currentSceneName}`, {
+        description: 'Ready to generate from your current scene',
+        duration: 3000
+      });
+    }
+    
+    // If character is active, could pre-select in Character Bank
+    if (editorContext.activeCharacterId && activeTab === 'characters') {
+      // Character bank will handle highlighting
+      console.log('[Production] Active character:', editorContext.activeCharacterName);
+    }
+  }, [editorContext.currentSceneName, editorContext.activeCharacterId, activeTab]);
+  
+  useEffect(() {
     setIsMobileView(shouldSimplifyComposition());
     
     const handleResize = () => {
@@ -718,6 +746,15 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
               <div className="max-w-6xl mx-auto">
                 <ProductionJobsPanel projectId={projectId} />
               </div>
+            </div>
+          )}
+          
+          {activeTab === 'locations' && (
+            <div className="flex-1 overflow-auto">
+              <LocationBankPanel
+                projectId={projectId}
+                className="h-full"
+              />
             </div>
           )}
         </div>

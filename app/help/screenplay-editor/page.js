@@ -35,13 +35,22 @@ export default function ScreenplayEditorPage() {
 
         {/* Article */}
         <article className="prose prose-lg max-w-none">
-          <h1>Screenplay Editor Guide ✍️</h1>
+          <h1>✍️ Write Page: Your AI-Powered Screenplay Editor</h1>
+          <p className="lead">Professional Fountain-format screenplay editor with 3 specialized AI writing agents. Write naturally, get instant help, and let the AI handle the heavy lifting while you focus on storytelling.</p>
 
           <div className="alert alert-success my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <div>
-              <div className="font-bold">Industry-standard Fountain format editor</div>
-              <div className="text-sm">Real-time auto-formatting • Always free • Unlimited use</div>
+              <div className="font-bold">🚀 What Makes This Different?</div>
+              <div className="text-sm">Industry-standard Fountain format • 3 AI writing agents • Context-aware assistance • Auto-saves every 2 seconds • Always FREE</div>
+            </div>
+          </div>
+
+          <div className="alert alert-info my-6 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">💡 The Killer Feature:</div>
+              <div className="text-sm">Contextual AI assistance! Our AI agents know what scene you're in, which characters are present, and where you are in your story. Get relevant help exactly when you need it.</div>
             </div>
           </div>
 
@@ -75,6 +84,148 @@ export default function ScreenplayEditorPage() {
             <div className="card bg-base-200">
               <div className="card-body p-4">
                 <h3 className="font-bold text-sm">✅ Export to PDF, FDX, DOC</h3>
+              </div>
+            </div>
+          </div>
+
+          <h2>🤖 The 3 AI Writing Agents</h2>
+          <p>Your personal writing team, available 24/7. Each agent specializes in different aspects of screenwriting.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 not-prose my-8">
+            <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30">
+              <div className="card-body">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  🎬 Screenwriter Agent
+                </h3>
+                <p className="text-sm opacity-80 mb-3">Your brainstorming partner for story development and structure</p>
+                <div className="text-xs space-y-2">
+                  <div><strong>Best For:</strong></div>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Story ideation & concept development</li>
+                    <li>Plot structure & act breakdowns</li>
+                    <li>Character backstories & motivations</li>
+                    <li>Solving plot holes</li>
+                    <li>"I'm stuck - what happens next?"</li>
+                  </ul>
+                  <div className="pt-2"><strong>Example Prompts:</strong></div>
+                  <ul className="list-disc list-inside space-y-1 opacity-70">
+                    <li>"Help me structure a three-act thriller"</li>
+                    <li>"What are 5 ways this scene could end?"</li>
+                    <li>"Is my protagonist's motivation clear?"</li>
+                  </ul>
+                </div>
+                <div className="badge badge-sm badge-primary mt-3">0.1-2 credits per use</div>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-pink-500/10 to-pink-600/10 border-2 border-pink-500/30">
+              <div className="card-body">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  🎭 Director Agent
+                </h3>
+                <p className="text-sm opacity-80 mb-3">Generates complete scenes with dialogue and visual direction</p>
+                <div className="text-xs space-y-2">
+                  <div><strong>Best For:</strong></div>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Writing entire scenes from scratch</li>
+                    <li>Character-specific dialogue</li>
+                    <li>Action sequences & blocking</li>
+                    <li>Visual storytelling direction</li>
+                    <li>Emotional beats & subtext</li>
+                  </ul>
+                  <div className="pt-2"><strong>Example Prompts:</strong></div>
+                  <ul className="list-disc list-inside space-y-1 opacity-70">
+                    <li>"Write a tense confrontation between Sarah and her boss"</li>
+                    <li>"Create an action scene: car chase"</li>
+                    <li>"Generate dialogue for a breakup scene"</li>
+                  </ul>
+                </div>
+                <div className="badge badge-sm badge-secondary mt-3">0.5-2 credits per scene</div>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-cinema-gold/10 to-cinema-gold/20 border-2 border-cinema-gold/30">
+              <div className="card-body">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  ✨ Polish Agent
+                </h3>
+                <p className="text-sm opacity-80 mb-3">Refines dialogue, tightens prose, fixes formatting</p>
+                <div className="text-xs space-y-2">
+                  <div><strong>Best For:</strong></div>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Making dialogue sound natural</li>
+                    <li>Tightening scene descriptions</li>
+                    <li>Grammar & formatting fixes</li>
+                    <li>Adding subtext to dialogue</li>
+                    <li>Quick rewrites & improvements</li>
+                  </ul>
+                  <div className="pt-2"><strong>How to Use:</strong></div>
+                  <ul className="list-disc list-inside space-y-1 opacity-70">
+                    <li><strong>Mobile:</strong> Select text → Tap ✨ FAB button</li>
+                    <li><strong>Desktop:</strong> Place cursor → Ctrl+/ → Ask for polish</li>
+                    <li>Works on selected text only!</li>
+                  </ul>
+                </div>
+                <div className="badge badge-sm badge-accent mt-3">0.1-1 credit per edit</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="alert alert-warning my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+              <div className="font-bold">💎 AI Agents are Nearly FREE!</div>
+              <div className="text-sm">
+                <strong>Cost Comparison:</strong> AI Agents (0.1-2 cr) vs Video Generation (25-30 cr) = <strong>25-75x cheaper!</strong><br/>
+                <strong>Translation:</strong> FREE users (10 cr/month) get 5-100 agent conversations. Pro users get essentially UNLIMITED!
+              </div>
+            </div>
+          </div>
+
+          <h2>📝 How to Access AI Agents</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 not-prose my-8">
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h3 className="card-title text-base">💻 Desktop</h3>
+                <ol className="text-sm list-decimal list-inside space-y-2">
+                  <li>Press <kbd className="kbd kbd-sm">Ctrl+/</kbd> (or ⌘+/ on Mac)</li>
+                  <li>AI panel slides out from right</li>
+                  <li>Select agent from dropdown (Screenwriter or Director)</li>
+                  <li>Type your request</li>
+                  <li>Copy AI's response into your script</li>
+                </ol>
+                <div className="divider text-xs opacity-50">OR</div>
+                <p className="text-sm"><strong>For Polish Agent:</strong></p>
+                <ol className="text-sm list-decimal list-inside space-y-2">
+                  <li>Place cursor where you want to edit</li>
+                  <li>Press <kbd className="kbd kbd-sm">Ctrl+/</kbd></li>
+                  <li>Ask: "Make this dialogue more natural"</li>
+                  <li>AI rewrites based on cursor context!</li>
+                </ol>
+              </div>
+            </div>
+
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h3 className="card-title text-base">📱 Mobile</h3>
+                <ol className="text-sm list-decimal list-inside space-y-2">
+                  <li>Tap ✨ button in header</li>
+                  <li>AI panel slides up from bottom</li>
+                  <li>Select agent (Screenwriter or Director)</li>
+                  <li>Type your request</li>
+                  <li>Copy AI's response into script</li>
+                </ol>
+                <div className="divider text-xs opacity-50">Polish Agent (Mobile Only)</div>
+                <p className="text-sm"><strong>Quick Rewrite Feature:</strong></p>
+                <ol className="text-sm list-decimal list-inside space-y-2">
+                  <li>Select text you want to improve</li>
+                  <li>Floating ✨ button appears</li>
+                  <li>Tap it</li>
+                  <li>AI automatically loads selected text</li>
+                  <li>Ask: "Make this better"</li>
+                  <li>Copy improved version back!</li>
+                </ol>
               </div>
             </div>
           </div>
@@ -269,24 +420,84 @@ export default function ScreenplayEditorPage() {
             <li>Collaborate with pull requests</li>
           </ul>
 
-          <h2>AI Integration</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 not-prose my-8">
-            <div className="card bg-primary text-primary-content">
-              <div className="card-body">
-                <h3 className="card-title text-base">Generate from Scene</h3>
-                <p className="text-sm">Highlight scene → Generate Video → AI creates visual</p>
+          <h2>🧭 Contextual Navigation (Cross-Page Awareness)</h2>
+          <p>Wryda tracks where you are in your screenplay and makes all pages contextually aware. No more manual searching!</p>
+
+          <div className="card bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-2 border-blue-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h3 className="font-bold text-lg mb-3">🎯 How It Works</h3>
+              <div className="text-sm space-y-3">
+                <p><strong>Scenario:</strong> You're writing Scene 15 in the editor (INT. APARTMENT - NIGHT, SARAH and JOHN arguing)</p>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="badge badge-sm badge-primary flex-shrink-0">1</span>
+                    <div>
+                      <strong>Switch to Story Beats →</strong> Page automatically scrolls to the beat containing Scene 15 (e.g., "Midpoint Crisis")
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="badge badge-sm badge-secondary flex-shrink-0">2</span>
+                    <div>
+                      <strong>Switch to Characters →</strong> SARAH and JOHN appear at the top of the list (they're in your current scene!)
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="badge badge-sm badge-accent flex-shrink-0">3</span>
+                    <div>
+                      <strong>Switch to Production →</strong> Scene 15 is already loaded in Scene Builder, ready to generate videos!
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="badge badge-sm badge-info flex-shrink-0">4</span>
+                    <div>
+                      <strong>Switch to Timeline →</strong> Scrolls to clips from Scene 15 (if any exist), all highlighted and ready to edit
+                    </div>
+                  </div>
+                </div>
+                <p className="pt-3 font-semibold">✨ <strong>Everywhere you go, the context follows you!</strong> No manual searching for scenes, characters, or beats.</p>
               </div>
             </div>
-            <div className="card bg-secondary text-secondary-content">
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 not-prose my-8">
+            <div className="card bg-base-200">
               <div className="card-body">
-                <h3 className="card-title text-base">Director Agent</h3>
-                <p className="text-sm">Structure and pacing feedback</p>
+                <h3 className="card-title text-base">📍 Bidirectional Navigation</h3>
+                <div className="text-sm space-y-2">
+                  <p><strong>From Editor → Other Pages:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 opacity-80">
+                    <li>Context automatically flows to all pages</li>
+                    <li>Pages open at relevant position</li>
+                    <li>Current scene/beat/character highlighted</li>
+                  </ul>
+                  <p className="pt-2"><strong>From Other Pages → Editor:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 opacity-80">
+                    <li>Click any scene in Story Beats → Editor jumps to that scene</li>
+                    <li>Click a scene in Character list → Editor jumps there</li>
+                    <li>Click a location scene → Editor opens at that scene</li>
+                  </ul>
+                </div>
               </div>
             </div>
-            <div className="card bg-accent text-accent-content">
+
+            <div className="card bg-base-200">
               <div className="card-body">
-                <h3 className="card-title text-base">Chat Agent</h3>
-                <p className="text-sm">Brainstorming and dialogue polish</p>
+                <h3 className="card-title text-base">💾 Remembers Your Position</h3>
+                <div className="text-sm space-y-2">
+                  <p><strong>Close and Reopen:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 opacity-80">
+                    <li>Close app at Scene 15</li>
+                    <li>Open next day</li>
+                    <li>Automatically returns to Scene 15!</li>
+                    <li>All pages ready for Scene 15 work</li>
+                  </ul>
+                  <p className="pt-2"><strong>Smart Suggestions:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 opacity-80">
+                    <li>App detects: "Scene 8 has dialogue but no videos"</li>
+                    <li>Shows banner: "Generate videos for Scene 8?"</li>
+                    <li>Click → Production opens with Scene 8 loaded!</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>

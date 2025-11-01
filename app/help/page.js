@@ -56,6 +56,62 @@ export default function HelpCenter() {
           />
         </section>
 
+        {/* Production Workflow - Mirrors App Navigation */}
+        <section className="mb-16">
+          <div className="card bg-gradient-to-br from-cinema-red/10 to-cinema-blue/10 border-2 border-cinema-red/30">
+            <div className="card-body">
+              <h2 className="text-3xl font-bold mb-2">🎬 Complete Production Workflow</h2>
+              <p className="text-sm opacity-70 mb-6">Follow the same navigation you'll use in the app - Write → Production → Composition → Timeline</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link href="/help/screenplay-editor" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-purple-500/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">✍️</div>
+                    <h3 className="font-bold text-base">1. Write</h3>
+                    <p className="text-xs opacity-70">Screenplay editor with 3 AI writing agents</p>
+                    <div className="badge badge-sm badge-primary mt-2">START HERE</div>
+                  </div>
+                </Link>
+
+                <Link href="/help/production" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-pink-500/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">🎬</div>
+                    <h3 className="font-bold text-base">2. Production</h3>
+                    <p className="text-xs opacity-70">58 workflows, scene builder, characters & locations</p>
+                    <div className="badge badge-sm badge-secondary mt-2">GENERATE</div>
+                  </div>
+                </Link>
+
+                <Link href="/help/composition" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-blue-500/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">🎨</div>
+                    <h3 className="font-bold text-base">3. Composition</h3>
+                    <p className="text-xs opacity-70">Split-screens, grids, paced sequences</p>
+                    <div className="badge badge-sm badge-accent mt-2">LAYOUTS</div>
+                  </div>
+                </Link>
+
+                <Link href="/help/advanced/timeline-mastery" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-green-500/30">
+                  <div className="card-body items-center text-center">
+                    <div className="text-4xl mb-2">🎞️</div>
+                    <h3 className="font-bold text-base">4. Timeline</h3>
+                    <p className="text-xs opacity-70">8-track editing, transitions, export</p>
+                    <div className="badge badge-sm badge-success mt-2">FINISH</div>
+                  </div>
+                </Link>
+              </div>
+
+              <div className="alert alert-info mt-6 not-prose">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                  <div className="font-bold">💡 This mirrors your actual workflow!</div>
+                  <div className="text-sm">When you sign up, you'll see the same navigation: Write → Production → Composition → Timeline. Learn it here, use it seamlessly in the app!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Level 1: Getting Started */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold mb-2">🚀 Level 1: Getting Started</h2>

@@ -141,8 +141,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         </div>
       )}
       
-      {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* Chat Messages Area - ChatGPT/Claude Style */}
+      <div className="flex-1 overflow-y-auto">
         {state.messages
           .filter(m => m.mode === 'chat')
           .map((message, index) => {
@@ -162,44 +162,65 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             return (
               <div
                 key={index}
-                className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
+                className={`group w-full ${isUser ? 'bg-transparent' : 'bg-base-200/30'}`}
               >
-                {/* Message Bubble */}
-                <div className={`max-w-[85%] rounded-lg px-4 py-3 ${
-                  isUser 
-                    ? 'bg-cinema-red text-white' 
-                    : 'bg-base-200 text-base-content'
-                }`}>
-                  <div className="flex items-start gap-2">
-                    {!isUser && <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />}
-                    <div className="whitespace-pre-wrap break-words flex-1">
-                      {message.content}
+                <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
+                  <div className="flex gap-4 md:gap-6">
+                    {/* Avatar */}
+                    <div className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center ${
+                      isUser 
+                        ? 'bg-gradient-to-br from-cinema-red to-cinema-red/80 text-white' 
+                        : 'bg-gradient-to-br from-purple-500 to-purple-600 text-white'
+                    }`}>
+                      {isUser ? <User className="w-4 h-4 md:w-5 md:h-5" /> : <Bot className="w-4 h-4 md:w-5 md:h-5" />}
                     </div>
-                    {isUser && <User className="w-5 h-5 mt-0.5 flex-shrink-0" />}
+                    
+                    {/* Message Content */}
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="prose prose-sm md:prose-base max-w-none">
+                        <div className={`whitespace-pre-wrap break-words ${
+                          isUser ? 'text-base-content' : 'text-base-content/90'
+                        }`}>
+                          {message.content}
+                        </div>
+                      </div>
+                      
+                      {/* Insert Button */}
+                      {showInsertButton && onInsert && (
+                        <button
+                          onClick={() => onInsert(message.content)}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Insert into script
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                
-                {/* Insert Button */}
-                {showInsertButton && onInsert && (
-                  <button
-                    onClick={() => onInsert(message.content)}
-                    className="btn btn-xs btn-outline gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Insert into script
-                  </button>
-                )}
               </div>
             );
           })}
         
         {/* Streaming text */}
         {state.isStreaming && state.streamingText && (
-          <div className="flex flex-col gap-2">
-            <div className="max-w-[85%] rounded-lg px-4 py-3 bg-base-200 text-base-content">
-              <div className="whitespace-pre-wrap break-words">
-                {state.streamingText}
-                <span className="animate-pulse">▊</span>
+          <div className="group w-full bg-base-200/30">
+            <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
+              <div className="flex gap-4 md:gap-6">
+                {/* Avatar */}
+                <div className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                  <Bot className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                
+                {/* Streaming Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="prose prose-sm md:prose-base max-w-none">
+                    <div className="whitespace-pre-wrap break-words text-base-content/90">
+                      {state.streamingText}
+                      <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

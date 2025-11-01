@@ -33,7 +33,37 @@ export default function TimelineMasteryPage() {
 
         <article className="prose prose-lg max-w-none">
           <h1>Timeline Editing Mastery ⏱️</h1>
-          <p className="lead">Professional 8-track timeline editor with keyframe precision, real-time preview, and Hollywood transitions.</p>
+          <p className="lead">Professional 8-track timeline editor with round-trip editing, edge trimming, HDR finishing, and seamless composition workflow. Rivals Premiere Pro & DaVinci Resolve - 100% FREE forever.</p>
+
+          <div className="alert alert-success my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div>
+              <div className="font-bold">🚀 Wryda&apos;s Complete Video Production Pipeline</div>
+              <div className="text-sm">Professional timeline editing combined with AI video generation and HDR finishing. Generate, edit, enhance, and export - all in one platform.</div>
+            </div>
+          </div>
+
+          <h2>🔥 Professional Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 not-prose my-8">
+            <div className="card bg-purple-500/10 border-2 border-purple-500/30">
+              <div className="card-body">
+                <h3 className="card-title text-sm text-purple-400">🔄 Round-Trip Editing</h3>
+                <p className="text-xs">Move seamlessly between Timeline and Composition Studio infinitely. Non-destructive workflow with metadata preservation.</p>
+              </div>
+            </div>
+            <div className="card bg-blue-500/10 border-2 border-blue-500/30">
+              <div className="card-body">
+                <h3 className="card-title text-sm text-blue-400">✂️ Edge Trimming</h3>
+                <p className="text-xs">Frame-accurate clip trimming with drag handles. 30fps precision snapping, split at playhead, non-destructive editing.</p>
+              </div>
+            </div>
+            <div className="card bg-pink-500/10 border-2 border-pink-500/30">
+              <div className="card-body">
+                <h3 className="card-title text-sm text-pink-400">🌐 HDR Video Upgrade</h3>
+                <p className="text-xs">Upload any standard video and upgrade it to professional 16-bit HDR. Consistent cinema-grade color across all clips.</p>
+              </div>
+            </div>
+          </div>
 
           <h2>Timeline Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose my-8">
@@ -76,6 +106,79 @@ export default function TimelineMasteryPage() {
           </div>
 
           <h2>Basic Operations</h2>
+
+          <h3>🔄 Round-Trip Editing (Killer Feature!)</h3>
+          <div className="alert alert-info my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">Seamless Timeline ↔ Composition Workflow</div>
+              <div className="text-sm">Move back and forth between Timeline and Composition Studio infinitely. Originals always preserved, metadata tracked throughout.</div>
+            </div>
+          </div>
+
+          <h4>How Round-Trip Editing Works:</h4>
+          <ol>
+            <li><strong>Timeline → Composition:</strong>
+              <ul>
+                <li>Select multiple clips on timeline (Cmd/Ctrl + Click)</li>
+                <li>Click purple &quot;Re-compose&quot; button (sparkles icon)</li>
+                <li>Composition Studio opens with clips preloaded</li>
+                <li>Apply layouts (split-screen, PIP, grids)</li>
+                <li>Render composition</li>
+              </ul>
+            </li>
+            <li><strong>Composition → Timeline:</strong>
+              <ul>
+                <li>Click &quot;Return to Timeline&quot; button</li>
+                <li>Composed video automatically replaces original clips</li>
+                <li>Original clips hidden (not deleted)</li>
+                <li>Timeline position preserved</li>
+              </ul>
+            </li>
+            <li><strong>Re-edit Anytime:</strong>
+              <ul>
+                <li>Right-click composed clip → &quot;Re-edit Composition&quot;</li>
+                <li>Returns to Composition Studio with original settings</li>
+                <li>Make changes, re-render</li>
+                <li>Timeline updates automatically</li>
+              </ul>
+            </li>
+          </ol>
+
+          <div className="card bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h4 className="font-bold text-lg">💡 Pro Workflow Example</h4>
+              <div className="text-sm space-y-2">
+                <p><strong>Scenario:</strong> You generated 3 dialogue clips and want them as split-screen</p>
+                <ol className="list-decimal list-inside space-y-1 mt-2 ml-4">
+                  <li>Production Page → Generate 3 clips → Send to Timeline</li>
+                  <li>Timeline → Select all 3 clips → Click &quot;Re-compose&quot;</li>
+                  <li>Composition Studio → Apply &quot;Triple Split&quot; layout → Render</li>
+                  <li>Composed video returns to Timeline automatically</li>
+                  <li>Add music, titles, export → Done!</li>
+                </ol>
+                <p className="mt-3"><strong>Result:</strong> Professional split-screen edit in under 2 minutes. No manual alignment, no guesswork!</p>
+              </div>
+            </div>
+          </div>
+
+          <h3>✂️ Edge Trimming & Frame-Accurate Editing</h3>
+          <p>Professional trimming tools with 30fps precision snapping:</p>
+          <ul>
+            <li><strong>Drag Trim Handles:</strong> Hover over clip edges → Drag left/right to trim non-destructively</li>
+            <li><strong>Frame Snapping:</strong> Clips automatically snap to frame boundaries (30fps grid)</li>
+            <li><strong>Split at Playhead:</strong> Position playhead → Press S (or scissors icon) → Clip splits into two</li>
+            <li><strong>Ripple Delete:</strong> Shift + Delete removes clip AND closes gap</li>
+            <li><strong>Duplicate:</strong> Alt/Option + Drag creates copy with 0.5s gap</li>
+          </ul>
+
+          <div className="alert alert-warning my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div>
+              <div className="font-bold">Non-Destructive Editing</div>
+              <div className="text-sm">Trimming never deletes original media. The full clip is always preserved in cloud storage. Trim marks just hide portions during playback/export.</div>
+            </div>
+          </div>
 
           <h3>Adding Clips</h3>
           <ol>
@@ -154,6 +257,73 @@ export default function TimelineMasteryPage() {
             <li><strong>Grids:</strong> 2×2, 3×3, custom grids</li>
             <li><strong>Animated:</strong> Motion graphics templates</li>
           </ul>
+
+          <h2>🌐 HDR Video Upgrade (Professional Finishing)</h2>
+          <div className="alert alert-success my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div>
+              <div className="font-bold">Professional HDR Finishing</div>
+              <div className="text-sm">Upgrade any standard video to cinema-grade 16-bit HDR with consistent color grading across your entire timeline.</div>
+            </div>
+          </div>
+
+          <h3>What is HDR Upgrade?</h3>
+          <p>Transform standard 8-bit video into professional 16-bit HDR with enhanced dynamic range and vivid, accurate colors - the same quality used in cinema and streaming productions.</p>
+
+          <h4>How It Works:</h4>
+          <ol>
+            <li>Upload any standard video (from any source)</li>
+            <li>Select &quot;Upgrade to HDR&quot; in Production workflows</li>
+            <li>AI analyzes and enhances dynamic range</li>
+            <li>Output: Professional 16-bit HDR video</li>
+            <li>All clips now have consistent, cinema-grade look</li>
+          </ol>
+
+          <h4>Why This Matters:</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose my-8">
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h5 className="font-bold text-sm">🎬 Professional Finishing</h5>
+                <p className="text-xs">Mix footage from different sources → HDR upgrade → All clips match perfectly with cinema-grade quality!</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h5 className="font-bold text-sm">📱 iPhone to Cinema</h5>
+                <p className="text-xs">Shoot on iPhone (standard video) → Upload to Wryda → HDR upgrade → Professional cinema-grade footage!</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h5 className="font-bold text-sm">💰 Stock Enhancement</h5>
+                <p className="text-xs">Download affordable stock footage → HDR upgrade → Premium HDR asset worth much more!</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h5 className="font-bold text-sm">🔄 Retroactive Upgrade</h5>
+                <p className="text-xs">Old videos from any source → HDR upgrade → Modern cinema-grade quality!</p>
+              </div>
+            </div>
+          </div>
+
+          <h4>Pricing:</h4>
+          <ul>
+            <li><strong>Cost:</strong> 100-200 credits per video (~$1-2)</li>
+            <li><strong>Time:</strong> 3-5 minutes processing</li>
+            <li><strong>Output:</strong> Professional 16-bit HDR video</li>
+            <li><strong>Value:</strong> Turn any footage into cinema-grade HDR</li>
+          </ul>
+
+          <div className="card bg-gradient-to-br from-pink-500/10 to-red-500/10 border-2 border-pink-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h4 className="font-bold text-lg">💎 Complete Production Pipeline</h4>
+              <div className="text-sm space-y-2">
+                <p><strong>The Wryda Advantage:</strong> Generate videos with AI → Edit professionally on timeline → Apply HDR finishing → Export in any format</p>
+                <p className="mt-3"><strong>Result:</strong> Mix clips from any source, apply HDR upgrade for consistency, get cinema-grade results across your entire timeline. Complete production pipeline in one platform!</p>
+              </div>
+            </div>
+          </div>
 
           <h2>Audio Editing</h2>
 

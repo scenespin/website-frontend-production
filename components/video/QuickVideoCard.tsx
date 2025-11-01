@@ -442,7 +442,7 @@ export function QuickVideoCard({
               🎭 Reference Images (Up to 3)
             </label>
             <p className="text-xs text-muted-foreground mb-3">
-              Upload 1-3 images of your character from different angles. Veo will maintain consistency across the video.
+              Upload 1-3 images of your character from different angles. Our AI will maintain perfect consistency across the entire video.
             </p>
             
             <div className="grid grid-cols-3 gap-2">

@@ -10,9 +10,10 @@ import {
   FileText,
   Zap,
   Menu,
-  X
+  X,
+  Coins
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
 
 export default function Navigation() {
@@ -20,6 +21,31 @@ export default function Navigation() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { openDrawer } = useDrawer();
+  
+  // Credit balance state
+  const [credits, setCredits] = useState(null);
+  const [loadingCredits, setLoadingCredits] = useState(true);
+  
+  // Fetch user's credit balance
+  useEffect(() => {
+    if (user?.id) {
+      fetchCreditBalance();
+    }
+  }, [user?.id]);
+  
+  async function fetchCreditBalance() {
+    try {
+      const response = await fetch('/api/user/credits');
+      if (response.ok) {
+        const data = await response.json();
+        setCredits(data.credits || 0);
+      }
+    } catch (error) {
+      console.error('[Navigation] Failed to fetch credits:', error);
+    } finally {
+      setLoadingCredits(false);
+    }
+  }
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -76,13 +102,32 @@ export default function Navigation() {
               ))}
             </nav>
 
-            {/* User Menu */}
-            <div className="flex items-center gap-4">
+            {/* User Menu - Desktop */}
+            <div className="flex items-center gap-3">
               {user && (
-                <Link href="/pricing" className="btn btn-sm gap-2 bg-cinema-red hover:opacity-90 text-white border-none">
-                  <Zap className="w-4 h-4 text-cinema-gold" />
-                  <span>Add Credits</span>
-                </Link>
+                <>
+                  {/* Credit Balance Display */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300">
+                    <Coins className="w-4 h-4 text-cinema-gold" />
+                    <span className="text-sm font-semibold">
+                      {loadingCredits ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      ) : (
+                        <span className="tabular-nums">{credits?.toLocaleString() || '0'}</span>
+                      )}
+                    </span>
+                    <span className="text-xs text-base-content/60">credits</span>
+                  </div>
+                  
+                  {/* Buy Credits Button */}
+                  <Link 
+                    href="/buy-credits" 
+                    className="btn btn-sm gap-2 bg-cinema-red hover:opacity-90 text-white border-none"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>Buy Credits</span>
+                  </Link>
+                </>
               )}
               <UserButton afterSignOutUrl="/" />
             </div>
@@ -148,14 +193,30 @@ export default function Navigation() {
                 </Link>
               )
             ))}
-            <div className="pt-2 border-t border-base-300">
+            
+            {/* Mobile Credit Balance & Buy Button */}
+            <div className="pt-2 border-t border-base-300 space-y-2">
+              {/* Credit Balance */}
+              <div className="flex items-center justify-center gap-2 px-4 py-2 bg-base-100 rounded-lg border border-base-300">
+                <Coins className="w-4 h-4 text-cinema-gold" />
+                <span className="text-sm font-semibold">
+                  {loadingCredits ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    <span className="tabular-nums">{credits?.toLocaleString() || '0'}</span>
+                  )}
+                </span>
+                <span className="text-xs text-base-content/60">credits</span>
+              </div>
+              
+              {/* Buy Credits Button */}
               <Link
-                href="/pricing"
+                href="/buy-credits"
                 onClick={() => setMobileMenuOpen(false)}
                 className="btn btn-block gap-2 bg-cinema-red hover:opacity-90 text-white border-none"
               >
-                <Zap className="w-4 h-4 text-cinema-gold" />
-                Add Credits
+                <Zap className="w-4 h-4" />
+                Buy Credits
               </Link>
             </div>
           </div>

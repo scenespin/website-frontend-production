@@ -40,9 +40,9 @@ export default function Page() {
           </h1>
 
           <p className="text-xl md:text-2xl opacity-90 max-w-3xl">
-            Your Camera Footage + AI-Generated Shots (VFX, B-roll, locations) + Hollywood Transitions & Compositions
+            58 AI Workflows + 68 Professional Compositions + Cinema-Grade HDR
             <br />
-            <strong className="text-[#DC143C]">= Professional Film at 1% Cost</strong>
+            <strong className="text-[#DC143C]">The Complete Production Pipeline: Write → Export</strong>
           </p>
 
           {/* Value Props */}
@@ -53,7 +53,7 @@ export default function Page() {
               </svg>
               <div>
                 <strong>Software is 100% FREE</strong>
-                <p className="text-sm opacity-70">Screenplay editor, timeline, 65 compositions, 30 transitions - $0 forever</p>
+                <p className="text-sm opacity-70">58 workflows, 68 compositions, 30 transitions, 8-track timeline - $0 forever</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -111,10 +111,10 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                🌟 Industry-Leading Technology
+                🌟 Industry-First Technology
               </h2>
-              <p className="text-lg opacity-80">
-                No other platform has these features. This is revolutionary.
+              <p className="text-lg opacity-80 max-w-3xl mx-auto">
+                <strong>The ONLY platform with cinema-grade HDR upgrade.</strong> Convert videos from any AI tool, your camera, or stock footage to professional 16-bit HDR.
               </p>
             </div>
 
@@ -151,11 +151,12 @@ export default function Page() {
 
               <div className="card bg-base-100 shadow-xl">
                 <div className="card-body">
-                  <div className="text-4xl mb-2">⚡</div>
-                  <h3 className="card-title text-lg">95% Time Savings</h3>
+                  <div className="text-4xl mb-2">🎨</div>
+                  <h3 className="card-title text-lg">Cinema-Grade HDR Upgrade</h3>
                   <p className="text-sm opacity-80">
-                    Intelligent automation eliminates repetitive tasks entirely. Professional workflows built-in.
+                    Convert ANY video to 16-bit HDR. The ONLY platform that can upgrade videos from other AI tools to cinema quality.
                   </p>
+                  <div className="badge badge-error gap-1 mt-2">🔥 Exclusive</div>
                 </div>
               </div>
             </div>
