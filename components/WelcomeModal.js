@@ -58,7 +58,7 @@ export default function WelcomeModal({ isOpen, onClose, userCredits = 100 }) {
             <div>
               <h4 className="font-semibold text-lg">🎥 Production</h4>
               <p className="text-sm opacity-80">
-                Generate AI videos from text, upload your footage, access 42 workflows. Build your scene library.
+                Generate AI videos from text, upload your footage, access 50+ workflows. Build your scene library.
               </p>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function WelcomeModal({ isOpen, onClose, userCredits = 100 }) {
               className="btn btn-ghost btn-lg w-full flex items-center justify-center gap-2"
             >
               <Sparkles className="w-5 h-5" />
-              Explore 42 Workflows
+              Explore 50+ Workflows
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
