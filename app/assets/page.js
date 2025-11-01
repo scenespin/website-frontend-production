@@ -7,6 +7,9 @@ import FolderTreeVisualization from '@/components/FolderTreeVisualization';
 import { Folder, Grid, Info, HardDrive, Cloud } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 
+// Force dynamic rendering (don't prerender this page)
+export const dynamic = 'force-dynamic';
+
 export default function MyAssetsPage() {
   const [activeTab, setActiveTab] = useState('browser');
   const { currentProject, getStorageProvider } = useScreenplay();
