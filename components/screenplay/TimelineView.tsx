@@ -8,7 +8,7 @@ import "@/styles/timeline.css"
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Plus } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useScreenplay } from "@/contexts/ScreenplayContext"
-import { Scene, StoryBeat, Character, Location } from "../../../types/screenplay"
+import { Scene, StoryBeat, Character, Location } from "@/types/screenplay"
 
 interface TimelineItem {
   id: string

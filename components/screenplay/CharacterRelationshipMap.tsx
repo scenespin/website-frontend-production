@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { Character, Scene } from '../../../types/screenplay';
+import { Character, Scene } from '@/types/screenplay';
 import { X } from 'lucide-react';
 
 interface CharacterNode {

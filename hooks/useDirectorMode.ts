@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useChatContext } from '@/components/agents/context/useChatContext';
+import { useChatContext } from '@/components/agents/ChatContext';
 
 // ============================================================================
 // TYPES

@@ -5,12 +5,12 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-p
 import { Plus, MoreVertical, User, Users, GitBranch, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import type { Character, ArcStatus } from '../../../types/screenplay';
+import type { Character, ArcStatus } from '@/types/screenplay';
 import CharacterDetailSidebar from './CharacterDetailSidebar';
 import CharacterRelationshipMap from './CharacterRelationshipMap';
 import { DeleteCharacterDialog } from '../structure/DeleteConfirmDialog';
 import { CharacterImageViewer } from '@/components/characters/CharacterImageViewer';
-import CharacterBankManager from '@/components/characters/CharacterBankManager';
+import CharacterBankManager from '@/components/production/CharacterBankManager';
 import { getCharacterDependencies, generateCharacterReport } from '@/utils/dependencyChecker';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -558,8 +558,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
             {imageViewerCharacter && (
                 <CharacterImageViewer
                     isOpen={true}
-                    onClose={() => setImageViewerCharacter(null)}
                     character={imageViewerCharacter}
+                    onClose={() => setImageViewerCharacter(null)}
                     onDeleteImage={async (imageUrl) => {
                         try {
                             // Remove image from character's images array
@@ -580,19 +580,34 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                 />
             )}
             
-            {/* Character Bank Manager Modal */}
-            {characterBankTarget && (
-                <CharacterBankManager
-                    isOpen={characterBankOpen}
-                    onClose={() => {
-                        setCharacterBankOpen(false);
-                        setCharacterBankTarget(null);
-                    }}
-                    characterId={characterBankTarget.id}
-                    characterName={characterBankTarget.name}
-                    characterDescription={characterBankTarget.description || 'No description provided'}
-                    existingReferences={[]}
-                />
+            {/* Character Bank Manager - Renders as its own modal */}
+            {characterBankOpen && characterBankTarget && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h2 className="text-xl font-bold">Character Bank - {characterBankTarget.name}</h2>
+                            <button
+                                onClick={() => {
+                                    setCharacterBankOpen(false);
+                                    setCharacterBankTarget(null);
+                                }}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="overflow-auto max-h-[calc(90vh-4rem)]">
+                            <CharacterBankManager
+                                projectId="default"
+                                onCharacterSelect={(characterId) => {
+                                    console.log('Character selected:', characterId);
+                                    setCharacterBankOpen(false);
+                                    setCharacterBankTarget(null);
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

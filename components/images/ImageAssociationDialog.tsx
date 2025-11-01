@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { X, Download } from 'lucide-react';
-import type { Character, Location, Scene, StoryBeat } from '../../../types/screenplay';
+import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
 import { SpotlightBorder } from '@/components/ui/spotlight-border';
 
 interface ImageAssociationDialogProps {

@@ -317,7 +317,16 @@ export const HOLLYWOOD_TRANSITIONS = [
 // Complete library of 70 Hollywood-grade LUTs - ALL FREE! 🎨
 // Synced with backend: website-backend-api/src/services/LUTService.ts
 
-export const CINEMATIC_LUTS = [
+export const CINEMATIC_LUTS: Array<{
+  id: string;
+  name: string;
+  category: string;
+  subcategory?: string;
+  file: string;
+  preview: string;
+  isDefault?: boolean;
+  description?: string;
+}> = [
   // ==================== BASE LUTS ====================
   { id: 'wryda-professional', name: '✨ Wryda Professional Grade', category: 'base', file: '/luts/base/wryda-professional.cube', preview: '/luts/previews/wryda-professional.jpg', isDefault: true, description: 'Wryda\'s signature look - balanced, cinematic, professional' },
   { id: 'film-standard', name: 'Film Standard', category: 'base', file: '/luts/base/film-standard.cube', preview: '/luts/previews/film-standard.jpg' },
@@ -729,11 +738,33 @@ export interface TimelineProject {
 interface UseTimelineOptions {
   projectId?: string;
   autoSave?: boolean;
-  autoSaveInterval?: number; // ms
+  autoSaveInterval?: number; // ms (default: 10000 = 10 seconds)
+  enableLocalStorageBackup?: boolean; // NEW: localStorage fallback
+  enableGitHubBackup?: boolean; // NEW: optional GitHub sync
+  onSaveSuccess?: (timestamp: string) => void; // NEW: callback on successful save
+  onSaveError?: (error: Error) => void; // NEW: callback on save error
+}
+
+// ==================== SAVE STATUS TYPES ====================
+
+export type SaveStatus = 'saved' | 'saving' | 'failed' | 'offline' | 'pending';
+
+interface SaveQueueItem {
+  project: TimelineProject;
+  timestamp: number;
+  retryCount: number;
 }
 
 export function useTimeline(options: UseTimelineOptions = {}) {
-  const { projectId, autoSave = false, autoSaveInterval = 30000 } = options;
+  const { 
+    projectId, 
+    autoSave = false, 
+    autoSaveInterval = 10000, // REDUCED: 10 seconds (was 30)
+    enableLocalStorageBackup = true, // NEW: enabled by default
+    enableGitHubBackup = false, // NEW: optional
+    onSaveSuccess,
+    onSaveError
+  } = options;
 
   // Project state
   const [project, setProject] = useState<TimelineProject>({
@@ -765,6 +796,21 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   const [zoomLevel, setZoomLevel] = useState(50); // pixels per second
   const [isDragging, setIsDragging] = useState(false);
   const [draggedClip, setDraggedClip] = useState<TimelineClip | null>(null);
+
+  // ==================== NEW: SAVE STATE & PROTECTION ====================
+
+  // Save status tracking
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  
+  // Retry queue for failed saves
+  const saveQueueRef = useRef<SaveQueueItem[]>([]);
+  const retryIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isUnmountingRef = useRef(false);
+  
+  // LocalStorage key
+  const STORAGE_KEY = `timeline_project_${project.id}`;
 
   // Calculated values
   const totalDuration = Math.max(
@@ -935,6 +981,226 @@ export function useTimeline(options: UseTimelineOptions = {}) {
 
     return [clip1.id, clip2.id];
   }, [project.clips, playheadPosition]);
+
+  // ==================== NEW: LOCAL STORAGE BACKUP ====================
+
+  /**
+   * Save to localStorage (instant backup)
+   */
+  const saveToLocalStorage = useCallback((projectData: TimelineProject) => {
+    if (!enableLocalStorageBackup) return;
+    
+    try {
+      const serialized = JSON.stringify(projectData);
+      localStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.setItem(`${STORAGE_KEY}_timestamp`, new Date().toISOString());
+      console.log('[Timeline] Saved to localStorage');
+    } catch (error) {
+      console.error('[Timeline] localStorage save failed:', error);
+      // localStorage might be full or disabled
+    }
+  }, [STORAGE_KEY, enableLocalStorageBackup]);
+
+  /**
+   * Load from localStorage
+   */
+  const loadFromLocalStorage = useCallback((): TimelineProject | null => {
+    if (!enableLocalStorageBackup) return null;
+    
+    try {
+      const serialized = localStorage.getItem(STORAGE_KEY);
+      if (!serialized) return null;
+      
+      const data = JSON.parse(serialized);
+      const timestamp = localStorage.getItem(`${STORAGE_KEY}_timestamp`);
+      
+      console.log(`[Timeline] Loaded from localStorage (saved at ${timestamp})`);
+      return data;
+    } catch (error) {
+      console.error('[Timeline] localStorage load failed:', error);
+      return null;
+    }
+  }, [STORAGE_KEY, enableLocalStorageBackup]);
+
+  /**
+   * Clear localStorage backup
+   */
+  const clearLocalStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(`${STORAGE_KEY}_timestamp`);
+      console.log('[Timeline] Cleared localStorage');
+    } catch (error) {
+      console.error('[Timeline] localStorage clear failed:', error);
+    }
+  }, [STORAGE_KEY]);
+
+  // ==================== NEW: RETRY QUEUE ====================
+
+  /**
+   * Add save to retry queue (with exponential backoff)
+   */
+  const addToRetryQueue = useCallback((projectData: TimelineProject, retryCount: number = 0) => {
+    const item: SaveQueueItem = {
+      project: projectData,
+      timestamp: Date.now(),
+      retryCount
+    };
+    
+    saveQueueRef.current.push(item);
+    console.log(`[Timeline] Added to retry queue (${saveQueueRef.current.length} items)`);
+    
+    // Start retry interval if not already running
+    if (!retryIntervalRef.current) {
+      retryIntervalRef.current = setInterval(processRetryQueue, 5000); // Check every 5 seconds
+    }
+  }, []);
+
+  /**
+   * Process retry queue
+   */
+  const processRetryQueue = useCallback(async () => {
+    if (saveQueueRef.current.length === 0) {
+      // Clear interval if queue is empty
+      if (retryIntervalRef.current) {
+        clearInterval(retryIntervalRef.current);
+        retryIntervalRef.current = null;
+      }
+      return;
+    }
+    
+    // Don't retry if offline
+    if (!isOnline) {
+      console.log('[Timeline] Offline, skipping retry queue');
+      return;
+    }
+    
+    const item = saveQueueRef.current[0];
+    
+    // Exponential backoff: 5s, 10s, 20s, 40s, max 60s
+    const backoffDelay = Math.min(5000 * Math.pow(2, item.retryCount), 60000);
+    const timeSinceQueued = Date.now() - item.timestamp;
+    
+    if (timeSinceQueued < backoffDelay) {
+      // Not time to retry yet
+      return;
+    }
+    
+    console.log(`[Timeline] Retrying save (attempt ${item.retryCount + 1})`);
+    
+    try {
+      const token = localStorage.getItem('jwt_token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+      
+      const response = await fetch(`${apiUrl}/api/timeline/project/${item.project.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(item.project)
+      });
+
+      if (response.ok) {
+        // Success! Remove from queue
+        saveQueueRef.current.shift();
+        console.log(`[Timeline] Retry successful (${saveQueueRef.current.length} remaining)`);
+        
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        
+        if (onSaveSuccess) {
+          onSaveSuccess(new Date().toISOString());
+        }
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error(`[Timeline] Retry failed:`, error);
+      
+      // Increment retry count
+      item.retryCount++;
+      item.timestamp = Date.now(); // Reset timestamp for next backoff
+      
+      // Give up after 10 retries
+      if (item.retryCount >= 10) {
+        console.error('[Timeline] Max retries reached, giving up');
+        saveQueueRef.current.shift();
+        setSaveStatus('failed');
+        
+        if (onSaveError) {
+          onSaveError(new Error('Max retries exceeded'));
+        }
+      }
+    }
+  }, [isOnline, onSaveSuccess, onSaveError]);
+
+  // ==================== NEW: GITHUB BACKUP (OPTIONAL) ====================
+
+  /**
+   * Save timeline to GitHub (version control backup)
+   * 
+   * STORAGE PROVIDERS: Feature GitHub prominently - users OWN their data!
+   * WRAPPER STRATEGY: Only hides AI providers (Runway, Luma, etc.)
+   */
+  const saveToGitHub = useCallback(async (projectData: TimelineProject) => {
+    if (!enableGitHubBackup) return false;
+    
+    try {
+      // Get GitHub config from localStorage (set by screenplay editor)
+      const githubToken = localStorage.getItem('github_token');
+      const githubOwner = localStorage.getItem('github_owner');
+      const githubRepo = localStorage.getItem('github_repo');
+      
+      if (!githubToken || !githubOwner || !githubRepo) {
+        console.log('[Timeline] GitHub backup not configured - connect your repository in settings');
+        return false;
+      }
+      
+      // Import GitHub utilities
+      const { saveToGitHub: githubSave } = await import('@/utils/github');
+      
+      // Prepare timeline JSON (ensure NO actual media files, just URLs to Drive/Dropbox)
+      const timelineData = {
+        version: '1.0',
+        lastUpdated: new Date().toISOString(),
+        project: {
+          ...projectData,
+          // Ensure clips only contain URLs (to user's Google Drive/Dropbox), not binary data
+          clips: projectData.clips.map(clip => ({
+            ...clip,
+            // Remove any binary data if present
+            videoData: undefined,
+            audioData: undefined,
+            thumbnailData: undefined
+          })),
+          // Same for assets
+          assets: projectData.assets.map(asset => ({
+            ...asset,
+            videoData: undefined,
+            audioData: undefined,
+            thumbnailData: undefined
+          }))
+        }
+      };
+      
+      // Save to timeline/ folder in same repo as screenplay
+      const path = `timeline/${projectData.id}.json`;
+      const content = JSON.stringify(timelineData, null, 2);
+      const message = `Updated timeline: ${projectData.name}`;
+      
+      await githubSave(
+        { token: githubToken, owner: githubOwner, repo: githubRepo },
+        { path, content, message }
+      );
+      
+      console.log('[Timeline] ✅ Saved to GitHub - YOU own this data!');
+      return true;
+    } catch (error) {
+      console.error('[Timeline] GitHub backup failed:', error);
+      return false;
+    }
+  }, [enableGitHubBackup]);
 
   // ==================== ASSET OPERATIONS (Multi-Type Support) ====================
 
@@ -1301,10 +1567,29 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   }, [addClips]);
 
   /**
-   * Save project
+   * Save project (ENHANCED with retry, localStorage, and status tracking)
    */
   const saveProject = useCallback(async () => {
+    // Don't save if unmounting (will be handled by beforeunload)
+    if (isUnmountingRef.current) return false;
+    
     try {
+      setSaveStatus('saving');
+      
+      // Step 1: ALWAYS save to localStorage first (instant backup)
+      if (enableLocalStorageBackup) {
+        saveToLocalStorage(project);
+      }
+      
+      // Step 2: If offline, queue for retry
+      if (!isOnline) {
+        console.log('[Timeline] Offline, queuing save for retry');
+        addToRetryQueue(project);
+        setSaveStatus('offline');
+        return false;
+      }
+      
+      // Step 3: Try to save to backend (DynamoDB)
       const token = localStorage.getItem('jwt_token');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
       
@@ -1318,16 +1603,44 @@ export function useTimeline(options: UseTimelineOptions = {}) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save project');
+        throw new Error(`Save failed: HTTP ${response.status}`);
       }
 
+      // Step 4: (OPTIONAL) Save to GitHub if enabled
+      // FEATURE THIS PROMINENTLY: Users OWN their data in THEIR GitHub repo!
+      if (enableGitHubBackup) {
+        try {
+          await saveToGitHub(project);
+        } catch (gitError) {
+          // Don't fail entire save if GitHub fails
+          console.warn('[Timeline] GitHub backup failed, but primary save succeeded');
+        }
+      }
+
+      // Success!
       console.log('[Timeline] Project saved successfully');
+      setSaveStatus('saved');
+      setLastSaved(new Date());
+      
+      if (onSaveSuccess) {
+        onSaveSuccess(new Date().toISOString());
+      }
+      
       return true;
     } catch (error: any) {
       console.error('[Timeline] Error saving project:', error);
+      
+      // Add to retry queue
+      addToRetryQueue(project);
+      setSaveStatus('failed');
+      
+      if (onSaveError) {
+        onSaveError(error);
+      }
+      
       return false;
     }
-  }, [project]);
+  }, [project, isOnline, enableLocalStorageBackup, enableGitHubBackup, saveToLocalStorage, saveToGitHub, addToRetryQueue, onSaveSuccess, onSaveError]);
 
   /**
    * Load project
@@ -1385,7 +1698,20 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   // ==================== EFFECTS ====================
 
   /**
-   * Auto-save (if enabled)
+   * Load from localStorage on mount
+   */
+  useEffect(() => {
+    if (!enableLocalStorageBackup) return;
+    
+    const localData = loadFromLocalStorage();
+    if (localData && localData.id === project.id) {
+      setProject(localData);
+      console.log('[Timeline] Restored from localStorage');
+    }
+  }, [projectId]); // Only run on mount or projectId change
+
+  /**
+   * Auto-save (if enabled) - NOW 10 SECONDS (was 30)
    */
   useEffect(() => {
     if (!autoSave) return;
@@ -1396,6 +1722,80 @@ export function useTimeline(options: UseTimelineOptions = {}) {
 
     return () => clearInterval(interval);
   }, [autoSave, autoSaveInterval, saveProject]);
+
+  /**
+   * NEW: Online/Offline detection
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleOnline = () => {
+      console.log('[Timeline] Back online');
+      setIsOnline(true);
+      setSaveStatus('saved');
+      
+      // Process any queued saves immediately
+      if (saveQueueRef.current.length > 0) {
+        console.log('[Timeline] Processing queued saves');
+        processRetryQueue();
+      }
+    };
+    
+    const handleOffline = () => {
+      console.log('[Timeline] Went offline');
+      setIsOnline(false);
+      setSaveStatus('offline');
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [processRetryQueue]);
+
+  /**
+   * NEW: Save on unmount (catch navigation events)
+   */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Always save to localStorage immediately
+      if (enableLocalStorageBackup) {
+        saveToLocalStorage(project);
+        console.log('[Timeline] Saved to localStorage on unmount');
+      }
+      
+      // If there are pending changes, try to save to backend
+      // Note: Modern browsers may kill async operations, but localStorage is guaranteed
+      if (saveQueueRef.current.length > 0 || saveStatus !== 'saved') {
+        // Show warning if there are unsaved changes
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires returnValue to be set
+        return 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Cleanup on unmount
+    return () => {
+      isUnmountingRef.current = true;
+      
+      // Final save attempt to localStorage
+      if (enableLocalStorageBackup) {
+        saveToLocalStorage(project);
+      }
+      
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Clear retry interval
+      if (retryIntervalRef.current) {
+        clearInterval(retryIntervalRef.current);
+      }
+    };
+  }, [project, saveStatus, enableLocalStorageBackup, saveToLocalStorage]);
 
   /**
    * Cleanup playback interval on unmount
@@ -1478,7 +1878,18 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     importFromShotList,
     saveProject,
     loadProject,
-    clearProject
+    clearProject,
+    
+    // ==================== NEW: SAVE STATUS & PROTECTION ====================
+    saveStatus,          // 'saved' | 'saving' | 'failed' | 'offline' | 'pending'
+    lastSaved,           // Date of last successful save
+    isOnline,            // Network status
+    saveQueueLength: saveQueueRef.current.length,  // Number of pending saves
+    
+    // LocalStorage operations
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    clearLocalStorage,
   };
 }
 

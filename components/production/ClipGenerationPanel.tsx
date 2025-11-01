@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import type { StoryBeat } from '../../../types/screenplay';
+import type { StoryBeat } from '@/types/screenplay';
 import type { 
   AISuggestion, 
   ClipAssignment, 

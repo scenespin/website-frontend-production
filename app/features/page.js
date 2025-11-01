@@ -645,7 +645,7 @@ export default function Features() {
             />
             <FeatureCard
               title="GitHub Integration"
-              description="Version control for screenplays, multi-user collaboration, branch management"
+              description="Version control for screenplays & timelines - we streamlined GitHub for writers"
               free={true}
             />
             <FeatureCard
@@ -660,7 +660,7 @@ export default function Features() {
             />
             <FeatureCard
               title="Collaboration Tools"
-              description="Role-based access control, real-time collaboration, activity tracking"
+              description="6 role-based permissions, real-time collaboration, activity tracking"
               free={true}
             />
             <FeatureCard
@@ -668,6 +668,150 @@ export default function Features() {
               description="Simple credit-based billing (1 credit = $0.01), subscription management, usage tracking"
               free={true}
             />
+          </div>
+        </section>
+
+        {/* NEW: Data Ownership & Collaboration Section */}
+        <section className="mb-16">
+          <div className="bg-gradient-to-br from-base-200 to-base-300 rounded-box p-8 md:p-12">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold mb-4">🔐 Your Work, Your Control</h2>
+              <p className="text-xl opacity-90 max-w-3xl mx-auto">
+                Unlike other platforms that lock your content behind proprietary formats,
+                <strong className="text-[#DC143C]"> YOU own everything</strong>
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* GitHub for Scripts & Timelines */}
+              <div className="card bg-base-100 shadow-lg">
+                <div className="card-body">
+                  <div className="text-4xl mb-3">📚</div>
+                  <h3 className="card-title text-xl">GitHub Version Control</h3>
+                  <p className="text-sm opacity-80 mb-4">
+                    Screenplay structure + Timeline edits backed up to YOUR GitHub repository every 10 seconds.
+                    Full edit history, branch management, revert anytime.
+                  </p>
+                  <ul className="text-xs opacity-70 space-y-1">
+                    <li>✅ Auto-save every 10 seconds</li>
+                    <li>✅ Complete Git version history</li>
+                    <li>✅ Plain JSON format (future-proof)</li>
+                    <li>✅ Open format, zero lock-in</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Google Drive & Dropbox for Media */}
+              <div className="card bg-base-100 shadow-lg">
+                <div className="card-body">
+                  <div className="text-4xl mb-3">☁️</div>
+                  <h3 className="card-title text-xl">Your Cloud Storage</h3>
+                  <p className="text-sm opacity-80 mb-4">
+                    Videos, audio, images stored in YOUR Google Drive or Dropbox.
+                    We store files for 7 days max, then YOU decide where they go.
+                  </p>
+                  <ul className="text-xs opacity-70 space-y-1">
+                    <li>✅ Choose Google Drive or Dropbox</li>
+                    <li>✅ 100% off-site storage (your account)</li>
+                    <li>✅ No files locked on our servers</li>
+                    <li>✅ Export anytime, switch tools anytime</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Collaboration Roles */}
+              <div className="card bg-base-100 shadow-lg">
+                <div className="card-body">
+                  <div className="text-4xl mb-3">👥</div>
+                  <h3 className="card-title text-xl">6 Collaboration Roles</h3>
+                  <p className="text-sm opacity-80 mb-4">
+                    Manage everything from the software - no GitHub expertise needed.
+                    We streamlined GitHub for writers.
+                  </p>
+                  <ul className="text-xs opacity-70 space-y-1">
+                    <li>🎬 <strong>Director</strong> - Full access (script + assets)</li>
+                    <li>✍️ <strong>Writer</strong> - Edit screenplay + timeline</li>
+                    <li>🎨 <strong>Contributor</strong> - Manage assets only</li>
+                    <li>👁️ <strong>Viewer</strong> - Read-only access</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Comparison Table */}
+            <div className="overflow-x-auto">
+              <table className="table table-zebra">
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Wryda</th>
+                    <th>Premiere Pro</th>
+                    <th>Final Cut</th>
+                    <th>DaVinci</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Auto-save frequency</strong></td>
+                    <td className="text-green-600 font-semibold">10 seconds</td>
+                    <td>5-20 minutes</td>
+                    <td>15 minutes</td>
+                    <td>Manual</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Version control</strong></td>
+                    <td className="text-green-600 font-semibold">GitHub (yours)</td>
+                    <td>Limited</td>
+                    <td>Time Machine</td>
+                    <td>Manual</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Timeline format</strong></td>
+                    <td className="text-green-600 font-semibold">Open JSON</td>
+                    <td>Proprietary</td>
+                    <td>Proprietary</td>
+                    <td>Proprietary</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Media storage</strong></td>
+                    <td className="text-green-600 font-semibold">Your Drive/Dropbox</td>
+                    <td>Your drive</td>
+                    <td>Your drive</td>
+                    <td>Your drive</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Collaboration roles</strong></td>
+                    <td className="text-green-600 font-semibold">6 roles</td>
+                    <td>Limited</td>
+                    <td>Limited</td>
+                    <td>Limited</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Export freedom</strong></td>
+                    <td className="text-green-600 font-semibold">Anytime</td>
+                    <td>Limited</td>
+                    <td>Limited</td>
+                    <td>Limited</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ownership</strong></td>
+                    <td className="text-green-600 font-semibold">100% yours</td>
+                    <td>Project files</td>
+                    <td>Library files</td>
+                    <td>Database</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-center mt-8">
+              <p className="text-lg font-semibold mb-4">
+                💡 <strong>We streamlined GitHub for writers</strong> - manage everything from the software, no GitHub expertise needed
+              </p>
+              <Link href="/team" className="btn btn-primary">
+                Learn More About Collaboration →
+              </Link>
+            </div>
           </div>
         </section>
 

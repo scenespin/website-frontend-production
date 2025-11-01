@@ -18,7 +18,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useVideoGeneration } from '@/hooks/useVideoGeneration';
-import type { StoryBeat, Character } from '../../../types/screenplay';
+import type { StoryBeat, Character } from '@/types/screenplay';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { MobileProductionBanner } from './MobileProductionBanner';
 import { MobileWorkflowSelector } from './MobileWorkflowSelector';
@@ -58,6 +58,7 @@ export interface ClipAssignment {
   resultUrl?: string;
   resultS3Key?: string;
   creditsUsed: number;
+  estimatedCost?: number;
   errorMessage?: string;
 }
 

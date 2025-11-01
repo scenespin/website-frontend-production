@@ -75,14 +75,15 @@ export function ProductionStudio({
             <div className="h-full">
               <SceneVisualizerPanel
                 prompts={[]}
-                onAddPrompt={() => {}}
-                onUpdatePrompt={() => {}}
-                onDeletePrompt={() => {}}
-                onGenerateVideos={() => {}}
+                onUpdatePrompt={(index, updatedPrompt) => {
+                  console.log('Prompt updated:', index, updatedPrompt);
+                }}
+                onGenerateVideos={(prompts, quality, resolution, useFastMode, useVideoExtension, preferredModel) => {
+                  console.log('Generating videos:', prompts);
+                }}
                 isGenerating={false}
                 projectId={projectId}
                 sceneId="scene_1"
-                onShotListComplete={handleShotListComplete}
               />
             </div>
           )}
@@ -118,7 +119,7 @@ export function ProductionStudio({
           {/* Composition Stage */}
           {currentStage === 'composition' && (
             <div className="h-full">
-              <CompositionStudio />
+              <CompositionStudio userId="temp-user-id" />
             </div>
           )}
 

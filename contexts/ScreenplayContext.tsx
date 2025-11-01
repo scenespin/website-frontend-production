@@ -15,7 +15,7 @@ import type {
     CascadeOption,
     DeletionResult,
     ImageAsset
-} from '../../types/screenplay';
+} from '@/types/screenplay';
 import {
     initializeGitHub,
     getStructureFile,
@@ -196,7 +196,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const saved = localStorage.getItem(STORAGE_KEYS.GITHUB_CONFIG);
             if (saved) {
                 const config = JSON.parse(saved);
-                return initializeGitHub(config.token, config.owner, config.repo, config.branch);
+                return initializeGitHub(config.token, config.owner, config.repo);
             }
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load GitHub config from localStorage', error);

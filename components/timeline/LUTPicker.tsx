@@ -26,7 +26,7 @@ export function LUTPicker({ asset, onSelect, onClose }: LUTPickerProps) {
   const [hoveredLUT, setHoveredLUT] = useState<string | null>(null);
   const [selectedLUT, setSelectedLUT] = useState<string | null>(asset.lut?.lutId || null);
 
-  // Get unique categories
+  // Get unique categories (filter out the default LUT from category list)
   const categories = ['all', 'signature', ...Array.from(new Set(CINEMATIC_LUTS.filter(l => !l.isDefault).map(l => l.category)))];
   
   // Filter LUTs by category

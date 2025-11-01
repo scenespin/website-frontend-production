@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Camera, Download, Edit2, Trash2, X } from 'lucide-react';
-import type { ImageAsset } from '../../../types/screenplay';
+import type { ImageAsset } from '@/types/screenplay';
 import { downloadImage, copyImageUrlToClipboard, generateImageFilename } from '@/utils/imageDownload';
 
 interface ImageGalleryProps {

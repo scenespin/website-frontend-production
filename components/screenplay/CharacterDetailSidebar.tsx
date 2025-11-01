@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
-import type { Character } from '../../../types/screenplay'
+import type { Character } from '@/types/screenplay'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

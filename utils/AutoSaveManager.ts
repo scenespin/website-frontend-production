@@ -11,7 +11,7 @@
  * - This keeps the editor clean while maintaining relationships
  */
 
-import type { StoryBeat, Character, Location, Relationships } from '../../types/screenplay';
+import type { StoryBeat, Character, Location, Relationships } from '@/types/screenplay';
 import { extractTags, updateScriptTags, removeTags } from './fountainTags';
 
 interface AutoSaveConfig {

@@ -195,17 +195,6 @@ export interface TransitionStatistics {
 // Exports
 // ============================================================================
 
-export type {
-  TransitionCategory,
-  TransitionDuration,
-  TransitionTemplate,
-  AppliedTransition,
-  TransitionFilter,
-  ApplyTransitionRequest,
-  ApplyTransitionResponse,
-  TransitionPreviewRequest,
-  TransitionSuggestion,
-  ClipMetadataForTransition,
-  TransitionStatistics
-};
+// All types already exported inline above, no need to re-export
+
 

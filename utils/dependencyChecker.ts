@@ -13,7 +13,7 @@ import type {
     Relationships,
     CharacterDependencies,
     LocationDependencies
-} from '../../types/screenplay';
+} from '@/types/screenplay';
 
 /**
  * Check character dependencies across screenplay

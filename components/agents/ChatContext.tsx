@@ -486,6 +486,14 @@ export function ChatProvider({ children, initialContext }: ChatProviderProps) {
 // HOOK
 // ============================================================================
 
+export function useChatContext() {
+    const context = React.useContext(ChatContext);
+    if (!context) {
+        throw new Error('useChatContext must be used within a ChatProvider');
+    }
+    return context;
+}
+
 export { ChatContext };
-export type { ChatContextValue, ChatContextState };
+export type { ChatContextValue, ChatContextState, Message, WorkflowState, AgentMode, SceneContext };
 

@@ -1,6 +1,8 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Admin Layout - Wraps all admin pages with authentication and authorization
  * 

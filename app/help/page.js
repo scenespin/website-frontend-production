@@ -94,6 +94,12 @@ export default function HelpCenter() {
           <p className="text-sm opacity-70 mb-6">Learning the platform - First week</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <HelpArticleCard
+              href="/help/fountain-format"
+              title="Why Fountain Format?"
+              description="Learn how screenplay format gives you better AI results and instant imports"
+              time="8 min read"
+            />
+            <HelpArticleCard
               href="/help/video-generation"
               title="AI Video Generation"
               description="Master text-to-video, image-to-video, and character consistency"

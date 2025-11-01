@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { useTimeline, TimelineClip } from '@/hooks/useTimeline';
 import { TimelineClipComponent } from './TimelineClipComponent';
+import { SaveStatusIndicator, OfflineBanner } from './SaveStatusIndicator';
 
 // Re-export types
 export type { TimelineClip };
@@ -54,11 +55,18 @@ interface TrackConfig {
 }
 
 export function TimelineEditor({ projectId }: TimelineEditorProps) {
-  // Use our powerful timeline hook!
+  // Use our powerful timeline hook with enhanced save protection!
   const timeline = useTimeline({
     projectId,
     autoSave: true,
-    autoSaveInterval: 30000
+    autoSaveInterval: 10000, // IMPROVED: 10 seconds (was 30)
+    enableLocalStorageBackup: true, // NEW: localStorage fallback
+    onSaveSuccess: (timestamp) => {
+      console.log(`✅ Timeline saved at ${timestamp}`);
+    },
+    onSaveError: (error) => {
+      console.error('❌ Timeline save failed:', error);
+    }
   });
 
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -301,9 +309,26 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                   {timeline.project.resolution}
                 </div>
               </div>
+              {/* NEW: Save Status Indicator */}
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                <SaveStatusIndicator
+                  status={timeline.saveStatus}
+                  lastSaved={timeline.lastSaved}
+                  isOnline={timeline.isOnline}
+                  queueLength={timeline.saveQueueLength}
+                />
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* NEW: Offline Banner */}
+      <div className="px-4 pt-4">
+        <OfflineBanner
+          isOnline={timeline.isOnline}
+          queueLength={timeline.saveQueueLength}
+        />
       </div>
 
       {/* Transport Controls */}

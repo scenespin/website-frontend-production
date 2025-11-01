@@ -59,6 +59,7 @@ interface ClipUploadCardProps {
     status: 'generating' | 'completed' | 'failed';
     progress: number;
     creditsUsed: number;
+    duration?: number;
   };
   estimatedCredits: number;
   onUpload: (file: File) => Promise<void>;

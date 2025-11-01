@@ -3,7 +3,7 @@
  * Centralized client for all composition-related API calls
  */
 
-import { CompositionLayout, CompositionFilters, CompositionResponse } from '../types/composition';
+import { CompositionLayout, CompositionFilters, CompositionResponse } from '@/types/composition';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 

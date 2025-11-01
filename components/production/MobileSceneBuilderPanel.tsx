@@ -24,7 +24,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { StoryBeatsPanel } from './StoryBeatsPanel';
 import { ClipGenerationPanel } from './ClipGenerationPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
-import type { ClipAssignment, Character } from './ProductionPageLayout';
+import type { ClipAssignment, CharacterProfile, AISuggestion } from './ProductionPageLayout';
 import { toast } from 'sonner';
 
 interface MobileSceneBuilderPanelProps {
@@ -41,14 +41,14 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
   
   // Scene Builder state
   const [selectedBeatId, setSelectedBeatId] = useState<string | null>(null);
-  const [aiSuggestion, setAiSuggestion] = useState<string>('');
+  const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'setup' | 'generate' | 'review'>('setup');
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [clipAssignments, setClipAssignments] = useState<ClipAssignment[]>([]);
-  const [characters, setCharacters] = useState<Character[]>([]);
+  const [characters, setCharacters] = useState<CharacterProfile[]>([]);
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationProgress, setGenerationProgress] = useState<Record<number, number>>({});
 
   /**
    * Load characters on mount
@@ -89,9 +89,9 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          beatContent: beat.content,
-          beatContext: beat.context,
-          sceneType: beat.type,
+          beatContent: beat.description,
+          beatContext: beat.title,
+          sceneType: 'story',
           projectId
         })
       });
@@ -109,20 +109,27 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    setGenerationProgress(0);
+    setGenerationProgress({});
     
     try {
       // Simulate generation progress (replace with real API call)
       const interval = setInterval(() => {
-        setGenerationProgress(prev => Math.min(prev + 10, 90));
+        setGenerationProgress(prev => {
+          const updated = { ...prev };
+          clipAssignments.forEach((_, idx) => {
+            updated[idx] = Math.min((updated[idx] || 0) + 10, 90);
+          });
+          return updated;
+        });
       }, 500);
 
       // TODO: Call generation API
       await new Promise(resolve => setTimeout(resolve, 5000));
       
       clearInterval(interval);
-      setGenerationProgress(100);
-      setCurrentStep('review');
+      const completed = clipAssignments.reduce((acc, _, idx) => ({ ...acc, [idx]: 100 }), {});
+      setGenerationProgress(completed);
+      setCurrentStep(3); // 3 = review step
       toast.success('Clips generated successfully!');
     } catch (error) {
       toast.error('Generation failed');
@@ -324,7 +331,7 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
               {isGenerating ? 'Generating...' : 'Generate Scene'}
             </button>
             
-            {currentStep === 'review' && (
+            {currentStep === 3 && ( // 3 = review step
               <button
                 onClick={handleSendToTimeline}
                 className="py-3 px-4 rounded-lg border-2 border-primary text-primary font-semibold

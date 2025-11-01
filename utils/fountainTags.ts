@@ -5,7 +5,7 @@
  * Tags are invisible in PDF but maintain relationships in relationships.json
  */
 
-import type { Scene, Character, Location, Relationships } from '../../types/screenplay';
+import type { Scene, Character, Location, Relationships } from '@/types/screenplay';
 
 /**
  * Scene tags extracted from Fountain content

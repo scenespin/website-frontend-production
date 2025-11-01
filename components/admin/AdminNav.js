@@ -8,7 +8,8 @@ import {
   Shield, 
   DollarSign,
   Settings,
-  Home
+  Home,
+  TrendingUp
 } from 'lucide-react';
 
 export default function AdminNav() {
@@ -16,6 +17,7 @@ export default function AdminNav() {
 
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Main Dashboard' },
+    { href: '/admin/revenue', icon: TrendingUp, label: 'Revenue Tracking' },
     { href: '/admin/analytics', icon: BarChart3, label: 'Workflow Analytics' },
     { href: '/admin/affiliates', icon: DollarSign, label: 'Affiliate Program' },
     { href: '/admin/voice-consents', icon: Shield, label: 'Voice Consents' },

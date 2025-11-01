@@ -162,6 +162,136 @@ export default function Page() {
           </div>
         </section>
 
+        {/* NEW: Data Ownership & Collaboration Section */}
+        <section className="py-16 px-8 max-w-7xl mx-auto">
+          <div className="bg-gradient-to-br from-base-200 to-base-300 rounded-box p-8 md:p-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">🔐 You Own Everything</h2>
+              <p className="text-xl opacity-90 max-w-3xl mx-auto mb-2">
+                Unlike other platforms that lock your content behind proprietary formats,
+                <strong className="text-[#DC143C]"> your data stays in YOUR cloud</strong>
+              </p>
+              <p className="text-lg opacity-70">
+                We streamlined GitHub for writers - manage everything from the software, no technical expertise needed
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* GitHub for Scripts & Timelines */}
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-5xl mb-3">📚</div>
+                  <h3 className="card-title text-xl mb-2">GitHub Version Control</h3>
+                  <p className="text-sm opacity-80 mb-4">
+                    Screenplay + Timeline backed up to <strong>YOUR GitHub repository</strong> every 10 seconds.
+                    Full version history, branch management, revert anytime.
+                  </p>
+                  <div className="space-y-2 text-xs opacity-70">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Auto-save every 10 seconds</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Complete Git version history</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Open JSON format (future-proof)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Zero vendor lock-in</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Google Drive & Dropbox for Media */}
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-5xl mb-3">☁️</div>
+                  <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
+                  <p className="text-sm opacity-80 mb-4">
+                    Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
+                    We store files for 7 days max, then YOU choose where they go.
+                  </p>
+                  <div className="space-y-2 text-xs opacity-70">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Choose Google Drive or Dropbox</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>100% off-site (your account)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>No files locked on our servers</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Export/switch anytime</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collaboration Roles */}
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-5xl mb-3">👥</div>
+                  <h3 className="card-title text-xl mb-2">6 Collaboration Roles</h3>
+                  <p className="text-sm opacity-80 mb-4">
+                    <strong>Manage everything from the software</strong> - no GitHub expertise needed.
+                    Add teammates in seconds.
+                  </p>
+                  <div className="space-y-2 text-xs opacity-70">
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">🎬</span>
+                      <div>
+                        <strong>Director</strong> - Full access (script + assets)
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">✍️</span>
+                      <div>
+                        <strong>Writer</strong> - Edit screenplay + timeline
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">🎨</span>
+                      <div>
+                        <strong>Contributor</strong> - Manage assets
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">👁️</span>
+                      <div>
+                        <strong>Viewer</strong> - Read-only access
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center mt-6">
+              <p className="text-lg font-semibold mb-4">
+                💡 <strong>We streamlined GitHub for writers</strong> - no technical knowledge required
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Link href="/features" className="btn btn-primary">
+                  See All Features →
+                </Link>
+                <Link href="/team" className="btn btn-outline">
+                  Learn About Collaboration
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Savings Calculator */}
         <section className="py-16 px-8 max-w-7xl mx-auto">
           <div className="text-center mb-12">

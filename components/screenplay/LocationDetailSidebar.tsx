@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { X, Trash2, Plus, Image as ImageIcon } from "lucide-react"
 import { motion } from 'framer-motion'
-import type { Location } from '../../../types/screenplay'
+import type { Location } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'

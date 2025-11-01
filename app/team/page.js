@@ -4,8 +4,35 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { CollaborationPanel } from '@/components/CollaborationPanel';
 import { Users, ArrowLeft, GitBranch, Cloud } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+// Prevent static generation since this requires runtime context
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export default function TeamPage() {
+  const [mounted, setMounted] = useState(false);
+  
+  // Only render after client-side mount to avoid SSR issues with context
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0d0b14] via-[#1a1625] to-[#0d0b14] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return <TeamPageContent />;
+}
+
+function TeamPageContent() {
   const { currentProject, isLoading } = useScreenplay();
 
   if (isLoading) {

@@ -11,11 +11,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useChatContext } from '@/components/agents/context/useChatContext';
-import type { Message, WorkflowCompletionData } from '@/components/agents/shared/types';
+import { useChatContext } from '@/components/agents/ChatContext';
+import type { Message, WorkflowState } from '@/components/agents/ChatContext';
+import type { WorkflowCompletionData } from '@/components/shared/types';
 import { getWorkflow, type WorkflowConfig } from '@/utils/aiWorkflows';
 import { parseAIResponse } from '@/utils/aiResponseParser';
-import { streamText } from '@/components/agents/shared/utils';
 
 // ============================================================================
 // TYPES

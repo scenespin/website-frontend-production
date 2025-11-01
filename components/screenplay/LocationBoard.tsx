@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-p
 import { Plus, MapPin, Film, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import type { Location, LocationType } from '../../../types/screenplay';
+import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
 import { getLocationDependencies, generateLocationReport } from '@/utils/dependencyChecker';

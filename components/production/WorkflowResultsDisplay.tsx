@@ -354,7 +354,6 @@ export function WorkflowResultsDisplay({
           <div className="w-full max-w-2xl max-h-[90vh] overflow-auto bg-white dark:bg-slate-900 rounded-lg shadow-2xl">
             <AudioInterviewWizard
               sceneContext={audioContext.videoDescription}
-              videoReference={audioContext.videoUrl}
               onComplete={(result) => {
                 handleAudioGenerated({
                   audioUrl: result.audioUrl,

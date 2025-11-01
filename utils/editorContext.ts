@@ -7,7 +7,7 @@
 
 import { RefObject } from 'react';
 import { getCurrentSceneContext } from './fountain';
-import type { SceneContext } from '@/components/agents/shared/types';
+import type { SceneContext } from '@/components/agents/ChatContext';
 
 /**
  * Extract scene context and editor state from current editor content

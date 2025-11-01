@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import type { StoryBeat } from '../../../types/screenplay';
+import type { StoryBeat } from '@/types/screenplay';
 import { ChevronRight, ChevronDown, Film, CheckCircle2, Loader2, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
