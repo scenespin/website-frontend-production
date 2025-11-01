@@ -76,6 +76,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@tailwindcss/oxide": "^4.1.16",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^24.9.2",
     "@types/react": "^19.2.2",
