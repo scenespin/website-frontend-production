@@ -9,19 +9,9 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 export default function MyAssetsPage() {
   const [activeTab, setActiveTab] = useState('browser');
+  const { currentProject, getStorageProvider } = useScreenplay();
   
-  // Safe access to screenplay context with fallback
-  let currentProject = null;
-  let storageProvider = null;
-  
-  try {
-    const screenplay = useScreenplay();
-    currentProject = screenplay?.currentProject;
-    storageProvider = screenplay?.getStorageProvider?.();
-  } catch (error) {
-    // Context not available during SSR/prerender - will be available on client
-    console.log('Screenplay context not available yet');
-  }
+  const storageProvider = getStorageProvider();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
@@ -131,4 +121,3 @@ export default function MyAssetsPage() {
     </div>
   );
 }
-
