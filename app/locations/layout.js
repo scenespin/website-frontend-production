@@ -1,6 +1,7 @@
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
-export default function TimelineLayout({ children }) {
+export default function LocationsLayout({ children }) {
   return children;
 }
+

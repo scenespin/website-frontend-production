@@ -1,30 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import Navigation from "@/components/Navigation";
-import { DrawerProvider } from "@/contexts/DrawerContext";
-import { ChatProvider } from "@/contexts/ChatContext";
-import AgentDrawer from "@/components/AgentDrawer";
-import UnifiedChatPanel from "@/components/UnifiedChatPanel";
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 
-export default async function CompositionLayout({ children }) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
-  return (
-    <DrawerProvider>
-      <ChatProvider>
-        <div className="min-h-screen bg-base-100">
-          <Navigation />
-          {children}
-          <AgentDrawer>
-            <UnifiedChatPanel />
-          </AgentDrawer>
-        </div>
-      </ChatProvider>
-    </DrawerProvider>
-  );
+export default function CompositionLayout({ children }) {
+  return children;
 }
-
