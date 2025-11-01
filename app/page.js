@@ -374,7 +374,7 @@ export default function Page() {
                     <span className="font-bold text-success">FREE</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="font-semibold">✅ Character Bank</span>
+                    <span className="font-semibold">✅ Character & Location Bank</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
                   <li className="flex justify-between items-center">

@@ -127,8 +127,8 @@ export default function Features() {
               credits="50-150 credits per 5s"
             />
             <FeatureCard
-              title="Character Bank"
-              description="Maintain character consistency across scenes with reference images, auto-consistency scoring, character library management"
+              title="Character & Location Bank"
+              description="Maintain character AND location consistency across scenes with reference images, auto-consistency scoring, character/location library management. Export both to 3D models for games & AR."
               free={true}
             />
             <FeatureCard
