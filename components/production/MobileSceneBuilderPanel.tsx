@@ -112,27 +112,51 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
     setGenerationProgress({});
     
     try {
-      // Simulate generation progress (replace with real API call)
-      const interval = setInterval(() => {
+      // Real API call for scene generation
+      const { api } = await import('@/lib/api');
+      
+      // Track progress for each clip
+      const progressInterval = setInterval(() => {
         setGenerationProgress(prev => {
           const updated = { ...prev };
           clipAssignments.forEach((_, idx) => {
-            updated[idx] = Math.min((updated[idx] || 0) + 10, 90);
+            // Simulate progress until we get real status
+            updated[idx] = Math.min((updated[idx] || 0) + 5, 85);
           });
           return updated;
         });
-      }, 500);
-
-      // TODO: Call generation API
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      }, 1000);
       
-      clearInterval(interval);
+      // Prepare generation payload
+      const generationPayload = clipAssignments.map((clip, idx) => ({
+        clipIndex: idx,
+        prompt: clip.prompt || '',
+        characterId: clip.characterId,
+        characterName: clip.characterName,
+        source: clip.source,
+        estimatedCost: clip.estimatedCost || 0
+      }));
+      
+      // Call the backend scene generation API
+      const response = await api.post('/api/scene-generation/complete', {
+        projectId,
+        sceneId: selectedBeat?.beat_id || 'scene_' + Date.now(),
+        clipAssignments: generationPayload,
+        templateId: 'custom',
+        totalEstimatedCost: calculateTotalCost()
+      });
+      
+      clearInterval(progressInterval);
+      
+      // Mark all as complete
       const completed = clipAssignments.reduce((acc, _, idx) => ({ ...acc, [idx]: 100 }), {});
       setGenerationProgress(completed);
       setCurrentStep(3); // 3 = review step
-      toast.success('Clips generated successfully!');
-    } catch (error) {
-      toast.error('Generation failed');
+      
+      toast.success(`Generated ${response.data.clipsGenerated} clips successfully!`);
+    } catch (error: any) {
+      console.error('[MobileSceneBuilder] Generation failed:', error);
+      toast.error(error.response?.data?.message || 'Generation failed');
     } finally {
       setIsGenerating(false);
     }

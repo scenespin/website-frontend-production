@@ -285,7 +285,7 @@ export default function Page() {
                 <Link href="/features" className="btn btn-primary">
                   See All Features →
                 </Link>
-                <Link href="/team" className="btn btn-outline">
+                <Link href="/help/collaboration" className="btn btn-outline">
                   Learn About Collaboration
                 </Link>
               </div>
@@ -386,7 +386,7 @@ export default function Page() {
                     <span className="font-bold text-success">FREE</span>
                   </li>
                   <li className="flex justify-between items-center">
-                    <span className="font-semibold">✅ 47 AI Workflows</span>
+                    <span className="font-semibold">✅ 58 AI Workflows</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
                   <li className="border-t border-success/30 pt-3 flex justify-between items-center">
@@ -400,7 +400,7 @@ export default function Page() {
 
                 <div className="divider text-sm opacity-70">How Payment Works</div>
                 <div className="bg-base-200 rounded-lg p-4 space-y-2">
-                  <p className="text-sm"><strong>Free Plan:</strong> 100 signup credits + 10 credits/month</p>
+                  <p className="text-sm"><strong>Free Plan:</strong> 50 signup credits + 10 credits/month</p>
                   <p className="text-sm"><strong>Pro Plan ($29/mo):</strong> 3,000 credits/month when you need more</p>
                   <p className="text-sm"><strong>Ultra Plan ($149/mo):</strong> 20,000 credits/month for production</p>
                   <p className="text-sm"><strong>Studio Plan ($399/mo):</strong> 75,000 credits/month for teams</p>

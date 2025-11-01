@@ -133,13 +133,13 @@ export default function Features() {
             />
             <FeatureCard
               title="Custom Voice-Overs (ElevenLabs Integration)"
-              description="Add custom narration and voice-overs using your own ElevenLabs voices. Perfect for tutorials, documentaries, and background narration. Does NOT include character lip-sync."
+              description="Connect your ElevenLabs account to add custom narration and voice-overs using your cloned voices. Perfect for tutorials, documentaries, and background narration."
               free={true}
               note="(FREE integration - bring your own ElevenLabs API key)"
             />
             <FeatureCard
               title="Character Dialogue & Lip-Sync (AI Workflows)"
-              description="Generate characters speaking with perfect lip-sync and facial animation using our AI workflows. Upload audio or describe dialogue, get fully animated talking characters."
+              description="Generate characters speaking with perfect lip-sync and facial animation. Upload any audio (including your ElevenLabs cloned voices), and get fully animated talking characters."
               free={false}
               credits="400+ credits per scene"
             />
@@ -275,9 +275,9 @@ export default function Features() {
           </div>
         </section>
 
-        {/* 51 AI Workflows */}
+        {/* 58 AI Workflows */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-6">⚡ 51 AI Workflows</h2>
+          <h2 className="text-3xl font-bold mb-6">⚡ 58 AI Workflows</h2>
           <p className="text-lg opacity-80 mb-8">
             Pre-built professional workflows for instant content creation. All workflows support vertical video (TikTok, Reels) and multi-format bundles.
           </p>
@@ -788,6 +788,9 @@ export default function Features() {
                   <li>• 21 Audio-Enabled Layouts (spatial audio, auto-ducking, 5.1 surround, Dolby Atmos)</li>
                   <li>• 6 Animated Compositions (motion graphics, dynamic transitions)</li>
                   <li>• Professional color grading & cinematic looks</li>
+                  <li>• Frame-accurate clip trimming within compositions</li>
+                  <li>• Adjust clip lengths, start/end times on the fly</li>
+                  <li>• Full audio mixing & sync controls</li>
                 </ul>
                 <div className="badge badge-success">FREE</div>
               </div>
@@ -839,7 +842,8 @@ export default function Features() {
             <FeatureCard
               title="Credit Management"
               description="Simple credit-based billing (1 credit = $0.01), subscription management, usage tracking"
-              free={true}
+              free={false}
+              credits="Pay as you go"
             />
           </div>
         </section>
@@ -981,7 +985,7 @@ export default function Features() {
               <p className="text-lg font-semibold mb-4">
                 💡 <strong>We streamlined GitHub for writers</strong> - manage everything from the software, no GitHub expertise needed
               </p>
-              <Link href="/team" className="btn btn-primary">
+              <Link href="/help/collaboration" className="btn btn-primary">
                 Learn More About Collaboration →
               </Link>
             </div>

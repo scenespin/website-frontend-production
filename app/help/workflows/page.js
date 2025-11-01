@@ -4,7 +4,7 @@ import config from "@/config";
 
 export const metadata = getSEOTags({
   title: `AI Workflows Guide | ${config.appName}`,
-  description: "Use 47 pre-built professional workflows for instant content creation. Character consistency guaranteed, organized by what you have: text, images, or video.",
+  description: "Use 58 pre-built professional workflows for instant content creation. Character consistency guaranteed, organized by what you have: text, images, or video.",
   canonicalUrlRelative: "/help/workflows",
 });
 
@@ -67,8 +67,8 @@ export default function WorkflowsPage() {
             </div>
           </div>
 
-          <h2>How Workflows are Organized (51 Total)</h2>
-          <p>We&apos;ve organized all 51 workflows based on <strong>what you have right now</strong>. This makes it easy to find the perfect workflow for your current situation.</p>
+          <h2>How Workflows are Organized (58 Total)</h2>
+          <p>We&apos;ve organized all 58 workflows based on <strong>what you have right now</strong>. This makes it easy to find the perfect workflow for your current situation.</p>
 
           <div className="alert alert-info my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -203,8 +203,8 @@ export default function WorkflowsPage() {
             </div>
           </div>
 
-          <h2>🎭 Understanding Character Consistency (32 Workflows)</h2>
-          <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>32 out of 51 workflows</strong> support character consistency—but they work differently!</p>
+          <h2>🎭 Understanding Character Consistency (35+ Workflows)</h2>
+          <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>Over 35 out of 58 workflows</strong> support character consistency—but they work differently!</p>
 
           <div className="alert alert-info my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -500,10 +500,10 @@ export default function WorkflowsPage() {
 
           <h2>What&apos;s Next?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 not-prose my-8">
-            <Link href="/dashboard" className="card bg-primary text-primary-content hover:shadow-xl transition-shadow">
+            <Link href="/workflows" className="card bg-primary text-primary-content hover:shadow-xl transition-shadow">
               <div className="card-body">
                 <h3 className="card-title text-base">Browse Workflows</h3>
-                <p className="text-sm">Explore all 42 options</p>
+                <p className="text-sm">Explore all 58 workflows</p>
               </div>
             </Link>
             <Link href="/help/advanced/character-consistency" className="card bg-secondary text-secondary-content hover:shadow-xl transition-shadow">

@@ -11,7 +11,8 @@ import {
   Zap,
   Menu,
   X,
-  Coins
+  Coins,
+  Users
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -53,6 +54,7 @@ export default function Navigation() {
     { name: 'Workflows', href: '/workflows', icon: Zap },
     { name: 'Generate Video', href: '/production', icon: Video },
     { name: 'Screenplay', href: '/editor', icon: FileText },
+    { name: 'Team', href: '/team', icon: Users },
   ];
 
   const isActive = (href) => pathname === href;

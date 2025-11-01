@@ -72,7 +72,7 @@ export default function SocialCreatorsPage() {
               Create Your First Video Free →
             </Link>
             <Link className="btn btn-outline btn-lg" href="#workflows">
-              Browse 51 Workflows
+              Browse 58 Workflows
             </Link>
           </div>
 
@@ -142,7 +142,7 @@ export default function SocialCreatorsPage() {
                       <span className="font-bold text-success">FREE</span>
                     </li>
                     <li className="flex justify-between items-center">
-                      <span className="font-semibold">✅ 51 AI Workflows</span>
+                      <span className="font-semibold">✅ 58 AI Workflows</span>
                       <span className="font-bold text-success">FREE</span>
                     </li>
                     <li className="border-t border-success/30 pt-3 flex justify-between items-center">
@@ -246,7 +246,7 @@ export default function SocialCreatorsPage() {
           <div className="max-w-7xl mx-auto px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                51 AI Workflows Built for Creators
+                58 AI Workflows Built for Creators
               </h2>
               <p className="text-lg opacity-80">
                 Pre-built workflows for every content type
@@ -313,7 +313,7 @@ export default function SocialCreatorsPage() {
 
             <div className="text-center mt-8">
               <Link href="/workflows" className="btn btn-outline btn-lg">
-                Browse All 51 Workflows
+                Browse All 58 Workflows
               </Link>
             </div>
           </div>
@@ -435,7 +435,7 @@ export default function SocialCreatorsPage() {
                 </svg>
               </Link>
               <Link href="/workflows" className="btn btn-outline btn-lg">
-                Browse 51 Workflows
+                Browse 58 Workflows
               </Link>
             </div>
             <p className="text-sm opacity-60">

@@ -28,7 +28,7 @@ const faqList = [
     question: "How do credits work? What can I make with them?",
     answer: (
       <div className="space-y-2 leading-relaxed">
-        <p><strong>Free Plan:</strong> 100 signup credits + 10 credits/month = ~2 professional 1080p videos</p>
+        <p><strong>Free Plan:</strong> 50 signup credits + 10 credits/month = ~1 professional 1080p video</p>
         <p><strong>Pro Plan ($29/mo):</strong> 3,000 credits = ~60 professional 1080p videos</p>
         <p><strong>Ultra Plan ($149/mo):</strong> 20,000 credits = ~400 professional videos</p>
         <p><strong>Studio Plan ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</p>
@@ -61,30 +61,35 @@ const faqList = [
           <li>✅ Edit on 8-track timeline for FREE</li>
           <li>✅ Apply 30 Hollywood transitions for FREE</li>
           <li>✅ Mix with AI-generated clips (pay for AI only)</li>
-          <li>✅ Export final render (pay for rendering only)</li>
+          <li>✅ Export final render (nominal rendering fee)</li>
         </ul>
         <p><strong>Storage:</strong> Save to YOUR Google Drive or Dropbox—we just reference the URLs. No vendor lock-in. Same approach as Premiere Pro & DaVinci Resolve.</p>
-        <p className="font-semibold text-primary">Think of it as: Replace your entire software stack for $0, only pay for AI & rendering.</p>
+        <p className="font-semibold text-primary">Think of it as: Replace your entire software stack for $0, only pay for AI & rendering compute.</p>
       </div>
     ),
   },
   {
-    question: "What's the difference between Free, Pro, Ultra, and Studio?",
+    question: "What's the difference between Free, Pro, Ultra, and Studio plans?",
     answer: (
       <div className="space-y-2 leading-relaxed">
-        <p><strong>Simple answer: Just the number of credits per month.</strong></p>
-        <p>Every tier gets:</p>
+        <p><strong>Simple: It's just volume discounts on credits.</strong></p>
+        <p>Every tier gets the exact same features:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>✅ All features unlocked</li>
+          <li>✅ All features unlocked (no feature gating)</li>
           <li>✅ All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
           <li>✅ All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
           <li>✅ Upload unlimited footage</li>
           <li>✅ 65 compositions + 30 transitions</li>
           <li>✅ No watermarks, no vendor lock-in</li>
-          <li>✅ Character Bank</li>
         </ul>
-        <p><strong>Choose based on how many AI videos you need per month. That&apos;s it!</strong></p>
-        <p className="text-sm opacity-70 mt-2 italic">Remember: You&apos;re never charged for using the software, editing tools, or uploading footage. You only pay credits when generating AI videos.</p>
+        <p><strong>The difference? Just how many credits you get per dollar:</strong></p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>Pay-as-you-go:</strong> 1 credit = $0.01 (baseline price)</li>
+          <li><strong>Pro ($29/mo):</strong> 3,000 credits = ~3% discount</li>
+          <li><strong>Ultra ($149/mo):</strong> 20,000 credits = ~25% discount</li>
+          <li><strong>Studio ($399/mo):</strong> 75,000 credits = ~47% discount</li>
+        </ul>
+        <p className="font-semibold text-primary">Higher tiers = deeper discounts. Choose based on your monthly video needs!</p>
       </div>
     ),
   },
@@ -102,7 +107,7 @@ const faqList = [
           <li>Stock music/SFX (Epidemic Sound): $300/yr</li>
           <li>Cloud storage (200GB+): $200/yr</li>
         </ul>
-        <p><strong>Wryda.ai Pro:</strong> $348/year (save $1,428/year)</p>
+        <p><strong>Wryda.ai:</strong> $0/month + free footage uploads + only pay for AI generation & rendering compute</p>
         <p><strong>Plus you get:</strong></p>
         <ul className="list-disc pl-5">
           <li>All-in-one platform (no tool juggling)</li>
@@ -111,7 +116,31 @@ const faqList = [
           <li>Screenplay-driven automation</li>
           <li>No vendor lock-in - export to Drive/Dropbox</li>
         </ul>
-        <p>Traditional tools can&apos;t generate AI video. Wryda.ai replaces 6+ tools with one.</p>
+        <p className="font-semibold">Traditional tools can&apos;t generate AI video. Wryda.ai replaces 6+ tools with one, and you only pay for what you use.</p>
+      </div>
+    ),
+  },
+  {
+    question: "What is HDR video and why should I care?",
+    answer: (
+      <div className="space-y-2 leading-relaxed">
+        <p><strong>HDR (High Dynamic Range) = Cinema-grade color depth.</strong></p>
+        <p>We&apos;re the ONLY AI platform that can generate AND upgrade videos to 16-bit HDR.</p>
+        <p><strong>What you get with HDR:</strong></p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Vivid, accurate colors (not washed out)</li>
+          <li>Professional film festival quality</li>
+          <li>16-bit color depth (vs standard 8-bit)</li>
+          <li>Ready for DaVinci Resolve color grading</li>
+          <li>Export as EXR for pro workflows</li>
+        </ul>
+        <p><strong>HDR Workflows:</strong></p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>Native HDR Generation:</strong> Generate videos in HDR from scratch (100-300 credits)</li>
+          <li><strong>SDR to HDR Upgrade:</strong> Convert ANY video to HDR - even from other AI tools! (30 credits per video)</li>
+          <li><strong>Multi-Format HDR:</strong> Generate once, export to all platforms in HDR</li>
+        </ul>
+        <p className="font-semibold text-primary">Runway, Veo, Sora? None support HDR. Only Wryda.ai.</p>
       </div>
     ),
   },

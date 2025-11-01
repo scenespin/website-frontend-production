@@ -12,7 +12,7 @@ const Pricing = () => {
       name: "Free",
       price: "$0",
       period: "forever",
-      credits: "100 signup + 10 credits/month",
+      credits: "50 signup + 10 credits/month",
       description: "All features unlocked. Try everything.",
       features: [
         "✅ All quality tiers (Professional/Premium/Ultra)",
@@ -23,7 +23,7 @@ const Pricing = () => {
         "✅ Cloud Storage (Drive/Dropbox)",
         "✅ No watermarks, no vendor lock-in"
       ],
-      cta: "Get 100 Free Credits →",
+      cta: "Get 50 Free Credits →",
       href: "/sign-up",
       popular: false
     },
@@ -130,7 +130,7 @@ const Pricing = () => {
                 <ul className="space-y-2 text-sm flex-1">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="shrink-0 mt-0.5">{feature}</span>
+                      <span className="flex-1 break-words">{feature}</span>
                     </li>
                   ))}
                 </ul>

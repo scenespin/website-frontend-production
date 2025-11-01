@@ -243,7 +243,7 @@ export default function WorkflowsPage() {
                 AI Workflows
               </h1>
               <p className="text-lg opacity-70">
-                51 professional workflows organized by what you have, what you want, and where you are
+                58 professional workflows organized by what you have, what you want, and where you are
               </p>
             </div>
             <Link href="/help/workflows" className="btn btn-outline gap-2">
@@ -294,7 +294,7 @@ export default function WorkflowsPage() {
               <Info className="w-5 h-5" />
               <div className="text-sm">
                 {allWorkflowsType === 'all-all' && (
-                  <p><strong>51 professional workflows</strong> organized by category: Photorealistic (6), Animated (3), Fantasy/VFX (2), Animals (2), Budget/Speed (6), Production Tools (9), Performance Capture (12), Video Enhancement (5).</p>
+                  <p><strong>58 professional workflows</strong> organized by category: Photorealistic (6), Animated (3), Fantasy/VFX (2), Animals (2), Budget/Speed (6), Production Tools (9), Performance Capture (8), Video Enhancement (5), Post-Production HDR (7), Hybrid/Audio (10).</p>
                 )}
                 {allWorkflowsType === 'photorealistic' && (
                   <p><strong>Photorealistic / Live-Action (6):</strong> Hollywood-grade video production. From budget-friendly to cinema-quality, these workflows create ultra-realistic characters and scenes.</p>
