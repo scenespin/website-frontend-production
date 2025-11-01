@@ -1,13 +1,8 @@
+'use client';
+
 import Link from "next/link";
-import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
 import { Check, Zap, Sparkles, Star, Crown } from "lucide-react";
-
-export const metadata = getSEOTags({
-  title: `Buy Credits | ${config.appName}`,
-  description: "Purchase AI credits to power your video and image generation. Flexible packages from starter to professional.",
-  canonicalUrlRelative: "/buy-credits",
-});
 
 // Credit Packages - Pricing based on 1 credit = $0.01
 const CREDIT_PACKAGES = [
