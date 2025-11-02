@@ -140,7 +140,7 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
       // Call the backend scene generation API
       const response = await api.post('/api/scene-generation/complete', {
         projectId,
-        sceneId: selectedBeat?.beat_id || 'scene_' + Date.now(),
+        sceneId: selectedBeat?.id || 'scene_' + Date.now(),
         clipAssignments: generationPayload,
         templateId: 'custom',
         totalEstimatedCost: calculateTotalCost()
