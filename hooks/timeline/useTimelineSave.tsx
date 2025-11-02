@@ -210,7 +210,7 @@ export function useTimelineSave(
     } catch (error: any) {
       console.error('[Timeline] Save failed:', error);
       addToRetryQueue(project);
-      setSaveStatus('error');
+      setSaveStatus('failed');
       
       if (onSaveError) {
         onSaveError(error);
