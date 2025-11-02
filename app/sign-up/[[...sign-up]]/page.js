@@ -96,8 +96,8 @@ export default function SignUpPage() {
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <div>
-                      <strong>100 signup credits</strong>
-                      <p className="text-sm opacity-70">Worth $1.00 - create ~2 professional videos</p>
+                      <strong>50 signup credits</strong>
+                      <p className="text-sm opacity-70">Worth $0.50 - create ~2 professional videos</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
@@ -111,7 +111,7 @@ export default function SignUpPage() {
                     <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <div>
                       <strong>All features unlocked</strong>
-                      <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
+                      <p className="text-sm opacity-70">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
@@ -139,7 +139,7 @@ export default function SignUpPage() {
                     <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
                     <div>
                       <strong>All features unlocked</strong>
-                      <p className="text-sm opacity-70">42 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>
+                      <p className="text-sm opacity-70">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions</p>
                     </div>
                   </li>
                 </ul>
@@ -184,7 +184,7 @@ export default function SignUpPage() {
           </div>
 
           {/* RIGHT: Clerk Signup */}
-          <div className="order-1 md:order-2 flex justify-center md:justify-start">
+          <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
             <div className="w-full max-w-md bg-base-100 rounded-box shadow-2xl p-6 md:p-8">
               <SignUp 
                 appearance={{
@@ -213,6 +213,7 @@ export default function SignUpPage() {
                     headerSubtitle: "text-base-content/70 text-center",
                     socialButtonsBlockButton: "!bg-base-200 hover:!bg-base-300 !text-base-content !border-2 !border-base-content/30 hover:!border-base-content/50 transition-all duration-200",
                     socialButtonsBlockButtonText: "font-medium",
+                    socialButtonsProviderIcon__google: "!mr-2",
                     formButtonPrimary: "!bg-[#DC143C] hover:!bg-[#B8112F] !text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200",
                     footerActionLink: "!text-[#DC143C] hover:!text-[#B8112F] font-medium",
                     formFieldLabel: "!text-base-content font-medium mb-2",
@@ -227,13 +228,13 @@ export default function SignUpPage() {
                   },
                 }}
               />
-            </div>
-            
-            {/* Additional Trust Signal Below Form */}
-            <div className="mt-4 w-full flex justify-center">
-              <p className="text-xs opacity-60 text-center">
-                🔒 Your data is encrypted and secure
-              </p>
+              
+              {/* Additional Trust Signal Below Form - Inside Container */}
+              <div className="mt-4 w-full text-center">
+                <p className="text-xs opacity-60">
+                  🔒 Your data is encrypted and secure
+                </p>
+              </div>
             </div>
           </div>
 

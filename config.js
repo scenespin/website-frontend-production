@@ -49,13 +49,13 @@ const config = {
         features: [
           { name: "3,000 credits/month" },
           { name: "Everything in Free" },
-          { name: "~60 Professional 1080p videos" },
+          { name: "All quality tiers unlocked" },
           { name: "Save $1,980/year vs traditional" },
         ],
         // Signup page specific
         signupHeadline: "Power Your Content Creation",
         signupSubheadline: "Professional tools for creators who demand more",
-        signupValueProp: "Generate 60+ professional videos per month with AI writing assistance",
+        signupValueProp: "3,000 monthly credits to fuel your creative workflow",
         targetAudience: "YouTube creators, content marketers, and freelancers",
       },
       {
@@ -70,14 +70,14 @@ const config = {
         features: [
           { name: "20,000 credits/month" },
           { name: "Everything in Free" },
-          { name: "~400 Professional videos" },
+          { name: "All quality tiers unlocked" },
           { name: "Perfect for studios & agencies" },
         ],
         isFeatured: false,
         // Signup page specific
         signupHeadline: "Scale Your Production",
         signupSubheadline: "Enterprise-grade tools for teams and agencies",
-        signupValueProp: "Unlimited creative power with priority support and advanced features",
+        signupValueProp: "20,000 monthly credits for unlimited creative power",
         targetAudience: "Production companies, agencies, and high-volume creators",
       },
       {
@@ -92,14 +92,14 @@ const config = {
         features: [
           { name: "75,000 credits/month" },
           { name: "Everything in Free" },
-          { name: "~1,500 Professional videos" },
+          { name: "All quality tiers unlocked" },
           { name: "Massive production capacity" },
         ],
         isFeatured: false,
         // Signup page specific
         signupHeadline: "Enterprise-Level Power",
         signupSubheadline: "Built for studios and large production teams",
-        signupValueProp: "Massive production capacity with enterprise-grade reliability",
+        signupValueProp: "75,000 monthly credits for enterprise-grade reliability",
         targetAudience: "Large studios, streaming platforms, and enterprise teams",
       },
     ],

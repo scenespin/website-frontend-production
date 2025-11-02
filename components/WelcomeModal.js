@@ -12,9 +12,9 @@ import config from '@/config';
  * Props:
  * - isOpen: boolean
  * - onClose: function to call when user completes/skips
- * - userCredits: number (default 100)
+ * - userCredits: number (default 50)
  */
-export default function WelcomeModal({ isOpen, onClose, userCredits = 100 }) {
+export default function WelcomeModal({ isOpen, onClose, userCredits = 50 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   if (!isOpen) return null;

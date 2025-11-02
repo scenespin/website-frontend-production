@@ -64,6 +64,12 @@ function ModeSelector() {
   const agents = MODE_ORDER.filter(mode => MODE_CONFIG[mode].isAgent);
   const features = MODE_ORDER.filter(mode => !MODE_CONFIG[mode].isAgent);
   
+  const handleModeChange = (mode) => {
+    setMode(mode);
+    // Auto-close dropdown after selection
+    document.activeElement?.blur();
+  };
+  
   return (
     <div className="dropdown dropdown-top">
       <label tabIndex={0} className="btn btn-sm btn-ghost gap-1">
@@ -82,7 +88,7 @@ function ModeSelector() {
           return (
             <li key={mode}>
               <button
-                onClick={() => setMode(mode)}
+                onClick={() => handleModeChange(mode)}
                 className={`flex flex-col items-start gap-0.5 py-2 ${state.activeMode === mode ? 'active bg-cinema-red/10' : ''}`}
               >
                 <div className="flex items-center gap-2 w-full">
@@ -105,7 +111,7 @@ function ModeSelector() {
           return (
             <li key={mode}>
               <button
-                onClick={() => setMode(mode)}
+                onClick={() => handleModeChange(mode)}
                 className={`flex flex-col items-start gap-0.5 py-2 ${state.activeMode === mode ? 'active bg-cinema-red/10' : ''}`}
               >
                 <div className="flex items-center gap-2 w-full">
@@ -131,39 +137,47 @@ function LLMModelSelector() {
   
   const currentModel = LLM_MODELS.find(m => m.id === selectedModel) || LLM_MODELS[0];
   
+  const handleModelChange = (modelId) => {
+    setSelectedModel(modelId);
+    // Auto-close dropdown after selection
+    document.activeElement?.blur();
+  };
+  
   return (
     <div className="dropdown dropdown-top">
       <label tabIndex={0} className="btn btn-sm btn-ghost gap-1 text-base-content/80 hover:text-base-content">
         <span className="text-xs font-medium">{currentModel.name}</span>
         <ChevronDown className="w-3.5 h-3.5" />
       </label>
-      <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-64 mb-2 border border-base-300 max-h-96 overflow-y-auto">
+      <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-64 mb-2 border border-base-300 max-h-96 overflow-y-auto flex flex-col gap-1">
         {/* Group by provider - Users choose their preferred AI style */}
         {['Anthropic', 'OpenAI', 'Google'].map(provider => {
           const providerModels = LLM_MODELS.filter(m => m.provider === provider);
           return (
-            <li key={provider}>
-              <div className="menu-title">
+            <div key={provider} className="w-full">
+              <div className="menu-title px-3 py-1">
                 <span className="text-xs font-bold text-base-content/70">{provider}</span>
               </div>
-              {providerModels.map(model => (
-                <button
-                  key={model.id}
-                  onClick={() => setSelectedModel(model.id)}
-                  className={`flex flex-col items-start gap-0.5 py-2 ${
-                    selectedModel === model.id ? 'active bg-cinema-red/10' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <span className="font-medium text-xs">{model.name}</span>
-                    {model.recommended && (
-                      <span className="badge badge-xs badge-primary">✨</span>
-                    )}
-                  </div>
-                  <span className="text-[10px] opacity-60 text-left">{model.description}</span>
-                </button>
-              ))}
-            </li>
+              <div className="flex flex-col w-full">
+                {providerModels.map(model => (
+                  <button
+                    key={model.id}
+                    onClick={() => handleModelChange(model.id)}
+                    className={`flex flex-col items-start gap-0.5 py-2 px-3 w-full hover:bg-base-300 rounded ${
+                      selectedModel === model.id ? 'bg-cinema-red/10' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="font-medium text-xs">{model.name}</span>
+                      {model.recommended && (
+                        <span className="badge badge-xs badge-primary">✨</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] opacity-60 text-left">{model.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           );
         })}
       </ul>
@@ -748,7 +762,6 @@ function UnifiedChatPanelInner({
           {/* Only show LLM selector for AI Agents */}
           {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
           <div className="flex-1"></div>
-          <span className="text-base-content/40">Shift + Enter for new line</span>
         </div>
         
         {/* Hidden file input */}

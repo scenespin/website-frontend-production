@@ -312,7 +312,7 @@ export function useSunoModels() {
       setModels([
         {
           model: 'v3.5',
-          label: 'Suno V3.5',
+          label: 'Standard',
           description: 'Better song structure, up to 4 minutes',
           maxDurationSeconds: 240,
           quality: 'high',
@@ -321,7 +321,7 @@ export function useSunoModels() {
         },
         {
           model: 'v4',
-          label: 'Suno V4',
+          label: 'Enhanced',
           description: 'Improved vocals, up to 4 minutes',
           maxDurationSeconds: 240,
           quality: 'premium',
@@ -330,7 +330,7 @@ export function useSunoModels() {
         },
         {
           model: 'v4.5',
-          label: 'Suno V4.5',
+          label: 'Premium',
           description: 'Smart prompts, up to 8 minutes',
           maxDurationSeconds: 480,
           quality: 'premium',
@@ -339,7 +339,7 @@ export function useSunoModels() {
         },
         {
           model: 'v4.5-plus',
-          label: 'Suno V4.5 Plus',
+          label: 'Professional',
           description: 'Richer tones, up to 8 minutes',
           maxDurationSeconds: 480,
           quality: 'cinematic',
@@ -348,7 +348,7 @@ export function useSunoModels() {
         },
         {
           model: 'v5',
-          label: 'Suno V5',
+          label: 'Ultra',
           description: 'Latest model, premium quality',
           maxDurationSeconds: 480,
           quality: 'cinematic',

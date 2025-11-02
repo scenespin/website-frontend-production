@@ -489,25 +489,25 @@ export function MusicGenerator({ onMusicGenerated, showLibraryButton = true }: M
           <Label className="text-xs text-muted-foreground mb-2 block">Model Comparison</Label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <div className="p-2 border rounded text-xs">
-              <div className="font-medium">V3.5</div>
+              <div className="font-medium">Standard</div>
               <div className="text-muted-foreground">50 credits • 4 min</div>
             </div>
             <div className="p-2 border rounded text-xs">
-              <div className="font-medium">V4</div>
+              <div className="font-medium">Enhanced</div>
               <div className="text-muted-foreground">75 credits • 4 min</div>
             </div>
             <div className="p-2 border border-primary rounded text-xs bg-primary/5">
               <div className="font-medium flex items-center gap-1">
-                V4.5 <Star className="w-3 h-3" />
+                Premium <Star className="w-3 h-3" />
               </div>
               <div className="text-muted-foreground">100 credits • 8 min</div>
             </div>
             <div className="p-2 border rounded text-xs">
-              <div className="font-medium">V4.5 Plus</div>
+              <div className="font-medium">Professional</div>
               <div className="text-muted-foreground">150 credits • 8 min</div>
             </div>
             <div className="p-2 border rounded text-xs">
-              <div className="font-medium">V5</div>
+              <div className="font-medium">Ultra</div>
               <div className="text-muted-foreground">200 credits • 8 min</div>
             </div>
           </div>
