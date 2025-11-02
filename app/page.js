@@ -170,7 +170,7 @@ export default function Page() {
               <h2 className="text-3xl md:text-4xl font-bold mb-4">🔐 You Own Everything</h2>
               <p className="text-xl opacity-90 max-w-3xl mx-auto mb-2">
                 Unlike other platforms that lock your content behind proprietary formats,<br className="hidden md:block" />
-                <strong className="text-[#DC143C]">your data stays in YOUR cloud</strong>
+                <strong className="text-[#DC143C]">YOUR data stays in YOUR cloud</strong>
               </p>
               <p className="text-lg opacity-70">
                 We streamlined GitHub for writers - manage everything from the software, no technical expertise needed
@@ -213,13 +213,13 @@ export default function Page() {
                   <div className="text-5xl mb-3">☁️</div>
                   <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
                   <p className="text-sm opacity-80 mb-4">
-                    Videos, audio, images stored in <strong>YOUR Google Drive, Dropbox, or GitHub</strong>.
+                    Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
                     We store files for 7 days max, then YOU choose where they go.
                   </p>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
-                      <span>Choose Google Drive, Dropbox, or GitHub</span>
+                      <span>Choose Google Drive or Dropbox</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
@@ -241,10 +241,10 @@ export default function Page() {
               <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
                 <div className="card-body">
                   <div className="text-5xl mb-3">👥</div>
-                  <h3 className="card-title text-xl mb-2">6 Collaboration Roles</h3>
+                  <h3 className="card-title text-xl mb-2">5 Collaboration Roles</h3>
                   <p className="text-sm opacity-80 mb-4">
                     <strong>Manage everything from the software</strong> - no GitHub expertise needed.
-                    Add teammates in seconds.
+                    Add teammates in seconds. <strong>Permissions sync across GitHub + your cloud storage automatically.</strong>
                   </p>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-start gap-2">
@@ -256,13 +256,19 @@ export default function Page() {
                     <div className="flex items-start gap-2">
                       <span className="text-lg">✍️</span>
                       <div>
-                        <strong>Writer</strong> - Edit screenplay + timeline
+                        <strong>Writer</strong> - Edit screenplay + AI agents
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-lg">🎬</span>
+                      <div>
+                        <strong>Asset Manager</strong> - Generate & manage assets
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="text-lg">🎨</span>
                       <div>
-                        <strong>Contributor</strong> - Manage assets
+                        <strong>Contributor</strong> - Upload assets only
                       </div>
                     </div>
                     <div className="flex items-start gap-2">

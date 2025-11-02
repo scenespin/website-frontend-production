@@ -33,17 +33,39 @@ export default function Navigation() {
     }
   }, [user?.id]);
   
-  async function fetchCreditBalance() {
+  // Refetch credits when page becomes visible (fixes logout/login persistence issue)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.id) {
+        fetchCreditBalance();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.id]);
+  
+  async function fetchCreditBalance(retryCount = 0) {
     try {
       const response = await fetch('/api/user/credits');
       if (response.ok) {
         const data = await response.json();
         setCredits(data.credits || 0);
+      } else if (response.status === 404 && retryCount < 3) {
+        // User record might not exist yet (new signup), retry with exponential backoff
+        console.log(`[Navigation] User record not found, retrying in ${1000 * (retryCount + 1)}ms...`);
+        setTimeout(() => fetchCreditBalance(retryCount + 1), 1000 * (retryCount + 1));
       }
     } catch (error) {
       console.error('[Navigation] Failed to fetch credits:', error);
+      // Retry on network error for new accounts
+      if (retryCount < 3) {
+        setTimeout(() => fetchCreditBalance(retryCount + 1), 2000 * (retryCount + 1));
+      }
     } finally {
-      setLoadingCredits(false);
+      if (retryCount === 0) {
+        setLoadingCredits(false);
+      }
     }
   }
 

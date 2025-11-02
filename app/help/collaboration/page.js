@@ -87,7 +87,8 @@ export default function CollaborationHelpPage() {
               <li>✅ Full edit access to all scenes</li>
               <li>✅ Create/delete characters, locations, beats</li>
               <li>✅ Manage project settings</li>
-              <li>✅ Generate AI content (uses their credits)</li>
+              <li>✅ Generate all AI content (video, images, characters, assets)</li>
+              <li>✅ Use AI writing agents (Screenwriter, Director, Polish)</li>
             </ul>
           </div>
         </div>
@@ -99,7 +100,7 @@ export default function CollaborationHelpPage() {
               <span>✍️</span> Script Writer (Edit Screenplay)
             </h3>
             <p className="text-sm opacity-90">
-              Full access to write and edit the screenplay. Can generate AI content but cannot delete the project or manage team.
+              Full access to write and edit the screenplay. Can use AI writing agents but cannot generate production content (video/images/characters). Cannot delete the project or manage team.
             </p>
             
             <h4 className="font-semibold text-base mt-4 mb-2">GitHub Permissions:</h4>
@@ -124,7 +125,51 @@ export default function CollaborationHelpPage() {
             <ul className="text-sm space-y-1 mb-0">
               <li>✅ Edit all scenes, dialogue, action lines</li>
               <li>✅ Create/edit characters, locations, beats</li>
-              <li>✅ Generate AI content (uses their credits)</li>
+              <li>✅ Use AI writing agents (Screenwriter, Director, Polish)</li>
+              <li>❌ Cannot generate production content (video/images/character banks)</li>
+              <li>❌ Cannot delete project or manage team</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Asset Manager - NEW! */}
+        <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 mb-6">
+          <div className="card-body">
+            <h3 className="text-2xl font-bold text-purple-400 flex items-center gap-2 mt-0">
+              <span>🎬</span> Asset Manager (Generate & Manage Assets)
+            </h3>
+            <p className="text-sm opacity-90">
+              Specialized role for VFX artists, production designers, and asset coordinators. Can generate all AI assets (characters, locations, props, 3D models) but cannot edit screenplay or generate video.
+            </p>
+            
+            <h4 className="font-semibold text-base mt-4 mb-2">GitHub Permissions:</h4>
+            <ul className="text-sm space-y-1 mb-0">
+              <li>✅ <strong>Write</strong> access to repository</li>
+              <li>✅ Push asset files and references</li>
+              <li>✅ Commit asset changes</li>
+              <li>✅ View screenplay (read-only)</li>
+              <li>❌ Cannot modify screenplay text</li>
+            </ul>
+
+            <h4 className="font-semibold text-base mt-4 mb-2">Cloud Storage Permissions:</h4>
+            <ul className="text-sm space-y-1 mb-0">
+              <li>✅ <strong>Editor</strong> access to asset folders</li>
+              <li>✅ Upload/download all asset types</li>
+              <li>✅ Organize asset library structure</li>
+              <li>✅ Manage character banks, locations, props</li>
+              <li>❌ Cannot modify screenplay files</li>
+            </ul>
+
+            <h4 className="font-semibold text-base mt-4 mb-2">Screenplay Permissions:</h4>
+            <ul className="text-sm space-y-1 mb-0">
+              <li>✅ Generate character banks & pose packages</li>
+              <li>✅ Generate location references</li>
+              <li>✅ Generate props with Asset Bank</li>
+              <li>✅ Export 3D models (characters, locations, props)</li>
+              <li>✅ Access Production page & tools</li>
+              <li>✅ View screenplay (read-only for context)</li>
+              <li>❌ Cannot edit screenplay or timeline</li>
+              <li>❌ Cannot generate video content</li>
               <li>❌ Cannot delete project or manage team</li>
             </ul>
           </div>

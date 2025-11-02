@@ -116,7 +116,7 @@ export default function TeamPage() {
             </p>
             <p>
               • <strong className="text-blue-400">Role-Based Access:</strong> Each role (Director,
-              Writer, Contributor, Viewer) has specific permissions for screenplay editing and asset
+              Writer, Asset Manager, Contributor, Viewer) has specific permissions for screenplay editing and asset
               management.
             </p>
             <p>

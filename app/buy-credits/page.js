@@ -3,6 +3,8 @@
 import Link from "next/link";
 import config from "@/config";
 import { Check, Zap, Sparkles, Star, Crown } from "lucide-react";
+import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
 // Credit Packages - Pricing based on 1 credit = $0.01
 const CREDIT_PACKAGES = [
@@ -11,6 +13,7 @@ const CREDIT_PACKAGES = [
     name: "Starter Pack",
     credits: 500,
     price: 10,
+    priceId: "price_starter_credits", // TODO: Replace with actual Stripe Price ID
     savings: 0,
     popular: false,
     color: "from-blue-500 to-cyan-500",
@@ -29,6 +32,7 @@ const CREDIT_PACKAGES = [
     name: "Creator Pack",
     credits: 1500,
     price: 25,
+    priceId: "price_creator_credits", // TODO: Replace with actual Stripe Price ID
     savings: 5,
     popular: true,
     color: "from-purple-500 to-pink-500",
@@ -47,6 +51,7 @@ const CREDIT_PACKAGES = [
     name: "Pro Pack",
     credits: 3500,
     price: 50,
+    priceId: "price_pro_credits", // TODO: Replace with actual Stripe Price ID
     savings: 15,
     popular: false,
     color: "from-orange-500 to-red-500",
@@ -65,6 +70,7 @@ const CREDIT_PACKAGES = [
     name: "Studio Pack",
     credits: 8000,
     price: 100,
+    priceId: "price_studio_credits", // TODO: Replace with actual Stripe Price ID
     savings: 40,
     popular: false,
     color: "from-yellow-500 to-amber-500",
@@ -83,6 +89,7 @@ const CREDIT_PACKAGES = [
     name: "Enterprise Pack",
     credits: 20000,
     price: 250,
+    priceId: "price_enterprise_credits", // TODO: Replace with actual Stripe Price ID
     savings: 125,
     popular: false,
     color: "from-slate-700 to-slate-900",
@@ -99,6 +106,50 @@ const CREDIT_PACKAGES = [
 ];
 
 export default function BuyCreditsPage() {
+  const { user, isLoaded } = useUser();
+  const [loading, setLoading] = useState(null);
+
+  const handlePurchase = async (pkg) => {
+    if (!isLoaded || !user) {
+      // Redirect to sign in
+      window.location.href = '/sign-in?redirect_url=/buy-credits';
+      return;
+    }
+
+    setLoading(pkg.id);
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId: pkg.priceId,
+          mode: 'payment', // One-time payment
+          successUrl: `${window.location.origin}/dashboard?purchase=success&credits=${pkg.credits}`,
+          cancelUrl: `${window.location.origin}/buy-credits`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert(`Error: ${error.message}. Please try again or contact support.`);
+      setLoading(null);
+    }
+  };
   return (
     <>
       <header className="p-4 flex justify-between items-center max-w-7xl mx-auto sticky top-0 bg-base-100/80 backdrop-blur-lg z-50 border-b border-base-300">
@@ -200,13 +251,11 @@ export default function BuyCreditsPage() {
                   <button
                     className={`btn w-full ${
                       pkg.popular ? 'btn-primary' : 'btn-outline'
-                    }`}
-                    onClick={() => {
-                      // TODO: Integrate with Stripe checkout
-                      alert(`Purchase ${pkg.name} for $${pkg.price} - Stripe integration needed`);
-                    }}
+                    } ${loading === pkg.id ? 'loading' : ''}`}
+                    onClick={() => handlePurchase(pkg)}
+                    disabled={loading !== null}
                   >
-                    {pkg.popular ? '🚀 Get Started' : 'Buy Now'}
+                    {loading === pkg.id ? 'Processing...' : (pkg.popular ? '🚀 Get Started' : 'Buy Now')}
                   </button>
                 </div>
               </div>

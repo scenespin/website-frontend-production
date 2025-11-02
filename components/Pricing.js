@@ -38,7 +38,7 @@ const Pricing = () => {
         "✅ ~60 Professional 1080p videos",
         "✅ ~40 Premium 4K videos",
         "✅ ~20 Ultra Native 4K videos",
-        "💰 Save $1,980/year vs traditional stack",
+        "💰 Save $1,776/year vs traditional stack",
         "✅ Cancel anytime"
       ],
       cta: "Get Pro",

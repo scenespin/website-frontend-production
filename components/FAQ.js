@@ -140,7 +140,7 @@ const faqList = [
           <li><strong>SDR to HDR Upgrade:</strong> Convert ANY video to HDR - even from other AI tools! (30 credits per video)</li>
           <li><strong>Multi-Format HDR:</strong> Generate once, export to all platforms in HDR</li>
         </ul>
-        <p className="font-semibold text-primary">Runway, Veo, Sora? None support HDR. Only Wryda.ai.</p>
+        <p className="font-semibold text-primary">We're the ONLY AI platform with true cinema-grade HDR support.</p>
       </div>
     ),
   },

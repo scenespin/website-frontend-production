@@ -321,7 +321,7 @@ export const articles = [
         <section>
           <h2 className={styles.h2}>Start Creating Today</h2>
           <p className={styles.p}>
-            Sign up for free and get 100 credits to start. All features unlocked from day one.
+            Sign up for free and get 50 credits to start. All features unlocked from day one.
             No credit card required.
           </p>
           <p className={styles.p}>

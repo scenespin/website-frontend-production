@@ -101,7 +101,7 @@ export default function Dashboard() {
       <WelcomeModal 
         isOpen={showWelcomeModal}
         onClose={handleCloseWelcome}
-        userCredits={credits?.balance || 100}
+        userCredits={credits?.balance || 50}
       />
 
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">

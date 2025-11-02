@@ -92,7 +92,7 @@ export default function ScreenwritersPage() {
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <Link className="btn btn-primary btn-lg" href="/sign-up">
-              Start Writing Free - 100 Credits →
+              Start Writing Free - 50 Credits →
             </Link>
             <Link className="btn btn-outline btn-lg" href="#how-it-works">
               See How It Works
@@ -183,13 +183,13 @@ export default function ScreenwritersPage() {
 
                   <div className="mt-4 p-4 bg-base-200 rounded-lg">
                     <p className="text-sm font-semibold text-success mb-2">
-                      💰 Save $1,226/year in software fees!
+                      💰 Save $1,776/year in software fees!
                     </p>
                     <p className="text-sm opacity-70">
                       You only pay credits for AI generation & final renders.
                     </p>
                     <p className="text-xs opacity-60 mt-2">
-                      Free Plan: 100 signup credits + 10/month forever
+                      Free Plan: 50 signup credits + 10/month forever
                     </p>
                   </div>
                 </div>
@@ -419,7 +419,7 @@ export default function ScreenwritersPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/sign-up" className="btn btn-primary btn-lg">
-                Start Writing Free - 100 Credits
+                Start Writing Free - 50 Credits
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                   <path fillRule="evenodd" d="M5 10a.75.75 0 01.75-.75h6.638L10.23 7.29a.75.75 0 111.04-1.08l3.5 3.25a.75.75 0 010 1.08l-3.5 3.25a.75.75 0 11-1.04-1.08l2.158-1.96H5.75A.75.75 0 015 10z" clipRule="evenodd" />
                 </svg>

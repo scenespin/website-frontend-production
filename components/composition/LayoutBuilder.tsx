@@ -237,12 +237,12 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
               className={`p-3 rounded-lg cursor-pointer border-2 transition-colors ${
                 selectedLayerId === layer.id
                   ? 'bg-orange-500/20 border-orange-500'
-                  : 'bg-gray-900/50 border-gray-700 hover:border-gray-600'
+                  : 'bg-base-300 border-base-content/20 hover:border-base-content/40'
               }`}
               onClick={() => setSelectedLayerId(layer.id)}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-white font-medium text-sm">{layer.name}</span>
+                <span className="text-base-content font-medium text-sm">{layer.name}</span>
                 <div className="flex items-center gap-1">
                   <Button
                     size="sm"
@@ -299,7 +299,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
         </div>
 
         {layout.layers.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-base-content/50 py-8">
             <p className="text-sm">No layers yet</p>
             <p className="text-xs mt-2">Add a video or image layer to start</p>
           </div>
@@ -307,11 +307,11 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
       </Card>
 
       {/* CENTER: Canvas */}
-      <Card className="bg-gray-900 border-gray-700 p-4 flex flex-col">
+      <Card className="bg-base-100 border-base-300 p-4 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-white font-semibold">Canvas</h3>
-            <p className="text-gray-400 text-sm">
+            <h3 className="text-base-content font-semibold">Canvas</h3>
+            <p className="text-base-content/60 text-sm">
               {layout.canvas.width} × {layout.canvas.height}
             </p>
           </div>
@@ -343,7 +343,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
         <div className="flex-1 flex items-center justify-center">
           <div
             ref={canvasRef}
-            className="relative border-2 border-gray-600"
+            className="relative border-2 border-base-content/20"
             style={{
               width: layout.canvas.width * canvasScale,
               height: layout.canvas.height * canvasScale,
@@ -388,8 +388,8 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
       </Card>
 
       {/* RIGHT: Properties Panel */}
-      <Card className="bg-gray-800/50 border-gray-700 p-4 overflow-y-auto">
-        <h3 className="text-white font-semibold flex items-center gap-2 mb-4">
+      <Card className="bg-base-200 border-base-300 p-4 overflow-y-auto">
+        <h3 className="text-base-content font-semibold flex items-center gap-2 mb-4">
           <Settings size={18} />
           Properties
         </h3>
@@ -404,36 +404,36 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
             <TabsContent value="transform" className="space-y-4 mt-4">
               {/* Layer name */}
               <div>
-                <Label className="text-white text-sm">Name</Label>
+                <Label className="text-base-content text-sm">Name</Label>
                 <Input
                   value={selectedLayer.name}
                   onChange={(e) => updateLayer(selectedLayer.id, { name: e.target.value })}
-                  className="bg-gray-900 text-white border-gray-700 mt-1"
+                  className="bg-base-100 text-base-content border-base-300 mt-1"
                 />
               </div>
 
               {/* Position */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-white text-sm">X</Label>
+                  <Label className="text-base-content text-sm">X</Label>
                   <Input
                     type="number"
                     value={selectedLayer.transform.x}
                     onChange={(e) =>
                       updateTransform(selectedLayer.id, { x: parseInt(e.target.value) || 0 })
                     }
-                    className="bg-gray-900 text-white border-gray-700 mt-1"
+                    className="bg-base-100 text-base-content border-base-300 mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-white text-sm">Y</Label>
+                  <Label className="text-base-content text-sm">Y</Label>
                   <Input
                     type="number"
                     value={selectedLayer.transform.y}
                     onChange={(e) =>
                       updateTransform(selectedLayer.id, { y: parseInt(e.target.value) || 0 })
                     }
-                    className="bg-gray-900 text-white border-gray-700 mt-1"
+                    className="bg-base-100 text-base-content border-base-300 mt-1"
                   />
                 </div>
               </div>
@@ -441,32 +441,32 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
               {/* Size */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-white text-sm">Width</Label>
+                  <Label className="text-base-content text-sm">Width</Label>
                   <Input
                     type="number"
                     value={selectedLayer.transform.width}
                     onChange={(e) =>
                       updateTransform(selectedLayer.id, { width: parseInt(e.target.value) || 0 })
                     }
-                    className="bg-gray-900 text-white border-gray-700 mt-1"
+                    className="bg-base-100 text-base-content border-base-300 mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-white text-sm">Height</Label>
+                  <Label className="text-base-content text-sm">Height</Label>
                   <Input
                     type="number"
                     value={selectedLayer.transform.height}
                     onChange={(e) =>
                       updateTransform(selectedLayer.id, { height: parseInt(e.target.value) || 0 })
                     }
-                    className="bg-gray-900 text-white border-gray-700 mt-1"
+                    className="bg-base-100 text-base-content border-base-300 mt-1"
                   />
                 </div>
               </div>
 
               {/* Rotation */}
               <div>
-                <Label className="text-white text-sm flex items-center gap-2">
+                <Label className="text-base-content text-sm flex items-center gap-2">
                   <RotateCw size={14} />
                   Rotation: {selectedLayer.transform.rotation}°
                 </Label>
@@ -484,7 +484,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
             <TabsContent value="effects" className="space-y-4 mt-4">
               {/* Opacity */}
               <div>
-                <Label className="text-white text-sm">
+                <Label className="text-base-content text-sm">
                   Opacity: {(selectedLayer.effects.opacity * 100).toFixed(0)}%
                 </Label>
                 <Slider
@@ -499,7 +499,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
 
               {/* Brightness */}
               <div>
-                <Label className="text-white text-sm">
+                <Label className="text-base-content text-sm">
                   Brightness: {(selectedLayer.effects.brightness * 100).toFixed(0)}%
                 </Label>
                 <Slider
@@ -516,7 +516,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
 
               {/* Contrast */}
               <div>
-                <Label className="text-white text-sm">
+                <Label className="text-base-content text-sm">
                   Contrast: {(selectedLayer.effects.contrast * 100).toFixed(0)}%
                 </Label>
                 <Slider
@@ -531,7 +531,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
 
               {/* Saturation */}
               <div>
-                <Label className="text-white text-sm">
+                <Label className="text-base-content text-sm">
                   Saturation: {(selectedLayer.effects.saturation * 100).toFixed(0)}%
                 </Label>
                 <Slider
@@ -548,7 +548,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
 
               {/* Blur */}
               <div>
-                <Label className="text-white text-sm">
+                <Label className="text-base-content text-sm">
                   Blur: {selectedLayer.effects.blur}px
                 </Label>
                 <Slider
@@ -563,7 +563,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
 
               {/* Blend Mode */}
               <div>
-                <Label className="text-white text-sm">Blend Mode</Label>
+                <Label className="text-base-content text-sm">Blend Mode</Label>
                 <Select
                   value={selectedLayer.effects.blendMode || 'normal'}
                   onValueChange={(val) => updateEffects(selectedLayer.id, { blendMode: val })}
@@ -583,7 +583,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
             </TabsContent>
           </Tabs>
         ) : (
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-base-content/50 py-8">
             <p className="text-sm">Select a layer to edit properties</p>
           </div>
         )}

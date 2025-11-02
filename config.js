@@ -50,7 +50,7 @@ const config = {
           { name: "3,000 credits/month" },
           { name: "Everything in Free" },
           { name: "All quality tiers unlocked" },
-          { name: "Save $1,980/year vs traditional" },
+          { name: "Save $1,776/year vs traditional" },
         ],
         // Signup page specific
         signupHeadline: "Power Your Content Creation",

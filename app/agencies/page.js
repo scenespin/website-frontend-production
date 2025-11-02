@@ -69,7 +69,7 @@ export default function AgenciesPage() {
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <Link className="btn btn-primary btn-lg" href="/sign-up">
-              Start Free Trial - 100 Credits →
+              Start Free Trial - 50 Credits →
             </Link>
             <Link className="btn btn-outline btn-lg" href="#roi">
               Calculate Your ROI

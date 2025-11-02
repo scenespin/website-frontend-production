@@ -452,7 +452,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     <Film className="w-6 h-6 text-black" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">
+                    <h1 className="text-2xl font-bold text-base-content tracking-tight">
                       Composition Studio
                     </h1>
                     <p className="text-sm text-[#B3B3B3]">
@@ -464,19 +464,19 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-[#B3B3B3] mb-1">Director</div>
-                    <div className="font-semibold text-white text-sm">AI Director</div>
+                    <div className="font-semibold text-base-content text-sm">AI Director</div>
                   </div>
                   <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-[#B3B3B3] mb-1">Scene</div>
-                    <div className="font-semibold text-white text-sm">Multi-Video</div>
+                    <div className="font-semibold text-base-content text-sm">Multi-Video</div>
                   </div>
                   <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-[#B3B3B3] mb-1">Take</div>
-                    <div className="font-semibold text-white text-sm">#{recentCompositions + 1}</div>
+                    <div className="font-semibold text-base-content text-sm">#{recentCompositions + 1}</div>
                   </div>
                   <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-[#B3B3B3] mb-1">Date</div>
-                    <div className="font-semibold text-white text-sm">{new Date().toLocaleDateString()}</div>
+                    <div className="font-semibold text-base-content text-sm">{new Date().toLocaleDateString()}</div>
                   </div>
                 </div>
               </div>
@@ -501,7 +501,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-6 h-6 text-[#00D9FF]" />
                   <div>
-                    <CardTitle className="text-white">
+                    <CardTitle className="text-base-content">
                       Re-compose Mode
                     </CardTitle>
                     <CardDescription>
@@ -687,7 +687,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         className="hidden"
                       />
                       <Upload className="w-12 h-12 mx-auto mb-4 text-[#B3B3B3]" />
-                      <p className="text-sm font-medium text-white mb-1">
+                      <p className="text-sm font-medium text-base-content mb-1">
                         Drag & drop videos here
                       </p>
                       <p className="text-xs text-[#B3B3B3]">
@@ -744,7 +744,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                               </div>
 
                               {/* Clip Info */}
-                              <div className="absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-xs text-white font-medium">
+                              <div className="absolute top-2 left-2 bg-base-300/90 px-2 py-1 rounded text-xs text-base-content font-medium">
                                 #{index + 1}
                               </div>
                               <div className="p-2 bg-[#0A0A0A]">
