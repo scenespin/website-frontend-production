@@ -209,7 +209,7 @@ export function ClipUploadCard({
                     />
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                      <User className="w-3 h-3 text-white" />
+                      <User className="w-3 h-3 text-base-content" />
                     </div>
                   )}
                   <span className="text-xs text-slate-600 dark:text-slate-400">
@@ -353,7 +353,7 @@ export function ClipUploadCard({
                       <div className={cn(
                         "p-3 rounded-full transition-colors",
                         isDragging 
-                          ? "bg-blue-500 text-white" 
+                          ? "bg-blue-500 text-base-content" 
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                       )}>
                         {isUploading ? (

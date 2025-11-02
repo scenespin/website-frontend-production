@@ -193,7 +193,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       {/* Header with filter */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-slate-900 dark:text-white">
+          <h3 className="font-semibold text-slate-900 dark:text-base-content">
             Workflow Jobs
           </h3>
           {isPolling && (
@@ -242,7 +242,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold text-slate-900 dark:text-white">
+                    <h4 className="font-semibold text-slate-900 dark:text-base-content">
                       {job.workflowName}
                     </h4>
                     {getStatusBadge(job.status)}
@@ -323,7 +323,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                         href={video.url}
                         download
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                 bg-primary text-white text-xs font-medium
+                                 bg-primary text-base-content text-xs font-medium
                                  hover:bg-primary/90 transition-colors"
                       >
                         <Download className="w-3 h-3" />

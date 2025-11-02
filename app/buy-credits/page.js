@@ -208,7 +208,7 @@ export default function BuyCreditsPage() {
                 <div className="card-body relative z-10">
                   {/* Icon */}
                   <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${pkg.color} p-3 mb-4 flex items-center justify-center`}>
-                    <Icon className="w-10 h-10 text-white" />
+                    <Icon className="w-10 h-10 text-base-content" />
                   </div>
 
                   {/* Package Name */}

@@ -42,7 +42,7 @@ export function SingleSelectInput({
           className={`justify-start h-auto py-4 text-left ${
             value === option
               ? 'bg-violet-600 hover:bg-violet-700 border-violet-500'
-              : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
+              : 'bg-base-300 hover:bg-base-content/20 border-base-content/20'
           }`}
           onClick={() => onChange(option)}
         >
@@ -87,7 +87,7 @@ export function MultiSelectInput({
   return (
     <div className="space-y-4">
       {maxSelections && (
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-base-content/60">
           Select up to {maxSelections} options ({value.length}/{maxSelections} selected)
         </div>
       )}
@@ -105,8 +105,8 @@ export function MultiSelectInput({
                 isSelected
                   ? 'bg-violet-600 hover:bg-violet-700 border-violet-500'
                   : isDisabled
-                  ? 'bg-gray-800/50 border-gray-700/50 opacity-50 cursor-not-allowed'
-                  : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
+                  ? 'bg-base-300/50 border-base-content/20/50 opacity-50 cursor-not-allowed'
+                  : 'bg-base-300 hover:bg-base-content/20 border-base-content/20'
               }`}
               onClick={() => !isDisabled && toggleOption(option)}
               disabled={isDisabled}
@@ -142,7 +142,7 @@ export function TextInputComponent({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-lg py-6"
+      className="bg-base-300 border-base-content/20 text-base-content placeholder:text-base-content/50 text-lg py-6"
     />
   );
 }
@@ -166,7 +166,7 @@ export function TextareaInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       rows={6}
-      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-lg resize-none"
+      className="bg-base-300 border-base-content/20 text-base-content placeholder:text-base-content/50 text-lg resize-none"
     />
   );
 }
@@ -195,11 +195,11 @@ export function SliderInput({
       {/* Value display */}
       <div className="flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl font-bold text-white mb-2">
+          <div className="text-5xl font-bold text-base-content mb-2">
             {value}
-            {unit && <span className="text-3xl text-gray-400 ml-2">{unit}</span>}
+            {unit && <span className="text-3xl text-base-content/60 ml-2">{unit}</span>}
           </div>
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-base-content/60">
             Range: {min} - {max}
           </div>
         </div>
@@ -231,7 +231,7 @@ export function SliderInput({
             className={`${
               value === quickValue
                 ? 'bg-violet-600 border-violet-500'
-                : 'bg-gray-800 border-gray-700'
+                : 'bg-base-300 border-base-content/20'
             }`}
           >
             {label}
@@ -291,7 +291,7 @@ export function TagsInput({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || 'Type and press Enter or comma to add'}
-          className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-lg py-6"
+          className="bg-base-300 border-base-content/20 text-base-content placeholder:text-base-content/50 text-lg py-6"
         />
         {inputValue.trim() && (
           <Button
@@ -316,7 +316,7 @@ export function TagsInput({
               {tag}
               <button
                 onClick={() => removeTag(tag)}
-                className="ml-2 hover:text-white transition-colors"
+                className="ml-2 hover:text-base-content transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -325,7 +325,7 @@ export function TagsInput({
         </div>
       )}
 
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-base-content/50">
         Press Enter or comma to add tags. Backspace to remove last tag.
       </div>
     </div>

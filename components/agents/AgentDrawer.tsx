@@ -137,10 +137,10 @@ export default function AgentDrawer({ isOpen, onClose, onOpen, onInsertText, hal
                     // Collapsed state - clickable header
                     <button 
                         onClick={onOpen}
-                        className="flex items-center gap-3 text-sm text-white hover:text-[#00D9FF] w-full transition-colors group"
+                        className="flex items-center gap-3 text-sm text-base-content hover:text-[#00D9FF] w-full transition-colors group"
                     >
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#DC143C] to-[#8B0000] flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-[#DC143C]/50 group-hover:scale-105 transition-all">
-                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                         </div>
@@ -157,11 +157,11 @@ export default function AgentDrawer({ isOpen, onClose, onOpen, onInsertText, hal
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#DC143C] to-[#8B0000] flex items-center justify-center shadow-md">
-                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                             </div>
-                            <span className="font-semibold text-sm text-white">AI Assistant</span>
+                            <span className="font-semibold text-sm text-base-content">AI Assistant</span>
                         </div>
                         
                         <button
@@ -170,7 +170,7 @@ export default function AgentDrawer({ isOpen, onClose, onOpen, onInsertText, hal
                             title="Close"
                             type="button"
                         >
-                            <svg className="w-5 h-5 text-[#B3B3B3] hover:text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 text-[#B3B3B3] hover:text-base-content" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>

@@ -122,7 +122,7 @@ export function WorkflowResultsDisplay({
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3 mb-2">
           <CheckCircle className="w-6 h-6 text-green-500" />
-          <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+          <h3 className="font-bold text-lg text-slate-900 dark:text-base-content">
             Workflow Complete!
           </h3>
         </div>
@@ -245,7 +245,7 @@ export function WorkflowResultsDisplay({
                     <button
                       onClick={() => handleSendToCompositionWithAudio(index)}
                       className="flex-1 py-2 px-3 rounded-lg bg-violet-600 dark:bg-violet-700
-                               text-white font-medium text-sm
+                               text-base-content font-medium text-sm
                                hover:bg-violet-700 dark:hover:bg-violet-600 transition-colors
                                flex items-center justify-center gap-2"
                     >
@@ -340,7 +340,7 @@ export function WorkflowResultsDisplay({
 
         <button
           onClick={onStartNew}
-          className="w-full py-3 px-4 rounded-lg bg-primary text-white font-bold
+          className="w-full py-3 px-4 rounded-lg bg-primary text-base-content font-bold
                    hover:bg-primary/90 transition-colors
                    flex items-center justify-center gap-2"
         >

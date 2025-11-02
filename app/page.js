@@ -452,6 +452,211 @@ export default function Page() {
           </div>
         </section>
 
+        {/* Professional Screenplay Editor Section */}
+        <section className="py-20 bg-gradient-to-b from-base-100 to-base-200">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                ✍️ Professional Screenplay Editor
+              </h2>
+              <p className="text-xl opacity-80 max-w-3xl mx-auto">
+                Industry-standard Fountain formatting with contextual navigation that keeps you in flow state. 
+                <strong className="text-[#DC143C]"> Write, visualize, and produce—all in one seamless workspace.</strong>
+              </p>
+              <p className="text-lg opacity-90 max-w-3xl mx-auto mt-4 px-4 py-3 bg-primary/10 rounded-lg border border-primary/20">
+                💡 <strong>Even if you never generate video:</strong> Free GitHub backup, auto-organization, 
+                and 5,000 AI rewrites make this worth trying. Everything else is a bonus.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+              {/* Feature 1 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">🎯</div>
+                  <h3 className="card-title mb-2">Contextual Navigation™</h3>
+                  <p className="opacity-80">
+                    Your cursor position syncs across every page. Jump from Scene 5 in the editor 
+                    to see Scene 5's characters instantly. Stay in flow state.
+                  </p>
+                  <div className="badge badge-primary mt-2">Exclusive to Wryda</div>
+                </div>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">✨</div>
+                  <h3 className="card-title mb-2">AI Writing Agents (Practically Free)</h3>
+                  <p className="opacity-80">
+                    Select text → AI rewrites it. Polish dialogue, expand scenes, improve pacing. 
+                    <strong className="text-primary"> Costs almost nothing—50 free credits = thousands of rewrites.</strong>
+                  </p>
+                  <div className="text-xs opacity-70 mt-2">💰 Screenwriter agent: 0.01 credits per use</div>
+                </div>
+              </div>
+
+              {/* Feature 3 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">⚡</div>
+                  <h3 className="card-title mb-2">Industry-Standard Formatting</h3>
+                  <p className="opacity-80">
+                    Professional Fountain syntax with smart auto-formatting. 
+                    Tab for characters, Shift+Tab for scene headings. Export to PDF instantly.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 4 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">📊</div>
+                  <h3 className="card-title mb-2">Story Beat Integration</h3>
+                  <p className="opacity-80">
+                    Organize scenes with 3-act structure. Visual story flow overview 
+                    with proven beat sheets keeps your narrative on track.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 5 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">🎬</div>
+                  <h3 className="card-title mb-2">Scene Navigator</h3>
+                  <p className="opacity-80">
+                    Collapsible sidebar shows all scenes at a glance. 
+                    Auto-highlights current scene with character and location badges.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 6 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">📋</div>
+                  <h3 className="card-title mb-2">Import & Auto-Populate</h3>
+                  <p className="opacity-80">
+                    Paste any Fountain screenplay—it auto-extracts characters, locations, and scenes. 
+                    Instantly ready for video generation and production.
+                  </p>
+                  <div className="badge badge-primary mt-2">Works with Final Draft, Celtx, Fade In</div>
+                </div>
+              </div>
+
+              {/* Feature 7 */}
+              <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div className="card-body">
+                  <div className="text-4xl mb-4">💾</div>
+                  <h3 className="card-title mb-2">Auto-Save + Free PDF Export</h3>
+                  <p className="opacity-80">
+                    Saves every 2 seconds automatically. Export to professional PDF 
+                    with custom watermarks—100% FREE, no plan gating.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Import Callout */}
+            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-box p-8 mb-8 border-2 border-primary/20">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="text-6xl">🚀</div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-2xl font-bold mb-2">Already Have a Script?</h3>
+                  <p className="text-lg opacity-90 mb-3">
+                    <strong>Paste your Fountain screenplay from Final Draft, Celtx, or Fade In</strong> and get instant value:
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4 mb-3">
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm opacity-70">🎬 Auto-Extract Everything:</div>
+                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                        <div className="badge badge-sm badge-primary">👥 All Characters</div>
+                        <div className="badge badge-sm badge-secondary">📍 All Locations</div>
+                        <div className="badge badge-sm badge-accent">🎬 All Scenes</div>
+                        <div className="badge badge-sm badge-info">📊 Story Beats</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm opacity-70">✨ AI Writing Agents (0.01 credits/use):</div>
+                      <div className="text-sm opacity-90">
+                        <strong className="text-primary">50 free credits = 5,000 AI rewrites.</strong> Polish dialogue, 
+                        expand scenes, fix grammar. Costs practically nothing compared to video generation.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4 mb-3">
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm opacity-70">📚 GitHub Backup (Free!):</div>
+                      <div className="text-sm opacity-90">
+                        Set up your GitHub repository in <strong className="text-primary">under 2 minutes</strong>. 
+                        Auto-save every 10 seconds. Full version history. Never lose your work again.
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm opacity-70">📋 Export Options:</div>
+                      <div className="text-sm opacity-90">
+                        Professional PDF export with watermarks. Export to Google Drive, Dropbox. 
+                        <strong className="text-primary"> All 100% FREE—no plan gating.</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm opacity-70 italic">
+                    💡 Worth trying just for these three features alone. Video generation is pure bonus value.
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-primary mb-2">&lt;2 min</div>
+                  <div className="text-sm opacity-80">To Full Backup</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Comparison */}
+            <div className="bg-base-300 rounded-box p-8 mb-8">
+              <h3 className="text-2xl font-bold text-center mb-6">Why Screenwriters Choose Wryda</h3>
+              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 text-center">
+                <div>
+                  <div className="text-3xl font-bold text-[#DC143C] mb-2">$0</div>
+                  <div className="text-sm opacity-80">vs. $249 (Final Draft)</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-[#DC143C] mb-2">✨ AI Built-in</div>
+                  <div className="text-sm opacity-80">0.01 credits per rewrite</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-[#DC143C] mb-2">→ Video</div>
+                  <div className="text-sm opacity-80">Generate scenes from script</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-[#DC143C] mb-2">📋 Import</div>
+                  <div className="text-sm opacity-80">Paste & auto-populate</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-[#DC143C] mb-2">📚 GitHub</div>
+                  <div className="text-sm opacity-80">&lt;2 min to full backup</div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="text-center">
+              <Link href="/write" className="btn btn-primary btn-lg gap-2">
+                <span>Try the Editor Free</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+              <p className="text-sm opacity-60 mt-4">No credit card required • Start writing in seconds</p>
+              <p className="text-lg font-bold text-primary mt-4 max-w-2xl mx-auto">
+                Worth trying just for the free backup, organization, and AI writing tools. 
+                <br className="hidden sm:block" />
+                The video generation? That's just the icing on the cake. 🎂
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Pricing Section */}
         <Pricing />
 

@@ -59,7 +59,7 @@ export function ClapboardHeader({
                 <Film className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
               <div>
-                <h1 className={`font-bold text-slate-900 dark:text-white ${
+                <h1 className={`font-bold text-slate-900 dark:text-base-content ${
                   isHero ? 'text-3xl md:text-5xl' : isCompact ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'
                 }`}>
                   {title}
@@ -94,7 +94,7 @@ export function ClapboardHeader({
                 <User className="w-3 h-3" />
                 Director
               </div>
-              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-white truncate">
+              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-base-content truncate">
                 {director}
               </div>
             </div>
@@ -104,7 +104,7 @@ export function ClapboardHeader({
                 <Film className="w-3 h-3" />
                 Scene
               </div>
-              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-white">
+              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-base-content">
                 {scene}
               </div>
             </div>
@@ -114,7 +114,7 @@ export function ClapboardHeader({
                 <Hash className="w-3 h-3" />
                 Take
               </div>
-              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-white">
+              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-base-content">
                 {take}
               </div>
             </div>
@@ -124,7 +124,7 @@ export function ClapboardHeader({
                 <Calendar className="w-3 h-3" />
                 Date
               </div>
-              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-white">
+              <div className="text-sm md:text-base font-semibold text-slate-900 dark:text-base-content">
                 {date}
               </div>
             </div>

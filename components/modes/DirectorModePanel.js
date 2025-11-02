@@ -130,7 +130,7 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
                 {/* Message Bubble */}
                 <div className={`max-w-[85%] rounded-lg px-4 py-3 ${
                   isUser 
-                    ? 'bg-cinema-red text-white' 
+                    ? 'bg-cinema-red text-base-content' 
                     : 'bg-base-200 text-base-content'
                 }`}>
                   <div className="flex items-start gap-2">

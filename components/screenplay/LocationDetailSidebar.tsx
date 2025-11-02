@@ -86,7 +86,7 @@ export default function LocationDetailSidebar({
         </h2>
         <button
           onClick={onClose}
-          className="p-2 rounded-lg hover:bg-gray-700/50 transition-colors shrink-0"
+          className="p-2 rounded-lg hover:bg-base-content/20/50 transition-colors shrink-0"
           style={{ color: '#9CA3AF' }}
         >
           <X className="h-5 w-5" />

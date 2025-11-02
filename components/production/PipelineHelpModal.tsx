@@ -91,7 +91,7 @@ export function PipelineHelpModal({
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+              <h3 className="font-bold text-lg text-slate-900 dark:text-base-content">
                 How It Works
               </h3>
               
@@ -146,10 +146,10 @@ export function PipelineHelpModal({
               <div className="border-2 border-slate-200 dark:border-slate-700 rounded-lg p-6 bg-white dark:bg-slate-800">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="p-3 bg-purple-500 rounded-lg">
-                    <ListChecks className="w-6 h-6 text-white" />
+                    <ListChecks className="w-6 h-6 text-base-content" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-1">
+                    <h3 className="font-bold text-xl text-slate-900 dark:text-base-content mb-1">
                       Shot List Generator
                     </h3>
                     <p className="text-slate-600 dark:text-slate-400">
@@ -160,7 +160,7 @@ export function PipelineHelpModal({
 
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                    <h4 className="font-semibold text-slate-900 dark:text-base-content mb-2 flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-yellow-500" />
                       AI Auto-Generation
                     </h4>
@@ -178,7 +178,7 @@ export function PipelineHelpModal({
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                    <h4 className="font-semibold text-slate-900 dark:text-base-content mb-2 flex items-center gap-2">
                       <Edit3 className="w-4 h-4 text-blue-500" />
                       Manual Editing
                     </h4>
@@ -210,7 +210,7 @@ export function PipelineHelpModal({
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                    <h4 className="font-semibold text-slate-900 dark:text-base-content mb-2 flex items-center gap-2">
                       <X className="w-4 h-4 text-red-500" />
                       Skip This Stage
                     </h4>
@@ -232,10 +232,10 @@ export function PipelineHelpModal({
               <div className="border-2 border-slate-200 dark:border-slate-700 rounded-lg p-6 bg-white dark:bg-slate-800">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="p-3 bg-green-500 rounded-lg">
-                    <Film className="w-6 h-6 text-white" />
+                    <Film className="w-6 h-6 text-base-content" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-1">
+                    <h3 className="font-bold text-xl text-slate-900 dark:text-base-content mb-1">
                       Timeline Editor
                     </h3>
                     <p className="text-slate-600 dark:text-slate-400">
@@ -263,14 +263,14 @@ export function PipelineHelpModal({
               <div className="border-2 border-slate-200 dark:border-slate-700 rounded-lg p-6 bg-white dark:bg-slate-800">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="p-3 bg-orange-500 rounded-lg">
-                    <Layers className="w-6 h-6 text-white" />
+                    <Layers className="w-6 h-6 text-base-content" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-xl text-slate-900 dark:text-white">
+                      <h3 className="font-bold text-xl text-slate-900 dark:text-base-content">
                         Composition Studio
                       </h3>
-                      <Badge className="bg-blue-500 text-white border-0">Credit-Based</Badge>
+                      <Badge className="bg-blue-500 text-base-content border-0">Credit-Based</Badge>
                     </div>
                     <p className="text-slate-600 dark:text-slate-400">
                       Professional multi-video layouts and effects
@@ -430,13 +430,13 @@ function StageOverviewCard({ icon, title, status, description, available, locked
   return (
     <div className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
       <div className={`p-2 rounded-lg ${locked ? 'bg-slate-300 dark:bg-slate-700' : 'bg-slate-900 dark:bg-white'}`}>
-        <div className={locked ? 'text-slate-500' : 'text-white dark:text-slate-900'}>
+        <div className={locked ? 'text-slate-500' : 'text-base-content dark:text-slate-900'}>
           {icon}
         </div>
       </div>
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <h4 className="font-bold text-slate-900 dark:text-white">{title}</h4>
+          <h4 className="font-bold text-slate-900 dark:text-base-content">{title}</h4>
           <Badge className={status === 'required' ? 'bg-red-100 text-red-800 border-0' : 'bg-blue-100 text-blue-800 border-0'}>
             {status}
           </Badge>
@@ -461,7 +461,7 @@ function WorkflowCard({ title, steps, time, difficulty, stagesUsed }: WorkflowCa
   return (
     <div className="border-2 border-slate-200 dark:border-slate-700 rounded-lg p-6 bg-white dark:bg-slate-800">
       <div className="flex items-start justify-between mb-4">
-        <h3 className="font-bold text-lg text-slate-900 dark:text-white">{title}</h3>
+        <h3 className="font-bold text-lg text-slate-900 dark:text-base-content">{title}</h3>
         <div className="flex gap-2">
           <Badge variant="outline">{time}</Badge>
           <Badge className={difficulty === 'Beginner' ? 'bg-green-100 text-green-800 border-0' : difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-800 border-0' : 'bg-red-100 text-red-800 border-0'}>
@@ -511,7 +511,7 @@ function TipCard({ icon, title, tip, color }: TipCardProps) {
     <div className={`flex items-start gap-4 p-4 rounded-lg border-2 ${colorClasses[color as keyof typeof colorClasses]}`}>
       <div className="flex-shrink-0 mt-1">{icon}</div>
       <div>
-        <h4 className="font-bold text-slate-900 dark:text-white mb-1">{title}</h4>
+        <h4 className="font-bold text-slate-900 dark:text-base-content mb-1">{title}</h4>
         <p className="text-sm text-slate-700 dark:text-slate-300">{tip}</p>
       </div>
     </div>

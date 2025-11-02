@@ -48,6 +48,7 @@ import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { extractS3Key } from '@/utils/s3';
+import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -95,6 +96,9 @@ interface WorkflowStatus {
 }
 
 export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
+  // Contextual navigation - Get current scene context from editor
+  const editorContext = useEditorContext();
+  
   // Form state
   const [sceneDescription, setSceneDescription] = useState('');
   const [referenceImages, setReferenceImages] = useState<(File | null)[]>([null, null, null]);
@@ -584,7 +588,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-500 rounded">
-                  <span className="text-white text-lg">🎨</span>
+                  <span className="text-base-content text-lg">🎨</span>
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-sm">Composition Studio</div>
@@ -602,7 +606,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500 rounded">
-                  <span className="text-white text-lg">⏱️</span>
+                  <span className="text-base-content text-lg">⏱️</span>
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-sm">Timeline Editor</div>
@@ -620,7 +624,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500 rounded">
-                  <span className="text-white text-lg">🎵</span>
+                  <span className="text-base-content text-lg">🎵</span>
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-sm">Add Audio</div>
@@ -670,6 +674,37 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="h-full flex flex-col">
+      {/* Context Indicator Banner */}
+      {editorContext.currentSceneName && (
+        <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
+          <div className="text-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Film className="w-4 h-4 text-info flex-shrink-0" />
+              <span className="opacity-70">Building scene:</span>
+              <span className="font-semibold text-info truncate">{editorContext.currentSceneName}</span>
+              {editorContext.currentBeatName && (
+                <>
+                  <span className="opacity-50">•</span>
+                  <span className="opacity-70">Beat:</span>
+                  <span className="font-semibold truncate">{editorContext.currentBeatName}</span>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                const { clearContext } = useContextStore.getState();
+                clearContext();
+                toast.success('Context cleared');
+              }}
+              className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0 transition-colors"
+              title="Clear context"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex-shrink-0 p-6 border-b border-border bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
         <div className="flex items-center gap-3">
@@ -904,7 +939,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         onClick={() => setDuration(dur)}
                         className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-all ${
                           duration === dur
-                            ? 'bg-purple-500 text-white border-purple-500'
+                            ? 'bg-purple-500 text-base-content border-purple-500'
                             : 'bg-background border-border hover:border-purple-300'
                         }`}
                       >
@@ -950,7 +985,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             </Card>
             
             {/* Generate Button */}
-            <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none">
+            <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-base-content border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>

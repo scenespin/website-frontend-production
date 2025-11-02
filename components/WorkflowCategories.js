@@ -28,14 +28,17 @@ function WorkflowCard({ title, description, stars, helpLink }) {
 export default function WorkflowCategories() {
   const categoryRefs = useRef({});
 
-  const handleCategoryClick = (categoryId, event) => {
-    // Small delay to let the collapse animation start
+  const handleCategoryClick = (categoryId) => {
+    // Longer delay to ensure collapse animation completes
     setTimeout(() => {
       const element = categoryRefs.current[categoryId];
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Scroll to the TOP of the collapsed section with offset for fixed header
+        const yOffset = -20; // Adjust this value if there's a fixed header
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
       }
-    }, 50);
+    }, 150); // Increased delay for smoother experience
   };
 
   return (
@@ -51,7 +54,7 @@ export default function WorkflowCategories() {
             type="radio" 
             name="workflow-category" 
             defaultChecked 
-            onClick={(e) => handleCategoryClick('performance', e)}
+            onClick={() => handleCategoryClick('performance')}
           />
           <div className="collapse-title text-lg font-semibold">
             🎭 Performance Capture 🔥 <span className="text-sm opacity-70">(12 workflows) - MOST VIRAL!</span>
@@ -63,25 +66,21 @@ export default function WorkflowCategories() {
                 title="🎯 AI Avatar (NEW!)"
                 description="Clone ANY voice and create photorealistic talking avatars! Two options: (1) Clone a voice + type dialogue = instant avatar, OR (2) Upload your own audio file + photo = instant lip-sync video. Perfect for scaling personal brands, creating digital spokespersons, or making any audio visual."
                 stars={5}
-                helpLink="/help/advanced/ai-avatar"
               />
               <WorkflowCard
                 title="🎨 Image to Speech (NEW!)"
                 description="Make ANY image speak! Upload artwork, cartoons, mascots, or photos and add audio. Perfect for viral content—make Mona Lisa talk, anime characters come alive, or brand mascots pitch products."
                 stars={5}
-                helpLink="/help/advanced/image-to-speech"
               />
               <WorkflowCard
                 title="🎙️ Podcast to Video (NEW!)"
                 description="Turn podcast episodes into YouTube videos! Upload your podcast audio + host photo = instant talking-head video. Perfect for repurposing audio content without re-recording. Batch process entire seasons!"
                 stars={5}
-                helpLink="/help/advanced/podcast-to-video"
               />
               <WorkflowCard
                 title="🌍 Multilingual Dubbing (NEW!)"
                 description="Create videos in multiple languages instantly! Same face, different languages with perfect lip sync. One recording → 20+ language versions. Massive B2B opportunity for global content creators!"
                 stars={5}
-                helpLink="/help/advanced/multilingual-dubbing"
               />
               <WorkflowCard
                 title="Anime Performance Capture"
@@ -137,7 +136,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('budget', e)}
+            onClick={() => handleCategoryClick('budget')}
           />
           <div className="collapse-title text-lg font-semibold">
             ⚡ Budget / Speed 🔥 <span className="text-sm opacity-70">(7 workflows) - HIGHLY VIRAL!</span>
@@ -149,7 +148,6 @@ export default function WorkflowCategories() {
                 title="Screenwriting Assistant (AI Chat)"
                 description="Get instant screenplay feedback, character development, plot suggestions, dialogue rewrites, and story structure guidance from AI. Your 24/7 writing partner."
                 stars={5}
-                helpLink="/help/ai-assistant"
               />
               <WorkflowCard
                 title="Storyboard to Animatic"
@@ -193,7 +191,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('enhancement', e)}
+            onClick={() => handleCategoryClick('enhancement')}
           />
           <div className="collapse-title text-lg font-semibold">
             ✨ Video Enhancement 🔥 <span className="text-sm opacity-70">(5 workflows) - VIRAL TRANSFORMATIONS!</span>
@@ -238,7 +236,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('postprod', e)}
+            onClick={() => handleCategoryClick('postprod')}
           />
           <div className="collapse-title text-lg font-semibold">
             🎬 Post-Production & HDR Finishing ✨ <span className="text-sm opacity-70">(7 workflows) - CINEMA-GRADE PROFESSIONAL</span>
@@ -250,43 +248,36 @@ export default function WorkflowCategories() {
                 title="🎨 HDR Mastering (Dolby Vision)"
                 description="TRUE cinema HDR with Dolby Vision metadata. The ONLY AI platform with real HDR support. Theatrical & Apple TV+ delivery ready. PQ/HLG for HDR10+ and broadcast."
                 stars={5}
-                helpLink="/help/advanced/hdr-workflows"
               />
               <WorkflowCard
                 title="🎞️ SDR to HDR Conversion"
                 description="Convert SDR footage to HDR (PQ/HLG) with AI-powered tone mapping and expanded dynamic range. Make standard footage HDR-ready for premium distribution."
                 stars={5}
-                helpLink="/help/advanced/hdr-workflows"
               />
               <WorkflowCard
                 title="📽️ HDR to SDR (Standard Dynamic Range)"
                 description="Professional HDR-to-SDR tone mapping for universal playback. Preserve creative intent when delivering to non-HDR platforms. Broadcast-safe output."
                 stars={5}
-                helpLink="/help/advanced/hdr-workflows"
               />
               <WorkflowCard
                 title="🌈 HDR Grade Matching"
                 description="Match HDR color grades across multiple clips for visual consistency. Ensure uniform HDR presentation across your project. Professional color continuity."
                 stars={4}
-                helpLink="/help/advanced/hdr-workflows"
               />
               <WorkflowCard
                 title="🎭 Cinema DCI-P3 Export"
                 description="Export in DCI-P3 color space for theatrical projection. Professional cinema delivery with proper color space conversion and metadata."
                 stars={5}
-                helpLink="/help/advanced/hdr-workflows"
               />
               <WorkflowCard
                 title="📺 Broadcast HDR (HLG) Export"
                 description="Hybrid Log-Gamma (HLG) encoding for broadcast HDR. BBC/NHK standard for live production and broadcast delivery. DVB-compliant."
                 stars={5}
-                helpLink="/help/advanced/hdr-workflows"
               />
               <WorkflowCard
                 title="🎬 Multi-Format HDR Delivery"
                 description="Simultaneously export Dolby Vision, HDR10+, HLG, and SDR versions. Complete delivery package for all platforms from single master. Streamlined distribution workflow."
                 stars={5}
-                helpLink="/help/advanced/hdr-workflows"
               />
             </div>
           </div>
@@ -300,7 +291,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('screenplay', e)}
+            onClick={() => handleCategoryClick('screenplay')}
           />
           <div className="collapse-title text-lg font-semibold">
             📝 Screenplay to Production <span className="text-sm opacity-70">(9 workflows) - COMPLETE AUTOMATION</span>
@@ -312,7 +303,6 @@ export default function WorkflowCategories() {
                 title="Full Screenplay Automation"
                 description="Upload a full screenplay, get the entire production automatically: character consistency, scene generation, editing, audio, and final delivery. Complete film from script."
                 stars={5}
-                helpLink="/help/advanced/screenplay-automation"
               />
               <WorkflowCard
                 title="Scene-by-Scene Production"
@@ -367,7 +357,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('commercial', e)}
+            onClick={() => handleCategoryClick('commercial')}
           />
           <div className="collapse-title text-lg font-semibold">
             💼 Commercial & Social Content <span className="text-sm opacity-70">(8 workflows) - HIGH ENGAGEMENT</span>
@@ -427,7 +417,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('music', e)}
+            onClick={() => handleCategoryClick('music')}
           />
           <div className="collapse-title text-lg font-semibold">
             🎵 Music Video & Creative <span className="text-sm opacity-70">(5 workflows) - ARTISTIC EXPRESSION</span>
@@ -472,7 +462,7 @@ export default function WorkflowCategories() {
           <input 
             type="radio" 
             name="workflow-category"
-            onClick={(e) => handleCategoryClick('educational', e)}
+            onClick={() => handleCategoryClick('educational')}
           />
           <div className="collapse-title text-lg font-semibold">
             📚 Documentary & Educational <span className="text-sm opacity-70">(5 workflows) - INFORMATIVE CONTENT</span>

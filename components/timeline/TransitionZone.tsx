@@ -56,7 +56,7 @@ export function TransitionZone({
             />
             {/* Duration Badge */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-1">
-              <div className="text-xs text-white font-medium text-center">
+              <div className="text-xs text-base-content font-medium text-center">
                 {existingTransition.duration}s
               </div>
             </div>
@@ -98,7 +98,7 @@ export function TransitionZone({
 
           {/* Tooltip */}
           {isHovered && (
-            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900 text-white text-xs rounded whitespace-nowrap">
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900 text-base-content text-xs rounded whitespace-nowrap">
               {existingTransition.name}
             </div>
           )}
@@ -118,7 +118,7 @@ export function TransitionZone({
     >
       <button
         onClick={onAddTransition}
-        className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center shadow-lg transition-all hover:scale-110"
+        className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-base-content flex items-center justify-center shadow-lg transition-all hover:scale-110"
         title="Add Transition"
       >
         <Plus className="w-5 h-5" />
@@ -126,7 +126,7 @@ export function TransitionZone({
 
       {/* Tooltip */}
       {isHovered && (
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900 text-white text-xs rounded whitespace-nowrap">
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-900 text-base-content text-xs rounded whitespace-nowrap">
           Add Transition
         </div>
       )}

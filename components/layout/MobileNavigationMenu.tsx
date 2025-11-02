@@ -112,12 +112,12 @@ export default function MobileNavigationMenu({
                     <div className="relative flex items-start justify-between">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
-                                <Sparkles className="w-6 h-6 text-white" />
-                                <h2 className="text-2xl font-bold text-white">
+                                <Sparkles className="w-6 h-6 text-base-content" />
+                                <h2 className="text-2xl font-bold text-base-content">
                                     Views
                                 </h2>
                             </div>
-                            <p className="text-sm text-white/80">
+                            <p className="text-sm text-base-content/80">
                                 Switch between editing modes
                             </p>
                         </div>
@@ -125,7 +125,7 @@ export default function MobileNavigationMenu({
                             onClick={onClose}
                             className="p-2 rounded-full hover:bg-white/20 transition-all active:scale-95 backdrop-blur-sm"
                         >
-                            <X className="w-6 h-6 text-white" />
+                            <X className="w-6 h-6 text-base-content" />
                         </button>
                     </div>
                 </div>
@@ -170,7 +170,7 @@ export default function MobileNavigationMenu({
                                             <Icon className={`
                                                 w-6 h-6
                                                 ${isActive 
-                                                    ? 'text-white' 
+                                                    ? 'text-base-content' 
                                                     : 'text-slate-700 dark:text-slate-300'
                                                 }
                                             `} />
@@ -181,14 +181,14 @@ export default function MobileNavigationMenu({
                                             <div className={`
                                                 font-semibold text-base
                                                 ${isActive 
-                                                    ? 'text-white' 
+                                                    ? 'text-base-content' 
                                                     : 'text-slate-900 dark:text-slate-100'
                                                 }
                                             `}>
                                                 {item.name}
                                             </div>
                                             {isActive && (
-                                                <div className="text-xs text-white/80 mt-0.5">
+                                                <div className="text-xs text-base-content/80 mt-0.5">
                                                     Currently active
                                                 </div>
                                             )}
@@ -196,7 +196,7 @@ export default function MobileNavigationMenu({
                                         
                                         {/* Arrow indicator */}
                                         {isActive && (
-                                            <div className="text-white">
+                                            <div className="text-base-content">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                                 </svg>

@@ -43,7 +43,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
     } else if (roleLower.includes('editor') || roleLower.includes('writer')) {
       return <Pencil className="w-4 h-4 text-green-400" />;
     }
-    return <Users className="w-4 h-4 text-gray-400" />;
+    return <Users className="w-4 h-4 text-base-content/60" />;
   };
 
   const getRoleBadgeColor = (role) => {
@@ -57,13 +57,13 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
     } else if (roleLower.includes('contributor')) {
       return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
     }
-    return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+    return 'bg-base-content/10 text-base-content/60 border-base-content/20';
   };
 
   if (!isOwner) {
     return (
-      <div className="p-6 bg-[#0d0b14] border border-purple-500/20 rounded-lg">
-        <div className="flex items-center gap-3 text-gray-400">
+      <div className="p-6 bg-base-200 border border-purple-500/20 rounded-lg">
+        <div className="flex items-center gap-3 text-base-content/60">
           <AlertCircle className="w-5 h-5" />
           <p>Only the project owner can manage collaborators.</p>
         </div>
@@ -80,13 +80,13 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
             <Users className="w-5 h-5 text-purple-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Project Collaborators</h3>
-            <p className="text-sm text-gray-400">Manage who has access to this project</p>
+            <h3 className="text-lg font-semibold text-base-content">Project Collaborators</h3>
+            <p className="text-sm text-base-content/60">Manage who has access to this project</p>
           </div>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition-all shadow-lg shadow-purple-500/20 font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-base-content rounded-lg transition-all shadow-lg shadow-purple-500/20 font-medium"
         >
           <UserPlus className="w-4 h-4" />
           <span>Add Collaborator</span>
@@ -114,15 +114,15 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
       {!loading && (
         <div className="space-y-3">
           {collaborators.length === 0 ? (
-            <div className="p-8 bg-[#0d0b14] border border-purple-500/20 rounded-lg text-center">
-              <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <h4 className="text-lg font-medium text-gray-400 mb-2">No collaborators yet</h4>
-              <p className="text-sm text-gray-500 mb-4">
+            <div className="p-8 bg-base-200 border border-purple-500/20 rounded-lg text-center">
+              <Users className="w-12 h-12 text-base-content/40 mx-auto mb-3" />
+              <h4 className="text-lg font-medium text-base-content/60 mb-2">No collaborators yet</h4>
+              <p className="text-sm text-base-content/50 mb-4">
                 Add collaborators to work together on this project
               </p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition-all shadow-lg shadow-purple-500/20"
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-base-content rounded-lg transition-all shadow-lg shadow-purple-500/20"
               >
                 Add Your First Collaborator
               </button>
@@ -131,7 +131,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
             collaborators.map((collab) => (
               <div
                 key={collab.user_identifier}
-                className="p-4 bg-[#0d0b14] border border-purple-500/20 rounded-lg hover:border-purple-500/30 transition-colors"
+                className="p-4 bg-base-200 border border-purple-500/20 rounded-lg hover:border-purple-500/30 transition-colors"
               >
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -151,11 +151,11 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-medium text-white truncate">
+                        <span className="font-medium text-base-content truncate">
                           {collab.github_username || collab.email || collab.user_identifier}
                         </span>
                         {collab.github_username && collab.email && (
-                          <span className="text-sm text-gray-500 truncate">({collab.email})</span>
+                          <span className="text-sm text-base-content/50 truncate">({collab.email})</span>
                         )}
                       </div>
 
@@ -164,7 +164,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                         <select
                           value={collab.role_label}
                           onChange={(e) => handleUpdateRole(collab.user_identifier, e.target.value)}
-                          className="px-2 py-1 bg-[#1a1625] border border-purple-500/20 rounded text-sm text-white focus:outline-none focus:border-purple-500/50"
+                          className="px-2 py-1 bg-[#1a1625] border border-purple-500/20 rounded text-sm text-base-content focus:outline-none focus:border-purple-500/50"
                         >
                           {roles.map((role) => (
                             <option key={role.id} value={role.id}>
@@ -182,14 +182,14 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                             {getRoleIcon(collab.role_label)}
                             {collab.role_label}
                           </span>
-                          <div className="flex gap-1 text-xs text-gray-500 flex-wrap">
+                          <div className="flex gap-1 text-xs text-base-content/50 flex-wrap">
                             {collab.github_permission && collab.github_permission !== 'none' && (
-                              <span className="px-1.5 py-0.5 bg-gray-700/30 rounded">
+                              <span className="px-1.5 py-0.5 bg-base-content/20/30 rounded">
                                 GitHub: {collab.github_permission}
                               </span>
                             )}
                             {collab.storage_permission && collab.storage_permission !== 'none' && (
-                              <span className="px-1.5 py-0.5 bg-gray-700/30 rounded">
+                              <span className="px-1.5 py-0.5 bg-base-content/20/30 rounded">
                                 Storage: {collab.storage_permission}
                               </span>
                             )}
@@ -204,7 +204,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                     {editingRole === collab.user_identifier ? (
                       <button
                         onClick={() => setEditingRole(null)}
-                        className="px-3 py-1.5 hover:bg-purple-500/10 rounded transition-colors text-sm text-gray-400 hover:text-white"
+                        className="px-3 py-1.5 hover:bg-purple-500/10 rounded transition-colors text-sm text-base-content/60 hover:text-base-content"
                       >
                         Cancel
                       </button>
@@ -214,7 +214,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                         className="p-2 hover:bg-purple-500/10 rounded transition-colors"
                         title="Change role"
                       >
-                        <Edit3 className="w-4 h-4 text-gray-400 hover:text-purple-400" />
+                        <Edit3 className="w-4 h-4 text-base-content/60 hover:text-purple-400" />
                       </button>
                     )}
 
@@ -222,13 +222,13 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleRemove(collab.user_identifier)}
-                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors font-medium"
+                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-base-content text-sm rounded transition-colors font-medium"
                         >
                           Confirm
                         </button>
                         <button
                           onClick={() => setConfirmDelete(null)}
-                          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+                          className="px-3 py-1.5 bg-base-content/20 hover:bg-base-content/40 text-base-content text-sm rounded transition-colors"
                         >
                           Cancel
                         </button>
@@ -239,7 +239,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                         className="p-2 hover:bg-red-500/10 rounded transition-colors"
                         title="Remove collaborator"
                       >
-                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
+                        <Trash2 className="w-4 h-4 text-base-content/60 hover:text-red-400" />
                       </button>
                     )}
                   </div>

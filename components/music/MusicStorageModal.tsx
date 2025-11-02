@@ -115,13 +115,13 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+      <div className="bg-base-100 rounded-lg shadow-xl max-w-md w-full p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Save Your Music</h2>
+          <h2 className="text-xl font-bold text-base-content">Save Your Music</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-base-content/60 hover:text-base-content/40 transition-colors"
             disabled={isSaving}
           >
             <X className="w-5 h-5" />
@@ -129,21 +129,21 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
         </div>
 
         {/* Music Info */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="bg-base-100 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-xl">♪</span>
+              <span className="text-base-content text-xl">♪</span>
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-base-content">
                 {musicData.title || 'Untitled Music'}
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-base-content/40">
                 {musicData.tags || 'No tags'}
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-sm text-gray-600 mt-3">
+          <div className="grid grid-cols-3 gap-2 text-sm text-base-content/40 mt-3">
             <div>
               <span className="font-medium">Duration:</span>
               <br />
@@ -183,7 +183,7 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
         {/* Storage Options */}
         {!saveSuccess && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-base-content/40 mb-4">
               Where would you like to save this music?
             </p>
 
@@ -191,14 +191,14 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
             <button
               onClick={() => handleSaveToCloud('google-drive')}
               disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <Cloud className="w-5 h-5 text-blue-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-blue-900">
+                <div className="font-medium text-base-content group-hover:text-blue-900">
                   Save to Google Drive
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   Keep permanently in your Drive
                 </div>
               </div>
@@ -211,14 +211,14 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
             <button
               onClick={() => handleSaveToCloud('dropbox')}
               disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <Cloud className="w-5 h-5 text-indigo-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-indigo-900">
+                <div className="font-medium text-base-content group-hover:text-indigo-900">
                   Save to Dropbox
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   Keep permanently in your Dropbox
                 </div>
               </div>
@@ -231,14 +231,14 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
             <button
               onClick={handleDownload}
               disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <Download className="w-5 h-5 text-green-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-green-900">
+                <div className="font-medium text-base-content group-hover:text-green-900">
                   Download to Device
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   Save to your computer
                 </div>
               </div>
@@ -248,14 +248,14 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
             <button
               onClick={handleKeepTemp}
               disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <Clock className="w-5 h-5 text-orange-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-orange-900">
+                <div className="font-medium text-base-content group-hover:text-orange-900">
                   Keep in Temporary Storage
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   Auto-deletes after 7 days
                 </div>
               </div>
@@ -267,7 +267,7 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
         {saveSuccess && (
           <button
             onClick={onClose}
-            className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="w-full mt-4 px-4 py-2 bg-green-600 text-base-content rounded-lg hover:bg-green-700 transition-colors"
           >
             Close
           </button>

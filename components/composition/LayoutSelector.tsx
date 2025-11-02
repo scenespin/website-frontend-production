@@ -187,7 +187,7 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
   return (
     <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
       <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-        <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+        <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-base-content">
           <div className="p-1.5 bg-yellow-400 rounded">
             <Layout className="w-4 h-4 text-black" />
           </div>
@@ -248,7 +248,7 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
                     {/* Info */}
                     <div className="space-y-2">
                       <div className="flex items-start justify-between">
-                        <h3 className="font-semibold text-slate-900 dark:text-white">{layout.name}</h3>
+                        <h3 className="font-semibold text-slate-900 dark:text-base-content">{layout.name}</h3>
                         {isSelected && (
                           <div className="flex-shrink-0 p-1 bg-yellow-400 rounded-full">
                             <Check className="w-3 h-3 text-black" />

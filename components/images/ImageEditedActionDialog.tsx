@@ -34,8 +34,8 @@ export function ImageEditedActionDialog({
             {/* Custom Header */}
             <div className="px-6 py-5 border-b border-white/10 bg-white/5 backdrop-blur-xl relative">
                 <div>
-                    <h2 className="text-xl font-semibold text-white">Image Edited Successfully!</h2>
-                    <p className="text-sm text-white/60 mt-1">
+                    <h2 className="text-xl font-semibold text-base-content">Image Edited Successfully!</h2>
+                    <p className="text-sm text-base-content/60 mt-1">
                         What would you like to do next?
                     </p>
                 </div>
@@ -53,7 +53,7 @@ export function ImageEditedActionDialog({
                     </div>
                     {prompt && (
                         <div className="px-4 py-2.5 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-                            <p className="text-xs text-white/70 italic leading-relaxed">
+                            <p className="text-xs text-base-content/70 italic leading-relaxed">
                                 <span className="text-green-300 font-medium">Edit:</span> &quot;{prompt}&quot;
                             </p>
                         </div>
@@ -71,8 +71,8 @@ export function ImageEditedActionDialog({
                                     <Link2 className="w-6 h-6 text-blue-300" />
                                 </div>
                                 <div className="flex-1 text-left">
-                                    <h3 className="text-base font-semibold text-white">Link to Screenplay</h3>
-                                    <p className="text-sm text-white/60">Associate with a character, location, or scene</p>
+                                    <h3 className="text-base font-semibold text-base-content">Link to Screenplay</h3>
+                                    <p className="text-sm text-base-content/60">Associate with a character, location, or scene</p>
                                 </div>
                             </button>
                         </SpotlightBorder>
@@ -87,8 +87,8 @@ export function ImageEditedActionDialog({
                                     <Download className="w-6 h-6 text-green-300" />
                                 </div>
                                 <div className="flex-1 text-left">
-                                    <h3 className="text-base font-semibold text-white">Download Image</h3>
-                                    <p className="text-sm text-white/60">Save to your device</p>
+                                    <h3 className="text-base font-semibold text-base-content">Download Image</h3>
+                                    <p className="text-sm text-base-content/60">Save to your device</p>
                                 </div>
                             </button>
                         </SpotlightBorder>
@@ -103,8 +103,8 @@ export function ImageEditedActionDialog({
                                     <RefreshCw className="w-6 h-6 text-purple-300" />
                                 </div>
                                 <div className="flex-1 text-left">
-                                    <h3 className="text-base font-semibold text-white">Edit Again with AI</h3>
-                                    <p className="text-sm text-white/60">Make more adjustments with Nano Banana</p>
+                                    <h3 className="text-base font-semibold text-base-content">Edit Again with AI</h3>
+                                    <p className="text-sm text-base-content/60">Make more adjustments with Nano Banana</p>
                                 </div>
                             </button>
                         </SpotlightBorder>
@@ -115,7 +115,7 @@ export function ImageEditedActionDialog({
             <div className="px-6 py-4 border-t border-white/10 bg-white/5 backdrop-blur-xl relative">
                 <button
                     onClick={onClose}
-                    className="w-full px-4 py-2.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20 hover:scale-[1.02]"
+                    className="w-full px-4 py-2.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20 hover:scale-[1.02]"
                 >
                     Close
                 </button>

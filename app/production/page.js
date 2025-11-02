@@ -28,7 +28,7 @@ export default function ProductionPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#0d0b14] via-[#1a1625] to-[#0d0b14] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading production tools...</p>
+          <p className="text-base-content/60">Loading production tools...</p>
           </div>
         </div>
     );

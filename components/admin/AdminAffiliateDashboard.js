@@ -122,7 +122,7 @@ export default function AdminAffiliateDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Affiliate Program</h1>
-          <p className="text-gray-600 mt-1">Manage affiliates, payouts, and performance</p>
+          <p className="text-base-content/40 mt-1">Manage affiliates, payouts, and performance</p>
         </div>
         <button 
           onClick={fetchDashboardData}
@@ -138,7 +138,7 @@ export default function AdminAffiliateDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Total Affiliates</p>
+                <p className="text-sm text-base-content/40">Total Affiliates</p>
                 <p className="text-3xl font-bold mt-1">{overview.total_affiliates}</p>
                 <p className="text-sm text-success mt-1">
                   {overview.active_affiliates} active
@@ -153,9 +153,9 @@ export default function AdminAffiliateDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Total Referrals</p>
+                <p className="text-sm text-base-content/40">Total Referrals</p>
                 <p className="text-3xl font-bold mt-1">{overview.total_referrals}</p>
-                <p className="text-sm text-gray-600 mt-1">sign-ups tracked</p>
+                <p className="text-sm text-base-content/40 mt-1">sign-ups tracked</p>
               </div>
               <UserCheck className="w-8 h-8 text-success opacity-50" />
             </div>
@@ -166,11 +166,11 @@ export default function AdminAffiliateDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Commissions Paid</p>
+                <p className="text-sm text-base-content/40">Commissions Paid</p>
                 <p className="text-3xl font-bold mt-1">
                   ${(overview.total_commissions_paid || 0).toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">all-time</p>
+                <p className="text-sm text-base-content/40 mt-1">all-time</p>
               </div>
               <DollarSign className="w-8 h-8 text-success opacity-50" />
             </div>
@@ -181,7 +181,7 @@ export default function AdminAffiliateDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Pending Payouts</p>
+                <p className="text-sm text-base-content/40">Pending Payouts</p>
                 <p className="text-3xl font-bold mt-1">
                   ${(overview.pending_payouts || 0).toFixed(2)}
                 </p>
@@ -324,7 +324,7 @@ export default function AdminAffiliateDashboard() {
           </div>
 
           {filteredAffiliates.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-base-content/50">
               No affiliates found
             </div>
           )}

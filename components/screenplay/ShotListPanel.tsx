@@ -110,7 +110,7 @@ export function ShotListPanel({
           <div className="text-center space-y-4">
             <Clapperboard className="w-16 h-16 mx-auto text-slate-400" />
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-base-content mb-2">
                 No Shot List Yet
               </h3>
               <p className="text-slate-600 dark:text-slate-400">
@@ -168,7 +168,7 @@ export function ShotListPanel({
                   <Film className="w-6 h-6 text-black" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-base-content">
                     Shot List
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -180,15 +180,15 @@ export function ShotListPanel({
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Shots</div>
-                  <div className="font-bold text-slate-900 dark:text-white text-lg">{shotList.totalShots}</div>
+                  <div className="font-bold text-slate-900 dark:text-base-content text-lg">{shotList.totalShots}</div>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Duration</div>
-                  <div className="font-bold text-slate-900 dark:text-white text-lg">{formatTime(shotList.totalDuration)}</div>
+                  <div className="font-bold text-slate-900 dark:text-base-content text-lg">{formatTime(shotList.totalDuration)}</div>
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Est. Cost</div>
-                  <div className="font-bold text-slate-900 dark:text-white text-lg">{shotList.estimatedCost} cr</div>
+                  <div className="font-bold text-slate-900 dark:text-base-content text-lg">{shotList.estimatedCost} cr</div>
                 </div>
               </div>
             </div>
@@ -336,7 +336,7 @@ function ShotCard({
                 {shot.duration}s
               </Badge>
             </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+            <p className="text-sm font-medium text-slate-900 dark:text-base-content truncate">
               {shot.subject}
             </p>
             {!isExpanded && (
@@ -371,7 +371,7 @@ function ShotCard({
                 className="min-h-[80px]"
               />
             ) : (
-              <p className="text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+              <p className="text-sm text-slate-900 dark:text-base-content bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                 {shot.description}
               </p>
             )}
@@ -403,19 +403,19 @@ function ShotCard({
             {shot.suggestedLens && (
               <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                 <div className="text-xs text-slate-500 dark:text-slate-400">Lens</div>
-                <div className="text-sm font-medium text-slate-900 dark:text-white">{shot.suggestedLens}</div>
+                <div className="text-sm font-medium text-slate-900 dark:text-base-content">{shot.suggestedLens}</div>
               </div>
             )}
             {shot.lightingMood && (
               <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                 <div className="text-xs text-slate-500 dark:text-slate-400">Lighting</div>
-                <div className="text-sm font-medium text-slate-900 dark:text-white">{shot.lightingMood}</div>
+                <div className="text-sm font-medium text-slate-900 dark:text-base-content">{shot.lightingMood}</div>
               </div>
             )}
             {shot.colorPalette && (
               <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700 col-span-2">
                 <div className="text-xs text-slate-500 dark:text-slate-400">Color Palette</div>
-                <div className="text-sm font-medium text-slate-900 dark:text-white">{shot.colorPalette}</div>
+                <div className="text-sm font-medium text-slate-900 dark:text-base-content">{shot.colorPalette}</div>
               </div>
             )}
           </div>

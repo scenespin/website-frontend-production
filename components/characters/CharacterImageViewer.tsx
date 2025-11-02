@@ -65,10 +65,10 @@ export function CharacterImageViewer({
                 {images.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12">
                         <div className="w-20 h-20 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
-                            <ImageIcon className="w-10 h-10 text-white/30" />
+                            <ImageIcon className="w-10 h-10 text-base-content/30" />
                         </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">No Images Yet</h3>
-                        <p className="text-sm text-white/60 text-center max-w-md">
+                        <h3 className="text-lg font-semibold text-base-content mb-2">No Images Yet</h3>
+                        <p className="text-sm text-base-content/60 text-center max-w-md">
                             Generate or upload images for {character.name} to see them here.
                         </p>
                     </div>
@@ -89,13 +89,13 @@ export function CharacterImageViewer({
                                         <div className="absolute bottom-0 left-0 right-0 p-4">
                                             {/* Prompt */}
                                             {image.metadata?.prompt && (
-                                                <p className="text-xs text-white/80 italic mb-3 line-clamp-2">
+                                                <p className="text-xs text-base-content/80 italic mb-3 line-clamp-2">
                                                     &quot;{image.metadata.prompt}&quot;
                                                 </p>
                                             )}
 
                                             {/* Date */}
-                                            <div className="flex items-center gap-2 text-xs text-white/60 mb-3">
+                                            <div className="flex items-center gap-2 text-xs text-base-content/60 mb-3">
                                                 <Calendar className="w-3 h-3" />
                                                 <span>{formatDate(new Date(image.createdAt).getTime())}</span>
                                             </div>
@@ -120,7 +120,7 @@ export function CharacterImageViewer({
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => handleDownload(image.imageUrl, `${character.name}_${index + 1}.png`)}
-                                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg transition-colors text-white text-sm"
+                                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg transition-colors text-base-content text-sm"
                                                 >
                                                     <Download className="w-4 h-4" />
                                                     Download

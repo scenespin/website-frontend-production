@@ -8,11 +8,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Plus, Package, Car, Armchair, Box, Trash2, Edit2, Sparkles, Image as ImageIcon, Download } from 'lucide-react';
+import { Plus, Package, Car, Armchair, Box, Trash2, Edit2, Sparkles, Image as ImageIcon, Download, X, Film } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
 import Asset3DExportModal from './Asset3DExportModal';
 import AssetDetailModal from './AssetDetailModal';
+import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
+import { toast } from 'sonner';
 
 interface AssetBankPanelProps {
   projectId: string;
@@ -21,6 +23,9 @@ interface AssetBankPanelProps {
 }
 
 export default function AssetBankPanel({ projectId, className = '', isMobile = false }: AssetBankPanelProps) {
+  // Contextual navigation - Get current scene context from editor
+  const editorContext = useEditorContext();
+  
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
@@ -74,21 +79,45 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       prop: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       vehicle: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       furniture: 'bg-green-500/20 text-green-400 border-green-500/30',
-      other: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+      other: 'bg-base-content/20 text-base-content/60 border-base-content/30',
     };
     return colors[category];
   };
 
   return (
-    <div className={`flex flex-col h-full bg-[#0d0b14] ${className}`}>
+    <div className={`flex flex-col h-full bg-base-200 ${className}`}>
+      {/* Context Indicator Banner */}
+      {editorContext.currentSceneName && (
+        <div className="bg-info/10 border-b border-info/20 px-4 py-2">
+          <div className="text-sm flex items-center justify-between gap-2 text-base-content">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Film className="w-4 h-4 text-info flex-shrink-0" />
+              <span className="opacity-70">Managing assets for scene:</span>
+              <span className="font-semibold text-info truncate">{editorContext.currentSceneName}</span>
+            </div>
+            <button
+              onClick={() => {
+                const { clearContext } = useContextStore.getState();
+                clearContext();
+                toast.success('Context cleared');
+              }}
+              className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0 transition-colors"
+              title="Clear context"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-base-300">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-base-content flex items-center gap-2">
             <Package className="w-5 h-5" />
             Asset Bank
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-base-content/60 mt-1">
             {isMobile 
               ? 'View and use your assets in scenes'
               : 'Digital Prop Department - Scan props, vehicles & furniture'
@@ -112,13 +141,13 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       </div>
 
       {/* Category Filters */}
-      <div className="flex gap-2 p-4 border-b border-gray-800 overflow-x-auto">
+      <div className="flex gap-2 p-4 border-b border-base-300 overflow-x-auto">
         <button
           onClick={() => setSelectedCategory('all')}
           className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
             selectedCategory === 'all'
-              ? 'bg-primary text-white'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-primary text-base-content'
+              : 'bg-base-300 text-base-content/60 hover:bg-base-content/20'
           }`}
         >
           All Assets
@@ -131,8 +160,8 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
               onClick={() => setSelectedCategory(key as AssetCategory)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${
                 selectedCategory === key
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  ? 'bg-primary text-base-content'
+                  : 'bg-base-300 text-base-content/60 hover:bg-base-content/20'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -149,10 +178,10 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : assets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+          <div className="flex flex-col items-center justify-center h-64 text-base-content/50">
             <Package className="w-16 h-16 mb-4 opacity-50" />
             <p className="text-lg font-medium">No assets yet</p>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-base-content/40 mt-2">
               {selectedCategory === 'all' 
                 ? 'Create your first asset to get started'
                 : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`
@@ -176,14 +205,14 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
               return (
                 <div
                   key={asset.id}
-                  className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
+                  className="bg-base-200 rounded-lg border border-base-300 overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
                   onClick={() => {
                     setSelectedAsset(asset);
                     setShowDetailModal(true);
                   }}
                 >
                   {/* Thumbnail */}
-                  <div className="relative aspect-video bg-gray-800">
+                  <div className="relative aspect-video bg-base-300">
                     {asset.images.length > 0 ? (
                       <img
                         src={asset.images[0].url}
@@ -192,20 +221,20 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Icon className="w-12 h-12 text-gray-600" />
+                        <Icon className="w-12 h-12 text-base-content/40" />
                       </div>
                     )}
                     {/* Image Count Badge */}
                     <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-white font-medium">
+                      <ImageIcon className="w-3 h-3 text-base-content/60" />
+                      <span className="text-xs text-base-content font-medium">
                         {asset.images.length}/10
                       </span>
                     </div>
                     {/* 3D Model Badge */}
                     {asset.has3DModel && (
                       <div className="absolute top-2 left-2 bg-primary/80 backdrop-blur-sm px-2 py-1 rounded-lg">
-                        <span className="text-xs text-white font-medium">3D</span>
+                        <span className="text-xs text-base-content font-medium">3D</span>
                       </div>
                     )}
                   </div>
@@ -213,7 +242,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                   {/* Info */}
                   <div className="p-3">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="text-sm font-semibold text-white truncate flex-1">
+                      <h3 className="text-sm font-semibold text-base-content truncate flex-1">
                         {asset.name}
                       </h3>
                       <div className={`px-2 py-1 rounded text-xs font-medium border ${categoryColor}`}>
@@ -222,7 +251,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                     </div>
 
                     {asset.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                      <p className="text-xs text-base-content/50 line-clamp-2 mb-3">
                         {asset.description}
                       </p>
                     )}
@@ -269,7 +298,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                     </div>
 
                     {!canExport3D && (
-                      <p className="text-xs text-gray-600 mt-2 text-center">
+                      <p className="text-xs text-base-content/40 mt-2 text-center">
                         Need {2 - asset.images.length} more image{(2 - asset.images.length) !== 1 ? 's' : ''} for 3D export
                       </p>
                     )}

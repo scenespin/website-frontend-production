@@ -83,7 +83,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
               <div className="p-2 bg-purple-500/10 rounded-lg">
                 <UserPlus className="w-5 h-5 text-purple-400" />
               </div>
-              <h2 className="text-xl font-semibold text-white">Add Collaborator</h2>
+              <h2 className="text-xl font-semibold text-base-content">Add Collaborator</h2>
             </div>
             <button
               onClick={handleClose}
@@ -91,7 +91,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
               className="p-2 hover:bg-purple-500/10 rounded-lg transition-colors disabled:opacity-50"
               aria-label="Close"
             >
-              <X className="w-5 h-5 text-gray-400" />
+              <X className="w-5 h-5 text-base-content/60" />
             </button>
           </div>
 
@@ -99,7 +99,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Email Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-base-content/70 mb-2">
                 Email Address
               </label>
               <input
@@ -109,16 +109,16 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                 placeholder="collaborator@example.com"
                 disabled={loading}
                 required
-                className="w-full px-4 py-3 bg-[#0d0b14] border border-purple-500/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 disabled:opacity-50 transition-colors"
+                className="w-full px-4 py-3 bg-base-200 border border-purple-500/20 rounded-lg text-base-content placeholder-base-content/50 focus:outline-none focus:border-purple-500/50 disabled:opacity-50 transition-colors"
               />
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-xs text-base-content/60">
                 They&apos;ll need a GitHub account to collaborate on the script
               </p>
             </div>
 
             {/* Role Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">Role</label>
+              <label className="block text-sm font-medium text-base-content/70 mb-3">Role</label>
               <div className="space-y-2">
                 {roles.map((role) => (
                   <div
@@ -127,7 +127,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${
                       selectedRole === role.id
                         ? 'bg-purple-500/10 border-purple-500/50 ring-2 ring-purple-500/30'
-                        : 'bg-[#0d0b14] border-purple-500/20 hover:border-purple-500/30 hover:bg-purple-500/5'
+                        : 'bg-base-200 border-purple-500/20 hover:border-purple-500/30 hover:bg-purple-500/5'
                     } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="flex items-start gap-3">
@@ -143,9 +143,9 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="text-purple-400">{getRoleIcon(role.id)}</div>
-                          <div className="font-medium text-white">{role.name}</div>
+                          <div className="font-medium text-base-content">{role.name}</div>
                         </div>
-                        <div className="text-sm text-gray-400 mb-2">{role.description}</div>
+                        <div className="text-sm text-base-content/60 mb-2">{role.description}</div>
                         <div className="flex flex-wrap gap-2">
                           {role.capabilities.canEditScript && (
                             <span className="flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded">
@@ -184,7 +184,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
               <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <div className="flex gap-3">
                   <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-gray-300">
+                  <div className="text-sm text-base-content/70">
                     <strong className="text-blue-400">How it works:</strong> When you add this
                     collaborator, they&apos;ll be invited to the GitHub repository
                     {selectedRoleInfo.capabilities.canManageAssets &&
@@ -208,14 +208,14 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                 type="button"
                 onClick={handleClose}
                 disabled={loading}
-                className="flex-1 px-4 py-3 bg-[#0d0b14] border border-purple-500/20 text-gray-300 rounded-lg hover:bg-purple-500/10 transition-colors disabled:opacity-50 font-medium"
+                className="flex-1 px-4 py-3 bg-base-200 border border-purple-500/20 text-base-content/70 rounded-lg hover:bg-purple-500/10 transition-colors disabled:opacity-50 font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-purple-500/20"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-base-content rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg shadow-purple-500/20"
               >
                 {loading ? 'Adding...' : 'Add Collaborator'}
               </button>

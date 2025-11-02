@@ -117,7 +117,7 @@ export function BeatTimelineNavigator({
           <div className="flex items-center gap-3">
             <Video className="w-5 h-5 text-indigo-500" />
             <div>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Story Beat Timeline</h3>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-base-content">Story Beat Timeline</h3>
               <p className="text-xs text-slate-500">Select a beat to start production</p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export function BeatTimelineNavigator({
                       <div className="flex items-center gap-2 mb-2">
                         <div className={cn(
                           "flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
-                          isSelected ? "bg-indigo-500 text-white" : "bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                          isSelected ? "bg-indigo-500 text-base-content" : "bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
                         )}>
                           {index + 1}
                         </div>
@@ -235,7 +235,7 @@ export function BeatTimelineNavigator({
                       </div>
 
                       {/* Title */}
-                      <h4 className="font-semibold text-sm text-slate-900 dark:text-white line-clamp-2 mb-auto">
+                      <h4 className="font-semibold text-sm text-slate-900 dark:text-base-content line-clamp-2 mb-auto">
                         {beat.title}
                       </h4>
 

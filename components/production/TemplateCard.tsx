@@ -119,7 +119,7 @@ export function TemplateCard({
         {/* Top Badge Bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-2 z-10 flex-wrap gap-1">
           {isRecommended && (
-            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-xs">
+            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-base-content shadow-lg text-xs">
               <Sparkles className="w-3 h-3 mr-1" />
               AI Recommended
             </Badge>
@@ -151,7 +151,7 @@ export function TemplateCard({
           </div>
           
           {/* Clip count badge */}
-          <Badge className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-white border-white/20">
+          <Badge className="absolute bottom-3 right-3 bg-black/40 backdrop-blur-sm text-base-content border-white/20">
             {template.clipCount} clips
           </Badge>
         </div>
@@ -205,7 +205,7 @@ export function TemplateCard({
             {/* Savings info */}
             {estimatedSavings > 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800">
-                <div className="p-1.5 rounded-lg bg-green-500 text-white">
+                <div className="p-1.5 rounded-lg bg-green-500 text-base-content">
                   <TrendingDown className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -222,7 +222,7 @@ export function TemplateCard({
             {/* Hybrid savings potential */}
             {hybridFriendly && maxUploadSavings > 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800">
-                <div className="p-1.5 rounded-lg bg-blue-500 text-white">
+                <div className="p-1.5 rounded-lg bg-blue-500 text-base-content">
                   <Upload className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -267,7 +267,7 @@ export function TemplateCard({
             animate={{ scale: 1 }}
             className="absolute top-2 right-2 p-2 bg-blue-600 rounded-full shadow-lg z-20"
           >
-            <Check className="w-5 h-5 text-white" />
+            <Check className="w-5 h-5 text-base-content" />
           </motion.div>
         )}
       </Card>

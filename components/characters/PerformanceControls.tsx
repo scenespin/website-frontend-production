@@ -113,7 +113,7 @@ export function PerformanceControls({ settings, onChange, compact = false }: Per
       {/* Header */}
       <div className="flex items-center gap-2">
         <Sliders className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-base-content">
           Performance Settings
         </h4>
       </div>
@@ -149,7 +149,7 @@ export function PerformanceControls({ settings, onChange, compact = false }: Per
           <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
             Facial Performance
           </label>
-          <span className="text-xs font-semibold text-slate-900 dark:text-white">
+          <span className="text-xs font-semibold text-slate-900 dark:text-base-content">
             {settings.facialPerformance.toFixed(1)} ({getPerformanceLabel(settings.facialPerformance)})
           </span>
         </div>

@@ -59,8 +59,8 @@ export function ImageActionDialog({
             {/* Custom Header */}
             <div className="px-6 py-5 border-b border-white/10 bg-white/5 backdrop-blur-xl relative">
                 <div>
-                    <h2 className="text-xl font-semibold text-white">Choose an action for your image</h2>
-                    <p className="text-sm text-white/60 mt-1">
+                    <h2 className="text-xl font-semibold text-base-content">Choose an action for your image</h2>
+                    <p className="text-sm text-base-content/60 mt-1">
                         What would you like to do next?
                     </p>
                 </div>
@@ -89,8 +89,8 @@ export function ImageActionDialog({
                                 <ImageIcon className="w-6 h-6 text-blue-200" />
                             </div>
                             <div className="flex-1 text-left">
-                                <h3 className="text-base font-semibold text-white">Add to Script</h3>
-                                <p className="text-sm text-white/60">Link this image to a character, location, or scene</p>
+                                <h3 className="text-base font-semibold text-base-content">Add to Script</h3>
+                                <p className="text-sm text-base-content/60">Link this image to a character, location, or scene</p>
                             </div>
                         </button>
                     </SpotlightBorder>
@@ -105,8 +105,8 @@ export function ImageActionDialog({
                                 <Download className="w-6 h-6 text-green-200" />
                             </div>
                             <div className="flex-1 text-left">
-                                <h3 className="text-base font-semibold text-white">Download Only</h3>
-                                <p className="text-sm text-white/60">Save to your device and start fresh</p>
+                                <h3 className="text-base font-semibold text-base-content">Download Only</h3>
+                                <p className="text-sm text-base-content/60">Save to your device and start fresh</p>
                             </div>
                         </button>
                     </SpotlightBorder>
@@ -121,8 +121,8 @@ export function ImageActionDialog({
                                 <Wand2 className="w-6 h-6 text-purple-200" />
                             </div>
                             <div className="flex-1 text-left">
-                                <h3 className="text-base font-semibold text-white">Edit with AI First</h3>
-                                <p className="text-sm text-white/60">Use Nano Banana to modify the image before adding</p>
+                                <h3 className="text-base font-semibold text-base-content">Edit with AI First</h3>
+                                <p className="text-sm text-base-content/60">Use Nano Banana to modify the image before adding</p>
                             </div>
                         </button>
                     </SpotlightBorder>
@@ -133,7 +133,7 @@ export function ImageActionDialog({
             <div className="px-6 py-4 border-t border-white/10 bg-white/5 backdrop-blur-xl relative">
                 <button
                     onClick={onClose}
-                    className="w-full px-4 py-2.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20 hover:scale-[1.02]"
+                    className="w-full px-4 py-2.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20 hover:scale-[1.02]"
                 >
                     Cancel
                 </button>

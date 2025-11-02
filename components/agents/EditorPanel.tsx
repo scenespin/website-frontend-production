@@ -50,12 +50,12 @@ export default function EditorPanel({ onInsert }: EditorPanelProps) {
             {/* Left: Input */}
             <div className="space-y-3">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-base-content/70 mb-1">
                         Original Text
                     </label>
                     <textarea
                         rows={4}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 font-mono"
+                        className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500 font-mono"
                         placeholder="Paste text to improve..."
                         value={originalText}
                         onChange={(e) => setOriginalText(e.target.value)}
@@ -63,12 +63,12 @@ export default function EditorPanel({ onInsert }: EditorPanelProps) {
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-base-content/70 mb-1">
                         Instructions
                     </label>
                     <input
                         type="text"
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500"
+                        className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500"
                         placeholder="How should it be rewritten?"
                         value={instructions}
                         onChange={(e) => setInstructions(e.target.value)}
@@ -78,7 +78,7 @@ export default function EditorPanel({ onInsert }: EditorPanelProps) {
                             <button
                                 key={inst}
                                 onClick={() => setInstructions(inst)}
-                                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border border-gray-200"
+                                className="px-2 py-1 text-xs bg-base-100 hover:bg-base-200 rounded border border-base-content/20"
                             >
                                 {inst}
                             </button>
@@ -87,7 +87,7 @@ export default function EditorPanel({ onInsert }: EditorPanelProps) {
                 </div>
                 
                 <select
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500"
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                 >
@@ -99,7 +99,7 @@ export default function EditorPanel({ onInsert }: EditorPanelProps) {
                 <button
                     onClick={handleRewrite}
                     disabled={isLoading || !originalText.trim() || !instructions.trim()}
-                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white font-medium rounded-lg text-sm"
+                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-base-content/20 text-base-content font-medium rounded-lg text-sm"
                 >
                     {isLoading ? 'Rewriting...' : '✨ Rewrite Text'}
                 </button>
@@ -113,25 +113,25 @@ export default function EditorPanel({ onInsert }: EditorPanelProps) {
             
             {/* Right: Output */}
             <div className="space-y-3 flex flex-col">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-base-content/70">
                     Rewritten Text
                 </label>
                 
                 {!rewrittenText && !isLoading && (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <div className="flex items-center justify-center h-full text-base-content/60 text-sm">
                         Rewritten text will appear here
                     </div>
                 )}
                 
                 {rewrittenText && (
                     <>
-                        <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-lg border border-gray-200 h-64 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs bg-base-100 p-4 rounded-lg border border-base-content/20 h-64 overflow-y-auto">
                             {rewrittenText}
                         </pre>
                         {onInsert && (
                             <button
                                 onClick={() => onInsert(rewrittenText)}
-                                className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors text-sm"
+                                className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-base-content font-medium rounded-lg transition-colors text-sm"
                             >
                                 📝 Insert into Script
                             </button>

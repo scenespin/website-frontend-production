@@ -321,7 +321,7 @@ export function MobileWorkflowSelector({
     return (
       <div className="flex flex-col h-full p-4 space-y-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-base-content mb-2">
             Choose Your Workflow
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -345,10 +345,10 @@ export function MobileWorkflowSelector({
               >
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color}`}>
-                    <Icon className="w-6 h-6 text-white" />
+                    <Icon className="w-6 h-6 text-base-content" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-1">
+                    <h3 className="font-bold text-slate-900 dark:text-base-content mb-1">
                       {category.name}
                     </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -376,12 +376,12 @@ export function MobileWorkflowSelector({
           <button
             onClick={handleBack}
             className="flex items-center gap-2 text-slate-600 dark:text-slate-400 
-                     hover:text-slate-900 dark:hover:text-white mb-3"
+                     hover:text-slate-900 dark:hover:text-base-content mb-3"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back to Categories</span>
           </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-base-content">
             {category?.name}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -405,7 +405,7 @@ export function MobileWorkflowSelector({
               <div className="space-y-3">
                 {/* Title & Featured Badge */}
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex-1">
+                  <h3 className="font-bold text-slate-900 dark:text-base-content flex-1">
                     {workflow.name}
                   </h3>
                   {workflow.featured && (
@@ -471,12 +471,12 @@ export function MobileWorkflowSelector({
         <button
           onClick={handleBack}
           className="flex items-center gap-2 text-slate-600 dark:text-slate-400 
-                   hover:text-slate-900 dark:hover:text-white mb-3"
+                   hover:text-slate-900 dark:hover:text-base-content mb-3"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Back to Workflows</span>
         </button>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-base-content mb-1">
           {selectedWorkflow.name}
         </h2>
         <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
@@ -503,7 +503,7 @@ export function MobileWorkflowSelector({
         {/* Best For */}
         {selectedWorkflow.bestFor && selectedWorkflow.bestFor.length > 0 && (
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-sm">
+            <h3 className="font-semibold text-slate-900 dark:text-base-content mb-2 text-sm">
               Best For:
             </h3>
             <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
@@ -520,7 +520,7 @@ export function MobileWorkflowSelector({
         {/* Examples */}
         {selectedWorkflow.examples && selectedWorkflow.examples.length > 0 && (
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-sm">
+            <h3 className="font-semibold text-slate-900 dark:text-base-content mb-2 text-sm">
               Examples:
             </h3>
             <ul className="space-y-2">
@@ -540,7 +540,7 @@ export function MobileWorkflowSelector({
         {/* Upload Instructions (for performance capture) */}
         {selectedWorkflow.requiresVideoUpload && (
           <div className="p-3 rounded-lg border-2 border-primary/20 bg-primary/5">
-            <h3 className="font-semibold text-slate-900 dark:text-white mb-2 text-sm flex items-center gap-2">
+            <h3 className="font-semibold text-slate-900 dark:text-base-content mb-2 text-sm flex items-center gap-2">
               <Film className="w-4 h-4 text-primary" />
               {selectedWorkflow.videoUploadInstructions?.title || 'Performance Video Required'}
             </h3>
@@ -560,7 +560,7 @@ export function MobileWorkflowSelector({
       <div className="p-4 border-t border-slate-200 dark:border-slate-700">
         <button
           onClick={() => setViewMode('inputs')}
-          className="w-full py-3 px-4 rounded-lg bg-primary text-white font-bold
+          className="w-full py-3 px-4 rounded-lg bg-primary text-base-content font-bold
                    hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
         >
           <Sparkles className="w-5 h-5" />

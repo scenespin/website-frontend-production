@@ -191,7 +191,7 @@ export function CharacterBankPanel({
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-base-content text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Create Character
@@ -261,7 +261,7 @@ export function CharacterBankPanel({
                             className="w-full aspect-square object-cover rounded border border-slate-200 dark:border-slate-700"
                           />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-end p-1">
-                            <span className="text-xs text-white font-medium truncate">
+                            <span className="text-xs text-base-content font-medium truncate">
                               {ref.label}
                             </span>
                           </div>
@@ -297,7 +297,7 @@ export function CharacterBankPanel({
                     'w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     isGeneratingRefs[selectedCharacter.id]
                       ? 'bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-                      : 'bg-teal-600 hover:bg-teal-700 text-white'
+                      : 'bg-teal-600 hover:bg-teal-700 text-base-content'
                   )}
                 >
                   {isGeneratingRefs[selectedCharacter.id] ? (
@@ -319,11 +319,11 @@ export function CharacterBankPanel({
                     setPoseCharacter({id: selectedCharacter.id, name: selectedCharacter.name});
                     setShowPoseModal(true);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-purple-500 hover:bg-purple-600 text-white"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-purple-500 hover:bg-purple-600 text-base-content"
                 >
                   <Sparkles className="w-4 h-4" />
                   Generate Pose Package
-                  <span className="badge badge-sm bg-blue-400 text-white ml-1">NEW!</span>
+                  <span className="badge badge-sm bg-blue-400 text-base-content ml-1">NEW!</span>
                 </button>
 
                 <label className="block">
@@ -359,7 +359,7 @@ export function CharacterBankPanel({
             </p>
             <button
               onClick={() => setShowCreateModal(false)}
-              className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors"
+              className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-base-content font-medium rounded-lg transition-colors"
             >
               Got it
             </button>

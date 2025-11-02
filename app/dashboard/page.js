@@ -5,6 +5,7 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import WelcomeModal from '@/components/WelcomeModal';
+import { LibrarySubNav } from '@/components/library/LibrarySubNav';
 import { 
   Film, 
   Clapperboard, 
@@ -97,6 +98,9 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
+      {/* Library Sub-Navigation */}
+      <LibrarySubNav activeTab="projects" />
+      
       {/* Welcome Modal for First-Time Users */}
       <WelcomeModal 
         isOpen={showWelcomeModal}
@@ -174,12 +178,12 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <Link 
               href="/editor" 
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-cinema-red to-cinema-red/90 p-6 text-white hover:shadow-lg transition-all duration-300"
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-cinema-red to-cinema-red/90 p-6 text-base-content hover:shadow-lg transition-all duration-300"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
               <FileText className="w-6 h-6 mb-3 relative z-10" />
               <h3 className="font-semibold text-base mb-1 relative z-10">Write Screenplay</h3>
-              <p className="text-xs text-white/80 relative z-10">Create a new script</p>
+              <p className="text-xs text-base-content/80 relative z-10">Create a new script</p>
             </Link>
             
             <Link 
@@ -303,7 +307,7 @@ export default function Dashboard() {
               </p>
               <Link 
                 href="/editor" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cinema-red to-cinema-red/90 text-white rounded-lg hover:shadow-lg transition-all duration-300 font-medium"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cinema-red to-cinema-red/90 text-base-content rounded-lg hover:shadow-lg transition-all duration-300 font-medium"
               >
                 <Plus className="w-5 h-5" />
                 Create Your First Project

@@ -148,14 +148,14 @@ export function ImageAssociationDialog({
                 {/* Header */}
                 <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between bg-white/5 backdrop-blur-xl relative">
                     <div>
-                        <h2 className="text-xl font-semibold text-white text-glow">Link Image to Screenplay</h2>
-                        <p className="text-sm text-white/60 mt-1">
+                        <h2 className="text-xl font-semibold text-base-content text-glow">Link Image to Screenplay</h2>
+                        <p className="text-sm text-base-content/60 mt-1">
                             Associate with a character, location, scene, or storybeat
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-white/60 hover:text-white transition-all duration-300 p-2 hover:bg-white/10 rounded-xl hover:scale-105 backdrop-blur-sm border border-white/10 hover:border-white/20"
+                        className="text-base-content/60 hover:text-base-content transition-all duration-300 p-2 hover:bg-white/10 rounded-xl hover:scale-105 backdrop-blur-sm border border-white/10 hover:border-white/20"
                         disabled={isAssociating}
                     >
                         <X className="w-5 h-5" />
@@ -175,7 +175,7 @@ export function ImageAssociationDialog({
                             {/* Download button overlay */}
                             <button
                                 onClick={handleDownload}
-                                className="absolute top-3 right-3 p-2.5 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-lg border border-white/20 hover:scale-105"
+                                className="absolute top-3 right-3 p-2.5 bg-white/10 backdrop-blur-md hover:bg-white/20 text-base-content rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-lg border border-white/20 hover:scale-105"
                                 title="Download image"
                             >
                                 <Download className="w-5 h-5" />
@@ -183,12 +183,12 @@ export function ImageAssociationDialog({
                         </div>
                         {prompt && (
                             <div className="flex items-start justify-between gap-3 px-4 py-3 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-                                <p className="text-xs text-white/70 italic flex-1 leading-relaxed">
+                                <p className="text-xs text-base-content/70 italic flex-1 leading-relaxed">
                                     <span className="text-purple-300 font-medium">Prompt:</span> &quot;{prompt}&quot;
                                 </p>
                                 <button
                                     onClick={handleDownload}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-300 flex-shrink-0 border border-white/10 hover:border-white/20"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-base-content/70 hover:text-base-content hover:bg-white/10 rounded-lg transition-all duration-300 flex-shrink-0 border border-white/10 hover:border-white/20"
                                 >
                                     <Download className="w-3.5 h-3.5" />
                                     Download
@@ -199,7 +199,7 @@ export function ImageAssociationDialog({
 
                     {/* Entity Type Selection */}
                     <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-white/90">
+                        <label className="block text-sm font-semibold text-base-content/90">
                             1. Choose Entity Type
                         </label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -213,8 +213,8 @@ export function ImageAssociationDialog({
                                         }}
                                         className={`w-full px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                                             selectedEntityType === type
-                                                ? 'bg-purple-500/20 text-white'
-                                                : 'text-white/90 hover:bg-white/5'
+                                                ? 'bg-purple-500/20 text-base-content'
+                                                : 'text-base-content/90 hover:bg-white/5'
                                         }`}
                                     >
                                         {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -226,7 +226,7 @@ export function ImageAssociationDialog({
 
                     {/* Entity Selection */}
                     <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-white/90">
+                        <label className="block text-sm font-semibold text-base-content/90">
                             2. Select {selectedEntityType.charAt(0).toUpperCase() + selectedEntityType.slice(1)}
                         </label>
                         {availableEntities.length > 0 ? (
@@ -236,11 +236,11 @@ export function ImageAssociationDialog({
                                     setSelectedEntityId(e.target.value);
                                     setError(null);
                                 }}
-                                className="w-full px-4 py-3.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400/50 focus:bg-white/15 transition-all duration-300 hover:bg-white/15 hover:border-white/30"
+                                className="w-full px-4 py-3.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-400/50 focus:bg-white/15 transition-all duration-300 hover:bg-white/15 hover:border-white/30"
                             >
-                                <option value="" className="bg-gray-900 text-gray-400">-- Choose {selectedEntityType} --</option>
+                                <option value="" className="bg-base-200 text-base-content/60">-- Choose {selectedEntityType} --</option>
                                 {availableEntities.map((entity) => (
-                                    <option key={entity.id} value={entity.id} className="bg-gray-900 text-white">
+                                    <option key={entity.id} value={entity.id} className="bg-base-200 text-base-content">
                                         {entity.name}
                                     </option>
                                 ))}
@@ -267,7 +267,7 @@ export function ImageAssociationDialog({
                     <SpotlightBorder>
                         <button
                             onClick={handleSkip}
-                            className="px-5 py-2.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-300"
+                            className="px-5 py-2.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-white/5 rounded-xl transition-all duration-300"
                             disabled={isAssociating}
                         >
                             Skip for Now
@@ -279,8 +279,8 @@ export function ImageAssociationDialog({
                             disabled={isAssociating || !selectedEntityId || availableEntities.length === 0}
                             className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 ${
                                 isAssociating || !selectedEntityId || availableEntities.length === 0
-                                    ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                                    : 'bg-purple-500/20 text-white hover:bg-purple-500/30'
+                                    ? 'bg-white/5 text-base-content/30 cursor-not-allowed'
+                                    : 'bg-purple-500/20 text-base-content hover:bg-purple-500/30'
                             }`}
                         >
                             {isAssociating ? (

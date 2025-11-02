@@ -36,12 +36,12 @@ export default function ImagePanel() {
             {/* Left: Input */}
             <div className="space-y-3">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-base-content/70 mb-1">
                         Scene Description
                     </label>
                     <textarea
                         rows={3}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500"
+                        className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500"
                         placeholder="Describe the image you want to generate..."
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -51,7 +51,7 @@ export default function ImagePanel() {
                             <button
                                 key={p}
                                 onClick={() => setPrompt(p)}
-                                className="px-2 py-1 text-xs text-left bg-gray-100 hover:bg-gray-200 rounded border border-gray-200 truncate"
+                                className="px-2 py-1 text-xs text-left bg-base-100 hover:bg-base-200 rounded border border-base-content/20 truncate"
                                 title={p}
                             >
                                 {p}
@@ -61,7 +61,7 @@ export default function ImagePanel() {
                 </div>
                 
                 <select
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500"
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                 >
@@ -73,7 +73,7 @@ export default function ImagePanel() {
                 <button
                     onClick={handleGenerate}
                     disabled={isLoading || !prompt.trim()}
-                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white font-medium rounded-lg text-sm"
+                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-base-content/20 text-base-content font-medium rounded-lg text-sm"
                 >
                     {isLoading ? 'Generating...' : '🎨 Generate Image'}
                 </button>
@@ -88,7 +88,7 @@ export default function ImagePanel() {
             {/* Right: Output */}
             <div className="flex flex-col">
                 {!generatedImage && !isLoading && (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <div className="flex items-center justify-center h-full text-base-content/60 text-sm">
                         Generated image will appear here
                     </div>
                 )}
@@ -100,7 +100,7 @@ export default function ImagePanel() {
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <p className="text-sm text-gray-600">Generating...</p>
+                            <p className="text-sm text-base-content/40">Generating...</p>
                         </div>
                     </div>
                 )}
@@ -110,7 +110,7 @@ export default function ImagePanel() {
                         <img
                             src={generatedImage}
                             alt="Generated scene"
-                            className="w-full rounded-lg border border-gray-200"
+                            className="w-full rounded-lg border border-base-content/20"
                         />
                         <button
                             onClick={() => {
@@ -119,7 +119,7 @@ export default function ImagePanel() {
                                 link.download = `scene-${Date.now()}.png`;
                                 link.click();
                             }}
-                            className="w-full py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200"
+                            className="w-full py-2 text-sm bg-base-100 hover:bg-base-200 rounded-lg border border-base-content/20"
                         >
                             Download
                         </button>

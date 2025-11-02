@@ -34,26 +34,26 @@ export function MarketingButton({
   const variants = {
     primary: `
       bg-gradient-to-br from-[#DC143C] to-[#8B0000]
-      text-white shadow-lg shadow-[#DC143C]/40
+      text-base-content shadow-lg shadow-[#DC143C]/40
       hover:shadow-xl hover:shadow-[#DC143C]/60
       hover:-translate-y-0.5
       focus:ring-[#DC143C]
     `,
     secondary: `
       bg-gradient-to-br from-[#00D9FF] to-[#0099CC]
-      text-white shadow-lg shadow-[#00D9FF]/40
+      text-base-content shadow-lg shadow-[#00D9FF]/40
       hover:shadow-xl hover:shadow-[#00D9FF]/60
       hover:-translate-y-0.5
       focus:ring-[#00D9FF]
     `,
     outline: `
       border-2 border-white/20 bg-transparent
-      text-white hover:bg-white/5
+      text-base-content hover:bg-white/5
       hover:border-white/40
       focus:ring-white/20
     `,
     ghost: `
-      bg-transparent text-white
+      bg-transparent text-base-content
       hover:bg-white/5
       focus:ring-white/20
     `,

@@ -140,7 +140,7 @@ export default function AdminUsersDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Users Management</h1>
-          <p className="text-gray-600 mt-1">Manage users, credits, and account settings</p>
+          <p className="text-base-content/40 mt-1">Manage users, credits, and account settings</p>
         </div>
         <button 
           onClick={fetchUsers}
@@ -156,7 +156,7 @@ export default function AdminUsersDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Total Users</p>
+                <p className="text-sm text-base-content/40">Total Users</p>
                 <p className="text-3xl font-bold">{totalUsers}</p>
               </div>
               <Users className="w-8 h-8 text-blue-500 opacity-50" />
@@ -236,7 +236,7 @@ export default function AdminUsersDashboard() {
                     <td>
                       <div>
                         <div className="font-bold">{u.email || 'No email'}</div>
-                        <div className="text-sm text-gray-500">{u.user_id}</div>
+                        <div className="text-sm text-base-content/50">{u.user_id}</div>
                       </div>
                     </td>
                     <td>
@@ -300,7 +300,7 @@ export default function AdminUsersDashboard() {
 
           {/* Pagination */}
           <div className="flex justify-between items-center p-4 border-t">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-base-content/40">
               Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, totalUsers)} of {totalUsers} users
             </div>
             <div className="flex gap-2">

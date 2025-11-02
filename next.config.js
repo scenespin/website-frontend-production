@@ -10,6 +10,17 @@ const nextConfig = {
   // CDN & Performance Optimization
   compress: true, // Enable gzip/brotli compression
   
+  // Redirects for deprecated routes (Feature 0100)
+  async redirects() {
+    return [
+      {
+        source: '/workflows',
+        destination: '/production?tab=workflows',
+        permanent: true, // 301 redirect
+      },
+    ];
+  },
+  
   images: {
     remotePatterns: [
       // NextJS <Image> component needs to whitelist domains for src={}

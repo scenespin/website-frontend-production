@@ -568,7 +568,7 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
                   value={selectedLayer.effects.blendMode || 'normal'}
                   onValueChange={(val) => updateEffects(selectedLayer.id, { blendMode: val })}
                 >
-                  <SelectTrigger className="bg-gray-900 text-white border-gray-700 mt-1">
+                  <SelectTrigger className="bg-base-200 text-base-content border-base-content/20 mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

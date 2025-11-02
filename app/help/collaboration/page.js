@@ -215,9 +215,9 @@ export default function CollaborationHelpPage() {
         </div>
 
         {/* Viewer */}
-        <div className="card bg-gradient-to-br from-gray-500/10 to-gray-600/10 border-2 border-gray-500/30 mb-6">
+        <div className="card bg-gradient-to-br from-base-content/50/10 to-base-content/40/10 border-2 border-base-content/50/30 mb-6">
           <div className="card-body">
-            <h3 className="text-2xl font-bold text-gray-400 flex items-center gap-2 mt-0">
+            <h3 className="text-2xl font-bold text-base-content/60 flex items-center gap-2 mt-0">
               <span>👁️</span> Viewer (Read-Only)
             </h3>
             <p className="text-sm opacity-90">

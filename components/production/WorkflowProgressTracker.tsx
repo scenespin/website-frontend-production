@@ -148,7 +148,7 @@ export function WorkflowProgressTracker({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+        <h3 className="font-bold text-lg text-slate-900 dark:text-base-content mb-1 flex items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-primary" />
           Generating Your Content
         </h3>

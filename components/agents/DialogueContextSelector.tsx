@@ -110,9 +110,9 @@ export function DialogueContextSelector({
   if (!isOpen) return null;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-2xl w-full overflow-hidden">
+    <div className="bg-base-100 dark:bg-slate-900 rounded-lg shadow-2xl w-full overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-lg">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-base-content p-6 rounded-t-lg">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Generate Dialogue</h2>
@@ -122,7 +122,7 @@ export function DialogueContextSelector({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            className="p-2 hover:bg-base-100/20 rounded-lg transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -133,7 +133,7 @@ export function DialogueContextSelector({
       <div className="p-6 space-y-6">
           {/* Scene Context */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
               📍 Scene Heading
             </label>
             <input
@@ -143,12 +143,12 @@ export function DialogueContextSelector({
               placeholder="INT. COFFEE SHOP - DAY"
               className="w-full px-4 py-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 font-mono"
             />
-            <p className="text-xs text-gray-500 mt-1">Example: INT. COFFEE SHOP - DAY or EXT. CITY STREET - NIGHT</p>
+            <p className="text-xs text-base-content/50 mt-1">Example: INT. COFFEE SHOP - DAY or EXT. CITY STREET - NIGHT</p>
           </div>
 
           {/* Act */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
               🎬 Act
             </label>
             <select
@@ -165,7 +165,7 @@ export function DialogueContextSelector({
           {/* Story Beat (Optional) */}
           {availableBeats.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
                 📝 Story Beat (Optional)
               </label>
               <select
@@ -188,15 +188,15 @@ export function DialogueContextSelector({
 
           {/* Characters */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
               👥 Characters in Scene *
             </label>
             <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3 dark:border-slate-700">
               {availableCharacters.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">No characters created yet. Add characters to your screenplay first.</p>
+                <p className="text-sm text-base-content/50 italic">No characters created yet. Add characters to your screenplay first.</p>
               ) : (
                 availableCharacters.map(char => (
-                  <label key={char.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 p-2 rounded">
+                  <label key={char.id} className="flex items-center space-x-2 cursor-pointer hover:bg-base-100 dark:hover:bg-slate-800 p-2 rounded">
                     <input
                       type="checkbox"
                       checked={context.characters.some(c => c.id === char.id)}
@@ -204,7 +204,7 @@ export function DialogueContextSelector({
                       className="rounded"
                     />
                     <span className="text-sm font-medium">{char.name}</span>
-                    <span className="text-xs text-gray-500">({char.type})</span>
+                    <span className="text-xs text-base-content/50">({char.type})</span>
                   </label>
                 ))
               )}
@@ -213,7 +213,7 @@ export function DialogueContextSelector({
 
           {/* Conflict/Tension */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
               🎯 What&apos;s the conflict or tension? *
             </label>
             <Textarea
@@ -227,7 +227,7 @@ export function DialogueContextSelector({
 
           {/* Tone */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
               💬 Tone
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -237,8 +237,8 @@ export function DialogueContextSelector({
                   onClick={() => setContext(prev => ({ ...prev, tone: tone.toLowerCase() }))}
                   className={`px-4 py-2 rounded-lg border transition-colors ${
                     context.tone === tone.toLowerCase()
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'border-gray-300 dark:border-slate-700 hover:border-indigo-400'
+                      ? 'bg-indigo-600 text-base-content border-indigo-600'
+                      : 'border-base-content/20 dark:border-slate-700 hover:border-indigo-400'
                   }`}
                 >
                   {tone}
@@ -256,7 +256,7 @@ export function DialogueContextSelector({
 
           {/* Subtext (Optional) */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
               💭 Subtext (Optional)
             </label>
             <Textarea
@@ -281,7 +281,7 @@ export function DialogueContextSelector({
           {showAdvanced && (
             <div className="space-y-4 pl-4 border-l-2 border-indigo-200 dark:border-indigo-800">
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
                   Desired Outcome
                 </label>
                 <input
@@ -294,7 +294,7 @@ export function DialogueContextSelector({
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
                   Power Dynamics
                 </label>
                 <input
@@ -307,7 +307,7 @@ export function DialogueContextSelector({
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium mb-2 text-base-content/70 dark:text-base-content/70">
                   Specific Lines or Moments
                 </label>
                 <Textarea
@@ -323,10 +323,10 @@ export function DialogueContextSelector({
         </div>
 
         {/* Footer Actions */}
-        <div className="sticky bottom-0 bg-gray-50 dark:bg-slate-800 p-6 rounded-b-lg border-t dark:border-slate-700 space-y-3">
+        <div className="sticky bottom-0 bg-base-100 dark:bg-slate-800 p-6 rounded-b-lg border-t dark:border-slate-700 space-y-3">
           <Button
             onClick={handleQuickGenerate}
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-6"
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-base-content py-6"
             size="lg"
           >
             <Zap className="w-5 h-5 mr-2" />
@@ -345,7 +345,7 @@ export function DialogueContextSelector({
             <span className="ml-2 text-xs opacity-60">⏱️ Thorough</span>
           </Button>
 
-          <p className="text-xs text-center text-gray-500">
+          <p className="text-xs text-center text-base-content/50">
             * Required fields
           </p>
         </div>

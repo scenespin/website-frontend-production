@@ -129,7 +129,7 @@ export function CloudSavePrompt({
         <div className="flex items-center justify-between p-6 border-b border-base-300">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-              <Cloud className="w-6 h-6 text-white" />
+              <Cloud className="w-6 h-6 text-base-content" />
             </div>
             <div>
               <h3 className="font-bold text-lg">Save to Your Drive</h3>

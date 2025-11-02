@@ -70,9 +70,9 @@ export function SceneBuilderProgress({
     },
     cancelled: {
       icon: Circle,
-      color: 'text-gray-600 dark:text-gray-400',
-      bgColor: 'bg-gray-50 dark:bg-gray-950/20',
-      borderColor: 'border-gray-200 dark:border-gray-900',
+      color: 'text-base-content/40 dark:text-base-content/60',
+      bgColor: 'bg-base-100 dark:bg-base-200/20',
+      borderColor: 'border-base-content/20 dark:border-base-content/20',
       label: 'Cancelled'
     }
   };
@@ -95,7 +95,7 @@ export function SceneBuilderProgress({
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-3">
+      <div className="w-full bg-base-200 dark:bg-base-content/20 rounded-full h-2 mb-3">
         <div
           className={`h-2 rounded-full transition-all duration-500 ${
             status === 'completed' ? 'bg-green-500' :
@@ -121,7 +121,7 @@ export function SceneBuilderProgress({
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
               )}
               {step.status === 'pending' && (
-                <Circle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <Circle className="w-4 h-4 text-base-content/60 flex-shrink-0" />
               )}
               <span className="flex-1">Step {step.stepNumber}</span>
               <span className="text-muted-foreground">{step.creditsUsed} cr</span>

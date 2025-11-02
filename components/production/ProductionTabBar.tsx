@@ -138,7 +138,7 @@ export function ProductionTabBar({
 
               {/* NEW Badge */}
               {'badge' in tab && tab.badge && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-white">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500 text-base-content">
                   {tab.badge}
                 </span>
               )}
@@ -149,7 +149,7 @@ export function ProductionTabBar({
                   "absolute -top-1 -right-1",
                   "px-1.5 py-0.5 rounded-full",
                   "text-xs font-bold",
-                  "bg-primary text-white",
+                  "bg-primary text-base-content",
                   "min-w-[18px] text-center"
                 )}>
                   {jobCount > 99 ? '99+' : jobCount}

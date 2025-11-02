@@ -169,8 +169,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     {/* Avatar */}
                     <div className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center ${
                       isUser 
-                        ? 'bg-gradient-to-br from-cinema-red to-cinema-red/80 text-white' 
-                        : 'bg-gradient-to-br from-purple-500 to-purple-600 text-white'
+                        ? 'bg-gradient-to-br from-cinema-red to-cinema-red/80 text-base-content' 
+                        : 'bg-gradient-to-br from-purple-500 to-purple-600 text-base-content'
                     }`}>
                       {isUser ? <User className="w-4 h-4 md:w-5 md:h-5" /> : <Bot className="w-4 h-4 md:w-5 md:h-5" />}
                     </div>
@@ -208,7 +208,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
               <div className="flex gap-4 md:gap-6">
                 {/* Avatar */}
-                <div className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <div className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600 text-base-content">
                   <Bot className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
                 

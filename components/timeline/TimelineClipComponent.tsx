@@ -134,7 +134,7 @@ export function TimelineClipComponent({
       title={clip.name}
     >
       {/* Clip Content */}
-      <div className="h-full flex flex-col justify-between p-2 text-white overflow-hidden select-none">
+      <div className="h-full flex flex-col justify-between p-2 text-base-content overflow-hidden select-none">
         <div className="flex items-start justify-between gap-2">
           {/* Drag Handle */}
           <div className="flex items-center gap-1 flex-1 min-w-0">

@@ -183,7 +183,7 @@ export default function WorkflowAnalyticsDashboard() {
                           index === 2 ? 'bg-accent' :
                           index === 3 ? 'bg-info' :
                           'bg-success'
-                        } flex items-center justify-end pr-2 text-xs font-bold text-white transition-all`}
+                        } flex items-center justify-end pr-2 text-xs font-bold text-base-content transition-all`}
                         style={{ width: `${stage.percentage}%` }}
                       >
                         {parseFloat(stage.percentage) > 10 && `${stage.percentage}%`}

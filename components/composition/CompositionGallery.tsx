@@ -105,7 +105,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
               <Film className="w-12 h-12 text-black" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-base-content mb-2">
                 No Compositions Yet
               </h3>
               <p className="text-slate-600 dark:text-slate-400">

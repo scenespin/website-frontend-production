@@ -317,15 +317,15 @@ export function AudioInterviewWizard({
         exit={{ opacity: 0, scale: 0.95 }}
         className="w-full max-w-2xl max-h-[90vh] overflow-hidden"
       >
-        <Card className="bg-gray-900 border-gray-800 shadow-2xl">
+        <Card className="bg-base-200 border-base-300 shadow-2xl">
           {/* Header */}
-          <CardHeader className="border-b border-gray-800">
+          <CardHeader className="border-b border-base-300">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {mode === 'sfx' && <Zap className="w-6 h-6 text-red-400" />}
                 {mode === 'music' && <Music className="w-6 h-6 text-cyan-400" />}
                 <div>
-                  <CardTitle className="text-white">
+                  <CardTitle className="text-base-content">
                     {template?.name || 'Audio Wizard'}
                   </CardTitle>
                   <CardDescription>
@@ -337,7 +337,7 @@ export function AudioInterviewWizard({
                 variant="ghost"
                 size="icon"
                 onClick={onCancel}
-                className="text-gray-400 hover:text-white"
+                className="text-base-content/60 hover:text-base-content"
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -347,10 +347,10 @@ export function AudioInterviewWizard({
             {step === 'questions' && (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">
+                  <span className="text-base-content/60">
                     Question {currentQuestionIndex + 1} of {visibleQuestions.length}
                   </span>
-                  <span className="text-gray-400">{Math.round(progress)}%</span>
+                  <span className="text-base-content/60">{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
@@ -406,12 +406,12 @@ export function AudioInterviewWizard({
 
           {/* Footer (navigation) */}
           {step === 'questions' && (
-            <div className="border-t border-gray-800 p-4 flex items-center justify-between">
+            <div className="border-t border-base-300 p-4 flex items-center justify-between">
               <Button
                 variant="ghost"
                 onClick={handleBack}
                 disabled={currentQuestionIndex === 0}
-                className="text-gray-400 hover:text-white"
+                className="text-base-content/60 hover:text-base-content"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
@@ -422,7 +422,7 @@ export function AudioInterviewWizard({
                   <Button
                     variant="ghost"
                     onClick={handleSkip}
-                    className="text-gray-400 hover:text-white"
+                    className="text-base-content/60 hover:text-base-content"
                   >
                     Skip
                   </Button>
@@ -450,14 +450,14 @@ export function AudioInterviewWizard({
           )}
 
           {step === 'preview' && (
-            <div className="border-t border-gray-800 p-4 flex items-center justify-between">
+            <div className="border-t border-base-300 p-4 flex items-center justify-between">
               <Button
                 variant="ghost"
                 onClick={() => {
                   setStep('questions');
                   setCurrentQuestionIndex(visibleQuestions.length - 1);
                 }}
-                className="text-gray-400 hover:text-white"
+                className="text-base-content/60 hover:text-base-content"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Edit Answers
@@ -502,7 +502,7 @@ function ModeSelection({ onSelectMode }: { onSelectMode: (mode: InterviewMode) =
     >
       {/* SFX Card */}
       <Card
-        className="bg-gray-800/50 border-gray-700 hover:border-red-500 cursor-pointer transition-all group"
+        className="bg-base-300/50 border-base-content/20 hover:border-red-500 cursor-pointer transition-all group"
         onClick={() => onSelectMode('sfx')}
       >
         <CardContent className="p-6">
@@ -512,8 +512,8 @@ function ModeSelection({ onSelectMode }: { onSelectMode: (mode: InterviewMode) =
             </div>
             
             <div>
-              <h3 className="text-xl font-bold text-white mb-2">Sound Effects</h3>
-              <p className="text-sm text-gray-400 mb-4">
+              <h3 className="text-xl font-bold text-base-content mb-2">Sound Effects</h3>
+              <p className="text-sm text-base-content/60 mb-4">
                 Quick 3-step wizard for perfect sound effects
               </p>
             </div>
@@ -522,18 +522,18 @@ function ModeSelection({ onSelectMode }: { onSelectMode: (mode: InterviewMode) =
               <Badge variant="secondary" className="bg-red-500/20 text-red-400">
                 Fast
               </Badge>
-              <span className="text-gray-400">3 credits</span>
-              <span className="text-gray-400">&lt; 10s</span>
+              <span className="text-base-content/60">3 credits</span>
+              <span className="text-base-content/60">&lt; 10s</span>
             </div>
             
-            <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-red-400 transition-colors" />
+            <ChevronRight className="w-5 h-5 text-base-content/40 group-hover:text-red-400 transition-colors" />
           </div>
         </CardContent>
       </Card>
 
       {/* Music Card */}
       <Card
-        className="bg-gray-800/50 border-gray-700 hover:border-cyan-500 cursor-pointer transition-all group"
+        className="bg-base-300/50 border-base-content/20 hover:border-cyan-500 cursor-pointer transition-all group"
         onClick={() => onSelectMode('music')}
       >
         <CardContent className="p-6">
@@ -543,8 +543,8 @@ function ModeSelection({ onSelectMode }: { onSelectMode: (mode: InterviewMode) =
             </div>
             
             <div>
-              <h3 className="text-xl font-bold text-white mb-2">Music & Soundtrack</h3>
-              <p className="text-sm text-gray-400 mb-4">
+              <h3 className="text-xl font-bold text-base-content mb-2">Music & Soundtrack</h3>
+              <p className="text-sm text-base-content/60 mb-4">
                 Compose the perfect soundtrack with our guided wizard
               </p>
             </div>
@@ -553,11 +553,11 @@ function ModeSelection({ onSelectMode }: { onSelectMode: (mode: InterviewMode) =
               <Badge variant="secondary" className="bg-cyan-500/20 text-cyan-400">
                 Premium
               </Badge>
-              <span className="text-gray-400">100 credits</span>
-              <span className="text-gray-400">60-120s</span>
+              <span className="text-base-content/60">100 credits</span>
+              <span className="text-base-content/60">60-120s</span>
             </div>
             
-            <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-cyan-400 transition-colors" />
+            <ChevronRight className="w-5 h-5 text-base-content/40 group-hover:text-cyan-400 transition-colors" />
           </div>
         </CardContent>
       </Card>
@@ -588,9 +588,9 @@ function QuestionStep({
     >
       {/* Question */}
       <div>
-        <h3 className="text-2xl font-bold text-white mb-2">{question.text}</h3>
+        <h3 className="text-2xl font-bold text-base-content mb-2">{question.text}</h3>
         {question.helpText && (
-          <p className="text-sm text-gray-400 flex items-center gap-2">
+          <p className="text-sm text-base-content/60 flex items-center gap-2">
             <Info className="w-4 h-4" />
             {question.helpText}
           </p>
@@ -659,19 +659,19 @@ function QuestionStep({
 function PreviewStep({ compiledPrompt, template }: any) {
   return (
     <div className="space-y-6">
-      <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-        <h3 className="text-lg font-semibold text-white mb-4">Compiled Prompt:</h3>
-        <p className="text-gray-300 leading-relaxed">{compiledPrompt.prompt}</p>
+      <div className="bg-base-300/50 rounded-lg p-6 border border-base-content/20">
+        <h3 className="text-lg font-semibold text-base-content mb-4">Compiled Prompt:</h3>
+        <p className="text-base-content/70 leading-relaxed">{compiledPrompt.prompt}</p>
       </div>
       
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-          <div className="text-sm text-gray-400 mb-1">Provider</div>
-          <div className="text-white font-semibold">{compiledPrompt.provider}</div>
+        <div className="bg-base-300/50 rounded-lg p-4 border border-base-content/20">
+          <div className="text-sm text-base-content/60 mb-1">Provider</div>
+          <div className="text-base-content font-semibold">{compiledPrompt.provider}</div>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-          <div className="text-sm text-gray-400 mb-1">Credits</div>
-          <div className="text-white font-semibold">{compiledPrompt.estimatedCredits}</div>
+        <div className="bg-base-300/50 rounded-lg p-4 border border-base-content/20">
+          <div className="text-sm text-base-content/60 mb-1">Credits</div>
+          <div className="text-base-content font-semibold">{compiledPrompt.estimatedCredits}</div>
         </div>
       </div>
     </div>
@@ -684,17 +684,17 @@ function GeneratingStep({ mode }: { mode: InterviewMode }) {
       <div className="relative">
         <div className="w-24 h-24 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center justify-center animate-pulse">
           {mode === 'sfx' ? (
-            <Zap className="w-12 h-12 text-white" />
+            <Zap className="w-12 h-12 text-base-content" />
           ) : (
-            <Music className="w-12 h-12 text-white" />
+            <Music className="w-12 h-12 text-base-content" />
           )}
         </div>
         <Loader2 className="w-32 h-32 text-violet-400 animate-spin absolute -inset-4" />
       </div>
       
       <div className="text-center">
-        <h3 className="text-xl font-bold text-white mb-2">Generating your audio...</h3>
-        <p className="text-gray-400">
+        <h3 className="text-xl font-bold text-base-content mb-2">Generating your audio...</h3>
+        <p className="text-base-content/60">
           {mode === 'sfx' ? 'This should take less than 10 seconds' : 'This may take 60-120 seconds'}
         </p>
       </div>
@@ -712,11 +712,11 @@ function ResultStep({ result, onComplete, onGenerateAnother }: any) {
       </div>
       
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-white mb-2">Audio Generated!</h3>
-        <p className="text-gray-400">Used {result.creditsUsed} credits</p>
+        <h3 className="text-2xl font-bold text-base-content mb-2">Audio Generated!</h3>
+        <p className="text-base-content/60">Used {result.creditsUsed} credits</p>
       </div>
       
-      <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
+      <div className="bg-base-300/50 rounded-lg p-6 border border-base-content/20">
         <audio controls className="w-full" src={result.audioUrl}>
           Your browser does not support the audio element.
         </audio>

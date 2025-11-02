@@ -8,6 +8,7 @@ import { useEditorContext } from '@/lib/contextStore';
 import { locationsAPI } from '@/lib/navigationAPI';
 import { MapPin, Plus, Edit, Trash2, Image, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
 export default function LocationsPage() {
   const { user } = useUser();
@@ -70,8 +71,11 @@ export default function LocationsPage() {
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
+      {/* Editor Sub-Navigation */}
+      <EditorSubNav activeTab="locations" projectId={projectId} />
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white shadow-lg">
+      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

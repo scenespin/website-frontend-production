@@ -46,7 +46,7 @@ function RadioGroupItem({ value, disabled }: { value: string; disabled?: boolean
       type="radio"
       value={value}
       disabled={disabled}
-      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+      className="w-4 h-4 text-blue-600 border-base-content/20 focus:ring-blue-500"
     />
   );
 }

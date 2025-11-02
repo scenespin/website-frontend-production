@@ -38,7 +38,6 @@ const Pricing = () => {
         "✅ ~60 Professional 1080p videos",
         "✅ ~40 Premium 4K videos",
         "✅ ~20 Ultra Native 4K videos",
-        "💰 Save $1,776/year vs traditional stack",
         "✅ Cancel anytime"
       ],
       cta: "Get Pro",
@@ -95,6 +94,19 @@ const Pricing = () => {
           <p className="text-lg opacity-80 max-w-2xl mx-auto">
             No paywalls. No feature tiers. No watermarks. The only difference is credits per month.
           </p>
+        </div>
+
+        {/* Hero Savings Banner */}
+        <div className="alert alert-success mb-8 max-w-4xl mx-auto">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-left">
+            <div className="font-bold text-lg">💰 Save $1,776/year vs traditional stack</div>
+            <div className="text-sm opacity-90">
+              Replace Final Cut Pro + Adobe CC + Runway + Midjourney + ElevenLabs with one platform. All features unlocked for everyone.
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

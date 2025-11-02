@@ -157,21 +157,21 @@ export default function PoseGenerationModal({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-gray-900 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-gray-700"
+            className="bg-base-200 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-base-content/20"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-6 flex items-center justify-between z-10">
+            <div className="sticky top-0 bg-base-200 border-b border-base-content/20 p-6 flex items-center justify-between z-10">
               <div>
-                <h2 className="text-2xl font-bold text-white">Generate Pose Package</h2>
-                <p className="text-gray-400 mt-1">Create consistent character references for {characterName}</p>
+                <h2 className="text-2xl font-bold text-base-content">Generate Pose Package</h2>
+                <p className="text-base-content/60 mt-1">Create consistent character references for {characterName}</p>
               </div>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                className="p-2 hover:bg-base-300 rounded-lg transition-colors"
                 disabled={isGenerating}
               >
-                <X className="w-6 h-6 text-gray-400" />
+                <X className="w-6 h-6 text-base-content/60" />
               </button>
             </div>
             
@@ -190,7 +190,7 @@ export default function PoseGenerationModal({
                   <div className="flex justify-end">
                     <button
                       onClick={() => setStep('input')}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-base-content rounded-lg font-semibold transition-colors"
                     >
                       Continue to Input
                     </button>
@@ -205,7 +205,7 @@ export default function PoseGenerationModal({
                     <h3 className="text-xl font-bold text-gray-100 mb-2">
                       Provide Character Information
                     </h3>
-                    <p className="text-gray-400">
+                    <p className="text-base-content/60">
                       Upload a headshot, paste screenplay text, or write a description. The more info, the better!
                     </p>
                   </div>
@@ -214,12 +214,12 @@ export default function PoseGenerationModal({
                     
                     {/* Headshot Upload */}
                     <div className="space-y-4">
-                      <label className="block text-sm font-semibold text-gray-300">
+                      <label className="block text-sm font-semibold text-base-content/70">
                         <Upload className="w-4 h-4 inline mr-2" />
                         Headshot (Optional)
                       </label>
                       
-                      <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 hover:border-gray-600 transition-colors">
+                      <div className="border-2 border-dashed border-base-content/20 rounded-lg p-6 hover:border-base-content/30 transition-colors">
                         {headshotPreview ? (
                           <div className="relative">
                             <img
@@ -234,13 +234,13 @@ export default function PoseGenerationModal({
                               }}
                               className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 rounded-full"
                             >
-                              <X className="w-4 h-4 text-white" />
+                              <X className="w-4 h-4 text-base-content" />
                             </button>
                           </div>
                         ) : (
                           <label className="cursor-pointer block text-center">
-                            <Upload className="w-12 h-12 text-gray-500 mx-auto mb-2" />
-                            <div className="text-sm text-gray-400">
+                            <Upload className="w-12 h-12 text-base-content/50 mx-auto mb-2" />
+                            <div className="text-sm text-base-content/60">
                               Click to upload headshot
                             </div>
                             <input
@@ -253,14 +253,14 @@ export default function PoseGenerationModal({
                         )}
                       </div>
                       
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-base-content/50">
                         AI will analyze the headshot to extract physical attributes
                       </p>
                     </div>
                     
                     {/* Screenplay Content */}
                     <div className="space-y-4">
-                      <label className="block text-sm font-semibold text-gray-300">
+                      <label className="block text-sm font-semibold text-base-content/70">
                         <FileText className="w-4 h-4 inline mr-2" />
                         Screenplay Description (Optional)
                       </label>
@@ -269,10 +269,10 @@ export default function PoseGenerationModal({
                         value={screenplayContent}
                         onChange={(e) => setScreenplayContent(e.target.value)}
                         placeholder="Paste character introduction from screenplay..."
-                        className="w-full h-32 bg-gray-800 border border-gray-700 rounded-lg p-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        className="w-full h-32 bg-base-300 border border-base-content/20 rounded-lg p-3 text-gray-100 placeholder-base-content/50 focus:outline-none focus:border-blue-500"
                       />
                       
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-base-content/50">
                         Include the character's first appearance or description
                       </p>
                     </div>
@@ -280,7 +280,7 @@ export default function PoseGenerationModal({
                   
                   {/* Manual Description */}
                   <div className="space-y-4">
-                    <label className="block text-sm font-semibold text-gray-300">
+                    <label className="block text-sm font-semibold text-base-content/70">
                       <Wand2 className="w-4 h-4 inline mr-2" />
                       Additional Description (Optional)
                     </label>
@@ -289,7 +289,7 @@ export default function PoseGenerationModal({
                       value={manualDescription}
                       onChange={(e) => setManualDescription(e.target.value)}
                       placeholder="Add any additional details about the character..."
-                      className="w-full h-24 bg-gray-800 border border-gray-700 rounded-lg p-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                      className="w-full h-24 bg-base-300 border border-base-content/20 rounded-lg p-3 text-gray-100 placeholder-base-content/50 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                   
@@ -297,13 +297,13 @@ export default function PoseGenerationModal({
                   <div className="flex justify-between pt-4">
                     <button
                       onClick={() => setStep('package')}
-                      className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+                      className="px-6 py-3 bg-base-300 hover:bg-base-content/20 text-base-content rounded-lg font-semibold transition-colors"
                     >
                       Back
                     </button>
                     <button
                       onClick={handleGenerate}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors flex items-center"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-base-content rounded-lg font-semibold transition-colors flex items-center"
                     >
                       <Wand2 className="w-5 h-5 mr-2" />
                       Generate Poses
@@ -319,17 +319,17 @@ export default function PoseGenerationModal({
                   <h3 className="text-xl font-bold text-gray-100 mb-2">
                     Generating Pose Package...
                   </h3>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-base-content/60 mb-6">
                     Creating {selectedPackageId} package poses for {characterName}
                   </p>
                   <div className="max-w-md mx-auto">
-                    <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+                    <div className="w-full bg-base-content/20 rounded-full h-3 mb-2">
                       <div 
                         className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <p className="text-sm text-gray-500">{progress}% complete</p>
+                    <p className="text-sm text-base-content/50">{progress}% complete</p>
                   </div>
                 </div>
               )}
@@ -341,32 +341,32 @@ export default function PoseGenerationModal({
                   <h3 className="text-xl font-bold text-gray-100 mb-2">
                     Pose Package Generated!
                   </h3>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-base-content/60 mb-6">
                     Created {generationResult.result?.poses?.length || 0} poses for {characterName}
                   </p>
-                  <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-auto mb-6">
+                  <div className="bg-base-300 rounded-lg p-6 max-w-md mx-auto mb-6">
                     <div className="grid grid-cols-2 gap-4 text-left">
                       <div>
-                        <div className="text-gray-400 text-sm">Package</div>
-                        <div className="text-white font-semibold capitalize">{selectedPackageId}</div>
+                        <div className="text-base-content/60 text-sm">Package</div>
+                        <div className="text-base-content font-semibold capitalize">{selectedPackageId}</div>
                       </div>
                       <div>
-                        <div className="text-gray-400 text-sm">Credits Used</div>
-                        <div className="text-white font-semibold">{generationResult.result?.totalCredits || 0}</div>
+                        <div className="text-base-content/60 text-sm">Credits Used</div>
+                        <div className="text-base-content font-semibold">{generationResult.result?.totalCredits || 0}</div>
                       </div>
                       <div>
-                        <div className="text-gray-400 text-sm">Poses</div>
-                        <div className="text-white font-semibold">{generationResult.result?.poses?.length || 0}</div>
+                        <div className="text-base-content/60 text-sm">Poses</div>
+                        <div className="text-base-content font-semibold">{generationResult.result?.poses?.length || 0}</div>
                       </div>
                       <div>
-                        <div className="text-gray-400 text-sm">Consistency</div>
-                        <div className="text-white font-semibold">{generationResult.result?.consistencyRating || 0}%</div>
+                        <div className="text-base-content/60 text-sm">Consistency</div>
+                        <div className="text-base-content font-semibold">{generationResult.result?.consistencyRating || 0}%</div>
                       </div>
                     </div>
                   </div>
                   <button
                     onClick={handleClose}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-base-content rounded-lg font-semibold transition-colors"
                   >
                     Done
                   </button>
@@ -380,12 +380,12 @@ export default function PoseGenerationModal({
                   <h3 className="text-xl font-bold text-gray-100 mb-2">
                     Generation Failed
                   </h3>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-base-content/60 mb-6">
                     {error}
                   </p>
                   <button
                     onClick={handleReset}
-                    className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+                    className="px-6 py-3 bg-base-300 hover:bg-base-content/20 text-base-content rounded-lg font-semibold transition-colors"
                   >
                     Try Again
                   </button>

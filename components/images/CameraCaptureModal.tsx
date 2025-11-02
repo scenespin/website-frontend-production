@@ -59,7 +59,7 @@ export function CameraCaptureModal({ isOpen, onClose, onCapture }: CameraCapture
       <div className="bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-base-content flex items-center gap-2">
             <Camera className="w-5 h-5" />
             Take a Photo
           </h2>
@@ -68,7 +68,7 @@ export function CameraCaptureModal({ isOpen, onClose, onCapture }: CameraCapture
               cleanup();
               onClose();
             }}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-base-content"
           >
             <X className="w-5 h-5" />
           </button>
@@ -96,7 +96,7 @@ export function CameraCaptureModal({ isOpen, onClose, onCapture }: CameraCapture
                 {/* Switch Camera Button (Mobile) */}
                 <button
                   onClick={() => switchCamera('environment')}
-                  className="p-3 bg-slate-800/80 hover:bg-slate-700/80 rounded-full transition-colors text-white backdrop-blur-sm"
+                  className="p-3 bg-slate-800/80 hover:bg-slate-700/80 rounded-full transition-colors text-base-content backdrop-blur-sm"
                   title="Switch camera"
                 >
                   <RotateCw className="w-5 h-5" />
@@ -114,7 +114,7 @@ export function CameraCaptureModal({ isOpen, onClose, onCapture }: CameraCapture
                 {/* Switch to Front Camera (Mobile) */}
                 <button
                   onClick={() => switchCamera('user')}
-                  className="p-3 bg-slate-800/80 hover:bg-slate-700/80 rounded-full transition-colors text-white backdrop-blur-sm"
+                  className="p-3 bg-slate-800/80 hover:bg-slate-700/80 rounded-full transition-colors text-base-content backdrop-blur-sm"
                   title="Front camera"
                 >
                   <Camera className="w-5 h-5" />
@@ -124,7 +124,7 @@ export function CameraCaptureModal({ isOpen, onClose, onCapture }: CameraCapture
           ) : (
             <div className="text-center p-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-              <p className="text-white">Starting camera...</p>
+              <p className="text-base-content">Starting camera...</p>
             </div>
           )}
         </div>

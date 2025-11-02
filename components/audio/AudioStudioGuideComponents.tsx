@@ -67,7 +67,7 @@ export function AudioFeatureShowcase() {
       {features.map((feature) => (
         <div
           key={feature.id}
-          className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
+          className="bg-base-100 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => setActiveDemo(feature.id)}
         >
           <div className="flex items-center gap-4 mb-4">
@@ -76,27 +76,27 @@ export function AudioFeatureShowcase() {
             </div>
             <div>
               <h3 className="text-xl font-bold">{feature.title}</h3>
-              <p className="text-sm text-gray-600">{feature.description}</p>
+              <p className="text-sm text-base-content/40">{feature.description}</p>
             </div>
           </div>
 
-          <p className="text-gray-700 mb-4">{feature.example}</p>
+          <p className="text-base-content/70 mb-4">{feature.example}</p>
 
           {activeDemo === feature.id && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <div className="bg-base-100 rounded-lg p-4 space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Input:</span>
-                <span className="text-sm text-gray-600">{feature.demo.input}</span>
+                <span className="text-sm text-base-content/40">{feature.demo.input}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Output:</span>
-                <span className="text-sm text-gray-600">{feature.demo.output}</span>
+                <span className="text-sm text-base-content/40">{feature.demo.output}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Cost:</span>
                 <span className="text-sm font-bold text-blue-600">{feature.demo.cost}</span>
               </div>
-              <button className="w-full mt-3 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="w-full mt-3 bg-blue-600 text-base-content py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 Try {feature.title}
               </button>
             </div>
@@ -145,10 +145,10 @@ export function AudioQuickStartWizard() {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto p-8 bg-white rounded-xl shadow-lg">
+    <div className="max-w-2xl mx-auto p-8 bg-base-100 rounded-xl shadow-lg">
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2">Quick Start Guide</h2>
-        <p className="text-gray-600">Create your first audio in 3 simple steps</p>
+        <p className="text-base-content/40">Create your first audio in 3 simple steps</p>
       </div>
 
       {/* Progress Bar */}
@@ -158,8 +158,8 @@ export function AudioQuickStartWizard() {
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
                 step >= s.number
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-600'
+                  ? 'bg-blue-600 text-base-content'
+                  : 'bg-base-200 text-base-content/40'
               }`}
             >
               {s.number}
@@ -167,7 +167,7 @@ export function AudioQuickStartWizard() {
             {s.number < steps.length && (
               <div
                 className={`w-20 h-1 ${
-                  step > s.number ? 'bg-blue-600' : 'bg-gray-200'
+                  step > s.number ? 'bg-blue-600' : 'bg-base-200'
                 }`}
               />
             )}
@@ -182,7 +182,7 @@ export function AudioQuickStartWizard() {
           {steps[step - 1].options.map((option) => (
             <button
               key={option.id}
-              className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-colors text-left"
+              className="p-4 border-2 border-base-content/20 rounded-lg hover:border-blue-500 transition-colors text-left"
               onClick={() => {
                 setSelections({ ...selections, [step === 1 ? 'type' : 'provider']: option.id });
                 if (step < 3) setStep(step + 1);
@@ -193,7 +193,7 @@ export function AudioQuickStartWizard() {
                 <div>
                   <div className="font-semibold">{option.label}</div>
                   {option.description && (
-                    <div className="text-sm text-gray-600">{option.description}</div>
+                    <div className="text-sm text-base-content/40">{option.description}</div>
                   )}
                 </div>
               </div>
@@ -208,7 +208,7 @@ export function AudioQuickStartWizard() {
               <li>Type: {selections.type}</li>
               <li>Quality: {selections.provider}</li>
             </ul>
-            <button className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+            <button className="w-full bg-blue-600 text-base-content py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
               Open Audio Studio
             </button>
           </div>
@@ -218,7 +218,7 @@ export function AudioQuickStartWizard() {
       {/* Navigation */}
       {step > 1 && step < 3 && (
         <button
-          className="text-gray-600 hover:text-gray-800"
+          className="text-base-content/40 hover:text-base-300"
           onClick={() => setStep(step - 1)}
         >
           ← Back
@@ -272,26 +272,26 @@ export function AudioUseCaseGallery() {
     <div className="p-8">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold mb-2">See What&apos;s Possible</h2>
-        <p className="text-gray-600">Real examples of audio in professional videos</p>
+        <p className="text-base-content/40">Real examples of audio in professional videos</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {useCases.map((useCase, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-            <div className="aspect-video bg-gray-200 relative">
+          <div key={index} className="bg-base-100 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div className="aspect-video bg-base-200 relative">
               <div className="absolute inset-0 flex items-center justify-center">
-                <Play className="w-16 h-16 text-white opacity-80" />
+                <Play className="w-16 h-16 text-base-content opacity-80" />
               </div>
-              <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
+              <div className="absolute top-2 right-2 bg-black/70 text-base-content px-2 py-1 rounded text-sm">
                 {useCase.duration}
               </div>
             </div>
             <div className="p-6">
               <h3 className="text-xl font-bold mb-2">{useCase.title}</h3>
-              <p className="text-gray-600 mb-4">{useCase.description}</p>
+              <p className="text-base-content/40 mb-4">{useCase.description}</p>
               
               <div className="space-y-2 mb-4">
-                <div className="text-sm font-semibold text-gray-700">Audio Tracks:</div>
+                <div className="text-sm font-semibold text-base-content/70">Audio Tracks:</div>
                 {useCase.audio.map((track, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
                     <div className="w-1 h-4 bg-blue-500 rounded"></div>
@@ -301,7 +301,7 @@ export function AudioUseCaseGallery() {
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t">
-                <span className="text-sm text-gray-600">Total Cost:</span>
+                <span className="text-sm text-base-content/40">Total Cost:</span>
                 <span className="font-bold text-blue-600">{useCase.credits} credits</span>
               </div>
             </div>
@@ -360,9 +360,9 @@ export function AudioCostCalculator() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-lg">
+    <div className="max-w-3xl mx-auto p-8 bg-base-100 rounded-xl shadow-lg">
       <h2 className="text-2xl font-bold mb-6">Audio Cost Calculator</h2>
-      <p className="text-gray-600 mb-8">Estimate your project&apos;s audio production cost</p>
+      <p className="text-base-content/40 mb-8">Estimate your project&apos;s audio production cost</p>
 
       <div className="space-y-6">
         {/* Narration */}
@@ -379,7 +379,7 @@ export function AudioCostCalculator() {
           {config.narration.enabled && (
             <div className="ml-8 space-y-3">
               <div>
-                <label className="text-sm text-gray-600">Provider:</label>
+                <label className="text-sm text-base-content/40">Provider:</label>
                 <select
                   value={config.narration.provider}
                   onChange={(e) => setConfig({ ...config, narration: { ...config.narration, provider: e.target.value } })}
@@ -408,7 +408,7 @@ export function AudioCostCalculator() {
           </label>
           {config.music.enabled && (
             <div className="ml-8">
-              <label className="text-sm text-gray-600">Model:</label>
+              <label className="text-sm text-base-content/40">Model:</label>
               <select
                 value={config.music.model}
                 onChange={(e) => setConfig({ ...config, music: { ...config.music, model: e.target.value } })}
@@ -437,7 +437,7 @@ export function AudioCostCalculator() {
           </label>
           {config.sfx.enabled && (
             <div className="ml-8">
-              <label className="text-sm text-gray-600">Number of SFX:</label>
+              <label className="text-sm text-base-content/40">Number of SFX:</label>
               <input
                 type="number"
                 value={config.sfx.count}
@@ -446,7 +446,7 @@ export function AudioCostCalculator() {
                 max="20"
                 className="w-full mt-1 p-2 border rounded"
               />
-              <div className="text-sm text-gray-500 mt-1">3 credits each</div>
+              <div className="text-sm text-base-content/50 mt-1">3 credits each</div>
             </div>
           )}
         </div>
@@ -461,7 +461,7 @@ export function AudioCostCalculator() {
               className="w-5 h-5"
             />
             <span className="font-semibold">Voice Cloning (one-time)</span>
-            <span className="text-sm text-gray-600 ml-auto">100 credits</span>
+            <span className="text-sm text-base-content/40 ml-auto">100 credits</span>
           </label>
         </div>
       </div>
@@ -472,7 +472,7 @@ export function AudioCostCalculator() {
           <span className="text-lg font-semibold">Estimated Total Cost:</span>
           <span className="text-3xl font-bold text-blue-600">{calculateTotal()} credits</span>
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-base-content/40">
           ≈ ${(calculateTotal() * 0.01).toFixed(2)} USD
         </div>
       </div>
@@ -545,9 +545,9 @@ export function AudioTutorialCarousel() {
 
   return (
     <div className="max-w-4xl mx-auto p-8">
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="bg-base-100 rounded-xl shadow-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-base-content p-6">
           <h2 className="text-2xl font-bold">{tutorial.title}</h2>
           <p className="text-blue-100 mt-1">Step {currentStep + 1} of {tutorial.steps.length}</p>
         </div>
@@ -556,11 +556,11 @@ export function AudioTutorialCarousel() {
         <div className="p-8">
           <div className="mb-6">
             <h3 className="text-xl font-bold mb-2">{tutorial.steps[currentStep].title}</h3>
-            <p className="text-gray-600">{tutorial.steps[currentStep].description}</p>
+            <p className="text-base-content/40">{tutorial.steps[currentStep].description}</p>
           </div>
 
           {tutorial.steps[currentStep].code && (
-            <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm mb-6">
+            <div className="bg-base-200 text-green-400 p-4 rounded-lg font-mono text-sm mb-6">
               {tutorial.steps[currentStep].code}
             </div>
           )}
@@ -588,7 +588,7 @@ export function AudioTutorialCarousel() {
             <button
               onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
               disabled={currentStep === 0}
-              className="px-6 py-2 bg-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-300"
+              className="px-6 py-2 bg-base-200 rounded-lg disabled:opacity-50 hover:bg-base-content/20"
             >
               ← Previous
             </button>
@@ -598,7 +598,7 @@ export function AudioTutorialCarousel() {
                 <div
                   key={index}
                   className={`w-2 h-2 rounded-full ${
-                    index === currentStep ? 'bg-blue-600' : 'bg-gray-300'
+                    index === currentStep ? 'bg-blue-600' : 'bg-base-content/20'
                   }`}
                 />
               ))}
@@ -607,7 +607,7 @@ export function AudioTutorialCarousel() {
             {currentStep < tutorial.steps.length - 1 ? (
               <button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-blue-600 text-base-content rounded-lg hover:bg-blue-700"
               >
                 Next →
               </button>
@@ -617,7 +617,7 @@ export function AudioTutorialCarousel() {
                   setCurrentStep(0);
                   setCurrentTutorial((currentTutorial + 1) % tutorials.length);
                 }}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="px-6 py-2 bg-green-600 text-base-content rounded-lg hover:bg-green-700"
               >
                 Next Tutorial →
               </button>
@@ -637,8 +637,8 @@ export function AudioTutorialCarousel() {
             }}
             className={`px-4 py-2 rounded-lg text-sm ${
               index === currentTutorial
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ? 'bg-blue-600 text-base-content'
+                : 'bg-base-200 text-base-content/70 hover:bg-base-content/20'
             }`}
           >
             {t.title}

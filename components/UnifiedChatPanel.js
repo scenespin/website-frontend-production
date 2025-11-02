@@ -745,7 +745,7 @@ function UnifiedChatPanelInner({
                 disabled={!state.input.trim() || state.isStreaming || isUploading}
                 className={`p-2.5 rounded-lg transition-all duration-200 ${
                   state.input.trim() && !state.isStreaming && !isUploading
-                    ? 'bg-cinema-red hover:bg-cinema-red/90 text-white shadow-sm'
+                    ? 'bg-cinema-red hover:bg-cinema-red/90 text-base-content shadow-sm'
                     : 'bg-base-300 text-base-content/30 cursor-not-allowed'
                 }`}
                 title="Send message"

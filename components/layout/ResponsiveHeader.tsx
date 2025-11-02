@@ -106,11 +106,11 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
             {/* Logo */}
             <Link href="/app/dashboard" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-gradient-to-br from-[#DC143C] to-[#8B0000] rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-[#DC143C]/50 transition-all">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                 </svg>
               </div>
-              <div className="text-xl font-bold text-white">
+              <div className="text-xl font-bold text-base-content">
                 Wryda<span className="text-[#DC143C]">.ai</span>
               </div>
             </Link>
@@ -153,7 +153,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
                     isActive(item.href)
                       ? 'bg-[#DC143C]/10 text-[#DC143C]'
-                      : 'text-[#B3B3B3] hover:bg-white/5 hover:text-white'
+                      : 'text-[#B3B3B3] hover:bg-white/5 hover:text-base-content'
                   }`}
                 >
                   {item.name}
@@ -174,7 +174,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="hidden xl:flex hover:bg-white/5 text-[#B3B3B3] hover:text-white"
+                className="hidden xl:flex hover:bg-white/5 text-[#B3B3B3] hover:text-base-content"
                 aria-label="Search projects"
                 title="Search (Coming Soon)"
                 disabled
@@ -186,7 +186,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative hover:bg-white/5 text-[#B3B3B3] hover:text-white" 
+                className="relative hover:bg-white/5 text-[#B3B3B3] hover:text-base-content" 
                 aria-label="Notifications"
                 title="Notifications (Coming Soon)"
                 disabled
@@ -287,10 +287,10 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
         <div className="flex h-14 items-center justify-between px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base-content font-bold text-xs">
               W
             </div>
-            <span className="font-bold text-base text-slate-900 dark:text-white">
+            <span className="font-bold text-base text-slate-900 dark:text-base-content">
               Wryda.ai
             </span>
           </Link>
@@ -343,7 +343,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
             >
               {/* Menu Header */}
               <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Menu</h2>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-base-content">Menu</h2>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -365,7 +365,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                      <p className="text-sm font-medium text-slate-900 dark:text-base-content truncate">
                         {user.name}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate">

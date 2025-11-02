@@ -116,7 +116,7 @@ export function ProductionPipelineNavigator({
           <div className="flex items-center gap-3">
             <Clapperboard className="w-6 h-6 text-yellow-500" />
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white font-mono">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-base-content font-mono">
                 PRODUCTION PIPELINE
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -183,7 +183,7 @@ export function ProductionPipelineNavigator({
                       <div className="absolute -top-2 -right-2">
                         {isCompleted ? (
                           <div className="p-1 bg-green-500 rounded-full">
-                            <CheckCircle2 className="w-4 h-4 text-white" />
+                            <CheckCircle2 className="w-4 h-4 text-base-content" />
                           </div>
                         ) : isCurrent ? (
                           <div className="p-1 bg-yellow-400 rounded-full animate-pulse">
@@ -191,7 +191,7 @@ export function ProductionPipelineNavigator({
                           </div>
                         ) : (
                           <div className="p-1 bg-slate-300 dark:bg-slate-600 rounded-full">
-                            <Circle className="w-4 h-4 text-white" />
+                            <Circle className="w-4 h-4 text-base-content" />
                           </div>
                         )}
                       </div>
@@ -203,7 +203,7 @@ export function ProductionPipelineNavigator({
                           ${isCurrent
                             ? 'bg-yellow-400 text-black'
                             : isCompleted
-                            ? `${stage.color} text-white`
+                            ? `${stage.color} text-base-content`
                             : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
                           }
                         `}
@@ -219,7 +219,7 @@ export function ProductionPipelineNavigator({
                             ${isCurrent
                               ? 'text-yellow-600 dark:text-yellow-400'
                               : isCompleted
-                              ? 'text-slate-900 dark:text-white'
+                              ? 'text-slate-900 dark:text-base-content'
                               : 'text-slate-400 dark:text-slate-600'
                             }
                           `}

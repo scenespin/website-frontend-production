@@ -8,6 +8,7 @@ import { useEditorContext } from '@/lib/contextStore';
 import { storyBeatsAPI } from '@/lib/navigationAPI';
 import { BookOpen, Plus, Edit, Trash2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
 export default function StoryBeatsPage() {
   const { user } = useUser();
@@ -69,8 +70,11 @@ export default function StoryBeatsPage() {
 
   return (
     <div className="min-h-screen bg-base-100 text-base-content">
+      {/* Editor Sub-Navigation */}
+      <EditorSubNav activeTab="beats" projectId={projectId} />
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white shadow-lg">
+      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

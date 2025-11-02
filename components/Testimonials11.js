@@ -21,7 +21,7 @@ const refTypes = {
         />
         <path
           d="M14.876 13.128h-3.72V9.2h3.72c1.083 0 1.97.886 1.97 1.97s-.886 1.97-1.97 1.97m0-6.564H8.53v13.128h2.626v-3.938h3.72c2.538 0 4.595-2.057 4.595-4.595s-2.057-4.595-4.595-4.595"
-          fill="#fff"
+          fill="currentColor"
         />
       </svg>
     ),
@@ -154,7 +154,7 @@ const VideoTestimonial = ({ i }) => {
     >
       <div className="relative w-full">
         {isLoading && (
-          <span className="z-40 !h-24 !w-24 !bg-gray-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 loading loading-ring"></span>
+          <span className="z-40 !h-24 !w-24 !bg-base-100 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 loading loading-ring"></span>
         )}
         <video
           className="w-full"
@@ -177,7 +177,7 @@ const VideoTestimonial = ({ i }) => {
         </video>
 
         {!isPlaying && (
-          <div className="absolute bottom-0 -inset-x-4 bg-gray-900/50 blur-lg h-24 translate-y-1/4 animate-opacity"></div>
+          <div className="absolute bottom-0 -inset-x-4 bg-base-200/50 blur-lg h-24 translate-y-1/4 animate-opacity"></div>
         )}
 
         <div className="absolute w-full bottom-0 z-20">
@@ -195,7 +195,7 @@ const VideoTestimonial = ({ i }) => {
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className=" w-14 h-14 fill-gray-50 group-hover:scale-[1.05] duration-100 ease-in drop-shadow-lg animate-opacity"
+                  className=" w-14 h-14 fill-base-content group-hover:scale-[1.05] duration-100 ease-in drop-shadow-lg animate-opacity"
                 >
                   <path
                     fillRule="evenodd"
@@ -209,7 +209,7 @@ const VideoTestimonial = ({ i }) => {
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="w-14 h-14 fill-gray-50 group-hover:scale-[1.05] duration-100 ease-in drop-shadow-lg animate-opacity"
+                  className="w-14 h-14 fill-base-content group-hover:scale-[1.05] duration-100 ease-in drop-shadow-lg animate-opacity"
                 >
                   <path
                     fillRule="evenodd"
@@ -222,7 +222,7 @@ const VideoTestimonial = ({ i }) => {
 
             {!isPlaying && (
               <div className="animate-opacity text-right">
-                <p className="text-gray-50 font-medium drop-shadow">
+                <p className="text-base-content font-medium drop-shadow">
                   {testimonial.name}
                 </p>
                 <div className="rating">

@@ -174,7 +174,7 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-white" />
+              <ImageIcon className="w-5 h-5 text-base-content" />
             </div>
             <div>
               <h2 className="text-xl font-bold">Media Gallery</h2>
@@ -295,7 +295,7 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                            <Play className="w-12 h-12 text-white" />
+                            <Play className="w-12 h-12 text-base-content" />
                           </div>
                         </div>
                       )}
@@ -303,10 +303,10 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
                       {/* Overlay */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all flex items-end p-3 opacity-0 group-hover:opacity-100">
                         <div className="w-full">
-                          <p className="text-white text-sm font-medium truncate">
+                          <p className="text-base-content text-sm font-medium truncate">
                             {item.name}
                           </p>
-                          <p className="text-white/70 text-xs">
+                          <p className="text-base-content/70 text-xs">
                             {formatFileSize(item.size)}
                           </p>
                         </div>
@@ -315,7 +315,7 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
                       {/* Type Badge */}
                       <div className="absolute top-2 right-2">
                         {item.type === 'video' && (
-                          <div className="bg-black/70 text-white px-2 py-1 rounded text-xs">
+                          <div className="bg-black/70 text-base-content px-2 py-1 rounded text-xs">
                             <Video className="w-3 h-3" />
                           </div>
                         )}
@@ -342,7 +342,7 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
                           />
                         ) : (
                           <div className="relative w-full h-full bg-black flex items-center justify-center">
-                            <Play className="w-6 h-6 text-white" />
+                            <Play className="w-6 h-6 text-base-content" />
                           </div>
                         )}
                       </div>
@@ -490,10 +490,10 @@ export function MediaGallery({ isOpen, onClose, onSelect, onAddToTimeline, onAdd
                 />
               )}
               
-              <div className="mt-4 flex items-center justify-between text-white">
+              <div className="mt-4 flex items-center justify-between text-base-content">
                 <div>
                   <h3 className="font-semibold">{selectedItem.name}</h3>
-                  <p className="text-sm text-white/70">
+                  <p className="text-sm text-base-content/70">
                     {formatFileSize(selectedItem.size)} • {new Date(selectedItem.createdAt).toLocaleDateString()}
                   </p>
                 </div>

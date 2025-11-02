@@ -248,7 +248,7 @@ export function TryOnModePanel({ onInsert }) {
                 ×
               </button>
               {personImage.expiresAt && (
-                <div className="absolute bottom-2 left-2 badge badge-sm bg-black/70 text-white border-none">
+                <div className="absolute bottom-2 left-2 badge badge-sm bg-black/70 text-base-content border-none">
                   <Clock className="w-3 h-3 mr-1" />
                   {getDaysUntilExpiration(personImage.expiresAt)}d left
                 </div>
@@ -309,7 +309,7 @@ export function TryOnModePanel({ onInsert }) {
                 ×
               </button>
               {productImage.expiresAt && (
-                <div className="absolute bottom-2 left-2 badge badge-sm bg-black/70 text-white border-none">
+                <div className="absolute bottom-2 left-2 badge badge-sm bg-black/70 text-base-content border-none">
                   <Clock className="w-3 h-3 mr-1" />
                   {getDaysUntilExpiration(productImage.expiresAt)}d left
                 </div>
@@ -412,7 +412,7 @@ export function TryOnModePanel({ onInsert }) {
                 >
                   <div className={`max-w-[85%] rounded-lg px-4 py-3 ${
                     isUser 
-                      ? 'bg-cinema-red text-white' 
+                      ? 'bg-cinema-red text-base-content' 
                       : 'bg-base-200 text-base-content'
                   }`}>
                     <div className="whitespace-pre-wrap break-words">

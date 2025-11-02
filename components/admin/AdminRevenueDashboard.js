@@ -116,7 +116,7 @@ export default function AdminRevenueDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Revenue Tracking</h1>
-          <p className="text-gray-600 mt-1">Real-time financial metrics and conversion tracking</p>
+          <p className="text-base-content/40 mt-1">Real-time financial metrics and conversion tracking</p>
         </div>
         <button 
           onClick={fetchDashboardData}
@@ -136,9 +136,9 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">Signups Today</p>
+                  <p className="text-sm text-base-content/40">Signups Today</p>
                   <p className="text-3xl font-bold mt-1">{metrics.today.signups}</p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     Yesterday: {metrics.yesterday.signups}
                   </p>
                 </div>
@@ -152,11 +152,11 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">Revenue Today</p>
+                  <p className="text-sm text-base-content/40">Revenue Today</p>
                   <p className="text-3xl font-bold mt-1 text-success">
                     {formatCurrency(metrics.today.revenue)}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     Yesterday: {formatCurrency(metrics.yesterday.revenue)}
                   </p>
                 </div>
@@ -170,11 +170,11 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">Costs Today</p>
+                  <p className="text-sm text-base-content/40">Costs Today</p>
                   <p className="text-3xl font-bold mt-1 text-warning">
                     {formatCurrency(metrics.today.totalCost)}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     Free tier: {formatCurrency(metrics.today.freeTierCost)}
                   </p>
                 </div>
@@ -188,11 +188,11 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">Net Today</p>
+                  <p className="text-sm text-base-content/40">Net Today</p>
                   <p className={`text-3xl font-bold mt-1 ${metrics.today.net >= 0 ? 'text-success' : 'text-error'}`}>
                     {formatCurrency(metrics.today.net)}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     Yesterday: {formatCurrency(metrics.yesterday.net)}
                   </p>
                 </div>
@@ -216,9 +216,9 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">Conversion Rate</p>
+                  <p className="text-sm text-base-content/40">Conversion Rate</p>
                   <p className="text-3xl font-bold mt-1">{formatPercent(funnel.conversionRate)}</p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     {funnel.usersWhoPurchased} / {funnel.totalSignups} users
                   </p>
                 </div>
@@ -235,9 +235,9 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">40+ Credits → Paying</p>
+                  <p className="text-sm text-base-content/40">40+ Credits → Paying</p>
                   <p className="text-3xl font-bold mt-1">{formatPercent(funnel.creditsToPayingRate)}</p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     {funnel.usersWhoHit40Credits} users hit 40 credits
                   </p>
                 </div>
@@ -251,9 +251,9 @@ export default function AdminRevenueDashboard() {
             <div className="card-body">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-gray-600">Upgrades Today</p>
+                  <p className="text-sm text-base-content/40">Upgrades Today</p>
                   <p className="text-3xl font-bold mt-1">{upgradeStats.todayUpgrades}</p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-base-content/50 mt-1">
                     Last 7 days: {upgradeStats.last7DaysUpgrades}
                   </p>
                 </div>
@@ -325,26 +325,26 @@ export default function AdminRevenueDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="card bg-base-200 shadow-lg">
             <div className="card-body">
-              <p className="text-sm text-gray-600">Free Users</p>
+              <p className="text-sm text-base-content/40">Free Users</p>
               <p className="text-2xl font-bold">{burnRate.totalFreeUsers}</p>
             </div>
           </div>
           <div className="card bg-base-200 shadow-lg">
             <div className="card-body">
-              <p className="text-sm text-gray-600">Credits Used</p>
+              <p className="text-sm text-base-content/40">Credits Used</p>
               <p className="text-2xl font-bold">{burnRate.creditsUsed.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">of {burnRate.creditsGranted.toLocaleString()} granted</p>
+              <p className="text-xs text-base-content/50">of {burnRate.creditsGranted.toLocaleString()} granted</p>
             </div>
           </div>
           <div className="card bg-base-200 shadow-lg">
             <div className="card-body">
-              <p className="text-sm text-gray-600">Burn Rate</p>
+              <p className="text-sm text-base-content/40">Burn Rate</p>
               <p className="text-2xl font-bold">{formatPercent(burnRate.burnRate)}</p>
             </div>
           </div>
           <div className="card bg-base-200 shadow-lg">
             <div className="card-body">
-              <p className="text-sm text-gray-600">Est. Monthly Cost</p>
+              <p className="text-sm text-base-content/40">Est. Monthly Cost</p>
               <p className="text-2xl font-bold text-warning">{formatCurrency(burnRate.projectedMonthlyCost)}</p>
             </div>
           </div>

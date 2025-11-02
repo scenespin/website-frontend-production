@@ -353,7 +353,7 @@ function StoryBeatCard({
                     {(beat.production?.clipIds || []).map((clipId, idx) => (
                       <div key={clipId} className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg relative overflow-hidden">
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Play className="w-6 h-6 text-white opacity-70" />
+                          <Play className="w-6 h-6 text-base-content opacity-70" />
                         </div>
                         <div className="absolute bottom-1 right-1">
                           <Badge variant="secondary" className="text-xs">#{idx + 1}</Badge>
@@ -565,7 +565,7 @@ function ProductionWorkspace({
                         <CardHeader>
                           <div className="flex items-start gap-3">
                             <div className="p-2 bg-purple-500 rounded-lg">
-                              <Sparkles className="w-5 h-5 text-white" />
+                              <Sparkles className="w-5 h-5 text-base-content" />
                             </div>
                             <div className="flex-1">
                               <CardTitle className="text-lg">AI Recommendation</CardTitle>
@@ -759,7 +759,7 @@ function TemplateCard({
       {/* Premium Badge */}
       {template.isPremium && (
         <div className="absolute top-2 right-2">
-          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs">
+          <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-base-content text-xs">
             Premium
           </Badge>
         </div>
@@ -791,7 +791,7 @@ function TemplateCard({
       {isSelected && (
         <div className="absolute top-2 left-2">
           <div className="bg-purple-500 rounded-full p-1">
-            <CheckCircle2 className="w-4 h-4 text-white" />
+            <CheckCircle2 className="w-4 h-4 text-base-content" />
           </div>
         </div>
       )}

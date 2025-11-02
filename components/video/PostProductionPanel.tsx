@@ -239,7 +239,7 @@ export function PostProductionPanel({
           <div className="mt-4 flex items-center justify-between">
             <span className="text-sm font-medium">{videoName}</span>
             {enhancement.result && (
-              <Badge variant="default" className="gap-1 bg-green-500 text-white">
+              <Badge variant="default" className="gap-1 bg-green-500 text-base-content">
                 <Check className="w-3 h-3" />
                 Enhanced
               </Badge>

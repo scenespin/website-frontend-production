@@ -41,6 +41,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { extractS3Key } from '@/utils/s3';
 import { MobileCompositionBanner } from './MobileCompositionBanner';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
+import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
 
 // Video file validation
 const MAX_VIDEO_SIZE_MB = 100;
@@ -72,6 +73,9 @@ interface CompositionStudioProps {
 }
 
 export function CompositionStudio({ userId, preloadedClip, preloadedClips, recomposeData }: CompositionStudioProps) {
+  // Contextual navigation - Get current scene context from editor
+  const editorContext = useEditorContext();
+  
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [selectedPacing, setSelectedPacing] = useState<string | null>(null);
   const [selectedAnimation, setSelectedAnimation] = useState<string | null>(null);
@@ -427,6 +431,36 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#141414] p-6">
+      {/* Context Indicator Banner */}
+      {editorContext.currentSceneName && (
+        <div className="max-w-7xl mx-auto mb-4 bg-info/10 border border-info/20 rounded-lg px-4 py-2">
+          <div className="text-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Film className="w-4 h-4 text-info flex-shrink-0" />
+              <span className="opacity-70">Composing scene:</span>
+              <span className="font-semibold text-info truncate">{editorContext.currentSceneName}</span>
+              {editorContext.currentBeatName && (
+                <>
+                  <span className="opacity-50">•</span>
+                  <span className="opacity-70">Beat:</span>
+                  <span className="font-semibold truncate">{editorContext.currentBeatName}</span>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                const { clearContext } = useContextStore.getState();
+                clearContext();
+              }}
+              className="p-1 rounded hover:bg-white/10 text-white/60 hover:text-white flex-shrink-0 transition-colors"
+              title="Clear context"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Refined Clapboard Header */}
       <div className="max-w-7xl mx-auto mb-8">
         {/* Film Slate Style Header */}
@@ -584,7 +618,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 {/* Composition Type Selector - Refined */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
                   <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                    <CardTitle className="flex items-center gap-2 text-white">
+                    <CardTitle className="flex items-center gap-2 text-base-content">
                       <div className="p-1.5 bg-yellow-400 rounded">
                         <Settings className="w-4 h-4 text-black" />
                       </div>
@@ -653,7 +687,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 {/* NEW: Video Upload Zone */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
                   <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                    <CardTitle className="flex items-center gap-2 text-white">
+                    <CardTitle className="flex items-center gap-2 text-base-content">
                       <div className="p-1.5 bg-yellow-400 rounded">
                         <Video className="w-4 h-4 text-black" />
                       </div>
@@ -748,7 +782,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                                 #{index + 1}
                               </div>
                               <div className="p-2 bg-[#0A0A0A]">
-                                <p className="text-xs font-medium text-white truncate">
+                                <p className="text-xs font-medium text-base-content truncate">
                                   {clip.name}
                                 </p>
                                 <p className="text-xs text-[#B3B3B3]">
@@ -885,7 +919,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <ol className="text-sm text-white space-y-2.5">
+                    <ol className="text-sm text-base-content space-y-2.5">
                       <li className="flex items-start gap-3">
                         <span className="flex-shrink-0 w-6 h-6 bg-yellow-400 text-black rounded-full flex items-center justify-center text-xs font-bold">1</span>
                         <span>Select your shot type above</span>

@@ -280,7 +280,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
             <div className="flex items-center gap-6">
               <Clapperboard className="w-10 h-10" />
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-base-content font-mono">
                   TIMELINE EDITOR
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -293,13 +293,13 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
             <div className="flex gap-3">
               <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                 <div className="text-xs text-slate-500 dark:text-slate-400">CLIPS</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
+                <div className="text-lg font-bold text-slate-900 dark:text-base-content font-mono">
                   {timeline.clips.length}
                 </div>
               </div>
               <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                 <div className="text-xs text-slate-500 dark:text-slate-400">DURATION</div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">
+                <div className="text-lg font-bold text-slate-900 dark:text-base-content font-mono">
                   {formatTime(timeline.totalDuration)}
                 </div>
               </div>
@@ -539,12 +539,12 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                             isStoryBeat
                               ? 'bg-yellow-400 bg-opacity-80 border-yellow-600 text-black font-bold'
                               : config.type === 'audio-music'
-                              ? 'bg-purple-500 bg-opacity-80 border-purple-700 text-white'
+                              ? 'bg-purple-500 bg-opacity-80 border-purple-700 text-base-content'
                               : config.type === 'audio-voice'
-                              ? 'bg-green-500 bg-opacity-80 border-green-700 text-white'
+                              ? 'bg-green-500 bg-opacity-80 border-green-700 text-base-content'
                               : config.type === 'audio-sfx'
-                              ? 'bg-orange-500 bg-opacity-80 border-orange-700 text-white'
-                              : 'bg-blue-500 bg-opacity-80 border-blue-700 text-white'
+                              ? 'bg-orange-500 bg-opacity-80 border-orange-700 text-base-content'
+                              : 'bg-blue-500 bg-opacity-80 border-blue-700 text-base-content'
                           }`}
                           style={{ left: `${leftPos}px`, width: `${width}px` }}
                           onClick={(e) => {
@@ -614,16 +614,16 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
         title="Add element to timeline"
       >
         {showAddPanel ? (
-          <X className="w-6 h-6 text-white" />
+          <X className="w-6 h-6 text-base-content" />
         ) : (
-          <Plus className="w-6 h-6 text-white" />
+          <Plus className="w-6 h-6 text-base-content" />
         )}
       </Button>
 
       {/* Add Element Panel */}
       {showAddPanel && (
         <div className="fixed bottom-28 right-8 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
-          <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+          <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-base-content">
             <h3 className="font-bold text-lg">Add Element</h3>
             <p className="text-sm opacity-90">Choose an element type to add</p>
           </div>
@@ -643,7 +643,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                     <Lightbulb className="w-6 h-6 text-black" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white">Story Beat</div>
+                    <div className="font-bold text-slate-900 dark:text-base-content">Story Beat</div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">Mark narrative moments</div>
                   </div>
                 </div>
@@ -659,10 +659,10 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
               >
                 <div className="flex items-center gap-3">
                   <div className="bg-purple-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
-                    <Music className="w-6 h-6 text-white" />
+                    <Music className="w-6 h-6 text-base-content" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white">Music Track</div>
+                    <div className="font-bold text-slate-900 dark:text-base-content">Music Track</div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">Background music or score</div>
                   </div>
                 </div>
@@ -678,10 +678,10 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
               >
                 <div className="flex items-center gap-3">
                   <div className="bg-green-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
-                    <Mic className="w-6 h-6 text-white" />
+                    <Mic className="w-6 h-6 text-base-content" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white">Voice/Narration</div>
+                    <div className="font-bold text-slate-900 dark:text-base-content">Voice/Narration</div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">Dialogue or voice-over</div>
                   </div>
                 </div>
@@ -697,10 +697,10 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
               >
                 <div className="flex items-center gap-3">
                   <div className="bg-orange-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
-                    <Volume2 className="w-6 h-6 text-white" />
+                    <Volume2 className="w-6 h-6 text-base-content" />
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white">Sound Effect</div>
+                    <div className="font-bold text-slate-900 dark:text-base-content">Sound Effect</div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">SFX and ambient audio</div>
                   </div>
                 </div>
@@ -723,7 +723,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                   type="text"
                   value={storyBeatForm.title}
                   onChange={(e) => setStoryBeatForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-base-content"
                   placeholder="e.g., Act 1 Break, Midpoint"
                 />
               </div>
@@ -735,7 +735,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                 <textarea
                   value={storyBeatForm.description}
                   onChange={(e) => setStoryBeatForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-base-content"
                   placeholder="Optional description"
                   rows={3}
                 />
@@ -750,7 +750,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                     type="number"
                     value={storyBeatForm.startTime}
                     onChange={(e) => setStoryBeatForm(prev => ({ ...prev, startTime: parseFloat(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-base-content"
                     step="0.1"
                   />
                 </div>
@@ -762,7 +762,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                     type="number"
                     value={storyBeatForm.duration}
                     onChange={(e) => setStoryBeatForm(prev => ({ ...prev, duration: parseFloat(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-base-content"
                     step="0.1"
                   />
                 </div>

@@ -132,7 +132,7 @@ export function TimelineAssetComponent({
       case 'image':
         return 'bg-yellow-500 border-yellow-600';
       default:
-        return 'bg-gray-500 border-gray-600';
+        return 'bg-base-content/50 border-base-content/30';
     }
   };
 
@@ -162,7 +162,7 @@ export function TimelineAssetComponent({
       title={`${asset.name} (${asset.type})`}
     >
       {/* Asset Content */}
-      <div className="h-full flex flex-col justify-between p-2 text-white overflow-hidden select-none">
+      <div className="h-full flex flex-col justify-between p-2 text-base-content overflow-hidden select-none">
         <div className="flex items-start justify-between gap-2">
           {/* Icon & Name */}
           <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -228,7 +228,7 @@ export function TimelineAssetComponent({
 
           {/* Delete Button */}
           <button
-            className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-white/20 rounded p-0.5"
+            className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-base-100/20 rounded p-0.5"
             onClick={(e) => {
               e.stopPropagation();
               onRemove();
@@ -294,7 +294,7 @@ export function TimelineAssetComponent({
       {/* LUT Indicator - NEW (Feature 0065) */}
       {asset.lut && (
         <div 
-          className="absolute top-1 left-1 bg-orange-500/90 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
+          className="absolute top-1 left-1 bg-orange-500/90 text-base-content text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
           title={`LUT: ${asset.lut.name}${asset.lut.intensity !== undefined ? ` (${Math.round(asset.lut.intensity * 100)}%)` : ''}`}
         >
           <Palette className="w-3 h-3" />
@@ -305,7 +305,7 @@ export function TimelineAssetComponent({
       {/* Color Grading Indicator - NEW (Feature 0065) */}
       {asset.colorGrading && !asset.lut && (
         <div 
-          className="absolute top-1 left-1 bg-blue-500/90 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
+          className="absolute top-1 left-1 bg-blue-500/90 text-base-content text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
           title="Custom color grading applied"
         >
           🎨
@@ -323,11 +323,11 @@ export function TimelineAssetComponent({
       {onResize && !isAudio && (
         <>
           <div
-            className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-white/20 transition-opacity"
+            className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-base-100/20 transition-opacity"
             title="Trim start"
           />
           <div
-            className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-white/20 transition-opacity"
+            className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize opacity-0 group-hover:opacity-100 hover:bg-base-100/20 transition-opacity"
             title="Trim end"
           />
         </>

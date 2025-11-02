@@ -32,7 +32,8 @@ import {
   Sparkles,  // NEW: Send to Composition icon
   DollarSign,  // NEW: Cost icon
   Info,  // NEW: Info icon
-  Plus  // NEW: Mobile FAB icon
+  Plus,  // NEW: Mobile FAB icon
+  X  // NEW: Context dismiss icon
 } from 'lucide-react';
 import { useTimeline, TimelineAsset, calculateProjectCost, getCostBreakdown, createDefaultLUTMetadata } from '@/hooks/useTimeline';
 import { TimelineAssetComponent } from './TimelineAssetComponent';
@@ -46,6 +47,7 @@ import { UploadModal } from './UploadModal';  // NEW: Feature 0070
 import { MediaGallery } from '@/components/media/MediaGallery';  // NEW: Mobile media picker
 import { motion } from 'framer-motion';  // For FAB animation
 import { toast } from 'sonner';  // For feedback
+import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
 
 interface EnhancedTimelineEditorProps {
   projectId?: string;
@@ -59,6 +61,9 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
     autoSave: true,
     autoSaveInterval: 30000
   });
+
+  // Contextual navigation - Get current scene context from editor
+  const editorContext = useEditorContext();
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const trackHeadersRef = useRef<HTMLDivElement>(null);
@@ -585,6 +590,37 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Context Indicator Banner */}
+      {editorContext.currentSceneName && (
+        <div className="bg-info/10 border-b border-info/20 px-4 py-2 flex-shrink-0">
+          <div className="text-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Film className="w-4 h-4 text-info flex-shrink-0" />
+              <span className="opacity-70">Editing clips from scene:</span>
+              <span className="font-semibold text-info truncate">{editorContext.currentSceneName}</span>
+              {editorContext.currentBeatName && (
+                <>
+                  <span className="opacity-50">•</span>
+                  <span className="opacity-70">Beat:</span>
+                  <span className="font-semibold truncate">{editorContext.currentBeatName}</span>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                const { clearContext } = useContextStore.getState();
+                clearContext();
+                toast.success('Context cleared');
+              }}
+              className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0 transition-colors"
+              title="Clear context"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <Card className="flex-shrink-0 border-b rounded-none bg-white dark:bg-slate-900 shadow-md overflow-hidden">
         {/* Desktop Header Layout */}
@@ -705,7 +741,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               variant="default"
               size="sm"
               onClick={() => setShowExportModal(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base-content"
               disabled={timeline.assets.length === 0}
               title="Export video"
             >
@@ -1057,7 +1093,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       {isMobile && (
         <motion.button
           onClick={() => setShowMediaGallery(true)}
-          className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center justify-center"
+          className="fixed bottom-20 right-4 z-40 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-base-content flex items-center justify-center"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           initial={{ scale: 0, opacity: 0 }}
@@ -1115,8 +1151,8 @@ function ProjectCostBadge({ assets }: { assets: TimelineAsset[] }) {
       
       {/* Tooltip */}
       {showTooltip && totalCost > 0 && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-3 text-xs">
-          <div className="font-bold text-white mb-2 flex items-center gap-1">
+        <div className="absolute left-0 top-full mt-2 z-50 w-48 bg-base-200 border border-base-content/20 rounded-lg shadow-lg p-3 text-xs">
+          <div className="font-bold text-base-content mb-2 flex items-center gap-1">
             <Info className="w-3 h-3" />
             Cost Breakdown
           </div>
@@ -1146,12 +1182,12 @@ function ProjectCostBadge({ assets }: { assets: TimelineAsset[] }) {
               </div>
             )}
             {breakdown.uploads > 0 && (
-              <div className="flex justify-between text-gray-400">
+              <div className="flex justify-between text-base-content/60">
                 <span>Uploads:</span>
                 <span className="font-mono">FREE ✅</span>
               </div>
             )}
-            <div className="pt-1.5 mt-1.5 border-t border-gray-700 flex justify-between text-white font-bold">
+            <div className="pt-1.5 mt-1.5 border-t border-base-content/20 flex justify-between text-base-content font-bold">
               <span>Total:</span>
               <span className="font-mono">{breakdown.total}cr</span>
             </div>

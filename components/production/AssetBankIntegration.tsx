@@ -99,7 +99,7 @@ export function AssetSelector({
 
   if (assets.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500 text-sm">
+      <div className="text-center py-4 text-base-content/50 text-sm">
         <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p>No assets available</p>
         <p className="text-xs mt-1">Create assets in the Assets tab</p>
@@ -113,7 +113,7 @@ export function AssetSelector({
       <div className={`flex items-center justify-between text-sm p-2 rounded-lg ${
         availableSlots === 0 
           ? 'bg-yellow-500/10 text-yellow-500' 
-          : 'bg-gray-800 text-gray-400'
+          : 'bg-base-300 text-base-content/60'
       }`}>
         <span>References Used:</span>
         <span className="font-semibold">
@@ -147,8 +147,8 @@ export function AssetSelector({
                 isSelected
                   ? 'border-primary ring-2 ring-primary/50'
                   : canSelect
-                  ? 'border-gray-700 hover:border-gray-600'
-                  : 'border-gray-800 opacity-50 cursor-not-allowed'
+                  ? 'border-base-content/20 hover:border-base-content/30'
+                  : 'border-base-300 opacity-50 cursor-not-allowed'
               }`}
             >
               <img
@@ -157,13 +157,13 @@ export function AssetSelector({
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-2">
-                <span className="text-white text-xs font-medium truncate">
+                <span className="text-base-content text-xs font-medium truncate">
                   {asset.name}
                 </span>
               </div>
               {isSelected && (
                 <div className="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3 h-3 text-base-content" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>

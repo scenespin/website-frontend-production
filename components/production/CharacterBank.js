@@ -251,7 +251,7 @@ export default function CharacterBank({ onCharacterSelect }) {
   return (
     <div className="h-full flex flex-col bg-base-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-white p-4">
+      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -265,7 +265,7 @@ export default function CharacterBank({ onCharacterSelect }) {
             Add Character
           </button>
         </div>
-        <p className="text-xs text-white/80 mt-1">
+        <p className="text-xs text-base-content/80 mt-1">
           Upload images for AI descriptions, voice profiles, and 3D exports
         </p>
       </div>

@@ -74,7 +74,7 @@ export default function AspectRatioSelector({
 }: AspectRatioSelectorProps) {
   return (
     <div className={`aspect-ratio-selector ${className}`}>
-      <label className="block text-sm font-medium text-white mb-3">
+      <label className="block text-sm font-medium text-base-content mb-3">
         Video Format
       </label>
       
@@ -96,14 +96,14 @@ export default function AspectRatioSelector({
                   hover:scale-105 hover:shadow-lg
                   ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-500/20 text-white'
-                      : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:border-gray-600'
+                      ? 'border-blue-500 bg-blue-500/20 text-base-content'
+                      : 'border-base-content/20 bg-base-300/50 text-base-content/70 hover:border-base-content/30'
                   }
                 `}
               >
                 {/* NEW Badge */}
                 {option.isNew && (
-                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-base-content text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                     NEW
                   </span>
                 )}
@@ -119,12 +119,12 @@ export default function AspectRatioSelector({
                 </div>
                 
                 {/* Aspect Ratio */}
-                <div className="text-xs text-gray-400 mb-2">
+                <div className="text-xs text-base-content/60 mb-2">
                   {option.value}
                 </div>
                 
                 {/* Platforms */}
-                <div className="text-xs text-center text-gray-500">
+                <div className="text-xs text-center text-base-content/50">
                   {option.platforms}
                 </div>
                 
@@ -156,11 +156,11 @@ export default function AspectRatioSelector({
                   ${
                     isSelected
                       ? option.isPremium
-                        ? 'border-yellow-500 bg-yellow-500/20 text-white'
-                        : 'border-blue-500 bg-blue-500/20 text-white'
+                        ? 'border-yellow-500 bg-yellow-500/20 text-base-content'
+                        : 'border-blue-500 bg-blue-500/20 text-base-content'
                       : option.isPremium
-                        ? 'border-yellow-700 bg-yellow-900/20 text-gray-300 hover:border-yellow-600'
-                        : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:border-gray-600'
+                        ? 'border-yellow-700 bg-yellow-900/20 text-base-content/70 hover:border-yellow-600'
+                        : 'border-base-content/20 bg-base-300/50 text-base-content/70 hover:border-base-content/30'
                   }
                 `}
               >
@@ -173,7 +173,7 @@ export default function AspectRatioSelector({
                 
                 {/* NEW Badge (for non-premium new items) */}
                 {option.isNew && !option.isPremium && (
-                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-base-content text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                     NEW
                   </span>
                 )}
@@ -189,12 +189,12 @@ export default function AspectRatioSelector({
                 </div>
                 
                 {/* Aspect Ratio */}
-                <div className="text-xs text-gray-400 mb-2">
+                <div className="text-xs text-base-content/60 mb-2">
                   {option.value}
                 </div>
                 
                 {/* Platforms */}
-                <div className="text-xs text-center text-gray-500">
+                <div className="text-xs text-center text-base-content/50">
                   {option.platforms}
                 </div>
                 
@@ -261,7 +261,7 @@ interface PlatformPresetsProps {
 export function PlatformPresets({ onSelect, className = '' }: PlatformPresetsProps) {
   return (
     <div className={`platform-presets ${className}`}>
-      <label className="block text-sm font-medium text-white mb-3">
+      <label className="block text-sm font-medium text-base-content mb-3">
         Quick Select
       </label>
       
@@ -273,15 +273,15 @@ export function PlatformPresets({ onSelect, className = '' }: PlatformPresetsPro
             onClick={() => onSelect(preset.aspectRatio)}
             className={`
               flex-1 flex flex-col items-center gap-1
-              p-3 rounded-lg border border-gray-700
-              bg-gray-800/50 hover:bg-gray-700/50
+              p-3 rounded-lg border border-base-content/20
+              bg-base-300/50 hover:bg-base-content/20/50
               transition-all duration-200
-              hover:scale-105 hover:border-gray-600
+              hover:scale-105 hover:border-base-content/30
               ${preset.popular ? 'ring-2 ring-green-500/50' : ''}
             `}
           >
             <span className="text-2xl">{preset.icon}</span>
-            <span className="text-xs font-medium text-white">
+            <span className="text-xs font-medium text-base-content">
               {preset.name}
             </span>
             <span className="text-xs text-[#B3B3B3]">
@@ -338,14 +338,14 @@ export function BundleOption({ selected, onToggle, className = '' }: BundleOptio
         ${
           selected
             ? 'border-purple-500 bg-purple-500/20'
-            : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+            : 'border-base-content/20 bg-base-300/50 hover:border-base-content/30'
         }
       `}
     >
       <div className="flex items-center gap-3">
         <span className="text-3xl">{BUNDLE_OPTION.icon}</span>
         <div className="text-left">
-          <div className="font-semibold text-white">
+          <div className="font-semibold text-base-content">
             {BUNDLE_OPTION.name}
           </div>
           <div className="text-xs text-[#B3B3B3]">
@@ -355,7 +355,7 @@ export function BundleOption({ selected, onToggle, className = '' }: BundleOptio
       </div>
       
       <div className="text-right">
-        <div className="text-lg font-bold text-white">
+        <div className="text-lg font-bold text-base-content">
           {BUNDLE_OPTION.credits} credits
         </div>
         <div className="text-xs text-green-400 font-semibold">

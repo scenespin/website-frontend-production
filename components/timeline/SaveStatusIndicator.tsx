@@ -121,8 +121,8 @@ export function SaveStatusIndicator({
         return {
           icon: '💾',
           text: 'Unknown',
-          color: 'text-gray-500',
-          bg: 'bg-gray-500/10',
+          color: 'text-base-content/50',
+          bg: 'bg-base-content/10',
           detail: ''
         };
     }
@@ -138,7 +138,7 @@ export function SaveStatusIndicator({
           {display.text}
         </span>
         {display.detail && (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] text-base-content/50">
             {display.detail}
           </span>
         )}
@@ -146,7 +146,7 @@ export function SaveStatusIndicator({
       
       {/* Show queue indicator if there are pending saves */}
       {queueLength > 0 && (
-        <div className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-bold">
+        <div className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-orange-500 text-base-content text-[10px] font-bold">
           {queueLength}
         </div>
       )}
@@ -201,7 +201,7 @@ export function CompactSaveStatus({
       case 'pending':
         return 'text-yellow-500';
       default:
-        return 'text-gray-500';
+        return 'text-base-content/50';
     }
   };
 
@@ -212,7 +212,7 @@ export function CompactSaveStatus({
       </span>
       
       {queueLength > 0 && (
-        <div className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-[8px] font-bold">
+        <div className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-base-content text-[8px] font-bold">
           {queueLength > 9 ? '9+' : queueLength}
         </div>
       )}

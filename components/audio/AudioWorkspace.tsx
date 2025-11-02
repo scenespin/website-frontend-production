@@ -519,7 +519,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
               <Button
                 onClick={() => setShowConnectionModal(true)}
                 size="sm"
-                className="bg-purple-500 hover:bg-purple-600 text-white"
+                className="bg-purple-500 hover:bg-purple-600 text-base-content"
               >
                 <UserCircle className="w-4 h-4 mr-2" />
                 Connect ElevenLabs

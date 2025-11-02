@@ -159,7 +159,7 @@ export function WorkflowInputForm({
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-        <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">
+        <h3 className="font-bold text-lg text-slate-900 dark:text-base-content mb-1">
           Set Up Your Workflow
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -173,7 +173,7 @@ export function WorkflowInputForm({
         {/* Performance Video Upload (for performance capture workflows) */}
         {workflow.requiresVideoUpload && (
           <div className="space-y-2">
-            <label className="block font-semibold text-slate-900 dark:text-white text-sm">
+            <label className="block font-semibold text-slate-900 dark:text-base-content text-sm">
               <Film className="w-4 h-4 inline mr-2" />
               Performance Video *
             </label>
@@ -231,7 +231,7 @@ export function WorkflowInputForm({
         {/* Character Image Upload */}
         {!workflow.requiresVideoUpload && (
           <div className="space-y-2">
-            <label className="block font-semibold text-slate-900 dark:text-white text-sm">
+            <label className="block font-semibold text-slate-900 dark:text-base-content text-sm">
               <ImageIcon className="w-4 h-4 inline mr-2" />
               Character Reference Image
             </label>
@@ -252,7 +252,7 @@ export function WorkflowInputForm({
                     setCharacterImage(null);
                     setCharacterImagePreview(null);
                   }}
-                  className="absolute top-2 right-2 p-2 rounded-lg bg-red-500 text-white
+                  className="absolute top-2 right-2 p-2 rounded-lg bg-red-500 text-base-content
                            hover:bg-red-600 transition-colors text-xs"
                 >
                   Remove
@@ -289,7 +289,7 @@ export function WorkflowInputForm({
         {/* Character Description */}
         {!workflow.requiresVideoUpload && (
           <div className="space-y-2">
-            <label className="block font-semibold text-slate-900 dark:text-white text-sm">
+            <label className="block font-semibold text-slate-900 dark:text-base-content text-sm">
               <Type className="w-4 h-4 inline mr-2" />
               Character Description {!characterImage && '*'}
             </label>
@@ -298,7 +298,7 @@ export function WorkflowInputForm({
               onChange={(e) => setCharacterDescription(e.target.value)}
               placeholder="Describe the character's appearance, clothing, style..."
               className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600
-                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                       bg-white dark:bg-slate-800 text-slate-900 dark:text-base-content
                        focus:ring-2 focus:ring-primary focus:border-transparent
                        resize-none"
               rows={3}
@@ -314,7 +314,7 @@ export function WorkflowInputForm({
 
         {/* Scene Description */}
         <div className="space-y-2">
-          <label className="block font-semibold text-slate-900 dark:text-white text-sm">
+          <label className="block font-semibold text-slate-900 dark:text-base-content text-sm">
             <Wand2 className="w-4 h-4 inline mr-2" />
             Scene Description {!workflow.requiresVideoUpload && '*'}
           </label>
@@ -323,7 +323,7 @@ export function WorkflowInputForm({
             onChange={(e) => setSceneDescription(e.target.value)}
             placeholder="Describe the scene, setting, action, mood..."
             className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600
-                     bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                     bg-white dark:bg-slate-800 text-slate-900 dark:text-base-content
                      focus:ring-2 focus:ring-primary focus:border-transparent
                      resize-none"
             rows={4}
@@ -338,7 +338,7 @@ export function WorkflowInputForm({
 
         {/* Style Preference (optional) */}
         <div className="space-y-2">
-          <label className="block font-semibold text-slate-900 dark:text-white text-sm">
+          <label className="block font-semibold text-slate-900 dark:text-base-content text-sm">
             <Wand2 className="w-4 h-4 inline mr-2" />
             Style Preference (Optional)
           </label>
@@ -348,7 +348,7 @@ export function WorkflowInputForm({
             onChange={(e) => setStylePreference(e.target.value)}
             placeholder="e.g., cinematic, dramatic lighting, slow motion..."
             className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600
-                     bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                     bg-white dark:bg-slate-800 text-slate-900 dark:text-base-content
                      focus:ring-2 focus:ring-primary focus:border-transparent"
           />
         </div>
@@ -357,13 +357,13 @@ export function WorkflowInputForm({
         <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-600 dark:text-slate-400">Estimated Cost:</span>
-            <span className="font-bold text-slate-900 dark:text-white">
+            <span className="font-bold text-slate-900 dark:text-base-content">
               {workflow.cost.min}-{workflow.cost.max} credits
             </span>
           </div>
           <div className="flex items-center justify-between text-sm mt-1">
             <span className="text-slate-600 dark:text-slate-400">Estimated Time:</span>
-            <span className="font-bold text-slate-900 dark:text-white">
+            <span className="font-bold text-slate-900 dark:text-base-content">
               {workflow.time.min}-{workflow.time.max} minutes
             </span>
           </div>
@@ -375,7 +375,7 @@ export function WorkflowInputForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 px-4 rounded-lg bg-primary text-white font-bold
+          className="w-full py-3 px-4 rounded-lg bg-primary text-base-content font-bold
                    hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                    flex items-center justify-center gap-2"
         >

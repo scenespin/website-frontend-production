@@ -82,7 +82,7 @@ export default function AdminSettingsDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">System Settings</h1>
-          <p className="text-gray-600 mt-1">Monitor system health and configuration</p>
+          <p className="text-base-content/40 mt-1">Monitor system health and configuration</p>
         </div>
         <button 
           onClick={fetchSystemStatus}
@@ -99,7 +99,7 @@ export default function AdminSettingsDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Overall Status</p>
+                <p className="text-sm text-base-content/40">Overall Status</p>
                 <div className="mt-2">
                   <StatusBadge status={systemStatus?.status} />
                 </div>
@@ -113,7 +113,7 @@ export default function AdminSettingsDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">Database</p>
+                <p className="text-sm text-base-content/40">Database</p>
                 <div className="mt-2">
                   <StatusBadge status={systemStatus?.database?.status} />
                 </div>
@@ -127,7 +127,7 @@ export default function AdminSettingsDashboard() {
           <div className="card-body">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-gray-600">API Services</p>
+                <p className="text-sm text-base-content/40">API Services</p>
                 <div className="mt-2">
                   <StatusBadge status="healthy" />
                 </div>
@@ -222,19 +222,19 @@ export default function AdminSettingsDashboard() {
           <h2 className="card-title mb-4">Database Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Region</p>
+              <p className="text-sm text-base-content/40">Region</p>
               <p className="font-bold">{systemStatus?.database?.region || 'us-east-1'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Table Name</p>
+              <p className="text-sm text-base-content/40">Table Name</p>
               <p className="font-bold">{systemStatus?.database?.tableName || 'ISE_Users'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Connection Status</p>
+              <p className="text-sm text-base-content/40">Connection Status</p>
               <StatusBadge status={systemStatus?.database?.status} />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Last Checked</p>
+              <p className="text-sm text-base-content/40">Last Checked</p>
               <p className="font-bold">{new Date().toLocaleTimeString()}</p>
             </div>
           </div>
@@ -247,19 +247,19 @@ export default function AdminSettingsDashboard() {
           <h2 className="card-title mb-4">System Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Environment</p>
+              <p className="text-sm text-base-content/40">Environment</p>
               <p className="font-bold">{systemStatus?.environment || 'production'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Node Version</p>
+              <p className="text-sm text-base-content/40">Node Version</p>
               <p className="font-bold">{systemStatus?.nodeVersion || process.version}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Uptime</p>
+              <p className="text-sm text-base-content/40">Uptime</p>
               <p className="font-bold">{systemStatus?.uptime || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Last Deploy</p>
+              <p className="text-sm text-base-content/40">Last Deploy</p>
               <p className="font-bold">{systemStatus?.lastDeploy || 'Oct 31, 2025'}</p>
             </div>
           </div>

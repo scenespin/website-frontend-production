@@ -28,7 +28,7 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
     if (metadata?.sourceType === 'ai-video') return <Sparkles className="w-5 h-5 text-purple-500" />;
     if (metadata?.sourceType === 'ai-image') return <ImageIcon className="w-5 h-5 text-blue-500" />;
     if (metadata?.sourceType === 'ai-audio' || metadata?.sourceType === 'ai-music') return <Music className="w-5 h-5 text-green-500" />;
-    if (metadata?.sourceType === 'uploaded') return <Upload className="w-5 h-5 text-gray-500" />;
+    if (metadata?.sourceType === 'uploaded') return <Upload className="w-5 h-5 text-base-content/50" />;
     if (metadata?.sourceType === 'subtitle') return <FileText className="w-5 h-5 text-yellow-500" />;
     return <Film className="w-5 h-5" />;
   };
@@ -39,8 +39,8 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
     if (metadata?.sourceType === 'ai-video') return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
     if (metadata?.sourceType === 'ai-image') return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
     if (metadata?.sourceType === 'ai-audio' || metadata?.sourceType === 'ai-music') return 'bg-green-500/10 text-green-500 border-green-500/20';
-    if (metadata?.sourceType === 'uploaded') return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
-    return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    if (metadata?.sourceType === 'uploaded') return 'bg-base-content/50/10 text-base-content/50 border-base-content/50/20';
+    return 'bg-base-content/50/10 text-base-content/50 border-base-content/50/20';
   };
   
   // Format file size
@@ -191,7 +191,7 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
     
     if (!metadata) {
       return (
-        <div className="text-gray-500 text-center py-8">
+        <div className="text-base-content/50 text-center py-8">
           No metadata available for this asset.
         </div>
       );
@@ -213,7 +213,7 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
         return renderSubtitleMetadata(metadata);
       default:
         return (
-          <div className="text-gray-500 text-center py-8">
+          <div className="text-base-content/50 text-center py-8">
             Unknown asset type
           </div>
         );
@@ -230,13 +230,13 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
   
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-base-200 border border-base-content/20 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-base-content/20">
           <div className="flex items-center gap-3">
             {getAssetIcon()}
             <div>
-              <h2 className="text-xl font-bold text-white">{asset.name}</h2>
+              <h2 className="text-xl font-bold text-base-content">{asset.name}</h2>
               <Badge className={`mt-1 ${getSourceBadgeColor()}`}>
                 {asset.isComposition ? 'Composition' : 
                  metadata?.sourceType.replace('ai-', 'AI ').replace('-', ' ').toUpperCase() || 
@@ -246,9 +246,9 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-base-300 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-base-content/60" />
           </button>
         </div>
         
@@ -258,7 +258,7 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
         </div>
         
         {/* Footer */}
-        <div className="p-6 border-t border-gray-700 flex gap-3">
+        <div className="p-6 border-t border-base-content/20 flex gap-3">
           {canRegenerate && onRegenerate && (
             <Button
               onClick={() => metadata && onRegenerate(metadata)}
@@ -297,8 +297,8 @@ function InfoRow({
 }) {
   return (
     <div className={`flex ${multiline ? 'flex-col' : 'justify-between items-center'} gap-2`}>
-      <span className="text-gray-400 text-sm font-medium">{label}:</span>
-      <span className={`text-white ${multiline ? 'text-sm' : 'text-sm'} ${mono ? 'font-mono text-xs' : ''} ${highlight ? 'font-bold text-purple-400' : ''}`}>
+      <span className="text-base-content/60 text-sm font-medium">{label}:</span>
+      <span className={`text-base-content ${multiline ? 'text-sm' : 'text-sm'} ${mono ? 'font-mono text-xs' : ''} ${highlight ? 'font-bold text-purple-400' : ''}`}>
         {value}
       </span>
     </div>

@@ -77,7 +77,7 @@ export default function CreditUpsellModal({
             <Zap className="w-12 h-12 text-cinema-gold" />
           </div>
           <h2 className="text-3xl font-bold mb-2">You&apos;re on Fire! 🔥</h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-base-content/60">
             You&apos;ve used <span className="font-bold text-cinema-red">{totalCreditsUsed} credits</span> creating amazing content!
           </p>
         </div>
@@ -106,7 +106,7 @@ export default function CreditUpsellModal({
               <h3 className="card-title text-cinema-red">Starter Pack</h3>
               <div className="flex items-baseline gap-2 my-2">
                 <span className="text-4xl font-bold">$10</span>
-                <span className="text-gray-500">500 credits</span>
+                <span className="text-base-content/50">500 credits</span>
               </div>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
@@ -142,7 +142,7 @@ export default function CreditUpsellModal({
               <h3 className="card-title text-cinema-gold">Pro Pack</h3>
               <div className="flex items-baseline gap-2 my-2">
                 <span className="text-4xl font-bold">$20</span>
-                <span className="text-gray-500">1,200 credits</span>
+                <span className="text-base-content/50">1,200 credits</span>
               </div>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
@@ -170,14 +170,14 @@ export default function CreditUpsellModal({
 
         {/* Social Proof */}
         <div className="text-center p-4 bg-base-200 rounded-lg">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-base-content/40">
             ✨ Join <span className="font-bold text-cinema-red">thousands of creators</span> who upgraded today
           </p>
         </div>
 
         {/* Footer */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-base-content/50">
             No monthly fees • Credits never expire • Cancel anytime
           </p>
           <button

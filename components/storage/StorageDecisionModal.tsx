@@ -197,13 +197,13 @@ export function StorageDecisionModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-base-100 rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Save Your {getAssetTypeLabel()}</h2>
+          <h2 className="text-xl font-bold text-base-content">Save Your {getAssetTypeLabel()}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-base-content/60 hover:text-base-content/40 transition-colors"
             disabled={isSaving}
           >
             <X className="w-5 h-5" />
@@ -211,16 +211,16 @@ export function StorageDecisionModal({
         </div>
 
         {/* Asset Preview */}
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="bg-base-100 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
               {getAssetIcon()}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 truncate">
+              <h3 className="font-semibold text-base-content truncate">
                 {assetName}
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-base-content/40">
                 {getAssetTypeLabel()} • {formatFileSize(fileSize)}
               </p>
             </div>
@@ -271,7 +271,7 @@ export function StorageDecisionModal({
         {/* Storage Options */}
         {!saveSuccess && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-base-content/40 mb-4">
               Where would you like to save this {assetType}?
             </p>
 
@@ -281,16 +281,16 @@ export function StorageDecisionModal({
               disabled={isSaving || connectionsLoading || !googleDrive}
               className={`w-full flex items-center gap-3 p-4 border-2 rounded-lg transition-all group ${
                 googleDrive
-                  ? 'border-gray-200 hover:border-blue-500 hover:bg-blue-50'
-                  : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                  ? 'border-base-content/20 hover:border-blue-500 hover:bg-blue-50'
+                  : 'border-base-content/20 bg-base-100 cursor-not-allowed opacity-60'
               }`}
             >
               <Cloud className="w-5 h-5 text-blue-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-blue-900">
+                <div className="font-medium text-base-content group-hover:text-blue-900">
                   Save to Google Drive
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   {googleDrive ? 'Free permanent storage' : 'Not connected - Click to connect'}
                 </div>
               </div>
@@ -305,16 +305,16 @@ export function StorageDecisionModal({
               disabled={isSaving || connectionsLoading || !dropbox}
               className={`w-full flex items-center gap-3 p-4 border-2 rounded-lg transition-all group ${
                 dropbox
-                  ? 'border-gray-200 hover:border-indigo-500 hover:bg-indigo-50'
-                  : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                  ? 'border-base-content/20 hover:border-indigo-500 hover:bg-indigo-50'
+                  : 'border-base-content/20 bg-base-100 cursor-not-allowed opacity-60'
               }`}
             >
               <Cloud className="w-5 h-5 text-indigo-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-indigo-900">
+                <div className="font-medium text-base-content group-hover:text-indigo-900">
                   Save to Dropbox
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   {dropbox ? 'Free permanent storage' : 'Not connected - Click to connect'}
                 </div>
               </div>
@@ -327,14 +327,14 @@ export function StorageDecisionModal({
             <button
               onClick={handleDownload}
               disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <Download className="w-5 h-5 text-green-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-green-900">
+                <div className="font-medium text-base-content group-hover:text-green-900">
                   Download to Device
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   Save to your computer
                 </div>
               </div>
@@ -347,14 +347,14 @@ export function StorageDecisionModal({
             <button
               onClick={handleKeepTemp}
               disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <Clock className="w-5 h-5 text-orange-600" />
               <div className="flex-1 text-left">
-                <div className="font-medium text-gray-900 group-hover:text-orange-900">
+                <div className="font-medium text-base-content group-hover:text-orange-900">
                   Keep in Temporary Storage
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-base-content/40">
                   Auto-deletes after 7 days
                 </div>
               </div>
@@ -366,7 +366,7 @@ export function StorageDecisionModal({
         {saveSuccess && (
           <button
             onClick={onClose}
-            className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="w-full mt-4 px-4 py-2 bg-green-600 text-base-content rounded-lg hover:bg-green-700 transition-colors"
           >
             Close
           </button>

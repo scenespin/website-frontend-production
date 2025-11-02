@@ -363,7 +363,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                                             e.stopPropagation();
                                                                             openEditForm(location);
                                                                         }}
-                                                                        className="p-1 rounded hover:bg-gray-700 transition-colors"
+                                                                        className="p-1 rounded hover:bg-base-content/20 transition-colors"
                                                                         style={{ color: '#9CA3AF' }}
                                                                         title="Edit location"
                                                                     >

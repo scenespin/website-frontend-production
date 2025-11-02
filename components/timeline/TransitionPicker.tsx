@@ -48,36 +48,36 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+      <div className="bg-base-200 border border-base-content/20 rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700 bg-gradient-to-r from-purple-900/20 to-gray-900">
+        <div className="flex items-center justify-between p-6 border-b border-base-content/20 bg-gradient-to-r from-purple-900/20 to-base-300">
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-base-content flex items-center gap-2">
               🎬 Hollywood Transitions
             </h2>
-            <p className="text-gray-400 text-sm mt-1">
-              Select from 55 professional transitions • 100% FREE
+            <p className="text-base-content/60 text-sm mt-1">
+              55 professional transitions included
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-base-300 rounded-lg transition-colors"
           >
-            <X className="w-6 h-6 text-gray-400" />
+            <X className="w-6 h-6 text-base-content/60" />
           </button>
         </div>
 
         {/* Category Tabs */}
-        <div className="flex items-center gap-2 p-4 border-b border-gray-700 bg-gray-800/50 overflow-x-auto">
+        <div className="flex items-center gap-2 p-4 border-b border-base-content/20 bg-base-300/50 overflow-x-auto">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-purple-600 text-base-content shadow-lg shadow-purple-500/30'
+                  : 'bg-base-content/20 text-base-content/70 hover:bg-base-content/30'
               }`}
             >
               {cat === 'all' ? 'All' : cat.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} ({getCategoryCount(cat)})
@@ -94,7 +94,7 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
                 onClick={() => handleSelect(transition.id)}
                 onMouseEnter={() => setHoveredTransition(transition.id)}
                 onMouseLeave={() => setHoveredTransition(null)}
-                className="group relative bg-gray-800 hover:bg-gray-700 border-2 border-gray-700 hover:border-purple-500 rounded-lg p-4 transition-all hover:shadow-xl hover:shadow-purple-500/20 hover:scale-105"
+                className="group relative bg-base-300 hover:bg-base-content/10 border-2 border-base-content/20 hover:border-purple-500 rounded-lg p-4 transition-all hover:shadow-xl hover:shadow-purple-500/20 hover:scale-105"
               >
                 {/* Icon */}
                 <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">
@@ -102,7 +102,7 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
                 </div>
                 
                 {/* Name */}
-                <div className="text-white text-sm font-medium mb-1">
+                <div className="text-base-content text-sm font-medium mb-1">
                   {transition.name}
                 </div>
                 
@@ -125,18 +125,18 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
           {filteredTransitions.length === 0 && (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">🔍</div>
-              <p className="text-gray-400">No transitions found in this category</p>
+              <p className="text-base-content/60">No transitions found in this category</p>
             </div>
           )}
         </div>
 
         {/* Footer - Duration & Easing Controls */}
-        <div className="p-6 border-t border-gray-700 bg-gray-800/50">
+        <div className="p-6 border-t border-base-content/20 bg-base-300/50">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Duration Slider */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-base-content text-sm font-medium mb-2">
                 Duration: {duration.toFixed(1)}s
               </label>
               <input
@@ -146,9 +146,9 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
                 step="0.1"
                 value={duration}
                 onChange={(e) => setDuration(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                className="w-full h-2 bg-base-content/20 rounded-lg appearance-none cursor-pointer accent-purple-600"
               />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <div className="flex justify-between text-xs text-base-content/60 mt-1">
                 <span>0.1s (Fast)</span>
                 <span>3.0s (Slow)</span>
               </div>
@@ -156,7 +156,7 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
 
             {/* Easing Selector */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-base-content text-sm font-medium mb-2">
                 Easing
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -166,8 +166,8 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
                     onClick={() => setEasing(e)}
                     className={`px-3 py-2 rounded-lg text-sm transition-all ${
                       easing === e
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        ? 'bg-purple-600 text-base-content'
+                        : 'bg-base-content/20 text-base-content/70 hover:bg-base-content/30'
                     }`}
                   >
                     {e.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}

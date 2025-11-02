@@ -369,7 +369,7 @@ export default function WorkflowsPage() {
                   <li><strong>• Product Reshoot</strong> (75-100 credits) - Transform product photos</li>
                 </ul>
                 <div className="mt-4">
-                  <Link href="/workflows?filter=beginner" className="btn btn-sm btn-success w-full">
+                  <Link href="/features" className="btn btn-sm btn-success w-full">
                     Browse Beginner Workflows
                   </Link>
                 </div>
@@ -392,7 +392,7 @@ export default function WorkflowsPage() {
                   <li><strong>• Speed Loop V2</strong> - Alternative fast option</li>
                 </ul>
                 <div className="mt-4">
-                  <Link href="/workflows?filter=fast" className="btn btn-sm btn-warning w-full">
+                  <Link href="/features" className="btn btn-sm btn-warning w-full">
                     Browse Fast Workflows
                   </Link>
                 </div>
@@ -414,7 +414,7 @@ export default function WorkflowsPage() {
                   <li><strong>32 total</strong> workflows support this feature</li>
                 </ul>
                 <div className="mt-4">
-                  <Link href="/workflows?filter=character-consistency" className="btn btn-sm btn-secondary w-full">
+                  <Link href="/features" className="btn btn-sm btn-secondary w-full">
                     Browse Character Workflows
                   </Link>
                 </div>
@@ -500,7 +500,7 @@ export default function WorkflowsPage() {
 
           <h2>What&apos;s Next?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 not-prose my-8">
-            <Link href="/workflows" className="card bg-primary text-primary-content hover:shadow-xl transition-shadow">
+            <Link href="/features" className="card bg-primary text-primary-content hover:shadow-xl transition-shadow">
               <div className="card-body">
                 <h3 className="card-title text-base">Browse Workflows</h3>
                 <p className="text-sm">Explore all 58 workflows</p>

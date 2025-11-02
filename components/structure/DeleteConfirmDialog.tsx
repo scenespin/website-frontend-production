@@ -57,7 +57,7 @@ export function DeleteCharacterDialog({
                     </div>
                     <AlertDialogDescription asChild>
                         <div className="space-y-4">
-                            <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                            <div className="prose prose-sm max-w-none text-base-content/70 dark:text-base-content/70">
                                 <div dangerouslySetInnerHTML={{ __html: dependencyReport.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
                             </div>
                             
@@ -149,7 +149,7 @@ export function DeleteLocationDialog({
                     </div>
                     <AlertDialogDescription asChild>
                         <div className="space-y-4">
-                            <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                            <div className="prose prose-sm max-w-none text-base-content/70 dark:text-base-content/70">
                                 <div dangerouslySetInnerHTML={{ __html: dependencyReport.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
                             </div>
                             

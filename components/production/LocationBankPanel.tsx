@@ -76,23 +76,23 @@ export function LocationBankPanel({
   }
   
   return (
-    <div className={`h-full flex flex-col bg-[#141414] ${className}`}>
+    <div className={`h-full flex flex-col bg-base-200 ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-white/10">
+      <div className="p-4 border-b border-base-content/10">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-purple-400" />
-            <h2 className="text-lg font-semibold text-white">Location Bank</h2>
+            <h2 className="text-lg font-semibold text-base-content">Location Bank</h2>
           </div>
-          <span className="text-sm text-gray-400">{locations.length} locations</span>
+          <span className="text-sm text-base-content/60">{locations.length} locations</span>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-base-content/50">
           Upload or generate location references for consistent scenes
         </p>
       </div>
       
       {/* Action Buttons */}
-      <div className="p-4 border-b border-white/10 space-y-2">
+      <div className="p-4 border-b border-base-content/10 space-y-2">
         <button
           onClick={() => setShowCreateModal(true)}
           className="w-full btn btn-primary btn-sm"
@@ -106,9 +106,9 @@ export function LocationBankPanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {locations.length === 0 ? (
           <div className="text-center py-12">
-            <MapPin className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400 mb-2">No locations yet</p>
-            <p className="text-sm text-gray-500">
+            <MapPin className="w-16 h-16 text-base-content/30 mx-auto mb-4" />
+            <p className="text-base-content/60 mb-2">No locations yet</p>
+            <p className="text-sm text-base-content/50">
               Add locations to maintain consistency across scenes
             </p>
           </div>
@@ -116,28 +116,28 @@ export function LocationBankPanel({
           locations.map((location) => (
             <div
               key={location.location_id}
-              className="bg-[#1A1A1A] rounded-lg border border-white/10 overflow-hidden hover:border-purple-500/30 transition-all"
+              className="bg-base-300 rounded-lg border border-base-content/10 overflow-hidden hover:border-purple-500/30 transition-all"
             >
               {/* Location Header */}
               <button
                 onClick={() => setExpandedLocationId(
                   expandedLocationId === location.location_id ? null : location.location_id
                 )}
-                className="w-full p-4 flex items-start justify-between hover:bg-white/5 transition-colors"
+                className="w-full p-4 flex items-start justify-between hover:bg-base-content/5 transition-colors"
               >
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white font-semibold">{location.name}</span>
+                    <span className="text-base-content font-semibold">{location.name}</span>
                     <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
                       {location.type}
                     </span>
                   </div>
                   {location.description && (
-                    <p className="text-sm text-gray-400 line-clamp-2">
+                    <p className="text-sm text-base-content/60 line-clamp-2">
                       {location.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 mt-2 text-xs text-base-content/50">
                     <span className="flex items-center gap-1">
                       <Image className="w-3 h-3" />
                       {location.reference_images?.length || 0} references
@@ -148,20 +148,20 @@ export function LocationBankPanel({
                   </div>
                 </div>
                 {expandedLocationId === location.location_id ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                  <ChevronUp className="w-5 h-5 text-base-content/60" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                  <ChevronDown className="w-5 h-5 text-base-content/60" />
                 )}
               </button>
               
               {/* Expanded Content */}
               {expandedLocationId === location.location_id && (
-                <div className="p-4 pt-0 border-t border-white/5">
+                <div className="p-4 pt-0 border-t border-base-content/5">
                   {/* Reference Images Grid */}
                   {location.reference_images && location.reference_images.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                       {location.reference_images.map((img, idx) => (
-                        <div key={idx} className="aspect-video rounded overflow-hidden bg-[#0A0A0A]">
+                        <div key={idx} className="aspect-video rounded overflow-hidden bg-base-200">
                           <img
                             src={img}
                             alt={`${location.name} reference ${idx + 1}`}
@@ -171,7 +171,7 @@ export function LocationBankPanel({
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-6 text-gray-500 text-sm">
+                    <div className="text-center py-6 text-base-content/50 text-sm">
                       No reference images yet
                     </div>
                   )}
@@ -201,11 +201,11 @@ export function LocationBankPanel({
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="bg-[#1A1A1A] rounded-xl p-6 max-w-md w-full mx-4"
+            className="bg-base-300 rounded-xl p-6 max-w-md w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-white mb-4">Add Location</h3>
-            <p className="text-gray-400 mb-4">
+            <h3 className="text-xl font-bold text-base-content mb-4">Add Location</h3>
+            <p className="text-base-content/60 mb-4">
               Upload a photo or generate a location from a description
             </p>
             <div className="space-y-2">

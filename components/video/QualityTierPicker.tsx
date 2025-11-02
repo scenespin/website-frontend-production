@@ -90,7 +90,7 @@ export function QualityTierPicker({
               <div className="relative">
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className={`w-5 h-5 ${isSelected ? tier.color : 'text-slate-400'}`} />
-                  <span className={`font-semibold ${isSelected ? tier.color : 'text-slate-900 dark:text-white'}`}>
+                  <span className={`font-semibold ${isSelected ? tier.color : 'text-slate-900 dark:text-base-content'}`}>
                     {tier.label}
                   </span>
                 </div>

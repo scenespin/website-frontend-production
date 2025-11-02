@@ -138,7 +138,7 @@ export default function VoiceCloningConsentModal({ isOpen, onClose, onAccept, on
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-base-100 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-cinema-red to-cinema-blue p-6 text-white">
+        <div className="sticky top-0 bg-gradient-to-r from-cinema-red to-cinema-blue p-6 text-base-content">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
@@ -146,7 +146,7 @@ export default function VoiceCloningConsentModal({ isOpen, onClose, onAccept, on
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Voice Cloning Consent</h2>
-                <p className="text-sm text-white/90">Required for BIPA Compliance</p>
+                <p className="text-sm text-base-content/90">Required for BIPA Compliance</p>
               </div>
             </div>
             <button

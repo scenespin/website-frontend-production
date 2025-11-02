@@ -11,7 +11,17 @@ import {
   Menu,
   X,
   Coins,
-  Users
+  Users,
+  ChevronDown,
+  Layout,
+  Film,
+  FolderOpen,
+  BookOpen,
+  MapPin,
+  Layers,
+  Clock,
+  Music,
+  Image
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -20,6 +30,7 @@ export default function Navigation() {
   const { user } = useUser();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null); // Track which mobile accordion is open
   const { openDrawer } = useDrawer();
   
   // Credit balance state
@@ -69,15 +80,71 @@ export default function Navigation() {
     }
   }
 
+  // Navigation structure - Desktop: flat links, Mobile: hierarchical accordions
   const navigation = [
-    { name: 'Screenwriting Assistant', action: () => openDrawer('chat'), icon: MessageSquare },
-    { name: 'Workflows', href: '/workflows', icon: Zap },
-    { name: 'Generate Video', href: '/production', icon: Video },
-    { name: 'Screenplay', href: '/editor', icon: FileText },
-    { name: 'Team', href: '/team', icon: Users },
+    {
+      name: 'Editor',
+      icon: FileText,
+      href: '/editor',
+      // Mobile-only sub-items (for accordion)
+      subItems: [
+        { name: 'Write', href: '/editor', icon: FileText, description: 'Screenplay editor' },
+        { name: 'Story Beats', href: '/beats', icon: BookOpen, description: 'Narrative structure' },
+        { name: 'Characters', href: '/characters', icon: Users, description: 'Cast management' },
+        { name: 'Locations', href: '/locations', icon: MapPin, description: 'Scene settings' },
+      ]
+    },
+    {
+      name: 'Production',
+      icon: Video,
+      href: '/production',
+      // Mobile-only sub-items (for accordion)
+      subItems: [
+        { name: 'Scene Builder', href: '/production?tab=scene-builder', icon: Film, description: 'Generate complete scenes' },
+        { name: 'Workflows', href: '/production?tab=workflows', icon: Zap, description: 'Guided production' },
+        { name: 'Character Bank', href: '/production?tab=characters', icon: Users, description: 'Character references' },
+        { name: 'Location Bank', href: '/production?tab=locations', icon: MapPin, description: 'Location references' },
+        { name: 'Asset Bank', href: '/production?tab=assets', icon: Image, description: 'Manage all assets' },
+      ]
+    },
+    {
+      name: 'Composition',
+      icon: Layout,
+      href: '/composition'
+    },
+    {
+      name: 'Timeline',
+      icon: Clock,
+      href: '/timeline'
+    },
+    {
+      name: 'Library',
+      icon: FolderOpen,
+      href: '/assets',
+      // Mobile-only sub-items (for accordion)
+      subItems: [
+        { name: 'Projects', href: '/dashboard', icon: FileText, description: 'Your screenplays' },
+        { name: 'Videos', href: '/assets?type=video', icon: Video, description: 'Generated clips' },
+        { name: 'Music', href: '/assets?type=audio', icon: Music, description: 'Audio library' },
+        { name: 'Assets', href: '/assets', icon: Image, description: 'All media files' },
+      ]
+    },
   ];
 
-  const isActive = (href) => pathname === href;
+  const isActive = (href) => {
+    const currentPath = pathname?.split('?')[0];
+    const linkPath = href?.split('?')[0];
+    return currentPath === linkPath || pathname === href;
+  };
+
+  const isParentActive = (item) => {
+    // For mobile accordion - check if we're on this section
+    if (item.href && isActive(item.href)) return true;
+    if (item.subItems) {
+      return item.subItems.some(sub => isActive(sub.href));
+    }
+    return false;
+  };
 
   return (
     <>
@@ -88,39 +155,38 @@ export default function Navigation() {
             {/* Logo */}
             <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
               <div className="w-10 h-10 bg-cinema-red rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">W</span>
+                <span className="text-base-content font-bold text-xl">W</span>
               </div>
               <span className="text-xl font-bold">
                 Wryda<span className="text-cinema-red">.ai</span>
               </span>
             </Link>
 
-            {/* Navigation Links */}
+            {/* Navigation Links - Desktop: Flat Links */}
             <nav className="flex items-center gap-1">
+              {/* AI Assistant Button */}
+              <button
+                onClick={() => openDrawer('chat')}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-base-content hover:bg-base-300"
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span className="font-medium">AI Assistant</span>
+              </button>
+
+              {/* Main Navigation Items - Simple Flat Links */}
               {navigation.map((item) => (
-                item.action ? (
-                  <button
-                    key={item.name}
-                    onClick={item.action}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-base-content hover:bg-base-300"
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.name}</span>
-                  </button>
-                ) : (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      isActive(item.href)
-                        ? 'bg-cinema-red text-white'
-                        : 'text-base-content hover:bg-base-300'
-                    }`}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.name}</span>
-                  </Link>
-                )
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isParentActive(item)
+                      ? 'bg-cinema-red text-base-content'
+                      : 'text-base-content hover:bg-base-300'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.name}</span>
+                </Link>
               ))}
             </nav>
 
@@ -144,7 +210,7 @@ export default function Navigation() {
                   {/* Buy Credits Button */}
                   <Link 
                     href="/buy-credits" 
-                    className="btn btn-sm gap-2 bg-cinema-red hover:opacity-90 text-white border-none"
+                    className="btn btn-sm gap-2 bg-cinema-red hover:opacity-90 text-base-content border-none"
                   >
                     <Zap className="w-4 h-4" />
                     <span>Buy Credits</span>
@@ -163,7 +229,7 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-cinema-red rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">W</span>
+              <span className="text-base-content font-bold">W</span>
             </div>
             <span className="font-bold">
               Wryda<span className="text-cinema-red">.ai</span>
@@ -186,34 +252,81 @@ export default function Navigation() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="border-t border-base-300 p-4 space-y-2">
+            {/* AI Assistant */}
+            <button
+              onClick={() => {
+                openDrawer('chat');
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full text-left text-base-content hover:bg-base-300"
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span className="font-medium">AI Assistant</span>
+            </button>
+
+            {/* Hierarchical Nav Items */}
             {navigation.map((item) => (
-              item.action ? (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    item.action();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full text-left text-base-content hover:bg-base-300"
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
-                </button>
-              ) : (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-cinema-red text-white'
-                      : 'text-base-content hover:bg-base-300'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              )
+              <div key={item.name}>
+                {item.subItems ? (
+                  // Accordion-style parent with sub-items
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full ${
+                        isParentActive(item)
+                          ? 'bg-cinema-red text-base-content'
+                          : 'text-base-content hover:bg-base-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="w-5 h-5" />
+                        <span className="font-medium">{item.name}</span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Sub-items (accordion content) */}
+                    {openDropdown === item.name && (
+                      <div className="ml-4 space-y-1 border-l-2 border-base-300 pl-3">
+                        {item.subItems.map((subItem) => (
+                          <Link
+                            key={subItem.name}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={`flex items-start gap-3 px-3 py-2 rounded-lg transition-colors ${
+                              isActive(subItem.href)
+                                ? 'bg-cinema-red/20 text-cinema-red'
+                                : 'text-base-content hover:bg-base-300'
+                            }`}
+                          >
+                            <subItem.icon className="w-4 h-4 mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">{subItem.name}</div>
+                              {subItem.description && (
+                                <div className="text-xs text-base-content/60 mt-0.5">{subItem.description}</div>
+                              )}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Simple link (no sub-items)
+                  <Link
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive(item.href)
+                        ? 'bg-cinema-red text-base-content'
+                        : 'text-base-content hover:bg-base-300'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                )}
+              </div>
             ))}
             
             {/* Mobile Credit Balance & Buy Button */}
@@ -235,7 +348,7 @@ export default function Navigation() {
               <Link
                 href="/buy-credits"
                 onClick={() => setMobileMenuOpen(false)}
-                className="btn btn-block gap-2 bg-cinema-red hover:opacity-90 text-white border-none"
+                className="btn btn-block gap-2 bg-cinema-red hover:opacity-90 text-base-content border-none"
               >
                 <Zap className="w-4 h-4" />
                 Buy Credits

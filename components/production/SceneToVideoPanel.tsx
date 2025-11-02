@@ -204,7 +204,7 @@ export function SceneToVideoPanel({
       {scenes.length > 0 && (
         <Card className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="font-bold text-slate-900 dark:text-base-content flex items-center gap-2">
               <Film className="w-5 h-5 text-indigo-500" />
               Select Scene
             </h3>
@@ -244,7 +244,7 @@ export function SceneToVideoPanel({
                   </div>
                   
                   {/* Scene Heading */}
-                  <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-1 truncate">
+                  <h4 className="font-semibold text-sm text-slate-900 dark:text-base-content mb-1 truncate">
                     {scene.heading}
                   </h4>
                   
@@ -282,10 +282,10 @@ export function SceneToVideoPanel({
       >
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
-            <Sparkles className="w-5 h-5 text-white" />
+            <Sparkles className="w-5 h-5 text-base-content" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+            <h3 className="font-bold text-lg text-slate-900 dark:text-base-content">
               {selectedScene ? selectedScene.heading : 'Scene-to-Video Generator'}
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -412,7 +412,7 @@ I didn't expect you to actually come.`}
                   <SelectItem value="premium">
                     <div className="flex items-center gap-2">
                       <span>Premium 4K</span>
-                      <Badge className="bg-indigo-500 text-white border-0 text-xs">Best</Badge>
+                      <Badge className="bg-indigo-500 text-base-content border-0 text-xs">Best</Badge>
                     </div>
                   </SelectItem>
                   <SelectItem value="professional">Professional 1080p</SelectItem>
@@ -428,7 +428,7 @@ I didn't expect you to actually come.`}
             <Button
               onClick={handleGeneratePrompts}
               disabled={isGeneratingPrompts || isGeneratingVideos || !sceneText.trim()}
-              className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg"
+              className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-base-content shadow-lg"
             >
               {isGeneratingPrompts ? (
                 <>
@@ -462,7 +462,7 @@ I didn't expect you to actually come.`}
               <Button
                 onClick={handleGenerateVideos}
                 disabled={isGeneratingVideos}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-base-content shadow-lg"
                 size="lg"
               >
                 {isGeneratingVideos ? (
@@ -487,7 +487,7 @@ I didn't expect you to actually come.`}
           {generatedPrompts.length > 0 && (
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-slate-900 dark:text-white">
+                <h4 className="font-semibold text-slate-900 dark:text-base-content">
                   Generated Prompts ({generatedPrompts.length})
                 </h4>
                 <Badge variant="secondary">

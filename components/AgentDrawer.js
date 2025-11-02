@@ -156,7 +156,7 @@ export default function AgentDrawer({ children }) {
       {!isDrawerOpen && (
         <button
           onClick={() => openDrawer('chat')}
-          className="fixed top-1/2 right-0 -translate-y-1/2 btn bg-cinema-red hover:opacity-90 text-white btn-sm rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none"
+          className="fixed top-1/2 right-0 -translate-y-1/2 btn bg-cinema-red hover:opacity-90 text-base-content btn-sm rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none"
           style={{ writingMode: 'vertical-rl' }}
         >
           AI Assistant

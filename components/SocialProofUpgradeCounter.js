@@ -56,7 +56,7 @@ export default function SocialProofUpgradeCounter({ className = '', showIcon = t
       <span className="font-semibold text-cinema-red">
         {upgradeCount}
       </span>
-      <span className="text-gray-600">
+      <span className="text-base-content/60">
         {upgradeCount === 1 ? 'creator upgraded' : 'creators upgraded'} today!
       </span>
     </div>

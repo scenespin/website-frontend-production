@@ -6,10 +6,18 @@
  * 
  * This enables seamless navigation where clicking from the editor to Production
  * automatically focuses on the current scene/character.
+ * 
+ * Auto-clear triggers:
+ * - User clicks X button on context banner
+ * - User switches to different project
+ * - Context older than 24 hours
+ * - User returns to dashboard (leaves workflow)
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export interface EditorContext {
   // Project identification
@@ -81,14 +89,23 @@ export const useContextStore = create<ContextStore>()(
         },
       })),
       
-      setProject: (projectId, projectName) => set((state) => ({
-        context: {
-          ...state.context,
-          projectId,
-          projectName,
-          lastUpdated: new Date(),
-        },
-      })),
+      setProject: (projectId, projectName) => {
+        const currentProjectId = get().context.projectId;
+        
+        // If switching to a different project, clear context
+        if (currentProjectId && currentProjectId !== projectId) {
+          set({ context: initialContext });
+        }
+        
+        set((state) => ({
+          context: {
+            ...state.context,
+            projectId,
+            projectName,
+            lastUpdated: new Date(),
+          },
+        }));
+      },
       
       setCurrentScene: (sceneId, sceneName) => set((state) => ({
         context: {
@@ -201,3 +218,39 @@ export function useContextualLink() {
   };
 }
 
+/**
+ * Hook to check if context is stale (older than 24 hours)
+ */
+export function useStaleContextCheck() {
+  const context = useContextStore((state) => state.context);
+  const clearContext = useContextStore((state) => state.clearContext);
+  
+  useEffect(() => {
+    if (!context.lastUpdated) return;
+    
+    const lastUpdated = new Date(context.lastUpdated);
+    const now = new Date();
+    const hoursSinceUpdate = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+    
+    // Clear context if older than 24 hours
+    if (hoursSinceUpdate > 24) {
+      console.log('[Context] Context is stale (>24hrs), clearing...');
+      clearContext();
+    }
+  }, [context.lastUpdated, clearContext]);
+}
+
+/**
+ * Hook to auto-clear context when navigating to dashboard
+ */
+export function useDashboardContextClear() {
+  const pathname = usePathname?.();
+  const clearContext = useContextStore((state) => state.clearContext);
+  
+  useEffect(() => {
+    // Clear context when returning to dashboard (leaving workflow)
+    if (pathname === '/dashboard') {
+      clearContext();
+    }
+  }, [pathname, clearContext]);
+}

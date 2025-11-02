@@ -93,7 +93,7 @@ export function ProductionStudio({
             <div className="h-full flex items-center justify-center">
               <div className="text-center p-8">
                 <div className="text-6xl mb-4">📋</div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-base-content mb-2">
                   Shot List Stage
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400">
@@ -128,7 +128,7 @@ export function ProductionStudio({
             <div className="h-full flex items-center justify-center">
               <div className="text-center p-8 max-w-2xl">
                 <div className="text-6xl mb-4">🎬</div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-base-content mb-2">
                   Export Your Masterpiece
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 mb-6">
@@ -137,7 +137,7 @@ export function ProductionStudio({
                 </p>
                 <div className="space-y-4">
                   <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 className="font-bold text-slate-900 dark:text-base-content mb-2">
                       Export Features (Coming Soon)
                     </h3>
                     <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 text-left">

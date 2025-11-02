@@ -118,8 +118,8 @@ export function ClipGenerationPanel({
             >
               <span className={cn(
                 'flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold',
-                step.num === currentStep && 'bg-teal-500 text-white',
-                step.num < currentStep && 'bg-green-500 text-white',
+                step.num === currentStep && 'bg-teal-500 text-base-content',
+                step.num < currentStep && 'bg-green-500 text-base-content',
                 step.num > currentStep && 'bg-slate-300 dark:bg-slate-600 text-slate-600 dark:text-slate-400'
               )}>
                 {step.num < currentStep ? '✓' : step.num}
@@ -283,7 +283,7 @@ function Step1AIAnalysis({ aiSuggestion, isLoading, onNext }: Step1Props) {
         </div>
         <button
           onClick={onNext}
-          className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+          className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-base-content font-medium rounded-lg transition-colors flex items-center gap-2"
         >
           Continue to Assignment
           <Zap className="w-4 h-4" />
@@ -379,7 +379,7 @@ function Step2ClipAssignment({
             className={cn(
               'px-6 py-2.5 font-medium rounded-lg transition-colors flex items-center gap-2',
               allAssigned
-                ? 'bg-teal-600 hover:bg-teal-700 text-white cursor-pointer'
+                ? 'bg-teal-600 hover:bg-teal-700 text-base-content cursor-pointer'
                 : 'bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed'
             )}
           >
@@ -610,7 +610,7 @@ function Step3Generation({
           <button
             onClick={onGenerate}
             disabled={isGenerating}
-            className="px-8 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 mx-auto"
+            className="px-8 py-3 bg-teal-600 hover:bg-teal-700 text-base-content font-semibold rounded-lg transition-colors flex items-center gap-2 mx-auto"
           >
             <Zap className="w-5 h-5" />
             Start Generation
@@ -715,10 +715,10 @@ function Step3Generation({
                     className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 dark:hover:border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all group"
                   >
                     <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6 text-white" />
+                      <Upload className="w-6 h-6 text-base-content" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-slate-900 dark:text-white text-sm">Save to Gallery</p>
+                      <p className="font-semibold text-slate-900 dark:text-base-content text-sm">Save to Gallery</p>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                         Reuse clips later
                       </p>
@@ -733,10 +733,10 @@ function Step3Generation({
                     className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-all group"
                   >
                     <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Film className="w-6 h-6 text-white" />
+                      <Film className="w-6 h-6 text-base-content" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-slate-900 dark:text-white text-sm">Send to Timeline</p>
+                      <p className="font-semibold text-slate-900 dark:text-base-content text-sm">Send to Timeline</p>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                         Edit & export
                       </p>
@@ -751,10 +751,10 @@ function Step3Generation({
                     className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-teal-200 dark:border-teal-800 hover:border-teal-400 dark:hover:border-teal-600 bg-teal-50 dark:bg-teal-950/30 hover:bg-teal-100 dark:hover:bg-teal-950/50 transition-all group"
                   >
                     <div className="w-12 h-12 rounded-full bg-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Sparkles className="w-6 h-6 text-white" />
+                      <Sparkles className="w-6 h-6 text-base-content" />
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-slate-900 dark:text-white text-sm">Send to Composition</p>
+                      <p className="font-semibold text-slate-900 dark:text-base-content text-sm">Send to Composition</p>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                         Add layouts & effects
                       </p>

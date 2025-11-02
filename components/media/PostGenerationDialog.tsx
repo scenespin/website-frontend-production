@@ -65,13 +65,13 @@ export function PostGenerationDialog({
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
               {itemType === 'image' ? (
-                <ImageIcon className="w-6 h-6 text-white" />
+                <ImageIcon className="w-6 h-6 text-base-content" />
               ) : (
-                <Film className="w-6 h-6 text-white" />
+                <Film className="w-6 h-6 text-base-content" />
               )}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-base-content">
                 {itemType === 'image' ? 'Image' : 'Video'} Generated!
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -98,10 +98,10 @@ export function PostGenerationDialog({
               className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 dark:hover:border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Save className="w-6 h-6 text-white" />
+                <Save className="w-6 h-6 text-base-content" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-slate-900 dark:text-white">Save to Gallery</p>
+                <p className="font-semibold text-slate-900 dark:text-base-content">Save to Gallery</p>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Use in Timeline/Composition
                 </p>
@@ -117,10 +117,10 @@ export function PostGenerationDialog({
               className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-slate-600 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Download className="w-6 h-6 text-white" />
+                <Download className="w-6 h-6 text-base-content" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-slate-900 dark:text-white">Download</p>
+                <p className="font-semibold text-slate-900 dark:text-base-content">Download</p>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   Save to device only
                 </p>
@@ -136,10 +136,10 @@ export function PostGenerationDialog({
               className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-red-300 dark:hover:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-slate-400 dark:bg-slate-600 group-hover:bg-red-500 flex items-center justify-center group-hover:scale-110 transition-all">
-                <Trash2 className="w-6 h-6 text-white" />
+                <Trash2 className="w-6 h-6 text-base-content" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-slate-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400">
+                <p className="font-semibold text-slate-900 dark:text-base-content group-hover:text-red-600 dark:group-hover:text-red-400">
                   Discard
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">

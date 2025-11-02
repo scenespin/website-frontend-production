@@ -42,12 +42,12 @@ export default function DirectorPanel({ onInsert }: DirectorPanelProps) {
             {/* Left: Input */}
             <div className="space-y-3">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-base-content/70 mb-1">
                         Scene Description
                     </label>
                     <textarea
                         rows={4}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         placeholder="Describe the scene you want to generate..."
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -55,11 +55,11 @@ export default function DirectorPanel({ onInsert }: DirectorPanelProps) {
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-base-content/70 mb-1">
                         AI Model
                     </label>
                     <select
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-base-content/20 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         value={selectedModel}
                         onChange={(e) => setSelectedModel(e.target.value)}
                     >
@@ -73,7 +73,7 @@ export default function DirectorPanel({ onInsert }: DirectorPanelProps) {
                 <button
                     onClick={handleGenerate}
                     disabled={isLoading || !prompt.trim()}
-                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors text-sm"
+                    className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-base-content/20 disabled:cursor-not-allowed text-base-content font-medium rounded-lg transition-colors text-sm"
                 >
                     {isLoading ? 'Generating...' : '⚡ Generate Scene'}
                 </button>
@@ -87,25 +87,25 @@ export default function DirectorPanel({ onInsert }: DirectorPanelProps) {
             
             {/* Right: Output */}
             <div className="space-y-3 flex flex-col">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-base-content/70">
                     Generated Content
                 </label>
                 
                 {!generatedContent && !isLoading && (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <div className="flex items-center justify-center h-full text-base-content/60 text-sm">
                         Generated scene will appear here
                     </div>
                 )}
                 
                 {generatedContent && (
                     <>
-                        <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-lg border border-gray-200 h-64 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs bg-base-100 p-4 rounded-lg border border-base-content/20 h-64 overflow-y-auto">
                             {generatedContent}
                         </pre>
                         {onInsert && (
                             <button
                                 onClick={() => onInsert(generatedContent)}
-                                className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors text-sm"
+                                className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-base-content font-medium rounded-lg transition-colors text-sm"
                             >
                                 📝 Insert into Script
                             </button>

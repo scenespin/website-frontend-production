@@ -99,23 +99,36 @@ export default function VideoGenerationPage() {
           {/* Method 3: Character Consistency */}
           <div className="card bg-base-200 my-8 not-prose">
             <div className="card-body">
-              <h3 className="card-title text-xl">3. Character Consistency (1-2 References)</h3>
+              <h3 className="card-title text-xl">3. Advanced Reference System (Up to 4 Images)</h3>
               <div className="grid grid-cols-2 gap-4 text-sm my-4">
-                <div><strong>What:</strong> Keep characters looking the same across multiple shots</div>
+                <div><strong>What:</strong> Use multiple reference images for perfect scene consistency</div>
                 <div><strong>Credits:</strong> Same as standard generation</div>
-                <div><strong>Best For:</strong> Multi-shot scenes, series content</div>
+                <div><strong>Best For:</strong> Complex scenes with specific characters, locations, and props</div>
               </div>
               <h4 className="font-bold">How It Works:</h4>
-              <ol className="text-sm list-decimal list-inside space-y-1">
-                <li>Upload 1-2 reference images of character</li>
-                <li>Generate first video</li>
-                <li>Use that video as reference for next shots</li>
-                <li>Character stays consistent</li>
-              </ol>
+              <p className="text-sm mb-3">Upload up to 4 reference images to control every aspect of your scene:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div className="bg-base-300 p-3 rounded">
+                  <div className="font-bold text-sm text-primary mb-1">🎭 Character (1-2 images)</div>
+                  <p className="text-xs opacity-80">Face, body, clothing, pose references</p>
+                </div>
+                <div className="bg-base-300 p-3 rounded">
+                  <div className="font-bold text-sm text-secondary mb-1">📍 Location (1 image)</div>
+                  <p className="text-xs opacity-80">Background, environment, setting</p>
+                </div>
+                <div className="bg-base-300 p-3 rounded">
+                  <div className="font-bold text-sm text-accent mb-1">🎨 Props/Assets (1 image)</div>
+                  <p className="text-xs opacity-80">Objects, items, products in scene</p>
+                </div>
+                <div className="bg-base-300 p-3 rounded">
+                  <div className="font-bold text-sm text-info mb-1">✨ Simple Shots</div>
+                  <p className="text-xs opacity-80">Just character reference is enough!</p>
+                </div>
+              </div>
               <div className="alert alert-info mt-4">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <div className="text-sm">
-                  <strong>Pro Tip:</strong> Use 3 references (front, side, action) for best consistency. Professional tier works great for this.
+                  <strong>Pro Tip:</strong> For simple shots, just use 1-2 character references. For complex scenes with specific locations or props, use all 4 reference slots for maximum control and consistency.
                 </div>
               </div>
             </div>

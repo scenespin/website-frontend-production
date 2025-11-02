@@ -98,7 +98,7 @@ export default function CharacterConsistencyPage() {
             </div>
           </div>
 
-          <h2>🎨 Feature 0098: Character Pose Packages (NEW!)</h2>
+          <h2>🎨 Character Pose Packages (NEW!)</h2>
           <p>For ultimate character consistency, generate complete pose packages with multiple pre-defined poses and angles in a single workflow.</p>
 
           <div className="alert alert-info my-8 not-prose">

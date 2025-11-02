@@ -6,6 +6,7 @@ import AssetBrowser from '@/components/AssetBrowser';
 import FolderTreeVisualization from '@/components/FolderTreeVisualization';
 import { Folder, Grid, Info, HardDrive, Cloud } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { LibrarySubNav } from '@/components/library/LibrarySubNav';
 
 export default function MyAssetsPage() {
   const [activeTab, setActiveTab] = useState('browser');
@@ -15,6 +16,9 @@ export default function MyAssetsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
+      {/* Library Sub-Navigation */}
+      <LibrarySubNav activeTab="assets" />
+      
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -72,14 +76,14 @@ export default function MyAssetsPage() {
           <TabsList className="grid w-full max-w-md grid-cols-2 bg-white dark:bg-base-300 rounded-xl p-1">
             <TabsTrigger 
               value="browser" 
-              className="data-[state=active]:bg-cinema-red data-[state=active]:text-white rounded-lg transition-all"
+              className="data-[state=active]:bg-cinema-red data-[state=active]:text-base-content rounded-lg transition-all"
             >
               <Grid className="w-4 h-4 mr-2" />
               Asset Browser
             </TabsTrigger>
             <TabsTrigger 
               value="tree"
-              className="data-[state=active]:bg-cinema-red data-[state=active]:text-white rounded-lg transition-all"
+              className="data-[state=active]:bg-cinema-red data-[state=active]:text-base-content rounded-lg transition-all"
             >
               <Folder className="w-4 h-4 mr-2" />
               Folder Structure
@@ -111,7 +115,7 @@ export default function MyAssetsPage() {
             </p>
             <a 
               href="/app/write" 
-              className="inline-flex items-center gap-2 px-6 py-3 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg font-medium transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg font-medium transition-all"
             >
               Create Project
             </a>

@@ -78,7 +78,7 @@ export function ClapboardCard({
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-base-content mb-1">
               {title}
             </h3>
             {description && (

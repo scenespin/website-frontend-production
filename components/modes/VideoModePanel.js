@@ -432,7 +432,7 @@ export function VideoModePanel({ onInsert }) {
               >
                 <div className={`max-w-[85%] rounded-lg px-4 py-3 ${
                   isUser 
-                    ? 'bg-cinema-red text-white' 
+                    ? 'bg-cinema-red text-base-content' 
                     : 'bg-base-200 text-base-content'
                 }`}>
                   <div className="whitespace-pre-wrap break-words">

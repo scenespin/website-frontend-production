@@ -583,7 +583,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
             {/* Character Bank Manager - Renders as its own modal */}
             {characterBankOpen && characterBankTarget && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+                    <div className="bg-base-100 dark:bg-base-300 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
                         <div className="flex justify-between items-center p-4 border-b">
                             <h2 className="text-xl font-bold">Character Bank - {characterBankTarget.name}</h2>
                             <button
@@ -591,7 +591,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                     setCharacterBankOpen(false);
                                     setCharacterBankTarget(null);
                                 }}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                className="p-2 hover:bg-base-100 dark:hover:bg-base-content/20 rounded"
                             >
                                 ✕
                             </button>

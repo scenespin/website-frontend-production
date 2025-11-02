@@ -506,8 +506,8 @@ function ReferenceCard({ reference }: { reference: CharacterReference }) {
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="absolute bottom-0 left-0 right-0 p-3">
-            <h4 className="font-semibold text-white text-sm">{reference.label}</h4>
-            <p className="text-xs text-white/80">{reference.view} • {reference.cameraAngle}</p>
+            <h4 className="font-semibold text-base-content text-sm">{reference.label}</h4>
+            <p className="text-xs text-base-content/80">{reference.view} • {reference.cameraAngle}</p>
             {reference.emotion && (
               <Badge variant="secondary" className="mt-2 text-xs">
                 {reference.emotion}
@@ -519,7 +519,7 @@ function ReferenceCard({ reference }: { reference: CharacterReference }) {
         {/* Base Reference Badge */}
         {reference.isBaseReference && (
           <div className="absolute top-2 right-2">
-            <Badge className="bg-yellow-500 text-white text-xs">
+            <Badge className="bg-yellow-500 text-base-content text-xs">
               Base
             </Badge>
           </div>

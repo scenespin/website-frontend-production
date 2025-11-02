@@ -241,7 +241,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-cinema-red to-cinema-blue p-6 text-white">
+        <div className="sticky top-0 bg-gradient-to-r from-cinema-red to-cinema-blue p-6 text-base-content">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
@@ -249,9 +249,9 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Add Voice Profile</h2>
-                <p className="text-sm text-white/80">Character: {character?.name}</p>
+                <p className="text-sm text-base-content/80">Character: {character?.name}</p>
                 {currentProject && (
-                  <p className="text-xs text-white/60 font-mono mt-1">
+                  <p className="text-xs text-base-content/60 font-mono mt-1">
                     📁 {targetFolder}
                   </p>
                 )}
@@ -259,7 +259,7 @@ export default function VoiceProfileModal({ character, isOpen, onClose, onSave }
             </div>
             <button
               onClick={onClose}
-              className="btn btn-ghost btn-circle text-white hover:bg-white/20"
+              className="btn btn-ghost btn-circle text-base-content hover:bg-white/20"
             >
               <X className="w-6 h-6" />
             </button>
