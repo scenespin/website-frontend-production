@@ -24,10 +24,10 @@ const config = {
         price: 0,
         priceAnchor: null,
         features: [
-          { name: "100 signup + 10 credits/month" },
+          { name: "50 signup + 10 credits/month" },
           { name: "All quality tiers & aspect ratios" },
           { name: "Upload your own footage" },
-          { name: "65 compositions, 30 transitions" },
+          { name: "68 compositions, 30 transitions" },
         ],
         isFeatured: false,
         // Signup page specific

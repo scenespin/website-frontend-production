@@ -24,6 +24,50 @@ interface LayoutOption {
   unlockLevel?: number;
 }
 
+// Default layouts fallback when API is unavailable
+const DEFAULT_LAYOUTS: LayoutOption[] = [
+  {
+    id: 'side-by-side',
+    name: 'Side by Side',
+    description: 'Two videos side-by-side',
+    num_regions: 2,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['split-screen', 'comparison'],
+    example_use_case: 'Compare two perspectives',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'picture-in-picture',
+    name: 'Picture-in-Picture',
+    description: 'Small video overlaid on main video',
+    num_regions: 2,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['pip', 'reactions'],
+    example_use_case: 'Reaction videos',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: '2x2-grid',
+    name: '2x2 Grid',
+    description: 'Four videos in a grid',
+    num_regions: 4,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['grid', 'phone-call'],
+    example_use_case: 'Video conference call',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'phone-call-3way',
+    name: '3-Way Call',
+    description: 'Three vertical videos',
+    num_regions: 3,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['phone-call', 'mobile'],
+    example_use_case: 'Mobile phone conversation',
+    recommended_aspect_ratios: ['16:9', '9:16']
+  }
+];
+
 interface LayoutSelectorProps {
   selectedLayout: string | null;
   onSelectLayout: (layoutId: string) => void;
@@ -43,10 +87,13 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
   const fetchLayouts = async () => {
     try {
       const response = await fetch('/api/composition/layouts');
+      if (!response.ok) throw new Error('API not available');
       const data = await response.json();
       setLayouts(data.layouts || []);
     } catch (error) {
-      console.error('Failed to fetch layouts:', error);
+      console.error('Failed to fetch layouts, using defaults:', error);
+      // Fallback to default layouts
+      setLayouts(DEFAULT_LAYOUTS);
     } finally {
       setLoading(false);
     }

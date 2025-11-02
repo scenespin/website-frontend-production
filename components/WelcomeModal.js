@@ -58,7 +58,7 @@ export default function WelcomeModal({ isOpen, onClose, userCredits = 50 }) {
             <div>
               <h4 className="font-semibold text-lg">🎥 Production</h4>
               <p className="text-sm opacity-80">
-                Generate AI videos from text, upload your footage, access 50+ workflows. Build your scene library.
+                Generate AI videos from text, upload your footage, access 58 workflows. Build your scene library.
               </p>
             </div>
           </div>
@@ -68,7 +68,7 @@ export default function WelcomeModal({ isOpen, onClose, userCredits = 50 }) {
             <div>
               <h4 className="font-semibold text-lg">✂️ Timeline</h4>
               <p className="text-sm opacity-80">
-                Multi-track editor with 65 compositions and 30 transitions. Combine AI shots with your footage.
+                Multi-track editor with 68 compositions and 30 transitions. Combine AI shots with your footage.
               </p>
             </div>
           </div>
@@ -96,32 +96,32 @@ export default function WelcomeModal({ isOpen, onClose, userCredits = 50 }) {
 
           <div className="space-y-3">
             <Link
-              href="/production"
+              href="/dashboard"
               onClick={onClose}
               className="btn btn-primary btn-lg w-full flex items-center justify-center gap-2"
             >
               <Video className="w-5 h-5" />
-              Generate a Quick Video
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-
-            <Link
-              href="/editor"
-              onClick={onClose}
-              className="btn btn-outline btn-lg w-full flex items-center justify-center gap-2"
-            >
-              <Film className="w-5 h-5" />
-              Start with a Script
+              Go to Dashboard
               <ArrowRight className="w-5 h-5" />
             </Link>
 
             <Link
               href="/features"
               onClick={onClose}
-              className="btn btn-ghost btn-lg w-full flex items-center justify-center gap-2"
+              className="btn btn-outline btn-lg w-full flex items-center justify-center gap-2"
             >
               <Sparkles className="w-5 h-5" />
-              Explore 50+ Workflows
+              Explore 58 Workflows
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+
+            <Link
+              href="/help"
+              onClick={onClose}
+              className="btn btn-ghost btn-lg w-full flex items-center justify-center gap-2"
+            >
+              <Film className="w-5 h-5" />
+              View Help Docs
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>

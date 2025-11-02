@@ -42,7 +42,7 @@ export default function Page() {
           <p className="text-xl md:text-2xl opacity-90 max-w-3xl">
             58 AI Workflows + 68 Professional Compositions<br className="hidden sm:block" /> + Cinema-Grade HDR
             <br />
-            <strong className="text-[#DC143C]">The Complete Production Pipeline: Write → Export</strong>
+            <strong className="text-[#DC143C]">The Complete Production Pipeline:<br className="hidden md:block" /> Write → Export</strong>
           </p>
 
           {/* Value Props */}
@@ -208,19 +208,18 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Google Drive & Dropbox for Media */}
               <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
                 <div className="card-body">
                   <div className="text-5xl mb-3">☁️</div>
                   <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
                   <p className="text-sm opacity-80 mb-4">
-                    Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
+                    Videos, audio, images stored in <strong>YOUR Google Drive, Dropbox, or GitHub</strong>.
                     We store files for 7 days max, then YOU choose where they go.
                   </p>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
-                      <span>Choose Google Drive or Dropbox</span>
+                      <span>Choose Google Drive, Dropbox, or GitHub</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
@@ -313,36 +312,36 @@ export default function Page() {
               <div className="card-body">
                 <div className="badge badge-error mb-2">The Old Way 😫</div>
                 <h3 className="card-title text-2xl mb-2">Traditional Stack</h3>
-                <p className="text-sm opacity-70 mb-4">6 separate subscriptions.<br />$1,776/year in software fees.<br /><strong>BEFORE</strong> you even start creating.</p>
+                <p className="text-sm opacity-70 mb-3">6 separate subscriptions. $1,776/year in software fees. <strong>BEFORE</strong> you even start creating.</p>
                 
-                <ul className="space-y-3">
-                  <li className="flex justify-between items-center">
+                <ul className="space-y-2">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="opacity-80">Final Draft</span>
                     <span className="font-semibold">$250/yr</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="opacity-80">Adobe Premiere</span>
                     <span className="font-semibold">$263/yr</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="opacity-80">Adobe After Effects</span>
                     <span className="font-semibold">$263/yr</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="opacity-80">Stock footage</span>
                     <span className="font-semibold">$500/yr</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="opacity-80">Stock music/SFX</span>
                     <span className="font-semibold">$300/yr</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="opacity-80">Cloud storage</span>
                     <span className="font-semibold">$200/yr</span>
                   </li>
-                  <li className="border-t border-error/30 pt-3 flex justify-between items-center">
-                    <span className="font-bold text-lg">Total</span>
-                    <span className="font-bold text-2xl text-error">$1,776/yr</span>
+                  <li className="border-t border-error/30 pt-2 mt-2 flex justify-between items-center">
+                    <span className="font-bold">Total</span>
+                    <span className="font-bold text-xl text-error">$1,776/yr</span>
                   </li>
                   <li className="text-xs opacity-60 italic">
                     ⚠️ Plus you still need to pay for AI services
@@ -356,42 +355,42 @@ export default function Page() {
               <div className="card-body">
                 <div className="badge badge-success mb-2">The Future ✨</div>
                 <h3 className="card-title text-2xl mb-2">{config.appName}: Software is FREE</h3>
-                <p className="text-sm opacity-80 mb-4">
-                  <strong>All features. All tools. All workflows.</strong><br />Everything unlocked for <span className="text-success font-bold">$0/year</span>.<br />Only pay for AI when you use it.
+                <p className="text-sm opacity-80 mb-3">
+                  <strong>All features. All tools. All workflows.</strong> Everything unlocked for <span className="text-success font-bold">$0/year</span>. Only pay for AI when you use it.
                 </p>
                 
-                <ul className="space-y-3">
-                  <li className="flex justify-between items-center">
+                <ul className="space-y-2">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ Screenplay Editor</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ 8-Track Timeline</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ 68 Compositions</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ Character Bank</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ Upload Footage</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ Cloud Export</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex justify-between items-center text-sm">
                     <span className="font-semibold">✅ 58 AI Workflows</span>
                     <span className="font-bold text-success">FREE</span>
                   </li>
-                  <li className="border-t border-success/30 pt-3 flex justify-between items-center">
-                    <span className="font-bold text-lg">Software Cost</span>
-                    <span className="font-bold text-3xl text-success">$0/yr</span>
+                  <li className="border-t border-success/30 pt-2 mt-2 flex justify-between items-center">
+                    <span className="font-bold">Software Cost</span>
+                    <span className="font-bold text-xl text-success">$0/yr</span>
                   </li>
                   <li className="text-sm font-semibold text-success">
                     💰 Save $1,776/year!

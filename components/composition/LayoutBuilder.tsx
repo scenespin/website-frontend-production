@@ -212,9 +212,9 @@ export default function LayoutBuilder({ initialLayout, onSave, onTest }: LayoutB
   return (
     <div className="grid grid-cols-[300px_1fr_350px] gap-6 h-[calc(100vh-200px)]">
       {/* LEFT: Layers Panel */}
-      <Card className="bg-gray-800/50 border-gray-700 p-4 overflow-y-auto">
+      <Card className="bg-base-200 border-base-300 p-4 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold flex items-center gap-2">
+          <h3 className="text-base-content font-semibold flex items-center gap-2">
             <Layers size={18} />
             Layers
           </h3>

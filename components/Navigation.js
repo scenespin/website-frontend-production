@@ -4,7 +4,6 @@ import { useUser, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard,
   MessageSquare,
   Video,
   FileText,
@@ -49,7 +48,6 @@ export default function Navigation() {
   }
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Screenwriting Assistant', action: () => openDrawer('chat'), icon: MessageSquare },
     { name: 'Workflows', href: '/workflows', icon: Zap },
     { name: 'Generate Video', href: '/production', icon: Video },
@@ -66,7 +64,7 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto w-full px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
+            <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2">
               <div className="w-10 h-10 bg-cinema-red rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">W</span>
               </div>
