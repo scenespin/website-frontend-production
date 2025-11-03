@@ -30,7 +30,9 @@ import {
   Download,
   Music,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Users,
+  Smartphone
 } from 'lucide-react';
 import { LayoutSelector } from './LayoutSelector';
 import { PacingSelector } from './PacingSelector';
@@ -81,8 +83,9 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [selectedPacing, setSelectedPacing] = useState<string | null>(null);
   const [selectedAnimation, setSelectedAnimation] = useState<string | null>(null);
-  const [compositionType, setCompositionType] = useState<'static' | 'animated' | 'paced' | 'music-video'>('static');
+  const [compositionType, setCompositionType] = useState<'static' | 'animated' | 'paced' | 'music-video' | 'podcast' | 'social-media'>('static');
   const [musicVideoStyle, setMusicVideoStyle] = useState<'on-beat' | 'every-2-beats' | 'every-4-beats' | 'on-bars'>('on-beat');
+  const [socialMediaFormat, setSocialMediaFormat] = useState<'vertical-9-16' | 'square-1-1' | 'vertical-4-5'>('vertical-9-16');
   const [beatAnalysis, setBeatAnalysis] = useState<any>(null);
   const [isAnalyzingBeats, setIsAnalyzingBeats] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
@@ -301,10 +304,12 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       // Determine composition type
-      let compType: 'static-layout' | 'animated' | 'paced-sequence' | 'music-video';
+      let compType: 'static-layout' | 'animated' | 'paced-sequence' | 'music-video' | 'podcast' | 'social-media';
       if (compositionType === 'static') compType = 'static-layout';
       else if (compositionType === 'animated') compType = 'animated';
       else if (compositionType === 'music-video') compType = 'music-video';
+      else if (compositionType === 'podcast') compType = 'podcast';
+      else if (compositionType === 'social-media') compType = 'social-media';
       else compType = 'paced-sequence';
 
       // NEW (Feature 0070): Use S3 URLs instead of uploading files
@@ -327,6 +332,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
       if (compositionType === 'music-video' && beatAnalysis) {
         requestBody.beat_analysis = beatAnalysis;
         requestBody.music_video_style = musicVideoStyle;
+      }
+      // NEW: Social media format
+      if (compositionType === 'social-media') {
+        requestBody.social_media_format = socialMediaFormat;
       }
 
       const response = await fetch(`${apiUrl}/api/composition/compose`, {
@@ -438,6 +447,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
     if (compositionType === 'animated' && selectedAnimation) return true;
     if (compositionType === 'paced' && selectedPacing) return true;
     if (compositionType === 'music-video' && backgroundMusic && beatAnalysis) return true;
+    if (compositionType === 'podcast') return true; // No selection needed, simple side-by-side
+    if (compositionType === 'social-media') return true; // Format selected, ready to go
     return false;
   };
 
@@ -447,6 +458,25 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
    */
   const calculateRenderCost = (): number => {
     const numVideos = videoClips.length;
+    
+    // Podcast/Interview compositions - Side-by-side
+    if (compositionType === 'podcast') {
+      if (numVideos === 2) return 10;
+      if (numVideos === 3) return 15;
+      if (numVideos <= 6) return 20;
+      if (numVideos <= 12) return 30;
+      return 30 + Math.ceil((numVideos - 12) / 6) * 15;
+    }
+    
+    // Social Media compositions - Vertical/square
+    if (compositionType === 'social-media') {
+      if (numVideos <= 3) return 10;
+      if (numVideos <= 6) return 15;
+      if (numVideos <= 12) return 25;
+      if (numVideos <= 25) return 40;
+      if (numVideos <= 50) return 65;
+      return 65 + Math.ceil((numVideos - 50) / 25) * 20;
+    }
     
     // Music video compositions - Beat-synced (includes beat analysis cost)
     if (compositionType === 'music-video') {
@@ -504,6 +534,23 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
    */
   const estimateProcessingTime = (): string => {
     const numVideos = videoClips.length;
+    
+    // Podcast compositions - fast (simple side-by-side)
+    if (compositionType === 'podcast') {
+      if (numVideos <= 3) return '20-40 seconds';
+      if (numVideos <= 6) return '40-60 seconds';
+      if (numVideos <= 12) return '1-2 minutes';
+      return `${Math.ceil(numVideos / 8)}-${Math.ceil(numVideos / 6)} minutes`;
+    }
+    
+    // Social Media compositions - fast (vertical/square cuts)
+    if (compositionType === 'social-media') {
+      if (numVideos <= 6) return '30-60 seconds';
+      if (numVideos <= 12) return '1-2 minutes';
+      if (numVideos <= 25) return '2-4 minutes';
+      if (numVideos <= 50) return '4-8 minutes';
+      return `${Math.ceil(numVideos / 10)}-${Math.ceil(numVideos / 7)} minutes`;
+    }
     
     // Music video compositions - medium processing time (+ beat analysis)
     if (compositionType === 'music-video') {
@@ -695,7 +742,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <div className={`grid gap-4 ${isMobileView ? 'grid-cols-1' : 'grid-cols-4'}`}>
+                    <div className={`grid gap-4 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
                       <Button
                         variant="outline"
                         className={`h-28 flex flex-col gap-2 border-2 transition-all ${
@@ -711,9 +758,39 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                           <div className="text-xs opacity-70">Multi-panel layouts</div>
                         </div>
                       </Button>
-                      {/* Hide Animated & Paced & Music Video on mobile - Feature 0068 */}
+                      {/* Hide Advanced types on mobile - Feature 0068 */}
                       {!isMobileView && (
                         <>
+                          <Button
+                            variant="outline"
+                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                              compositionType === 'podcast' 
+                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                            }`}
+                            onClick={() => setCompositionType('podcast')}
+                          >
+                            <Users className="w-7 h-7" />
+                            <div className="text-center">
+                              <div className="font-bold text-base">🎙️ Podcast</div>
+                              <div className="text-xs opacity-70">Side-by-side interview</div>
+                            </div>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                              compositionType === 'social-media' 
+                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                            }`}
+                            onClick={() => setCompositionType('social-media')}
+                          >
+                            <Smartphone className="w-7 h-7" />
+                            <div className="text-center">
+                              <div className="font-bold text-base">📱 Social</div>
+                              <div className="text-xs opacity-70">Vertical/square format</div>
+                            </div>
+                          </Button>
                           <Button
                             variant="outline"
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
@@ -1065,6 +1142,77 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             <div className="text-xs opacity-70">Dramatic pacing</div>
                           </div>
                         </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Social Media Format Selector */}
+                {compositionType === 'social-media' && (
+                  <Card className="bg-[#141414] border border-white/10 shadow-lg">
+                    <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
+                      <CardTitle className="flex items-center gap-2 text-base-content">
+                        <div className="p-1.5 bg-[#DC143C] rounded">
+                          <Smartphone className="w-4 h-4 text-black" />
+                        </div>
+                        Social Media Format
+                      </CardTitle>
+                      <CardDescription>
+                        Choose aspect ratio for your platform
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-3 gap-3">
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            socialMediaFormat === 'vertical-9-16' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setSocialMediaFormat('vertical-9-16')}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">9:16 Vertical</div>
+                            <div className="text-xs opacity-70">TikTok, Reels, Shorts</div>
+                          </div>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            socialMediaFormat === 'square-1-1' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setSocialMediaFormat('square-1-1')}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">1:1 Square</div>
+                            <div className="text-xs opacity-70">Instagram feed</div>
+                          </div>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            socialMediaFormat === 'vertical-4-5' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setSocialMediaFormat('vertical-4-5')}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">4:5 Vertical</div>
+                            <div className="text-xs opacity-70">Instagram portrait</div>
+                          </div>
+                        </Button>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <p className="text-xs text-muted-foreground">
+                          💡 <strong>Tip:</strong> Vertical formats work best for mobile-first platforms. Your videos will be automatically formatted and optimized for quick consumption.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

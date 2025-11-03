@@ -12,7 +12,7 @@ interface CompositionPreviewProps {
   layout: string | null;
   animation: string | null;
   pacing: string | null;
-  type: 'static' | 'animated' | 'paced' | 'music-video';
+  type: 'static' | 'animated' | 'paced' | 'music-video' | 'podcast' | 'social-media';
 }
 
 export function CompositionPreview({ layout, animation, pacing, type }: CompositionPreviewProps) {
@@ -75,7 +75,12 @@ export function CompositionPreview({ layout, animation, pacing, type }: Composit
         <rect x="0" y="0" width="1920" height="1080" fill="#f1f5f9" className="dark:fill-slate-900" />
         <rect x="50" y="50" width="1820" height="980" fill="#fbbf24" opacity="0.4" stroke="#f59e0b" strokeWidth="4" />
         <text x="960" y="540" textAnchor="middle" fill="#64748b" className="dark:fill-slate-400" fontSize="48" fontFamily="system-ui">
-          {type === 'animated' ? '⚡ Animated' : type === 'paced' ? '⏱ Paced' : type === 'music-video' ? '🎵 Beat-Synced' : 'Preview'}
+          {type === 'animated' ? '⚡ Animated' : 
+           type === 'paced' ? '⏱ Paced' : 
+           type === 'music-video' ? '🎵 Beat-Synced' :
+           type === 'podcast' ? '🎙️ Interview' :
+           type === 'social-media' ? '📱 Vertical' : 
+           'Preview'}
         </text>
       </svg>
     );
@@ -102,6 +107,8 @@ export function CompositionPreview({ layout, animation, pacing, type }: Composit
               {type === 'animated' && animation && 'Animated Composition'}
               {type === 'paced' && pacing && 'Emotional Pacing Applied'}
               {type === 'music-video' && 'Beat-Synced Music Video'}
+              {type === 'podcast' && 'Side-by-Side Interview Layout'}
+              {type === 'social-media' && 'Vertical Format for Social'}
             </p>
           </div>
         )}
