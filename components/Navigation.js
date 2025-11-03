@@ -82,14 +82,20 @@ export default function Navigation() {
   }
 
   // Navigation structure - Desktop: flat links, Mobile: hierarchical accordions
+  // VERIFIED ROUTES - All pages exist in /app directory
   const navigation = [
+    {
+      name: 'Dashboard',
+      icon: FolderOpen,
+      href: '/dashboard'
+    },
     {
       name: 'Editor',
       icon: FileText,
-      href: '/editor',
+      href: '/write', // Changed from /editor (which redirects to dashboard)
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Write', href: '/editor', icon: FileText, description: 'Screenplay editor' },
+        { name: 'Write', href: '/write', icon: FileText, description: 'Screenplay editor' },
         { name: 'Story Beats', href: '/beats', icon: BookOpen, description: 'Narrative structure' },
         { name: 'Characters', href: '/characters', icon: Users, description: 'Cast management' },
         { name: 'Locations', href: '/locations', icon: MapPin, description: 'Scene settings' },
@@ -101,11 +107,8 @@ export default function Navigation() {
       href: '/production',
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Scene Builder', href: '/production?tab=scene-builder', icon: Film, description: 'Generate complete scenes' },
-        { name: 'Workflows', href: '/production?tab=workflows', icon: Zap, description: 'Guided production' },
-        { name: 'Character Bank', href: '/production?tab=characters', icon: Users, description: 'Character references' },
-        { name: 'Location Bank', href: '/production?tab=locations', icon: MapPin, description: 'Location references' },
-        { name: 'Asset Bank', href: '/production?tab=assets', icon: Image, description: 'Manage all assets' },
+        { name: 'Production Studio', href: '/production', icon: Video, description: 'AI video & audio' },
+        { name: 'Workflows', href: '/workflows', icon: Zap, description: 'Guided production' },
       ]
     },
     {

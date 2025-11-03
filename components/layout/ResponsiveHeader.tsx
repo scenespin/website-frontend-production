@@ -47,9 +47,10 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // VERIFIED ROUTES - All pages exist and work
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', description: 'Overview & quick access', icon: 'dashboard' },
-    { name: 'Editor', href: '/editor', description: 'Screenplay editor', icon: 'write' },
+    { name: 'Editor', href: '/write', description: 'Screenplay editor', icon: 'write' }, // Changed from /editor
     { 
       name: 'Production', 
       href: '/production', 
@@ -72,7 +73,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
     },
     { 
       name: 'Library', 
-      href: '/dashboard', 
+      href: '/assets', 
       description: 'Projects & assets',
       icon: 'library'
     },

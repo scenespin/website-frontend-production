@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createCheckout } from "@/libs/stripe";
-import connectMongo from "@/libs/mongoose";
-import User from "@/models/User";
 
-// This function is used to create a Stripe Checkout Session (one-time payment or subscription)
-// It's called by the <ButtonCheckout /> component
-// By default, it doesn't force users to be authenticated. But if they are, it will prefill the Checkout data with their email and/or credit card
+// This function proxies to the backend API which handles Stripe checkout with DynamoDB
 export async function POST(req) {
   const body = await req.json();
 
@@ -31,30 +26,48 @@ export async function POST(req) {
   }
 
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
 
-    await connectMongo();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - please sign in" },
+        { status: 401 }
+      );
+    }
 
-    const user = userId ? await User.findById(userId) : null;
-
-    const { priceId, mode, successUrl, cancelUrl } = body;
-
-    const stripeSessionURL = await createCheckout({
-      priceId,
-      mode,
-      successUrl,
-      cancelUrl,
-      // If user is logged in, it will pass the user ID to the Stripe Session so it can be retrieved in the webhook later
-      clientReferenceId: user?._id?.toString(),
-      // If user is logged in, this will automatically prefill Checkout data like email and/or credit card for faster checkout
-      user,
-      // If you send coupons from the frontend, you can pass it here
-      // couponId: body.couponId,
+    // Get auth token for backend API
+    const token = await getToken({ template: 'wryda-backend' });
+    
+    // Call backend API which uses DynamoDB
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3200';
+    const response = await fetch(`${backendUrl}/api/stripe/checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        userId,
+        priceId: body.priceId,
+        mode: body.mode,
+        successUrl: body.successUrl,
+        cancelUrl: body.cancelUrl
+      })
     });
 
-    return NextResponse.json({ url: stripeSessionURL });
+    if (!response.ok) {
+      const errorData = await response.json();
+      return NextResponse.json(
+        { error: errorData.message || 'Failed to create checkout session' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ url: data.url });
+
   } catch (e) {
-    console.error(e);
+    console.error('[Stripe Checkout] Error:', e);
     return NextResponse.json({ error: e?.message }, { status: 500 });
   }
 }

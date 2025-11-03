@@ -48,9 +48,7 @@ export default function Dashboard() {
   };
 
   const handleCloseWelcome = async () => {
-    setShowWelcomeModal(false);
-    
-    // Update user metadata to mark welcome as seen
+    // Update user metadata FIRST before closing modal
     try {
       await user?.update({
         publicMetadata: {
@@ -58,8 +56,13 @@ export default function Dashboard() {
           hasSeenWelcome: true,
         },
       });
+      console.log('[Dashboard] Welcome modal dismissed and saved');
     } catch (error) {
-      console.error('Error updating user metadata:', error);
+      console.error('[Dashboard] Error saving welcome modal state:', error);
+      // Still close the modal even if save fails, but user might see it again
+    } finally {
+      // Close modal after save attempt (success or failure)
+      setShowWelcomeModal(false);
     }
   };
 
