@@ -137,7 +137,7 @@ export default function AgentDrawer({ children }) {
       >
              {/* Header (Desktop) */}
              <div className="h-16 flex items-center justify-between px-4 bg-base-300 border-b border-cinema-red/20">
-               <h3 className="text-lg font-bold text-base-content">Screenwriting Assistant</h3> {/* Changed from AI Assistant */}
+               <h3 className="text-lg font-bold text-base-content">Screenwriting Assistant</h3>
                <button
                  onClick={closeDrawer}
                  className="btn btn-sm btn-ghost btn-circle"

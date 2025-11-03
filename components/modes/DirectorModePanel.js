@@ -92,17 +92,12 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header with Model Selector */}
+      {/* Header */}
       <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2">
           <Clapperboard className="w-5 h-5 text-cinema-red" />
           <h3 className="font-bold text-base-content">Director Agent</h3>
         </div>
-        <ModelSelector 
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-        />
-        <p className="text-xs text-base-content/60 mt-2">Cinematic direction, shot planning, dialogue writing, and visual storytelling</p>
       </div>
       
       {/* Messages Area */}
