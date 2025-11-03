@@ -698,7 +698,7 @@ function UnifiedChatPanelInner({
         )}
         
         {/* Main Input Area - ChatGPT/Claude Style */}
-        <div className="max-w-3xl mx-auto px-4 md:px-6 py-4 md:py-6">
+        <div className="max-w-3xl mx-auto px-3 md:px-4 py-2">
           <div className="relative bg-base-200 rounded-2xl shadow-sm border border-base-300/50 focus-within:border-cinema-red/30 focus-within:shadow-md transition-all duration-200">
             <textarea
               value={state.input}
@@ -711,7 +711,7 @@ function UnifiedChatPanelInner({
               }}
               placeholder={state.inputPlaceholder}
               disabled={state.isStreaming || isUploading}
-              className="w-full min-h-[60px] max-h-[200px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none px-4 md:px-5 py-4 text-base pr-28"
+              className="w-full min-h-[52px] max-h-[200px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none px-3 md:px-4 py-3 text-base pr-28"
               rows={1}
               style={{ 
                 border: 'none',
@@ -757,7 +757,7 @@ function UnifiedChatPanelInner({
         </div>
 
         {/* Bottom Controls - Mode & Model Selector */}
-        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-4 flex items-center gap-3 text-xs">
+        <div className="max-w-3xl mx-auto px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
           <ModeSelector />
           {/* Only show LLM selector for AI Agents */}
           {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
