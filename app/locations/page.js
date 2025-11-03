@@ -1,6 +1,5 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -12,7 +11,6 @@ import { EditorSubNav } from '@/components/editor/EditorSubNav';
 // ResponsiveHeader removed - will use Navigation.js from wrapper
 
 export default function LocationsPage() {
-  const { user } = useUser();
   const { getToken } = useAuth();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId');
@@ -25,8 +23,9 @@ export default function LocationsPage() {
   const [showAddLocation, setShowAddLocation] = useState(false);
 
   // Load locations from API
+  // Note: Auth guaranteed by AuthenticatedPageWrapper
   useEffect(() => {
-    if (!projectId || !user) return;
+    if (!projectId) return;
     
     const loadLocations = async () => {
       try {
@@ -57,18 +56,7 @@ export default function LocationsPage() {
     };
     
     loadLocations();
-  }, [projectId, user, locationId, context.currentSceneName, getToken]);
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-base-100">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Please sign in</h2>
-          <p className="opacity-60">You need to be signed in to access Locations</p>
-        </div>
-      </div>
-    );
-  }
+  }, [projectId, locationId, context.currentSceneName, getToken]);
 
   return (
     <>

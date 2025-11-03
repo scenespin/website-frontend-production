@@ -27,12 +27,13 @@ export default function Dashboard() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   useEffect(() => {
-    // Only fetch data once user and auth are loaded
-    if (user && getToken) {
+    // Auth guaranteed by wrapper, fetch data immediately
+    // Note: We keep user in scope for welcome modal logic
+    if (user) {
       fetchDashboardData();
       checkFirstVisit();
     }
-  }, [user, getToken]);
+  }, [user]);
 
   const checkFirstVisit = async () => {
     try {
