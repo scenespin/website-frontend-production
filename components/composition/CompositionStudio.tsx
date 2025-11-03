@@ -461,52 +461,15 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         </div>
       )}
       
-      {/* Clean Professional Header */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="bg-[#141414] rounded-xl shadow-2xl overflow-hidden border border-white/10 p-8">
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex-1 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#DC143C] rounded-lg">
-                  <Film className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">
-                    Composition Studio
-                  </h1>
-                  <p className="text-sm text-gray-400">
-                    Professional video compositing
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                  <div className="text-xs text-gray-400 mb-1">Director</div>
-                  <div className="font-semibold text-white text-sm">AI Director</div>
-                </div>
-                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                  <div className="text-xs text-gray-400 mb-1">Scene</div>
-                  <div className="font-semibold text-white text-sm">Multi-Video</div>
-                </div>
-                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                  <div className="text-xs text-gray-400 mb-1">Take</div>
-                  <div className="font-semibold text-white text-sm">#{recentCompositions + 1}</div>
-                </div>
-                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                  <div className="text-xs text-gray-400 mb-1">Date</div>
-                  <div className="font-semibold text-white text-sm">{new Date().toLocaleDateString()}</div>
-                </div>
-              </div>
-            </div>
-            
-            {recentCompositions > 0 && (
-              <div className="bg-gradient-to-br from-[#DC143C] to-[#B01030] text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg border-2 border-[#A01020]">
-                <div className="text-xs opacity-70 mb-1">Current</div>
-                <div>TAKE {recentCompositions}</div>
-              </div>
-            )}
-          </div>
+      {/* Compact Breadcrumb Header */}
+      <div className="max-w-7xl mx-auto mb-4">
+        <div className="flex items-center gap-2 text-sm text-gray-400 px-2">
+          <Film className="w-4 h-4 text-[#DC143C]" />
+          <span className="text-white font-semibold">Composition Studio</span>
+          <span className="text-gray-600">•</span>
+          <span>Multi-Video</span>
+          <span className="text-gray-600">•</span>
+          <span>Take #{recentCompositions + 1}</span>
         </div>
       </div>
       

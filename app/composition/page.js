@@ -31,7 +31,7 @@ export default function CompositionPage() {
   return (
     <>
       <ResponsiveHeader />
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-16">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-20">
         <CompositionStudio 
           userId={user.id}
           recomposeData={recomposeData}
