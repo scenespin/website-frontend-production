@@ -748,7 +748,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                           compositionType === 'static' 
                             ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                            : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                         }`}
                         onClick={() => setCompositionType('static')}
                       >
@@ -766,7 +766,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'podcast' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('podcast')}
                           >
@@ -781,7 +781,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'social-media' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('social-media')}
                           >
@@ -796,7 +796,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'animated' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('animated')}
                           >
@@ -811,7 +811,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'paced' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('paced')}
                           >
@@ -826,7 +826,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'music-video' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('music-video')}
                           >

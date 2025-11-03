@@ -85,11 +85,6 @@ export default function Navigation() {
   // VERIFIED ROUTES - All pages exist in /app directory
   const navigation = [
     {
-      name: 'Dashboard',
-      icon: FolderOpen,
-      href: '/dashboard'
-    },
-    {
       name: 'Editor',
       icon: FileText,
       href: '/write', // Changed from /editor (which redirects to dashboard)

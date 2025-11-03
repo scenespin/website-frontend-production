@@ -207,8 +207,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600
-                     bg-white dark:bg-slate-800 text-sm
+            className="px-3 py-1.5 rounded-lg border border-slate-700
+                     bg-slate-800 text-white text-sm
                      focus:ring-2 focus:ring-primary focus:border-transparent"
           >
             <option value="all">All Jobs</option>
@@ -235,8 +235,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
           {jobs.map((job) => (
             <div
               key={job.jobId}
-              className="p-4 rounded-lg border border-slate-200 dark:border-slate-700
-                       bg-white dark:bg-slate-800 hover:shadow-md transition-shadow"
+              className="p-4 rounded-lg border border-slate-700
+                       bg-slate-800 hover:shadow-md transition-shadow"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-3">

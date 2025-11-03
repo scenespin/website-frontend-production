@@ -512,7 +512,7 @@ export default function TimelineMasteryPage() {
                 <ul className="text-xs list-disc list-inside space-y-1">
                   <li>Web (1080p)</li>
                   <li>High Quality (4K)</li>
-                  <li>ProRes (4K, lossless)</li>
+                  <li>16-bit EXR HDR (Professional Studio)</li>
                   <li>Social Media (optimized)</li>
                 </ul>
               </div>
@@ -521,9 +521,9 @@ export default function TimelineMasteryPage() {
               <div className="card-body">
                 <h3 className="card-title text-sm">Format Options</h3>
                 <ul className="text-xs list-disc list-inside space-y-1">
-                  <li>MP4 (H.264)</li>
-                  <li>MOV (ProRes)</li>
-                  <li>WebM</li>
+                  <li>MP4 (H.264) - Universal compatibility</li>
+                  <li>16-bit EXR HDR - Professional color grading</li>
+                  <li>WebM - Web optimized</li>
                   <li>GIF (short clips)</li>
                 </ul>
               </div>

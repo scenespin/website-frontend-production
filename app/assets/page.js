@@ -18,7 +18,7 @@ function AssetsContent() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
-      <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
         {/* Library Sub-Navigation */}
         <LibrarySubNav activeTab="assets" />
       
@@ -133,7 +133,7 @@ function AssetsContent() {
 export default function MyAssetsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto mb-4"></div>
           <p className="text-base-content/60">Loading assets...</p>

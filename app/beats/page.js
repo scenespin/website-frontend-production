@@ -60,7 +60,7 @@ export default function StoryBeatsPage() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
-      <div className="min-h-screen bg-base-100 text-base-content pt-16">
+      <div className="min-h-screen bg-slate-900 text-base-content">
         {/* Editor Sub-Navigation */}
         <EditorSubNav activeTab="beats" projectId={projectId} />
 

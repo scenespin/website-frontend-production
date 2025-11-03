@@ -210,7 +210,7 @@ export default function TroubleshootingPage() {
               <div className="collapse-content text-sm"> 
                 <p><strong>Check:</strong></p>
                 <ul className="list-disc list-inside space-y-1 mt-2">
-                  <li>Export quality settings (use High Quality or ProRes)</li>
+                  <li>Export quality settings (use High Quality 4K)</li>
                   <li>Source clips are high quality</li>
                   <li>Correct resolution selected</li>
                   <li>Bitrate is appropriate for use case</li>
@@ -221,13 +221,13 @@ export default function TroubleshootingPage() {
             <div className="collapse collapse-arrow bg-base-200">
               <input type="checkbox" /> 
               <div className="collapse-title font-medium">
-                Can&apos;t export ProRes format
+                Can&apos;t export 16-bit EXR HDR format
               </div>
               <div className="collapse-content text-sm"> 
                 <p><strong>Requirements:</strong></p>
                 <ul className="list-disc list-inside space-y-1 mt-2">
                   <li>Studio or Ultra plan required</li>
-                  <li>Upgrade your plan to access ProRes</li>
+                  <li>Export from Timeline → Select "HDR Export" option</li>
                   <li>Use MP4 H.264 for general use</li>
                 </ul>
               </div>

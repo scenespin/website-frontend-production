@@ -20,7 +20,7 @@ function TimelineContent() {
 
   return (
     <>
-      <div className="min-h-screen bg-base-100 pt-16">
+      <div className="min-h-screen bg-slate-900">
         <EnhancedTimelineEditor 
           projectId={projectId}
           preloadedClips={preloadedClipsData}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
-import WorkflowCategories from "@/components/WorkflowCategories";
 
 export const metadata = getSEOTags({
   title: `Complete Features | ${config.appName}`,
@@ -392,7 +391,20 @@ export default function Features() {
           </div>
 
           {/* Browse by Category */}
-          <WorkflowCategories />
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">📂 Browse All 58 Workflows:</h3>
+            <Link href="/help/workflows" className="card bg-gradient-to-br from-blue-500/10 to-purple-600/10 border-2 border-blue-500/30 hover:border-blue-500 transition-colors block">
+              <div className="card-body p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold mb-2">🚀 View Complete Workflow Directory</div>
+                    <div className="text-sm opacity-70">58 professional workflows organized by category with full details, costs, and step-by-step guides</div>
+                  </div>
+                  <div className="text-4xl">→</div>
+                </div>
+              </div>
+            </Link>
+          </div>
         </section>
 
         {/* Compositions & Transitions */}

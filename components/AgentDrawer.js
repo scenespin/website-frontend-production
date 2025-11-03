@@ -135,7 +135,7 @@ export default function AgentDrawer({ children }) {
 
           {/* Content */}
           {isDrawerOpen && (
-            <div className="h-[calc(100%-64px)] overflow-auto">
+            <div className="h-[calc(100%-64px)] overflow-auto pb-6">
               {children}
             </div>
           )}
@@ -166,7 +166,7 @@ export default function AgentDrawer({ children }) {
              </div>
 
         {/* Content */}
-        <div className="h-[calc(100%-64px)] overflow-auto">
+        <div className="h-[calc(100%-64px)] overflow-auto pb-6">
           {children}
         </div>
       </div>

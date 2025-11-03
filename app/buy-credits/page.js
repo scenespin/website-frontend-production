@@ -7,13 +7,14 @@ import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 
 // Credit Packages - Pricing based on 1 credit = $0.01
+// Keys match backend CREDIT_PACKAGES (starter, creator->booster, pro->mega, etc.)
 const CREDIT_PACKAGES = [
   {
     id: "starter",
     name: "Starter Pack",
     credits: 500,
     price: 10,
-    priceId: "price_starter_credits", // TODO: Replace with actual Stripe Price ID
+    packageKey: "starter", // Backend expects this key
     savings: 0,
     popular: false,
     color: "from-blue-500 to-cyan-500",
@@ -32,7 +33,7 @@ const CREDIT_PACKAGES = [
     name: "Creator Pack",
     credits: 1500,
     price: 25,
-    priceId: "price_creator_credits", // TODO: Replace with actual Stripe Price ID
+    packageKey: "booster", // Backend calls this "booster"
     savings: 5,
     popular: true,
     color: "from-purple-500 to-pink-500",
@@ -49,17 +50,17 @@ const CREDIT_PACKAGES = [
   {
     id: "pro",
     name: "Pro Pack",
-    credits: 3500,
-    price: 50,
-    priceId: "price_pro_credits", // TODO: Replace with actual Stripe Price ID
-    savings: 15,
+    credits: 4000,
+    price: 60,
+    packageKey: "mega", // Backend calls this "mega"
+    savings: 20,
     popular: false,
     color: "from-orange-500 to-red-500",
     icon: Star,
     bestFor: "Professional Projects",
     includes: [
-      "35 professional videos",
-      "175-350 AI images",
+      "40+ professional videos",
+      "200-400 AI images",
       "Pose packages (5-7 characters)",
       "Location bank full access",
       "Priority support"
@@ -119,34 +120,39 @@ export default function BuyCreditsPage() {
     setLoading(pkg.id);
 
     try {
-      const response = await fetch('/api/stripe/create-checkout', {
+      // Call backend API to create credit checkout session
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${backendUrl}/api/billing/checkout/credits`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getToken({ template: 'wryda-backend' })}`
         },
         body: JSON.stringify({
-          priceId: pkg.priceId,
-          mode: 'payment', // One-time payment
+          packageId: pkg.packageKey, // Use packageKey (starter, booster, mega)
           successUrl: `${window.location.origin}/dashboard?purchase=success&credits=${pkg.credits}`,
           cancelUrl: `${window.location.origin}/buy-credits`,
         }),
       });
 
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to create checkout session`);
       }
 
+      const data = await response.json();
+
       // Redirect to Stripe Checkout
-      if (data.url) {
+      if (data.data?.url) {
+        window.location.href = data.data.url;
+      } else if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('No checkout URL returned');
+        throw new Error('No checkout URL returned from server');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert(`Error: ${error.message}. Please try again or contact support.`);
+      alert(`Error: ${error.message}\n\nPlease try again or contact support.`);
       setLoading(null);
     }
   };

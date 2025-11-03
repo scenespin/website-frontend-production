@@ -16,9 +16,11 @@ export const dynamic = 'force-dynamic';
  */
 
 import { ProductionPageLayout } from '@/components/production/ProductionPageLayout';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 export default function ProductionPage() {
   const [mounted, setMounted] = useState(false);
+  const screenplay = useScreenplay();
   
   useEffect(() => {
     setMounted(true);
@@ -26,7 +28,7 @@ export default function ProductionPage() {
   
   if (!mounted) {
   return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0d0b14] via-[#1a1625] to-[#0d0b14] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-base-content/60">Loading production tools...</p>
@@ -38,8 +40,8 @@ export default function ProductionPage() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js comes from production/layout.js */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-16">
-        <ProductionPageLayout />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+        <ProductionPageLayout projectId={screenplay.projectId || 'default'} />
       </div>
     </>
   );

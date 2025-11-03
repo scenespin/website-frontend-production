@@ -54,20 +54,20 @@ export default function FormatsPage() {
 
           <div className="card bg-base-200 my-8 not-prose">
             <div className="card-body">
-              <h3 className="card-title">MOV (ProRes) - Professional</h3>
-              <p className="text-sm mb-4"><strong>Best For:</strong> Professional editing, client deliverables, archival</p>
+              <h3 className="card-title">16-bit EXR HDR - Professional Studio</h3>
+              <p className="text-sm mb-4"><strong>Best For:</strong> Professional color grading, VFX workflows, DaVinci Resolve, After Effects, Nuke</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><strong>Codec:</strong> Apple ProRes 422 HQ</div>
-                <div><strong>Container:</strong> MOV</div>
+                <div><strong>Color Depth:</strong> 16-bit per channel</div>
+                <div><strong>Color Space:</strong> ACES</div>
                 <div><strong>Max Resolution:</strong> 4K (3840×2160)</div>
                 <div><strong>File Size:</strong> Very Large</div>
-                <div><strong>Quality:</strong> Lossless</div>
-                <div><strong>Compatibility:</strong> Professional tools</div>
+                <div><strong>Quality:</strong> Cinema-grade HDR</div>
+                <div><strong>Compatibility:</strong> Professional tools only</div>
               </div>
               <div className="badge badge-primary mt-4">Studio/Ultra plans only</div>
               <div className="alert alert-info mt-4 text-xs">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span><strong>Note:</strong> ProRes is a professional editing codec (8-bit/10-bit SDR). For advanced 16-bit HDR color grading exports, see our EXR HDR export option in the Timeline export modal.</span>
+                <span><strong>Note:</strong> 16-bit EXR HDR export is for professional color grading workflows. Export from Timeline → choose "HDR Export" option.</span>
               </div>
             </div>
           </div>
@@ -181,10 +181,10 @@ export default function FormatsPage() {
                   <td>Client work, archival</td>
                 </tr>
                 <tr>
-                  <td><strong>ProRes 422 HQ</strong></td>
+                  <td><strong>16-bit EXR HDR</strong></td>
                   <td>4K</td>
-                  <td>~220 Mbps</td>
-                  <td>Professional editing</td>
+                  <td>Uncompressed</td>
+                  <td>Professional color grading</td>
                 </tr>
               </tbody>
             </table>
@@ -228,12 +228,12 @@ export default function FormatsPage() {
             </div>
             <div className="card bg-base-200">
               <div className="card-body">
-                <h3 className="card-title text-sm">Professional Editing</h3>
+                <h3 className="card-title text-sm">Professional Color Grading</h3>
                 <ul className="text-xs list-disc list-inside space-y-1">
-                  <li><strong>Format:</strong> MOV (ProRes)</li>
+                  <li><strong>Format:</strong> 16-bit EXR HDR</li>
                   <li><strong>Resolution:</strong> 4K</li>
                   <li><strong>Aspect Ratio:</strong> Original</li>
-                  <li><strong>Preset:</strong> ProRes 422 HQ</li>
+                  <li><strong>Use Case:</strong> DaVinci Resolve, After Effects, Nuke</li>
                 </ul>
               </div>
             </div>
@@ -249,8 +249,8 @@ export default function FormatsPage() {
             </div>
             <div className="card bg-base-200">
               <div className="card-body">
-                <h3 className="card-title text-base">Use ProRes for Editing</h3>
-                <p className="text-sm">If you need to edit further, export ProRes to avoid quality loss.</p>
+                <h3 className="card-title text-base">Use 16-bit EXR for Pro Workflows</h3>
+                <p className="text-sm">Export 16-bit EXR HDR for professional color grading and VFX work in DaVinci Resolve or After Effects.</p>
               </div>
             </div>
             <div className="card bg-base-200">

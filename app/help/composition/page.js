@@ -102,7 +102,7 @@ export default function CompositionStudioGuide() {
                 <h3 className="font-bold text-base mb-2">📹 VIDEO FILES</h3>
                 <ul className="text-sm space-y-1">
                   <li>✅ MP4 (H.264, H.265)</li>
-                  <li>✅ MOV (ProRes, H.264)</li>
+                  <li>✅ MOV (H.264, various codecs)</li>
                   <li>✅ WebM (VP8, VP9)</li>
                   <li>✅ MKV (Any codec)</li>
                   <li className="pt-2 text-xs opacity-70">Max: 100MB per file</li>

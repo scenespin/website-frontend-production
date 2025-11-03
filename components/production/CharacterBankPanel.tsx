@@ -159,16 +159,16 @@ export function CharacterBankPanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-800">
+    <div className="h-full flex flex-col bg-slate-900">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-700">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+          <h2 className="text-lg font-semibold text-slate-200">
             Character Bank
           </h2>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
             title="Create Character"
           >
             <Plus className="w-5 h-5 text-slate-600 dark:text-slate-400" />

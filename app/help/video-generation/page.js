@@ -388,7 +388,7 @@ export default function VideoGenerationPage() {
                   <li>Refine based on result</li>
                   <li>Generate final with Ultra (150cr)</li>
                   <li>Add music and graphics in timeline</li>
-                  <li>Export 4K ProRes</li>
+                  <li>Export 4K MP4 (or 16-bit EXR HDR)</li>
                 </ol>
                 <div className="alert alert-success mt-4">
                   <span className="text-sm"><strong>Result:</strong> Cinema-quality, 200 credits</span>
