@@ -752,18 +752,18 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       const newTextAsset: TimelineAsset = {
         id: `text-${Date.now()}`,
         type: 'text',
-        url: '', // Text doesn't need a URL
-        name: textConfig.text.substring(0, 30) + (textConfig.text.length > 30 ? '...' : ''),
-        track: 0, // Add to first video track
-        trackType: 'video',
-        startTime: timeline.currentTime,
-        duration,
-        trimStart: 0,
-        trimEnd: 0,
-        volume: 1,
-        textContent: textConfig
-      };
-      timeline.addAsset(newTextAsset);
+      url: '', // Text doesn't need a URL
+      name: textConfig.text.substring(0, 30) + (textConfig.text.length > 30 ? '...' : ''),
+      track: 0, // Add to first video track
+      trackType: 'video',
+      startTime: timeline.playheadPosition,
+      duration,
+      trimStart: 0,
+      trimEnd: 0,
+      volume: 1,
+      textContent: textConfig
+    };
+    timeline.addAsset(newTextAsset);
       toast.success('📝 Text added to timeline');
     }
     setShowTextEditor(false);
