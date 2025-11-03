@@ -33,7 +33,7 @@ export function ActionButton({
   const baseClasses = 'inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-slate-900 shadow-lg hover:shadow-xl hover:scale-105',
+    primary: 'bg-gradient-to-r from-[#DC143C] to-[#B01030] hover:from-[#B01030] hover:to-[#8C0D28] text-white shadow-lg hover:shadow-xl hover:scale-105',
     secondary: 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-base-content border-2 border-slate-200 dark:border-slate-700 shadow-md hover:shadow-lg',
     ghost: 'bg-white/10 backdrop-blur-sm hover:bg-white/20 text-base-content border-2 border-white/30 hover:border-white/50'
   };

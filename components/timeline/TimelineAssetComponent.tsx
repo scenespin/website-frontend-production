@@ -130,7 +130,7 @@ export function TimelineAssetComponent({
       case 'music':
         return 'bg-purple-500 border-purple-600';
       case 'image':
-        return 'bg-yellow-500 border-yellow-600';
+        return 'bg-red-500 border-red-600';
       default:
         return 'bg-base-content/50 border-base-content/30';
     }
@@ -146,7 +146,7 @@ export function TimelineAssetComponent({
       ref={assetRef}
       className={`absolute rounded-md cursor-move transition-all group border-2 ${
         isSelected
-          ? 'ring-2 ring-yellow-400 ring-offset-1 shadow-lg shadow-yellow-400/50 z-20'
+          ? 'ring-2 ring-[#DC143C] ring-offset-1 shadow-lg shadow-[#DC143C]/50 z-20'
           : isDragging
           ? 'opacity-70 z-30'
           : 'z-10'
@@ -257,7 +257,7 @@ export function TimelineAssetComponent({
 
       {/* Keyframe Indicators */}
       {asset.keyframes && asset.keyframes.length > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-yellow-400/50" title={`${asset.keyframes.length} keyframes`} />
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#DC143C]/50" title={`${asset.keyframes.length} keyframes`} />
       )}
 
       {/* Fade Indicators (for audio) */}
@@ -314,7 +314,7 @@ export function TimelineAssetComponent({
 
       {/* Selection Indicator */}
       {isSelected && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 border-2 border-yellow-600 rounded-full flex items-center justify-center">
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#DC143C] border-2 border-[#A01020] rounded-full flex items-center justify-center">
           <div className="w-1.5 h-1.5 bg-black rounded-full" />
         </div>
       )}

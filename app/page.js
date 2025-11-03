@@ -80,7 +80,7 @@ export default function Page() {
               </svg>
               <div>
                 <strong>No Vendor Lock-In</strong>
-                <p className="text-sm opacity-70">Export to Google Drive, Dropbox, or GitHub - own your data</p>
+                <p className="text-sm opacity-70">Export to PDF or Fountain format, GitHub backup - own your data</p>
               </div>
             </div>
           </div>
@@ -179,14 +179,16 @@ export default function Page() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {/* GitHub for Scripts & Timelines */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-5xl mb-3">📚</div>
-                  <h3 className="card-title text-xl mb-2">GitHub Version Control</h3>
-                  <p className="text-sm opacity-80 mb-4">
-                    Screenplay + Timeline backed up to <strong>YOUR GitHub repository</strong> every 10 seconds.
-                    Full version history, branch management, revert anytime.
-                  </p>
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow h-full flex flex-col">
+                <div className="card-body flex flex-col justify-between">
+                  <div>
+                    <div className="text-5xl mb-3">📚</div>
+                    <h3 className="card-title text-xl mb-2">GitHub Version Control</h3>
+                    <p className="text-sm opacity-80 mb-4">
+                      Screenplay + Timeline backed up to <strong>YOUR GitHub repository</strong> every 10 seconds.
+                      Full version history, branch management, revert anytime.
+                    </p>
+                  </div>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
@@ -208,14 +210,16 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-5xl mb-3">☁️</div>
-                  <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
-                  <p className="text-sm opacity-80 mb-4">
-                    Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
-                    We store files for 7 days max, then YOU choose where they go.
-                  </p>
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow h-full flex flex-col">
+                <div className="card-body flex flex-col justify-between">
+                  <div>
+                    <div className="text-5xl mb-3">☁️</div>
+                    <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
+                    <p className="text-sm opacity-80 mb-4">
+                      Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
+                      We store files for 7 days max, then YOU choose where they go.
+                    </p>
+                  </div>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
@@ -238,14 +242,16 @@ export default function Page() {
               </div>
 
               {/* Collaboration Roles */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
-                <div className="card-body">
-                  <div className="text-5xl mb-3">👥</div>
-                  <h3 className="card-title text-xl mb-2">5 Collaboration Roles</h3>
-                  <p className="text-sm opacity-80 mb-4">
-                    <strong>Manage everything from the software</strong> - no GitHub expertise needed.
-                    Add teammates in seconds. <strong>Permissions sync across GitHub + your cloud storage automatically.</strong>
-                  </p>
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow h-full flex flex-col">
+                <div className="card-body flex flex-col justify-between">
+                  <div>
+                    <div className="text-5xl mb-3">👥</div>
+                    <h3 className="card-title text-xl mb-2">5 Collaboration Roles</h3>
+                    <p className="text-sm opacity-80 mb-4">
+                      <strong>Manage everything from the software</strong> - no GitHub expertise needed.
+                      Add teammates in seconds. <strong>Permissions sync across GitHub + your cloud storage automatically.</strong>
+                    </p>
+                  </div>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-start gap-2">
                       <span className="text-lg">🎬</span>
@@ -487,12 +493,12 @@ export default function Page() {
               <div className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
                 <div className="card-body">
                   <div className="text-4xl mb-4">✨</div>
-                  <h3 className="card-title mb-2">AI Writing Agents (Practically Free)</h3>
+                  <h3 className="card-title mb-2">AI Writing Agents</h3>
                   <p className="opacity-80">
                     Select text → AI rewrites it. Polish dialogue, expand scenes, improve pacing. 
-                    <strong className="text-primary"> Costs almost nothing—50 free credits = thousands of rewrites.</strong>
+                    <strong className="text-primary"> Affordable pricing—1-5 credits per rewrite (50 free credits = 10-50 rewrites).</strong>
                   </p>
-                  <div className="text-xs opacity-70 mt-2">💰 Screenwriter agent: 0.01 credits per use</div>
+                  <div className="text-xs opacity-70 mt-2">💰 Quick polish: 1 credit | Complex scene: 5 credits</div>
                 </div>
               </div>
 
@@ -578,10 +584,10 @@ export default function Page() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="font-semibold text-sm opacity-70">✨ AI Writing Agents (0.01 credits/use):</div>
+                      <div className="font-semibold text-sm opacity-70">✨ AI Writing Agents (1-5 credits/use):</div>
                       <div className="text-sm opacity-90">
-                        <strong className="text-primary">50 free credits = 5,000 AI rewrites.</strong> Polish dialogue, 
-                        expand scenes, fix grammar. Costs practically nothing compared to video generation.
+                        <strong className="text-primary">50 free credits = 10-50 AI rewrites.</strong> Polish dialogue, 
+                        expand scenes, fix grammar. Much more affordable than video generation.
                       </div>
                     </div>
                   </div>
@@ -596,7 +602,7 @@ export default function Page() {
                     <div className="space-y-2">
                       <div className="font-semibold text-sm opacity-70">📋 Export Options:</div>
                       <div className="text-sm opacity-90">
-                        Professional PDF export with watermarks. Export to Google Drive, Dropbox. 
+                        Professional PDF export with custom watermarks. Fountain format for screenplay. GitHub backup for version control.
                         <strong className="text-primary"> All 100% FREE—no plan gating.</strong>
                       </div>
                     </div>
@@ -622,7 +628,7 @@ export default function Page() {
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-[#DC143C] mb-2">✨ AI Built-in</div>
-                  <div className="text-sm opacity-80">0.01 credits per rewrite</div>
+                  <div className="text-sm opacity-80">1-5 credits per rewrite</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-[#DC143C] mb-2">→ Video</div>

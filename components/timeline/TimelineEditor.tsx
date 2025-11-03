@@ -113,7 +113,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
     { id: 4, type: 'audio-music', label: 'Music', icon: <Music className="w-4 h-4" />, color: 'bg-purple-500' },
     { id: 5, type: 'audio-voice', label: 'Voice', icon: <Mic className="w-4 h-4" />, color: 'bg-green-500' },
     { id: 6, type: 'audio-sfx', label: 'SFX', icon: <Volume2 className="w-4 h-4" />, color: 'bg-orange-500' },
-    { id: 7, type: 'story-beats', label: 'Story Beats', icon: <Lightbulb className="w-4 h-4" />, color: 'bg-yellow-500' },
+    { id: 7, type: 'story-beats', label: 'Story Beats', icon: <Lightbulb className="w-4 h-4" />, color: 'bg-red-500' },
   ];
 
   // Handler for adding story beat
@@ -303,7 +303,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                   {formatTime(timeline.totalDuration)}
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg p-3 border-2 border-yellow-600 shadow-md">
+              <div className="bg-gradient-to-br from-[#DC143C] to-[#B01030] rounded-lg p-3 border-2 border-[#A01020] shadow-md">
                 <div className="text-xs text-black font-bold">RESOLUTION</div>
                 <div className="text-lg font-bold text-black font-mono">
                   {timeline.project.resolution}
@@ -356,7 +356,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
             <Button
               size="lg"
               onClick={timeline.togglePlay}
-              className="w-16 h-16 rounded-full bg-black text-yellow-400 hover:bg-slate-900 border-2 border-yellow-400"
+              className="w-16 h-16 rounded-full bg-white text-[#DC143C] hover:bg-slate-100 border-2 border-[#DC143C]"
             >
               {timeline.isPlaying ? (
                 <Pause className="w-6 h-6" />
@@ -444,7 +444,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
             <Button
               size="sm"
               onClick={timeline.saveProject}
-              className="bg-black text-yellow-400 hover:bg-slate-900 border border-yellow-400"
+              className="bg-white text-[#DC143C] hover:bg-slate-100 border border-[#DC143C]"
             >
               <Save className="w-4 h-4 mr-2" />
               Save
@@ -533,11 +533,11 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                           key={asset.id}
                           className={`absolute top-1 h-16 rounded px-2 py-1 text-xs cursor-pointer border-2 ${
                             timeline.selectedClips.has(asset.id)
-                              ? 'ring-2 ring-yellow-400'
+                              ? 'ring-2 ring-[#DC143C]'
                               : ''
                           } ${
                             isStoryBeat
-                              ? 'bg-yellow-400 bg-opacity-80 border-yellow-600 text-black font-bold'
+                              ? 'bg-[#DC143C] bg-opacity-80 border-[#A01020] text-white font-bold'
                               : config.type === 'audio-music'
                               ? 'bg-purple-500 bg-opacity-80 border-purple-700 text-base-content'
                               : config.type === 'audio-voice'
@@ -594,7 +594,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
               {timeline.clips.length + timeline.assets.length} element{(timeline.clips.length + timeline.assets.length) !== 1 ? 's' : ''}
             </span>
             {timeline.selectedClips.size > 0 && (
-              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+              <Badge variant="outline" className="text-red-600 border-red-600">
                 {timeline.selectedClips.size} selected
               </Badge>
             )}
@@ -636,11 +636,11 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                   setSelectedAddType('story-beat');
                   setStoryBeatForm(prev => ({ ...prev, startTime: timeline.playheadPosition }));
                 }}
-                className="w-full p-4 rounded-lg border-2 border-yellow-400 bg-yellow-50 dark:bg-yellow-950 hover:bg-yellow-100 dark:hover:bg-yellow-900 transition-colors text-left group"
+                className="w-full p-4 rounded-lg border-2 border-[#DC143C] bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-900 transition-colors text-left group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-yellow-400 p-2 rounded-lg group-hover:scale-110 transition-transform">
-                    <Lightbulb className="w-6 h-6 text-black" />
+                  <div className="bg-[#DC143C] p-2 rounded-lg group-hover:scale-110 transition-transform">
+                    <Lightbulb className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <div className="font-bold text-slate-900 dark:text-base-content">Story Beat</div>
@@ -778,7 +778,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                 </Button>
                 <Button
                   onClick={handleAddStoryBeat}
-                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black"
+                  className="flex-1 bg-[#DC143C] hover:bg-[#B01030] text-white"
                 >
                   Add Beat
                 </Button>

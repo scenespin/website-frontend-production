@@ -165,15 +165,6 @@ export default function Navigation() {
 
             {/* Navigation Links - Desktop: Flat Links */}
             <nav className="flex items-center gap-1">
-              {/* AI Assistant Button */}
-              <button
-                onClick={() => openDrawer('chat')}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-base-content hover:bg-base-300"
-              >
-                <MessageSquare className="w-5 h-5" />
-                <span className="font-medium">AI Assistant</span>
-              </button>
-
               {/* Main Navigation Items - Simple Flat Links */}
               {navigation.map((item) => (
                 <Link
@@ -253,18 +244,6 @@ export default function Navigation() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="border-t border-base-300 p-4 space-y-2">
-            {/* AI Assistant */}
-            <button
-              onClick={() => {
-                openDrawer('chat');
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full text-left text-base-content hover:bg-base-300"
-            >
-              <MessageSquare className="w-5 h-5" />
-              <span className="font-medium">AI Assistant</span>
-            </button>
-
             {/* Hierarchical Nav Items */}
             {navigation.map((item) => (
               <div key={item.name}>

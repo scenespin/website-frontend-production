@@ -482,8 +482,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
             <div className="flex items-start justify-between gap-6">
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-yellow-400 rounded-lg">
-                    <Film className="w-6 h-6 text-black" />
+                  <div className="p-2 bg-[#DC143C] rounded-lg">
+                    <Film className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold text-base-content tracking-tight">
@@ -516,7 +516,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
               </div>
               
               {recentCompositions > 0 && (
-                <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-black px-6 py-3 rounded-lg font-bold text-lg shadow-lg border-2 border-yellow-600">
+                <div className="bg-gradient-to-br from-[#DC143C] to-[#B01030] text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg border-2 border-[#A01020]">
                   <div className="text-xs opacity-70 mb-1">Current</div>
                   <div>TAKE {recentCompositions}</div>
                 </div>
@@ -582,21 +582,21 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
           <TabsList className="grid w-full grid-cols-3 bg-[#141414] p-1 rounded-lg shadow-md border border-white/10">
             <TabsTrigger 
               value="create" 
-              className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black data-[state=active]:shadow-lg font-semibold transition-all"
+              className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Production
             </TabsTrigger>
             <TabsTrigger 
               value="music" 
-              className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black data-[state=active]:shadow-lg font-semibold transition-all"
+              className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all"
             >
               <Music className="w-4 h-4 mr-2" />
               Music
             </TabsTrigger>
             <TabsTrigger 
               value="gallery" 
-              className="data-[state=active]:bg-yellow-400 data-[state=active]:text-black data-[state=active]:shadow-lg font-semibold transition-all"
+              className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all"
             >
               <History className="w-4 h-4 mr-2" />
               Dailies
@@ -619,7 +619,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
                   <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
                     <CardTitle className="flex items-center gap-2 text-base-content">
-                      <div className="p-1.5 bg-yellow-400 rounded">
+                      <div className="p-1.5 bg-[#DC143C] rounded">
                         <Settings className="w-4 h-4 text-black" />
                       </div>
                       Shot Type
@@ -634,8 +634,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         variant="outline"
                         className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                           compositionType === 'static' 
-                            ? 'bg-yellow-400 text-black border-yellow-500 hover:bg-yellow-500 shadow-lg' 
-                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-yellow-400'
+                            ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
                         }`}
                         onClick={() => setCompositionType('static')}
                       >
@@ -652,8 +652,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             variant="outline"
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'animated' 
-                                ? 'bg-yellow-400 text-black border-yellow-500 hover:bg-yellow-500 shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-yellow-400'
+                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
                             }`}
                             onClick={() => setCompositionType('animated')}
                           >
@@ -667,8 +667,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             variant="outline"
                             className={`h-28 flex flex-col gap-2 border-2 transition-all ${
                               compositionType === 'paced' 
-                                ? 'bg-yellow-400 text-black border-yellow-500 hover:bg-yellow-500 shadow-lg' 
-                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-yellow-400'
+                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
                             }`}
                             onClick={() => setCompositionType('paced')}
                           >
@@ -688,7 +688,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
                   <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
                     <CardTitle className="flex items-center gap-2 text-base-content">
-                      <div className="p-1.5 bg-yellow-400 rounded">
+                      <div className="p-1.5 bg-[#DC143C] rounded">
                         <Video className="w-4 h-4 text-black" />
                       </div>
                       Video Clips
@@ -707,8 +707,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       className={`
                         border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
                         ${isDragging
-                          ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20'
-                          : 'border-slate-300 dark:border-slate-600 hover:border-yellow-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          ? 'border-[#DC143C] bg-red-50 dark:bg-red-900/20'
+                          : 'border-slate-300 dark:border-slate-600 hover:border-[#DC143C] hover:bg-slate-50 dark:hover:bg-slate-800'
                         }
                       `}
                     >
@@ -821,13 +821,13 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 )}
 
                 {/* Action Button - Refined Clapboard */}
-                <Card className="bg-gradient-to-br from-yellow-400 to-yellow-500 border-2 border-yellow-600 shadow-2xl">
+                <Card className="bg-gradient-to-br from-[#DC143C] to-[#B01030] border-2 border-[#A01020] shadow-2xl">
                   <CardContent className="pt-6">
                     <Button
                       size="lg"
                       className={`w-full h-20 text-xl font-bold shadow-lg transition-all ${
                         canCompose() && !isComposing
-                          ? 'bg-black text-yellow-400 hover:bg-slate-900 border-2 border-yellow-400'
+                          ? 'bg-white text-[#DC143C] hover:bg-slate-100 border-2 border-white'
                           : 'bg-slate-300 text-slate-500 cursor-not-allowed border-2 border-slate-400'
                       }`}
                       disabled={isComposing || !canCompose()}
@@ -914,26 +914,26 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 <Card className="bg-[#141414] border border-white/10 shadow-md">
                   <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <span className="text-yellow-600">📋</span>
+                      <span className="text-red-600">📋</span>
                       Production Notes
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
                     <ol className="text-sm text-base-content space-y-2.5">
                       <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 bg-yellow-400 text-black rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#DC143C] text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
                         <span>Select your shot type above</span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 bg-yellow-400 text-black rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#DC143C] text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
                         <span>Choose layout or pacing style</span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 bg-yellow-400 text-black rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#DC143C] text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
                         <span>Preview your composition</span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 bg-yellow-400 text-black rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#DC143C] text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
                         <span>Hit &quot;Action!&quot; to render</span>
                       </li>
                     </ol>
@@ -941,29 +941,29 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 </Card>
 
                 {/* Director's Tips - Yellow Accent */}
-                <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-2 border-yellow-300 dark:border-yellow-700 shadow-md">
-                  <CardHeader className="border-b-2 border-yellow-300 dark:border-yellow-700">
-                    <CardTitle className="text-sm flex items-center gap-2 text-yellow-900 dark:text-yellow-100">
+                <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-2 border-red-300 dark:border-red-700 shadow-md">
+                  <CardHeader className="border-b-2 border-red-300 dark:border-red-700">
+                    <CardTitle className="text-sm flex items-center gap-2 text-red-900 dark:text-red-100">
                       <span>🎬</span>
                       Director&apos;s Tips
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <ul className="text-sm text-yellow-900 dark:text-yellow-100 space-y-2">
+                    <ul className="text-sm text-red-900 dark:text-red-100 space-y-2">
                       <li className="flex items-start gap-2">
-                        <span className="text-yellow-600 dark:text-yellow-400">•</span>
+                        <span className="text-red-600 dark:text-red-400">•</span>
                         <span>Use 9:16 aspect ratio for phone call layouts</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-yellow-600 dark:text-yellow-400">•</span>
+                        <span className="text-red-600 dark:text-red-400">•</span>
                         <span>Fast pacing (3s) creates urgency and tension</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-yellow-600 dark:text-yellow-400">•</span>
+                        <span className="text-red-600 dark:text-red-400">•</span>
                         <span>Slow holds (8s) allow emotional depth</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-yellow-600 dark:text-yellow-400">•</span>
+                        <span className="text-red-600 dark:text-red-400">•</span>
                         <span>Motion effects add dynamic visual impact</span>
                       </li>
                     </ul>

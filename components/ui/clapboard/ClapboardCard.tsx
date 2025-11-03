@@ -23,7 +23,7 @@ export function ClapboardCard({
   title,
   description,
   icon: Icon,
-  iconColor = 'from-yellow-400 to-amber-500',
+  iconColor = 'from-[#DC143C] to-[#B01030]',
   children,
   showAccent = true,
   accentPosition = 'top',
@@ -40,7 +40,7 @@ export function ClapboardCard({
       className={`
         relative bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-200 dark:border-slate-700 
         overflow-hidden transition-all
-        ${hover ? 'hover:shadow-2xl hover:border-yellow-400 dark:hover:border-yellow-500' : ''}
+        ${hover ? 'hover:shadow-2xl hover:border-[#DC143C] dark:hover:border-[#DC143C]' : ''}
         ${isClickable ? 'cursor-pointer' : ''}
         ${className}
       `}

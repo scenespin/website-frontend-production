@@ -321,7 +321,7 @@ export default function FilmmakersPage() {
               <FeatureCard
                 icon="☁️"
                 title="Cloud Export"
-                description="Export to Google Drive or Dropbox. No vendor lock-in. Professional codecs. Up to 4K resolution."
+                description="Export to PDF or Fountain format, GitHub version control. No vendor lock-in. Professional codecs. Up to 4K resolution."
               />
             </div>
           </div>

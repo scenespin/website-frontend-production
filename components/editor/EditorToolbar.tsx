@@ -137,6 +137,31 @@ export default function EditorToolbar({ className = '', onExportPDF }: EditorToo
                 {/* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
+                {/* Download .fountain button */}
+                <div>
+                    <button
+                        onClick={() => {
+                            // Export current screenplay to .fountain file
+                            const blob = new Blob([state.content], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${state.title?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'screenplay'}.fountain`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }}
+                        className="px-3 py-2 bg-base-200 hover:bg-base-300 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm"
+                        title="Download .fountain file"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        <span className="hidden sm:inline">.fountain</span>
+                    </button>
+                </div>
+                
                 {/* Export PDF button */}
                 {onExportPDF && (
                     <div>

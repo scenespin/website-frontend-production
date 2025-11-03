@@ -102,9 +102,9 @@ const Pricing = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-left">
-            <div className="font-bold text-lg">💰 Save $1,776/year vs traditional stack</div>
+            <div className="font-bold text-lg">💰 Replace your entire creative software stack</div>
             <div className="text-sm opacity-90">
-              Replace Final Cut Pro + Adobe CC + Runway + Midjourney + ElevenLabs with one platform. All features unlocked for everyone.
+              One platform for screenwriting, video editing, AI generation, and collaboration. All features unlocked for everyone.
             </div>
           </div>
         </div>

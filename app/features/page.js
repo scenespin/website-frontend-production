@@ -160,7 +160,7 @@ export default function Features() {
             />
             <FeatureCard
               title="Cloud Storage Integration"
-              description="Export to Google Drive or Dropbox, hierarchical folder structure, no vendor lock-in"
+              description="Export to PDF or Fountain format, GitHub version control with hierarchical folder structure, no vendor lock-in"
               free={true}
             />
             <FeatureCard

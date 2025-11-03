@@ -201,14 +201,14 @@ export const articles = [
             <li className={styles.li}><strong>Character Bank</strong> - Consistent characters across scenes</li>
             <li className={styles.li}><strong>Voice & Lip-Sync</strong> - Add custom voices with perfect lip-sync</li>
             <li className={styles.li}><strong>3D Model Export</strong> - GLB, OBJ, USDZ formats (costs credits)</li>
-            <li className={styles.li}><strong>Cloud Storage</strong> - Export to Google Drive or Dropbox</li>
+            <li className={styles.li}><strong>Cloud Storage</strong> - Export to PDF or Fountain format, GitHub backup</li>
           </ul>
         </section>
 
         <section>
           <h2 className={styles.h2}>How Credits Work</h2>
           <p className={styles.p}>
-            Credits are only used when generating AI video or images. Everything else is FREE.
+            Credits are only used when generating AI content. The editor and timeline are FREE forever.
           </p>
           
           <h3 className={styles.h3}>Pricing Plans</h3>

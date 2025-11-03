@@ -382,7 +382,7 @@ export default function MarketingTeamsPage() {
             <FeatureCard
               icon="☁️"
               title="Cloud Storage"
-              description="Export to Google Drive, Dropbox. Share with stakeholders. No storage limits."
+              description="Export to PDF or Fountain format. GitHub backup. Share with stakeholders. No storage limits."
             />
           </div>
         </section>

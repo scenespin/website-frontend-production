@@ -27,8 +27,8 @@ const TABS = [
     label: 'Production',
     icon: Sparkles,
     description: 'Layout studio & effects',
-    color: 'text-yellow-500',
-    activeColor: 'text-yellow-600 dark:text-yellow-400'
+    color: 'text-red-500',
+    activeColor: 'text-red-600 dark:text-red-400'
   },
   {
     id: 'music' as CompositionTab,
@@ -70,9 +70,9 @@ export function CompositionSubNav({ activeTab, onTabChange, className }: Composi
                   "border-b-2 -mb-[2px]",
                   isActive
                     ? cn(
-                        "border-yellow-400",
-                        "bg-yellow-400/10",
-                        "text-yellow-400"
+                        "border-[#DC143C]",
+                        "bg-[#DC143C]/10",
+                        "text-[#DC143C]"
                       )
                     : cn(
                         "border-transparent",

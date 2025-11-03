@@ -120,7 +120,7 @@ export function TimelineClipComponent({
       ref={clipRef}
       className={`absolute top-1 bottom-1 rounded-lg cursor-move transition-all group ${
         isSelected
-          ? 'ring-2 ring-yellow-400 ring-offset-2 ring-offset-slate-900 shadow-lg shadow-yellow-400/50 z-20'
+          ? 'ring-2 ring-[#DC143C] ring-offset-2 ring-offset-slate-900 shadow-lg shadow-[#DC143C]/50 z-20'
           : isDragging
           ? 'opacity-70 z-30'
           : 'z-10'
@@ -184,7 +184,7 @@ export function TimelineClipComponent({
 
       {/* Selection Indicator */}
       {isSelected && (
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 border-2 border-yellow-600 rounded-full flex items-center justify-center">
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#DC143C] border-2 border-[#A01020] rounded-full flex items-center justify-center">
           <div className="w-1.5 h-1.5 bg-black rounded-full" />
         </div>
       )}

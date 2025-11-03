@@ -55,7 +55,7 @@ export function ClapboardHeader({
           {/* Title Section */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#DC143C] to-[#B01030] rounded-xl flex items-center justify-center shadow-lg">
                 <Film className="w-5 h-5 md:w-6 md:h-6 text-slate-900" />
               </div>
               <div>
@@ -78,7 +78,7 @@ export function ClapboardHeader({
           {/* Current Take Badge - Yellow Accent */}
           {!isCompact && (
             <div className="hidden md:flex flex-col items-end">
-              <div className="px-4 py-2 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-lg shadow-lg">
+              <div className="px-4 py-2 bg-gradient-to-br from-[#DC143C] to-[#B01030] rounded-lg shadow-lg">
                 <div className="text-xs font-bold text-slate-900 uppercase tracking-wide">Current Take</div>
                 <div className="text-2xl font-bold text-slate-900">#{take}</div>
               </div>
