@@ -40,7 +40,7 @@ export default function Page() {
           </h1>
 
           <p className="text-xl md:text-2xl opacity-90 max-w-3xl">
-            58 AI Workflows + 68 Professional Compositions<br className="hidden sm:block" /> + Cinema-Grade HDR
+            58 AI Workflows + 68 Professional Compositions<br className="hidden sm:block" /> + Professional Studio Export
             <br />
             <strong className="text-[#DC143C]">The Complete Production Pipeline:<br className="hidden md:block" /> Write → Export</strong>
           </p>
@@ -114,7 +114,7 @@ export default function Page() {
                 🌟 Industry-First Technology
               </h2>
               <p className="text-lg opacity-80 max-w-3xl mx-auto">
-                <strong>The ONLY platform with cinema-grade HDR upgrade.</strong> Convert videos from any AI tool, your camera, or stock footage to professional 16-bit HDR.
+                <strong>Professional timeline editing with 16-bit HDR export.</strong> Export as professional EXR for color grading in DaVinci Resolve, After Effects, or Nuke.
               </p>
             </div>
 
@@ -152,9 +152,9 @@ export default function Page() {
               <div className="card bg-base-100 shadow-xl">
                 <div className="card-body">
                   <div className="text-4xl mb-2">🎨</div>
-                  <h3 className="card-title text-lg">Cinema-Grade HDR Upgrade</h3>
+                  <h3 className="card-title text-lg">Professional Studio Export</h3>
                   <p className="text-sm opacity-80">
-                    Convert ANY video to 16-bit HDR. The ONLY platform that can upgrade videos from ANY tools to cinema quality.
+                    Export your timeline as 16-bit HDR EXR for professional color grading. Perfect for agencies and studios.
                   </p>
                   <div className="badge badge-error gap-1 mt-2">🔥 Exclusive</div>
                 </div>
@@ -758,6 +758,12 @@ export default function Page() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
                   <span>65 Compositions + 30 Transitions (FREE)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span><strong>Text/Titles with Animations</strong> (12 templates, FREE)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -33,7 +33,14 @@ import {
   DollarSign,  // NEW: Cost icon
   Info,  // NEW: Info icon
   Plus,  // NEW: Mobile FAB icon
-  X  // NEW: Context dismiss icon
+  X,  // NEW: Context dismiss icon
+  Scissors,  // NEW: Split clip icon (Feature 0103)
+  Eye,  // NEW: Preview mode icon (Feature 0103)
+  EyeOff,  // NEW: Preview mode off icon (Feature 0103)
+  Copy,  // NEW: Copy clips icon (Feature 0103 Sprint 2)
+  Clipboard,  // NEW: Paste clips icon (Feature 0103 Sprint 2)
+  Link,  // NEW: Ripple mode icon (Feature 0103 Sprint 2)
+  Type  // NEW: Add text icon (Feature 0103 Sprint 3)
 } from 'lucide-react';
 import { useTimeline, TimelineAsset, calculateProjectCost, getCostBreakdown, createDefaultLUTMetadata } from '@/hooks/useTimeline';
 import { TimelineAssetComponent } from './TimelineAssetComponent';
@@ -43,6 +50,9 @@ import { ExportProgressModal, ExportStatus } from './ExportProgressModal';  // N
 import { VideoPreviewModal } from './VideoPreviewModal';  // NEW
 import { TransitionPicker } from './TransitionPicker';  // NEW: Feature 0065
 import { LUTPicker } from './LUTPicker';  // NEW: Feature 0065
+import { SpeedSelector } from './SpeedSelector';  // NEW: Feature 0103
+import { EffectsPanel } from './EffectsPanel';  // NEW: Feature 0103 Sprint 3
+import { TextEditorPanel } from './TextEditorPanel';  // NEW: Feature 0103 Sprint 3
 import { UploadModal } from './UploadModal';  // NEW: Feature 0070
 import { MediaGallery } from '@/components/media/MediaGallery';  // NEW: Mobile media picker
 import { motion } from 'framer-motion';  // For FAB animation
@@ -95,6 +105,21 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
   const [showLUTPicker, setShowLUTPicker] = useState(false);
   const [selectedClipForTransition, setSelectedClipForTransition] = useState<string | null>(null);
   const [selectedClipForLUT, setSelectedClipForLUT] = useState<string | null>(null);
+
+  // NEW: Speed/Reverse states (Feature 0103)
+  const [showSpeedSelector, setShowSpeedSelector] = useState(false);
+  const [selectedClipForSpeed, setSelectedClipForSpeed] = useState<{ id: string; currentSpeed: number; duration: number } | null>(null);
+
+  // NEW: Effects Panel state (Feature 0103 Sprint 3)
+  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
+  const [selectedClipForEffects, setSelectedClipForEffects] = useState<string | null>(null);
+
+  // NEW: Text Editor state (Feature 0103 Sprint 3)
+  const [showTextEditor, setShowTextEditor] = useState(false);
+  const [selectedTextAsset, setSelectedTextAsset] = useState<TimelineAsset | null>(null);
+
+  // NEW: Preview Mode for live speed preview (Feature 0103)
+  const [previewMode, setPreviewMode] = useState(true); // Default ON for better UX
 
   // NEW: Touch zoom support for mobile
   const [lastPinchDistance, setLastPinchDistance] = useState<number | null>(null);
@@ -245,6 +270,71 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // NEW: Preview Mode - Apply browser-native speed preview during playback (Feature 0103)
+  useEffect(() => {
+    if (!previewMode || !timeline.isPlaying) return;
+
+    // Find the asset at current playhead position
+    const currentAsset = timeline.assets.find(asset => {
+      const assetStart = asset.startTime;
+      const assetEnd = asset.startTime + asset.duration;
+      return timeline.playheadPosition >= assetStart && timeline.playheadPosition < assetEnd;
+    });
+
+    if (currentAsset && currentAsset.speed && currentAsset.speed !== 1.0) {
+      // Apply speed to all video/audio elements (browser-native)
+      // Note: This is a simple preview - actual export will use FFmpeg for accuracy
+      const mediaElements = document.querySelectorAll<HTMLVideoElement | HTMLAudioElement>('video, audio');
+      mediaElements.forEach(element => {
+        if (element.playbackRate !== currentAsset.speed!) {
+          element.playbackRate = currentAsset.speed!;
+        }
+      });
+
+      // Show info toast once
+      if (!sessionStorage.getItem('previewModeInfoShown')) {
+        toast.info('🎭 Preview Mode Active: Speed changes visible during playback', {
+          duration: 3000
+        });
+        sessionStorage.setItem('previewModeInfoShown', 'true');
+      }
+    } else {
+      // Reset to normal speed when no speed effect or not on a speed-modified clip
+      const mediaElements = document.querySelectorAll<HTMLVideoElement | HTMLAudioElement>('video, audio');
+      mediaElements.forEach(element => {
+        if (element.playbackRate !== 1.0) {
+          element.playbackRate = 1.0;
+        }
+      });
+    }
+  }, [timeline.isPlaying, timeline.playheadPosition, timeline.assets, previewMode]);
+
+  // NEW: Keyboard shortcuts for Copy/Paste (Feature 0103 Sprint 2)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Copy: Ctrl/Cmd + C
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) {
+        if (timeline.selectedClips.size > 0) {
+          e.preventDefault();
+          const count = timeline.copyClips(Array.from(timeline.selectedClips));
+          toast.success(`📋 Copied ${count} clip${count > 1 ? 's' : ''} to clipboard`);
+        }
+      }
+      
+      // Paste: Ctrl/Cmd + V
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        if (timeline.clipboard.length > 0) {
+          e.preventDefault();
+          const newIds = timeline.pasteClips();
+          toast.success(`✨ Pasted ${newIds.length} clip${newIds.length > 1 ? 's' : ''} at playhead`);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [timeline]);
 
   useEffect(() => {
     const timelineElement = timelineRef.current;
@@ -579,6 +669,151 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
     }
   };
 
+  // NEW: Handle speed change (Feature 0103)
+  const handleSpeedChange = (clipId: string, currentSpeed: number) => {
+    const asset = timeline.assets.find(a => a.id === clipId);
+    if (asset) {
+      setSelectedClipForSpeed({
+        id: clipId,
+        currentSpeed: currentSpeed,
+        duration: asset.duration
+      });
+      setShowSpeedSelector(true);
+    }
+  };
+
+  const handleApplySpeed = (speed: number) => {
+    if (selectedClipForSpeed) {
+      timeline.updateAsset(selectedClipForSpeed.id, {
+        speed: speed,
+        // Update duration based on speed: newDuration = originalDuration / speed
+        // (This is cosmetic - backend will handle actual speed processing)
+        duration: selectedClipForSpeed.duration / speed
+      });
+      toast.success(`Speed changed to ${speed}x`);
+      setShowSpeedSelector(false);
+      setSelectedClipForSpeed(null);
+    }
+  };
+
+  // NEW: Handle reverse toggle (Feature 0103)
+  const handleReverseToggle = (clipId: string) => {
+    const asset = timeline.assets.find(a => a.id === clipId);
+    if (asset) {
+      timeline.updateAsset(clipId, {
+        reversed: !asset.reversed
+      });
+      toast.success(asset.reversed ? 'Clip unreversed' : 'Clip reversed');
+    }
+  };
+
+  // NEW: Handle effects/color grading (Feature 0103 Sprint 3)
+  const handleAddEffects = (clipId: string) => {
+    setSelectedClipForEffects(clipId);
+    setShowEffectsPanel(true);
+  };
+
+  const handleApplyEffects = (effects: NonNullable<TimelineAsset['effects']>, colorGrading: NonNullable<TimelineAsset['colorGrading']>) => {
+    if (selectedClipForEffects) {
+      timeline.updateAsset(selectedClipForEffects, {
+        effects: Object.values(effects).some(v => v && v > 0) ? effects : undefined,
+        colorGrading: Object.values(colorGrading).some(v => v && v !== 0) ? colorGrading : undefined
+      });
+      const effectCount = Object.values(effects).filter(v => v && v > 0).length;
+      const colorCount = Object.values(colorGrading).filter(v => v && v !== 0).length;
+      const total = effectCount + colorCount;
+      toast.success(`✨ Applied ${total} effect${total > 1 ? 's' : ''}`);
+      setShowEffectsPanel(false);
+      setSelectedClipForEffects(null);
+    }
+  };
+
+  // NEW: Handle text/title overlays (Feature 0103 Sprint 3)
+  const handleAddText = () => {
+    setSelectedTextAsset(null);
+    setShowTextEditor(true);
+  };
+
+  const handleEditText = (asset: TimelineAsset) => {
+    setSelectedTextAsset(asset);
+    setShowTextEditor(true);
+  };
+
+  const handleApplyText = (textConfig: NonNullable<TimelineAsset['textContent']>, duration: number) => {
+    if (selectedTextAsset) {
+      // Editing existing text
+      timeline.updateAsset(selectedTextAsset.id, {
+        textContent: textConfig,
+        duration
+      });
+      toast.success('📝 Text updated');
+    } else {
+      // Adding new text
+      const newTextAsset: TimelineAsset = {
+        id: `text-${Date.now()}`,
+        type: 'text',
+        url: '', // Text doesn't need a URL
+        name: textConfig.text.substring(0, 30) + (textConfig.text.length > 30 ? '...' : ''),
+        track: 0, // Add to first video track
+        trackType: 'video',
+        startTime: timeline.currentTime,
+        duration,
+        trimStart: 0,
+        trimEnd: 0,
+        volume: 1,
+        textContent: textConfig
+      };
+      timeline.addAsset(newTextAsset);
+      toast.success('📝 Text added to timeline');
+    }
+    setShowTextEditor(false);
+    setSelectedTextAsset(null);
+  };
+
+
+  // NEW: Split clip at playhead (Feature 0103)
+  const handleSplitAtPlayhead = () => {
+    const playhead = timeline.playheadPosition;
+    const selectedIds = Array.from(timeline.selectedClips);
+    
+    if (selectedIds.length !== 1) {
+      toast.error('Please select exactly one clip to split');
+      return;
+    }
+
+    const asset = timeline.assets.find(a => a.id === selectedIds[0]);
+    if (!asset) return;
+
+    // Check if playhead is within clip bounds
+    if (playhead < asset.startTime || playhead > asset.startTime + asset.duration) {
+      toast.error('Playhead must be within the selected clip');
+      return;
+    }
+
+    // Calculate split point relative to clip
+    const splitPoint = playhead - asset.startTime;
+
+    // Create two new assets from the original
+    const firstHalf: Omit<TimelineAsset, 'id'> = {
+      ...asset,
+      duration: splitPoint,
+      trimEnd: asset.trimEnd + (asset.duration - splitPoint)
+    };
+
+    const secondHalf: Omit<TimelineAsset, 'id'> = {
+      ...asset,
+      startTime: playhead,
+      duration: asset.duration - splitPoint,
+      trimStart: asset.trimStart + splitPoint
+    };
+
+    // Remove original and add two new clips
+    timeline.removeAsset(asset.id);
+    timeline.addAsset(firstHalf);
+    timeline.addAsset(secondHalf);
+
+    toast.success('Clip split successfully');
+  };
 
   // Count assets by type
   const assetCounts = {
@@ -617,6 +852,24 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             >
               <X className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+      
+      {/* NEW: Preview Mode Indicator (Feature 0103) - Shows when preview mode is active */}
+      {previewMode && timeline.isPlaying && (
+        <div className="bg-indigo-500/10 border-b border-indigo-500/20 px-3 py-1.5 flex-shrink-0 animate-pulse">
+          <div className="text-xs md:text-sm flex items-center justify-center gap-2">
+            <Eye className="w-3 h-3 md:w-4 md:h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+              🎭 Preview Mode Active
+            </span>
+            <span className="hidden md:inline opacity-70 text-indigo-600 dark:text-indigo-400">
+              - Speed changes visible during playback
+            </span>
+            <span className="md:hidden opacity-70 text-indigo-600 dark:text-indigo-400">
+              - Live Speed Preview
+            </span>
           </div>
         </div>
       )}
@@ -684,6 +937,36 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               <SkipForward className="w-4 h-4" />
             </Button>
 
+            {/* NEW: Preview Mode Toggle (Feature 0103) */}
+            <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <Button
+              variant={previewMode ? "default" : "ghost"}
+              size="sm"
+              onClick={() => {
+                setPreviewMode(!previewMode);
+                toast.success(
+                  !previewMode 
+                    ? '🎭 Preview Mode ON: Speed changes visible during playback' 
+                    : '👁️ Preview Mode OFF: Normal playback only',
+                  { duration: 2000 }
+                );
+              }}
+              title={previewMode ? "Preview Mode ON: Speed effects visible during playback" : "Preview Mode OFF: Click to enable speed preview"}
+              className={previewMode ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""}
+            >
+              {previewMode ? (
+                <>
+                  <Eye className="w-4 h-4 mr-1" />
+                  <span className="hidden md:inline">Preview</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-4 h-4 mr-1" />
+                  <span className="hidden md:inline">Preview</span>
+                </>
+              )}
+            </Button>
+
             <div className="ml-4 text-sm font-mono text-slate-700 dark:text-slate-300">
               {formatTime(timeline.playheadPosition)} / {formatTime(timeline.totalDuration)}
               <span className="ml-2 text-xs text-slate-500">
@@ -719,6 +1002,28 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               title="Zoom in"
             >
               <ZoomIn className="w-4 h-4" />
+            </Button>
+
+            <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
+            
+            {/* NEW: Ripple Edit Mode Toggle (Feature 0103 Sprint 2) */}
+            <Button
+              variant={timeline.rippleMode ? "default" : "ghost"}
+              size="sm"
+              onClick={() => {
+                timeline.setRippleMode(!timeline.rippleMode);
+                toast.success(
+                  !timeline.rippleMode 
+                    ? '🔗 Ripple Mode ON: Adjacent clips auto-adjust' 
+                    : '🔓 Ripple Mode OFF: Manual positioning',
+                  { duration: 2000 }
+                );
+              }}
+              title={timeline.rippleMode ? "Ripple Mode ON: Clips auto-adjust when moving/deleting" : "Ripple Mode OFF: Click to enable"}
+              className={timeline.rippleMode ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+            >
+              <Link className="w-4 h-4 mr-1" />
+              <span className="hidden md:inline">Ripple</span>
             </Button>
 
             <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
@@ -769,6 +1074,63 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Re-compose
+                </Button>
+                
+                {/* NEW: Split at Playhead Button (Feature 0103) */}
+                {timeline.selectedClips.size === 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSplitAtPlayhead}
+                    title="Split clip at playhead (requires clip selection)"
+                    className="border-indigo-500 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+                  >
+                    <Scissors className="w-4 h-4 mr-2" />
+                    <span className="hidden md:inline">Split</span>
+                  </Button>
+                )}
+                
+                {/* NEW: Add Text Button (Feature 0103 Sprint 3) */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddText}
+                  title="Add text/title overlay to timeline"
+                  className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                >
+                  <Type className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">Add Text</span>
+                </Button>
+                
+                {/* NEW: Copy Button (Feature 0103 Sprint 2) */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const count = timeline.copyClips(Array.from(timeline.selectedClips));
+                    toast.success(`📋 Copied ${count} clip${count > 1 ? 's' : ''}`);
+                  }}
+                  title="Copy selected clips (Ctrl/Cmd+C)"
+                  className="border-slate-300 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">Copy</span>
+                </Button>
+                
+                {/* NEW: Paste Button (Feature 0103 Sprint 2) */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newIds = timeline.pasteClips();
+                    toast.success(`✨ Pasted ${newIds.length} clip${newIds.length > 1 ? 's' : ''}`);
+                  }}
+                  disabled={timeline.clipboard.length === 0}
+                  title={timeline.clipboard.length > 0 ? "Paste clips at playhead (Ctrl/Cmd+V)" : "No clips in clipboard"}
+                  className="border-slate-300 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <Clipboard className="w-4 h-4 mr-2" />
+                  <span className="hidden md:inline">Paste</span>
                 </Button>
                 
                 <Button
@@ -957,6 +1319,9 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                         frameRate={timeline.project.frameRate}
                         onAddTransition={handleAddTransition}
                         onAddLUT={handleAddLUT}
+                        onSpeedChange={handleSpeedChange}
+                        onReverseToggle={handleReverseToggle}
+                        onAddEffects={handleAddEffects}
                       />
                     ))}
                   </div>
@@ -988,6 +1353,9 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           frameRate={timeline.project.frameRate}
                           onAddTransition={handleAddTransition}
                           onAddLUT={handleAddLUT}
+                          onSpeedChange={handleSpeedChange}
+                          onReverseToggle={handleReverseToggle}
+                          onAddEffects={handleAddEffects}
                         />
                       ))}
                     </div>
@@ -1085,6 +1453,44 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
           onClose={() => {
             setShowLUTPicker(false);
             setSelectedClipForLUT(null);
+          }}
+        />
+      )}
+
+      {/* Speed Selector Modal - NEW (Feature 0103) */}
+      {showSpeedSelector && selectedClipForSpeed && (
+        <SpeedSelector
+          currentSpeed={selectedClipForSpeed.currentSpeed}
+          clipDuration={selectedClipForSpeed.duration}
+          onSelect={handleApplySpeed}
+          onClose={() => {
+            setShowSpeedSelector(false);
+            setSelectedClipForSpeed(null);
+          }}
+        />
+      )}
+
+      {/* Effects Panel Modal - NEW (Feature 0103 Sprint 3) */}
+      {showEffectsPanel && selectedClipForEffects && (
+        <EffectsPanel
+          asset={timeline.assets.find(a => a.id === selectedClipForEffects)!}
+          onApply={handleApplyEffects}
+          onClose={() => {
+            setShowEffectsPanel(false);
+            setSelectedClipForEffects(null);
+          }}
+        />
+      )}
+      
+      {/* Text Editor Panel Modal - NEW (Feature 0103 Sprint 3) */}
+      {showTextEditor && (
+        <TextEditorPanel
+          asset={selectedTextAsset || undefined}
+          duration={5.0}  // Default 5 second duration for new text
+          onApply={handleApplyText}
+          onClose={() => {
+            setShowTextEditor(false);
+            setSelectedTextAsset(null);
           }}
         />
       )}

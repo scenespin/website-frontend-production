@@ -5,7 +5,7 @@ import WorkflowCategories from "@/components/WorkflowCategories";
 
 export const metadata = getSEOTags({
   title: `Complete Features | ${config.appName}`,
-  description: "Explore all 58 AI workflows including cinema-grade HDR finishing, professional screenplay writing tools, multi-track timeline editor, Hollywood transitions & compositions, and more. Everything unlocked from day one.",
+  description: "Explore all 58 AI workflows including professional studio export, professional screenplay writing tools, multi-track timeline editor, Hollywood transitions & compositions, and more. Everything unlocked from day one.",
   canonicalUrlRelative: "/features",
 });
 
@@ -29,7 +29,7 @@ export default function Features() {
             Complete Feature List
           </h1>
           <p className="text-xl opacity-80 max-w-3xl mx-auto">
-            <strong>80+ features. 58 AI workflows. All unlocked from day one.</strong>
+            <strong>85+ features. 58 AI workflows. All unlocked from day one.</strong>
             <br />
             Free users get everything. Pro/Ultra/Studio just get more credits.
           </p>
@@ -57,7 +57,7 @@ export default function Features() {
           </div>
           <div className="card bg-base-200">
             <div className="card-body text-center">
-              <div className="text-4xl font-bold text-[#DC143C]">80+</div>
+              <div className="text-4xl font-bold text-[#DC143C]">85+</div>
               <div className="text-sm opacity-70">Features</div>
             </div>
           </div>
@@ -257,15 +257,90 @@ export default function Features() {
 
             <div className="card bg-gradient-to-br from-pink-500/10 to-pink-600/10 border-2 border-pink-500/30">
               <div className="card-body">
-                <h3 className="text-xl font-bold text-pink-400 mb-3">🌐 HDR Video Upgrade</h3>
+                <h3 className="text-xl font-bold text-pink-400 mb-3">🎬 Professional Studio Export</h3>
                 <p className="text-sm opacity-90 mb-3">
-                  Upload any standard video and upgrade it to professional 16-bit HDR with consistent cinema-grade color. Works with footage from any source.
+                  Export your timeline as 16-bit HDR EXR for professional color grading in DaVinci Resolve, After Effects, or Nuke. Perfect for agencies and studios.
                 </p>
                 <ul className="text-sm space-y-2 opacity-80">
-                  <li>✅ Upgrade any video to cinema-grade HDR</li>
-                  <li>✅ Transform iPhone footage to professional quality</li>
-                  <li>✅ Consistent color grading across all clips</li>
-                  <li>✅ Turn $10 stock footage into $500 HDR assets</li>
+                  <li>✅ 16-bit HDR (ACES2065-1 color space)</li>
+                  <li>✅ Hollywood VFX pipeline compatible</li>
+                  <li>✅ Unlimited grading headroom</li>
+                  <li>✅ Perfect for client deliverables</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 border-2 border-cyan-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-cyan-400 mb-3">⚡ Speed Control & Reverse</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Professional speed ramping and reverse playback. Create slow-motion, timelapse, or reverse effects with one click.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Speed control: 0.25x - 4x (slow-mo to timelapse)</li>
+                  <li>✅ Reverse playback with one click</li>
+                  <li>✅ Live preview mode (browser-native)</li>
+                  <li>✅ Timeline indicators show speed & direction</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 border-2 border-indigo-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-indigo-400 mb-3">📝 Text & Title Overlays</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Add professional titles, captions, and lower thirds. 9 fonts, full styling control, outline/shadow effects, and 9 position presets.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ 9 professional fonts (Arial to Impact)</li>
+                  <li>✅ Full typography control (size 12-200px, bold, italic)</li>
+                  <li>✅ Outline & shadow effects</li>
+                  <li>✅ 9 position presets + custom positioning</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-2 border-violet-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-violet-400 mb-3">✨ Text Animations (NEW!)</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Hollywood-style text animations that rival Premiere Pro. Fade, slide, and scale effects with professional easing curves.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Fade In/Out (4 easing options)</li>
+                  <li>✅ Slide In/Out (4 directions)</li>
+                  <li>✅ Scale In/Out (includes bounce effect!)</li>
+                  <li>✅ Color-coded timeline indicators</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-fuchsia-500/10 to-fuchsia-600/10 border-2 border-fuchsia-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-fuchsia-400 mb-3">🎨 Text Templates (NEW!)</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  12 professional text templates across 4 categories. One-click styling for YouTube, Instagram, corporate videos, and more.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ 12 professional templates</li>
+                  <li>✅ 4 categories: Social, Corporate, Cinematic, Education</li>
+                  <li>✅ Template browser with search & filtering</li>
+                  <li>✅ One-click application with customization</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="card bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30">
+              <div className="card-body">
+                <h3 className="text-xl font-bold text-orange-400 mb-3">🎭 Visual Effects & Filters</h3>
+                <p className="text-sm opacity-90 mb-3">
+                  Advanced color correction and visual effects. Adjust brightness, contrast, saturation, temperature, blur, sharpen, vignette, and grain.
+                </p>
+                <ul className="text-sm space-y-2 opacity-80">
+                  <li>✅ Color correction: Brightness, contrast, saturation</li>
+                  <li>✅ Temperature & tint control</li>
+                  <li>✅ Effects: Blur, sharpen, vignette, film grain</li>
+                  <li>✅ Real-time sliders with live preview</li>
                 </ul>
               </div>
             </div>
@@ -278,7 +353,7 @@ export default function Features() {
                 Replace Premiere Pro, DaVinci Resolve, and After Effects for <strong>$0/month</strong>. Upload unlimited footage in ANY resolution (4K, 8K, RED camera files). Only pay for AI generation and final exports - never for editing your own content.
               </p>
               <p className="text-sm opacity-90">
-                <strong>Unique Value:</strong> Complete production pipeline from script to final export. Generate videos with AI, edit professionally on timeline, apply cinema-grade HDR finishing, and export in any format - all in one platform.
+                <strong>Unique Value:</strong> Complete production pipeline from script to final export. Generate videos with AI, edit professionally on timeline, apply professional color grading, and export with optional 16-bit HDR for post-production - all in one platform.
               </p>
             </div>
           </div>

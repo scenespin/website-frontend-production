@@ -69,6 +69,14 @@ export default function WorkflowsPage() {
 
           <h2>How Workflows are Organized (58 Total)</h2>
           <p>We&apos;ve organized all 58 workflows based on <strong>what you have right now</strong>. This makes it easy to find the perfect workflow for your current situation.</p>
+          
+          <div className="alert alert-success my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">✅ Complete Workflow Catalog</div>
+              <div className="text-sm">Text-Only (18) + Text+Images (14) + Video Transform (15) + Post-Production HDR (7) + Video Enhancement (5) - 1 (Complete Scene counted in Production) = <strong>58 total workflows</strong></div>
+            </div>
+          </div>
 
           <div className="alert alert-info my-8 not-prose">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -162,27 +170,35 @@ export default function WorkflowsPage() {
               
               <div className="text-xs font-bold text-purple-500 mb-2">TWO TYPES:</div>
               
-              {/* Post-Production */}
+              {/* Video Enhancement */}
               <div className="bg-base-100 rounded-lg p-4 mb-3">
-                <div className="font-bold text-sm mb-2">🎨 Post-Production (7 workflows)</div>
+                <div className="font-bold text-sm mb-2">✨ Video Enhancement (5 workflows)</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <div className="text-xs opacity-70 mb-1">Enhance existing footage:</div>
                     <ul className="text-xs space-y-1">
-                      <li>• Scene Bridge (connect clips)</li>
-                      <li>• Video Chain Builder</li>
                       <li>• VFX Magic (add effects)</li>
                       <li>• Scene Transformer (change environment)</li>
+                      <li>• Element Eraser (remove objects)</li>
                     </ul>
                   </div>
                   <div>
                     <ul className="text-xs space-y-1">
-                      <li>• Element Eraser (remove objects)</li>
                       <li>• Product Reshoot (transform products)</li>
                       <li>• Still Photo Performer (animate photos)</li>
                     </ul>
                   </div>
                 </div>
+              </div>
+
+              {/* Production Tools */}
+              <div className="bg-base-100 rounded-lg p-4 mb-3">
+                <div className="font-bold text-sm mb-2">🛠️ Production Tools (2 workflows)</div>
+                <div className="text-xs opacity-70 mb-1">Connect and chain clips:</div>
+                <ul className="text-xs space-y-1">
+                  <li>• Scene Bridge (connect clips seamlessly)</li>
+                  <li>• Video Chain Builder (multi-clip sequences)</li>
+                </ul>
               </div>
 
               {/* Performance Capture */}
@@ -202,7 +218,254 @@ export default function WorkflowsPage() {
               </div>
             </div>
           </div>
+          
+          {/* NEW: Featured Workflows - Most Viral & Sellable */}
+          <div className="mb-16">
+            <h2 className="text-3xl font-bold mb-2">🔥 Featured Workflows</h2>
+            <p className="text-sm opacity-70 mb-6">Our most popular and viral workflows - highest demand and sellability</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Multilingual Dubbing - #1 Viral */}
+              <Link href="/help/workflows/multilingual-dubbing" className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 hover:border-purple-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Multilingual Dubbing</h3>
+                    <div className="badge badge-accent badge-sm">NEW</div>
+                  </div>
+                  <p className="text-xs opacity-80">One video → 20+ languages with lip-sync. Scale globally without re-recording.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">100-2000 credits</div>
+                    <div className="badge badge-sm">2-30 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-purple-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
 
+              {/* Complete Scene - Foundation */}
+              <Link href="/help/workflows/complete-scene" className="card bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30 hover:border-orange-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Complete Scene</h3>
+                    <div className="badge badge-sm">⭐ 100</div>
+                  </div>
+                  <p className="text-xs opacity-80">Master shot + character/product coverage. Foundation of Scene Builder.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">145-689 credits</div>
+                    <div className="badge badge-sm">8-15 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-orange-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Hollywood Standard */}
+              <Link href="/help/workflows/hollywood-standard" className="card bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-2 border-blue-500/30 hover:border-blue-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Hollywood Standard</h3>
+                    <div className="badge badge-sm">⭐ 95</div>
+                  </div>
+                  <p className="text-xs opacity-80">Portrait + 8 angles + video + optional 4K. Maximum quality for feature films.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">58-258 credits</div>
+                    <div className="badge badge-sm">5-10 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-blue-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* SDR to HDR Upgrade */}
+              <Link href="/help/workflows/sdr-to-hdr-upgrade" className="card bg-gradient-to-br from-pink-500/10 to-red-600/10 border-2 border-pink-500/30 hover:border-pink-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">SDR to HDR Upgrade</h3>
+                    <div className="badge badge-accent badge-sm">NEW</div>
+                  </div>
+                  <p className="text-xs opacity-80">Upgrade ANY video to 16-bit HDR. Only platform with this feature!</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">100-200 credits</div>
+                    <div className="badge badge-sm">3-5 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-pink-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* VFX Magic */}
+              <Link href="/help/workflows/vfx-magic" className="card bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 border-2 border-cyan-500/30 hover:border-cyan-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">VFX Magic</h3>
+                    <div className="badge badge-accent badge-sm">NEW</div>
+                  </div>
+                  <p className="text-xs opacity-80">Add rain, fire, magic, powers to existing videos. Hollywood VFX instantly.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">100-150 credits</div>
+                    <div className="badge badge-sm">2-4 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-cyan-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Fantasy Epic */}
+              <Link href="/help/workflows/fantasy-epic" className="card bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 border-2 border-indigo-500/30 hover:border-indigo-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Fantasy Epic</h3>
+                    <div className="badge badge-sm">⭐ 93</div>
+                  </div>
+                  <p className="text-xs opacity-80">Dragons, monsters, magical beings with VFX. Multiple angles and action sequences.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">200-500 credits</div>
+                    <div className="badge badge-sm">4-8 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-indigo-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Podcast to Video */}
+              <Link href="/help/workflows/podcast-to-video" className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 hover:border-purple-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Podcast to Video</h3>
+                    <div className="badge badge-accent badge-sm">NEW</div>
+                  </div>
+                  <p className="text-xs opacity-80">Audio + host photo = YouTube video. Auto-splits long episodes for social.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">100-500 credits</div>
+                    <div className="badge badge-sm">2-15 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-purple-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Image to Speech */}
+              <Link href="/help/workflows/image-to-speech" className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30 hover:border-purple-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Image to Speech</h3>
+                    <div className="badge badge-accent badge-sm">NEW</div>
+                  </div>
+                  <p className="text-xs opacity-80">Make ANY image talk! Paintings, cartoons, mascots with lip-synced audio.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">100 credits</div>
+                    <div className="badge badge-sm">2-3 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-purple-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Anime Performance Capture */}
+              <Link href="/help/workflows/anime-performance-capture" className="card bg-gradient-to-br from-pink-500/10 to-pink-600/10 border-2 border-pink-500/30 hover:border-pink-500 transition-all">
+                <div className="card-body">
+                  <div className="flex items-start justify-between">
+                    <h3 className="card-title text-lg">Anime Performance Capture</h3>
+                    <div className="badge badge-accent badge-sm">NEW</div>
+                  </div>
+                  <p className="text-xs opacity-80">BE your anime character! Your performance transfers to anime with expressions.</p>
+                  <div className="flex gap-2 mt-2">
+                    <div className="badge badge-sm">185 credits</div>
+                    <div className="badge badge-sm">6-10 min</div>
+                  </div>
+                  <div className="card-actions justify-end mt-2">
+                    <span className="text-xs font-bold text-pink-500">View Details →</span>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* NEW: Tier 4: Post-Production & HDR */}
+          <div className="card bg-gradient-to-br from-pink-500/10 to-red-500/10 border-2 border-pink-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h3 className="card-title text-2xl">
+                <span className="text-pink-500">🎨 Post-Production & HDR (7 workflows)</span>
+                <span className="badge badge-accent badge-sm ml-2">Cinema-Grade!</span>
+              </h3>
+              <p className="text-sm opacity-90 mb-4">
+                <strong>Professional HDR finishing and cinema mastering.</strong> Transform any footage into premium quality with 7 post-production workflows. Convert SDR to HDR, apply cinema-grade color grading, and export in professional formats.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="font-bold text-sm mb-2 text-pink-500">HDR Workflows:</div>
+                  <ul className="text-xs space-y-1">
+                    <li>✨ <strong>Native HDR Generation</strong> - Generate videos in HDR from the start</li>
+                    <li>🔄 <strong>SDR to HDR Upgrade</strong> - Convert ANY video to HDR (even iPhone footage!)</li>
+                    <li>🎬 <strong>Cinema HDR Master</strong> - Professional cinema-grade finishing</li>
+                    <li>🌐 <strong>Hybrid 4K HDR Pipeline</strong> - Combine sources into HDR</li>
+                  </ul>
+                </div>
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="font-bold text-sm mb-2 text-pink-500">Export & Delivery:</div>
+                  <ul className="text-xs space-y-1">
+                    <li>📤 <strong>Multi-Format HDR Delivery</strong> - Export for all platforms</li>
+                    <li>🎯 <strong>Draft to HDR Master</strong> - Upgrade rough cuts to cinema quality</li>
+                    <li>💎 <strong>EXR Export Professional</strong> - 16-bit EXR for VFX pipelines</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="alert alert-info mt-4 not-prose">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                  <div className="font-bold">💡 The HDR Advantage</div>
+                  <div className="text-sm">Mix footage from different sources → Apply HDR upgrade → All clips match perfectly with cinema-grade quality! Perfect for film festivals, client work, and premium deliverables.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* NEW FEATURES CALLOUT */}
+          <div className="card bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-2 border-cyan-500/30 my-8 not-prose">
+            <div className="card-body">
+              <h3 className="card-title text-xl">
+                <span className="text-cyan-500">✨ NEW WORKFLOWS ADDED!</span>
+                <span className="badge badge-accent badge-sm ml-2">Just Shipped!</span>
+              </h3>
+              <p className="text-sm opacity-90 mb-4">
+                <strong>4 powerful new workflows for voice cloning, multilingual content, and talking avatars!</strong>
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="font-bold text-sm mb-2 text-cyan-500">🎯 AI Avatar (Voice Cloning)</div>
+                  <p className="text-xs opacity-80">Clone ANY voice + create realistic talking avatars. Upload audio → AI creates avatar speaking in that voice!</p>
+                </div>
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="font-bold text-sm mb-2 text-cyan-500">🎨 Image-to-Speech</div>
+                  <p className="text-xs opacity-80">Make ANY image speak! Upload a photo → Add text/audio → AI animates lips perfectly synced!</p>
+                </div>
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="font-bold text-sm mb-2 text-cyan-500">🎙️ Podcast-to-Video</div>
+                  <p className="text-xs opacity-80">Turn audio podcasts into engaging video! Upload podcast → AI generates animated avatars → Export for YouTube!</p>
+                </div>
+                <div className="bg-base-100 rounded-lg p-4">
+                  <div className="font-bold text-sm mb-2 text-cyan-500">🌍 Multilingual Dubbing</div>
+                  <p className="text-xs opacity-80">Translate ANY video into any language with lip-sync! Perfect for international content!</p>
+                </div>
+              </div>
+              
+              <div className="text-xs text-center mt-4 opacity-70">
+                These workflows are in the <strong>Hybrid</strong> category and support optional character images for consistency!
+              </div>
+            </div>
+          </div>
+          
           <h2>🎭 Understanding Character Consistency (35+ Workflows)</h2>
           <p>Character consistency means keeping your characters looking the same across multiple scenes. <strong>Over 35 out of 58 workflows</strong> support character consistency—but they work differently!</p>
 
@@ -495,6 +758,168 @@ export default function WorkflowsPage() {
             <div>
               <div className="font-bold">Bottom Line:</div>
               <div className="text-sm">Use workflows for complex multi-shot scenes. Use manual for single shots.</div>
+            </div>
+          </div>
+
+          {/* COMPLETE WORKFLOW DIRECTORY - ALL 58! */}
+          <h2 className="text-3xl font-bold mt-16 mb-4">📚 Complete Workflow Directory (All 58)</h2>
+          <p className="text-sm opacity-70 mb-8">Browse all workflows organized by category and popularity. Click any workflow to see full details.</p>
+
+          {/* Photorealistic (6) - Sorted by popularity */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-blue-500">🎬 Photorealistic</span>
+              <span className="badge badge-sm">6 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/hollywood-standard" className="btn btn-outline btn-sm justify-start">Hollywood Standard ⭐ 95</Link>
+              <Link href="/help/workflows/cinematic-camera-suite" className="btn btn-outline btn-sm justify-start">Cinematic Camera Suite ⭐ 90</Link>
+              <Link href="/help/workflows/budget-photorealistic" className="btn btn-outline btn-sm justify-start">Budget Photorealistic ⭐ 85</Link>
+              <Link href="/help/workflows/multi-platform-hero" className="btn btn-outline btn-sm justify-start">Multi-Platform Hero ⭐ 80</Link>
+              <Link href="/help/workflows/scene-composer" className="btn btn-outline btn-sm justify-start">Scene Composer ⭐ 75</Link>
+              <Link href="/help/workflows/precision-poser" className="btn btn-outline btn-sm justify-start">Precision Poser ⭐ 70</Link>
+            </div>
+          </div>
+
+          {/* Animated (3) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-pink-500">🎨 Animated</span>
+              <span className="badge badge-sm">3 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/anime-master" className="btn btn-outline btn-sm justify-start">Anime Master ⭐ 88</Link>
+              <Link href="/help/workflows/3d-character" className="btn btn-outline btn-sm justify-start">3D Character Animation ⭐ 85</Link>
+              <Link href="/help/workflows/cartoon-classic" className="btn btn-outline btn-sm justify-start">Cartoon Classic ⭐ 82</Link>
+            </div>
+          </div>
+
+          {/* Hybrid & Transform (11) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-purple-500">🔄 Hybrid & Transform</span>
+              <span className="badge badge-sm badge-accent">11 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/multilingual-dubbing" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Multilingual Dubbing ⭐ 98</Link>
+              <Link href="/help/workflows/ai-avatar" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>AI Avatar ⭐ 95</Link>
+              <Link href="/help/workflows/podcast-to-video" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Podcast to Video ⭐ 92</Link>
+              <Link href="/help/workflows/image-to-speech" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Image to Speech ⭐ 90</Link>
+              <Link href="/help/workflows/production-pipeline" className="btn btn-outline btn-sm justify-start">Production Pipeline ⭐ 88</Link>
+              <Link href="/help/workflows/reality-to-toon" className="btn btn-outline btn-sm justify-start">Reality to Toon ⭐ 85</Link>
+              <Link href="/help/workflows/action-director" className="btn btn-outline btn-sm justify-start">Action Director ⭐ 78</Link>
+              <Link href="/help/workflows/style-chameleon" className="btn btn-outline btn-sm justify-start">Style Chameleon ⭐ 75</Link>
+              <Link href="/help/workflows/voice-actor-match" className="btn btn-outline btn-sm justify-start">Voice Actor Match ⭐ 72</Link>
+              <Link href="/help/workflows/reverse-action-builder" className="btn btn-outline btn-sm justify-start">Reverse Action Builder ⭐ 68</Link>
+              <Link href="/help/workflows/bidirectional-storytelling" className="btn btn-outline btn-sm justify-start">Bidirectional Storytelling ⭐ 65</Link>
+            </div>
+          </div>
+
+          {/* Budget / Speed (5) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-yellow-500">⚡ Budget / Speed</span>
+              <span className="badge badge-sm">5 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/speed-demon" className="btn btn-outline btn-sm justify-start">Speed Demon ⭐ 80</Link>
+              <Link href="/help/workflows/perfect-loop-generator" className="btn btn-outline btn-sm justify-start">Perfect Loop Generator ⭐ 78</Link>
+              <Link href="/help/workflows/multi-platform-loop" className="btn btn-outline btn-sm justify-start">Multi-Platform Loop ⭐ 75</Link>
+              <Link href="/help/workflows/micro-action-loop" className="btn btn-outline btn-sm justify-start">Micro Action Loop ⭐ 70</Link>
+              <Link href="/help/workflows/loop-variations" className="btn btn-outline btn-sm justify-start">Loop Variations ⭐ 65</Link>
+            </div>
+          </div>
+
+          {/* Fantasy & VFX (2) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-indigo-500">🐉 Fantasy & VFX</span>
+              <span className="badge badge-sm">2 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/fantasy-epic" className="btn btn-outline btn-sm justify-start">Fantasy Epic ⭐ 93</Link>
+              <Link href="/help/workflows/superhero-transform" className="btn btn-outline btn-sm justify-start">Superhero Transform ⭐ 82</Link>
+            </div>
+          </div>
+
+          {/* Animals & Creatures (2) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-green-500">🦁 Animals & Creatures</span>
+              <span className="badge badge-sm">2 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/animal-kingdom" className="btn btn-outline btn-sm justify-start">Animal Kingdom ⭐ 76</Link>
+              <Link href="/help/workflows/anthro-character" className="btn btn-outline btn-sm justify-start">Anthropomorphic Character ⭐ 74</Link>
+            </div>
+          </div>
+
+          {/* Production Tools (9) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-orange-500">🛠️ Production Tools</span>
+              <span className="badge badge-sm">9 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/complete-scene" className="btn btn-outline btn-sm justify-start">Complete Scene ⭐ 100</Link>
+              <Link href="/help/workflows/broll-master" className="btn btn-outline btn-sm justify-start">B-Roll Master ⭐ 87</Link>
+              <Link href="/help/workflows/stock-footage-replacement" className="btn btn-outline btn-sm justify-start">Stock Footage Replacement ⭐ 85</Link>
+              <Link href="/help/workflows/video-chain-builder" className="btn btn-outline btn-sm justify-start">Video Chain Builder ⭐ 78</Link>
+              <Link href="/help/workflows/shot-type-variants" className="btn btn-outline btn-sm justify-start">Shot Type Variants ⭐ 75</Link>
+              <Link href="/help/workflows/vfx-elements" className="btn btn-outline btn-sm justify-start">VFX Elements ⭐ 73</Link>
+              <Link href="/help/workflows/scene-bridge" className="btn btn-outline btn-sm justify-start">Scene Bridge ⭐ 72</Link>
+              <Link href="/help/workflows/genre-camera-variants" className="btn btn-outline btn-sm justify-start">Genre Camera Variants ⭐ 70</Link>
+              <Link href="/help/workflows/location-previs" className="btn btn-outline btn-sm justify-start">Location Previsualization ⭐ 68</Link>
+            </div>
+          </div>
+
+          {/* Performance Capture (8) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-red-500">🎭 Performance Capture</span>
+              <span className="badge badge-sm badge-accent">8 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/anime-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Anime Performance Capture ⭐ 88</Link>
+              <Link href="/help/workflows/3d-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>3D Performance Capture ⭐ 85</Link>
+              <Link href="/help/workflows/cartoon-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Cartoon Performance Capture ⭐ 80</Link>
+              <Link href="/help/workflows/action-director-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Action Director Performance ⭐ 78</Link>
+              <Link href="/help/workflows/complete-scene-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Complete Scene Performance ⭐ 77</Link>
+              <Link href="/help/workflows/anthro-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Anthro Performance Capture ⭐ 75</Link>
+              <Link href="/help/workflows/reality-to-toon-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Reality to Toon Performance ⭐ 73</Link>
+              <Link href="/help/workflows/production-pipeline-performance-capture" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Production Pipeline Performance ⭐ 70</Link>
+            </div>
+          </div>
+
+          {/* Post-Production & HDR (7) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-pink-500">🎨 Post-Production & HDR</span>
+              <span className="badge badge-sm badge-accent">7 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/sdr-to-hdr-upgrade" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>SDR to HDR Upgrade ⭐ 95</Link>
+              <Link href="/help/workflows/cinema-hdr-master" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Cinema HDR Master ⭐ 92</Link>
+              <Link href="/help/workflows/native-hdr-generation" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Native HDR Generation ⭐ 90</Link>
+              <Link href="/help/workflows/hybrid-4k-hdr-pipeline" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Hybrid 4K HDR Pipeline ⭐ 80</Link>
+              <Link href="/help/workflows/multi-format-hdr-delivery" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Multi-Format HDR Delivery ⭐ 78</Link>
+              <Link href="/help/workflows/draft-to-hdr-master" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Draft to HDR Master ⭐ 75</Link>
+              <Link href="/help/workflows/exr-export-professional" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>EXR Export Professional ⭐ 70</Link>
+            </div>
+          </div>
+
+          {/* Video Enhancement (5) */}
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+              <span className="text-cyan-500">✨ Video Enhancement</span>
+              <span className="badge badge-sm badge-accent">5 workflows</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Link href="/help/workflows/vfx-magic" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>VFX Magic ⭐ 95</Link>
+              <Link href="/help/workflows/scene-transformer" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Scene Transformer ⭐ 82</Link>
+              <Link href="/help/workflows/element-eraser" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Element Eraser ⭐ 80</Link>
+              <Link href="/help/workflows/product-reshoot" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Product Reshoot ⭐ 78</Link>
+              <Link href="/help/workflows/still-photo-performer" className="btn btn-outline btn-sm justify-start"><span className="badge badge-accent badge-xs mr-1">NEW</span>Still Photo Performer ⭐ 76</Link>
             </div>
           </div>
 

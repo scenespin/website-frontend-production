@@ -65,69 +65,70 @@ export default function LocationsPage() {
         {/* Editor Sub-Navigation */}
         <EditorSubNav activeTab="locations" projectId={projectId} />
 
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MapPin className="w-8 h-8" />
-              <div>
-                <h1 className="text-3xl font-extrabold">Locations</h1>
-                <p className="text-sm opacity-80">Manage scene settings and environments</p>
+        <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <MapPin className="w-6 h-6 md:w-8 md:h-8 shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-xl md:text-3xl font-extrabold truncate">Locations</h1>
+                <p className="text-xs md:text-sm opacity-80 hidden sm:block">Manage scene settings and environments</p>
               </div>
             </div>
             <button 
               onClick={() => setShowAddLocation(true)}
-              className="btn btn-sm bg-white/20 hover:bg-white/30 gap-2"
+              className="btn btn-sm md:btn-md bg-white/20 hover:bg-white/30 gap-1 md:gap-2 shrink-0"
             >
               <Plus className="w-4 h-4" />
-              Add Location
+              <span className="hidden sm:inline">Add</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Context Indicator */}
+      {/* Context Indicator - Mobile Optimized */}
       {context.currentSceneName && (
         <div className="bg-info/10 border-b border-info/20">
-          <div className="max-w-7xl mx-auto px-4 py-2 text-sm">
-            <span className="opacity-70">Current scene location:</span>{' '}
-            <span className="font-semibold">{context.currentSceneName}</span>
+          <div className="max-w-7xl mx-auto px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm">
+            <span className="opacity-70 hidden sm:inline">Current scene location:</span>
+            <span className="opacity-70 sm:hidden">Location:</span>{' '}
+            <span className="font-semibold truncate">{context.currentSceneName}</span>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
           {/* Locations List */}
           <div className="lg:col-span-1">
             <div className="card bg-base-200 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title">All Locations</h2>
-                <p className="text-sm opacity-60 mb-4">{locations.length} location{locations.length !== 1 ? 's' : ''}</p>
+              <div className="card-body p-3 md:p-6">
+                <h2 className="card-title text-base md:text-xl">All Locations</h2>
+                <p className="text-xs md:text-sm opacity-60 mb-2 md:mb-4">{locations.length} location{locations.length !== 1 ? 's' : ''}</p>
                 
-                <div className="space-y-2">
+                <div className="space-y-1.5 md:space-y-2">
                   {locations.map(location => (
                     <button
                       key={location.location_id}
                       onClick={() => setSelectedLocation(location)}
-                      className={`w-full text-left p-4 rounded-lg transition-colors ${
+                      className={`w-full text-left p-2 md:p-4 rounded-lg transition-colors ${
                         selectedLocation?.location_id === location.location_id
                           ? 'bg-cinema-gold/20 border-2 border-cinema-gold'
                           : 'bg-base-300 hover:bg-base-100'
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg ${location.type === 'INT.' ? 'bg-blue-500/20' : 'bg-green-500/20'}`}>
-                          <MapPin className="w-5 h-5" />
+                      <div className="flex items-start gap-2 md:gap-3">
+                        <div className={`p-1.5 md:p-2 rounded-lg ${location.type === 'INT.' ? 'bg-blue-500/20' : 'bg-green-500/20'} shrink-0`}>
+                          <MapPin className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 md:gap-2">
                             <span className="badge badge-xs">{location.type}</span>
-                            <span className="font-bold text-sm truncate">{location.name}</span>
+                            <span className="font-bold text-xs md:text-sm truncate">{location.name}</span>
                           </div>
-                          <div className="text-xs opacity-60 truncate mt-1">{location.full_name}</div>
-                          <div className="text-xs opacity-50 mt-1">
+                          <div className="text-xs opacity-60 truncate mt-0.5 hidden sm:block">{location.full_name}</div>
+                          <div className="text-[10px] md:text-xs opacity-50 mt-0.5">
                             {location.scenes.length} scene{location.scenes.length !== 1 ? 's' : ''}
                           </div>
                         </div>

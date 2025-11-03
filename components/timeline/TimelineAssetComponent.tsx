@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Trash2, GripVertical, Volume2, VolumeX, Image as ImageIcon, Music, Film, Info, Shuffle, Palette } from 'lucide-react';
+import { Trash2, GripVertical, Volume2, VolumeX, Image as ImageIcon, Music, Film, Info, Shuffle, Palette, Gauge, RotateCcw, Wand2, Type, Zap, MoveRight, ZoomIn } from 'lucide-react';
 import { TimelineAsset, snapToFrame } from '@/hooks/useTimeline';
 import { AssetInfoPanel } from './AssetInfoPanel';
 
@@ -25,6 +25,9 @@ interface TimelineAssetComponentProps {
   onRegenerate?: (metadata: any) => void;
   onAddTransition?: (assetId: string) => void;  // NEW: Transition handler (Feature 0065)
   onAddLUT?: (assetId: string) => void;         // NEW: LUT handler (Feature 0065)
+  onSpeedChange?: (assetId: string, speed: number) => void;  // NEW: Speed handler (Feature 0103)
+  onReverseToggle?: (assetId: string) => void;   // NEW: Reverse handler (Feature 0103)
+  onAddEffects?: (assetId: string) => void;      // NEW: Effects handler (Feature 0103 Sprint 3)
 }
 
 export function TimelineAssetComponent({
@@ -39,7 +42,10 @@ export function TimelineAssetComponent({
   frameRate = 30,
   onRegenerate,
   onAddTransition,  // NEW: Feature 0065
-  onAddLUT          // NEW: Feature 0065
+  onAddLUT,         // NEW: Feature 0065
+  onSpeedChange,    // NEW: Feature 0103
+  onReverseToggle,  // NEW: Feature 0103
+  onAddEffects      // NEW: Feature 0103 Sprint 3
 }: TimelineAssetComponentProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, assetStart: 0, assetTrack: 0 });
@@ -115,6 +121,8 @@ export function TimelineAssetComponent({
         return <Music className="w-3 h-3" />;
       case 'image':
         return <ImageIcon className="w-3 h-3" />;
+      case 'text':
+        return <Type className="w-3 h-3" />;
       default:
         return <Film className="w-3 h-3" />;
     }
@@ -131,6 +139,8 @@ export function TimelineAssetComponent({
         return 'bg-purple-500 border-purple-600';
       case 'image':
         return 'bg-red-500 border-red-600';
+      case 'text':
+        return 'bg-yellow-500 border-yellow-600';
       default:
         return 'bg-base-content/50 border-base-content/30';
     }
@@ -138,6 +148,7 @@ export function TimelineAssetComponent({
 
   // Special styling for audio tracks (different height)
   const isAudio = asset.type === 'audio' || asset.type === 'music';
+  const isText = asset.type === 'text';
   const displayHeight = isAudio ? Math.min(trackHeight, 50) : trackHeight - 2;
 
   return (
@@ -201,14 +212,62 @@ export function TimelineAssetComponent({
           {/* LUT Button - NEW (Feature 0065) */}
           {(asset.type === 'video' || asset.type === 'image') && onAddLUT && (
             <button
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-orange-500/20 rounded p-0.5"
+              className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-orange-500/20 rounded p-0.5 touch-manipulation"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddLUT(asset.id);
               }}
-              title="Apply LUT (Color Grade)"
+              title="Apply Color Grade"
             >
               <Palette className="w-3 h-3 text-orange-400" />
+            </button>
+          )}
+
+          {/* Speed Button - NEW (Feature 0103) */}
+          {(asset.type === 'video' || asset.type === 'audio') && onSpeedChange && (
+            <button
+              className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-indigo-500/20 rounded p-0.5 touch-manipulation"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSpeedChange(asset.id, asset.speed || 1.0);
+              }}
+              title={`Speed: ${asset.speed || 1.0}x`}
+            >
+              <Gauge className="w-3 h-3 text-indigo-400" />
+            </button>
+          )}
+
+          {/* Reverse Button - NEW (Feature 0103) */}
+          {(asset.type === 'video' || asset.type === 'audio') && onReverseToggle && (
+            <button
+              className={`opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-cyan-500/20 rounded p-0.5 touch-manipulation ${
+                asset.reversed ? '!opacity-100' : ''
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onReverseToggle(asset.id);
+              }}
+              title={asset.reversed ? "Reversed" : "Reverse Playback"}
+            >
+              <RotateCcw className={`w-3 h-3 ${asset.reversed ? 'text-cyan-300' : 'text-cyan-400'}`} />
+            </button>
+          )}
+
+          {/* Effects Button - NEW (Feature 0103 Sprint 3) */}
+          {(asset.type === 'video' || asset.type === 'image') && onAddEffects && (
+            <button
+              className={`opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-purple-500/20 rounded p-0.5 touch-manipulation ${
+                (asset.effects && Object.values(asset.effects).some(v => v && v > 0)) || 
+                (asset.colorGrading && Object.values(asset.colorGrading).some(v => v && v !== 0)) 
+                  ? '!opacity-100' : ''
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddEffects(asset.id);
+              }}
+              title="Apply Effects & Color Grading"
+            >
+              <Wand2 className="w-3 h-3 text-purple-400" />
             </button>
           )}
 
@@ -295,7 +354,7 @@ export function TimelineAssetComponent({
       {asset.lut && (
         <div 
           className="absolute top-1 left-1 bg-orange-500/90 text-base-content text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
-          title={`LUT: ${asset.lut.name}${asset.lut.intensity !== undefined ? ` (${Math.round(asset.lut.intensity * 100)}%)` : ''}`}
+          title={`Grade: ${asset.lut.name}${asset.lut.intensity !== undefined ? ` (${Math.round(asset.lut.intensity * 100)}%)` : ''}`}
         >
           <Palette className="w-3 h-3" />
           <span className="font-medium truncate max-w-[100px]">{asset.lut.name}</span>
@@ -310,6 +369,79 @@ export function TimelineAssetComponent({
         >
           🎨
         </div>
+      )}
+
+      {/* Speed Indicator - NEW (Feature 0103) */}
+      {asset.speed && asset.speed !== 1.0 && (
+        <div 
+          className="absolute bottom-1 left-1 bg-indigo-600/95 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md font-bold"
+          title={`Playback speed: ${asset.speed}x`}
+        >
+          <Gauge className="w-3 h-3" />
+          <span>{asset.speed}x</span>
+        </div>
+      )}
+
+      {/* Reverse Indicator - NEW (Feature 0103) */}
+      {asset.reversed && (
+        <div 
+          className="absolute bottom-1 right-1 bg-cyan-600/95 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md font-bold"
+          title="Reversed playback"
+        >
+          <RotateCcw className="w-3 h-3" />
+          <span>◀️</span>
+        </div>
+      )}
+
+      {/* Animation Indicators - NEW (Feature 0104 Phase 1) */}
+      {isText && asset.textContent?.animations && (
+        <>
+          {/* Fade In Indicator */}
+          {asset.textContent.animations.fadeIn?.enabled && (
+            <div 
+              className="absolute top-1 left-1 bg-blue-500/90 text-white text-xs px-1 py-0.5 rounded flex items-center gap-0.5 shadow-md"
+              title={`Fade in: ${asset.textContent.animations.fadeIn.duration}s`}
+            >
+              <ZoomIn className="w-2.5 h-2.5" />
+            </div>
+          )}
+          
+          {/* Slide In Indicator */}
+          {asset.textContent.animations.slideIn?.enabled && (
+            <div 
+              className="absolute top-1 left-8 bg-green-500/90 text-white text-xs px-1 py-0.5 rounded flex items-center gap-0.5 shadow-md"
+              title={`Slide in from ${asset.textContent.animations.slideIn.from}: ${asset.textContent.animations.slideIn.duration}s`}
+            >
+              <MoveRight className="w-2.5 h-2.5" />
+            </div>
+          )}
+          
+          {/* Scale In Indicator */}
+          {asset.textContent.animations.scaleIn?.enabled && (
+            <div 
+              className="absolute top-1 left-14 bg-purple-500/90 text-white text-xs px-1 py-0.5 rounded flex items-center gap-0.5 shadow-md"
+              title={`Scale in from ${Math.round(asset.textContent.animations.scaleIn.from * 100)}%: ${asset.textContent.animations.scaleIn.duration}s`}
+            >
+              <ZoomIn className="w-2.5 h-2.5" />
+              <span className="text-[10px]">↗</span>
+            </div>
+          )}
+          
+          {/* Animations Badge */}
+          {(asset.textContent.animations.fadeIn?.enabled || 
+            asset.textContent.animations.fadeOut?.enabled || 
+            asset.textContent.animations.slideIn?.enabled || 
+            asset.textContent.animations.slideOut?.enabled || 
+            asset.textContent.animations.scaleIn?.enabled || 
+            asset.textContent.animations.scaleOut?.enabled) && (
+            <div 
+              className="absolute top-1 right-1 bg-gradient-to-r from-blue-500/90 to-purple-500/90 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md font-bold"
+              title="Animated text"
+            >
+              <Zap className="w-3 h-3" />
+            </div>
+          )}
+        </>
       )}
 
       {/* Selection Indicator */}

@@ -24,9 +24,10 @@ interface PacingOption {
 interface PacingSelectorProps {
   selectedPacing: string | null;
   onSelectPacing: (pacingId: string) => void;
+  isMobile?: boolean; // NEW: Mobile optimization
 }
 
-export function PacingSelector({ selectedPacing, onSelectPacing }: PacingSelectorProps) {
+export function PacingSelector({ selectedPacing, onSelectPacing, isMobile = false }: PacingSelectorProps) {
   const [pacingOptions, setPacingOptions] = useState<PacingOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterIntensity, setFilterIntensity] = useState<string>('all');
@@ -101,6 +102,83 @@ export function PacingSelector({ selectedPacing, onSelectPacing }: PacingSelecto
     );
   }
 
+  // MOBILE: Compact dropdown selector
+  if (isMobile) {
+    const selectedPacingData = pacingOptions.find(p => p.id === selectedPacing);
+    
+    return (
+      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
+        <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 py-3">
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900 dark:text-base-content">
+            <div className="p-1 bg-yellow-400 rounded">
+              <Zap className="w-3 h-3 text-black" />
+            </div>
+            Emotional Pacing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4 pb-4">
+          <div className="space-y-3">
+            {/* Compact Dropdown */}
+            <select
+              value={selectedPacing || ''}
+              onChange={(e) => onSelectPacing(e.target.value)}
+              className="w-full px-3 py-2 text-sm border-2 border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-base-content focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 transition-colors"
+            >
+              <option value="">Select pacing...</option>
+              {filteredPacing.map((pacing) => {
+                const badge = getIntensityBadge(pacing.intensity_level);
+                return (
+                  <option key={pacing.id} value={pacing.id}>
+                    {pacing.name} - {pacing.intensity_level}
+                  </option>
+                );
+              })}
+            </select>
+
+            {/* Selected Pacing Info */}
+            {selectedPacingData && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/10 border-2 border-yellow-400 rounded-lg">
+                <div className="flex items-center gap-1 mb-2">
+                  <Check className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
+                  <h4 className="font-semibold text-xs text-slate-900 dark:text-base-content">
+                    {selectedPacingData.name}
+                  </h4>
+                  <Badge className={`ml-auto text-[10px] ${getIntensityBadge(selectedPacingData.intensity_level).color} text-white`}>
+                    {getIntensityBadge(selectedPacingData.intensity_level).emoji} {selectedPacingData.intensity_level}
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                  {selectedPacingData.description}
+                </p>
+                <div className="text-[10px] text-slate-500 dark:text-slate-500">
+                  💡 {selectedPacingData.psychological_effect}
+                </div>
+              </div>
+            )}
+
+            {/* Intensity Quick Filters */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {intensityLevels.map((level) => (
+                <button
+                  key={level.id}
+                  className={`px-2 py-1 text-xs rounded-full whitespace-nowrap border transition-colors flex-shrink-0 ${
+                    filterIntensity === level.id 
+                      ? 'bg-yellow-400 text-black border-yellow-500' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                  }`}
+                  onClick={() => setFilterIntensity(level.id)}
+                >
+                  {level.emoji} {level.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // DESKTOP: Full grid layout
   return (
     <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
       <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">

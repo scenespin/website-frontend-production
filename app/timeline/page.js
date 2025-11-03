@@ -8,7 +8,6 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { EnhancedTimelineEditor } from '@/components/timeline/EnhancedTimelineEditor';
-import { TimelineSubNav } from '@/components/timeline/TimelineSubNav';
 
 function TimelineContent() {
   const searchParams = useSearchParams();
@@ -21,9 +20,6 @@ function TimelineContent() {
 
   return (
     <>
-      {/* Timeline Sub-Navigation */}
-      <TimelineSubNav projectId={projectId} />
-      
       <div className="min-h-screen bg-base-100 pt-16">
         <EnhancedTimelineEditor 
           projectId={projectId}

@@ -968,6 +968,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                   <AnimationSelector
                     selectedAnimation={selectedAnimation}
                     onSelectAnimation={setSelectedAnimation}
+                    isMobile={isMobileView}
                   />
                 )}
 
@@ -975,6 +976,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                   <PacingSelector
                     selectedPacing={selectedPacing}
                     onSelectPacing={setSelectedPacing}
+                    isMobile={isMobileView}
                   />
                 )}
 

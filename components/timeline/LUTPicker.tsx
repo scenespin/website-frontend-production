@@ -98,7 +98,7 @@ export function LUTPicker({ asset, onSelect, onClose }: LUTPickerProps) {
                 <p className="text-base-content/60 text-sm">
                   {hoveredLUT || selectedLUT ? 
                     `Preview: ${CINEMATIC_LUTS.find(l => l.id === (hoveredLUT || selectedLUT))?.name}` : 
-                    'Hover over a LUT to preview'
+                    'Hover over a preset to preview'
                   }
                 </p>
                 <p className="text-base-content/50 text-xs mt-2">
@@ -245,38 +245,6 @@ export function LUTPicker({ asset, onSelect, onClose }: LUTPickerProps) {
             <p className="text-orange-300 text-sm">
               💡 <strong>Tip:</strong> Color grading transforms your footage with cinematic looks used in Hollywood productions. Adjust intensity to blend perfectly with your scenes.
             </p>
-          </div>
-
-          {/* HDR Upsell Banner */}
-          <div className="mt-4 p-4 bg-gradient-to-r from-purple-900/40 to-orange-900/40 border-2 border-purple-500/50 rounded-lg">
-            <div className="flex items-start gap-3">
-              <div className="text-3xl">✨</div>
-              <div className="flex-1">
-                <h4 className="text-base-content font-bold text-sm mb-1">
-                  🎬 Upgrade to HDR Rendering
-                </h4>
-                <p className="text-purple-200 text-xs mb-3">
-                  Make your color grades pop with <strong>High Dynamic Range (HDR)</strong> export. Unlock deeper blacks, brighter highlights, and billions of colors for that true cinematic look.
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    className="bg-gradient-to-r from-purple-600 to-orange-600 hover:from-purple-700 hover:to-orange-700 text-base-content text-xs h-8"
-                    onClick={() => {
-                      // TODO: Link to HDR export option
-                      window.open('/pricing', '_blank');
-                    }}
-                  >
-                    Enable HDR Export →
-                  </Button>
-                  <span className="text-purple-300 text-xs font-medium">
-                    +200 credits per export
-                  </span>
-                  <span className="text-purple-400/60 text-[10px] block mt-0.5">
-                    One-time cost per video export
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

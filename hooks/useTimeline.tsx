@@ -221,7 +221,7 @@ export function getFormatRecommendation(mimeType: string): string | null {
 // ==================== TYPES ====================
 
 // Asset Types
-export type AssetType = 'video' | 'audio' | 'image' | 'music';
+export type AssetType = 'video' | 'audio' | 'image' | 'music' | 'text';
 export type TrackType = 'video' | 'audio';
 
 // File size limits (Feature 0064 - Performance)
@@ -314,8 +314,9 @@ export const HOLLYWOOD_TRANSITIONS = [
 ] as const;
 
 // ==================== CINEMATIC LUTS (Feature 0065) ====================
-// Complete library of 70 Hollywood-grade LUTs - ALL FREE! 🎨
-// Synced with backend: website-backend-api/src/services/LUTService.ts
+// Complete library of 120 professional color presets - ALL FREE! 🎨
+// Wrapper-safe: Users see "Professional Color Grading", not technical LUT details
+// Synced with backend: website-backend-api/src/services/LUTService.ts (verified Nov 3, 2025)
 
 export const CINEMATIC_LUTS: Array<{
   id: string;
@@ -661,6 +662,100 @@ export interface TimelineAsset {
     tint?: number;          // -100 (green) to 100 (magenta)
   };
   
+  // NEW: Visual effects/filters (Feature 0103 Sprint 3)
+  effects?: {
+    blur?: number;          // 0-100 (Gaussian blur radius)
+    sharpen?: number;       // 0-100 (Unsharp mask amount)
+    vignette?: number;      // 0-100 (Edge darkening)
+    grain?: number;         // 0-100 (Film grain intensity)
+  };
+  
+  // NEW: Speed control (Feature 0103)
+  speed?: number;           // 0.25 (slow-mo) | 0.5 | 1.0 (normal) | 2.0 | 4.0 (timelapse)
+  
+  // NEW: Reverse playback (Feature 0103)
+  reversed?: boolean;       // Play clip backward
+  
+  // NEW: Text/Title properties (Feature 0103 Sprint 3, Feature 0104 Phase 1)
+  textContent?: {
+    text: string;             // The actual text to display
+    fontFamily?: string;      // Font (default: 'Arial')
+    fontSize?: number;        // Size in pixels (12-200, default: 48)
+    fontWeight?: 'normal' | 'bold';
+    fontStyle?: 'normal' | 'italic';
+    textColor?: string;       // Hex color (default: '#FFFFFF')
+    backgroundColor?: string; // Hex color for background box (optional)
+    opacity?: number;         // 0.0 - 1.0 (default: 1.0)
+    
+    // Position
+    positionX?: number;       // X coordinate (0-100% of video width)
+    positionY?: number;       // Y coordinate (0-100% of video height)
+    positionPreset?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+    
+    // Alignment
+    textAlign?: 'left' | 'center' | 'right';
+    
+    // Effects
+    outline?: boolean;        // Add text outline
+    outlineColor?: string;    // Outline color (default: '#000000')
+    outlineWidth?: number;    // Outline width in pixels (1-10, default: 2)
+    shadow?: boolean;         // Add drop shadow
+    shadowColor?: string;     // Shadow color (default: '#000000')
+    shadowOffsetX?: number;   // Shadow X offset (default: 2)
+    shadowOffsetY?: number;   // Shadow Y offset (default: 2)
+    
+    // NEW: Text animations (Feature 0104 Phase 1)
+    animations?: {
+      // Fade animations
+      fadeIn?: {
+        enabled: boolean;
+        duration: number;      // seconds (0.1-5.0)
+        easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+        delay?: number;        // seconds (0-10)
+      };
+      fadeOut?: {
+        enabled: boolean;
+        duration: number;
+        easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+        delay?: number;        // seconds from end
+      };
+      
+      // Slide animations
+      slideIn?: {
+        enabled: boolean;
+        from: 'left' | 'right' | 'top' | 'bottom';
+        duration: number;      // seconds (0.1-5.0)
+        distance?: number;     // pixels (default: full width/height)
+        easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+      };
+      slideOut?: {
+        enabled: boolean;
+        to: 'left' | 'right' | 'top' | 'bottom';
+        duration: number;
+        distance?: number;
+        easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+      };
+      
+      // Scale animations
+      scaleIn?: {
+        enabled: boolean;
+        from: number;          // scale factor (0-2, default: 0)
+        duration: number;
+        easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bounce';
+      };
+      scaleOut?: {
+        enabled: boolean;
+        to: number;            // scale factor (0-2, default: 0)
+        duration: number;
+        easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+      };
+    };
+  };
+  
+  // NEW: Clipboard data for copy/paste (Feature 0103 Sprint 2)
+  copiedAssets?: TimelineAsset[];  // Internal - not persisted
+  
+  
   // Image-specific (static images)
   displayDuration?: number;  // For images, how long to display
   
@@ -796,6 +891,10 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   const [zoomLevel, setZoomLevel] = useState(50); // pixels per second
   const [isDragging, setIsDragging] = useState(false);
   const [draggedClip, setDraggedClip] = useState<TimelineClip | null>(null);
+
+  // NEW: Ripple Edit Mode & Clipboard (Feature 0103 Sprint 2)
+  const [rippleMode, setRippleMode] = useState(false); // Auto-adjust adjacent clips
+  const [clipboard, setClipboard] = useState<TimelineAsset[]>([]); // Copied clips
 
   // ==================== NEW: SAVE STATE & PROTECTION ====================
 
@@ -1241,21 +1340,44 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   }, []);
 
   /**
-   * Remove an asset
+   * Remove an asset (with optional ripple edit)
+   * Feature 0103 Sprint 2
    */
   const removeAsset = useCallback((assetId: string) => {
-    setProject(prev => ({
-      ...prev,
-      assets: prev.assets.filter(a => a.id !== assetId),
-      updatedAt: new Date()
-    }));
+    const asset = project.assets.find(a => a.id === assetId);
+    if (!asset) return;
+
+    setProject(prev => {
+      let newAssets = prev.assets.filter(a => a.id !== assetId);
+
+      // If ripple mode is enabled, shift subsequent clips on the same track
+      if (rippleMode) {
+        const removedAsset = asset;
+        newAssets = newAssets.map(a => {
+          // Only affect clips on the same track that start after the removed clip
+          if (a.track === removedAsset.track && a.startTime > removedAsset.startTime) {
+            return {
+              ...a,
+              startTime: Math.max(0, a.startTime - removedAsset.duration)
+            };
+          }
+          return a;
+        });
+      }
+
+      return {
+        ...prev,
+        assets: newAssets,
+        updatedAt: new Date()
+      };
+    });
     
     setSelectedClips(prev => {
       const next = new Set(prev);
       next.delete(assetId);
       return next;
     });
-  }, []);
+  }, [rippleMode, project.assets]);
 
   /**
    * Update an asset
@@ -1303,7 +1425,55 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     });
   }, [updateAsset, project.frameRate, project.assets]);
 
-  // ==================== KEYFRAME OPERATIONS ====================
+  // ==================== COPY/PASTE OPERATIONS (Feature 0103 Sprint 2) ====================
+
+  /**
+   * Copy selected clips to clipboard
+   */
+  const copyClips = useCallback((clipIds: string[]) => {
+    const assetsToCopy = project.assets.filter(a => clipIds.includes(a.id));
+    setClipboard(assetsToCopy);
+    return assetsToCopy.length;
+  }, [project.assets]);
+
+  /**
+   * Paste clips at playhead position or specific track/time
+   */
+  const pasteClips = useCallback((targetTrack?: number, targetTime?: number) => {
+    if (clipboard.length === 0) return [];
+
+    const pasteTime = targetTime !== undefined ? targetTime : playheadPosition;
+    const pasteTrack = targetTrack !== undefined ? targetTrack : clipboard[0].track;
+
+    // Calculate offset from first clip's original position
+    const firstClip = clipboard[0];
+    const timeOffset = pasteTime - firstClip.startTime;
+    const trackOffset = pasteTrack - firstClip.track;
+
+    // Create new clips with adjusted positions and new IDs
+    const newAssets = clipboard.map(asset => {
+      const newId = `asset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      return {
+        ...asset,
+        id: newId,
+        startTime: asset.startTime + timeOffset,
+        track: asset.track + trackOffset
+      };
+    });
+
+    // Add all pasted assets
+    setProject(prev => ({
+      ...prev,
+      assets: [...prev.assets, ...newAssets],
+      updatedAt: new Date()
+    }));
+
+    // Select the newly pasted clips
+    const newIds = newAssets.map(a => a.id);
+    setSelectedClips(new Set(newIds));
+
+    return newIds;
+  }, [clipboard, playheadPosition]);
 
   /**
    * Add a keyframe to an asset
@@ -1835,6 +2005,15 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     updateAsset,
     moveAsset,
     moveAssetToFrame,
+    
+    // Copy/Paste (Feature 0103 Sprint 2)
+    clipboard,
+    copyClips,
+    pasteClips,
+    
+    // Ripple Mode (Feature 0103 Sprint 2)
+    rippleMode,
+    setRippleMode: (enabled: boolean) => setRippleMode(enabled),
     
     // Keyframes (NEW)
     addKeyframe,

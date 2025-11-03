@@ -64,71 +64,71 @@ export default function CharactersPage() {
         {/* Editor Sub-Navigation */}
         <EditorSubNav activeTab="characters" projectId={projectId} />
 
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8" />
-              <div>
-                <h1 className="text-3xl font-extrabold">Characters</h1>
-                <p className="text-sm opacity-80">Manage your cast and character profiles</p>
+        <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <Users className="w-6 h-6 md:w-8 md:h-8 shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-xl md:text-3xl font-extrabold truncate">Characters</h1>
+                <p className="text-xs md:text-sm opacity-80 hidden sm:block">Manage your cast and character profiles</p>
               </div>
             </div>
             <button 
               onClick={() => setShowAddCharacter(true)}
-              className="btn btn-sm bg-white/20 hover:bg-white/30 gap-2"
+              className="btn btn-sm md:btn-md bg-white/20 hover:bg-white/30 gap-1 md:gap-2 shrink-0"
             >
               <Plus className="w-4 h-4" />
-              Add Character
+              <span className="hidden sm:inline">Add</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Context Indicator */}
+      {/* Context Indicator - Mobile Optimized */}
       {context.activeCharacterName && (
         <div className="bg-info/10 border-b border-info/20">
-          <div className="max-w-7xl mx-auto px-4 py-2 text-sm">
-            <span className="opacity-70">Active in scene:</span>{' '}
+          <div className="max-w-7xl mx-auto px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm">
+            <span className="opacity-70">Active:</span>{' '}
             <span className="font-semibold">{context.activeCharacterName}</span>
             {context.currentSceneName && (
-              <span className="opacity-70"> • {context.currentSceneName}</span>
+              <span className="opacity-70 hidden sm:inline"> • {context.currentSceneName}</span>
             )}
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
           {/* Characters List */}
           <div className="lg:col-span-1">
             <div className="card bg-base-200 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title">Cast</h2>
-                <p className="text-sm opacity-60 mb-4">{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
+              <div className="card-body p-3 md:p-6">
+                <h2 className="card-title text-base md:text-xl">Cast</h2>
+                <p className="text-xs md:text-sm opacity-60 mb-2 md:mb-4">{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
                 
-                <div className="space-y-2">
+                <div className="space-y-1.5 md:space-y-2">
                   {characters.map(character => (
                     <button
                       key={character.character_id}
                       onClick={() => setSelectedCharacter(character)}
-                      className={`w-full text-left p-4 rounded-lg transition-colors ${
+                      className={`w-full text-left p-2 md:p-4 rounded-lg transition-colors ${
                         selectedCharacter?.character_id === character.character_id
                           ? 'bg-cinema-gold/20 border-2 border-cinema-gold'
                           : 'bg-base-300 hover:bg-base-100'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 md:gap-3">
                         <div className="avatar placeholder">
-                          <div className="bg-primary text-primary-content rounded-full w-10">
-                            <span className="text-sm">{character.name[0]}</span>
+                          <div className="bg-primary text-primary-content rounded-full w-8 md:w-10">
+                            <span className="text-xs md:text-sm">{character.name[0]}</span>
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold truncate">{character.name}</div>
-                          <div className="text-xs opacity-60 truncate">{character.full_name}</div>
-                          <div className="text-xs opacity-50 mt-1">
+                          <div className="font-bold text-sm truncate">{character.name}</div>
+                          <div className="text-xs opacity-60 truncate hidden sm:block">{character.full_name}</div>
+                          <div className="text-[10px] md:text-xs opacity-50 mt-0.5">
                             {character.scenes.length} scene{character.scenes.length !== 1 ? 's' : ''}
                           </div>
                         </div>

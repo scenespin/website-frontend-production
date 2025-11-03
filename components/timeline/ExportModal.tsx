@@ -70,6 +70,7 @@ export interface ExportSettings {
   aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '21:9';
   frameRate: 24 | 30 | 60;
   speedTier: 'standard' | 'express';
+  hdrExport?: boolean; // Professional Studio Export: 16-bit EXR HDR
 }
 
 interface ComplexityAnalysis {
@@ -238,7 +239,13 @@ export function ExportModal({
   // Recalculate cost when settings change
   useEffect(() => {
     if (complexity) {
-      const newCost = calculateExportCost(settings, complexity, project.duration);
+      let newCost = calculateExportCost(settings, complexity, project.duration);
+      
+      // Add HDR export cost (+1,500 credits = $15.00)
+      if (settings.hdrExport) {
+        newCost += 1500;
+      }
+      
       setCost(newCost);
     }
   }, [settings, complexity, project.duration]);
@@ -490,6 +497,78 @@ export function ExportModal({
             </RadioGroup>
           </div>
 
+          {/* Professional HDR Export (16-bit EXR) */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              Professional Studio Export
+            </Label>
+            <Card className="bg-gradient-to-br from-purple-950/40 to-blue-950/40 border-2 border-purple-500/30">
+              <CardContent className="p-5">
+                <div className="flex items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={settings.hdrExport || false}
+                    onChange={(e) => setSettings({ ...settings, hdrExport: e.target.checked })}
+                    className="mt-1 w-5 h-5 accent-purple-600 cursor-pointer"
+                    id="hdr-export"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="hdr-export" className="cursor-pointer">
+                      <div className="font-bold text-base flex items-center gap-2 mb-2">
+                        💎 16-bit HDR Export (ACES Color Space)
+                        <Badge className="bg-gradient-to-r from-purple-600 to-blue-600">
+                          Pro Studios
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-300 mb-3">
+                        Export as 16-bit EXR HDR for professional color grading in DaVinci Resolve, After Effects, or Nuke. 
+                        Perfect for client deliverables and broadcast finishing.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="flex items-start gap-2">
+                          <div className="text-green-400 mt-0.5">✓</div>
+                          <div>
+                            <div className="font-semibold text-slate-200">Unlimited Grading Headroom</div>
+                            <div className="text-slate-400">No banding or clipping</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="text-green-400 mt-0.5">✓</div>
+                          <div>
+                            <div className="font-semibold text-slate-200">Hollywood VFX Pipeline</div>
+                            <div className="text-slate-400">Industry-standard format</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="text-green-400 mt-0.5">✓</div>
+                          <div>
+                            <div className="font-semibold text-slate-200">ACES2065-1 Color Space</div>
+                            <div className="text-slate-400">4.3 billion colors/channel</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="text-green-400 mt-0.5">✓</div>
+                          <div>
+                            <div className="font-semibold text-slate-200">Agency-Ready</div>
+                            <div className="text-slate-400">Broadcast & cinema quality</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-purple-500/20 flex items-center justify-between">
+                        <span className="text-sm text-slate-400">HDR Export Upgrade</span>
+                        <span className="text-lg font-bold text-purple-300">+1,500 credits</span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1 text-right">
+                        ≈ $15.00 USD per export
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Cost Display */}
           <Card className={`border-2 ${canAfford ? 'border-green-600 bg-green-950/20' : 'border-red-600 bg-red-950/20'}`}>
             <CardContent className="p-5">
@@ -563,7 +642,7 @@ export function ExportModal({
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Export Video ({cost} credits)
+                {settings.hdrExport ? 'Export HDR Video' : 'Export Video'} ({cost} credits)
               </>
             )}
           </Button>
