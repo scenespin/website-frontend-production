@@ -9,7 +9,7 @@ import { charactersAPI } from '@/lib/navigationAPI';
 import { Users, Plus, Edit, Trash2, Image, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
-import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
+// ResponsiveHeader removed - will use Navigation.js from wrapper
 
 export default function CharactersPage() {
   const { user } = useUser();
@@ -71,7 +71,7 @@ export default function CharactersPage() {
 
   return (
     <>
-      <ResponsiveHeader />
+      {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
       <div className="min-h-screen bg-base-100 text-base-content pt-16">
         {/* Editor Sub-Navigation */}
         <EditorSubNav activeTab="characters" projectId={projectId} />

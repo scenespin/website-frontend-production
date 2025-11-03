@@ -7,7 +7,7 @@ import FolderTreeVisualization from '@/components/FolderTreeVisualization';
 import { Folder, Grid, Info, HardDrive, Cloud } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { LibrarySubNav } from '@/components/library/LibrarySubNav';
-import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
+// ResponsiveHeader removed - will use Navigation.js from wrapper
 
 function AssetsContent() {
   const [activeTab, setActiveTab] = useState('browser');
@@ -17,7 +17,7 @@ function AssetsContent() {
 
   return (
     <>
-      <ResponsiveHeader />
+      {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
       <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16">
         {/* Library Sub-Navigation */}
         <LibrarySubNav activeTab="assets" />

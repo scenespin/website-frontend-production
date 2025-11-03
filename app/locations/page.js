@@ -9,6 +9,7 @@ import { locationsAPI } from '@/lib/navigationAPI';
 import { MapPin, Plus, Edit, Trash2, Image, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
+// ResponsiveHeader removed - will use Navigation.js from wrapper
 
 export default function LocationsPage() {
   const { user } = useUser();
@@ -71,7 +72,7 @@ export default function LocationsPage() {
 
   return (
     <>
-      <ResponsiveHeader />
+      {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
       <div className="min-h-screen bg-base-100 text-base-content pt-16">
         {/* Editor Sub-Navigation */}
         <EditorSubNav activeTab="locations" projectId={projectId} />

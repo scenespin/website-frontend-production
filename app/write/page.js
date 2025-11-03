@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import EditorWorkspace from '@/components/editor/EditorWorkspace';
-import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
+// ResponsiveHeader removed - will use Navigation.js from wrapper
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
 function WritePageContent() {
@@ -74,7 +74,7 @@ function WritePageContent() {
   // Render the editor workspace
   return (
     <>
-      <ResponsiveHeader />
+      {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
       <EditorSubNav activeTab="write" projectId={projectId} />
       <EditorWorkspace />
     </>

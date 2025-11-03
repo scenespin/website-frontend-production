@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { CompositionStudio } from '@/components/composition/CompositionStudio';
-import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
+// ResponsiveHeader removed - will use Navigation.js from wrapper
 
 function CompositionContent() {
   const searchParams = useSearchParams();
@@ -31,7 +31,7 @@ function CompositionContent() {
 
   return (
     <>
-      <ResponsiveHeader />
+      {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-20">
         <CompositionStudio 
           userId={user.id}
