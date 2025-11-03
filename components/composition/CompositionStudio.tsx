@@ -461,67 +461,51 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         </div>
       )}
       
-      {/* Refined Clapboard Header */}
+      {/* Clean Professional Header */}
       <div className="max-w-7xl mx-auto mb-8">
-        {/* Film Slate Style Header */}
-        <div className="relative bg-[#141414] rounded-xl shadow-2xl overflow-hidden border-2 border-white/10">
-          {/* Clapboard Stripes - More refined */}
-          <div className="h-12 flex shadow-inner">
-            <div className="flex-1 bg-[#DC143C]"></div>
-            <div className="flex-1 bg-white"></div>
-            <div className="flex-1 bg-[#DC143C]"></div>
-            <div className="flex-1 bg-white"></div>
-            <div className="flex-1 bg-[#DC143C]"></div>
-            <div className="flex-1 bg-white"></div>
-            <div className="flex-1 bg-[#DC143C]"></div>
-            <div className="flex-1 bg-white"></div>
-          </div>
-          
-          {/* Main Slate Content - Cleaner spacing */}
-          <div className="p-8 bg-gradient-to-b from-[#1F1F1F] to-[#141414]">
-            <div className="flex items-start justify-between gap-6">
-              <div className="flex-1 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-[#DC143C] rounded-lg">
-                    <Film className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-base-content tracking-tight">
-                      Composition Studio
-                    </h1>
-                    <p className="text-sm text-[#B3B3B3]">
-                      Professional video compositing
-                    </p>
-                  </div>
+        <div className="bg-[#141414] rounded-xl shadow-2xl overflow-hidden border border-white/10 p-8">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#DC143C] rounded-lg">
+                  <Film className="w-6 h-6 text-white" />
                 </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-[#B3B3B3] mb-1">Director</div>
-                    <div className="font-semibold text-base-content text-sm">AI Director</div>
-                  </div>
-                  <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-[#B3B3B3] mb-1">Scene</div>
-                    <div className="font-semibold text-base-content text-sm">Multi-Video</div>
-                  </div>
-                  <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-[#B3B3B3] mb-1">Take</div>
-                    <div className="font-semibold text-base-content text-sm">#{recentCompositions + 1}</div>
-                  </div>
-                  <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-[#B3B3B3] mb-1">Date</div>
-                    <div className="font-semibold text-base-content text-sm">{new Date().toLocaleDateString()}</div>
-                  </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">
+                    Composition Studio
+                  </h1>
+                  <p className="text-sm text-gray-400">
+                    Professional video compositing
+                  </p>
                 </div>
               </div>
               
-              {recentCompositions > 0 && (
-                <div className="bg-gradient-to-br from-[#DC143C] to-[#B01030] text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg border-2 border-[#A01020]">
-                  <div className="text-xs opacity-70 mb-1">Current</div>
-                  <div>TAKE {recentCompositions}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
+                  <div className="text-xs text-gray-400 mb-1">Director</div>
+                  <div className="font-semibold text-white text-sm">AI Director</div>
                 </div>
-              )}
+                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
+                  <div className="text-xs text-gray-400 mb-1">Scene</div>
+                  <div className="font-semibold text-white text-sm">Multi-Video</div>
+                </div>
+                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
+                  <div className="text-xs text-gray-400 mb-1">Take</div>
+                  <div className="font-semibold text-white text-sm">#{recentCompositions + 1}</div>
+                </div>
+                <div className="bg-[#1F1F1F] rounded-lg p-3 border border-white/10">
+                  <div className="text-xs text-gray-400 mb-1">Date</div>
+                  <div className="font-semibold text-white text-sm">{new Date().toLocaleDateString()}</div>
+                </div>
+              </div>
             </div>
+            
+            {recentCompositions > 0 && (
+              <div className="bg-gradient-to-br from-[#DC143C] to-[#B01030] text-white px-6 py-3 rounded-lg font-bold text-lg shadow-lg border-2 border-[#A01020]">
+                <div className="text-xs opacity-70 mb-1">Current</div>
+                <div>TAKE {recentCompositions}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>

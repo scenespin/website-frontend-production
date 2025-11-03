@@ -49,37 +49,31 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', description: 'Overview & quick access', icon: 'dashboard' },
-    { name: 'Editor', href: '/dashboard', description: 'Screenplay editor - select project first', icon: 'write' },
+    { name: 'Editor', href: '/editor', description: 'Screenplay editor', icon: 'write' },
     { 
       name: 'Production', 
-      href: '/dashboard', 
-      description: 'AI video & audio generation - select project first',
+      href: '/production', 
+      description: 'AI video & audio generation',
       desktopRecommended: true,
       icon: 'production'
     },
     { 
       name: 'Composition', 
-      href: '/dashboard', 
-      description: 'Layouts & effects studio - select project first',
+      href: '/composition', 
+      description: 'Layouts & effects studio',
       desktopRecommended: true,
       icon: 'composition'
     },
     { 
       name: 'Timeline', 
-      href: '/dashboard', 
-      description: 'Video editor - select project first',
+      href: '/timeline', 
+      description: 'Video editor',
       icon: 'timeline'
-    },
-    { 
-      name: 'My Assets', 
-      href: '/assets', 
-      description: 'Browse your cloud storage files',
-      icon: 'assets'
     },
     { 
       name: 'Library', 
       href: '/dashboard', 
-      description: 'Projects, videos, music & assets',
+      description: 'Projects & assets',
       icon: 'library'
     },
   ]

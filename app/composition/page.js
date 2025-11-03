@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { CompositionStudio } from '@/components/composition/CompositionStudio';
+import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 
 export default function CompositionPage() {
   const searchParams = useSearchParams();
@@ -28,12 +29,15 @@ export default function CompositionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <CompositionStudio 
-        userId={user.id}
-        recomposeData={recomposeData}
-        preloadedClips={preloadedClipsData}
-      />
-    </div>
+    <>
+      <ResponsiveHeader />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-16">
+        <CompositionStudio 
+          userId={user.id}
+          recomposeData={recomposeData}
+          preloadedClips={preloadedClipsData}
+        />
+      </div>
+    </>
   );
 }

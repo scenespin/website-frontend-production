@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +36,11 @@ export default function ProductionPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <ProductionPageLayout />
-    </div>
+    <>
+      <ResponsiveHeader />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 pt-16">
+        <ProductionPageLayout />
+      </div>
+    </>
   );
 }

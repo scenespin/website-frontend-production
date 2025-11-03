@@ -16,6 +16,7 @@ export function VideoModePanel({ onInsert }) {
   const [videoMode, setVideoMode] = useState('text-only'); // 'text-only' | 'image-start' | 'image-interpolation' | 'reference-images'
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [qualityTier, setQualityTier] = useState('professional');
+  const [enableLoop, setEnableLoop] = useState(false); // Loop parameter for seamless looping
   
   // Image uploads
   const [startImage, setStartImage] = useState(null);
@@ -148,7 +149,8 @@ export function VideoModePanel({ onInsert }) {
         prompt: prompt.trim(),
         videoMode,
         aspectRatio,
-        qualityTier
+        qualityTier,
+        loop: enableLoop // Add loop parameter for seamless looping
       };
       
       if (videoMode === 'image-start' && startImage) {
@@ -415,6 +417,22 @@ export function VideoModePanel({ onInsert }) {
               </button>
             ))}
           </div>
+        </div>
+        
+        {/* Loop Option */}
+        <div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableLoop}
+              onChange={(e) => setEnableLoop(e.target.checked)}
+              className="checkbox checkbox-sm checkbox-primary"
+            />
+            <span className="text-sm font-medium">
+              🔁 Seamless Loop
+              <span className="text-xs opacity-60 ml-1">(perfect looping backgrounds)</span>
+            </span>
+          </label>
         </div>
       </div>
       
