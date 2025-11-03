@@ -319,12 +319,12 @@ export function MobileWorkflowSelector({
   // Step 1: Show category grid
   if (viewMode === 'categories') {
     return (
-      <div className="flex flex-col h-full p-4 space-y-4">
+      <div className="flex flex-col h-full p-4 space-y-4 bg-slate-900">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-base-content mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
             Choose Your Workflow
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-300">
             Select a category to see available workflows
           </p>
         </div>
@@ -339,13 +339,13 @@ export function MobileWorkflowSelector({
                   setSelectedCategory(category.id);
                   setViewMode('workflows');
                 }}
-                className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 
-                         bg-white dark:bg-slate-800 hover:border-primary transition-all
+                className="p-4 rounded-lg border-2 border-slate-700 
+                         bg-slate-800 hover:border-[#DC143C] transition-all
                          text-left"
               >
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-lg bg-gradient-to-br ${category.color}`}>
-                    <Icon className="w-6 h-6 text-base-content" />
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-900 dark:text-base-content mb-1">

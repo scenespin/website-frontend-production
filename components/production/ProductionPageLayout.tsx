@@ -246,7 +246,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
 
   // When beat selected, auto-move to step 1 and get AI suggestion
   useEffect(() => {
-    if (selectedBeatId) {
+    if (selectedBeatId && screenplay.beats && screenplay.beats.length > 0) {
       const beat = screenplay.beats.find(b => b.id === selectedBeatId);
       if (beat) {
         setSelectedBeat(beat);
@@ -290,7 +290,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
             description: beat.description,
             scenes: beat.scenes
           },
-          characters: screenplay.characters.map(c => c.name)
+          characters: screenplay.characters && screenplay.characters.length > 0 ? screenplay.characters.map(c => c.name) : []
         })
       });
       
@@ -691,7 +691,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
               {/* Left Panel: Story Beats (25%) */}
               <div className="w-1/4 min-w-[300px] border-r border-white/10 bg-[#141414]">
                 <StoryBeatsPanel
-                  beats={screenplay.beats}
+                  beats={screenplay.beats || []}
                   selectedBeatId={selectedBeatId}
                   onBeatSelect={handleBeatSelect}
                 />

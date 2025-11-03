@@ -18,15 +18,13 @@ export function isMobileDevice(): boolean {
     return false;
   }
 
-  // Check user agent for mobile patterns
+  // Check user agent for mobile patterns (PRIMARY detection)
   const mobileUserAgentPattern = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i;
   const isMobileUserAgent = mobileUserAgentPattern.test(navigator.userAgent);
 
-  // Check screen width (mobile breakpoint)
-  const isMobileWidth = window.innerWidth < 768;
-
-  // Device is mobile if EITHER condition is true
-  return isMobileUserAgent || isMobileWidth;
+  // ONLY rely on user agent for true mobile detection
+  // Do NOT use width alone, as desktop browsers can be resized
+  return isMobileUserAgent;
 }
 
 /**

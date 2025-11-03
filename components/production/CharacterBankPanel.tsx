@@ -357,12 +357,23 @@ export function CharacterBankPanel({
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
               Create characters in the Write tab first, then generate references here.
             </p>
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-base-content font-medium rounded-lg transition-colors"
-            >
-              Got it
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  window.location.href = `/write?project=${projectId}`;
+                }}
+                className="flex-1 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Go to Write Tab
+              </button>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-medium rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

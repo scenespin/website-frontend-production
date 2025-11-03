@@ -201,19 +201,60 @@ export function LocationBankPanel({
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="bg-base-300 rounded-xl p-6 max-w-md w-full mx-4"
+            className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-base-content mb-4">Add Location</h3>
-            <p className="text-base-content/60 mb-4">
+            <h3 className="text-xl font-bold text-white mb-4">Add Location</h3>
+            <p className="text-slate-300 mb-4">
               Upload a photo or generate a location from a description
             </p>
             <div className="space-y-2">
-              <button className="w-full btn btn-primary">
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Location Photo
-              </button>
-              <button className="w-full btn btn-outline">
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        toast.info('Uploading location photo...');
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        formData.append('projectId', projectId);
+                        
+                        const response = await fetch('/api/media/upload-image', {
+                          method: 'POST',
+                          body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                          toast.success('Location photo uploaded!');
+                          setShowCreateModal(false);
+                          loadLocations();
+                        } else {
+                          throw new Error(data.message || 'Upload failed');
+                        }
+                      } catch (error: any) {
+                        console.error('[LocationBank] Upload error:', error);
+                        toast.error('Failed to upload photo');
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+                <span className="w-full btn btn-primary cursor-pointer flex items-center justify-center">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Location Photo
+                </span>
+              </label>
+              <button 
+                onClick={() => {
+                  toast.info('AI generation coming soon!');
+                }}
+                className="w-full btn btn-outline"
+              >
                 <Wand2 className="w-4 h-4 mr-2" />
                 Generate with AI
               </button>
