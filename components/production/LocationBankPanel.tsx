@@ -10,6 +10,11 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Upload, Wand2, Loader2, Image, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useChatContext } from '@/contexts/ChatContext';
+import { useDrawer } from '@/contexts/DrawerContext';
+import LocationDetailSidebar from '../screenplay/LocationDetailSidebar';
+import { AnimatePresence } from 'framer-motion';
 
 interface LocationProfile {
   location_id: string;
@@ -34,9 +39,13 @@ export function LocationBankPanel({
   className = ''
 }: LocationBankPanelProps) {
   
+  const { createLocation, updateLocation, deleteLocation } = useScreenplay();
+  const { setWorkflow } = useChatContext();
+  const { setIsDrawerOpen } = useDrawer();
+  
   const [locations, setLocations] = useState<LocationProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateSidebar, setShowCreateSidebar] = useState(false);
   const [expandedLocationId, setExpandedLocationId] = useState<string | null>(null);
   
   // Load locations
@@ -67,6 +76,26 @@ export function LocationBankPanel({
     }
   }
   
+  // Location creation handlers
+  const handleCreateLocation = async (locationData: any) => {
+    try {
+      await createLocation(locationData);
+      toast.success('Location created!');
+      setShowCreateSidebar(false);
+      await loadLocations(); // Reload to get the new location
+    } catch (error) {
+      console.error('[LocationBank] Create failed:', error);
+      toast.error('Failed to create location');
+    }
+  };
+
+  const handleSwitchToChatForInterview = (location: any, context: any) => {
+    // Start the AI interview workflow
+    setWorkflow(context);
+    setIsDrawerOpen(true);
+    setShowCreateSidebar(false);
+  };
+  
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center h-full ${className}`}>
@@ -94,7 +123,7 @@ export function LocationBankPanel({
       {/* Action Buttons */}
       <div className="p-4 border-b border-base-content/10 space-y-2">
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => setShowCreateSidebar(true)}
           className="w-full btn btn-primary btn-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -194,80 +223,21 @@ export function LocationBankPanel({
         )}
       </div>
       
-      {/* Create Location Modal (placeholder) */}
-      {showCreateModal && (
-        <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-          onClick={() => setShowCreateModal(false)}
-        >
-          <div
-            className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold text-white mb-4">Add Location</h3>
-            <p className="text-slate-300 mb-4">
-              Upload a photo or generate a location from a description
-            </p>
-            <div className="space-y-2">
-              <label className="block">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      try {
-                        toast.info('Uploading location photo...');
-                        const formData = new FormData();
-                        formData.append('image', file);
-                        formData.append('projectId', projectId);
-                        
-                        const response = await fetch('/api/media/upload-image', {
-                          method: 'POST',
-                          body: formData
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (data.success) {
-                          toast.success('Location photo uploaded!');
-                          setShowCreateModal(false);
-                          loadLocations();
-                        } else {
-                          throw new Error(data.message || 'Upload failed');
-                        }
-                      } catch (error: any) {
-                        console.error('[LocationBank] Upload error:', error);
-                        toast.error('Failed to upload photo');
-                      }
-                    }
-                  }}
-                  className="hidden"
-                />
-                <span className="w-full btn btn-primary cursor-pointer flex items-center justify-center">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Location Photo
-                </span>
-              </label>
-              <button 
-                onClick={() => {
-                  toast.info('AI generation coming soon!');
-                }}
-                className="w-full btn btn-outline"
-              >
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate with AI
-              </button>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="w-full btn btn-ghost"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Location Sidebar */}
+      <AnimatePresence>
+        {showCreateSidebar && (
+          <LocationDetailSidebar
+            location={null}
+            isCreating={true}
+            initialData={null}
+            onClose={() => setShowCreateSidebar(false)}
+            onCreate={handleCreateLocation}
+            onUpdate={() => {}} // Not used in creation mode
+            onDelete={() => {}} // Not used in creation mode
+            onSwitchToChatImageMode={handleSwitchToChatForInterview}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -26,6 +26,11 @@ import { cn } from '@/lib/utils';
 import { PerformanceControls, PerformanceSettings } from '../characters/PerformanceControls';
 import PoseGenerationModal from '../character-bank/PoseGenerationModal';
 import { toast } from 'sonner';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useChatContext } from '@/contexts/ChatContext';
+import { useDrawer } from '@/contexts/DrawerContext';
+import CharacterDetailSidebar from '../screenplay/CharacterDetailSidebar';
+import { AnimatePresence } from 'framer-motion';
 
 interface CharacterBankPanelProps {
   characters: CharacterProfile[];
@@ -41,9 +46,13 @@ export function CharacterBankPanel({
   onCharactersUpdate
 }: CharacterBankPanelProps) {
   
+  const { createCharacter, updateCharacter, deleteCharacter } = useScreenplay();
+  const { setWorkflow } = useChatContext();
+  const { setIsDrawerOpen } = useDrawer();
+  
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [isGeneratingRefs, setIsGeneratingRefs] = useState<Record<string, boolean>>({});
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateSidebar, setShowCreateSidebar] = useState(false);
   
   // Pose Generation Modal state
   const [showPoseModal, setShowPoseModal] = useState(false);
@@ -150,6 +159,26 @@ export function CharacterBankPanel({
     }
   }
 
+  // Character creation handlers
+  const handleCreateCharacter = async (characterData: any) => {
+    try {
+      await createCharacter(characterData);
+      toast.success('Character created!');
+      setShowCreateSidebar(false);
+      onCharactersUpdate();
+    } catch (error) {
+      console.error('[CharacterBank] Create failed:', error);
+      toast.error('Failed to create character');
+    }
+  };
+
+  const handleSwitchToChatForInterview = (character: any, context: any) => {
+    // Start the AI interview workflow
+    setWorkflow(context);
+    setIsDrawerOpen(true);
+    setShowCreateSidebar(false);
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -167,7 +196,7 @@ export function CharacterBankPanel({
             Character Bank
           </h2>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowCreateSidebar(true)}
             className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
             title="Create Character"
           >
@@ -190,7 +219,7 @@ export function CharacterBankPanel({
             Create characters to maintain consistency across clips
           </p>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowCreateSidebar(true)}
             className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-base-content text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -347,36 +376,22 @@ export function CharacterBankPanel({
         </div>
       )}
 
-      {/* Create Character Modal (simplified - would be a full modal in production) */}
-      {showCreateModal && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
-              Create Character
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              Create characters in the Write tab first, then generate references here.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  window.location.href = `/write?project=${projectId}`;
-                }}
-                className="flex-1 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg transition-colors"
-              >
-                Go to Write Tab
-              </button>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-medium rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Character Sidebar */}
+      <AnimatePresence>
+        {showCreateSidebar && (
+          <CharacterDetailSidebar
+            character={null}
+            isCreating={true}
+            initialData={null}
+            onClose={() => setShowCreateSidebar(false)}
+            onCreate={handleCreateCharacter}
+            onUpdate={() => {}} // Not used in creation mode
+            onDelete={() => {}} // Not used in creation mode
+            onSwitchToChatImageMode={handleSwitchToChatForInterview}
+            onOpenCharacterBank={() => {}} // Already in character bank
+          />
+        )}
+      </AnimatePresence>
       
       {/* NEW: Pose Generation Modal */}
       {showPoseModal && poseCharacter && (
