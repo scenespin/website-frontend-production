@@ -50,7 +50,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
   // VERIFIED ROUTES - All pages exist and work
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', description: 'Overview & quick access', icon: 'dashboard' },
-    { name: 'Editor', href: '/write', description: 'Screenplay editor', icon: 'write' }, // Changed from /editor
+    { name: 'Editor', href: '/write', description: 'Screenplay editor', icon: 'write' }, // /editor redirects to dashboard
     { 
       name: 'Production', 
       href: '/production', 
@@ -64,12 +64,6 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
       description: 'Layouts & effects studio',
       desktopRecommended: true,
       icon: 'composition'
-    },
-    { 
-      name: 'Timeline', 
-      href: '/timeline', 
-      description: 'Video editor',
-      icon: 'timeline'
     },
     { 
       name: 'Library', 

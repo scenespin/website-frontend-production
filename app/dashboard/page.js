@@ -5,7 +5,6 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import WelcomeModal from '@/components/WelcomeModal';
-import { LibrarySubNav } from '@/components/library/LibrarySubNav';
 import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 import { 
   Film, 
@@ -104,8 +103,6 @@ export default function Dashboard() {
     <>
       <ResponsiveHeader />
       <main className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16">
-        {/* Library Sub-Navigation */}
-        <LibrarySubNav activeTab="projects" />
       
       {/* Welcome Modal for First-Time Users */}
       <WelcomeModal 
