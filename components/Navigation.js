@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -28,6 +28,7 @@ import { useDrawer } from '@/contexts/DrawerContext';
 
 export default function Navigation() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // Track which mobile accordion is open
@@ -39,39 +40,39 @@ export default function Navigation() {
   
   // Fetch user's credit balance
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && getToken) {
       fetchCreditBalance();
     }
-  }, [user?.id]);
+  }, [user?.id, getToken]);
   
   // Refetch credits when page becomes visible (fixes logout/login persistence issue)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && user?.id) {
+      if (!document.hidden && user?.id && getToken) {
         fetchCreditBalance();
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user?.id]);
+  }, [user?.id, getToken]);
   
   async function fetchCreditBalance(retryCount = 0) {
     try {
-      const response = await fetch('/api/user/credits');
-      if (response.ok) {
-        const data = await response.json();
-        setCredits(data.credits || 0);
-      } else if (response.status === 404 && retryCount < 3) {
-        // User record might not exist yet (new signup), retry with exponential backoff
-        console.log(`[Navigation] User record not found, retrying in ${1000 * (retryCount + 1)}ms...`);
-        setTimeout(() => fetchCreditBalance(retryCount + 1), 1000 * (retryCount + 1));
-      }
+      // Set up auth token first
+      const { api, setAuthTokenGetter } = await import('@/lib/api');
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      
+      // Now make the API call
+      const response = await api.user.getCredits();
+      setCredits(response.data.balance || 0);
     } catch (error) {
       console.error('[Navigation] Failed to fetch credits:', error);
       // Retry on network error for new accounts
       if (retryCount < 3) {
         setTimeout(() => fetchCreditBalance(retryCount + 1), 2000 * (retryCount + 1));
+      } else {
+        setCredits(0); // Fallback to 0 after retries
       }
     } finally {
       if (retryCount === 0) {

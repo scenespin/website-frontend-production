@@ -121,7 +121,7 @@ export default function Dashboard() {
         {/* Quick Stats - Minimal Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Credits */}
-          <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-base-300 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
+          <div className="group relative overflow-hidden rounded-2xl bg-base-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
             <div className="absolute top-0 right-0 w-32 h-32 bg-cinema-red/5 rounded-full -mr-16 -mt-16"></div>
             <div className="relative">
               <div className="flex items-center gap-3 mb-4">
@@ -138,7 +138,7 @@ export default function Dashboard() {
           </div>
 
           {/* Projects */}
-          <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-base-300 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
+          <div className="group relative overflow-hidden rounded-2xl bg-base-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
             <div className="relative">
               <div className="flex items-center gap-3 mb-4">
@@ -155,7 +155,7 @@ export default function Dashboard() {
           </div>
 
           {/* Videos */}
-          <div className="group relative overflow-hidden rounded-2xl bg-white dark:bg-base-300 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
+          <div className="group relative overflow-hidden rounded-2xl bg-base-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-base-300/50">
             <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full -mr-16 -mt-16"></div>
             <div className="relative">
               <div className="flex items-center gap-3 mb-4">
@@ -188,7 +188,7 @@ export default function Dashboard() {
             
             <Link 
               href="/production" 
-              className="group relative overflow-hidden rounded-xl bg-white dark:bg-base-300 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
+              className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-cinema-red/5 rounded-full -mr-12 -mt-12"></div>
               <Video className="w-6 h-6 mb-3 text-cinema-red relative z-10" />
@@ -198,7 +198,7 @@ export default function Dashboard() {
             
             <Link 
               href="/composition" 
-              className="group relative overflow-hidden rounded-xl bg-white dark:bg-base-300 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
+              className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12"></div>
               <Clapperboard className="w-6 h-6 mb-3 text-primary relative z-10" />
@@ -208,7 +208,7 @@ export default function Dashboard() {
             
             <Link 
               href="/timeline" 
-              className="group relative overflow-hidden rounded-xl bg-white dark:bg-base-300 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
+              className="group relative overflow-hidden rounded-xl bg-base-200 p-6 hover:shadow-lg transition-all duration-300 border border-base-300/50"
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 rounded-full -mr-12 -mt-12"></div>
               <Clock className="w-6 h-6 mb-3 text-accent relative z-10" />
@@ -227,7 +227,7 @@ export default function Dashboard() {
                 <Link
                   key={project.id}
                   href={`/editor?project=${project.id}`}
-                  className="flex items-center justify-between p-5 bg-white dark:bg-base-300 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
+                  className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-cinema-red/10 rounded-lg group-hover:bg-cinema-red/20 transition-colors">
@@ -262,7 +262,7 @@ export default function Dashboard() {
               {recentVideos.map((video) => (
                 <div
                   key={video.id}
-                  className="group relative overflow-hidden bg-white dark:bg-base-300 rounded-xl p-5 border border-base-300/50 hover:shadow-md transition-all duration-300"
+                  className="group relative overflow-hidden bg-base-200 rounded-xl p-5 border border-base-300/50 hover:shadow-md transition-all duration-300"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="p-2 bg-accent/10 rounded-lg">
@@ -292,7 +292,7 @@ export default function Dashboard() {
 
         {/* Empty State - Modern Minimal */}
         {projects.length === 0 && (
-          <div className="relative overflow-hidden bg-white dark:bg-base-300 rounded-2xl p-12 text-center border border-base-300/50">
+          <div className="relative overflow-hidden bg-base-200 rounded-2xl p-12 text-center border border-base-300/50">
             <div className="absolute top-0 left-0 w-64 h-64 bg-cinema-red/5 rounded-full -ml-32 -mt-32"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mb-32"></div>
             <div className="relative z-10">

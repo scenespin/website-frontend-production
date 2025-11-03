@@ -29,16 +29,8 @@ export default function WorkflowCategories() {
   const categoryRefs = useRef({});
 
   const handleCategoryClick = (categoryId) => {
-    // Longer delay to ensure collapse animation completes
-    setTimeout(() => {
-      const element = categoryRefs.current[categoryId];
-      if (element) {
-        // Scroll to the TOP of the collapsed section with offset for fixed header
-        const yOffset = -20; // Adjust this value if there's a fixed header
-        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-    }, 150); // Increased delay for smoother experience
+    // Removed scroll logic - let accordions open naturally downward
+    // The browser will automatically scroll if needed
   };
 
   return (
