@@ -177,9 +177,9 @@ export default function Page() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-stretch">
               {/* GitHub for Scripts & Timelines */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow flex flex-col">
                 <div className="card-body flex flex-col h-full">
                   <div className="flex-grow">
                     <div className="text-5xl mb-3">📚</div>
@@ -210,7 +210,7 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow flex flex-col">
                 <div className="card-body flex flex-col h-full">
                   <div className="flex-grow">
                     <div className="text-5xl mb-3">☁️</div>
@@ -242,7 +242,7 @@ export default function Page() {
               </div>
 
               {/* Collaboration Roles */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow flex flex-col">
                 <div className="card-body flex flex-col h-full">
                   <div className="flex-grow">
                     <div className="text-5xl mb-3">👥</div>
@@ -787,7 +787,7 @@ export default function Page() {
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>Voice Cloning (FREE - bring your 11 Labs voice)</span>
+                  <span>Voice Cloning (FREE - bring your ElevenLabs voice)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-5 h-5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

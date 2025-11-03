@@ -103,6 +103,30 @@ export default function TimelineMasteryPage() {
                 <p className="text-xs">Split-screen, PIP, grids</p>
               </div>
             </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h3 className="card-title text-sm">120 Color Grades (LUTs)</h3>
+                <p className="text-xs">Professional color grading</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h3 className="card-title text-sm">Speed Control & Reverse</h3>
+                <p className="text-xs">0.25x-4x, reverse playback</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h3 className="card-title text-sm">Text & Title Overlays</h3>
+                <p className="text-xs">12 templates with animations</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h3 className="card-title text-sm">Visual Effects & Filters</h3>
+                <p className="text-xs">Blur, glow, vignette, grain</p>
+              </div>
+            </div>
           </div>
 
           <h2>Basic Operations</h2>
@@ -204,6 +228,104 @@ export default function TimelineMasteryPage() {
           </ul>
 
           <h2>Advanced Editing</h2>
+
+          <h3>⚡ Speed Control & Reverse</h3>
+          <p>Adjust playback speed or reverse footage for dramatic effects:</p>
+          <ul>
+            <li><strong>Speed Options:</strong> 0.25x (slow motion), 0.5x, 1x (normal), 2x, 4x (fast forward)</li>
+            <li><strong>Reverse:</strong> Play clip backwards (great for reveals, rewinding effects)</li>
+            <li><strong>Live Preview Mode:</strong> Toggle browser-native speed preview before rendering</li>
+            <li><strong>How to Use:</strong> Select clip → Click "Speed" button → Choose speed or enable reverse</li>
+          </ul>
+          <div className="alert alert-info my-8 not-prose">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+              <div className="font-bold">Preview Mode</div>
+              <div className="text-sm">Toggle "Preview Mode" to see speed changes in browser before final render. Final export applies changes with full quality.</div>
+            </div>
+          </div>
+
+          <h3>✂️ Split & Ripple Editing</h3>
+          <p>Professional editing tools for precise cutting:</p>
+          <ul>
+            <li><strong>Split at Playhead:</strong> Press S or click scissors icon to split clip at current position</li>
+            <li><strong>Ripple Mode:</strong> When enabled, deleting clips automatically closes gaps</li>
+            <li><strong>Copy/Paste:</strong> Ctrl+C to copy, Ctrl+V to paste selected clips</li>
+            <li><strong>Keyboard Shortcuts:</strong> Work faster with keyboard-driven editing</li>
+          </ul>
+
+          <h3>🎨 120 Professional Color Grades</h3>
+          <p>Industry-standard LUT (Look-Up Table) color grading:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 not-prose my-8">
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">Cinematic (30 LUTs)</h4>
+                <p className="text-xs">Hollywood blockbuster looks - moody tones, rich colors</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">Film Emulation (30 LUTs)</h4>
+                <p className="text-xs">Vintage film stocks - Kodak, Fuji, retro aesthetics</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">Modern Creative (30 LUTs)</h4>
+                <p className="text-xs">Social media trends - vibrant, stylized, influencer looks</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">Professional (30 LUTs)</h4>
+                <p className="text-xs">Broadcast & commercial - clean, natural, professional</p>
+              </div>
+            </div>
+          </div>
+          <p><strong>How to Use:</strong> Select clip → Click "Color Grade" button → Browse 120 presets → Apply instantly (FREE!)</p>
+
+          <h3>📝 Text & Title Overlays (12 Animated Templates)</h3>
+          <p>Add professional text overlays with built-in animations:</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 not-prose my-8">
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">12 Built-in Templates</h4>
+                <p className="text-xs">Lower thirds, titles, subtitles, callouts</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">3 Animation Types</h4>
+                <p className="text-xs">Fade In/Out, Slide In/Out, Scale In/Out</p>
+              </div>
+            </div>
+            <div className="card bg-base-200">
+              <div className="card-body">
+                <h4 className="font-bold text-sm">Full Customization</h4>
+                <p className="text-xs">Fonts, colors, position, outline, shadow</p>
+              </div>
+            </div>
+          </div>
+          <p><strong>Features:</strong></p>
+          <ul>
+            <li><strong>9 Position Presets:</strong> Top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right</li>
+            <li><strong>Text Styling:</strong> Font family, size (12-200px), weight, style, color</li>
+            <li><strong>Effects:</strong> Background color, opacity, outline, drop shadow</li>
+            <li><strong>Animations:</strong> Fade (0.1-5s), Slide (from any direction), Scale (0-2x)</li>
+            <li><strong>100% FREE:</strong> All templates and customization included</li>
+          </ul>
+          <p><strong>How to Use:</strong> Click "Add Text" → Choose template or start blank → Customize → Position on timeline</p>
+
+          <h3>✨ Visual Effects & Filters</h3>
+          <p>Apply professional video effects to enhance your footage:</p>
+          <ul>
+            <li><strong>Blur:</strong> Gaussian blur for depth of field effects (0-50px)</li>
+            <li><strong>Glow:</strong> Luminous glow for highlights and dreamy looks</li>
+            <li><strong>Vignette:</strong> Darken edges for cinematic focus</li>
+            <li><strong>Film Grain:</strong> Add texture for vintage or cinematic feel</li>
+            <li><strong>Combine Effects:</strong> Stack multiple effects on a single clip</li>
+          </ul>
+          <p><strong>How to Use:</strong> Select clip → Click "Effects" button → Choose effects → Adjust intensity</p>
 
           <h3>Keyframe Animation</h3>
           <div className="card bg-base-200 my-8 not-prose">
@@ -371,6 +493,8 @@ export default function TimelineMasteryPage() {
                 <tr><td>Split Clip</td><td><kbd className="kbd kbd-sm">S</kbd></td></tr>
                 <tr><td>Delete</td><td><kbd className="kbd kbd-sm">Del</kbd></td></tr>
                 <tr><td>Ripple Delete</td><td><kbd className="kbd kbd-sm">Shift</kbd> + <kbd className="kbd kbd-sm">Del</kbd></td></tr>
+                <tr><td>Copy Clips</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">C</kbd></td></tr>
+                <tr><td>Paste Clips</td><td><kbd className="kbd kbd-sm">Ctrl</kbd> + <kbd className="kbd kbd-sm">V</kbd></td></tr>
                 <tr><td>Toggle Snap</td><td><kbd className="kbd kbd-sm">N</kbd></td></tr>
                 <tr><td>Zoom In</td><td><kbd className="kbd kbd-sm">+</kbd></td></tr>
                 <tr><td>Zoom Out</td><td><kbd className="kbd kbd-sm">-</kbd></td></tr>

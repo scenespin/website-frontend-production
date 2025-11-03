@@ -20,7 +20,7 @@ const faqList = [
           <li>All quality tiers (1080p, Premium 4K, Ultra Native 4K)</li>
           <li>All aspect ratios (16:9, 9:16, 1:1, 4:3, 21:9)</li>
         </ul>
-        <p><strong>You only pay for AI compute when generating videos.</strong> The software itself, all editing tools, compositions, transitions, and uploads are 100% free forever.</p>
+        <p><strong>You only pay for AI & compute when generating or rendering videos.</strong> The software itself, all editing tools, compositions, transitions, and uploads are 100% free forever.</p>
       </div>
     ),
   },
