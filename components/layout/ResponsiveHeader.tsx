@@ -48,38 +48,38 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
   }, []);
 
   const navigation = [
-    { name: 'Dashboard', href: '/app/dashboard', description: 'Overview & quick access', icon: 'dashboard' },
-    { name: 'Write', href: '/app/write', description: 'Screenplay editor with Fountain format', icon: 'write' },
+    { name: 'Dashboard', href: '/dashboard', description: 'Overview & quick access', icon: 'dashboard' },
+    { name: 'Editor', href: '/dashboard', description: 'Screenplay editor - select project first', icon: 'write' },
     { 
       name: 'Production', 
-      href: '/app/production', 
-      description: 'AI video, audio & music generation',
+      href: '/dashboard', 
+      description: 'AI video & audio generation - select project first',
       desktopRecommended: true,
       icon: 'production'
     },
     { 
       name: 'Composition', 
-      href: '/app/composition', 
-      description: 'Layouts, pacing & effects studio',
+      href: '/dashboard', 
+      description: 'Layouts & effects studio - select project first',
       desktopRecommended: true,
       icon: 'composition'
     },
     { 
       name: 'Timeline', 
-      href: '/app/timeline', 
-      description: '8-track video & audio editor',
+      href: '/dashboard', 
+      description: 'Video editor - select project first',
       icon: 'timeline'
     },
     { 
       name: 'My Assets', 
-      href: '/app/assets', 
+      href: '/assets', 
       description: 'Browse your cloud storage files',
       icon: 'assets'
     },
     { 
       name: 'Library', 
-      href: '/app/transitions/marketplace', 
-      description: 'Transitions & composition templates',
+      href: '/dashboard', 
+      description: 'Projects, videos, music & assets',
       icon: 'library'
     },
   ]
@@ -88,10 +88,10 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
   const workflowStages = ['Write', 'Production', 'Composition', 'Timeline']
   
   const getCurrentWorkflowStage = () => {
-    if (pathname?.includes('/app/write') || pathname?.includes('/app/editor')) return 0
-    if (pathname?.includes('/app/production')) return 1
-    if (pathname?.includes('/app/composition')) return 2
-    if (pathname?.includes('/app/timeline')) return 3
+    if (pathname?.includes('/write') || pathname?.includes('/editor') || pathname?.includes('/beats') || pathname?.includes('/characters') || pathname?.includes('/locations')) return 0
+    if (pathname?.includes('/production')) return 1
+    if (pathname?.includes('/composition')) return 2
+    if (pathname?.includes('/timeline')) return 3
     return -1
   }
   
@@ -104,7 +104,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link href="/app/dashboard" className="flex items-center gap-3 group">
+            <Link href="/dashboard" className="flex items-center gap-3 group">
               <div className="w-10 h-10 bg-gradient-to-br from-[#DC143C] to-[#8B0000] rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-[#DC143C]/50 transition-all">
                 <svg className="w-6 h-6 text-base-content" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
@@ -204,7 +204,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                 size="sm"
                 className="hidden lg:flex items-center gap-2 bg-gradient-to-br from-[#DC143C] to-[#8B0000] hover:shadow-lg hover:shadow-[#DC143C]/50 transition-all hover:scale-105 active:scale-95"
               >
-                <Link href="/app/write">
+                <Link href="/dashboard">
                   <PlusCircle className="w-4 h-4" />
                   New Project
                 </Link>
@@ -388,7 +388,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                   className="w-full justify-start gap-2 bg-indigo-600 hover:bg-indigo-700 mb-4"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Link href="/app/write">
+                  <Link href="/dashboard">
                     <PlusCircle className="w-4 h-4" />
                     New Project
                   </Link>
@@ -416,7 +416,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
               {/* Menu Footer */}
               <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                 <Link
-                  href="/app/settings"
+                  href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center px-4 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
@@ -425,7 +425,7 @@ export function ResponsiveHeader({ user, onLogout }: ResponsiveHeaderProps) {
                 </Link>
                 {user?.isAdmin && (
                   <Link
-                    href="/app/admin"
+                    href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center px-4 py-2 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
                   >
