@@ -28,7 +28,9 @@ import {
   Plus,
   Video,
   Download,
-  Music
+  Music,
+  Info,
+  AlertTriangle
 } from 'lucide-react';
 import { LayoutSelector } from './LayoutSelector';
 import { PacingSelector } from './PacingSelector';
@@ -429,6 +431,91 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
     return false;
   };
 
+  /**
+   * Calculate render cost based on composition type and video count
+   * Matches backend pricing in provider-costs.ts
+   */
+  const calculateRenderCost = (): number => {
+    const numVideos = videoClips.length;
+    
+    // Animated compositions - Most complex
+    if (compositionType === 'animated') {
+      if (numVideos <= 4) return 30;
+      if (numVideos <= 10) return 50;
+      if (numVideos <= 20) return 75;
+      if (numVideos <= 50) return 125;
+      if (numVideos <= 100) return 200;
+      if (numVideos <= 200) return 350;
+      return 350 + Math.ceil((numVideos - 200) / 50) * 50;
+    }
+    
+    // Paced sequences - Medium complexity
+    if (compositionType === 'paced') {
+      if (numVideos <= 4) return 15;
+      if (numVideos <= 10) return 25;
+      if (numVideos <= 20) return 40;
+      if (numVideos <= 50) return 75;
+      if (numVideos <= 100) return 125;
+      if (numVideos <= 200) return 225;
+      return 225 + Math.ceil((numVideos - 200) / 50) * 40;
+    }
+    
+    // Static layouts - Simplest
+    if (compositionType === 'static') {
+      if (numVideos === 2) return 10;
+      if (numVideos === 3) return 15;
+      if (numVideos <= 6) return 20;
+      if (numVideos <= 12) return 30;
+      if (numVideos <= 25) return 50;
+      if (numVideos <= 50) return 75;
+      if (numVideos <= 100) return 125;
+      if (numVideos <= 200) return 200;
+      return 200 + Math.ceil((numVideos - 200) / 50) * 25;
+    }
+    
+    // Default fallback
+    return 15;
+  };
+
+  /**
+   * Estimate processing time based on video count and composition type
+   * More videos = longer processing time (linear scaling)
+   */
+  const estimateProcessingTime = (): string => {
+    const numVideos = videoClips.length;
+    
+    // Animated compositions take longer (keyframes, effects, transitions)
+    if (compositionType === 'animated') {
+      if (numVideos <= 4) return '1-2 minutes';
+      if (numVideos <= 10) return '2-4 minutes';
+      if (numVideos <= 25) return '5-10 minutes';
+      if (numVideos <= 50) return '10-20 minutes';
+      if (numVideos <= 100) return '20-35 minutes';
+      if (numVideos <= 200) return '35-60 minutes';
+      return `${Math.ceil(numVideos / 5)}-${Math.ceil(numVideos / 3)} minutes`;
+    }
+    
+    // Paced sequences - medium processing time
+    if (compositionType === 'paced') {
+      if (numVideos <= 4) return '30s-1 minute';
+      if (numVideos <= 10) return '1-2 minutes';
+      if (numVideos <= 25) return '3-6 minutes';
+      if (numVideos <= 50) return '6-12 minutes';
+      if (numVideos <= 100) return '12-25 minutes';
+      if (numVideos <= 200) return '25-45 minutes';
+      return `${Math.ceil(numVideos / 6)}-${Math.ceil(numVideos / 4)} minutes`;
+    }
+    
+    // Static layouts - fastest (just concatenation)
+    if (numVideos <= 4) return '20-40 seconds';
+    if (numVideos <= 10) return '40s-1.5 minutes';
+    if (numVideos <= 25) return '2-4 minutes';
+    if (numVideos <= 50) return '4-8 minutes';
+    if (numVideos <= 100) return '8-15 minutes';
+    if (numVideos <= 200) return '15-30 minutes';
+    return `${Math.ceil(numVideos / 8)}-${Math.ceil(numVideos / 5)} minutes`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] to-[#141414] p-6">
       {/* Context Indicator Banner */}
@@ -770,6 +857,21 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 {/* Action Button - Refined Clapboard */}
                 <Card className="bg-gradient-to-br from-[#DC143C] to-[#B01030] border-2 border-[#A01020] shadow-2xl">
                   <CardContent className="pt-6">
+                    {/* Render Cost Warning */}
+                    <div className="bg-white/90 rounded-lg p-3 mb-4 border-2 border-yellow-400">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-xs space-y-1">
+                          <p className="font-bold text-slate-800">
+                            This render: {calculateRenderCost()} credits (${(calculateRenderCost() / 100).toFixed(2)}) • Est. time: {estimateProcessingTime()}
+                          </p>
+                          <p className="text-slate-600">
+                            Processing runs in background—you can close this tab and check back later. Cost scales with video count. All renders saved for 7 days.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     <Button
                       size="lg"
                       className={`w-full h-20 text-xl font-bold shadow-lg transition-all ${
@@ -962,6 +1064,28 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {/* Audio Composition Flow Info */}
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-2">
+                        <div className="flex items-start gap-3">
+                          <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                              Audio Composition Options:
+                            </p>
+                            <div className="text-xs space-y-1.5 text-muted-foreground">
+                              <p>
+                                <strong className="text-blue-600 dark:text-blue-400">Add Now (Permanent Merge):</strong> Music baked into video – faster workflow (15 credits to render)
+                              </p>
+                              <p>
+                                <strong className="text-blue-600 dark:text-blue-400">Add Later in Timeline:</strong> Keep audio/video separate – more control, adjust volume, swap tracks anytime
+                              </p>
+                              <p className="mt-2 italic">
+                                💡 Either way, your music is saved to S3 (7 days) and reusable across projects!
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       {backgroundMusic ? (
                         <>
                           <div className="p-4 border rounded-lg">

@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import Link from 'next/link';
 import WelcomeModal from '@/components/WelcomeModal';
 import { LibrarySubNav } from '@/components/library/LibrarySubNav';
+import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 import { 
   Film, 
   Clapperboard, 
@@ -100,9 +101,11 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
-      {/* Library Sub-Navigation */}
-      <LibrarySubNav activeTab="projects" />
+    <>
+      <ResponsiveHeader />
+      <main className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16">
+        {/* Library Sub-Navigation */}
+        <LibrarySubNav activeTab="projects" />
       
       {/* Welcome Modal for First-Time Users */}
       <WelcomeModal 
@@ -320,5 +323,6 @@ export default function Dashboard() {
         )}
       </div>
     </main>
+    </>
   );
 }

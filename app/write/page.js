@@ -10,6 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import EditorWorkspace from '@/components/editor/EditorWorkspace';
+import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
+import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
 export default function WritePage() {
   const { user, isLoaded } = useUser();
@@ -70,6 +72,12 @@ export default function WritePage() {
   }
 
   // Render the editor workspace
-  return <EditorWorkspace />;
+  return (
+    <>
+      <ResponsiveHeader />
+      <EditorSubNav activeTab="write" projectId={projectId} />
+      <EditorWorkspace />
+    </>
+  );
 }
 

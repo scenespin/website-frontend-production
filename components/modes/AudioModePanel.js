@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
-import { Music, Loader2, Sparkles, Volume2, Disc3 } from 'lucide-react';
+import { Music, Loader2, Sparkles, Volume2, Disc3, Film } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import AudioResultActions from '@/components/shared/AudioResultActions';
@@ -52,6 +52,27 @@ export function AudioModePanel({ onInsert }) {
       description: 'SFX & ambient sounds',
       examples: ['Door creaking open', 'City street ambience', 'Explosion sound']
     },
+    { 
+      id: 'separate', 
+      icon: Sparkles, 
+      label: 'Separate Audio', 
+      description: 'Split vocals & instrumentals',
+      examples: ['Extract vocals from song', 'Isolate background music', 'Remove voice for karaoke']
+    },
+    { 
+      id: 'extend', 
+      icon: Music, 
+      label: 'Extend Music', 
+      description: 'Make songs longer',
+      examples: ['Extend outro from 2min to 4min', 'Add new verse to song', 'Continue music theme']
+    },
+    { 
+      id: 'video-audio', 
+      icon: Film, 
+      label: 'Add Audio to Video', 
+      description: 'AI-generated sound for video',
+      examples: ['Add footsteps to walking scene', 'Generate ambient city sounds', 'Create fitting soundtrack']
+    },
   ];
   
   const currentType = audioTypes.find(t => t.id === audioType) || audioTypes[1];
@@ -78,10 +99,18 @@ export function AudioModePanel({ onInsert }) {
       // Calculate expiration (7 days)
       const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
       
-      const typeInfo = audioType === 'sfx' ? 'Sound effect' : audioType === 'soundtrack' ? 'Soundtrack' : 'Background music';
+      let typeInfo;
+      if (audioType === 'sfx') typeInfo = 'Sound effect';
+      else if (audioType === 'soundtrack') typeInfo = 'Soundtrack';
+      else if (audioType === 'music') typeInfo = 'Background music';
+      else if (audioType === 'separate') typeInfo = 'Audio separation';
+      else if (audioType === 'extend') typeInfo = 'Music extension';
+      else if (audioType === 'video-audio') typeInfo = 'Video audio';
+      else typeInfo = 'Audio';
+      
       addMessage({
         role: 'assistant',
-        content: `🎵 ${typeInfo} generated successfully!\n\n⚠️ **7-Day Expiration**: Audio files will be automatically deleted after 7 days. Please download or save to cloud storage immediately.`,
+        content: `🎵 ${typeInfo} generated successfully!\n\n⚠️ **Save to Keep**: Files expire in 7 days. Save to your Dropbox or Google Drive to keep permanently. We don't store your files.`,
         mode: 'audio',
         audioUrl: response.data.audioUrl,
         audioType: typeInfo,
@@ -136,8 +165,10 @@ export function AudioModePanel({ onInsert }) {
       {/* Audio Type Selection */}
       <div className="px-4 py-3 bg-base-200 border-b border-base-300 space-y-3">
         <label className="text-xs font-semibold text-base-content/70 mb-2 block">AUDIO TYPE</label>
-        <div className="grid grid-cols-3 gap-2">
-          {audioTypes.map((type) => {
+        
+        {/* Generate Tab */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {audioTypes.filter(t => ['soundtrack', 'music', 'sfx'].includes(t.id)).map((type) => {
             const Icon = type.icon;
             return (
               <button
@@ -155,6 +186,31 @@ export function AudioModePanel({ onInsert }) {
               </button>
             );
           })}
+        </div>
+        
+        {/* Modify Tab */}
+        <div className="border-t border-base-300 pt-3">
+          <label className="text-xs font-semibold text-base-content/70 mb-2 block">🔧 AUDIO TOOLS</label>
+          <div className="grid grid-cols-3 gap-2">
+            {audioTypes.filter(t => ['separate', 'extend', 'video-audio'].includes(t.id)).map((type) => {
+              const Icon = type.icon;
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => setAudioType(type.id)}
+                  disabled={isGenerating}
+                  className={`btn btn-sm ${
+                    audioType === type.id 
+                      ? 'btn-primary' 
+                      : 'btn-outline'
+                  } flex-col h-auto py-3`}
+                >
+                  <Icon className="w-5 h-5 mb-1" />
+                  <span className="font-semibold text-xs">{type.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         
         {/* Quality Selection */}

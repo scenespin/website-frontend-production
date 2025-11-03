@@ -9,6 +9,7 @@ import { storyBeatsAPI } from '@/lib/navigationAPI';
 import { BookOpen, Plus, Edit, Trash2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
+import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 
 export default function StoryBeatsPage() {
   const { user } = useUser();
@@ -69,9 +70,11 @@ export default function StoryBeatsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content">
-      {/* Editor Sub-Navigation */}
-      <EditorSubNav activeTab="beats" projectId={projectId} />
+    <>
+      <ResponsiveHeader />
+      <div className="min-h-screen bg-base-100 text-base-content pt-16">
+        {/* Editor Sub-Navigation */}
+        <EditorSubNav activeTab="beats" projectId={projectId} />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
@@ -259,6 +262,7 @@ export default function StoryBeatsPage() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

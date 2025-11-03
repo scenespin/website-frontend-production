@@ -7,6 +7,7 @@ import FolderTreeVisualization from '@/components/FolderTreeVisualization';
 import { Folder, Grid, Info, HardDrive, Cloud } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { LibrarySubNav } from '@/components/library/LibrarySubNav';
+import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 
 export default function MyAssetsPage() {
   const [activeTab, setActiveTab] = useState('browser');
@@ -15,9 +16,11 @@ export default function MyAssetsPage() {
   const storageProvider = getStorageProvider();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200">
-      {/* Library Sub-Navigation */}
-      <LibrarySubNav activeTab="assets" />
+    <>
+      <ResponsiveHeader />
+      <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16">
+        {/* Library Sub-Navigation */}
+        <LibrarySubNav activeTab="assets" />
       
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
         {/* Header */}
@@ -123,5 +126,6 @@ export default function MyAssetsPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

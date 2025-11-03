@@ -70,9 +70,11 @@ export default function LocationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content">
-      {/* Editor Sub-Navigation */}
-      <EditorSubNav activeTab="locations" projectId={projectId} />
+    <>
+      <ResponsiveHeader />
+      <div className="min-h-screen bg-base-100 text-base-content pt-16">
+        {/* Editor Sub-Navigation */}
+        <EditorSubNav activeTab="locations" projectId={projectId} />
 
       {/* Header */}
       <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
