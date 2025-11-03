@@ -9,9 +9,9 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Monitor, Sparkles, Film } from 'lucide-react';
+import { Monitor, Sparkles, Film, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -24,10 +24,38 @@ export function MobileProductionBanner({
   onNavigateToTimeline,
   showTimelineLink = true 
 }: MobileProductionBannerProps) {
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
+    // Check if banner was previously dismissed
+    const dismissed = typeof window !== 'undefined' && localStorage.getItem('mobileProdBannerDismissed');
+    if (dismissed === 'true') {
+      setIsDismissed(true);
+    }
+  }, []);
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mobileProdBannerDismissed', 'true');
+    }
+  };
+
+  if (isDismissed) return null;
+
   return (
-    <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/20 mb-6">
+    <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/20 mb-6 relative">
       <CardContent className="py-4">
-        <div className="flex items-start gap-3">
+        {/* Dismiss Button */}
+        <button
+          onClick={handleDismiss}
+          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/40 transition-colors"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4 text-amber-900 dark:text-amber-100" />
+        </button>
+
+        <div className="flex items-start gap-3 pr-8">
           {/* Icon */}
           <div className="flex-shrink-0">
             <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
@@ -41,59 +69,25 @@ export function MobileProductionBanner({
               💻 Desktop Recommended
             </h3>
             <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-              For the best production experience, we recommend using a desktop computer. 
-              Mobile supports quick scene generation only.
+              Mobile supports quick scene generation. Desktop unlocks all features.
             </p>
-
-            {/* Features comparison */}
-            <div className="space-y-2 mb-3">
-              <div className="text-xs">
-                <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                  ✅ Available on Mobile:
-                </p>
-                <ul className="text-amber-700 dark:text-amber-300 space-y-0.5 ml-4">
-                  <li>• Quick scene generation</li>
-                  <li>• Single character reference</li>
-                  <li>• Professional quality (1080p)</li>
-                  <li>• 5-second clips</li>
-                </ul>
-              </div>
-
-              <div className="text-xs">
-                <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                  💻 Desktop Only:
-                </p>
-                <ul className="text-amber-700 dark:text-amber-300 space-y-0.5 ml-4">
-                  <li>• Story Beats integration</li>
-                  <li>• Character Bank library</li>
-                  <li>• Premium quality (4K)</li>
-                  <li>• 10-second clips</li>
-                  <li>• Audio generation</li>
-                  <li>• Multi-image references</li>
-                </ul>
-              </div>
-            </div>
 
             {/* Timeline recommendation */}
             {showTimelineLink && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800">
                 <Film className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
+                  <p className="text-xs font-medium text-slate-900 dark:text-slate-100 mb-1">
                     Edit Your Clips in Timeline!
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                    After generating scenes, use our mobile-optimized Timeline Editor 
-                    for transitions, LUTs, and final editing.
                   </p>
                   <Button
                     asChild
                     size="sm"
                     variant="default"
-                    className="h-8 text-xs"
+                    className="h-7 text-xs"
                     onClick={onNavigateToTimeline}
                   >
-                    <Link href="/app/timeline">
+                    <Link href="/timeline">
                       Go to Timeline →
                     </Link>
                   </Button>

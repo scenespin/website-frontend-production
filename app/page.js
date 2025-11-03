@@ -179,9 +179,9 @@ export default function Page() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {/* GitHub for Scripts & Timelines */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow h-full flex flex-col">
-                <div className="card-body flex flex-col justify-between">
-                  <div>
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+                <div className="card-body flex flex-col h-full">
+                  <div className="flex-grow">
                     <div className="text-5xl mb-3">📚</div>
                     <h3 className="card-title text-xl mb-2">GitHub Version Control</h3>
                     <p className="text-sm opacity-80 mb-4">
@@ -189,7 +189,7 @@ export default function Page() {
                       Full version history, branch management, revert anytime.
                     </p>
                   </div>
-                  <div className="space-y-2 text-xs opacity-70">
+                  <div className="space-y-2 text-xs opacity-70 mt-auto pt-4">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
                       <span>Auto-save every 10 seconds</span>
@@ -210,9 +210,9 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow h-full flex flex-col">
-                <div className="card-body flex flex-col justify-between">
-                  <div>
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+                <div className="card-body flex flex-col h-full">
+                  <div className="flex-grow">
                     <div className="text-5xl mb-3">☁️</div>
                     <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
                     <p className="text-sm opacity-80 mb-4">
@@ -220,7 +220,7 @@ export default function Page() {
                       We store files for 7 days max, then YOU choose where they go.
                     </p>
                   </div>
-                  <div className="space-y-2 text-xs opacity-70">
+                  <div className="space-y-2 text-xs opacity-70 mt-auto pt-4">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
                       <span>Choose Google Drive or Dropbox</span>
@@ -242,9 +242,9 @@ export default function Page() {
               </div>
 
               {/* Collaboration Roles */}
-              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow h-full flex flex-col">
-                <div className="card-body flex flex-col justify-between">
-                  <div>
+              <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow">
+                <div className="card-body flex flex-col h-full">
+                  <div className="flex-grow">
                     <div className="text-5xl mb-3">👥</div>
                     <h3 className="card-title text-xl mb-2">5 Collaboration Roles</h3>
                     <p className="text-sm opacity-80 mb-4">
@@ -252,7 +252,7 @@ export default function Page() {
                       Add teammates in seconds. <strong>Permissions sync across GitHub + your cloud storage automatically.</strong>
                     </p>
                   </div>
-                  <div className="space-y-2 text-xs opacity-70">
+                  <div className="space-y-2 text-xs opacity-70 mt-auto pt-4">
                     <div className="flex items-start gap-2">
                       <span className="text-lg">🎬</span>
                       <div>

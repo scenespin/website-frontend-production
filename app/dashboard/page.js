@@ -37,8 +37,9 @@ export default function Dashboard() {
 
   const checkFirstVisit = async () => {
     try {
-      // Check if user has seen welcome modal
-      const hasSeenWelcome = user?.publicMetadata?.hasSeenWelcome;
+      // Check if user has seen welcome modal (local storage fallback)
+      const localHasSeenWelcome = typeof window !== 'undefined' && localStorage.getItem('hasSeenWelcome');
+      const hasSeenWelcome = user?.publicMetadata?.hasSeenWelcome || localHasSeenWelcome === 'true';
       
       if (!hasSeenWelcome && user) {
         setShowWelcomeModal(true);
@@ -49,7 +50,15 @@ export default function Dashboard() {
   };
 
   const handleCloseWelcome = async () => {
-    // Update user metadata FIRST before closing modal
+    // Close modal immediately for better UX
+    setShowWelcomeModal(false);
+    
+    // Save to localStorage first (instant)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hasSeenWelcome', 'true');
+    }
+    
+    // Update user metadata in background (can fail silently)
     try {
       await user?.update({
         publicMetadata: {
@@ -59,11 +68,7 @@ export default function Dashboard() {
       });
       console.log('[Dashboard] Welcome modal dismissed and saved');
     } catch (error) {
-      console.error('[Dashboard] Error saving welcome modal state:', error);
-      // Still close the modal even if save fails, but user might see it again
-    } finally {
-      // Close modal after save attempt (success or failure)
-      setShowWelcomeModal(false);
+      console.error('[Dashboard] Error saving welcome modal state (localStorage used as fallback):', error);
     }
   };
 

@@ -101,17 +101,36 @@ export default function AgentDrawer({ children }) {
         >
           {/* Drag Handle (Mobile) */}
           <div
-            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20"
+            className="w-full h-16 flex items-center justify-center cursor-grab active:cursor-grabbing bg-base-300 border-b border-cinema-red/20 relative"
             onMouseDown={(e) => handleDragStart(e.clientY)}
             onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           >
-            <GripHorizontal className="w-8 h-8 text-base-content/40" />
-            <button
-              onClick={closeDrawer}
-              className="absolute right-4 btn btn-sm btn-ghost btn-circle"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {isDrawerOpen && (
+              <>
+                <GripHorizontal className="w-8 h-8 text-base-content/40" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeDrawer();
+                  }}
+                  className="absolute right-4 btn btn-sm btn-ghost btn-circle z-10"
+                  aria-label="Close drawer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            {!isDrawerOpen && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDrawer('chat');
+                }}
+                className="text-sm font-medium text-base-content"
+              >
+                AI Assistant
+              </button>
+            )}
           </div>
 
           {/* Content */}
