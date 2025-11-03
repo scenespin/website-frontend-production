@@ -99,6 +99,7 @@ export interface Scene {
         tags: {
             location?: string; // Location UUID
             characters: string[]; // Character UUIDs
+            props?: string[]; // Prop UUIDs
         };
     };
     estimatedPageCount?: number;
@@ -193,6 +194,27 @@ export interface Location {
 }
 
 // ============================================================================
+// Props Registry
+// ============================================================================
+
+/**
+ * Prop entity
+ * Stored in: /structure/props.json
+ */
+export interface Prop {
+    id: string;
+    name: string;
+    category?: 'weapon' | 'vehicle' | 'item' | 'costume' | 'tech' | 'furniture' | 'food' | 'other';
+    description?: string;
+    productionNotes?: string;
+    storageLocation?: string;
+    images?: ImageAsset[]; // Reference photos
+    githubIssueNumber?: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ============================================================================
 // Relationship Tracking (Bidirectional)
 // ============================================================================
 
@@ -210,6 +232,9 @@ export interface Relationships {
     locations: {
         [locationId: string]: LocationRelationships;
     };
+    props: {
+        [propId: string]: PropRelationships;
+    };
 }
 
 /**
@@ -219,6 +244,7 @@ export interface SceneRelationships {
     type: 'scene';
     characters: string[]; // Character IDs
     location?: string; // Location ID
+    props?: string[]; // Prop IDs
     storyBeat: string; // Story beat ID
 }
 
@@ -239,6 +265,14 @@ export interface LocationRelationships {
     scenes: string[]; // Scene IDs
 }
 
+/**
+ * Prop's relationships to scenes
+ */
+export interface PropRelationships {
+    type: 'prop';
+    usedInScenes: string[]; // Scene IDs
+}
+
 // ============================================================================
 // GitHub Storage Files
 // ============================================================================
@@ -246,7 +280,7 @@ export interface LocationRelationships {
 /**
  * Structure file types stored in GitHub
  */
-export type StructureFileType = 'beats' | 'characters' | 'locations' | 'relationships';
+export type StructureFileType = 'beats' | 'characters' | 'locations' | 'props' | 'relationships';
 
 /**
  * Beats JSON file structure
@@ -273,6 +307,15 @@ export interface LocationsFile {
     version: string;
     lastUpdated: string;
     locations: Location[];
+}
+
+/**
+ * Props JSON file structure
+ */
+export interface PropsFile {
+    version: string;
+    lastUpdated: string;
+    props: Prop[];
 }
 
 /**
@@ -410,4 +453,56 @@ export type CreateInput<T extends { id: string; createdAt: string; updatedAt: st
 export type UpdateInput<T extends { id: string }> = Partial<Omit<T, 'id' | 'createdAt'>> & {
     id: string;
 };
+
+// ============================================================================
+// Screenplay Types (for ScreenplayService)
+// ============================================================================
+
+export interface Screenplay {
+    id: string;
+    screenplayId?: string; // Alternative ID field
+    userId: string;
+    title: string;
+    description?: string;
+    content: string;
+    beats?: StoryBeat[];
+    characters?: Character[];
+    locations?: Location[];
+    metadata?: {
+        genre?: string;
+        logline?: string;
+        pageCount?: number;
+        tags?: string[];
+        wordCount?: number;
+        sceneCount?: number;
+        characterCount?: number;
+        version?: number;
+    };
+    isActive?: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export type CreateScreenplayInput = Omit<Screenplay, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateScreenplayInput = Partial<Omit<Screenplay, 'id' | 'createdAt'>> & { id: string };
+
+export interface ScreenplayListItem {
+    id: string;
+    title: string;
+    isActive?: boolean;
+    updatedAt: string;
+}
+
+export interface ScreenplaySummary {
+    id: string;
+    title: string;
+    beatCount: number;
+    characterCount: number;
+    locationCount: number;
+    totalCount?: number;
+    activeCount?: number;
+    limit?: number;
+    screenplays?: ScreenplayListItem[];
+    updatedAt: string;
+}
 

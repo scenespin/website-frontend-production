@@ -9,12 +9,19 @@
  * - Generating (blue)
  * - Ready (green)
  * - In Timeline (purple)
+ * 
+ * Now with Contextual Navigation:
+ * - Auto-selects beat from editor context
+ * - Can navigate to BeatBoard for reorganization
+ * - Updates context when beat is selected
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { StoryBeat } from '@/types/screenplay';
-import { ChevronRight, ChevronDown, Film, CheckCircle2, Loader2, PlayCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, Film, CheckCircle2, Loader2, PlayCircle, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useContextStore } from '@/lib/contextStore';
 
 interface StoryBeatsPanelProps {
   beats: StoryBeat[];
@@ -23,8 +30,25 @@ interface StoryBeatsPanelProps {
 }
 
 export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBeatsPanelProps) {
+  const router = useRouter();
   const [expandedBeats, setExpandedBeats] = useState<Set<string>>(new Set());
-
+  
+  // Contextual Navigation Integration
+  const context = useContextStore((state) => state.context);
+  const setCurrentBeat = useContextStore((state) => state.setCurrentBeat);
+  
+  // Auto-select beat from context on mount
+  useEffect(() => {
+    if (context.currentBeatId && !selectedBeatId) {
+      const beat = beats.find(b => b.id === context.currentBeatId);
+      if (beat) {
+        onBeatSelect(beat.id);
+        // Auto-expand the beat
+        setExpandedBeats(prev => new Set(prev).add(beat.id));
+      }
+    }
+  }, [context.currentBeatId, selectedBeatId, beats, onBeatSelect]);
+  
   function toggleBeat(beatId: string) {
     setExpandedBeats(prev => {
       const next = new Set(prev);
@@ -35,6 +59,17 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
       }
       return next;
     });
+  }
+  
+  function handleBeatSelect(beat: StoryBeat) {
+    onBeatSelect(beat.id);
+    // Update global context
+    setCurrentBeat(beat.id, beat.title);
+  }
+  
+  function navigateToBeatBoard() {
+    const projectId = context.projectId || 'default';
+    router.push(`/beats?projectId=${projectId}`);
   }
 
   function getStatusColor(status: string | undefined): string {
@@ -106,10 +141,19 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-          Story Beats
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+            Story Beats
+          </h2>
+          <button
+            onClick={navigateToBeatBoard}
+            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors group"
+            title="Open Beat Board (Drag & Drop)"
+          >
+            <LayoutGrid className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-[#DC143C]" />
+          </button>
+        </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Select a beat to begin production
         </p>
       </div>
@@ -127,7 +171,7 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
             <div key={beat.id} className="mb-2">
               {/* Beat Header */}
               <button
-                onClick={() => onBeatSelect(beat.id)}
+                onClick={() => handleBeatSelect(beat)}
                 className={cn(
                   'w-full flex items-start gap-2 p-3 rounded-lg transition-all',
                   'hover:bg-slate-100 dark:hover:bg-slate-700/50',
