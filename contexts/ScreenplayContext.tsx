@@ -253,7 +253,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [relationships]);
 
-    // Log successful load on mount
+    // Log successful load on mount + Auto-create 8-Sequence Structure
     useEffect(() => {
         const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
         if (lastSaved) {
@@ -263,6 +263,66 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.log(`  - ${locations.length} locations`);
         } else {
             console.log('[ScreenplayContext] Starting with empty screenplay');
+            
+            // Auto-create 8-Sequence Structure if no beats exist
+            if (beats.length === 0) {
+                console.log('[ScreenplayContext] Auto-creating 8-Sequence Structure...');
+                const sequences = [
+                    {
+                        title: 'Sequence 1: Status Quo',
+                        description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
+                        order: 0
+                    },
+                    {
+                        title: 'Sequence 2: Predicament',
+                        description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
+                        order: 1
+                    },
+                    {
+                        title: 'Sequence 3: Lock In',
+                        description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
+                        order: 2
+                    },
+                    {
+                        title: 'Sequence 4: First Culmination',
+                        description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
+                        order: 3
+                    },
+                    {
+                        title: 'Sequence 5: Midpoint Shift',
+                        description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
+                        order: 4
+                    },
+                    {
+                        title: 'Sequence 6: Complications',
+                        description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
+                        order: 5
+                    },
+                    {
+                        title: 'Sequence 7: All Is Lost',
+                        description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
+                        order: 6
+                    },
+                    {
+                        title: 'Sequence 8: Resolution',
+                        description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
+                        order: 7
+                    }
+                ];
+                
+                // Create all 8 sequences
+                const now = new Date().toISOString();
+                const newBeats = sequences.map(seq => ({
+                    ...seq,
+                    id: `beat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    scenes: [],
+                    createdAt: now,
+                    updatedAt: now
+                }));
+                
+                setBeats(newBeats);
+                console.log('[ScreenplayContext] ✅ 8-Sequence Structure created');
+            }
         }
     }, []); // Run once on mount
     
