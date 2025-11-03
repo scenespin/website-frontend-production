@@ -177,10 +177,28 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   }, [editorContext.currentSceneName, editorContext.activeCharacterId, activeTab]);
   
   useEffect(() => {
-    setIsMobileView(shouldSimplifyComposition());
+    // Force desktop view on wide screens (>1024px)
+    const checkMobileView = () => {
+      const isActuallyMobile = shouldSimplifyComposition();
+      const isWideScreen = window.innerWidth >= 1024;
+      
+      // Override: If screen is wide, force desktop view
+      const finalMobileView = isWideScreen ? false : isActuallyMobile;
+      
+      console.log('[ProductionPage] Device check:', {
+        innerWidth: window.innerWidth,
+        isWideScreen,
+        shouldSimplify: isActuallyMobile,
+        finalView: finalMobileView ? 'mobile' : 'desktop'
+      });
+      
+      setIsMobileView(finalMobileView);
+    };
+    
+    checkMobileView();
     
     const handleResize = () => {
-      setIsMobileView(shouldSimplifyComposition());
+      checkMobileView();
     };
     
     window.addEventListener('resize', handleResize);
