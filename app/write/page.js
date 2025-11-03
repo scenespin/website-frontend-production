@@ -5,7 +5,7 @@
  * Main screenplay editor - requires authentication and project selection
  */
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -13,7 +13,7 @@ import EditorWorkspace from '@/components/editor/EditorWorkspace';
 import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
-export default function WritePage() {
+function WritePageContent() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,6 +78,21 @@ export default function WritePage() {
       <EditorSubNav activeTab="write" projectId={projectId} />
       <EditorWorkspace />
     </>
+  );
+}
+
+export default function WritePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0d0b14]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-base-content">Loading editor...</p>
+        </div>
+      </div>
+    }>
+      <WritePageContent />
+    </Suspense>
   );
 }
 
