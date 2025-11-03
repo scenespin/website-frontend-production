@@ -28,7 +28,7 @@ import { SceneBuilderPanel } from './SceneBuilderPanel';
 import { MobileSceneBuilderPanel } from './MobileSceneBuilderPanel';
 
 // Sub-components
-import { StoryBeatsPanel } from './StoryBeatsPanel';
+import { BeatTimelineNavigator } from './BeatTimelineNavigator';
 import { ClipGenerationPanel } from './ClipGenerationPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
@@ -705,46 +705,47 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
           )}
           
           {activeTab === 'scene-builder' && (
-            <div className="flex h-full">
-              {/* Left Panel: Story Beats (25%) */}
-              <div className="w-1/4 min-w-[300px] border-r border-white/10 bg-[#141414]">
-                <StoryBeatsPanel
-                  beats={screenplay.beats || []}
-                  selectedBeatId={selectedBeatId}
-                  onBeatSelect={handleBeatSelect}
-                />
-              </div>
+            <div className="flex flex-col h-full">
+              {/* Horizontal Beat Timeline Navigator (Top) */}
+              <BeatTimelineNavigator
+                beats={screenplay.beats || []}
+                selectedBeatId={selectedBeatId}
+                onBeatSelect={handleBeatSelect}
+              />
 
-              {/* Center Panel: Clip Generation (50%) */}
-              <div className="flex-1 min-w-[600px] overflow-auto">
-                <ClipGenerationPanel
-                  selectedBeat={selectedBeat}
-                  aiSuggestion={aiSuggestion}
-                  isLoadingSuggestion={isLoadingSuggestion}
-                  currentStep={currentStep}
-                  onStepChange={setCurrentStep}
-                  clipAssignments={clipAssignments}
-                  onUpdateAssignment={updateClipAssignment}
-                  characters={characters}
-                  isGenerating={isGenerating}
-                  generationProgress={generationProgress}
-                  onGenerate={handleGenerate}
-                  totalCost={calculateTotalCost()}
-                  savings={calculateSavings()}
-                  onSaveToGallery={handleSaveToGallery}
-                  onSendToTimeline={handleSendToTimeline}
-                  onSendToComposition={handleSendToComposition}
-                />
-              </div>
+              {/* Main Content Area */}
+              <div className="flex flex-1 overflow-hidden">
+                {/* Left Panel: Clip Generation (70%) */}
+                <div className="flex-1 overflow-auto">
+                  <ClipGenerationPanel
+                    selectedBeat={selectedBeat}
+                    aiSuggestion={aiSuggestion}
+                    isLoadingSuggestion={isLoadingSuggestion}
+                    currentStep={currentStep}
+                    onStepChange={setCurrentStep}
+                    clipAssignments={clipAssignments}
+                    onUpdateAssignment={updateClipAssignment}
+                    characters={characters}
+                    isGenerating={isGenerating}
+                    generationProgress={generationProgress}
+                    onGenerate={handleGenerate}
+                    totalCost={calculateTotalCost()}
+                    savings={calculateSavings()}
+                    onSaveToGallery={handleSaveToGallery}
+                    onSendToTimeline={handleSendToTimeline}
+                    onSendToComposition={handleSendToComposition}
+                  />
+                </div>
 
-              {/* Right Panel: Character Bank (25%) */}
-              <div className="w-1/4 min-w-[300px] border-l border-white/10 bg-[#141414]">
-                <CharacterBankPanel
-                  characters={characters}
-                  isLoading={isLoadingCharacters}
-                  projectId={projectId}
-                  onCharactersUpdate={loadCharacters}
-                />
+                {/* Right Panel: Character Bank (30%) */}
+                <div className="w-[30%] min-w-[350px] border-l border-white/10 bg-[#141414]">
+                  <CharacterBankPanel
+                    characters={characters}
+                    isLoading={isLoadingCharacters}
+                    projectId={projectId}
+                    onCharactersUpdate={loadCharacters}
+                  />
+                </div>
               </div>
             </div>
           )}

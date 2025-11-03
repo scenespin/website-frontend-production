@@ -21,6 +21,8 @@ interface SceneNavigatorProps {
 export default function SceneNavigator({ currentLine, onSceneClick, className = '' }: SceneNavigatorProps) {
     const screenplay = useScreenplay();
     const context = useContextStore((state) => state.context);
+    const setCurrentScene = useContextStore((state) => state.setCurrentScene);
+    const setCurrentBeat = useContextStore((state) => state.setCurrentBeat);
     const [currentSceneId, setCurrentSceneId] = useState<string | null>(null);
     const [openBeats, setOpenBeats] = useState<Record<string, boolean>>({});
 
@@ -132,7 +134,12 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                             return (
                                 <button
                                     key={scene.id}
-                                    onClick={() => onSceneClick(scene)}
+                                    onClick={() => {
+                                        onSceneClick(scene);
+                                        // Update global context for cross-page navigation
+                                        setCurrentScene(scene.id, scene.heading);
+                                        setCurrentBeat(beat.id, beat.title);
+                                    }}
                                     className={cn(
                                         "flex w-full flex-col items-start rounded-md transition-all p-2 pl-6 gap-1",
                                         isCurrent 
