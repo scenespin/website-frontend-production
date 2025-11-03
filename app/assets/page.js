@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AssetBrowser from '@/components/AssetBrowser';
 import FolderTreeVisualization from '@/components/FolderTreeVisualization';
@@ -9,7 +9,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { LibrarySubNav } from '@/components/library/LibrarySubNav';
 import { ResponsiveHeader } from '@/components/layout/ResponsiveHeader';
 
-export default function MyAssetsPage() {
+function AssetsContent() {
   const [activeTab, setActiveTab] = useState('browser');
   const { currentProject, getStorageProvider } = useScreenplay();
   
@@ -127,5 +127,20 @@ export default function MyAssetsPage() {
       </div>
     </div>
     </>
+  );
+}
+
+export default function MyAssetsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 pt-16 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto mb-4"></div>
+          <p className="text-base-content/60">Loading assets...</p>
+        </div>
+      </div>
+    }>
+      <AssetsContent />
+    </Suspense>
   );
 }

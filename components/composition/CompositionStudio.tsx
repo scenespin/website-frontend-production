@@ -81,7 +81,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [selectedPacing, setSelectedPacing] = useState<string | null>(null);
   const [selectedAnimation, setSelectedAnimation] = useState<string | null>(null);
-  const [compositionType, setCompositionType] = useState<'static' | 'animated' | 'paced'>('static');
+  const [compositionType, setCompositionType] = useState<'static' | 'animated' | 'paced' | 'music-video'>('static');
+  const [musicVideoStyle, setMusicVideoStyle] = useState<'on-beat' | 'every-2-beats' | 'every-4-beats' | 'on-bars'>('on-beat');
+  const [beatAnalysis, setBeatAnalysis] = useState<any>(null);
+  const [isAnalyzingBeats, setIsAnalyzingBeats] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [recentCompositions, setRecentCompositions] = useState<number>(0);
@@ -298,9 +301,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       // Determine composition type
-      let compType: 'static-layout' | 'animated' | 'paced-sequence';
+      let compType: 'static-layout' | 'animated' | 'paced-sequence' | 'music-video';
       if (compositionType === 'static') compType = 'static-layout';
       else if (compositionType === 'animated') compType = 'animated';
+      else if (compositionType === 'music-video') compType = 'music-video';
       else compType = 'paced-sequence';
 
       // NEW (Feature 0070): Use S3 URLs instead of uploading files
@@ -318,6 +322,11 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
       if (backgroundMusic) {
         requestBody.background_music_url = backgroundMusic.audioUrl;
         requestBody.music_volume = musicVolume;
+      }
+      // NEW: Music video beat analysis data
+      if (compositionType === 'music-video' && beatAnalysis) {
+        requestBody.beat_analysis = beatAnalysis;
+        requestBody.music_video_style = musicVideoStyle;
       }
 
       const response = await fetch(`${apiUrl}/api/composition/compose`, {
@@ -428,6 +437,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
     if (compositionType === 'static' && selectedLayout) return true;
     if (compositionType === 'animated' && selectedAnimation) return true;
     if (compositionType === 'paced' && selectedPacing) return true;
+    if (compositionType === 'music-video' && backgroundMusic && beatAnalysis) return true;
     return false;
   };
 
@@ -437,6 +447,17 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
    */
   const calculateRenderCost = (): number => {
     const numVideos = videoClips.length;
+    
+    // Music video compositions - Beat-synced (includes beat analysis cost)
+    if (compositionType === 'music-video') {
+      if (numVideos <= 4) return 20;
+      if (numVideos <= 10) return 30;
+      if (numVideos <= 20) return 45;
+      if (numVideos <= 50) return 80;
+      if (numVideos <= 100) return 130;
+      if (numVideos <= 200) return 230;
+      return 230 + Math.ceil((numVideos - 200) / 50) * 40;
+    }
     
     // Animated compositions - Most complex
     if (compositionType === 'animated') {
@@ -483,6 +504,17 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
    */
   const estimateProcessingTime = (): string => {
     const numVideos = videoClips.length;
+    
+    // Music video compositions - medium processing time (+ beat analysis)
+    if (compositionType === 'music-video') {
+      if (numVideos <= 4) return '1-2 minutes';
+      if (numVideos <= 10) return '2-3 minutes';
+      if (numVideos <= 25) return '4-7 minutes';
+      if (numVideos <= 50) return '7-13 minutes';
+      if (numVideos <= 100) return '13-26 minutes';
+      if (numVideos <= 200) return '26-46 minutes';
+      return `${Math.ceil(numVideos / 6)}-${Math.ceil(numVideos / 4)} minutes`;
+    }
     
     // Animated compositions take longer (keyframes, effects, transitions)
     if (compositionType === 'animated') {
@@ -663,7 +695,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <div className={`grid gap-4 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                    <div className={`grid gap-4 ${isMobileView ? 'grid-cols-1' : 'grid-cols-4'}`}>
                       <Button
                         variant="outline"
                         className={`h-28 flex flex-col gap-2 border-2 transition-all ${
@@ -679,7 +711,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                           <div className="text-xs opacity-70">Multi-panel layouts</div>
                         </div>
                       </Button>
-                      {/* Hide Animated & Paced on mobile - Feature 0068 */}
+                      {/* Hide Animated & Paced & Music Video on mobile - Feature 0068 */}
                       {!isMobileView && (
                         <>
                           <Button
@@ -710,6 +742,21 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             <div className="text-center">
                               <div className="font-bold text-base">Paced</div>
                               <div className="text-xs opacity-70">Emotional timing</div>
+                            </div>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                              compositionType === 'music-video' 
+                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-[#DC143C]'
+                            }`}
+                            onClick={() => setCompositionType('music-video')}
+                          >
+                            <Music className="w-7 h-7" />
+                            <div className="text-center">
+                              <div className="font-bold text-base">🎵 Music Video</div>
+                              <div className="text-xs opacity-70">Auto beat-sync</div>
                             </div>
                           </Button>
                         </>
@@ -852,6 +899,175 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     selectedPacing={selectedPacing}
                     onSelectPacing={setSelectedPacing}
                   />
+                )}
+
+                {/* Music Video Selector */}
+                {compositionType === 'music-video' && (
+                  <Card className="bg-[#141414] border border-white/10 shadow-lg">
+                    <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
+                      <CardTitle className="flex items-center gap-2 text-base-content">
+                        <div className="p-1.5 bg-[#DC143C] rounded">
+                          <Music className="w-4 h-4 text-black" />
+                        </div>
+                        Music Video Style
+                      </CardTitle>
+                      <CardDescription>
+                        Choose how videos sync to music beats
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      {/* Beat Analysis Section */}
+                      {backgroundMusic ? (
+                        beatAnalysis ? (
+                          <div className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <Music className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                                  ✅ Beat Analysis Complete
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  BPM: {beatAnalysis.bpm.toFixed(1)} • {beatAnalysis.beats.length} beats detected • Duration: {beatAnalysis.duration_seconds.toFixed(1)}s
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                  Analyze Music First
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Music video mode requires beat analysis (5 credits). This detects BPM, beats, and onsets to sync your videos perfectly with the music.
+                                </p>
+                                <Button
+                                  onClick={async () => {
+                                    if (!backgroundMusic) return;
+                                    setIsAnalyzingBeats(true);
+                                    try {
+                                      const { getAuthToken } = await import('@/utils/api');
+                                      const token = await getAuthToken();
+                                      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                      
+                                      const response = await fetch(`${apiUrl}/api/audio/analyze-beats`, {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({ audioUrl: backgroundMusic })
+                                      });
+
+                                      if (!response.ok) {
+                                        throw new Error('Beat analysis failed');
+                                      }
+
+                                      const analysis = await response.json();
+                                      setBeatAnalysis(analysis);
+                                    } catch (error) {
+                                      console.error('Beat analysis error:', error);
+                                      alert('Failed to analyze beats. Please try again.');
+                                    } finally {
+                                      setIsAnalyzingBeats(false);
+                                    }
+                                  }}
+                                  disabled={isAnalyzingBeats}
+                                  className="mt-2 bg-[#DC143C] hover:bg-[#B01030] text-white"
+                                  size="sm"
+                                >
+                                  {isAnalyzingBeats ? 'Analyzing...' : '🎵 Analyze Beats (5 credits)'}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <div className="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                                Add Background Music
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Music video mode requires background music. Add music above to enable beat-syncing.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Beat Sync Style Selector */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            musicVideoStyle === 'on-beat' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setMusicVideoStyle('on-beat')}
+                          disabled={!beatAnalysis}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">On Every Beat</div>
+                            <div className="text-xs opacity-70">Fast cuts (music video style)</div>
+                          </div>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            musicVideoStyle === 'every-2-beats' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setMusicVideoStyle('every-2-beats')}
+                          disabled={!beatAnalysis}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">Every 2 Beats</div>
+                            <div className="text-xs opacity-70">Medium pace</div>
+                          </div>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            musicVideoStyle === 'every-4-beats' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setMusicVideoStyle('every-4-beats')}
+                          disabled={!beatAnalysis}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">Every 4 Beats (Bar)</div>
+                            <div className="text-xs opacity-70">Slow, cinematic</div>
+                          </div>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                            musicVideoStyle === 'on-bars' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                          }`}
+                          onClick={() => setMusicVideoStyle('on-bars')}
+                          disabled={!beatAnalysis}
+                        >
+                          <div className="text-center">
+                            <div className="font-bold text-sm">On Measures</div>
+                            <div className="text-xs opacity-70">Dramatic pacing</div>
+                          </div>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {/* Action Button - Refined Clapboard */}
