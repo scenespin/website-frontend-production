@@ -239,7 +239,7 @@ export function DesktopWorkflowSelector({
             <span className="text-3xl">⚠️</span>
           </div>
           <h3 className="text-xl font-bold text-slate-200 mb-2">Failed to Load Workflows</h3>
-          <p className="text-slate-400 mb-4">{error}</p>
+          <p className="text-slate-400 mb-4">{error instanceof Error ? error.message : String(error)}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors"

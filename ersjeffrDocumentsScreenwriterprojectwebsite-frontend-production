@@ -1,0 +1,30 @@
+[33m6b1c8aa[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Update workflow detail page layout
+[33m3b080ec[m fix workflow props
+[33m2b9b835[m fix type error
+[33m83c54cf[m fix video upload auth
+[33mac09f64[m fix auth
+[33mcdec32b[m add missing dependency
+[33mdfca78c[m various fixes
+[33m8ef00c2[m Complete UX overhaul: unified dark theme across all Production tabs
+[33m6d7670f[m Fix UX consistency: dark nav bar, unified panel designs
+[33mde1739d[m Fix Scene Builder layout and UX issues
+[33m0df544c[m Implement dynamic workflow fetching
+[33m4432202[m Update analysis messaging
+[33m4fd3675[m  Production Scene Analyzer - Complete Implementation
+[33mcfea70b[m Complete Universal Contextual System Integration
+[33mae9274c[m Auto-create 8-Sequence Structure on project initialization
+[33mac48d18[m Enable character/location creation from Production tab - CharacterBankPanel now uses CharacterDetailSidebar for creation - LocationBankPanel now uses LocationDetailSidebar for creation - Users can create characters/locations directly in Production without redirecting to Write tab - All 3 creation methods available: Manual, Upload Image, AI Interview - AI Interview opens chat drawer for guided creation workflow - Consistent UX across Write and Production tabs
+[33m81ea1ab[m Force desktop layout on wide screens (>1024px)
+[33mdc947d2[m Fix auth initialization and improve workflow text contrast
+[33mf50dd7f[m Fix critical production UI bugs and improve dark theme consistency
+[33mf670ac6[m Update UI and fix some issues
+[33m273aa21[m Update: Timeline mastery docs with all new features, fix homepage alignment, update FAQ and voice cloning text
+[33mf4d2a9c[m Fix: Replace timeline.currentTime with timeline.playheadPosition in text editor
+[33md512689[m update documentation
+[33md142de9[m feat: add mobile dropdown navigation for Editor and Production sections, improve secondary navigation UX
+[33md4c2959[m fix: mobile UX improvements - timeline page, dismissible banners, agent drawer X button, welcome modal persistence, homepage card alignment
+[33mc638c23[m Fix missing navigation on write/composition pages
+[33m095fa20[m Update navigation components and documentation
+[33m57cb0db[m fix: add Suspense boundary to /write page
+[33me01a0e4[m feat: add podcast/social media composition types + fix composition page Suspense
+[33m6501b70[m feat: add music video beat-sync composition mode + fix assets page Suspense
