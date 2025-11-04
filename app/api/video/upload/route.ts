@@ -12,7 +12,7 @@ const s3Client = new S3Client({ region: AWS_REGION });
 export async function POST(request: Request) {
   try {
     // Get Clerk auth and user ID
-    const { getToken, userId: clerkUserId } = auth();
+    const { getToken, userId: clerkUserId } = await auth();
     const token = await getToken();
     
     if (!token || !clerkUserId) {
