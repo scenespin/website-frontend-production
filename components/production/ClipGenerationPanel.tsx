@@ -184,8 +184,11 @@ function Step1AIAnalysis({ aiSuggestion, isLoading, onNext }: Step1Props) {
     return (
       <div className="flex flex-col items-center justify-center p-12">
         <Loader2 className="w-12 h-12 text-teal-500 animate-spin mb-4" />
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-sm text-slate-800 dark:text-slate-200 font-medium mb-2">
           AI is analyzing your story beat...
+        </p>
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          5 credit refundable deposit (refunded when you generate clips)
         </p>
       </div>
     );
