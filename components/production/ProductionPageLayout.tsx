@@ -24,7 +24,6 @@ import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { MobileProductionBanner } from './MobileProductionBanner';
 import { MobileWorkflowSelector } from './MobileWorkflowSelector';
 import { ProductionTabBar, type ProductionTab } from './ProductionTabBar';
-import { SceneBuilderPanel } from './SceneBuilderPanel';
 import { MobileSceneBuilderPanel } from './MobileSceneBuilderPanel';
 
 // Sub-components

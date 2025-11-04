@@ -10,12 +10,12 @@
 import React, { useState } from 'react';
 import { 
   Film, Users, Palette, Zap, Sparkles, Crown, 
-  ArrowLeft, Clock, DollarSign, Tag 
+  ArrowLeft, Clock, DollarSign, Tag, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Import workflow definitions
-import { workflowsByCategory, type WorkflowDefinition } from '@/config/workflows';
+// Import dynamic workflow hook
+import { useWorkflows, type WorkflowDefinition } from '@/hooks/useWorkflows';
 import { WorkflowInputForm, type WorkflowInputs } from './WorkflowInputForm';
 import { WorkflowProgressTracker, type WorkflowResults } from './WorkflowProgressTracker';
 import { WorkflowResultsDisplay } from './WorkflowResultsDisplay';
@@ -84,6 +84,9 @@ export function MobileWorkflowSelector({
   projectId
 }: MobileWorkflowSelectorProps) {
   const router = useRouter();
+  
+  // Fetch workflows dynamically from backend (all 58 workflows)
+  const { workflows, workflowsByCategory, isLoading, error } = useWorkflows();
   
   // Navigation state
   const [viewMode, setViewMode] = useState<ViewMode>('categories');
@@ -279,6 +282,40 @@ export function MobileWorkflowSelector({
     }
   };
 
+  // ==================== RENDER ====================
+
+  // Loading state - workflows fetching from backend
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-900 p-8">
+        <Loader2 className="w-12 h-12 text-[#DC143C] animate-spin mb-4" />
+        <p className="text-white font-semibold mb-2">Loading Workflows...</p>
+        <p className="text-slate-400 text-sm text-center">
+          Fetching all 58 professional workflows from server
+        </p>
+      </div>
+    );
+  }
+
+  // Error state - failed to fetch workflows
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-900 p-8">
+        <div className="text-red-500 text-6xl mb-4">⚠️</div>
+        <p className="text-white font-semibold mb-2">Failed to Load Workflows</p>
+        <p className="text-slate-400 text-sm text-center mb-4">
+          {error.message || 'Unable to fetch workflows from server'}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   // Render based on view mode
   if (viewMode === 'progress' && currentJobId && selectedWorkflow) {
     return (
@@ -324,8 +361,11 @@ export function MobileWorkflowSelector({
           <h2 className="text-2xl font-bold text-white mb-2">
             Choose Your Workflow
           </h2>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-slate-300 mb-1">
             Select a category to see available workflows
+          </p>
+          <p className="text-xs text-slate-500">
+            ✅ {workflows.length} professional workflows loaded from backend
           </p>
         </div>
 
