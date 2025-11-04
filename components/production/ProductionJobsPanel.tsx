@@ -189,27 +189,27 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-slate-900 min-h-full p-6">
       {/* Header with filter */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-slate-900 dark:text-base-content">
+          <h3 className="font-semibold text-slate-200">
             Workflow Jobs
           </h3>
           {isPolling && (
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
           )}
         </div>
 
         {/* Status Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-slate-500" />
+          <Filter className="w-4 h-4 text-slate-400" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
             className="px-3 py-1.5 rounded-lg border border-slate-700
                      bg-slate-800 text-white text-sm
-                     focus:ring-2 focus:ring-primary focus:border-transparent"
+                     focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >
             <option value="all">All Jobs</option>
             <option value="running">Running</option>
@@ -221,7 +221,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
       {/* Jobs List */}
       {jobs.length === 0 ? (
-        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+        <div className="text-center py-12 text-slate-400">
           <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No jobs found</p>
           <p className="text-sm mt-1">
@@ -242,12 +242,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold text-slate-900 dark:text-base-content">
+                    <h4 className="font-semibold text-slate-200">
                       {job.workflowName}
                     </h4>
                     {getStatusBadge(job.status)}
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-400">
                     {formatTime(job.createdAt)} · {job.creditsUsed} credits
                   </p>
                 </div>
@@ -257,8 +257,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                   {job.status === 'failed' && (
                     <button
                       onClick={() => handleRetry(job.jobId)}
-                      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700
-                               text-slate-600 dark:text-slate-400"
+                      className="p-2 rounded-lg hover:bg-slate-700
+                               text-slate-400 hover:text-white transition-colors"
                       title="Retry"
                     >
                       <RefreshCw className="w-4 h-4" />
@@ -266,8 +266,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                   )}
                   <button
                     onClick={() => handleDelete(job.jobId)}
-                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20
-                             text-red-600 dark:text-red-400"
+                    className="p-2 rounded-lg hover:bg-red-900/30
+                             text-red-400 hover:text-red-300 transition-colors"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -279,12 +279,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
               {(job.status === 'running' || job.status === 'queued') && (
                 <div className="mb-3">
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-slate-600 dark:text-slate-400">Progress</span>
-                    <span className="font-semibold text-primary">{Math.round(job.progress)}%</span>
+                    <span className="text-slate-400">Progress</span>
+                    <span className="font-semibold text-teal-400">{Math.round(job.progress)}%</span>
                   </div>
-                  <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-500"
+                      className="h-full bg-teal-500 transition-all duration-500"
                       style={{ width: `${job.progress}%` }}
                     />
                   </div>
@@ -293,10 +293,10 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
               {/* Error Message */}
               {job.status === 'failed' && job.error && (
-                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 mb-3">
+                <div className="p-3 rounded-lg bg-red-900/20 border border-red-800 mb-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-700 dark:text-red-300">{job.error}</p>
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-300">{job.error}</p>
                   </div>
                 </div>
               )}
@@ -304,7 +304,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
               {/* Results (for completed jobs) */}
               {job.status === 'completed' && job.results && (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center gap-4 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Play className="w-3 h-3" />
                       {job.results.videos.length} video(s)
@@ -323,8 +323,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                         href={video.url}
                         download
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                 bg-primary text-base-content text-xs font-medium
-                                 hover:bg-primary/90 transition-colors"
+                                 bg-teal-600 text-white text-xs font-medium
+                                 hover:bg-teal-700 transition-colors"
                       >
                         <Download className="w-3 h-3" />
                         Video {index + 1}
