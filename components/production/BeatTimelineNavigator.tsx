@@ -101,7 +101,7 @@ export function BeatTimelineNavigator({
       case 'in-timeline':
         return 'text-purple-500 bg-purple-500/10 border-purple-500/30';
       case 'generating':
-        return 'text-blue-500 bg-blue-500/10 border-blue-500/30';
+        return 'text-blue-500 bg-[#DC143C]/10 border-blue-500/30';
       case 'planning':
         return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30';
       case 'failed':
@@ -209,7 +209,7 @@ export function BeatTimelineNavigator({
                         status === 'ready' || status === 'in-timeline'
                           ? 'bg-green-500' 
                           : status === 'generating'
-                          ? 'bg-blue-500'
+                          ? 'bg-[#DC143C]'
                           : 'bg-yellow-500'
                       )}
                       initial={{ width: 0 }}
@@ -241,7 +241,7 @@ export function BeatTimelineNavigator({
       
       {/* Context Indicator */}
       {context.currentBeatName && !selectedBeatId && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-xs text-blue-300 z-20">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#DC143C]/20 border border-blue-500/30 rounded-full text-xs text-blue-300 z-20">
           From editor: {context.currentBeatName}
         </div>
       )}

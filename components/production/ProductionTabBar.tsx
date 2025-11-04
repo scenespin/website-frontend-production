@@ -40,7 +40,7 @@ const TABS = [
     label: 'Scene Builder',
     icon: Clapperboard,
     description: 'Script-based production',
-    color: 'text-blue-500',
+    color: 'text-[#DC143C]',
     activeColor: 'text-blue-600 dark:text-blue-400'
   },
   {

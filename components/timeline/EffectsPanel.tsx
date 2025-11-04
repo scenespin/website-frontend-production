@@ -178,7 +178,7 @@ export function EffectsPanel({ asset, onApply, onClose }: EffectsPanelProps) {
           {/* Color Grading Section */}
           <Card className="bg-blue-500/5 border-blue-500/20">
             <CardHeader className="pb-3 md:pb-4">
-              <CardTitle className="text-base md:text-lg text-blue-400 flex items-center gap-2">
+              <CardTitle className="text-base md:text-lg text-[#DC143C] flex items-center gap-2">
                 🎨 Color Grading
               </CardTitle>
             </CardHeader>

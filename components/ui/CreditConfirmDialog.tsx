@@ -79,7 +79,7 @@ export function CreditConfirmDialog({
                 <p className="text-sm font-medium">New Enhancement</p>
                 <p className="text-xs text-muted-foreground">{newAction.name}</p>
               </div>
-              <Badge variant="default" className="bg-blue-600">
+              <Badge variant="default" className="bg-[#DC143C]">
                 {newAction.credits} credits
               </Badge>
             </div>

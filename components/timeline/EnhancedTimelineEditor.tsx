@@ -880,7 +880,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         <div className="hidden md:flex items-center justify-between p-4 overflow-x-auto">
           {/* Left: Project Info */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Layers className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <Layers className="w-6 h-6 text-blue-600 dark:text-[#DC143C]" />
             <div>
               <h2 className="text-lg font-bold text-slate-100 whitespace-nowrap">
                 {timeline.project.name}
@@ -1156,7 +1156,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         <div className="md:hidden p-3">
           {/* Top Row: Project Name */}
           <div className="flex items-center justify-center mb-3">
-            <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+            <Layers className="w-5 h-5 text-blue-600 dark:text-[#DC143C] mr-2" />
             <h2 className="text-sm font-bold text-slate-100 truncate">
               {timeline.project.name}
             </h2>
@@ -1570,7 +1570,7 @@ function ProjectCostBadge({ assets }: { assets: TimelineAsset[] }) {
               </div>
             )}
             {breakdown.images > 0 && (
-              <div className="flex justify-between text-blue-400">
+              <div className="flex justify-between text-[#DC143C]">
                 <span>AI Images:</span>
                 <span className="font-mono">{breakdown.images}cr</span>
               </div>

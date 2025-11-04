@@ -222,7 +222,7 @@ export function TemplateCard({
             {/* Hybrid savings potential */}
             {hybridFriendly && maxUploadSavings > 0 && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800">
-                <div className="p-1.5 rounded-lg bg-blue-500 text-base-content">
+                <div className="p-1.5 rounded-lg bg-[#DC143C] text-base-content">
                   <Upload className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">

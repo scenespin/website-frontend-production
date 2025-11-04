@@ -226,14 +226,14 @@ export function TimelineAssetComponent({
           {/* Speed Button - NEW (Feature 0103) */}
           {(asset.type === 'video' || asset.type === 'audio') && onSpeedChange && (
             <button
-              className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-indigo-500/20 rounded p-0.5 touch-manipulation"
+              className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-[#DC143C]/20 rounded p-0.5 touch-manipulation"
               onClick={(e) => {
                 e.stopPropagation();
                 onSpeedChange(asset.id, asset.speed || 1.0);
               }}
               title={`Speed: ${asset.speed || 1.0}x`}
             >
-              <Gauge className="w-3 h-3 text-indigo-400" />
+              <Gauge className="w-3 h-3 text-[#DC143C]" />
             </button>
           )}
 

@@ -578,7 +578,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <ZoomIn className="w-4 h-4 text-blue-500" />
+                    <ZoomIn className="w-4 h-4 text-[#DC143C]" />
                     Fade In
                   </Label>
                   <input
@@ -625,7 +625,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <ZoomOut className="w-4 h-4 text-blue-500" />
+                    <ZoomOut className="w-4 h-4 text-[#DC143C]" />
                     Fade Out
                   </Label>
                   <input
@@ -1018,7 +1018,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
           <Button
             onClick={handleApply}
             disabled={!text.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-initial"
+            className="bg-[#DC143C] hover:bg-blue-700 text-white flex-1 sm:flex-initial"
           >
             {asset ? 'Update Text' : 'Add Text'}
           </Button>

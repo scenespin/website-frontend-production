@@ -175,7 +175,7 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
                 className={cn(
                   'w-full flex items-start gap-2 p-3 rounded-lg transition-all',
                   'hover:bg-slate-100 dark:hover:bg-slate-700/50',
-                  isSelected && 'bg-teal-50 dark:bg-teal-900/20 ring-2 ring-teal-500/20'
+                  isSelected && 'bg-[#DC143C]/10 ring-2 ring-[#DC143C]/20'
                 )}
               >
                 {/* Status Icon */}
@@ -190,7 +190,7 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
                     <h3 className={cn(
                       'font-semibold text-sm truncate',
                       isSelected 
-                        ? 'text-teal-700 dark:text-teal-300' 
+                        ? 'text-[#DC143C]' 
                         : 'text-slate-700 dark:text-slate-300'
                     )}>
                       {beat.title}
@@ -282,7 +282,7 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
           </span>
         </div>
         <div className="flex items-center justify-between text-xs mt-1">
-          <span className="text-teal-600 dark:text-teal-400 font-medium">
+          <span className="text-[#DC143C] font-medium">
             {beats.filter(b => b.production?.status === 'ready').length} ready for timeline
           </span>
         </div>

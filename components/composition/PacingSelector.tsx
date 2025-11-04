@@ -70,7 +70,7 @@ export function PacingSelector({ selectedPacing, onSelectPacing, isMobile = fals
           const height = (duration / maxDuration) * 100;
           const color = duration <= 3 ? 'bg-red-500' : 
                        duration <= 5 ? 'bg-amber-500' : 
-                       duration <= 7 ? 'bg-green-500' : 'bg-blue-500';
+                       duration <= 7 ? 'bg-green-500' : 'bg-[#DC143C]';
           
           return (
             <div
@@ -309,7 +309,7 @@ export function PacingSelector({ selectedPacing, onSelectPacing, isMobile = fals
               <span className="text-slate-700 dark:text-slate-300">6-7s (Slow)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-500 rounded shadow-sm"></div>
+              <div className="w-4 h-4 bg-[#DC143C] rounded shadow-sm"></div>
               <span className="text-slate-700 dark:text-slate-300">8s+ (Very Slow)</span>
             </div>
           </div>

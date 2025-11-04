@@ -21,7 +21,7 @@ const CATEGORY_ICONS: Record<TextTemplate['category'], any> = {
 };
 
 const CATEGORY_COLORS: Record<TextTemplate['category'], string> = {
-  social: 'bg-blue-500',
+  social: 'bg-[#DC143C]',
   corporate: 'bg-purple-500',
   cinematic: 'bg-red-500',
   education: 'bg-green-500',

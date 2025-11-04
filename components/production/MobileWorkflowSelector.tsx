@@ -577,9 +577,9 @@ export function MobileWorkflowSelector({
 
         {/* Upload Instructions (for performance capture) */}
         {selectedWorkflow.requiresVideoUpload && (
-          <div className="p-3 rounded-lg border-2 border-blue-500/30 bg-blue-500/10">
+          <div className="p-3 rounded-lg border-2 border-blue-500/30 bg-[#DC143C]/10">
             <h3 className="font-semibold text-white mb-2 text-sm flex items-center gap-2">
-              <Film className="w-4 h-4 text-blue-400" />
+              <Film className="w-4 h-4 text-[#DC143C]" />
               {selectedWorkflow.videoUploadInstructions?.title || 'Performance Video Required'}
             </h3>
             {selectedWorkflow.videoUploadInstructions?.subtitle && (

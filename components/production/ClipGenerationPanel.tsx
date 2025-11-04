@@ -653,7 +653,7 @@ function Step3Generation({
                       )}
                       {(clip.status === 'generating' || clip.status === 'uploading' || clip.status === 'enhancing') && (
                         <>
-                          <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                          <Loader2 className="w-4 h-4 text-[#DC143C] animate-spin" />
                           <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                             {clip.status === 'uploading' ? 'Uploading...' : 'Generating...'}
                           </span>

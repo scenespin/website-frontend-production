@@ -20,7 +20,7 @@ interface SpeedSelectorProps {
 }
 
 const SPEED_OPTIONS = [
-  { speed: 0.25, label: '0.25x', icon: '🐌', description: 'Super Slow Motion', color: 'bg-blue-600' },
+  { speed: 0.25, label: '0.25x', icon: '🐌', description: 'Super Slow Motion', color: 'bg-[#DC143C]' },
   { speed: 0.5, label: '0.5x', icon: '🚶', description: 'Slow Motion', color: 'bg-cyan-600' },
   { speed: 1.0, label: '1.0x', icon: '▶️', description: 'Normal Speed', color: 'bg-green-600' },
   { speed: 2.0, label: '2.0x', icon: '🏃', description: 'Fast Forward', color: 'bg-orange-600' },

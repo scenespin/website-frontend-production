@@ -47,7 +47,7 @@ export function TrackHeader({
       {/* Track Icon & Number */}
       <div className="flex items-center gap-2">
         {isVideo ? (
-          <Film className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Film className="w-4 h-4 text-blue-600 dark:text-[#DC143C]" />
         ) : (
           <Music className="w-4 h-4 text-green-600 dark:text-green-400" />
         )}

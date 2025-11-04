@@ -39,7 +39,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
 
   const fetchCompositions = async () => {
     try {
-      const response = await fetch(`/api/composition/gallery?userId=${userId}`);
+      const response = await fetch(`/api/composition/gallery?userId=${userId}&limit=50`);
       const data = await response.json();
       setCompositions(data.compositions || []);
     } catch (error) {
@@ -68,9 +68,9 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'static': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'animated': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'paced': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'static': return 'bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300';
+      case 'animated': return 'bg-[#DC143C]/20 text-[#DC143C] dark:bg-[#DC143C]/20 dark:text-[#DC143C]';
+      case 'paced': return 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300';
       default: return 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400';
     }
   };
@@ -89,7 +89,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
       <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
         <CardContent className="py-16">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C]"></div>
           </div>
         </CardContent>
       </Card>
@@ -101,8 +101,8 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
       <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
         <CardContent className="py-16">
           <div className="text-center space-y-4">
-            <div className="inline-block p-4 bg-yellow-400 rounded-full">
-              <Film className="w-12 h-12 text-black" />
+            <div className="inline-block p-4 bg-[#DC143C] rounded-full">
+              <Film className="w-12 h-12 text-white" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-base-content mb-2">
@@ -166,7 +166,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
               <div className="flex gap-2 pt-2">
                 <Button
                   size="sm"
-                  className="flex-1 bg-yellow-400 text-black hover:bg-yellow-500"
+                  className="flex-1 bg-[#DC143C] text-white hover:bg-[#B91238]"
                   onClick={() => handleDownload(composition)}
                   disabled={composition.status !== 'completed'}
                 >
