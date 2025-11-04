@@ -17,7 +17,16 @@ export function triggerHaptic(style: HapticStyle = 'light'): void {
   if ('Taptic' in window || 'webkit' in window) {
     try {
       // @ts-ignore - iOS specific API
-      const impact = new (window.ImpactFeedbackGenerator || window.webkit?.ImpactFeedbackGenerator)();
+      const ImpactGenerator = window.ImpactFeedbackGenerator || window.webkit?.ImpactFeedbackGenerator;
+      // @ts-ignore - iOS specific API
+      const NotificationGenerator = window.NotificationFeedbackGenerator;
+      
+      if (!ImpactGenerator) {
+        fallbackVibration(style);
+        return;
+      }
+      
+      const impact = new ImpactGenerator();
       
       switch (style) {
         case 'light':
@@ -30,23 +39,20 @@ export function triggerHaptic(style: HapticStyle = 'light'): void {
           if (impact?.impactOccurred) impact.impactOccurred('heavy');
           break;
         case 'success':
-          // @ts-ignore
-          if (window.NotificationFeedbackGenerator) {
-            const notifier = new window.NotificationFeedbackGenerator();
+          if (NotificationGenerator) {
+            const notifier = new NotificationGenerator();
             if (notifier?.notificationOccurred) notifier.notificationOccurred('success');
           }
           break;
         case 'warning':
-          // @ts-ignore
-          if (window.NotificationFeedbackGenerator) {
-            const notifier = new window.NotificationFeedbackGenerator();
+          if (NotificationGenerator) {
+            const notifier = new NotificationGenerator();
             if (notifier?.notificationOccurred) notifier.notificationOccurred('warning');
           }
           break;
         case 'error':
-          // @ts-ignore
-          if (window.NotificationFeedbackGenerator) {
-            const notifier = new window.NotificationFeedbackGenerator();
+          if (NotificationGenerator) {
+            const notifier = new NotificationGenerator();
             if (notifier?.notificationOccurred) notifier.notificationOccurred('error');
           }
           break;
