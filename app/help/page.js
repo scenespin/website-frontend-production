@@ -58,13 +58,13 @@ export default function HelpCenter() {
 
         {/* Production Workflow - Mirrors App Navigation */}
         <section className="mb-16">
-          <div className="card bg-gradient-to-br from-cinema-red/10 to-cinema-blue/10 border-2 border-cinema-red/30">
+          <div className="card bg-gradient-to-br from-[#DC143C]/10 to-slate-800 border-2 border-[#DC143C]/30">
             <div className="card-body">
               <h2 className="text-3xl font-bold mb-2">🎬 Complete Production Workflow</h2>
               <p className="text-sm opacity-70 mb-6">Follow the same navigation you'll use in the app - Write → Production → Composition → Timeline</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Link href="/help/screenplay-editor" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-purple-500/30">
+                <Link href="/help/screenplay-editor" className="card bg-base-100 hover:bg-base-200 transition-colors border-2 border-[#DC143C]/30">
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">✍️</div>
                     <h3 className="font-bold text-base">1. Write</h3>
