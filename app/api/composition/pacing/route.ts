@@ -10,7 +10,7 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET(request: NextRequest) {
   try {
     // Get auth token
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const token = await getToken();
 
     if (!token) {

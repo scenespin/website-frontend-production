@@ -5,7 +5,7 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
 
 export async function GET(request: Request) {
   try {
-    const { getToken } = auth();
+    const { getToken } = await auth();
     const token = await getToken();
     
     if (!token) {
