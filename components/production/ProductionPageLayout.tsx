@@ -712,39 +712,26 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
                 onBeatSelect={handleBeatSelect}
               />
 
-              {/* Main Content Area */}
-              <div className="flex flex-1 overflow-hidden">
-                {/* Left Panel: Clip Generation (70%) */}
-                <div className="flex-1 overflow-auto">
-                  <ClipGenerationPanel
-                    selectedBeat={selectedBeat}
-                    aiSuggestion={aiSuggestion}
-                    isLoadingSuggestion={isLoadingSuggestion}
-                    currentStep={currentStep}
-                    onStepChange={setCurrentStep}
-                    clipAssignments={clipAssignments}
-                    onUpdateAssignment={updateClipAssignment}
-                    characters={characters}
-                    isGenerating={isGenerating}
-                    generationProgress={generationProgress}
-                    onGenerate={handleGenerate}
-                    totalCost={calculateTotalCost()}
-                    savings={calculateSavings()}
-                    onSaveToGallery={handleSaveToGallery}
-                    onSendToTimeline={handleSendToTimeline}
-                    onSendToComposition={handleSendToComposition}
-                  />
-                </div>
-
-                {/* Right Panel: Character Bank (30%) */}
-                <div className="w-[30%] min-w-[350px] border-l border-white/10 bg-[#141414]">
-                  <CharacterBankPanel
-                    characters={characters}
-                    isLoading={isLoadingCharacters}
-                    projectId={projectId}
-                    onCharactersUpdate={loadCharacters}
-                  />
-                </div>
+              {/* Main Content Area - Full Width Clip Generation */}
+              <div className="flex-1 overflow-auto">
+                <ClipGenerationPanel
+                  selectedBeat={selectedBeat}
+                  aiSuggestion={aiSuggestion}
+                  isLoadingSuggestion={isLoadingSuggestion}
+                  currentStep={currentStep}
+                  onStepChange={setCurrentStep}
+                  clipAssignments={clipAssignments}
+                  onUpdateAssignment={updateClipAssignment}
+                  characters={characters}
+                  isGenerating={isGenerating}
+                  generationProgress={generationProgress}
+                  onGenerate={handleGenerate}
+                  totalCost={calculateTotalCost()}
+                  savings={calculateSavings()}
+                  onSaveToGallery={handleSaveToGallery}
+                  onSendToTimeline={handleSendToTimeline}
+                  onSendToComposition={handleSendToComposition}
+                />
               </div>
             </div>
           )}

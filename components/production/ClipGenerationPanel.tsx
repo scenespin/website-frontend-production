@@ -79,7 +79,7 @@ export function ClipGenerationPanel({
           Select a Story Beat
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
-          Choose a beat from the left panel to begin planning and generating video clips
+          Choose a beat from the timeline above to begin planning and generating video clips
         </p>
       </div>
     );
