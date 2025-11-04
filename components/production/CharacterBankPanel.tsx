@@ -182,7 +182,7 @@ export function CharacterBankPanel({
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DC143C]"></div>
       </div>
     );
   }
@@ -197,10 +197,10 @@ export function CharacterBankPanel({
           </h2>
           <button
             onClick={() => setShowCreateSidebar(true)}
-            className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-[#DC143C]/10 rounded-lg transition-colors"
             title="Create Character"
           >
-            <Plus className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            <Plus className="w-5 h-5 text-[#DC143C]" />
           </button>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -220,7 +220,7 @@ export function CharacterBankPanel({
           </p>
           <button
             onClick={() => setShowCreateSidebar(true)}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-base-content text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Create Character
@@ -326,7 +326,7 @@ export function CharacterBankPanel({
                     'w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     isGeneratingRefs[selectedCharacter.id]
                       ? 'bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-                      : 'bg-teal-600 hover:bg-teal-700 text-base-content'
+                      : 'bg-[#DC143C] hover:bg-[#B91238] text-white'
                   )}
                 >
                   {isGeneratingRefs[selectedCharacter.id] ? (

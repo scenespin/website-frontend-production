@@ -858,9 +858,9 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       
       {/* NEW: Preview Mode Indicator (Feature 0103) - Shows when preview mode is active */}
       {previewMode && timeline.isPlaying && (
-        <div className="bg-indigo-500/10 border-b border-indigo-500/20 px-3 py-1.5 flex-shrink-0 animate-pulse">
+        <div className="bg-[#DC143C]/10 border-b border-[#DC143C]/20 px-3 py-1.5 flex-shrink-0 animate-pulse">
           <div className="text-xs md:text-sm flex items-center justify-center gap-2">
-            <Eye className="w-3 h-3 md:w-4 md:h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            <Eye className="w-3 h-3 md:w-4 md:h-4 text-[#DC143C] flex-shrink-0" />
             <span className="font-semibold text-indigo-600 dark:text-indigo-400">
               🎭 Preview Mode Active
             </span>
@@ -913,7 +913,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               variant={timeline.isPlaying ? "default" : "outline"}
               size="sm"
               onClick={timeline.togglePlay}
-              className="w-16"
+              className="min-w-[80px]"
             >
               {timeline.isPlaying ? (
                 <>
@@ -952,7 +952,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 );
               }}
               title={previewMode ? "Preview Mode ON: Speed effects visible during playback" : "Preview Mode OFF: Click to enable speed preview"}
-              className={previewMode ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""}
+              className={previewMode ? "bg-[#DC143C] hover:bg-[#B91238] text-white" : ""}
             >
               {previewMode ? (
                 <>
@@ -1020,7 +1020,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 );
               }}
               title={timeline.rippleMode ? "Ripple Mode ON: Clips auto-adjust when moving/deleting" : "Ripple Mode OFF: Click to enable"}
-              className={timeline.rippleMode ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+              className={timeline.rippleMode ? "bg-[#DC143C] hover:bg-[#B91238] text-white" : ""}
             >
               <Link className="w-4 h-4 mr-1" />
               <span className="hidden md:inline">Ripple</span>
@@ -1032,8 +1032,8 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             <Button
               onClick={() => setShowUploadModal(true)}
               size="sm"
-              variant="outline"
-              className="hidden md:flex items-center gap-2"
+              variant="default"
+              className="hidden md:flex items-center gap-2 bg-[#DC143C] hover:bg-[#B91238] text-white"
             >
               <Plus className="w-4 h-4" />
               Add Media
@@ -1046,7 +1046,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               variant="default"
               size="sm"
               onClick={() => setShowExportModal(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base-content"
+              className="bg-[#DC143C] hover:bg-[#B91238] text-white"
               disabled={timeline.assets.length === 0}
               title="Export video"
             >
@@ -1070,7 +1070,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                   size="sm"
                   onClick={handleSendToComposition}
                   title="Send to Composition Studio"
-                  className="border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                  className="border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/10"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Re-compose
@@ -1083,7 +1083,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                     size="sm"
                     onClick={handleSplitAtPlayhead}
                     title="Split clip at playhead (requires clip selection)"
-                    className="border-indigo-500 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+                    className="border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/10"
                   >
                     <Scissors className="w-4 h-4 mr-2" />
                     <span className="hidden md:inline">Split</span>
@@ -1096,7 +1096,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                   size="sm"
                   onClick={handleAddText}
                   title="Add text/title overlay to timeline"
-                  className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                  className="border-[#DC143C] text-[#DC143C] hover:bg-[#DC143C]/10"
                 >
                   <Type className="w-4 h-4 mr-2" />
                   <span className="hidden md:inline">Add Text</span>
@@ -1218,7 +1218,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             {assetCounts.image} Image
           </Badge>
           {timeline.selectedClips.size > 0 && (
-            <Badge variant="default" className="bg-yellow-500">
+            <Badge variant="default" className="bg-[#DC143C] text-white">
               {timeline.selectedClips.size} selected
             </Badge>
           )}
@@ -1549,7 +1549,7 @@ function ProjectCostBadge({ assets }: { assets: TimelineAsset[] }) {
     >
       <Badge 
         variant="outline" 
-        className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 flex items-center gap-1 cursor-help"
+        className="bg-[#DC143C]/10 text-[#DC143C] border-[#DC143C]/20 flex items-center gap-1 cursor-help"
       >
         <DollarSign className="w-3 h-3" />
         {totalCost} credits

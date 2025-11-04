@@ -677,9 +677,9 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 ))}
               </div>
               
-              <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-sm border border-blue-200 dark:border-blue-900">
+              <div className="flex items-center gap-2 p-3 bg-[#DC143C]/10 border border-[#DC143C]/20 rounded-lg text-sm">
                 <span className="text-2xl">💡</span>
-                <div className="flex-1 text-blue-700 dark:text-blue-400">
+                <div className="flex-1 text-[#DC143C]">
                   <strong>Workflow:</strong> Select layout → Apply effects → Compose
                   → Original clips will be replaced automatically in Timeline
                 </div>
@@ -1012,9 +1012,9 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                             </div>
                           </div>
                         ) : (
-                          <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                          <div className="mb-4 p-4 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
                             <div className="flex items-start gap-3">
-                              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                              <Info className="w-5 h-5 text-[#DC143C] flex-shrink-0 mt-0.5" />
                               <div className="space-y-2">
                                 <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                                   Analyze Music First
@@ -1211,7 +1211,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         </Button>
                       </div>
                       
-                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <div className="mt-3 p-3 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
                         <p className="text-xs text-slate-400">
                           💡 <strong>Tip:</strong> Vertical formats work best for mobile-first platforms. Your videos will be automatically formatted and optimized for quick consumption.
                         </p>
@@ -1431,9 +1431,9 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {/* Audio Composition Flow Info */}
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-2">
+                      <div className="bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg p-4 space-y-2">
                         <div className="flex items-start gap-3">
-                          <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <Info className="w-5 h-5 text-[#DC143C] flex-shrink-0 mt-0.5" />
                           <div className="space-y-2">
                             <p className="text-sm font-semibold text-blue-400">
                               Audio Composition Options:

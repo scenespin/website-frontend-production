@@ -288,7 +288,7 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="text-center mt-6">
+            <div className="text-center">
               <p className="text-lg font-semibold mb-4">
                 💡 <strong>We streamlined GitHub for writers</strong> - no technical knowledge required
               </p>

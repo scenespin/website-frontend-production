@@ -158,13 +158,20 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-700">
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !uploading) {
+          handleClose();
+        }
+      }}
+    >
+      <div className="bg-slate-800 rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden border border-slate-700 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
           <div>
-            <h3 className="text-2xl font-bold text-slate-200">Create New Asset</h3>
-            <p className="text-sm text-slate-400 mt-1">
+            <h3 className="text-xl font-bold text-slate-200">Create New Asset</h3>
+            <p className="text-xs text-slate-400 mt-1">
               {step === 'details' 
                 ? 'Enter asset details and category'
                 : `Upload 2-10 photos from different angles (${images.length}/10)`
@@ -181,10 +188,10 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-6">
           {step === 'details' ? (
             // Step 1: Asset Details
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -195,7 +202,7 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Vintage Red Car, Silver Revolver, Leather Chair"
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:border-[#DC143C] focus:outline-none"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:border-[#DC143C] focus:outline-none text-sm"
                   maxLength={100}
                 />
                 <p className="text-xs text-slate-500 mt-1">{name.length}/100 characters</p>
@@ -203,23 +210,23 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
                   Category *
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {Object.entries(ASSET_CATEGORY_METADATA).map(([key, meta]) => (
                     <button
                       key={key}
                       onClick={() => setCategory(key as AssetCategory)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
+                      className={`p-3 rounded-lg border-2 transition-all text-sm ${
                         category === key
                           ? 'border-[#DC143C] bg-[#DC143C]/10'
                           : 'border-slate-600 bg-slate-700 hover:border-slate-500'
                       }`}
                     >
-                      <div className="text-2xl mb-2">{meta.icon === 'Package' ? '📦' : meta.icon === 'Car' ? '🚗' : meta.icon === 'Armchair' ? '🪑' : '📦'}</div>
-                      <div className="text-sm font-medium text-slate-200">{meta.label}</div>
-                      <div className="text-xs text-slate-400 mt-1">{meta.priceUSD}</div>
+                      <div className="text-xl mb-1">{meta.icon === 'Package' ? '📦' : meta.icon === 'Car' ? '🚗' : meta.icon === 'Armchair' ? '🪑' : '📦'}</div>
+                      <div className="text-xs font-medium text-slate-200">{meta.label}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{meta.priceUSD}</div>
                     </button>
                   ))}
                 </div>
@@ -237,8 +244,8 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the asset in detail..."
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:border-[#DC143C] focus:outline-none resize-none"
-                  rows={3}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:border-[#DC143C] focus:outline-none resize-none text-sm"
+                  rows={2}
                   maxLength={500}
                 />
                 <p className="text-xs text-slate-500 mt-1">{description.length}/500 characters</p>
@@ -254,23 +261,23 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
                   placeholder="weapon, gun, silver (comma-separated)"
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:border-[#DC143C] focus:outline-none"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-500 focus:border-[#DC143C] focus:outline-none text-sm"
                 />
                 <p className="text-xs text-slate-500 mt-1">Helps with searching later</p>
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-700 mt-4">
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 bg-slate-700 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
+                  className="px-4 py-1.5 text-sm bg-slate-700 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => setStep('upload')}
                   disabled={!name.trim()}
-                  className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-1.5 text-sm bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next: Upload Images →
                 </button>
@@ -278,12 +285,12 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
             </div>
           ) : (
             // Step 2: Upload Images
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Drag-Drop Area */}
               {images.length < 10 && (
                 <div
                   {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
                     isDragActive
                       ? 'border-[#DC143C] bg-[#DC143C]/10'
                       : 'border-slate-600 bg-slate-700 hover:border-slate-500'
@@ -353,14 +360,14 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
 
               {/* Progress */}
               {uploading && (
-                <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                <div className="bg-slate-700 rounded-lg p-3 border border-slate-600">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-300">Uploading images...</span>
-                    <span className="text-sm font-medium text-[#DC143C]">{uploadProgress}%</span>
+                    <span className="text-xs text-slate-300">Uploading images...</span>
+                    <span className="text-xs font-medium text-[#DC143C]">{uploadProgress}%</span>
                   </div>
-                  <div className="w-full bg-slate-600 rounded-full h-2">
+                  <div className="w-full bg-slate-600 rounded-full h-1.5">
                     <div
-                      className="bg-[#DC143C] h-2 rounded-full transition-all duration-300"
+                      className="bg-[#DC143C] h-1.5 rounded-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -368,26 +375,26 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
               )}
 
               {/* Actions */}
-              <div className="flex justify-between gap-3 pt-4">
+              <div className="flex justify-between gap-2 pt-3 border-t border-slate-700 mt-4">
                 <button
                   onClick={() => setStep('details')}
                   disabled={uploading}
-                  className="px-4 py-2 bg-slate-700 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
+                  className="px-4 py-1.5 text-sm bg-slate-700 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
                 >
                   ← Back
                 </button>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
                     onClick={handleClose}
                     disabled={uploading}
-                    className="px-4 py-2 bg-slate-700 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
+                    className="px-4 py-1.5 text-sm bg-slate-700 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreate}
                     disabled={images.length < 2 || uploading}
-                    className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-1.5 text-sm bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploading ? 'Creating...' : `Create Asset (${images.length} images)`}
                   </button>
@@ -395,7 +402,7 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
               </div>
 
               {images.length < 2 && (
-                <p className="text-center text-sm text-yellow-500">
+                <p className="text-center text-xs text-yellow-500">
                   ⚠️ Upload at least 2 images to enable 3D generation
                 </p>
               )}

@@ -154,10 +154,10 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
           {!isMobile && (
             <button
               onClick={() => setShowUploadModal(true)}
-              className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-[#DC143C]/10 rounded-lg transition-colors"
               title="New Asset"
             >
-              <Plus className="w-5 h-5 text-slate-400" />
+              <Plus className="w-5 h-5 text-[#DC143C]" />
             </button>
           )}
         </div>

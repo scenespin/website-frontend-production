@@ -46,8 +46,10 @@ export default function SignInPage() {
                   card: "!bg-transparent !shadow-none !w-full !mx-auto",
                   headerTitle: "!text-base-content !text-center",
                   headerSubtitle: "!text-base-content/70 !text-center",
-                  socialButtonsBlockButton: "!bg-base-200 hover:!bg-base-300 !text-base-content !border-2 !border-base-content/30 hover:!border-base-content/50 !transition-all !duration-200 !w-full",
+                  socialButtonsBlockButton: "!bg-base-200 hover:!bg-base-300 !text-base-content !border-2 !border-base-content/30 hover:!border-base-content/50 !transition-all !duration-200 !w-full !relative",
                   socialButtonsBlockButtonText: "!font-medium",
+                  socialButtonsProviderIcon: "!mr-2",
+                  alternativeMethodsBlockButton: "!relative",
                   formButtonPrimary: "!bg-[#DC143C] hover:!bg-[#B8112F] !text-white !font-medium !shadow-lg hover:!shadow-xl !transition-all !duration-200 !w-full",
                   footerActionLink: "!text-[#DC143C] hover:!text-[#B8112F] !font-medium",
                   formFieldLabel: "!text-base-content !font-medium !mb-2",
@@ -60,6 +62,7 @@ export default function SignInPage() {
                   footer: "hidden",
                   formFieldRow: "!w-full",
                   form: "!w-full",
+                  badge: "!absolute !-top-2 !right-2 !text-xs !bg-base-300 !text-base-content !px-2 !py-0.5 !rounded",
                 },
               }}
             />

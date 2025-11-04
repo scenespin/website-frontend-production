@@ -99,7 +99,7 @@ export function LocationBankPanel({
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center h-full ${className}`}>
-        <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
       </div>
     );
   }
@@ -114,10 +114,10 @@ export function LocationBankPanel({
           </h2>
           <button
             onClick={() => setShowCreateSidebar(true)}
-            className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-[#DC143C]/10 rounded-lg transition-colors"
             title="Add Location"
           >
-            <Plus className="w-5 h-5 text-slate-400" />
+            <Plus className="w-5 h-5 text-[#DC143C]" />
           </button>
         </div>
         <p className="text-xs text-slate-400">
@@ -137,7 +137,7 @@ export function LocationBankPanel({
           </p>
           <button
             onClick={() => setShowCreateSidebar(true)}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Add Location

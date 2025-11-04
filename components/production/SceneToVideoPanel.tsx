@@ -38,6 +38,14 @@ import {
   ChevronRight
 } from 'lucide-react';
 
+// 🆕 Feature 0105: Visual Annotations (OPTIONAL - won't break if import fails)
+let VisualAnnotationPanel: any = null;
+try {
+  VisualAnnotationPanel = require('./VisualAnnotationPanel').VisualAnnotationPanel;
+} catch (err) {
+  console.warn('[SceneToVideoPanel] Visual annotations not available:', err);
+}
+
 interface Scene {
   id: string;
   number: number;
@@ -77,6 +85,9 @@ export function SceneToVideoPanel({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  
+  // 🆕 Feature 0105: Visual Annotations (OPTIONAL, won't break existing flow)
+  const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
 
   // Get selected scene
   const selectedScene = scenes.find(s => s.id === selectedSceneId);
@@ -146,17 +157,31 @@ export function SceneToVideoPanel({
     setIsGeneratingVideos(true);
 
     try {
+      // SAFETY: Build request body with optional visualAnnotations
+      const requestBody: any = {
+        prompts: generatedPrompts,
+        provider,
+        resolution,
+        sceneId: selectedSceneId,
+        sceneName: selectedScene?.heading || `Scene from ${projectId}`,
+        useVideoExtension: false
+      };
+      
+      // 🆕 Feature 0105: Add visual annotations if present (OPTIONAL)
+      if (visualAnnotations) {
+        try {
+          requestBody.visualAnnotations = visualAnnotations;
+          console.log('[SceneToVideoPanel] Including visual annotations in request');
+        } catch (err) {
+          console.error('[SceneToVideoPanel] Failed to add annotations, continuing without them:', err);
+          // Continue without annotations - doesn't break flow
+        }
+      }
+      
       const response = await fetch('/api/video/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompts: generatedPrompts,
-          provider,
-          resolution,
-          sceneId: selectedSceneId,
-          sceneName: selectedScene?.heading || `Scene from ${projectId}`,
-          useVideoExtension: false
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -455,6 +480,28 @@ I didn't expect you to actually come.`}
               </Button>
             )}
           </div>
+
+          {/* 🆕 Feature 0105: Visual Annotations (OPTIONAL - only shows if component loaded and prompts exist) */}
+          {VisualAnnotationPanel && generatedPrompts.length > 0 && generatedPrompts[0]?.imageUrl && (
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+              <VisualAnnotationPanel
+                imageUrl={generatedPrompts[0].imageUrl}
+                onAnnotationsComplete={(annotations: any) => {
+                  try {
+                    setVisualAnnotations(annotations);
+                  } catch (err) {
+                    console.error('[SceneToVideoPanel] Error setting annotations:', err);
+                    // Silent failure - doesn't break flow
+                  }
+                }}
+                disabled={isGeneratingVideos}
+                defaultExpanded={false}
+              />
+              <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-2">
+                ✨ Optional: Add motion & actions to enhance your video, or skip to generate
+              </p>
+            </div>
+          )}
 
           {/* Generate Videos Button (only show if prompts exist) */}
           {generatedPrompts.length > 0 && (
