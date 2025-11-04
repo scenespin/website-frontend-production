@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export interface WorkflowDefinition {
   id: string;

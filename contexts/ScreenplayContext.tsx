@@ -367,7 +367,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setBeats(beatsFile?.beats || []);
             setCharacters(charsFile?.characters || []);
             setLocations(locsFile?.locations || []);
-            setRelationships(relsFile?.relationships || { scenes: {}, characters: {}, locations: {} });
+            setRelationships(relsFile?.relationships || { scenes: {}, characters: {}, locations: {}, props: {} });
             
             console.log('[ScreenplayContext] Synced from GitHub');
             
