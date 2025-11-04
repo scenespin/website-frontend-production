@@ -144,8 +144,7 @@ export default function WorkflowDetailPage({ params }) {
                 <div className="text-left w-full">
                   <div className="font-bold">Step {step.step}: {step.action}</div>
                   <div className="text-sm opacity-70 mt-1">
-                    <span className="badge badge-sm badge-outline">{step.provider}</span>
-                    <span className="ml-2">~{step.estimatedTime}s</span>
+                    <span>~{step.estimatedTime}s</span>
                     {step.optional && <span className="ml-2 badge badge-sm badge-ghost">Optional</span>}
                   </div>
                 </div>
