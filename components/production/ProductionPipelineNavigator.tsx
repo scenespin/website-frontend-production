@@ -53,7 +53,7 @@ const PRODUCTION_STAGES: ProductionStageConfig[] = [
     label: 'Shot List',
     icon: <ListChecks className="w-5 h-5" />,
     description: 'AI-generated cinematography breakdown',
-    color: 'bg-purple-500'
+    color: 'bg-[#DC143C]'
   },
   {
     id: 'timeline',

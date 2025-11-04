@@ -176,7 +176,7 @@ export function LUTPicker({ asset, onSelect, onClose }: LUTPickerProps) {
                 {/* Default Badge */}
                 {lut.isDefault && (
                   <div className="absolute top-2 left-2">
-                    <Badge className="bg-gradient-to-r from-purple-500 to-orange-500 text-base-content text-xs">
+                    <Badge className="bg-gradient-to-r from-[#DC143C] to-orange-500 text-base-content text-xs">
                       Default
                     </Badge>
                   </div>
@@ -226,7 +226,7 @@ export function LUTPicker({ asset, onSelect, onClose }: LUTPickerProps) {
                 if (defaultLUT) handleSelect(defaultLUT.id);
               }}
               variant="outline"
-              className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+              className="border-[#DC143C]/50 text-[#DC143C] hover:bg-[#DC143C]/10"
             >
               <RotateCw className="w-4 h-4 mr-2" />
               Reset to Default

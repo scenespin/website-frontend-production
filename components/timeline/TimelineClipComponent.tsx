@@ -100,19 +100,19 @@ export function TimelineClipComponent({
   // Get color based on shot type
   const getClipColor = () => {
     const shotType = clip.metadata?.shotType;
-    if (!shotType) return 'bg-blue-500 border-blue-600';
+    if (!shotType) return 'bg-[#DC143C] border-[#DC143C]';
     
     const colors: Record<string, string> = {
-      'EWS': 'bg-sky-500 border-sky-600',
-      'WS': 'bg-blue-500 border-blue-600',
-      'MS': 'bg-purple-500 border-purple-600',
-      'CU': 'bg-pink-500 border-pink-600',
-      'ECU': 'bg-red-500 border-red-600',
-      'OTS': 'bg-amber-500 border-amber-600',
-      'POV': 'bg-indigo-500 border-indigo-600'
+      'EWS': 'bg-slate-500 border-slate-600',
+      'WS': 'bg-[#DC143C] border-[#DC143C]',
+      'MS': 'bg-[#DC143C]/80 border-[#DC143C]',
+      'CU': 'bg-red-500 border-red-600',
+      'ECU': 'bg-red-600 border-red-700',
+      'OTS': 'bg-orange-500 border-orange-600',
+      'POV': 'bg-[#DC143C]/60 border-[#DC143C]'
     };
     
-    return colors[shotType] || 'bg-blue-500 border-blue-600';
+    return colors[shotType] || 'bg-[#DC143C] border-[#DC143C]';
   };
 
   return (

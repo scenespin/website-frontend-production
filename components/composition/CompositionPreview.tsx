@@ -87,17 +87,17 @@ export function CompositionPreview({ layout, animation, pacing, type }: Composit
   };
 
   return (
-    <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
-      <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <div className="p-1.5 bg-yellow-400 rounded">
-            <Eye className="w-4 h-4 text-black" />
+    <Card className="bg-[#141414] border border-slate-700/50 shadow-lg">
+      <CardHeader className="border-b border-slate-700/50 bg-[#1F1F1F] p-2 pb-2">
+        <CardTitle className="text-xs flex items-center gap-2">
+          <div className="p-0.5 bg-[#DC143C] rounded">
+            <Eye className="w-3 h-3 text-white" />
           </div>
           Preview
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden border-2 border-slate-200 dark:border-slate-700 aspect-video">
+      <CardContent className="p-3">
+        <div className="bg-[#0A0A0A] rounded-lg overflow-hidden border-2 border-slate-700/50 aspect-video">
           {renderLayoutPreview()}
         </div>
         {(layout || animation || pacing) && (

@@ -123,7 +123,7 @@ export default function CharacterBankManager({ projectId, onCharacterSelect }: P
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-500/10 rounded-lg">
+          <div className="p-2 bg-[#DC143C]/10 rounded-lg">
             <User className="w-5 h-5 text-purple-500" />
           </div>
           <div>
@@ -230,7 +230,7 @@ function CharacterCard({
       className={`
         relative p-3 rounded-lg cursor-pointer transition-all
         ${isSelected 
-          ? 'bg-purple-500/10 border-2 border-purple-500' 
+          ? 'bg-[#DC143C]/10 border-2 border-[#DC143C]' 
           : 'bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent hover:border-slate-300 dark:hover:border-slate-700'
         }
       `}

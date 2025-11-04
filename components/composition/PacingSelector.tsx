@@ -107,8 +107,8 @@ export function PacingSelector({ selectedPacing, onSelectPacing, isMobile = fals
     const selectedPacingData = pacingOptions.find(p => p.id === selectedPacing);
     
     return (
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
-        <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 py-3">
+    <Card className="bg-[#141414] border border-slate-700/50 shadow-lg">
+      <CardHeader className="border-b border-slate-700/50 bg-[#1F1F1F] p-2 pb-2">
           <CardTitle className="flex items-center gap-2 text-base text-slate-900 dark:text-base-content">
             <div className="p-1 bg-yellow-400 rounded">
               <Zap className="w-3 h-3 text-black" />
@@ -180,8 +180,8 @@ export function PacingSelector({ selectedPacing, onSelectPacing, isMobile = fals
 
   // DESKTOP: Full grid layout
   return (
-    <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
-      <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+    <Card className="bg-[#141414] border border-slate-700/50 shadow-lg">
+      <CardHeader className="border-b border-slate-700/50 bg-[#1F1F1F] p-2 pb-2">
         <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-base-content">
           <div className="p-1.5 bg-yellow-400 rounded">
             <Zap className="w-4 h-4 text-black" />

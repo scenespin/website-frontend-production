@@ -200,7 +200,7 @@ export function PropertyInspector({
               <button
                 className={`flex-1 py-3 px-4 text-xs font-medium transition-colors ${
                   activeSection === 'transform'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-b-2 border-blue-500'
+                    ? 'bg-[#DC143C]/10 text-[#DC143C] border-b-2 border-[#DC143C]'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
                 onClick={() => setActiveSection('transform')}
@@ -213,7 +213,7 @@ export function PropertyInspector({
               <button
                 className={`flex-1 py-3 px-4 text-xs font-medium transition-colors ${
                   activeSection === 'opacity'
-                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-b-2 border-purple-500'
+                    ? 'bg-[#DC143C]/10 text-[#DC143C] border-b-2 border-[#DC143C]'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
                 onClick={() => setActiveSection('opacity')}

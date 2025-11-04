@@ -57,10 +57,10 @@ export function EffectsPanel({ asset, onApply, onClose }: EffectsPanelProps) {
       <div className="bg-base-200 border border-base-content/20 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         
         {/* Header - Mobile Optimized */}
-        <div className="flex items-center justify-between p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-purple-900/20 to-base-300 sticky top-0 z-10">
+        <div className="flex items-center justify-between p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-[#DC143C]/20 to-base-300 sticky top-0 z-10">
           <div className="flex-1 min-w-0">
             <h2 className="text-lg md:text-2xl font-bold text-base-content flex items-center gap-2">
-              <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-purple-400 flex-shrink-0" />
+              <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-[#DC143C] flex-shrink-0" />
               <span className="truncate">Visual Effects</span>
             </h2>
             <p className="text-base-content/60 text-xs md:text-sm mt-1 hidden sm:block">
@@ -79,9 +79,9 @@ export function EffectsPanel({ asset, onApply, onClose }: EffectsPanelProps) {
         <div className="p-3 md:p-6 space-y-4 md:space-y-6">
           
           {/* Visual Effects Section */}
-          <Card className="bg-purple-500/5 border-purple-500/20">
+          <Card className="bg-[#DC143C]/5 border-[#DC143C]/20">
             <CardHeader className="pb-3 md:pb-4">
-              <CardTitle className="text-base md:text-lg text-purple-400 flex items-center gap-2">
+              <CardTitle className="text-base md:text-lg text-[#DC143C] flex items-center gap-2">
                 <Eye className="w-4 h-4 md:w-5 md:h-5" />
                 Visual Effects
               </CardTitle>
@@ -176,7 +176,7 @@ export function EffectsPanel({ asset, onApply, onClose }: EffectsPanelProps) {
           </Card>
 
           {/* Color Grading Section */}
-          <Card className="bg-blue-500/5 border-blue-500/20">
+          <Card className="bg-[#DC143C]/5 border-[#DC143C]/20">
             <CardHeader className="pb-3 md:pb-4">
               <CardTitle className="text-base md:text-lg text-[#DC143C] flex items-center gap-2">
                 🎨 Color Grading
@@ -315,7 +315,7 @@ export function EffectsPanel({ asset, onApply, onClose }: EffectsPanelProps) {
             </Button>
             <Button
               onClick={handleApply}
-              className="bg-purple-600 hover:bg-purple-700 text-white flex-1 sm:flex-initial"
+              className="bg-[#DC143C] hover:bg-[#B91238] text-white flex-1 sm:flex-initial"
             >
               <Sparkles className="w-4 h-4 mr-1" />
               Apply

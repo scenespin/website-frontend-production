@@ -28,7 +28,7 @@ const TABS = [
     icon: Film,
     description: 'Multi-track editor',
     color: 'text-blue-500',
-    activeColor: 'text-blue-600 dark:text-blue-400'
+    activeColor: 'text-[#DC143C]'
   },
   {
     id: 'audio' as TimelineTab,
@@ -36,7 +36,7 @@ const TABS = [
     icon: Music,
     description: 'Audio synchronization',
     color: 'text-purple-500',
-    activeColor: 'text-purple-600 dark:text-purple-400'
+    activeColor: 'text-[#DC143C]'
   },
   {
     id: 'export' as TimelineTab,

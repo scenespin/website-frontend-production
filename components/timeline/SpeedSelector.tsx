@@ -44,10 +44,10 @@ export function SpeedSelector({ currentSpeed, clipDuration, onSelect, onClose }:
       <div className="bg-base-200 border border-base-content/20 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         
         {/* Header - Mobile Optimized */}
-        <div className="flex items-center justify-between p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-indigo-900/20 to-base-300 sticky top-0 z-10">
+        <div className="flex items-center justify-between p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-[#DC143C]/20 to-base-300 sticky top-0 z-10">
           <div className="flex-1 min-w-0">
             <h2 className="text-lg md:text-2xl font-bold text-base-content flex items-center gap-2">
-              <Gauge className="w-5 h-5 md:w-7 md:h-7 text-indigo-400 flex-shrink-0" />
+              <Gauge className="w-5 h-5 md:w-7 md:h-7 text-[#DC143C] flex-shrink-0" />
               <span className="truncate">Playback Speed</span>
             </h2>
             <p className="text-base-content/60 text-xs md:text-sm mt-1 hidden sm:block">
@@ -72,13 +72,13 @@ export function SpeedSelector({ currentSpeed, clipDuration, onSelect, onClose }:
             <div className="text-2xl md:text-4xl text-base-content/40 flex-shrink-0">→</div>
             <div className="text-center flex-1">
               <p className="text-xs md:text-sm text-base-content/60 mb-1">New</p>
-              <p className="text-lg md:text-2xl font-mono font-bold text-indigo-400">{calculateNewDuration(selectedSpeed)}s</p>
+              <p className="text-lg md:text-2xl font-mono font-bold text-[#DC143C]">{calculateNewDuration(selectedSpeed)}s</p>
             </div>
           </div>
           
           {selectedSpeed !== 1.0 && (
             <div className="mt-3 md:mt-4 text-center">
-              <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/30 text-xs">
+              <Badge variant="outline" className="bg-[#DC143C]/10 text-[#DC143C] border-[#DC143C]/30 text-xs">
                 {selectedSpeed < 1.0 ? 
                   `${(1/selectedSpeed).toFixed(0)}x slower` : 
                   `${selectedSpeed.toFixed(0)}x faster`
@@ -101,7 +101,7 @@ export function SpeedSelector({ currentSpeed, clipDuration, onSelect, onClose }:
                   className={`group relative p-3 md:p-4 rounded-lg border-2 transition-all text-left ${
                     isSelected 
                       ? `${option.color} border-transparent shadow-lg text-white` 
-                      : 'bg-base-300 border-base-content/20 hover:border-indigo-500 hover:bg-base-content/10 active:bg-base-content/20'
+                      : 'bg-base-300 border-base-content/20 hover:border-[#DC143C] hover:bg-base-content/10 active:bg-base-content/20'
                   }`}
                 >
                   <div className="flex items-center gap-2 md:gap-4">
@@ -154,7 +154,7 @@ export function SpeedSelector({ currentSpeed, clipDuration, onSelect, onClose }:
             </Button>
             <Button
               onClick={handleSelect}
-              className="bg-[#DC143C] hover:bg-indigo-700 text-white flex-1 sm:flex-initial"
+              className="bg-[#DC143C] hover:bg-[#B91238] text-white flex-1 sm:flex-initial"
             >
               Apply Speed
             </Button>

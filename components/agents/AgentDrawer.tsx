@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import UnifiedChatPanel from '../UnifiedChatPanel';
 import { Z_INDEX } from '@/config/z-index';
+import { Music } from 'lucide-react';  // For Audio Agent badge
 import type { AgentMode, SceneContext } from '../shared/types';
 
 interface AgentDrawerProps {
@@ -161,7 +162,18 @@ export default function AgentDrawer({ isOpen, onClose, onOpen, onInsertText, hal
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
                             </div>
-                            <span className="font-semibold text-sm text-base-content">AI Assistant</span>
+                            <div className="flex flex-col">
+                                <span className="font-semibold text-sm text-base-content">AI Assistant</span>
+                                {/* NEW: Mode Badge - shows prominently what agent is active */}
+                                {launchTrigger?.mode === 'audio' && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <Music className="w-3 h-3 text-green-400" />
+                                        <span className="text-xs font-bold text-green-400 uppercase tracking-wide">
+                                            Audio Agent
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         
                         <button

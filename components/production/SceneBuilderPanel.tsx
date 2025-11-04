@@ -587,7 +587,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               className="w-full p-3 rounded-lg border-2 border-[#DC143C] bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-950/30 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500 rounded">
+                <div className="p-2 bg-[#DC143C] rounded">
                   <span className="text-base-content text-lg">🎨</span>
                 </div>
                 <div className="flex-1">
@@ -939,7 +939,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         onClick={() => setDuration(dur)}
                         className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-all ${
                           duration === dur
-                            ? 'bg-purple-500 text-base-content border-[#DC143C]'
+                            ? 'bg-[#DC143C] text-base-content border-[#DC143C]'
                             : 'bg-background border-border hover:border-purple-300'
                         }`}
                       >

@@ -564,7 +564,7 @@ function ProductionWorkspace({
                       <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30">
                         <CardHeader>
                           <div className="flex items-start gap-3">
-                            <div className="p-2 bg-purple-500 rounded-lg">
+                            <div className="p-2 bg-[#DC143C] rounded-lg">
                               <Sparkles className="w-5 h-5 text-base-content" />
                             </div>
                             <div className="flex-1">
@@ -751,7 +751,7 @@ function TemplateCard({
       className={`
         relative p-4 rounded-lg cursor-pointer border-2 transition-all
         ${isSelected 
-          ? 'bg-purple-500/10 border-purple-500 shadow-lg' 
+          ? 'bg-[#DC143C]/10 border-[#DC143C] shadow-lg' 
           : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-purple-300'
         }
       `}
@@ -768,7 +768,7 @@ function TemplateCard({
       {/* Layout Preview Icon */}
       <div className={`
         w-full aspect-video rounded-lg mb-3 flex items-center justify-center
-        ${isSelected ? 'bg-purple-500/20' : 'bg-slate-100 dark:bg-slate-700'}
+        ${isSelected ? 'bg-[#DC143C]/20' : 'bg-slate-100 dark:bg-slate-700'}
       `}>
         <Grid3x3 className={`w-8 h-8 ${isSelected ? 'text-purple-500' : 'text-slate-400'}`} />
       </div>
@@ -790,7 +790,7 @@ function TemplateCard({
       {/* Selected Indicator */}
       {isSelected && (
         <div className="absolute top-2 left-2">
-          <div className="bg-purple-500 rounded-full p-1">
+          <div className="bg-[#DC143C] rounded-full p-1">
             <CheckCircle2 className="w-4 h-4 text-base-content" />
           </div>
         </div>

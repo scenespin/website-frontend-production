@@ -124,7 +124,7 @@ export function BeatTimelineNavigator({
           
           <div className="flex items-center gap-4">
             <div className="text-sm">
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">{completedCount}</span>
+              <span className="font-semibold text-[#DC143C]">{completedCount}</span>
               <span className="text-slate-500 dark:text-slate-400"> / {beats.length} completed</span>
             </div>
             
@@ -223,7 +223,7 @@ export function BeatTimelineNavigator({
                       <div className="flex items-center gap-2 mb-2">
                         <div className={cn(
                           "flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
-                          isSelected ? "bg-indigo-500 text-base-content" : "bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                          isSelected ? "bg-[#DC143C] text-base-content" : "bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
                         )}>
                           {index + 1}
                         </div>
@@ -252,13 +252,13 @@ export function BeatTimelineNavigator({
                     {isSelected && (
                       <motion.div
                         layoutId="selectedBeat"
-                        className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"
+                        className="absolute bottom-0 left-0 right-0 h-1 bg-[#DC143C]"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
                     )}
 
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/10 transition-colors" />
+                    <div className="absolute inset-0 bg-[#DC143C]/0 group-hover:bg-[#DC143C]/10 transition-colors" />
                   </button>
                 </motion.div>
               );

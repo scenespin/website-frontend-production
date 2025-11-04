@@ -46,7 +46,7 @@ function RadioGroupItem({ value, disabled }: { value: string; disabled?: boolean
       type="radio"
       value={value}
       disabled={disabled}
-      className="w-4 h-4 text-blue-600 border-base-content/20 focus:ring-blue-500"
+      className="w-4 h-4 text-[#DC143C] border-base-content/20 focus:ring-[#DC143C]"
     />
   );
 }
@@ -347,7 +347,7 @@ export function ExportModal({
                       key={res}
                       className={`flex items-center space-x-3 border rounded-lg p-4 cursor-pointer transition-all ${
                         settings.resolution === res
-                          ? 'border-blue-500 bg-blue-950/30'
+                          ? 'border-[#DC143C] bg-[#DC143C]/30'
                           : 'border-slate-700 hover:border-slate-600'
                       } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
@@ -466,7 +466,7 @@ export function ExportModal({
                 <label
                   className={`flex flex-col space-y-3 border rounded-lg p-4 cursor-pointer transition-all ${
                     settings.speedTier === 'express'
-                      ? 'border-purple-500 bg-purple-950/30'
+                      ? 'border-[#DC143C] bg-[#DC143C]/30'
                       : 'border-slate-700 hover:border-slate-600'
                   } ${isExpressBlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
@@ -484,7 +484,7 @@ export function ExportModal({
                         </div>
                       </div>
                     </div>
-                    <Badge variant="default" className="bg-gradient-to-r from-purple-600 to-blue-600">
+                    <Badge variant="default" className="bg-gradient-to-r from-[#DC143C] to-orange-500">
                       <Sparkles className="w-3 h-3 mr-1" />
                       2-5x faster
                     </Badge>
@@ -500,10 +500,10 @@ export function ExportModal({
           {/* Professional HDR Export (16-bit EXR) */}
           <div className="space-y-3">
             <Label className="text-base font-semibold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-500" />
+              <Sparkles className="w-5 h-5 text-[#DC143C]" />
               Professional Studio Export
             </Label>
-            <Card className="bg-gradient-to-br from-purple-950/40 to-blue-950/40 border-2 border-purple-500/30">
+            <Card className="bg-gradient-to-br from-[#DC143C]/20 to-slate-900 border-2 border-[#DC143C]/30">
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
                   <input
@@ -555,9 +555,9 @@ export function ExportModal({
                           </div>
                         </div>
                       </div>
-                      <div className="mt-4 pt-4 border-t border-purple-500/20 flex items-center justify-between">
+                      <div className="mt-4 pt-4 border-t border-[#DC143C]/20 flex items-center justify-between">
                         <span className="text-sm text-slate-400">HDR Export Upgrade</span>
-                        <span className="text-lg font-bold text-purple-300">+1,500 credits</span>
+                        <span className="text-lg font-bold text-[#DC143C]">+1,500 credits</span>
                       </div>
                       <div className="text-xs text-slate-500 mt-1 text-right">
                         ≈ $15.00 USD per export
@@ -609,13 +609,13 @@ export function ExportModal({
               )}
               
               {isBlocked && (
-                <Alert className="mt-4 bg-purple-950/30 border-purple-800">
-                  <TrendingUp className="w-4 h-4 text-purple-500" />
-                  <AlertDescription className="text-purple-200">
+                <Alert className="mt-4 bg-[#DC143C]/10 border-[#DC143C]/30">
+                  <TrendingUp className="w-4 h-4 text-[#DC143C]" />
+                  <AlertDescription className="text-[#DC143C]">
                     {is4KBlocked 
                       ? '4K timeline exports are available on Ultra+ plans. Free users can export timelines up to 720p. (Note: AI video generation quality is separate - free users CAN generate Premium 4K videos!)' 
                       : 'Express (GPU) rendering is available on Ultra and Studio plans for 2-5x faster exports.'}
-                    <Button variant="link" className="ml-2 p-0 h-auto text-purple-300 underline">
+                    <Button variant="link" className="ml-2 p-0 h-auto text-[#DC143C] underline">
                       View Plans
                     </Button>
                   </AlertDescription>
@@ -632,7 +632,7 @@ export function ExportModal({
           <Button
             onClick={handleExport}
             disabled={isExporting || !canAfford || isBlocked}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-gradient-to-r from-[#DC143C] to-[#B91238] hover:from-[#B91238] hover:to-[#A01020]"
           >
             {isExporting ? (
               <>

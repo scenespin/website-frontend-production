@@ -148,7 +148,7 @@ export function VisualAnnotationPanel({
                 Optional
               </Badge>
               {annotations.length > 0 && (
-                <Badge variant="default" className="bg-purple-500">
+                <Badge variant="default" className="bg-[#DC143C]">
                   {annotations.length}
                 </Badge>
               )}

@@ -35,9 +35,9 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
   
   // Get source badge color
   const getSourceBadgeColor = () => {
-    if (asset.isComposition) return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
-    if (metadata?.sourceType === 'ai-video') return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
-    if (metadata?.sourceType === 'ai-image') return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+    if (asset.isComposition) return 'bg-[#DC143C]/10 text-[#DC143C] border-[#DC143C]/20';
+    if (metadata?.sourceType === 'ai-video') return 'bg-[#DC143C]/10 text-[#DC143C] border-[#DC143C]/20';
+    if (metadata?.sourceType === 'ai-image') return 'bg-[#DC143C]/10 text-[#DC143C] border-[#DC143C]/20';
     if (metadata?.sourceType === 'ai-audio' || metadata?.sourceType === 'ai-music') return 'bg-green-500/10 text-green-500 border-green-500/20';
     if (metadata?.sourceType === 'uploaded') return 'bg-base-content/50/10 text-base-content/50 border-base-content/50/20';
     return 'bg-base-content/50/10 text-base-content/50 border-base-content/50/20';
@@ -262,7 +262,7 @@ export function AssetInfoPanel({ asset, onClose, onRegenerate }: AssetInfoPanelP
           {canRegenerate && onRegenerate && (
             <Button
               onClick={() => metadata && onRegenerate(metadata)}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              className="flex-1 bg-[#DC143C] hover:bg-[#B91238]"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Regenerate with Same Settings

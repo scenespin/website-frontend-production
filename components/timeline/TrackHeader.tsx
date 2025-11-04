@@ -52,7 +52,7 @@ export function TrackHeader({
           <Music className="w-4 h-4 text-green-600 dark:text-green-400" />
         )}
         <span className={`text-xs font-mono font-bold ${
-          isVideo ? 'text-blue-800 dark:text-blue-300' : 'text-green-800 dark:text-green-300'
+          isVideo ? 'text-[#DC143C]' : 'text-green-800 dark:text-green-300'
         }`}>
           {isVideo ? 'V' : 'A'}{displayTrackNum}
         </span>

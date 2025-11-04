@@ -132,11 +132,11 @@ export function TimelineAssetComponent({
   const getAssetColor = () => {
     switch (asset.type) {
       case 'video':
-        return 'bg-blue-500 border-blue-600';
+        return 'bg-[#DC143C] border-[#DC143C]';
       case 'audio':
         return 'bg-green-500 border-green-600';
       case 'music':
-        return 'bg-purple-500 border-purple-600';
+        return 'bg-[#DC143C]/80 border-[#DC143C]';
       case 'image':
         return 'bg-red-500 border-red-600';
       case 'text':
@@ -198,14 +198,14 @@ export function TimelineAssetComponent({
           {/* Transition Button - NEW (Feature 0065) */}
           {asset.type === 'video' && onAddTransition && (
             <button
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-purple-500/20 rounded p-0.5"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-[#DC143C]/20 rounded p-0.5"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddTransition(asset.id);
               }}
               title="Add Transition"
             >
-              <Shuffle className="w-3 h-3 text-purple-400" />
+              <Shuffle className="w-3 h-3 text-[#DC143C]" />
             </button>
           )}
 
@@ -256,7 +256,7 @@ export function TimelineAssetComponent({
           {/* Effects Button - NEW (Feature 0103 Sprint 3) */}
           {(asset.type === 'video' || asset.type === 'image') && onAddEffects && (
             <button
-              className={`opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-purple-500/20 rounded p-0.5 touch-manipulation ${
+              className={`opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-[#DC143C]/20 rounded p-0.5 touch-manipulation ${
                 (asset.effects && Object.values(asset.effects).some(v => v && v > 0)) || 
                 (asset.colorGrading && Object.values(asset.colorGrading).some(v => v && v !== 0)) 
                   ? '!opacity-100' : ''
@@ -267,21 +267,21 @@ export function TimelineAssetComponent({
               }}
               title="Apply Effects & Color Grading"
             >
-              <Wand2 className="w-3 h-3 text-purple-400" />
+              <Wand2 className="w-3 h-3 text-[#DC143C]" />
             </button>
           )}
 
           {/* Info Button - NEW (Feature 0064) */}
           {(asset.assetMetadata || asset.compositionMetadata) && (
             <button
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-blue-500/20 rounded p-0.5"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:bg-[#DC143C]/20 rounded p-0.5"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowInfoPanel(true);
               }}
               title="Asset Info"
             >
-              <Info className="w-3 h-3 text-blue-400" />
+              <Info className="w-3 h-3 text-[#DC143C]" />
             </button>
           )}
 
@@ -342,11 +342,11 @@ export function TimelineAssetComponent({
       {/* Transition Indicator - NEW (Feature 0065) */}
       {asset.transition && asset.transition.type !== 'cut' && (
         <div 
-          className="absolute right-0 top-0 bottom-0 w-16 bg-purple-500/20 border-r-2 border-purple-500 flex flex-col items-center justify-center"
+          className="absolute right-0 top-0 bottom-0 w-16 bg-[#DC143C]/20 border-r-2 border-[#DC143C] flex flex-col items-center justify-center"
           title={`${asset.transition.type} (${asset.transition.duration}s)`}
         >
-          <Shuffle className="w-4 h-4 text-purple-400" />
-          <span className="text-xs text-purple-400 font-bold mt-0.5">{asset.transition.duration}s</span>
+          <Shuffle className="w-4 h-4 text-[#DC143C]" />
+          <span className="text-xs text-[#DC143C] font-bold mt-0.5">{asset.transition.duration}s</span>
         </div>
       )}
 
@@ -364,7 +364,7 @@ export function TimelineAssetComponent({
       {/* Color Grading Indicator - NEW (Feature 0065) */}
       {asset.colorGrading && !asset.lut && (
         <div 
-          className="absolute top-1 left-1 bg-blue-500/90 text-base-content text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
+          className="absolute top-1 left-1 bg-[#DC143C]/90 text-base-content text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md"
           title="Custom color grading applied"
         >
           🎨
@@ -419,7 +419,7 @@ export function TimelineAssetComponent({
           {/* Scale In Indicator */}
           {asset.textContent.animations.scaleIn?.enabled && (
             <div 
-              className="absolute top-1 left-14 bg-purple-500/90 text-white text-xs px-1 py-0.5 rounded flex items-center gap-0.5 shadow-md"
+              className="absolute top-1 left-14 bg-[#DC143C]/90 text-white text-xs px-1 py-0.5 rounded flex items-center gap-0.5 shadow-md"
               title={`Scale in from ${Math.round(asset.textContent.animations.scaleIn.from * 100)}%: ${asset.textContent.animations.scaleIn.duration}s`}
             >
               <ZoomIn className="w-2.5 h-2.5" />

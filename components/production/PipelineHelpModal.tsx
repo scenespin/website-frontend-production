@@ -145,7 +145,7 @@ export function PipelineHelpModal({
               {/* Shot List Detail */}
               <div className="border-2 border-slate-200 dark:border-slate-700 rounded-lg p-6 bg-white dark:bg-slate-800">
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="p-3 bg-purple-500 rounded-lg">
+                  <div className="p-3 bg-[#DC143C] rounded-lg">
                     <ListChecks className="w-6 h-6 text-base-content" />
                   </div>
                   <div className="flex-1">
@@ -270,7 +270,7 @@ export function PipelineHelpModal({
                       <h3 className="font-bold text-xl text-slate-900 dark:text-base-content">
                         Composition Studio
                       </h3>
-                      <Badge className="bg-blue-500 text-base-content border-0">Credit-Based</Badge>
+                      <Badge className="bg-[#DC143C] text-base-content border-0">Credit-Based</Badge>
                     </div>
                     <p className="text-slate-600 dark:text-slate-400">
                       Professional multi-video layouts and effects

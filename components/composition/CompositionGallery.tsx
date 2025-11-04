@@ -86,7 +86,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+      <Card className="bg-[#141414] border border-slate-700/50">
         <CardContent className="py-16">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C]"></div>
@@ -98,7 +98,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
 
   if (compositions.length === 0) {
     return (
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+      <Card className="bg-[#141414] border border-slate-700/50">
         <CardContent className="py-16">
           <div className="text-center space-y-4">
             <div className="inline-block p-4 bg-[#DC143C] rounded-full">
@@ -123,7 +123,7 @@ export function CompositionGallery({ userId }: CompositionGalleryProps) {
       {compositions.map((composition) => (
         <Card 
           key={composition.id} 
-          className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow"
+          className="bg-[#141414] border border-slate-700/50 hover:shadow-lg transition-shadow"
         >
           <CardContent className="p-4">
             {/* Thumbnail / Preview */}

@@ -1,241 +1,39 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useEditorContext } from '@/lib/contextStore';
-import { locationsAPI } from '@/lib/navigationAPI';
-import { MapPin, Plus, Edit, Trash2, Image, FileText } from 'lucide-react';
-import { toast } from 'sonner';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
-// ResponsiveHeader removed - will use Navigation.js from wrapper
+import LocationBoard from '@/components/screenplay/LocationBoard';
+import { useDrawer } from '@/contexts/DrawerContext';
+import { useChatContext } from '@/contexts/ChatContext';
 
 export default function LocationsPage() {
-  const { getToken } = useAuth();
   const searchParams = useSearchParams();
-  const projectId = searchParams.get('projectId');
-  const locationId = searchParams.get('locationId');
-  const context = useEditorContext();
-  
-  const [locations, setLocations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [showAddLocation, setShowAddLocation] = useState(false);
+  const projectId = searchParams.get('projectId') || 'default';
+  const { setIsDrawerOpen } = useDrawer();
+  const { setMode, setWorkflow } = useChatContext();
 
-  // Load locations from API
-  // Note: Auth guaranteed by AuthenticatedPageWrapper
-  useEffect(() => {
-    if (!projectId) return;
-    
-    const loadLocations = async () => {
-      try {
-        setLoading(true);
-        const token = await getToken();
-        if (!token) throw new Error('No auth token');
-        
-        const data = await locationsAPI.getLocations(projectId, token);
-        setLocations(data);
-        
-        // Auto-select location from context
-        if (locationId) {
-          const loc = data.find(l => l.location_id === locationId);
-          if (loc) setSelectedLocation(loc);
-        } else if (context.currentSceneName) {
-          const sceneLoc = context.currentSceneName.split(' - ')[0]?.replace(/^(INT|EXT|INT\.|EXT\.)\s+/, '').trim();
-          const loc = data.find(l => l.name === sceneLoc);
-          if (loc) setSelectedLocation(loc);
-        }
-      } catch (error) {
-        console.error('Failed to load locations:', error);
-        toast.error('Failed to load locations', {
-          description: error.message
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadLocations();
-  }, [projectId, locationId, context.currentSceneName, getToken]);
+  // Handler for AI Interview workflow
+  const handleSwitchToChatImageMode = (modelId, entityContext) => {
+    if (entityContext?.workflow === 'interview') {
+      setMode('interview');
+      setWorkflow(entityContext);
+      setIsDrawerOpen(true);
+    }
+  };
 
   return (
-    <>
-      {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
-      <div className="min-h-screen bg-slate-900 text-base-content">
-        {/* Editor Sub-Navigation */}
-        <EditorSubNav activeTab="locations" projectId={projectId} />
+    <div className="min-h-screen bg-slate-900 text-base-content">
+      {/* Editor Sub-Navigation */}
+      <EditorSubNav activeTab="locations" projectId={projectId} />
 
-      {/* Header - Mobile Optimized */}
-      <div className="bg-gradient-to-r from-cinema-red to-cinema-blue text-base-content shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 md:px-4 py-3 md:py-6">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 md:gap-3 min-w-0">
-              <MapPin className="w-6 h-6 md:w-8 md:h-8 shrink-0" />
-              <div className="min-w-0">
-                <h1 className="text-xl md:text-3xl font-extrabold truncate">Locations</h1>
-                <p className="text-xs md:text-sm opacity-80 hidden sm:block">Manage scene settings and environments</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setShowAddLocation(true)}
-              className="btn btn-sm md:btn-md bg-white/20 hover:bg-white/30 gap-1 md:gap-2 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Context Indicator - Mobile Optimized */}
-      {context.currentSceneName && (
-        <div className="bg-info/10 border-b border-info/20">
-          <div className="max-w-7xl mx-auto px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm">
-            <span className="opacity-70 hidden sm:inline">Current scene location:</span>
-            <span className="opacity-70 sm:hidden">Location:</span>{' '}
-            <span className="font-semibold truncate">{context.currentSceneName}</span>
-          </div>
-        </div>
-      )}
-
+      {/* Use existing LocationBoard component with AI Interview integration */}
       <div className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
-          {/* Locations List */}
-          <div className="lg:col-span-1">
-            <div className="card bg-base-200 shadow-xl">
-              <div className="card-body p-3 md:p-6">
-                <h2 className="card-title text-base md:text-xl">All Locations</h2>
-                <p className="text-xs md:text-sm opacity-60 mb-2 md:mb-4">{locations.length} location{locations.length !== 1 ? 's' : ''}</p>
-                
-                <div className="space-y-1.5 md:space-y-2">
-                  {locations.map(location => (
-                    <button
-                      key={location.location_id}
-                      onClick={() => setSelectedLocation(location)}
-                      className={`w-full text-left p-2 md:p-4 rounded-lg transition-colors ${
-                        selectedLocation?.location_id === location.location_id
-                          ? 'bg-cinema-gold/20 border-2 border-cinema-gold'
-                          : 'bg-base-300 hover:bg-base-100'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2 md:gap-3">
-                        <div className={`p-1.5 md:p-2 rounded-lg ${location.type === 'INT.' ? 'bg-blue-500/20' : 'bg-green-500/20'} shrink-0`}>
-                          <MapPin className="w-4 h-4 md:w-5 md:h-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1 md:gap-2">
-                            <span className="badge badge-xs">{location.type}</span>
-                            <span className="font-bold text-xs md:text-sm truncate">{location.name}</span>
-                          </div>
-                          <div className="text-xs opacity-60 truncate mt-0.5 hidden sm:block">{location.full_name}</div>
-                          <div className="text-[10px] md:text-xs opacity-50 mt-0.5">
-                            {location.scenes.length} scene{location.scenes.length !== 1 ? 's' : ''}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Location Details */}
-          <div className="lg:col-span-2">
-            {selectedLocation ? (
-              <div className="card bg-base-200 shadow-xl">
-                <div className="card-body">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`p-3 rounded-lg ${selectedLocation.type === 'INT.' ? 'bg-blue-500/20' : 'bg-green-500/20'}`}>
-                        <MapPin className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h2 className="card-title text-2xl">{selectedLocation.full_name}</h2>
-                        <div className="flex gap-2 mt-2">
-                          <div className="badge badge-primary">{selectedLocation.type} {selectedLocation.name}</div>
-                        </div>
-                      </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="btn btn-sm btn-ghost gap-2">
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button className="btn btn-sm btn-ghost gap-2 text-error">
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="divider"></div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-bold text-lg mb-2">Description</h3>
-                      <p className="opacity-80">{selectedLocation.description}</p>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-lg mb-3">Scenes at this Location</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {selectedLocation.scenes.map((scene, idx) => (
-                          <div key={idx} className="p-3 bg-base-300 rounded-lg flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 opacity-60" />
-                              <span className="font-semibold text-sm">{scene}</span>
-                            </div>
-                            <button className="btn btn-xs btn-ghost">View</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="card bg-base-300">
-                        <div className="card-body p-4">
-                          <h4 className="font-semibold mb-2 flex items-center gap-2">
-                            <Image className="w-4 h-4" />
-                            Reference Images
-                          </h4>
-                          <button className="btn btn-sm btn-outline gap-2">
-                            <Plus className="w-3 h-3" />
-                            Upload
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="card bg-base-300">
-                        <div className="card-body p-4">
-                          <h4 className="font-semibold mb-2">AI Generation</h4>
-                          <button className="btn btn-sm btn-primary gap-2">
-                            Generate Location
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="card bg-base-200 shadow-xl">
-                <div className="card-body items-center text-center py-24">
-                  <MapPin className="w-16 h-16 opacity-30 mb-4" />
-                  <h3 className="text-xl font-bold">Select a Location</h3>
-                  <p className="opacity-60 max-w-md">
-                    Choose a location from the left to view its details and manage scenes
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <LocationBoard 
+          showHeader={true}
+          onSwitchToChatImageMode={handleSwitchToChatImageMode}
+        />
       </div>
     </div>
-    </>
   );
 }
 

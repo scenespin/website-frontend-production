@@ -46,11 +46,11 @@ export function TextTemplateSelector({ onSelect, onClose }: TextTemplateSelector
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
       <Card className="bg-base-200 border border-base-content/20 rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
-        <CardHeader className="flex-shrink-0 p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-indigo-900/20 to-base-300 sticky top-0 z-10">
+        <CardHeader className="flex-shrink-0 p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-[#DC143C]/20 to-base-300 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg md:text-2xl font-bold text-base-content flex items-center gap-2">
-                <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-indigo-400 flex-shrink-0" />
+                <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-[#DC143C] flex-shrink-0" />
                 <span className="truncate">Text Templates</span>
               </CardTitle>
               <p className="text-base-content/60 text-xs md:text-sm mt-1 hidden sm:block">
@@ -86,7 +86,7 @@ export function TextTemplateSelector({ onSelect, onClose }: TextTemplateSelector
               variant={selectedCategory === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory('all')}
-              className={selectedCategory === 'all' ? 'bg-[#DC143C] hover:bg-indigo-700' : ''}
+              className={selectedCategory === 'all' ? 'bg-[#DC143C] hover:bg-[#B91238]' : ''}
             >
               All Templates ({BUILT_IN_TEMPLATES.length})
             </Button>

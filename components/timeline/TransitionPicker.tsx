@@ -107,14 +107,14 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
                 </div>
                 
                 {/* Duration Badge */}
-                <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-300 border-purple-500/30">
+                <Badge variant="outline" className="text-xs bg-[#DC143C]/20 text-[#DC143C] border-[#DC143C]/30">
                   {transition.duration}s
                 </Badge>
 
                 {/* Preview Video on Hover */}
                 {hoveredTransition === transition.id && (
                   <div className="absolute inset-0 bg-black/80 rounded-lg flex items-center justify-center">
-                    <Play className="w-8 h-8 text-purple-400" />
+                    <Play className="w-8 h-8 text-[#DC143C]" />
                   </div>
                 )}
               </button>
@@ -178,8 +178,8 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
           </div>
 
           {/* Info Text */}
-          <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-            <p className="text-purple-300 text-sm">
+          <div className="mt-4 p-3 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
+            <p className="text-[#DC143C] text-sm">
               💡 <strong>Tip:</strong> Transitions are applied between clips. Position this clip before another clip to see the transition effect during playback and export.
             </p>
           </div>

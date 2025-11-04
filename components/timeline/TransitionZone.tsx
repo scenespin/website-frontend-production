@@ -73,14 +73,14 @@ export function TransitionZone({
               >
                 <button
                   onClick={onPreviewTransition}
-                  className="p-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded text-indigo-600 dark:text-indigo-400 transition-colors"
+                  className="p-2 hover:bg-[#DC143C]/10 rounded text-[#DC143C] transition-colors"
                   title="Preview"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
                 <button
                   onClick={onAddTransition}
-                  className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded text-blue-600 dark:text-blue-400 transition-colors"
+                  className="p-2 hover:bg-[#DC143C]/10 rounded text-[#DC143C] transition-colors"
                   title="Change"
                 >
                   <Film className="w-4 h-4" />

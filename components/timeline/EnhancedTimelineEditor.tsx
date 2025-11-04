@@ -55,9 +55,14 @@ import { EffectsPanel } from './EffectsPanel';  // NEW: Feature 0103 Sprint 3
 import { TextEditorPanel } from './TextEditorPanel';  // NEW: Feature 0103 Sprint 3
 import { UploadModal } from './UploadModal';  // NEW: Feature 0070
 import { MediaGallery } from '@/components/media/MediaGallery';  // NEW: Mobile media picker
+import { MobileTimelineToolbar } from './MobileTimelineToolbar';  // NEW: Mobile bottom toolbar
+import { MobileTimelineMoreMenu } from './MobileTimelineMoreMenu';  // NEW: Mobile more menu
 import { motion } from 'framer-motion';  // For FAB animation
 import { toast } from 'sonner';  // For feedback
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
+import { usePinchZoom } from '@/hooks/usePinchZoom';  // NEW: Pinch-to-zoom gestures
+import { useHaptic } from '@/lib/haptics';  // NEW: Haptic feedback
+import AgentDrawer from '@/components/agents/AgentDrawer';  // NEW: Audio Agent integration
 
 interface EnhancedTimelineEditorProps {
   projectId?: string;
@@ -130,6 +135,31 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
   
   // NEW: Upload modal state (Feature 0070)
   const [showUploadModal, setShowUploadModal] = useState(false);
+  
+  // NEW: Audio Agent drawer state (UnifiedChatPanel in audio-only mode)
+  const [showAudioAgent, setShowAudioAgent] = useState(false);
+  
+  // NEW: Mobile More Menu state
+  const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false);
+  
+  // NEW: Snap to grid state
+  const [snapGrid, setSnapGrid] = useState(true);
+  
+  // NEW: Haptic feedback hook
+  const haptic = useHaptic();
+  
+  // NEW: Pinch-to-zoom gesture support
+  usePinchZoom({
+    onZoomIn: () => {
+      timeline.zoomIn();
+      haptic.light();
+    },
+    onZoomOut: () => {
+      timeline.zoomOut();
+      haptic.light();
+    },
+    minPinchDistance: 50
+  });
 
   // NEW: Handle preloaded clip from gallery (single clip)
   useEffect(() => {
@@ -861,13 +891,13 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         <div className="bg-[#DC143C]/10 border-b border-[#DC143C]/20 px-3 py-1.5 flex-shrink-0 animate-pulse">
           <div className="text-xs md:text-sm flex items-center justify-center gap-2">
             <Eye className="w-3 h-3 md:w-4 md:h-4 text-[#DC143C] flex-shrink-0" />
-            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+            <span className="font-semibold text-[#DC143C]">
               🎭 Preview Mode Active
             </span>
-            <span className="hidden md:inline opacity-70 text-indigo-600 dark:text-indigo-400">
+            <span className="hidden md:inline opacity-70 text-[#DC143C]">
               - Speed changes visible during playback
             </span>
-            <span className="md:hidden opacity-70 text-indigo-600 dark:text-indigo-400">
+            <span className="md:hidden opacity-70 text-[#DC143C]">
               - Live Speed Preview
             </span>
           </div>
@@ -1152,55 +1182,135 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
           </div>
         </div>
 
-        {/* Mobile Header Layout - Simplified and centered */}
-        <div className="md:hidden p-3">
-          {/* Top Row: Project Name */}
-          <div className="flex items-center justify-center mb-3">
-            <Layers className="w-5 h-5 text-blue-600 dark:text-[#DC143C] mr-2" />
-            <h2 className="text-sm font-bold text-slate-100 truncate">
-              {timeline.project.name}
-            </h2>
-          </div>
-          
-          {/* Bottom Row: Centered Playback Controls */}
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => timeline.skipBackward()}
-              title="Skip back 5s"
-              className="h-9 w-9 p-0"
-            >
-              <SkipBack className="w-4 h-4" />
-            </Button>
-
-            <Button
-              variant={timeline.isPlaying ? "default" : "outline"}
-              size="sm"
-              onClick={timeline.togglePlay}
-              className="h-9 px-4"
-            >
-              {timeline.isPlaying ? (
-                <Pause className="w-4 h-4" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => timeline.skipForward()}
-              title="Skip forward 5s"
-              className="h-9 w-9 p-0"
-            >
-              <SkipForward className="w-4 h-4" />
-            </Button>
-
-            <div className="ml-2 text-xs font-mono text-slate-300">
-              {formatTime(timeline.playheadPosition)}
+        {/* Mobile Header Layout - Enhanced with all controls */}
+        <div className="md:hidden p-3 bg-slate-900 border-b border-slate-700">
+          {/* Row 1: Project Name & Stats */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Layers className="w-4 h-4 text-[#DC143C] flex-shrink-0" />
+              <h2 className="text-sm font-semibold text-slate-100 truncate">
+                {timeline.project.name}
+              </h2>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400 flex-shrink-0">
+              <span className="font-mono">{formatTime(timeline.totalDuration)}</span>
+              <ProjectCostBadge assets={timeline.assets} />
             </div>
           </div>
+          
+          {/* Row 2: Enhanced Playback Controls */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: Navigation */}
+            <div className="flex items-center gap-1">
+              {/* NEW: Jump to Start */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={timeline.jumpToStart}
+                title="Jump to start"
+                className="h-11 w-11 p-0 touch-manipulation"
+              >
+                <SkipBack className="w-5 h-5" />
+                <SkipBack className="w-5 h-5 -ml-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => timeline.skipBackward()}
+                title="Skip back 5s"
+                className="h-11 w-11 p-0 touch-manipulation"
+              >
+                <SkipBack className="w-5 h-5" />
+              </Button>
+
+              <Button
+                variant={timeline.isPlaying ? "default" : "outline"}
+                size="sm"
+                onClick={timeline.togglePlay}
+                className="h-11 w-14 px-2 touch-manipulation bg-[#DC143C] hover:bg-[#B91238] text-white border-none"
+              >
+                {timeline.isPlaying ? (
+                  <Pause className="w-5 h-5" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => timeline.skipForward()}
+                title="Skip forward 5s"
+                className="h-11 w-11 p-0 touch-manipulation"
+              >
+                <SkipForward className="w-5 h-5" />
+              </Button>
+
+              {/* NEW: Jump to End */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={timeline.jumpToEnd}
+                title="Jump to end"
+                className="h-11 w-11 p-0 touch-manipulation"
+              >
+                <SkipForward className="w-5 h-5 -mr-4" />
+                <SkipForward className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* Center: Timecode */}
+            <div className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-1 rounded">
+              {formatTime(timeline.playheadPosition)}
+            </div>
+
+            {/* Right: Zoom Controls */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={timeline.zoomOut}
+                title="Zoom out"
+                className="h-11 w-11 p-0 touch-manipulation"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={timeline.zoomIn}
+                title="Zoom in"
+                className="h-11 w-11 p-0 touch-manipulation"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Row 3: Asset Stats (Optional - only shows if assets exist) */}
+          {timeline.assets.length > 0 && (
+            <div className="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-slate-700/50">
+              <Badge variant="outline" className="text-[#DC143C] border-[#DC143C]/50 text-xs">
+                <Film className="w-3 h-3 mr-1" />
+                {assetCounts.video}
+              </Badge>
+              <Badge variant="outline" className="text-green-500 border-green-500/50 text-xs">
+                <Music className="w-3 h-3 mr-1" />
+                {assetCounts.audio + assetCounts.music}
+              </Badge>
+              <Badge variant="outline" className="text-orange-500 border-orange-500/50 text-xs">
+                <ImageIcon className="w-3 h-3 mr-1" />
+                {assetCounts.image}
+              </Badge>
+              {timeline.selectedClips.size > 0 && (
+                <Badge variant="default" className="bg-[#DC143C] text-white text-xs">
+                  {timeline.selectedClips.size} selected
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Asset Count Stats */}
@@ -1527,6 +1637,186 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
           projectId={projectId}
         />
       )}
+
+      {/* NEW: Mobile Bottom Toolbar (Context-Aware) */}
+      <MobileTimelineToolbar
+        selectedCount={timeline.selectedClips.size}
+        onAddMedia={() => setShowUploadModal(true)}
+        onAddText={() => setShowTextEditor(true)}
+        onAddAudio={() => setShowAudioAgent(true)} // Open Audio Agent for sound effects & music generation
+        onSplitClip={handleSplitAtPlayhead}
+        onOpenEffects={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            setSelectedClipForEffects(selectedIds[0]);
+            setShowEffectsPanel(true);
+          }
+        }}
+        onOpenSpeed={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            const asset = timeline.assets.find(a => a.id === selectedIds[0]);
+            if (asset) {
+              setSelectedClipForSpeed({
+                id: asset.id,
+                currentSpeed: asset.speed || 1.0,
+                duration: asset.duration
+              });
+              setShowSpeedSelector(true);
+            }
+          }
+        }}
+        onCopyClips={() => {
+          const count = timeline.copyClips(Array.from(timeline.selectedClips));
+          toast.success(`📋 Copied ${count} clip${count > 1 ? 's' : ''}`);
+        }}
+        onDeleteClips={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          selectedIds.forEach(id => {
+            timeline.removeAsset(id);
+            timeline.removeClip(id);
+          });
+          toast.success('🗑️ Deleted clips');
+        }}
+        onToggleRipple={() => {
+          timeline.setRippleMode(!timeline.rippleMode);
+          toast.success(
+            timeline.rippleMode 
+              ? '🔓 Ripple Mode OFF' 
+              : '🔗 Ripple Mode ON: Adjacent clips auto-adjust',
+            { duration: 2000 }
+          );
+        }}
+        onOpenMore={() => setShowMobileMoreMenu(true)}
+        rippleMode={timeline.rippleMode}
+        canSplit={timeline.selectedClips.size === 1}
+      />
+
+      {/* NEW: Mobile More Menu */}
+      <MobileTimelineMoreMenu
+        isOpen={showMobileMoreMenu}
+        onClose={() => setShowMobileMoreMenu(false)}
+        selectedCount={timeline.selectedClips.size}
+        onTransitions={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            setSelectedClipForTransition(selectedIds[0]);
+            setShowTransitionPicker(true);
+          }
+        }}
+        onColorFilters={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            setSelectedClipForLUT(selectedIds[0]);
+            setShowLUTPicker(true);
+          }
+        }}
+        onSpeed={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            const asset = timeline.assets.find(a => a.id === selectedIds[0]);
+            if (asset) {
+              setSelectedClipForSpeed({
+                id: asset.id,
+                currentSpeed: asset.speed || 1.0,
+                duration: asset.duration
+              });
+              setShowSpeedSelector(true);
+            }
+          }
+        }}
+        onReverse={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            const asset = timeline.assets.find(a => a.id === selectedIds[0]);
+            if (asset) {
+              timeline.updateAsset(asset.id, { reversed: !asset.reversed });
+              toast.success(asset.reversed ? '▶️ Reversed OFF' : '◀️ Reversed ON');
+            }
+          }
+        }}
+        onEffects={() => {
+          const selectedIds = Array.from(timeline.selectedClips);
+          if (selectedIds.length === 1) {
+            setSelectedClipForEffects(selectedIds[0]);
+            setShowEffectsPanel(true);
+          }
+        }}
+        onPreviewMode={() => {
+          setPreviewMode(!previewMode);
+          toast.success(
+            previewMode 
+              ? '👁️ Preview Mode OFF' 
+              : '🎭 Preview Mode ON: Speed effects visible during playback',
+            { duration: 2000 }
+          );
+        }}
+        previewMode={previewMode}
+        onVolume={() => {
+          toast.info('🔊 Volume control coming soon!');
+        }}
+        onFade={() => {
+          toast.info('🎚️ Fade in/out coming soon!');
+        }}
+        onRippleMode={() => {
+          timeline.setRippleMode(!timeline.rippleMode);
+          toast.success(
+            timeline.rippleMode 
+              ? '🔓 Ripple Mode OFF' 
+              : '🔗 Ripple Mode ON',
+            { duration: 2000 }
+          );
+        }}
+        onSnapGrid={() => {
+          setSnapGrid(!snapGrid);
+          toast.success(snapGrid ? '📐 Snap Grid OFF' : '📐 Snap Grid ON');
+        }}
+        onShowInfo={() => {
+          toast.info('ℹ️ Select a clip and tap the info icon on it');
+        }}
+        onToggleAudioTracks={() => {
+          setShowAudioTracks(!showAudioTracks);
+        }}
+        rippleMode={timeline.rippleMode}
+        snapGrid={snapGrid}
+        showAudioTracks={showAudioTracks}
+      />
+
+      {/* Audio Agent Drawer - Audio-only mode for Timeline */}
+      {showAudioAgent && (
+        <AgentDrawer
+          isOpen={showAudioAgent}
+          onClose={() => setShowAudioAgent(false)}
+          launchTrigger={{
+            mode: 'audio',
+            initialPrompt: 'Generate audio for my timeline',
+          }}
+          onInsertText={(audioUrl) => {
+            // Add generated audio to timeline
+            const newAsset: Omit<TimelineAsset, 'id'> = {
+              type: 'audio',
+              url: audioUrl,
+              name: 'AI Generated Audio',
+              track: 4, // Music track
+              trackType: 'audio',
+              startTime: timeline.playheadPosition,
+              duration: 10, // Default, will be updated
+              trimStart: 0,
+              trimEnd: 0,
+              volume: 1,
+              keyframes: [],
+              metadata: {
+                sourceType: 'ai-audio',
+                description: 'AI generated audio'
+              }
+            };
+            
+            timeline.addAsset(newAsset);
+            setShowAudioAgent(false);
+            toast.success('🎵 Audio added to timeline!');
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1564,7 +1854,7 @@ function ProjectCostBadge({ assets }: { assets: TimelineAsset[] }) {
           </div>
           <div className="space-y-1.5">
             {breakdown.videos > 0 && (
-              <div className="flex justify-between text-purple-400">
+              <div className="flex justify-between text-[#DC143C]">
                 <span>AI Videos:</span>
                 <span className="font-mono">{breakdown.videos}cr</span>
               </div>

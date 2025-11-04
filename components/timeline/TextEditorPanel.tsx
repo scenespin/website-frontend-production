@@ -217,11 +217,11 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4">
       <Card className="bg-base-200 border border-base-content/20 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
-        <CardHeader className="flex-shrink-0 p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-blue-900/20 to-base-300 sticky top-0 z-10">
+        <CardHeader className="flex-shrink-0 p-3 md:p-6 border-b border-base-content/20 bg-gradient-to-r from-[#DC143C]/20 to-base-300 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg md:text-2xl font-bold text-base-content flex items-center gap-2">
-                <Type className="w-5 h-5 md:w-7 md:h-7 text-blue-400 flex-shrink-0" />
+                <Type className="w-5 h-5 md:w-7 md:h-7 text-[#DC143C] flex-shrink-0" />
                 <span className="truncate">{asset ? 'Edit Text' : 'Add Text/Title'}</span>
               </CardTitle>
               <p className="text-base-content/60 text-xs md:text-sm mt-1 hidden sm:block">
@@ -231,7 +231,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                 variant="outline"
                 size="sm"
                 onClick={() => setShowTemplateSelector(true)}
-                className="mt-2 w-full sm:w-auto flex items-center gap-2 border-indigo-500/50 hover:bg-indigo-500/10"
+                className="mt-2 w-full sm:w-auto flex items-center gap-2 border-[#DC143C]/50 hover:bg-[#DC143C]/10"
               >
                 <Sparkles className="w-4 h-4" />
                 Browse Templates
@@ -477,7 +477,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                   />
                 </div>
                 {outline && (
-                  <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
+                  <div className="space-y-3 pl-4 border-l-2 border-[#DC143C]/30">
                     <div className="flex gap-2 items-center">
                       <Label className="text-xs">Color:</Label>
                       <input
@@ -522,7 +522,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                   />
                 </div>
                 {shadow && (
-                  <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
+                  <div className="space-y-3 pl-4 border-l-2 border-[#DC143C]/30">
                     <div className="flex gap-2 items-center">
                       <Label className="text-xs">Color:</Label>
                       <input
@@ -589,7 +589,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                   />
                 </div>
                 {fadeInEnabled && (
-                  <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
+                  <div className="space-y-3 pl-4 border-l-2 border-[#DC143C]/30">
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <Label className="text-xs">Duration</Label>
@@ -636,7 +636,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                   />
                 </div>
                 {fadeOutEnabled && (
-                  <div className="space-y-3 pl-4 border-l-2 border-blue-500/30">
+                  <div className="space-y-3 pl-4 border-l-2 border-[#DC143C]/30">
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <Label className="text-xs">Duration</Label>
@@ -848,7 +848,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <ZoomIn className="w-4 h-4 text-purple-500" />
+                    <ZoomIn className="w-4 h-4 text-[#DC143C]" />
                     Scale In
                   </Label>
                   <input
@@ -859,7 +859,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                   />
                 </div>
                 {scaleInEnabled && (
-                  <div className="space-y-3 pl-4 border-l-2 border-purple-500/30">
+                  <div className="space-y-3 pl-4 border-l-2 border-[#DC143C]/30">
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <Label className="text-xs">Start Scale</Label>
@@ -910,7 +910,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
-                    <ZoomOut className="w-4 h-4 text-purple-500" />
+                    <ZoomOut className="w-4 h-4 text-[#DC143C]" />
                     Scale Out
                   </Label>
                   <input
@@ -921,7 +921,7 @@ export function TextEditorPanel({ asset, duration: defaultDuration, onApply, onC
                   />
                 </div>
                 {scaleOutEnabled && (
-                  <div className="space-y-3 pl-4 border-l-2 border-purple-500/30">
+                  <div className="space-y-3 pl-4 border-l-2 border-[#DC143C]/30">
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <Label className="text-xs">End Scale</Label>

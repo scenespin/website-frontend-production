@@ -742,103 +742,115 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-1.5 pb-1.5">
-                    <div className={`grid gap-1.5 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                      <Button
-                        variant="outline"
-                        className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
-                          compositionType === 'static' 
-                            ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
-                        }`}
-                        onClick={() => setCompositionType('static')}
+                    {/* Mobile: Dropdown Select */}
+                    {isMobileView ? (
+                      <select
+                        value={compositionType}
+                        onChange={(e) => setCompositionType(e.target.value as any)}
+                        className="w-full px-4 py-3 bg-slate-800 text-slate-200 border-2 border-slate-700 rounded-lg focus:border-[#DC143C] focus:outline-none transition-colors"
                       >
-                        <Film className="w-4 h-4" />
-                        <div className="text-center">
-                          <div className="font-bold text-[10px]">Static</div>
-                          <div className="text-[9px] opacity-70">Multi-panel</div>
-                        </div>
-                      </Button>
-                      {/* Hide Advanced types on mobile - Feature 0068 */}
-                      {!isMobileView && (
-                        <>
-                          <Button
-                            variant="outline"
-                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
-                              compositionType === 'podcast' 
-                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
-                            }`}
-                            onClick={() => setCompositionType('podcast')}
-                          >
-                            <Users className="w-4 h-4" />
-                            <div className="text-center">
-                              <div className="font-bold text-[10px]">🎙️ Podcast</div>
-                              <div className="text-[9px] opacity-70">Interview</div>
-                            </div>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
-                              compositionType === 'social-media' 
-                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
-                            }`}
-                            onClick={() => setCompositionType('social-media')}
-                          >
-                            <Smartphone className="w-4 h-4" />
-                            <div className="text-center">
-                              <div className="font-bold text-[10px]">📱 Social</div>
-                              <div className="text-[9px] opacity-70">Vertical</div>
-                            </div>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
-                              compositionType === 'animated' 
-                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
-                            }`}
-                            onClick={() => setCompositionType('animated')}
-                          >
-                            <Sparkles className="w-4 h-4" />
-                            <div className="text-center">
-                              <div className="font-bold text-[10px]">Animated</div>
-                              <div className="text-[9px] opacity-70">Motion</div>
-                            </div>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
-                              compositionType === 'paced' 
-                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
-                            }`}
-                            onClick={() => setCompositionType('paced')}
-                          >
-                            <Clock className="w-4 h-4" />
-                            <div className="text-center">
-                              <div className="font-bold text-[10px]">Paced</div>
-                              <div className="text-[9px] opacity-70">Timing</div>
-                            </div>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
-                              compositionType === 'music-video' 
-                                ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
-                            }`}
-                            onClick={() => setCompositionType('music-video')}
-                          >
-                            <Music className="w-5 h-5" />
-                            <div className="text-center">
-                              <div className="font-bold text-xs">🎵 Music Video</div>
-                              <div className="text-[10px] opacity-70">Auto beat-sync</div>
-                            </div>
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                        <option value="static">🎬 Static - Multi-panel layout</option>
+                        <option value="podcast">🎙️ Podcast - Interview format</option>
+                        <option value="social-media">📱 Social - Vertical video</option>
+                        <option value="animated">⚡ Animated - Motion effects</option>
+                        <option value="paced">⏱ Paced - Emotional timing</option>
+                        <option value="music-video">🎵 Music Video - Beat-synced</option>
+                      </select>
+                    ) : (
+                      /* Desktop: Button Grid */
+                      <div className="grid gap-1.5 grid-cols-3">
+                        <Button
+                          variant="outline"
+                          className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
+                            compositionType === 'static' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                          }`}
+                          onClick={() => setCompositionType('static')}
+                        >
+                          <Film className="w-4 h-4" />
+                          <div className="text-center">
+                            <div className="font-bold text-[10px]">Static</div>
+                            <div className="text-[9px] opacity-70">Multi-panel</div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
+                            compositionType === 'podcast' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                          }`}
+                          onClick={() => setCompositionType('podcast')}
+                        >
+                          <Users className="w-4 h-4" />
+                          <div className="text-center">
+                            <div className="font-bold text-[10px]">🎙️ Podcast</div>
+                            <div className="text-[9px] opacity-70">Interview</div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
+                            compositionType === 'social-media' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                          }`}
+                          onClick={() => setCompositionType('social-media')}
+                        >
+                          <Smartphone className="w-4 h-4" />
+                          <div className="text-center">
+                            <div className="font-bold text-[10px]">📱 Social</div>
+                            <div className="text-[9px] opacity-70">Vertical</div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
+                            compositionType === 'animated' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                          }`}
+                          onClick={() => setCompositionType('animated')}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <div className="text-center">
+                            <div className="font-bold text-[10px]">⚡ Animated</div>
+                            <div className="text-[9px] opacity-70">Motion</div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
+                            compositionType === 'paced' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                          }`}
+                          onClick={() => setCompositionType('paced')}
+                        >
+                          <Clock className="w-4 h-4" />
+                          <div className="text-center">
+                            <div className="font-bold text-[10px]">⏱ Paced</div>
+                            <div className="text-[9px] opacity-70">Timing</div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
+                            compositionType === 'music-video' 
+                              ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                          }`}
+                          onClick={() => setCompositionType('music-video')}
+                        >
+                          <Music className="w-4 h-4" />
+                          <div className="text-center">
+                            <div className="font-bold text-[10px]">🎵 Music</div>
+                            <div className="text-[9px] opacity-70">Beat-sync</div>
+                          </div>
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 

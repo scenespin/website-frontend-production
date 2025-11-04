@@ -77,7 +77,7 @@ export function SaveStatusIndicator({
           icon: '💾',
           text: 'Saving',
           color: 'text-[#DC143C]',
-          bg: 'bg-blue-500/10',
+          bg: 'bg-[#DC143C]/10',
           detail: 'Syncing to GitHub...'  // ← Show "GitHub" proudly!
         };
       
@@ -153,7 +153,7 @@ export function SaveStatusIndicator({
       
       {/* Animated pulse for saving status */}
       {status === 'saving' && (
-        <div className="ml-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+        <div className="ml-1 w-2 h-2 rounded-full bg-[#DC143C] animate-pulse" />
       )}
     </div>
   );
@@ -218,7 +218,7 @@ export function CompactSaveStatus({
       )}
       
       {status === 'saving' && (
-        <div className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+        <div className="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-[#DC143C] animate-pulse" />
       )}
     </div>
   );

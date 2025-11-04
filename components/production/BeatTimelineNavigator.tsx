@@ -99,7 +99,7 @@ export function BeatTimelineNavigator({
       case 'ready':
         return 'text-green-500 bg-green-500/10 border-green-500/30';
       case 'in-timeline':
-        return 'text-purple-500 bg-purple-500/10 border-purple-500/30';
+        return 'text-[#DC143C] bg-[#DC143C]/10 border-[#DC143C]/30';
       case 'generating':
         return 'text-blue-500 bg-[#DC143C]/10 border-blue-500/30';
       case 'planning':

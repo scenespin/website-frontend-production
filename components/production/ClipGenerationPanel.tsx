@@ -735,7 +735,7 @@ function Step3Generation({
                     onClick={onSendToTimeline}
                     className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-full bg-[#DC143C] flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Film className="w-6 h-6 text-base-content" />
                     </div>
                     <div className="text-center">

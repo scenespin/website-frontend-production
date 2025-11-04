@@ -367,7 +367,7 @@ export function ExportProgressModal({
                 >
                   <div className={`text-xs font-medium ${
                     status.progress >= step.threshold
-                      ? 'text-blue-300'
+                      ? 'text-[#DC143C]'
                       : 'text-slate-500'
                   }`}>
                     {step.label}

@@ -106,11 +106,11 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
 
   // Define track configurations
   const trackConfigs: TrackConfig[] = [
-    { id: 0, type: 'video', label: 'Video 1', icon: <Film className="w-4 h-4" />, color: 'bg-blue-500' },
-    { id: 1, type: 'video', label: 'Video 2', icon: <Film className="w-4 h-4" />, color: 'bg-blue-500' },
-    { id: 2, type: 'video', label: 'Video 3', icon: <Film className="w-4 h-4" />, color: 'bg-blue-500' },
-    { id: 3, type: 'video', label: 'Video 4', icon: <Film className="w-4 h-4" />, color: 'bg-blue-500' },
-    { id: 4, type: 'audio-music', label: 'Music', icon: <Music className="w-4 h-4" />, color: 'bg-purple-500' },
+    { id: 0, type: 'video', label: 'Video 1', icon: <Film className="w-4 h-4" />, color: 'bg-[#DC143C]' },
+    { id: 1, type: 'video', label: 'Video 2', icon: <Film className="w-4 h-4" />, color: 'bg-[#DC143C]' },
+    { id: 2, type: 'video', label: 'Video 3', icon: <Film className="w-4 h-4" />, color: 'bg-[#DC143C]' },
+    { id: 3, type: 'video', label: 'Video 4', icon: <Film className="w-4 h-4" />, color: 'bg-[#DC143C]' },
+    { id: 4, type: 'audio-music', label: 'Music', icon: <Music className="w-4 h-4" />, color: 'bg-[#DC143C]/80' },
     { id: 5, type: 'audio-voice', label: 'Voice', icon: <Mic className="w-4 h-4" />, color: 'bg-green-500' },
     { id: 6, type: 'audio-sfx', label: 'SFX', icon: <Volume2 className="w-4 h-4" />, color: 'bg-orange-500' },
     { id: 7, type: 'story-beats', label: 'Story Beats', icon: <Lightbulb className="w-4 h-4" />, color: 'bg-red-500' },
@@ -539,12 +539,12 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                             isStoryBeat
                               ? 'bg-[#DC143C] bg-opacity-80 border-[#A01020] text-white font-bold'
                               : config.type === 'audio-music'
-                              ? 'bg-purple-500 bg-opacity-80 border-purple-700 text-base-content'
+                              ? 'bg-[#DC143C] bg-opacity-80 border-[#DC143C] text-base-content'
                               : config.type === 'audio-voice'
                               ? 'bg-green-500 bg-opacity-80 border-green-700 text-base-content'
                               : config.type === 'audio-sfx'
                               ? 'bg-orange-500 bg-opacity-80 border-orange-700 text-base-content'
-                              : 'bg-blue-500 bg-opacity-80 border-blue-700 text-base-content'
+                              : 'bg-[#DC143C] bg-opacity-80 border-[#DC143C] text-base-content'
                           }`}
                           style={{ left: `${leftPos}px`, width: `${width}px` }}
                           onClick={(e) => {
@@ -658,7 +658,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
                 className="w-full p-4 rounded-lg border-2 border-purple-400 bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 dark:hover:bg-purple-900 transition-colors text-left group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-purple-500 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                  <div className="bg-[#DC143C] p-2 rounded-lg group-hover:scale-110 transition-transform">
                     <Music className="w-6 h-6 text-base-content" />
                   </div>
                   <div>
@@ -710,7 +710,7 @@ export function TimelineEditor({ projectId }: TimelineEditorProps) {
             <div className="p-4 space-y-4">
               <button
                 onClick={() => setSelectedAddType(null)}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                className="text-sm text-[#DC143C] hover:underline flex items-center gap-1"
               >
                 ← Back
               </button>
