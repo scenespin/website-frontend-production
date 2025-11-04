@@ -373,11 +373,11 @@ export function DesktopWorkflowSelector({
                 <div className="flex items-center gap-4 text-xs text-slate-500 mb-3">
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    <span>{workflow.estimatedTime}</span>
+                    <span>{workflow.time.min}-{workflow.time.max} {workflow.time.unit}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <DollarSign className="w-3 h-3" />
-                    <span>{workflow.cost}</span>
+                    <span>{workflow.cost.min}-{workflow.cost.max} {workflow.cost.unit}</span>
                   </div>
                 </div>
                 {workflow.tags && workflow.tags.length > 0 && (
