@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal';
+import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 // ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js
 import { 
   Film, 
@@ -20,11 +22,13 @@ import {
 export default function Dashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
   const [recentVideos, setRecentVideos] = useState([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     // Auth guaranteed by wrapper, fetch data immediately
@@ -83,18 +87,25 @@ export default function Dashboard() {
       
       const [creditsRes, projectsRes, videosRes] = await Promise.all([
         api.user.getCredits(),
-        api.projects.list(),
+        fetch('/api/projects/list').then(r => r.json()),
         api.video.getJobs()
       ]);
       
       setCredits(creditsRes.data);
-      setProjects(projectsRes.data.projects || []);
+      setProjects(projectsRes.projects || []);
       setRecentVideos(videosRes.data.jobs?.slice(0, 5) || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProjectCreated = (project) => {
+    // Add new project to list
+    setProjects([project, ...projects]);
+    // Navigate to the editor with the new project
+    router.push(`/write?project=${project.project_id}`);
   };
 
   if (loading) {
@@ -115,6 +126,13 @@ export default function Dashboard() {
         isOpen={showWelcomeModal}
         onClose={handleCloseWelcome}
         userCredits={credits?.balance || 50}
+      />
+
+      {/* Project Creation Modal */}
+      <ProjectCreationModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleProjectCreated}
       />
 
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
@@ -234,8 +252,8 @@ export default function Dashboard() {
             <div className="space-y-3">
               {projects.slice(0, 5).map((project) => (
                 <Link
-                  key={project.id}
-                  href={`/editor?project=${project.id}`}
+                  key={project.project_id}
+                  href={`/write?project=${project.project_id}`}
                   className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
                 >
                   <div className="flex items-center gap-4">
@@ -244,15 +262,15 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-base text-base-content group-hover:text-cinema-red transition-colors">
-                        {project.title || 'Untitled Project'}
+                        {project.project_name || 'Untitled Project'}
                       </h3>
                       <p className="text-sm text-base-content/60">
-                        {new Date(project.updatedAt).toLocaleDateString()}
+                        {new Date(project.updated_at || project.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="badge badge-sm badge-ghost">{project.status || 'draft'}</span>
+                    <span className="badge badge-sm badge-ghost">{project.is_archived ? 'archived' : 'active'}</span>
                     <svg className="w-5 h-5 text-base-content/30 group-hover:text-cinema-red group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -314,13 +332,13 @@ export default function Dashboard() {
               <p className="text-base-content/60 mb-8 max-w-md mx-auto">
                 Write a screenplay, generate videos, or compose clips. Your creative journey begins here.
               </p>
-              <Link 
-                href="/editor" 
+              <button
+                onClick={() => setShowCreateModal(true)}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cinema-red to-cinema-red/90 text-base-content rounded-lg hover:shadow-lg transition-all duration-300 font-medium"
               >
                 <Plus className="w-5 h-5" />
                 Create Your First Project
-              </Link>
+              </button>
             </div>
           </div>
         )}

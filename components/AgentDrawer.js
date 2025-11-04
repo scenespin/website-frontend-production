@@ -147,6 +147,14 @@ export default function AgentDrawer({ children }) {
   // DESKTOP RENDER
   return (
     <>
+      {/* Backdrop - Desktop */}
+      {isDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-30 transition-opacity hidden md:block"
+          onClick={closeDrawer}
+        />
+      )}
+
       {/* Desktop Drawer - Slides in from right */}
       <div
         className={`fixed top-0 right-0 h-full bg-base-200 shadow-xl z-40 transition-all duration-300 ease-out hidden md:block ${

@@ -388,10 +388,10 @@ export function MobileWorkflowSelector({
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 dark:text-base-content mb-1">
+                    <h3 className="font-bold text-slate-200 mb-1">
                       {category.name}
                     </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-sm text-slate-400">
                       {category.description}
                     </p>
                   </div>

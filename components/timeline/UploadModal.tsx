@@ -165,10 +165,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-slate-800 border-slate-700">
           <DialogHeader>
-            <DialogTitle>Add Media to Timeline</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-slate-100">Add Media to Timeline</DialogTitle>
+            <DialogDescription className="text-slate-400">
               Upload video, audio, or image files
             </DialogDescription>
           </DialogHeader>
@@ -185,7 +185,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
               }
             }}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-              isDragging ? 'border-primary bg-primary/10' : 'border-border'
+              isDragging ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-slate-600 bg-slate-700/50'
             }`}
             onClick={() => {
               if (isUploading) return;
@@ -206,17 +206,17 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
           >
             {isUploading ? (
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm">Uploading...</p>
+                <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
+                <p className="text-sm text-slate-300">Uploading...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <Upload className="w-12 h-12 text-muted-foreground" />
-                <p className="font-medium">Drop files here or click to browse</p>
-                <p className="text-sm text-muted-foreground">
+                <Upload className="w-12 h-12 text-slate-400" />
+                <p className="font-medium text-slate-200">Drop files here or click to browse</p>
+                <p className="text-sm text-slate-400">
                   Supports video, audio, and images
                 </p>
-                <div className="text-xs text-muted-foreground mt-2">
+                <div className="text-xs text-slate-500 mt-2 space-y-0.5">
                   <p>Video: MP4, MOV, WebM, MKV (max {MAX_VIDEO_SIZE_MB}MB)</p>
                   <p>Audio: MP3, WAV, AAC, OGG (max {MAX_AUDIO_SIZE_MB}MB)</p>
                   <p>Images: JPG, PNG, GIF, WebP (max {MAX_IMAGE_SIZE_MB}MB)</p>

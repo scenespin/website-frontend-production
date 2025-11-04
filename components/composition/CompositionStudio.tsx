@@ -725,36 +725,36 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
               </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Left: Configuration */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-4">
                 {/* Composition Type Selector - Refined */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
-                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                    <CardTitle className="flex items-center gap-2 text-base-content">
+                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] pb-3">
+                    <CardTitle className="flex items-center gap-2 text-slate-200 text-base">
                       <div className="p-1.5 bg-[#DC143C] rounded">
-                        <Settings className="w-4 h-4 text-black" />
+                        <Settings className="w-4 h-4 text-white" />
                       </div>
                       Shot Type
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-slate-400 text-sm">
                       Choose your composition style
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className={`grid gap-4 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                  <CardContent className="pt-4 pb-4">
+                    <div className={`grid gap-3 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
                       <Button
                         variant="outline"
-                        className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                        className={`h-24 flex flex-col gap-1 border-2 transition-all ${
                           compositionType === 'static' 
                             ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                            : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                         }`}
                         onClick={() => setCompositionType('static')}
                       >
-                        <Film className="w-7 h-7" />
+                        <Film className="w-6 h-6" />
                         <div className="text-center">
-                          <div className="font-bold text-base">Static</div>
+                          <div className="font-bold text-sm">Static</div>
                           <div className="text-xs opacity-70">Multi-panel layouts</div>
                         </div>
                       </Button>
@@ -763,76 +763,76 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         <>
                           <Button
                             variant="outline"
-                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                            className={`h-24 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'podcast' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('podcast')}
                           >
-                            <Users className="w-7 h-7" />
+                            <Users className="w-6 h-6" />
                             <div className="text-center">
-                              <div className="font-bold text-base">🎙️ Podcast</div>
+                              <div className="font-bold text-sm">🎙️ Podcast</div>
                               <div className="text-xs opacity-70">Side-by-side interview</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                            className={`h-24 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'social-media' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('social-media')}
                           >
-                            <Smartphone className="w-7 h-7" />
+                            <Smartphone className="w-6 h-6" />
                             <div className="text-center">
-                              <div className="font-bold text-base">📱 Social</div>
+                              <div className="font-bold text-sm">📱 Social</div>
                               <div className="text-xs opacity-70">Vertical/square format</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                            className={`h-24 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'animated' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('animated')}
                           >
-                            <Sparkles className="w-7 h-7" />
+                            <Sparkles className="w-6 h-6" />
                             <div className="text-center">
-                              <div className="font-bold text-base">Animated</div>
+                              <div className="font-bold text-sm">Animated</div>
                               <div className="text-xs opacity-70">Motion graphics</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                            className={`h-24 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'paced' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('paced')}
                           >
-                            <Clock className="w-7 h-7" />
+                            <Clock className="w-6 h-6" />
                             <div className="text-center">
-                              <div className="font-bold text-base">Paced</div>
+                              <div className="font-bold text-sm">Paced</div>
                               <div className="text-xs opacity-70">Emotional timing</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-28 flex flex-col gap-2 border-2 transition-all ${
+                            className={`h-24 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'music-video' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
-                                : 'bg-slate-800 text-white border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
+                                : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('music-video')}
                           >
-                            <Music className="w-7 h-7" />
+                            <Music className="w-6 h-6" />
                             <div className="text-center">
-                              <div className="font-bold text-base">🎵 Music Video</div>
+                              <div className="font-bold text-sm">🎵 Music Video</div>
                               <div className="text-xs opacity-70">Auto beat-sync</div>
                             </div>
                           </Button>
@@ -844,29 +844,29 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                 {/* NEW: Video Upload Zone */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
-                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                    <CardTitle className="flex items-center gap-2 text-base-content">
+                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] pb-3">
+                    <CardTitle className="flex items-center gap-2 text-slate-200 text-base">
                       <div className="p-1.5 bg-[#DC143C] rounded">
-                        <Video className="w-4 h-4 text-black" />
+                        <Video className="w-4 h-4 text-white" />
                       </div>
                       Video Clips
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-slate-400 text-sm">
                       Upload videos to compose ({videoClips.length} clip{videoClips.length !== 1 ? 's' : ''} added)
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6 space-y-4">
-                    {/* Drag & Drop Zone */}
+                  <CardContent className="pt-3 pb-3 space-y-3">
+                    {/* Drag & Drop Zone - COMPACT */}
                     <div
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
                       className={`
-                        border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
+                        border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors
                         ${isDragging
-                          ? 'border-[#DC143C] bg-red-50 dark:bg-red-900/20'
-                          : 'border-slate-300 dark:border-slate-600 hover:border-[#DC143C] hover:bg-slate-50 dark:hover:bg-slate-800'
+                          ? 'border-[#DC143C] bg-[#DC143C]/10'
+                          : 'border-slate-600 bg-slate-800/50'
                         }
                       `}
                     >
@@ -878,19 +878,19 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         onChange={(e) => handleAddVideos(e.target.files)}
                         className="hidden"
                       />
-                      <Upload className="w-12 h-12 mx-auto mb-4 text-[#B3B3B3]" />
-                      <p className="text-sm font-medium text-base-content mb-1">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                      <p className="text-sm font-medium text-slate-300 mb-0.5">
                         Drag & drop videos here
                       </p>
-                      <p className="text-xs text-[#B3B3B3]">
+                      <p className="text-xs text-slate-500">
                         or click to browse · MP4, MOV, WEBM · Max {MAX_VIDEO_SIZE_MB}MB each
                       </p>
                     </div>
 
                     {/* Upload Error */}
                     {uploadError && (
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-sm text-red-600 dark:text-red-400">{uploadError}</p>
+                      <div className="p-2 bg-red-900/20 border border-red-800 rounded-lg">
+                        <p className="text-sm text-red-400">{uploadError}</p>
                       </div>
                     )}
 
@@ -1083,10 +1083,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       <div className="grid grid-cols-2 gap-3">
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'on-beat' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setMusicVideoStyle('on-beat')}
                           disabled={!beatAnalysis}
@@ -1099,10 +1099,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'every-2-beats' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setMusicVideoStyle('every-2-beats')}
                           disabled={!beatAnalysis}
@@ -1115,10 +1115,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'every-4-beats' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setMusicVideoStyle('every-4-beats')}
                           disabled={!beatAnalysis}
@@ -1131,10 +1131,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'on-bars' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setMusicVideoStyle('on-bars')}
                           disabled={!beatAnalysis}
@@ -1163,14 +1163,14 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         Choose aspect ratio for your platform
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-4 pb-4">
                       <div className="grid grid-cols-3 gap-3">
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             socialMediaFormat === 'vertical-9-16' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setSocialMediaFormat('vertical-9-16')}
                         >
@@ -1182,10 +1182,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             socialMediaFormat === 'square-1-1' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setSocialMediaFormat('square-1-1')}
                         >
@@ -1197,10 +1197,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-24 flex flex-col gap-2 border-2 transition-all ${
+                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
                             socialMediaFormat === 'vertical-4-5' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'
+                              : 'bg-slate-800 text-slate-300 border-slate-700'
                           }`}
                           onClick={() => setSocialMediaFormat('vertical-4-5')}
                         >
@@ -1211,8 +1211,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         </Button>
                       </div>
                       
-                      <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                        <p className="text-xs text-muted-foreground">
+                      <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                        <p className="text-xs text-slate-400">
                           💡 <strong>Tip:</strong> Vertical formats work best for mobile-first platforms. Your videos will be automatically formatted and optimized for quick consumption.
                         </p>
                       </div>
@@ -1435,18 +1435,18 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         <div className="flex items-start gap-3">
                           <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                           <div className="space-y-2">
-                            <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                            <p className="text-sm font-semibold text-blue-400">
                               Audio Composition Options:
                             </p>
-                            <div className="text-xs space-y-1.5 text-muted-foreground">
+                            <div className="text-xs space-y-1.5 text-slate-400">
                               <p>
-                                <strong className="text-blue-600 dark:text-blue-400">Add Now (Permanent Merge):</strong> Music baked into video – faster workflow (15 credits to render)
+                                <strong className="text-blue-400">Add Now (Permanent Merge):</strong> Music baked into video – best for music videos with beat-matching (15 credits)
                               </p>
                               <p>
-                                <strong className="text-blue-600 dark:text-blue-400">Add Later in Timeline:</strong> Keep audio/video separate – more control, adjust volume, swap tracks anytime
+                                <strong className="text-blue-400">Add Later in Timeline:</strong> Keep audio/video separate – better for standard scenes where you want to adjust volume or swap tracks
                               </p>
-                              <p className="mt-2 italic">
-                                💡 Either way, your music is saved to S3 (7 days) and reusable across projects!
+                              <p className="mt-2 italic text-slate-500">
+                                💡 For Music Videos: Permanent merge is recommended for precise beat-syncing. For regular scenes: Timeline gives you more flexibility.
                               </p>
                             </div>
                           </div>

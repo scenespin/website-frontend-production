@@ -24,7 +24,7 @@ interface LayoutOption {
   unlockLevel?: number;
 }
 
-// Default layouts fallback when API is unavailable
+// Default layouts fallback when API is unavailable - EXPANDED SET
 const DEFAULT_LAYOUTS: LayoutOption[] = [
   {
     id: 'side-by-side',
@@ -48,7 +48,7 @@ const DEFAULT_LAYOUTS: LayoutOption[] = [
   },
   {
     id: '2x2-grid',
-    name: '2x2 Grid',
+    name: '2×2 Grid',
     description: 'Four videos in a grid',
     num_regions: 4,
     canvas: { width: 1920, height: 1080 },
@@ -65,6 +65,106 @@ const DEFAULT_LAYOUTS: LayoutOption[] = [
     best_for: ['phone-call', 'mobile'],
     example_use_case: 'Mobile phone conversation',
     recommended_aspect_ratios: ['16:9', '9:16']
+  },
+  {
+    id: 'top-bottom-split',
+    name: 'Top/Bottom Split',
+    description: 'Two videos stacked vertically',
+    num_regions: 2,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['comparison', 'split-screen'],
+    example_use_case: 'Before and after comparison',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: '3x3-grid',
+    name: '3×3 Grid',
+    description: 'Nine videos in a grid',
+    num_regions: 9,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['grid', 'mosaic'],
+    example_use_case: 'Large group call or mosaic',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'triple-vertical',
+    name: 'Triple Vertical',
+    description: 'Three videos in vertical layout',
+    num_regions: 3,
+    canvas: { width: 1080, height: 1920 },
+    best_for: ['social-media', 'mobile'],
+    example_use_case: 'TikTok-style layout',
+    recommended_aspect_ratios: ['9:16']
+  },
+  {
+    id: 'quad-split',
+    name: 'Quad Split',
+    description: 'Four videos, one in each corner',
+    num_regions: 4,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['surveillance', 'multi-angle'],
+    example_use_case: 'Security camera view',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'l-shape',
+    name: 'L-Shape Layout',
+    description: 'Large video with sidebar',
+    num_regions: 4,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['presentation', 'gaming'],
+    example_use_case: 'Main content with sidebar',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'picture-in-picture-corner',
+    name: 'Corner PiP',
+    description: 'Small video in any corner',
+    num_regions: 2,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['reaction', 'commentary'],
+    example_use_case: 'Streamer reaction overlay',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'horizontal-strip',
+    name: 'Horizontal Strip',
+    description: 'Three videos in a row',
+    num_regions: 3,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['timeline', 'sequence'],
+    example_use_case: 'Step-by-step tutorial',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'vertical-strip',
+    name: 'Vertical Strip',
+    description: 'Three videos stacked',
+    num_regions: 3,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['comparison', 'progression'],
+    example_use_case: 'Timeline progression',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'spotlight-grid',
+    name: 'Spotlight Grid',
+    description: 'Large main video with thumbnail grid',
+    num_regions: 7,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['presentation', 'meeting'],
+    example_use_case: 'Video conference with speaker focus',
+    recommended_aspect_ratios: ['16:9']
+  },
+  {
+    id: 'dual-pip',
+    name: 'Dual Picture-in-Picture',
+    description: 'Two small videos over main video',
+    num_regions: 3,
+    canvas: { width: 1920, height: 1080 },
+    best_for: ['reaction', 'commentary'],
+    example_use_case: 'Two commentators reacting',
+    recommended_aspect_ratios: ['16:9']
   }
 ];
 
@@ -107,17 +207,11 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
     { id: 'grid', label: 'Grids', icon: '⬜' },
   ];
 
-  // NEW: Feature 0068 - Mobile-allowed layouts
-  const MOBILE_ALLOWED_LAYOUTS = ['2x2-grid', 'picture-in-picture', 'side-by-side'];
-
+  // Feature 0068 - Mobile gets ALL layouts now (removed restriction for mobile testing)
+  // Mobile users should have access to all 65+ compositions including music video, podcast, etc.
   const filteredLayouts = layouts.filter(layout => {
-    // First apply category filter
+    // Apply category filter only
     if (filter !== 'all' && !layout.best_for.some(tag => tag.includes(filter))) {
-      return false;
-    }
-    
-    // Then apply mobile filter if needed (Feature 0068)
-    if (isMobile && !MOBILE_ALLOWED_LAYOUTS.includes(layout.id)) {
       return false;
     }
     

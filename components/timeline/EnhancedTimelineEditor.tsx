@@ -824,7 +824,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800">
       {/* Context Indicator Banner */}
       {editorContext.currentSceneName && (
         <div className="bg-info/10 border-b border-info/20 px-4 py-2 flex-shrink-0">
@@ -875,17 +875,17 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       )}
       
       {/* Header */}
-      <Card className="flex-shrink-0 border-b rounded-none bg-white dark:bg-slate-900 shadow-md overflow-hidden">
+      <Card className="flex-shrink-0 border-b rounded-none bg-slate-900 border-slate-700 shadow-md overflow-hidden">
         {/* Desktop Header Layout */}
         <div className="hidden md:flex items-center justify-between p-4 overflow-x-auto">
           {/* Left: Project Info */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <Layers className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+              <h2 className="text-lg font-bold text-slate-100 whitespace-nowrap">
                 {timeline.project.name}
               </h2>
-              <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+              <div className="flex items-center gap-3 text-xs text-slate-400 whitespace-nowrap">
                 <span className="font-mono">{timeline.project.resolution}</span>
                 <span className="font-mono">{timeline.project.aspectRatio}</span>
                 <span className="font-mono">{timeline.project.frameRate}fps</span>
@@ -938,7 +938,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             </Button>
 
             {/* NEW: Preview Mode Toggle (Feature 0103) */}
-            <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-slate-700 mx-2" />
             <Button
               variant={previewMode ? "default" : "ghost"}
               size="sm"
@@ -967,7 +967,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               )}
             </Button>
 
-            <div className="ml-4 text-sm font-mono text-slate-700 dark:text-slate-300">
+            <div className="ml-4 text-sm font-mono text-slate-300">
               {formatTime(timeline.playheadPosition)} / {formatTime(timeline.totalDuration)}
               <span className="ml-2 text-xs text-slate-500">
                 {formatFrame(timeline.playheadPosition)}
@@ -1004,7 +1004,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               <ZoomIn className="w-4 h-4" />
             </Button>
 
-            <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-slate-700 mx-2" />
             
             {/* NEW: Ripple Edit Mode Toggle (Feature 0103 Sprint 2) */}
             <Button
@@ -1026,7 +1026,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               <span className="hidden md:inline">Ripple</span>
             </Button>
 
-            <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-slate-700 mx-2" />
             
             {/* NEW: Desktop Add Media Button (Feature 0070) */}
             <Button
@@ -1039,7 +1039,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               Add Media
             </Button>
 
-            <div className="w-px h-6 bg-slate-300 dark:bg-slate-700 mx-2" />
+            <div className="w-px h-6 bg-slate-700 mx-2" />
 
             {/* NEW: Export Button */}
             <Button
@@ -1157,7 +1157,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
           {/* Top Row: Project Name */}
           <div className="flex items-center justify-center mb-3">
             <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+            <h2 className="text-sm font-bold text-slate-100 truncate">
               {timeline.project.name}
             </h2>
           </div>
@@ -1197,14 +1197,14 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               <SkipForward className="w-4 h-4" />
             </Button>
 
-            <div className="ml-2 text-xs font-mono text-slate-700 dark:text-slate-300">
+            <div className="ml-2 text-xs font-mono text-slate-300">
               {formatTime(timeline.playheadPosition)}
             </div>
           </div>
         </div>
 
         {/* Asset Count Stats */}
-        <div className="px-4 pb-3 flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400 hidden md:flex">
+        <div className="px-4 pb-3 flex items-center gap-4 text-xs text-slate-400 hidden md:flex">
           <Badge variant="outline" className="text-blue-600 border-blue-600">
             <Film className="w-3 h-3 mr-1" />
             {assetCounts.video} Video
@@ -1228,15 +1228,15 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
       {/* Timeline Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Track Headers - Fixed sidebar that doesn't scroll horizontally */}
-        <div className="flex-shrink-0 w-24 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 overflow-y-hidden flex flex-col">
+        <div className="flex-shrink-0 w-24 bg-slate-900 border-r border-slate-700 overflow-y-hidden flex flex-col">
           {/* Spacer for time ruler */}
-          <div className="h-10 border-b-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 flex-shrink-0" />
+          <div className="h-10 border-b-2 border-slate-600 bg-slate-800 flex-shrink-0" />
           
           {/* Scrollable track headers */}
           <div className="flex-1 overflow-y-auto custom-scrollbar" ref={trackHeadersRef}>
             {/* Video Track Headers */}
             {Array.from({ length: videoTrackCount }).map((_, trackNum) => (
-              <div key={`v-${trackNum}`} className="h-16 border-b border-slate-200 dark:border-slate-700">
+              <div key={`v-${trackNum}`} className="h-16 border-b border-slate-700">
                 <TrackHeader
                   trackNumber={trackNum}
                   trackType="video"
@@ -1250,7 +1250,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
             {/* Audio Track Headers */}
             {showAudioTracks && Array.from({ length: audioTrackCount }).map((_, trackNum) => (
-              <div key={`a-${trackNum}`} className="h-12 border-b border-slate-200 dark:border-slate-700">
+              <div key={`a-${trackNum}`} className="h-12 border-b border-slate-700">
                 <TrackHeader
                   trackNumber={trackNum}
                   trackType="audio"
@@ -1270,15 +1270,15 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
         <div className="flex-1 overflow-auto custom-scrollbar" ref={timelineRef}>
           <div className="relative" style={{ width: `${totalTimelineWidth}px` }}>
             {/* Time Ruler */}
-            <div className="sticky top-0 z-30 h-10 bg-slate-100 dark:bg-slate-800 border-b-2 border-slate-300 dark:border-slate-600 flex items-center">
+            <div className="sticky top-0 z-30 h-10 bg-slate-800 border-b-2 border-slate-600 flex items-center">
               {timeMarks.map(time => (
                 <div
                   key={time}
                   className="absolute flex flex-col items-center"
                   style={{ left: `${time * timeline.zoomLevel}px` }}
                 >
-                  <div className="h-3 w-px bg-slate-400 dark:bg-slate-500" />
-                  <span className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-1">
+                  <div className="h-3 w-px bg-slate-500" />
+                  <span className="text-xs font-mono text-slate-400 mt-1">
                     {formatTime(time)}
                   </span>
                 </div>
@@ -1290,7 +1290,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-40 pointer-events-none"
               style={{ left: `${timeline.playheadPosition * timeline.zoomLevel}px` }}
             >
-              <div className="absolute top-0 -left-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
+              <div className="absolute top-0 -left-2 w-4 h-4 bg-red-500 rounded-full border-2 border-slate-800" />
             </div>
 
             {/* Video Tracks */}
@@ -1302,7 +1302,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                 return (
                   <div
                     key={`track-v-${trackNum}`}
-                    className={`relative h-16 border-b border-slate-200 dark:border-slate-700 ${
+                    className={`relative h-16 border-b border-slate-700 ${
                       isVisible ? '' : 'opacity-30'
                     }`}
                   >
@@ -1331,14 +1331,14 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
             {/* Audio Tracks */}
             {showAudioTracks && (
-              <div className="relative border-t-2 border-slate-400 dark:border-slate-600">
+              <div className="relative border-t-2 border-slate-600">
                 {Array.from({ length: audioTrackCount }).map((_, trackNum) => {
                   const trackAssets = audioAssets[trackNum];
                   
                   return (
                     <div
                       key={`track-a-${trackNum}`}
-                      className="relative h-12 border-b border-slate-200 dark:border-slate-700"
+                      className="relative h-12 border-b border-slate-700"
                     >
                       {trackAssets.map(asset => (
                         <TimelineAssetComponent

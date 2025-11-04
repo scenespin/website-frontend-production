@@ -21,22 +21,32 @@ import {
   Layers,
   Clock,
   Music,
-  Image
+  Image,
+  Plus
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
+import { useRouter } from 'next/navigation';
 
 export default function Navigation() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // Track which mobile accordion is open
   const { openDrawer } = useDrawer();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   
   // Credit balance state
   const [credits, setCredits] = useState(null);
   const [loadingCredits, setLoadingCredits] = useState(true);
+
+  const handleProjectCreated = (project) => {
+    // Navigate to the editor with the new project
+    router.push(`/write?project=${project.project_id}`);
+  };
   
   // Fetch user's credit balance
   useEffect(() => {
@@ -184,6 +194,15 @@ export default function Navigation() {
             <div className="flex items-center gap-3">
               {user && (
                 <>
+                  {/* New Project Button */}
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors font-medium text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>New Project</span>
+                  </button>
+
                   {/* Credit Balance Display */}
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300">
                     <Coins className="w-4 h-4 text-cinema-gold" />
@@ -335,6 +354,13 @@ export default function Navigation() {
           </div>
         )}
       </div>
+
+      {/* Project Creation Modal */}
+      <ProjectCreationModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleProjectCreated}
+      />
     </>
   );
 }

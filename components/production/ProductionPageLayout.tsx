@@ -23,6 +23,7 @@ import type { StoryBeat, Character } from '@/types/screenplay';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { MobileProductionBanner } from './MobileProductionBanner';
 import { MobileWorkflowSelector } from './MobileWorkflowSelector';
+import { DesktopWorkflowSelector } from './DesktopWorkflowSelector';
 import { ProductionTabBar, type ProductionTab } from './ProductionTabBar';
 import { MobileSceneBuilderPanel } from './MobileSceneBuilderPanel';
 
@@ -697,7 +698,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
           {/* Tab Content */}
           {activeTab === 'workflows' && (
             <div className="flex-1 overflow-hidden">
-              <MobileWorkflowSelector
+              <DesktopWorkflowSelector
                 projectId={projectId}
               />
             </div>

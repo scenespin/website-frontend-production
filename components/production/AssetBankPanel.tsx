@@ -84,6 +84,41 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
     return colors[category];
   };
 
+  const handleDownload3D = async (asset: Asset) => {
+    try {
+      // Fetch the 3D model URLs from the API
+      const response = await fetch(`/api/asset-bank/${asset.id}/3d-models`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch 3D models');
+      }
+
+      const data = await response.json();
+      
+      // Download each available format
+      if (data.models && data.models.length > 0) {
+        data.models.forEach((model: { url: string; format: string }) => {
+          const link = document.createElement('a');
+          link.href = model.url;
+          link.download = `${asset.name.replace(/\s+/g, '_')}.${model.format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+        toast.success('3D models downloaded');
+      } else {
+        toast.error('No 3D models available');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download 3D models');
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full bg-slate-900 ${className}`}>
       {/* Context Indicator Banner */}
@@ -157,29 +192,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
               }`}
             >
               <Icon className="w-4 h-4" />
-              {ASSET_CATEGORY_METADATA[cat].name}
-            </button>
-          );
-        })}
-      </div>
-          }`}
-        >
-          All Assets
-        </button>
-        {Object.entries(ASSET_CATEGORY_METADATA).map(([key, meta]) => {
-          const Icon = getCategoryIcon(key as AssetCategory);
-          return (
-            <button
-              key={key}
-              onClick={() => setSelectedCategory(key as AssetCategory)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${
-                selectedCategory === key
-                  ? 'bg-primary text-base-content'
-                  : 'bg-base-300 text-base-content/60 hover:bg-base-content/20'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {meta.label}
+              {ASSET_CATEGORY_METADATA[cat].label}
             </button>
           );
         })}
@@ -189,13 +202,13 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : assets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-base-content/50">
+          <div className="flex flex-col items-center justify-center h-64 text-slate-400">
             <Package className="w-16 h-16 mb-4 opacity-50" />
             <p className="text-lg font-medium">No assets yet</p>
-            <p className="text-sm text-base-content/40 mt-2">
+            <p className="text-sm text-slate-500 mt-2">
               {selectedCategory === 'all' 
                 ? 'Create your first asset to get started'
                 : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`
@@ -203,9 +216,9 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
             </p>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="btn btn-primary mt-4"
+              className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors mt-4 flex items-center gap-2"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4" />
               Create Asset
             </button>
           </div>
@@ -219,14 +232,14 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
               return (
                 <div
                   key={asset.id}
-                  className="bg-base-200 rounded-lg border border-base-300 overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
+                  className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden hover:border-[#DC143C]/50 transition-colors cursor-pointer"
                   onClick={() => {
                     setSelectedAsset(asset);
                     setShowDetailModal(true);
                   }}
                 >
                   {/* Thumbnail */}
-                  <div className="relative aspect-video bg-base-300">
+                  <div className="relative aspect-video bg-slate-700">
                     {asset.images.length > 0 ? (
                       <img
                         src={asset.images[0].url}
@@ -235,20 +248,20 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Icon className="w-12 h-12 text-base-content/40" />
+                        <Icon className="w-12 h-12 text-slate-500" />
                       </div>
                     )}
                     {/* Image Count Badge */}
                     <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3 text-base-content/60" />
-                      <span className="text-xs text-base-content font-medium">
+                      <ImageIcon className="w-3 h-3 text-slate-400" />
+                      <span className="text-xs text-white font-medium">
                         {asset.images.length}/10
                       </span>
                     </div>
                     {/* 3D Model Badge */}
                     {asset.has3DModel && (
-                      <div className="absolute top-2 left-2 bg-primary/80 backdrop-blur-sm px-2 py-1 rounded-lg">
-                        <span className="text-xs text-base-content font-medium">3D</span>
+                      <div className="absolute top-2 left-2 bg-[#DC143C]/90 backdrop-blur-sm px-2 py-1 rounded-lg">
+                        <span className="text-xs text-white font-medium">3D</span>
                       </div>
                     )}
                   </div>
@@ -256,7 +269,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                   {/* Info */}
                   <div className="p-3">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="text-sm font-semibold text-base-content truncate flex-1">
+                      <h3 className="text-sm font-semibold text-slate-200 truncate flex-1">
                         {asset.name}
                       </h3>
                       <div className={`px-2 py-1 rounded text-xs font-medium border ${categoryColor}`}>
@@ -265,7 +278,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                     </div>
 
                     {asset.description && (
-                      <p className="text-xs text-base-content/50 line-clamp-2 mb-3">
+                      <p className="text-xs text-slate-400 line-clamp-2 mb-3">
                         {asset.description}
                       </p>
                     )}
@@ -279,9 +292,9 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                             setAssetFor3DExport(asset);
                             setShow3DExportModal(true);
                           }}
-                          className="flex-1 btn btn-sm btn-primary text-xs"
+                          className="flex-1 px-3 py-1.5 bg-[#DC143C] text-white rounded text-xs font-medium hover:bg-[#B91238] transition-colors flex items-center justify-center gap-1"
                         >
-                          <Sparkles className="w-3 h-3 mr-1" />
+                          <Sparkles className="w-3 h-3" />
                           Generate 3D
                         </button>
                       )}
@@ -289,11 +302,11 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Download 3D models
+                            handleDownload3D(asset);
                           }}
-                          className="flex-1 btn btn-sm btn-success text-xs"
+                          className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
                         >
-                          <Download className="w-3 h-3 mr-1" />
+                          <Download className="w-3 h-3" />
                           Download 3D
                         </button>
                       )}
@@ -301,18 +314,19 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Open upload more images modal
+                            setSelectedAsset(asset);
+                            setShowDetailModal(true);
                           }}
-                          className="flex-1 btn btn-sm btn-outline text-xs"
+                          className="flex-1 px-3 py-1.5 bg-slate-700 text-slate-300 border border-slate-600 rounded text-xs font-medium hover:bg-slate-600 transition-colors flex items-center justify-center gap-1"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
+                          <Plus className="w-3 h-3" />
                           Add Images
                         </button>
                       )}
                     </div>
 
                     {!canExport3D && (
-                      <p className="text-xs text-base-content/40 mt-2 text-center">
+                      <p className="text-xs text-slate-500 mt-2 text-center">
                         Need {2 - asset.images.length} more image{(2 - asset.images.length) !== 1 ? 's' : ''} for 3D export
                       </p>
                     )}
