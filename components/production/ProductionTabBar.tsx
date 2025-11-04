@@ -90,7 +90,7 @@ export function ProductionTabBar({
   return (
     <>
       {/* Desktop Tabs */}
-      <div className="hidden md:block border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div className="hidden md:block border-b border-slate-700 bg-slate-900">
         <div className="flex flex-row space-x-1 px-6">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -109,13 +109,13 @@ export function ProductionTabBar({
                     ? cn(
                         "border-primary",
                         tab.activeColor,
-                        "bg-slate-50 dark:bg-slate-800/50"
+                        "bg-slate-800/50"
                       )
                     : cn(
                         "border-transparent",
-                        "text-slate-600 dark:text-slate-400",
-                        "hover:text-slate-900 dark:hover:text-slate-200",
-                        "hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                        "text-slate-400",
+                        "hover:text-slate-200",
+                        "hover:bg-slate-800/30"
                       )
                 )}
                 aria-current={isActive ? 'page' : undefined}
@@ -163,7 +163,7 @@ export function ProductionTabBar({
       </div>
 
       {/* Mobile Dropdown */}
-      <div className="md:hidden border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+      <div className="md:hidden border-b border-slate-700 bg-slate-900">
         <div className="px-4 py-2">
           <div className="dropdown w-full">
             <button

@@ -85,15 +85,15 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   };
 
   return (
-    <div className={`flex flex-col h-full bg-base-200 ${className}`}>
+    <div className={`flex flex-col h-full bg-slate-900 ${className}`}>
       {/* Context Indicator Banner */}
       {editorContext.currentSceneName && (
-        <div className="bg-info/10 border-b border-info/20 px-4 py-2">
-          <div className="text-sm flex items-center justify-between gap-2 text-base-content">
+        <div className="bg-blue-500/10 border-b border-blue-500/20 px-4 py-2">
+          <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Film className="w-4 h-4 text-info flex-shrink-0" />
-              <span className="opacity-70">Managing assets for scene:</span>
-              <span className="font-semibold text-info truncate">{editorContext.currentSceneName}</span>
+              <Film className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <span className="text-slate-400">Managing assets for scene:</span>
+              <span className="font-semibold text-blue-400 truncate">{editorContext.currentSceneName}</span>
             </div>
             <button
               onClick={() => {
@@ -101,7 +101,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                 clearContext();
                 toast.success('Context cleared');
               }}
-              className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0 transition-colors"
+              className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-white flex-shrink-0 transition-colors"
               title="Clear context"
             >
               <X className="w-4 h-4" />
@@ -110,44 +110,58 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
         </div>
       )}
       
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-base-300">
-        <div>
-          <h2 className="text-xl font-bold text-base-content flex items-center gap-2">
-            <Package className="w-5 h-5" />
+      {/* Header - Matches Character/Location Bank */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-700">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold text-slate-200">
             Asset Bank
           </h2>
-          <p className="text-sm text-base-content/60 mt-1">
-            {isMobile 
-              ? 'View and use your assets in scenes'
-              : 'Digital Prop Department - Scan props, vehicles & furniture'
-            }
-          </p>
-          {isMobile && assets.length === 0 && (
-            <p className="text-xs text-yellow-500 mt-1">
-              💡 Use desktop to create new assets
-            </p>
+          {!isMobile && (
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"
+              title="New Asset"
+            >
+              <Plus className="w-5 h-5 text-slate-400" />
+            </button>
           )}
         </div>
-        {!isMobile && (
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="btn btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New Asset
-          </button>
-        )}
+        <p className="text-xs text-slate-400">
+          {assets.length} asset{assets.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
-      {/* Category Filters */}
-      <div className="flex gap-2 p-4 border-b border-base-300 overflow-x-auto">
+      {/* Category Filters - Simplified Dark Theme */}
+      <div className="flex gap-2 p-4 border-b border-slate-700 overflow-x-auto">
         <button
           onClick={() => setSelectedCategory('all')}
           className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
             selectedCategory === 'all'
-              ? 'bg-primary text-base-content'
-              : 'bg-base-300 text-base-content/60 hover:bg-base-content/20'
+              ? 'bg-[#DC143C] text-white'
+              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+          }`}
+        >
+          All Assets
+        </button>
+        {(['prop', 'vehicle', 'furniture', 'other'] as AssetCategory[]).map((cat) => {
+          const Icon = getCategoryIcon(cat);
+          const isActive = selectedCategory === cat;
+          return (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2 ${
+                isActive
+                  ? 'bg-[#DC143C] text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {ASSET_CATEGORY_METADATA[cat].name}
+            </button>
+          );
+        })}
+      </div>
           }`}
         >
           All Assets
