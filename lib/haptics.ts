@@ -21,25 +21,34 @@ export function triggerHaptic(style: HapticStyle = 'light'): void {
       
       switch (style) {
         case 'light':
-          impact?.impactOccurred?.('light');
+          if (impact?.impactOccurred) impact.impactOccurred('light');
           break;
         case 'medium':
-          impact?.impactOccurred?.('medium');
+          if (impact?.impactOccurred) impact.impactOccurred('medium');
           break;
         case 'heavy':
-          impact?.impactOccurred?.('heavy');
+          if (impact?.impactOccurred) impact.impactOccurred('heavy');
           break;
         case 'success':
           // @ts-ignore
-          new (window.NotificationFeedbackGenerator)?.().notificationOccurred('success');
+          if (window.NotificationFeedbackGenerator) {
+            const notifier = new window.NotificationFeedbackGenerator();
+            if (notifier?.notificationOccurred) notifier.notificationOccurred('success');
+          }
           break;
         case 'warning':
           // @ts-ignore
-          new (window.NotificationFeedbackGenerator)?.().notificationOccurred('warning');
+          if (window.NotificationFeedbackGenerator) {
+            const notifier = new window.NotificationFeedbackGenerator();
+            if (notifier?.notificationOccurred) notifier.notificationOccurred('warning');
+          }
           break;
         case 'error':
           // @ts-ignore
-          new (window.NotificationFeedbackGenerator)?.().notificationOccurred('error');
+          if (window.NotificationFeedbackGenerator) {
+            const notifier = new window.NotificationFeedbackGenerator();
+            if (notifier?.notificationOccurred) notifier.notificationOccurred('error');
+          }
           break;
       }
     } catch (e) {

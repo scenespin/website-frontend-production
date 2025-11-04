@@ -1806,7 +1806,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               volume: 1,
               keyframes: [],
               metadata: {
-                sourceType: 'ai-audio',
+                sourceType: 'generated',
                 description: 'AI generated audio'
               }
             };
