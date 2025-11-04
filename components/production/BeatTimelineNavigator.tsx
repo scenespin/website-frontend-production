@@ -80,7 +80,6 @@ export function BeatTimelineNavigator({
   
   function getStatusIcon(status: string | undefined) {
     switch (status) {
-      case 'completed':
       case 'ready':
       case 'in-timeline':
         return <CheckCircle2 className="w-4 h-4" />;
@@ -97,7 +96,6 @@ export function BeatTimelineNavigator({
   
   function getStatusColor(status: string | undefined): string {
     switch (status) {
-      case 'completed':
       case 'ready':
         return 'text-green-500 bg-green-500/10 border-green-500/30';
       case 'in-timeline':
@@ -208,7 +206,7 @@ export function BeatTimelineNavigator({
                     <motion.div 
                       className={cn(
                         'h-full rounded-full',
-                        status === 'completed' || status === 'ready' 
+                        status === 'ready' || status === 'in-timeline'
                           ? 'bg-green-500' 
                           : status === 'generating'
                           ? 'bg-blue-500'
