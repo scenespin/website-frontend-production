@@ -184,7 +184,7 @@ export function WorkflowInputForm({
                   📹 {workflow.videoUploadInstructions.title || 'Upload Instructions'}
                 </p>
                 {workflow.videoUploadInstructions.requirements && (
-                  <ul className="text-xs text-blue-800 dark:text-blue-400 space-y-1 ml-4 list-disc">
+                  <ul className="text-xs text-blue-800 dark:text-[#DC143C] space-y-1 ml-4 list-disc">
                     {workflow.videoUploadInstructions.requirements.map((req, idx) => (
                       <li key={idx}>{req}</li>
                     ))}

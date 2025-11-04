@@ -96,7 +96,7 @@ export function AudioFeatureShowcase() {
                 <span className="text-sm font-medium">Cost:</span>
                 <span className="text-sm font-bold text-blue-600">{feature.demo.cost}</span>
               </div>
-              <button className="w-full mt-3 bg-blue-600 text-base-content py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <button className="w-full mt-3 bg-[#DC143C] text-base-content py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 Try {feature.title}
               </button>
             </div>
@@ -158,7 +158,7 @@ export function AudioQuickStartWizard() {
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
                 step >= s.number
-                  ? 'bg-blue-600 text-base-content'
+                  ? 'bg-[#DC143C] text-base-content'
                   : 'bg-base-200 text-base-content/40'
               }`}
             >
@@ -167,7 +167,7 @@ export function AudioQuickStartWizard() {
             {s.number < steps.length && (
               <div
                 className={`w-20 h-1 ${
-                  step > s.number ? 'bg-blue-600' : 'bg-base-200'
+                  step > s.number ? 'bg-[#DC143C]' : 'bg-base-200'
                 }`}
               />
             )}
@@ -208,7 +208,7 @@ export function AudioQuickStartWizard() {
               <li>Type: {selections.type}</li>
               <li>Quality: {selections.provider}</li>
             </ul>
-            <button className="w-full bg-blue-600 text-base-content py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+            <button className="w-full bg-[#DC143C] text-base-content py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
               Open Audio Studio
             </button>
           </div>
@@ -598,7 +598,7 @@ export function AudioTutorialCarousel() {
                 <div
                   key={index}
                   className={`w-2 h-2 rounded-full ${
-                    index === currentStep ? 'bg-blue-600' : 'bg-base-content/20'
+                    index === currentStep ? 'bg-[#DC143C]' : 'bg-base-content/20'
                   }`}
                 />
               ))}
@@ -607,7 +607,7 @@ export function AudioTutorialCarousel() {
             {currentStep < tutorial.steps.length - 1 ? (
               <button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="px-6 py-2 bg-blue-600 text-base-content rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-[#DC143C] text-base-content rounded-lg hover:bg-blue-700"
               >
                 Next →
               </button>
@@ -637,7 +637,7 @@ export function AudioTutorialCarousel() {
             }}
             className={`px-4 py-2 rounded-lg text-sm ${
               index === currentTutorial
-                ? 'bg-blue-600 text-base-content'
+                ? 'bg-[#DC143C] text-base-content'
                 : 'bg-base-200 text-base-content/70 hover:bg-base-content/20'
             }`}
           >

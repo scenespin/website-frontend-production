@@ -179,9 +179,9 @@ export default function Features() {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="card bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-2 border-purple-500/30">
+            <div className="card bg-gradient-to-br from-[#DC143C]/10 to-[#B01030]/10 border-2 border-[#DC143C]/30">
               <div className="card-body">
-                <h3 className="text-xl font-bold text-purple-400 mb-3">🔄 Round-Trip Editing</h3>
+                <h3 className="text-xl font-bold text-[#DC143C] mb-3">🔄 Round-Trip Editing</h3>
                 <p className="text-sm opacity-90 mb-3">
                   Seamlessly move between Timeline and Composition Studio infinitely. Edit clips on timeline, send to composition for layouts, return with composed video automatically replacing originals. Non-destructive - originals always preserved.
                 </p>
@@ -194,9 +194,9 @@ export default function Features() {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-2 border-blue-500/30">
+            <div className="card bg-gradient-to-br from-[#DC143C]/10 to-[#B01030]/10 border-2 border-[#DC143C]/30">
               <div className="card-body">
-                <h3 className="text-xl font-bold text-blue-400 mb-3">✂️ Edge Trimming & Precision Editing</h3>
+                <h3 className="text-xl font-bold text-[#DC143C] mb-3">✂️ Edge Trimming & Precision Editing</h3>
                 <p className="text-sm opacity-90 mb-3">
                   Frame-accurate editing with professional trimming tools. Drag clip edges to trim, snap to frame boundaries (30fps precision), split at playhead, and more.
                 </p>
@@ -284,9 +284,9 @@ export default function Features() {
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 border-2 border-indigo-500/30">
+            <div className="card bg-gradient-to-br from-[#DC143C]/10 to-[#B01030]/10 border-2 border-[#DC143C]/30">
               <div className="card-body">
-                <h3 className="text-xl font-bold text-indigo-400 mb-3">📝 Text & Title Overlays</h3>
+                <h3 className="text-xl font-bold text-[#DC143C] mb-3">📝 Text & Title Overlays</h3>
                 <p className="text-sm opacity-90 mb-3">
                   Add professional titles, captions, and lower thirds. 9 fonts, full styling control, outline/shadow effects, and 9 position presets.
                 </p>

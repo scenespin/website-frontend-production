@@ -76,7 +76,7 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? 'bg-purple-600 text-base-content shadow-lg shadow-purple-500/30'
+                  ? 'bg-[#DC143C] text-base-content shadow-lg shadow-purple-500/30'
                   : 'bg-base-content/20 text-base-content/70 hover:bg-base-content/30'
               }`}
             >
@@ -166,7 +166,7 @@ export function TransitionPicker({ onSelect, onClose }: TransitionPickerProps) {
                     onClick={() => setEasing(e)}
                     className={`px-3 py-2 rounded-lg text-sm transition-all ${
                       easing === e
-                        ? 'bg-purple-600 text-base-content'
+                        ? 'bg-[#DC143C] text-base-content'
                         : 'bg-base-content/20 text-base-content/70 hover:bg-base-content/30'
                     }`}
                   >

@@ -17,7 +17,7 @@ const CREDIT_PACKAGES = [
     packageKey: "starter", // Backend expects this key
     savings: 0,
     popular: false,
-    color: "from-blue-500 to-cyan-500",
+    color: "from-[#DC143C] to-[#B91238]",
     icon: Zap,
     bestFor: "Testing & Learning",
     includes: [
@@ -36,7 +36,7 @@ const CREDIT_PACKAGES = [
     packageKey: "booster", // Backend calls this "booster"
     savings: 5,
     popular: true,
-    color: "from-purple-500 to-pink-500",
+    color: "from-[#DC143C] to-[#A01030]",
     icon: Sparkles,
     bestFor: "Content Creators",
     includes: [
@@ -55,7 +55,7 @@ const CREDIT_PACKAGES = [
     packageKey: "mega", // Backend calls this "mega"
     savings: 20,
     popular: false,
-    color: "from-orange-500 to-red-500",
+    color: "from-[#DC143C] to-[#B01030]",
     icon: Star,
     bestFor: "Professional Projects",
     includes: [
@@ -74,7 +74,7 @@ const CREDIT_PACKAGES = [
     priceId: "price_studio_credits", // TODO: Replace with actual Stripe Price ID
     savings: 40,
     popular: false,
-    color: "from-yellow-500 to-amber-500",
+    color: "from-[#A01030] to-[#8B0E2B]",
     icon: Crown,
     bestFor: "Production Studios",
     includes: [

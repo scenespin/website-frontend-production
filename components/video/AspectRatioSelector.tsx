@@ -96,7 +96,7 @@ export default function AspectRatioSelector({
                   hover:scale-105 hover:shadow-lg
                   ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-500/20 text-base-content'
+                      ? 'border-blue-500 bg-[#DC143C]/20 text-base-content'
                       : 'border-base-content/20 bg-base-300/50 text-base-content/70 hover:border-base-content/30'
                   }
                 `}
@@ -157,7 +157,7 @@ export default function AspectRatioSelector({
                     isSelected
                       ? option.isPremium
                         ? 'border-yellow-500 bg-yellow-500/20 text-base-content'
-                        : 'border-blue-500 bg-blue-500/20 text-base-content'
+                        : 'border-blue-500 bg-[#DC143C]/20 text-base-content'
                       : option.isPremium
                         ? 'border-yellow-700 bg-yellow-900/20 text-base-content/70 hover:border-yellow-600'
                         : 'border-base-content/20 bg-base-300/50 text-base-content/70 hover:border-base-content/30'

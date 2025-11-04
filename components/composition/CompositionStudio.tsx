@@ -730,10 +730,10 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
               <div className="lg:col-span-2 space-y-3">
                 {/* Composition Type Selector - Refined */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
-                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-3">
-                    <CardTitle className="flex items-center gap-2 text-slate-200 text-sm">
-                      <div className="p-1 bg-[#DC143C] rounded">
-                        <Settings className="w-3.5 h-3.5 text-white" />
+                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-2 pb-2">
+                    <CardTitle className="flex items-center gap-2 text-slate-200 text-xs">
+                      <div className="p-0.5 bg-[#DC143C] rounded">
+                        <Settings className="w-3 h-3 text-white" />
                       </div>
                       Shot Type
                     </CardTitle>
@@ -741,11 +741,11 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       Choose your composition style
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-3 pb-3">
+                  <CardContent className="pt-2 pb-2">
                     <div className={`grid gap-2 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
                       <Button
                         variant="outline"
-                        className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                        className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                           compositionType === 'static' 
                             ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                             : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -763,7 +763,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         <>
                           <Button
                             variant="outline"
-                            className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'podcast' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -778,7 +778,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'social-media' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -793,7 +793,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'animated' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -808,7 +808,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'paced' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -823,7 +823,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                               compositionType === 'music-video' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -844,8 +844,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                 {/* NEW: Video Upload Zone */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
-                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] pb-3">
-                    <CardTitle className="flex items-center gap-2 text-slate-200 text-base">
+                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-2 pb-2">
+                    <CardTitle className="flex items-center gap-2 text-slate-200 text-xs">
                       <div className="p-1.5 bg-[#DC143C] rounded">
                         <Video className="w-4 h-4 text-white" />
                       </div>
@@ -855,7 +855,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       Upload videos to compose ({videoClips.length} clip{videoClips.length !== 1 ? 's' : ''} added)
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-3 pb-3 space-y-3">
+                  <CardContent className="pt-2 pb-2 space-y-2">
                     {/* Drag & Drop Zone - COMPACT */}
                     <div
                       onDragOver={handleDragOver}
@@ -983,8 +983,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 {/* Music Video Selector */}
                 {compositionType === 'music-video' && (
                   <Card className="bg-[#141414] border border-white/10 shadow-lg">
-                    <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                      <CardTitle className="flex items-center gap-2 text-base-content">
+                    <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-2 pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base-content text-xs">
                         <div className="p-1.5 bg-[#DC143C] rounded">
                           <Music className="w-4 h-4 text-black" />
                         </div>
@@ -994,7 +994,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         Choose how videos sync to music beats
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-2">
                       {/* Beat Analysis Section */}
                       {backgroundMusic ? (
                         beatAnalysis ? (
@@ -1083,7 +1083,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       <div className="grid grid-cols-2 gap-3">
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'on-beat' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1099,7 +1099,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'every-2-beats' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1115,7 +1115,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'every-4-beats' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1131,7 +1131,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             musicVideoStyle === 'on-bars' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1152,8 +1152,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 {/* Social Media Format Selector */}
                 {compositionType === 'social-media' && (
                   <Card className="bg-[#141414] border border-white/10 shadow-lg">
-                    <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                      <CardTitle className="flex items-center gap-2 text-base-content">
+                    <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-2 pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base-content text-xs">
                         <div className="p-1.5 bg-[#DC143C] rounded">
                           <Smartphone className="w-4 h-4 text-black" />
                         </div>
@@ -1163,11 +1163,11 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         Choose aspect ratio for your platform
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-4 pb-4">
+                    <CardContent className="pt-2 pb-2">
                       <div className="grid grid-cols-3 gap-3">
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             socialMediaFormat === 'vertical-9-16' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1182,7 +1182,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             socialMediaFormat === 'square-1-1' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1197,7 +1197,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                         <Button
                           variant="outline"
-                          className={`h-20 flex flex-col gap-1 border-2 transition-all ${
+                          className={`h-16 flex flex-col gap-1 border-2 transition-all ${
                             socialMediaFormat === 'vertical-4-5' 
                               ? 'bg-[#DC143C] text-white border-[#DC143C]' 
                               : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -1327,13 +1327,13 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                 {/* Production Guide - Clean & Readable */}
                 <Card className="bg-[#141414] border border-white/10 shadow-md">
-                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F]">
-                    <CardTitle className="text-sm flex items-center gap-2">
+                  <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-2 pb-2">
+                    <CardTitle className="text-xs flex items-center gap-2">
                       <span className="text-red-600">📋</span>
                       Production Notes
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4">
+                  <CardContent className="pt-2">
                     <ol className="text-sm text-base-content space-y-2.5">
                       <li className="flex items-start gap-3">
                         <span className="flex-shrink-0 w-6 h-6 bg-[#DC143C] text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
@@ -1357,13 +1357,13 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
                 {/* Director's Tips - Yellow Accent */}
                 <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-2 border-red-300 dark:border-red-700 shadow-md">
-                  <CardHeader className="border-b-2 border-red-300 dark:border-red-700">
-                    <CardTitle className="text-sm flex items-center gap-2 text-red-900 dark:text-red-100">
+                  <CardHeader className="border-b-2 border-red-300 dark:border-red-700 p-2 pb-2">
+                    <CardTitle className="text-xs flex items-center gap-2 text-red-900 dark:text-red-100">
                       <span>🎬</span>
                       Director&apos;s Tips
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4">
+                  <CardContent className="pt-2">
                     <ul className="text-sm text-red-900 dark:text-red-100 space-y-2">
                       <li className="flex items-start gap-2">
                         <span className="text-red-600 dark:text-red-400">•</span>
@@ -1429,7 +1429,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         Add AI-generated music to your video composition
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-2">
                       {/* Audio Composition Flow Info */}
                       <div className="bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg p-4 space-y-2">
                         <div className="flex items-start gap-3">
@@ -1514,7 +1514,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     <CardHeader>
                       <CardTitle className="text-lg">💡 Music Tips</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
+                    <CardContent className="space-y-2 text-sm">
                       <div>
                         <p className="font-medium mb-1">Match the Mood</p>
                         <p className="text-muted-foreground">

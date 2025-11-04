@@ -164,20 +164,20 @@ export default function Page() {
         </section>
 
         {/* NEW: Data Ownership & Collaboration Section */}
-        <section className="py-16 px-8 max-w-7xl mx-auto">
-          <div className="bg-gradient-to-br from-base-200 to-base-300 rounded-box p-8 md:p-12">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">🔐 You Own Everything</h2>
-              <p className="text-xl opacity-90 max-w-3xl mx-auto mb-2">
+        <section className="py-12 px-8 max-w-7xl mx-auto">
+          <div className="bg-gradient-to-br from-base-200 to-base-300 rounded-box p-6 md:p-8">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">🔐 You Own Everything</h2>
+              <p className="text-lg opacity-90 max-w-3xl mx-auto mb-2">
                 Unlike other platforms that lock your content behind proprietary formats,<br className="hidden md:block" />
                 <strong className="text-[#DC143C]">YOUR data stays in YOUR cloud</strong>
               </p>
-              <p className="text-lg opacity-70">
+              <p className="text-base opacity-70">
                 We streamlined GitHub for writers - manage everything from the software, no technical expertise needed
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-stretch">
               {/* GitHub for Scripts & Timelines */}
               <div className="card bg-base-100 shadow-lg hover:shadow-2xl transition-shadow flex flex-col">
                 <div className="card-body flex flex-col h-full">

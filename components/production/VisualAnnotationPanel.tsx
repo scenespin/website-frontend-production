@@ -174,10 +174,10 @@ export function VisualAnnotationPanel({
       {isExpanded && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
           {/* Info Banner */}
-          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <div className="p-3 rounded-lg bg-[#DC143C]/10 border border-[#DC143C]/20">
             <div className="flex items-start gap-2">
-              <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-blue-800 dark:text-blue-200">
+              <Info className="w-4 h-4 text-[#DC143C] flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-[#DC143C]">
                 <p className="font-semibold mb-1">How to use:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Camera Motion:</strong> Draw an arrow to control camera movement</li>

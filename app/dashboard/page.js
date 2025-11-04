@@ -119,7 +119,7 @@ export default function Dashboard() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js (was causing double header) */}
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <main className="min-h-screen bg-[#0A0A0A]">
       
       {/* Welcome Modal for First-Time Users */}
       <WelcomeModal 

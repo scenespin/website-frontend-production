@@ -439,7 +439,7 @@ function ShotCard({
                 <Button
                   size="sm"
                   onClick={handleSave}
-                  className="flex-1 bg-yellow-400 text-black hover:bg-yellow-500"
+                  className="flex-1 bg-yellow-400 text-black hover:bg-[#DC143C]"
                 >
                   <Check className="w-4 h-4 mr-2" />
                   Save Changes

@@ -76,7 +76,7 @@ export function SaveStatusIndicator({
         return {
           icon: '💾',
           text: 'Saving',
-          color: 'text-blue-500',
+          color: 'text-[#DC143C]',
           bg: 'bg-blue-500/10',
           detail: 'Syncing to GitHub...'  // ← Show "GitHub" proudly!
         };
@@ -191,7 +191,7 @@ export function CompactSaveStatus({
     
     switch (status) {
       case 'saving':
-        return 'text-blue-500';
+        return 'text-[#DC143C]';
       case 'saved':
         return 'text-green-500';
       case 'failed':

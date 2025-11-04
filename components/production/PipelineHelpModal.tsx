@@ -407,7 +407,7 @@ export function PipelineHelpModal({
         </Tabs>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <Button onClick={onClose} className="bg-yellow-400 text-black hover:bg-yellow-500">
+          <Button onClick={onClose} className="bg-yellow-400 text-black hover:bg-[#DC143C]">
             Got It!
           </Button>
         </div>

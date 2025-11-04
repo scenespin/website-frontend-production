@@ -112,7 +112,7 @@ export function AssetSelector({
       {/* Reference Counter */}
       <div className={`flex items-center justify-between text-sm p-2 rounded-lg ${
         availableSlots === 0 
-          ? 'bg-yellow-500/10 text-yellow-500' 
+          ? 'bg-[#DC143C]/10 text-yellow-500' 
           : 'bg-base-300 text-base-content/60'
       }`}>
         <span>References Used:</span>
@@ -124,7 +124,7 @@ export function AssetSelector({
 
       {/* Warning if limit reached */}
       {availableSlots === 0 && (
-        <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm">
+        <div className="flex items-start gap-2 bg-[#DC143C]/10 border border-yellow-500/30 rounded-lg p-3 text-sm">
           <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
           <p className="text-yellow-500">
             Maximum 4 references reached. Remove a character, location, or asset to add more.

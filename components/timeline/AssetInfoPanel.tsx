@@ -298,7 +298,7 @@ function InfoRow({
   return (
     <div className={`flex ${multiline ? 'flex-col' : 'justify-between items-center'} gap-2`}>
       <span className="text-base-content/60 text-sm font-medium">{label}:</span>
-      <span className={`text-base-content ${multiline ? 'text-sm' : 'text-sm'} ${mono ? 'font-mono text-xs' : ''} ${highlight ? 'font-bold text-purple-400' : ''}`}>
+      <span className={`text-base-content ${multiline ? 'text-sm' : 'text-sm'} ${mono ? 'font-mono text-xs' : ''} ${highlight ? 'font-bold text-[#DC143C]' : ''}`}>
         {value}
       </span>
     </div>

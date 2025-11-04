@@ -183,7 +183,7 @@ export function AnimationSelector({ selectedAnimation, onSelectAnimation, isMobi
               size="sm"
               className={`border-2 transition-all ${
                 filter === level.id 
-                  ? 'bg-yellow-400 text-black border-yellow-500 hover:bg-yellow-500' 
+                  ? 'bg-yellow-400 text-black border-yellow-500 hover:bg-[#DC143C]' 
                   : 'border-slate-200 dark:border-slate-700 hover:border-yellow-400'
               }`}
               onClick={() => setFilter(level.id)}

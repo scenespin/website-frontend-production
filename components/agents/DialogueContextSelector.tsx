@@ -237,7 +237,7 @@ export function DialogueContextSelector({
                   onClick={() => setContext(prev => ({ ...prev, tone: tone.toLowerCase() }))}
                   className={`px-4 py-2 rounded-lg border transition-colors ${
                     context.tone === tone.toLowerCase()
-                      ? 'bg-indigo-600 text-base-content border-indigo-600'
+                      ? 'bg-[#DC143C] text-base-content border-indigo-600'
                       : 'border-base-content/20 dark:border-slate-700 hover:border-indigo-400'
                   }`}
                 >

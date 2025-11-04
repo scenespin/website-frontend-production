@@ -275,7 +275,7 @@ export function ExportModal({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-950 text-slate-50 border-slate-800">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            <Download className="w-6 h-6 text-blue-500" />
+            <Download className="w-6 h-6 text-[#DC143C]" />
             Export Timeline
           </DialogTitle>
           <DialogDescription className="text-slate-400">
@@ -330,7 +330,7 @@ export function ExportModal({
           {/* Resolution */}
           <div className="space-y-3">
             <Label className="text-base font-semibold flex items-center gap-2">
-              <Video className="w-5 h-5 text-blue-500" />
+              <Video className="w-5 h-5 text-[#DC143C]" />
               Resolution
             </Label>
             <RadioGroup

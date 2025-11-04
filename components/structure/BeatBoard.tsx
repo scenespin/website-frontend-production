@@ -223,7 +223,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                             <div 
                                 className="w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-blue-500/10 border-2 border-dashed border-blue-500/30"
                             >
-                                <BookOpen size={40} className="text-blue-500/60" />
+                                <BookOpen size={40} className="text-[#DC143C]/60" />
                             </div>
                             <h3 className="text-xl font-bold mb-2 text-slate-200">
                                 No Story Beats Yet

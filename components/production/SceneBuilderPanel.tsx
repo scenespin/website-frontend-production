@@ -584,7 +584,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               onClick={() => {
                 window.location.href = `/app/composition?preloadClips=${encoded}`;
               }}
-              className="w-full p-3 rounded-lg border-2 border-purple-500 bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-950/30 transition-colors text-left"
+              className="w-full p-3 rounded-lg border-2 border-[#DC143C] bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-950/30 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-500 rounded">
@@ -605,7 +605,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               className="w-full p-3 rounded-lg border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500 rounded">
+                <div className="p-2 bg-[#DC143C] rounded">
                   <span className="text-base-content text-lg">⏱️</span>
                 </div>
                 <div className="flex-1">
@@ -775,7 +775,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                             <img
                               src={preview}
                               alt={`Character ${index + 1}`}
-                              className={`w-full object-cover rounded border-2 border-purple-500 ${isMobile || simplified ? 'h-48' : 'h-32'}`}
+                              className={`w-full object-cover rounded border-2 border-[#DC143C] ${isMobile || simplified ? 'h-48' : 'h-32'}`}
                             />
                             <button
                               onClick={() => {
@@ -815,7 +815,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                               };
                               input.click();
                             }}
-                            className={`w-full border-2 border-dashed border-border rounded flex flex-col items-center justify-center hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-colors ${isMobile || simplified ? 'h-48' : 'h-32'}`}
+                            className={`w-full border-2 border-dashed border-border rounded flex flex-col items-center justify-center hover:border-[#DC143C] hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-colors ${isMobile || simplified ? 'h-48' : 'h-32'}`}
                           >
                             <Upload className="w-6 h-6 text-muted-foreground mb-2" />
                             <span className="text-xs text-muted-foreground font-medium">
@@ -837,7 +837,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   </div>
                 ) : (
                   <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                    <p className="text-xs text-blue-600 dark:text-[#DC143C]">
                       💡 <strong>With character refs:</strong> 4 videos (establishing + 3 character angles)<br />
                       <strong>Without character refs:</strong> 4 videos (establishing + 3 scene variations)
                     </p>
@@ -875,7 +875,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                 {/* Show mobile tip */}
                 {(isMobile || simplified) && (
                   <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                    <p className="text-xs text-blue-600 dark:text-[#DC143C]">
                       💻 <strong>Desktop Only:</strong> Upload up to 3 media files simultaneously
                     </p>
                   </div>
@@ -904,7 +904,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       onClick={() => setQualityTier('professional')}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         qualityTier === 'professional'
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
+                          ? 'border-[#DC143C] bg-purple-50 dark:bg-purple-950/20'
                           : 'border-border hover:border-purple-300'
                       }`}
                     >
@@ -916,7 +916,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       onClick={() => setQualityTier('premium')}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         qualityTier === 'premium'
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
+                          ? 'border-[#DC143C] bg-purple-50 dark:bg-purple-950/20'
                           : 'border-border hover:border-purple-300'
                       }`}
                     >
@@ -939,7 +939,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                         onClick={() => setDuration(dur)}
                         className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-all ${
                           duration === dur
-                            ? 'bg-purple-500 text-base-content border-purple-500'
+                            ? 'bg-purple-500 text-base-content border-[#DC143C]'
                             : 'bg-background border-border hover:border-purple-300'
                         }`}
                       >

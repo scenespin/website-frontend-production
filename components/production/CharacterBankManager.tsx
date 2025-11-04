@@ -519,7 +519,7 @@ function ReferenceCard({ reference }: { reference: CharacterReference }) {
         {/* Base Reference Badge */}
         {reference.isBaseReference && (
           <div className="absolute top-2 right-2">
-            <Badge className="bg-yellow-500 text-base-content text-xs">
+            <Badge className="bg-[#DC143C] text-base-content text-xs">
               Base
             </Badge>
           </div>
