@@ -13,6 +13,7 @@
   "dependencies": {
     "@auth/mongodb-adapter": "^3.7.4",
     "@aws-sdk/client-dynamodb": "^3.919.0",
+    "@aws-sdk/client-s3": "^3.922.0",
     "@aws-sdk/lib-dynamodb": "^3.919.0",
     "@clerk/nextjs": "^6.34.0",
     "@headlessui/react": "^2.2.0",
