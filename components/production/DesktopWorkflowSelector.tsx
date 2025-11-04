@@ -182,7 +182,11 @@ export function DesktopWorkflowSelector({
         jobId={currentJobId}
         workflowName={selectedWorkflow.name}
         onComplete={handleWorkflowComplete}
-        onCancel={handleStartNew}
+        onError={(error) => {
+          console.error('Workflow error:', error);
+          toast.error(`Workflow failed: ${error}`);
+          handleStartNew();
+        }}
       />
     );
   }
