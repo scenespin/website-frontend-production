@@ -154,7 +154,7 @@ export function SpeedSelector({ currentSpeed, clipDuration, onSelect, onClose }:
             </Button>
             <Button
               onClick={handleSelect}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white flex-1 sm:flex-initial"
+              className="bg-[#DC143C] hover:bg-indigo-700 text-white flex-1 sm:flex-initial"
             >
               Apply Speed
             </Button>

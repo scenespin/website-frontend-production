@@ -715,9 +715,9 @@ function Step3Generation({
                 {onSaveToGallery && (
                   <button
                     onClick={onSaveToGallery}
-                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 dark:hover:border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-all group"
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-[#DC143C] dark:border-[#8B0E2B] hover:border-[#DC143C] dark:hover:border-[#B91238] bg-[#DC143C]/10 dark:bg-[#DC143C]/10 hover:bg-[#DC143C]/20 dark:hover:bg-[#DC143C]/20 transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-full bg-[#DC143C] flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Upload className="w-6 h-6 text-base-content" />
                     </div>
                     <div className="text-center">

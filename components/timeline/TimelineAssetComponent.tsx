@@ -140,7 +140,7 @@ export function TimelineAssetComponent({
       case 'image':
         return 'bg-red-500 border-red-600';
       case 'text':
-        return 'bg-yellow-500 border-yellow-600';
+        return 'bg-orange-500 border-orange-600';
       default:
         return 'bg-base-content/50 border-base-content/30';
     }
@@ -374,7 +374,7 @@ export function TimelineAssetComponent({
       {/* Speed Indicator - NEW (Feature 0103) */}
       {asset.speed && asset.speed !== 1.0 && (
         <div 
-          className="absolute bottom-1 left-1 bg-indigo-600/95 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md font-bold"
+          className="absolute bottom-1 left-1 bg-[#DC143C]/95 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md font-bold"
           title={`Playback speed: ${asset.speed}x`}
         >
           <Gauge className="w-3 h-3" />

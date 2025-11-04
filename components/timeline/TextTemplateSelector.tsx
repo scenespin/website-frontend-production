@@ -86,7 +86,7 @@ export function TextTemplateSelector({ onSelect, onClose }: TextTemplateSelector
               variant={selectedCategory === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory('all')}
-              className={selectedCategory === 'all' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
+              className={selectedCategory === 'all' ? 'bg-[#DC143C] hover:bg-indigo-700' : ''}
             >
               All Templates ({BUILT_IN_TEMPLATES.length})
             </Button>
@@ -179,8 +179,8 @@ export function TextTemplateSelector({ onSelect, onClose }: TextTemplateSelector
                       
                       {/* Hover Overlay */}
                       {isHovered && (
-                        <div className="absolute inset-0 bg-indigo-600/10 backdrop-blur-[2px] flex items-center justify-center">
-                          <div className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
+                        <div className="absolute inset-0 bg-[#DC143C]/10 backdrop-blur-[2px] flex items-center justify-center">
+                          <div className="bg-[#DC143C] text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
                             <Check className="w-4 h-4" />
                             Select
                           </div>

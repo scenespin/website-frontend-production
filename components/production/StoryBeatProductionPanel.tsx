@@ -166,7 +166,7 @@ export default function StoryBeatProductionPanel({ projectId, storyBeats, onRefr
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 rounded-lg">
+          <div className="p-2 bg-[#DC143C]/10 rounded-lg">
             <Video className="w-5 h-5 text-blue-500" />
           </div>
           <div>

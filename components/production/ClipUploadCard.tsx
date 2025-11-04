@@ -181,7 +181,7 @@ export function ClipUploadCard({
                   </Badge>
                 )}
                 {isGenerating && (
-                  <Badge className="text-xs bg-blue-500">
+                  <Badge className="text-xs bg-[#DC143C]">
                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                     Generating
                   </Badge>
@@ -353,7 +353,7 @@ export function ClipUploadCard({
                       <div className={cn(
                         "p-3 rounded-full transition-colors",
                         isDragging 
-                          ? "bg-blue-500 text-base-content" 
+                          ? "bg-[#DC143C] text-base-content" 
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                       )}>
                         {isUploading ? (

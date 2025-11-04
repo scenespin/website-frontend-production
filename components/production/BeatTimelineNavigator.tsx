@@ -103,7 +103,7 @@ export function BeatTimelineNavigator({
       case 'generating':
         return 'text-blue-500 bg-[#DC143C]/10 border-blue-500/30';
       case 'planning':
-        return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30';
+        return 'text-orange-500 bg-orange-500/10 border-orange-500/30';
       case 'failed':
         return 'text-red-500 bg-red-500/10 border-red-500/30';
       default:
@@ -210,7 +210,7 @@ export function BeatTimelineNavigator({
                           ? 'bg-green-500' 
                           : status === 'generating'
                           ? 'bg-[#DC143C]'
-                          : 'bg-yellow-500'
+                          : 'bg-[#DC143C]'
                       )}
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}

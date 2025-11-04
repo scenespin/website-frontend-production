@@ -268,10 +268,10 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
 
   if (loading) {
     return (
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
+      <Card className="bg-[#141414] border border-slate-700 shadow-lg">
         <CardContent className="pt-6">
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C]"></div>
           </div>
         </CardContent>
       </Card>
@@ -283,11 +283,11 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
     const selectedLayoutData = layouts.find(l => l.id === selectedLayout);
     
     return (
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
-        <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 py-3">
-          <CardTitle className="flex items-center gap-2 text-base text-slate-900 dark:text-base-content">
-            <div className="p-1 bg-yellow-400 rounded">
-              <Layout className="w-3 h-3 text-black" />
+      <Card className="bg-[#141414] border border-slate-700 shadow-lg">
+        <CardHeader className="border-b border-slate-700 bg-[#1F1F1F] py-3">
+          <CardTitle className="flex items-center gap-2 text-base text-slate-200">
+            <div className="p-1 bg-[#DC143C] rounded">
+              <Layout className="w-3 h-3 text-white" />
             </div>
             Choose Layout
           </CardTitle>
@@ -352,8 +352,8 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
                   key={category.id}
                   className={`px-2 py-1 text-xs rounded-full whitespace-nowrap border transition-colors flex-shrink-0 ${
                     filter === category.id 
-                      ? 'bg-yellow-400 text-black border-yellow-500' 
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+                    ? 'bg-[#DC143C] text-white border-[#DC143C]' 
+                    : 'bg-slate-800 text-slate-300 border-slate-700'
                   }`}
                   onClick={() => setFilter(category.id)}
                 >
@@ -363,8 +363,8 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
             </div>
 
             {/* Mobile Info Message */}
-            <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-700 rounded-lg">
-              <p className="text-xs text-blue-800 dark:text-blue-200">
+            <div className="p-2.5 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
+              <p className="text-xs text-[#DC143C]">
                 💻 Desktop has {layouts.length - filteredLayouts.length} more advanced layouts
               </p>
             </div>
@@ -376,11 +376,11 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
 
   // DESKTOP: Full grid layout selector
   return (
-    <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg">
-      <CardHeader className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-        <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-base-content">
-          <div className="p-1.5 bg-yellow-400 rounded">
-            <Layout className="w-4 h-4 text-black" />
+    <Card className="bg-[#141414] border border-slate-700 shadow-lg">
+      <CardHeader className="border-b border-slate-700 bg-[#1F1F1F]">
+        <CardTitle className="flex items-center gap-2 text-slate-200">
+          <div className="p-1.5 bg-[#DC143C] rounded">
+            <Layout className="w-4 h-4 text-white" />
           </div>
           Choose Your Layout
         </CardTitle>
@@ -396,8 +396,8 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
               size="sm"
               className={`border-2 transition-all ${
                 filter === category.id 
-                  ? 'bg-yellow-400 text-black border-yellow-500 hover:bg-[#DC143C]' 
-                  : 'border-slate-200 dark:border-slate-700 hover:border-yellow-400'
+                  ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B91238]' 
+                  : 'border-slate-700 hover:border-[#DC143C]'
               }`}
               onClick={() => setFilter(category.id)}
             >
@@ -423,15 +423,15 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
               >
                 <Card className={`transition-all border-2 ${
                   isSelected 
-                    ? 'border-yellow-500 shadow-lg shadow-yellow-500/20 bg-yellow-50 dark:bg-yellow-900/10' 
-                    : 'border-slate-200 dark:border-slate-700 hover:border-yellow-400 bg-slate-50 dark:bg-slate-900'
+                    ? 'border-[#DC143C] shadow-lg shadow-[#DC143C]/20 bg-[#1F1F1F]' 
+                    : 'border-slate-700 hover:border-[#DC143C] bg-[#141414] hover:bg-[#1A1A1A]'
                 }`}>
                   <CardContent className="p-4">
                     {/* Preview */}
                     <div className={`rounded-lg p-4 mb-3 transition-colors ${
                       isSelected 
-                        ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400' 
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
+                        ? 'bg-[#DC143C]/20 text-[#DC143C]' 
+                        : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'
                     }`}>
                       {renderLayoutPreview(layout)}
                     </div>
@@ -439,10 +439,10 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
                     {/* Info */}
                     <div className="space-y-2">
                       <div className="flex items-start justify-between">
-                        <h3 className="font-semibold text-slate-900 dark:text-base-content">{layout.name}</h3>
+                        <h3 className="font-semibold text-slate-200">{layout.name}</h3>
                         {isSelected && (
-                          <div className="flex-shrink-0 p-1 bg-yellow-400 rounded-full">
-                            <Check className="w-3 h-3 text-black" />
+                          <div className="flex-shrink-0 p-1 bg-[#DC143C] rounded-full">
+                            <Check className="w-3 h-3 text-white" />
                           </div>
                         )}
                         {isLocked && (

@@ -235,10 +235,10 @@ export default function Asset3DExportModal({ isOpen, onClose, asset, onSuccess }
               </div>
 
               {/* Warning */}
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 flex gap-3">
+                <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="text-yellow-500 font-medium mb-1">Files expire in 7 days</p>
+                  <p className="text-orange-500 font-medium mb-1">Files expire in 7 days</p>
                   <p className="text-slate-400">
                     3D models are stored temporarily. Download immediately or save to your cloud storage.
                   </p>
@@ -314,7 +314,7 @@ export default function Asset3DExportModal({ isOpen, onClose, asset, onSuccess }
                   </div>
 
                   {jobStatus.daysRemaining !== undefined && (
-                    <div className="mt-6 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-slate-400 max-w-md mx-auto">
+                    <div className="mt-6 bg-[#DC143C]/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-slate-400 max-w-md mx-auto">
                       ⚠️ Files expire in {jobStatus.daysRemaining} day{jobStatus.daysRemaining !== 1 ? 's' : ''}
                     </div>
                   )}

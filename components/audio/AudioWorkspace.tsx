@@ -477,7 +477,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
             disabled={isProcessing}
             className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
               provider === 'elevenlabs'
-                ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-[#DC143C]'
                 : 'border-border hover:border-purple-500/50 text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -510,7 +510,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
           <div className="flex items-start gap-3">
             <UserCircle className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 mb-2">
+              <p className="text-sm font-semibold text-purple-600 dark:text-[#DC143C] mb-2">
                 🎭 Use Your Own Voice!
               </p>
               <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
@@ -1159,7 +1159,7 @@ function AudioDubbingTab({ isProcessing, setIsProcessing, setResult, setError }:
       <div className="p-3 rounded-md bg-purple-500/10 border border-purple-500/20">
         <div className="flex items-start gap-2">
           <Info className="w-4 h-4 text-purple-500 mt-0.5" />
-          <div className="text-xs text-purple-600 dark:text-purple-400">
+          <div className="text-xs text-purple-600 dark:text-[#DC143C]">
             <p className="font-medium mb-1">🌍 Audio Dubbing:</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>Translates speech to target language</li>
@@ -1491,7 +1491,7 @@ function TranscriptionTab({ isProcessing, setIsProcessing, setResult, setError }
       <div className="p-3 rounded-md bg-purple-500/10 border border-purple-500/20">
         <div className="flex items-start gap-2">
           <Info className="w-4 h-4 text-purple-500 mt-0.5" />
-          <div className="text-xs text-purple-600 dark:text-purple-400">
+          <div className="text-xs text-purple-600 dark:text-[#DC143C]">
             <p className="font-medium mb-1">📝 Speech-to-Text with ElevenLabs Scribe:</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>99 languages with auto-detection</li>
@@ -1633,7 +1633,7 @@ function TranscriptionTab({ isProcessing, setIsProcessing, setResult, setError }
       <div className="p-3 rounded-lg bg-accent/10 border border-border/50">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">💳 Cost:</span>
-          <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+          <span className="text-sm font-bold text-purple-600 dark:text-[#DC143C]">
             5 credits per minute
           </span>
         </div>
@@ -1704,7 +1704,7 @@ function TranscriptionTab({ isProcessing, setIsProcessing, setResult, setError }
                   {transcript.words.slice(0, 100).map((word: any, i: number) => (
                     <span
                       key={i}
-                      className="px-2 py-1 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                      className="px-2 py-1 rounded bg-purple-500/10 text-purple-600 dark:text-[#DC143C]"
                       title={`${word.start.toFixed(2)}s - ${word.end.toFixed(2)}s`}
                     >
                       {word.word}

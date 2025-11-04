@@ -65,7 +65,7 @@ const ButtonPopover = () => {
                     </div>
                   </div>
                   <div className="text-sm flex items-center gap-3 p-2 cursor-pointer hover:bg-base-200 rounded-lg duration-200">
-                    <span className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-yellow-500/20">
+                    <span className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-[#DC143C]/20">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"

@@ -346,7 +346,7 @@ export default function AssetDetailModal({
                     </button>
                   )}
                   {!canExport3D && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-slate-400">
+                    <div className="bg-[#DC143C]/10 border border-yellow-500/30 rounded-lg p-3 text-sm text-slate-400">
                       ⚠️ Need {2 - asset.images.length} more image{(2 - asset.images.length) !== 1 ? 's' : ''} for 3D export
                     </div>
                   )}

@@ -46,7 +46,7 @@ const PRODUCTION_STAGES: ProductionStageConfig[] = [
     label: 'Screenplay',
     icon: <FileText className="w-5 h-5" />,
     description: 'Write your script in Fountain format',
-    color: 'bg-blue-500'
+    color: 'bg-[#DC143C]'
   },
   {
     id: 'shotlist',

@@ -37,7 +37,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
   const getRoleIcon = (role) => {
     const roleLower = role.toLowerCase();
     if (roleLower.includes('director') || roleLower.includes('owner')) {
-      return <Shield className="w-4 h-4 text-purple-400" />;
+      return <Shield className="w-4 h-4 text-[#DC143C]" />;
     } else if (roleLower.includes('viewer')) {
       return <Eye className="w-4 h-4 text-blue-400" />;
     } else if (roleLower.includes('editor') || roleLower.includes('writer')) {
@@ -49,9 +49,9 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
   const getRoleBadgeColor = (role) => {
     const roleLower = role.toLowerCase();
     if (roleLower.includes('director') || roleLower.includes('owner')) {
-      return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+      return 'bg-purple-500/10 text-[#DC143C] border-purple-500/20';
     } else if (roleLower.includes('viewer')) {
-      return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+      return 'bg-[#DC143C]/10 text-blue-400 border-blue-500/20';
     } else if (roleLower.includes('writer')) {
       return 'bg-green-500/10 text-green-400 border-green-500/20';
     } else if (roleLower.includes('contributor')) {
@@ -77,7 +77,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-purple-500/10 rounded-lg">
-            <Users className="w-5 h-5 text-purple-400" />
+            <Users className="w-5 h-5 text-[#DC143C]" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-base-content">Project Collaborators</h3>
@@ -106,7 +106,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+          <Loader2 className="w-6 h-6 text-[#DC143C] animate-spin" />
         </div>
       )}
 
@@ -144,7 +144,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                       />
                     ) : (
                       <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Users className="w-5 h-5 text-purple-400" />
+                        <Users className="w-5 h-5 text-[#DC143C]" />
                       </div>
                     )}
 
@@ -214,7 +214,7 @@ export function CollaborationPanel({ projectId, isOwner = true }) {
                         className="p-2 hover:bg-purple-500/10 rounded transition-colors"
                         title="Change role"
                       >
-                        <Edit3 className="w-4 h-4 text-base-content/60 hover:text-purple-400" />
+                        <Edit3 className="w-4 h-4 text-base-content/60 hover:text-[#DC143C]" />
                       </button>
                     )}
 

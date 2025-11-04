@@ -725,9 +725,9 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
               </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
               {/* Left: Configuration */}
-              <div className="lg:col-span-2 space-y-3">
+              <div className="lg:col-span-2 space-y-2">
                 {/* Composition Type Selector - Refined */}
                 <Card className="bg-[#141414] border border-white/10 shadow-lg">
                   <CardHeader className="border-b border-white/10 bg-[#1F1F1F] p-2 pb-2">
@@ -741,21 +741,21 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                       Choose your composition style
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-2 pb-2">
-                    <div className={`grid gap-2 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                  <CardContent className="pt-1.5 pb-1.5">
+                    <div className={`grid gap-1.5 ${isMobileView ? 'grid-cols-1' : 'grid-cols-3'}`}>
                       <Button
                         variant="outline"
-                        className={`h-16 flex flex-col gap-1 border-2 transition-all ${
+                        className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
                           compositionType === 'static' 
                             ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                             : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                         }`}
                         onClick={() => setCompositionType('static')}
                       >
-                        <Film className="w-5 h-5" />
+                        <Film className="w-4 h-4" />
                         <div className="text-center">
-                          <div className="font-bold text-xs">Static</div>
-                          <div className="text-[10px] opacity-70">Multi-panel layouts</div>
+                          <div className="font-bold text-[10px]">Static</div>
+                          <div className="text-[9px] opacity-70">Multi-panel</div>
                         </div>
                       </Button>
                       {/* Hide Advanced types on mobile - Feature 0068 */}
@@ -763,67 +763,67 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         <>
                           <Button
                             variant="outline"
-                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
                               compositionType === 'podcast' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('podcast')}
                           >
-                            <Users className="w-5 h-5" />
+                            <Users className="w-4 h-4" />
                             <div className="text-center">
-                              <div className="font-bold text-xs">🎙️ Podcast</div>
-                              <div className="text-[10px] opacity-70">Side-by-side interview</div>
+                              <div className="font-bold text-[10px]">🎙️ Podcast</div>
+                              <div className="text-[9px] opacity-70">Interview</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
                               compositionType === 'social-media' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('social-media')}
                           >
-                            <Smartphone className="w-5 h-5" />
+                            <Smartphone className="w-4 h-4" />
                             <div className="text-center">
-                              <div className="font-bold text-xs">📱 Social</div>
-                              <div className="text-[10px] opacity-70">Vertical/square format</div>
+                              <div className="font-bold text-[10px]">📱 Social</div>
+                              <div className="text-[9px] opacity-70">Vertical</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
                               compositionType === 'animated' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('animated')}
                           >
-                            <Sparkles className="w-5 h-5" />
+                            <Sparkles className="w-4 h-4" />
                             <div className="text-center">
-                              <div className="font-bold text-xs">Animated</div>
-                              <div className="text-[10px] opacity-70">Motion graphics</div>
+                              <div className="font-bold text-[10px]">Animated</div>
+                              <div className="text-[9px] opacity-70">Motion</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
                               compositionType === 'paced' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
                             }`}
                             onClick={() => setCompositionType('paced')}
                           >
-                            <Clock className="w-5 h-5" />
+                            <Clock className="w-4 h-4" />
                             <div className="text-center">
-                              <div className="font-bold text-xs">Paced</div>
-                              <div className="text-[10px] opacity-70">Emotional timing</div>
+                              <div className="font-bold text-[10px]">Paced</div>
+                              <div className="text-[9px] opacity-70">Timing</div>
                             </div>
                           </Button>
                           <Button
                             variant="outline"
-                            className={`h-16 flex flex-col gap-1 border-2 transition-all ${
+                            className={`h-12 flex flex-col gap-0.5 border-2 transition-all ${
                               compositionType === 'music-video' 
                                 ? 'bg-[#DC143C] text-white border-[#DC143C] hover:bg-[#B01030] shadow-lg' 
                                 : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-[#DC143C] hover:bg-slate-700'
@@ -1356,15 +1356,15 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                 </Card>
 
                 {/* Director's Tips - Yellow Accent */}
-                <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-2 border-red-300 dark:border-red-700 shadow-md">
-                  <CardHeader className="border-b-2 border-red-300 dark:border-red-700 p-2 pb-2">
-                    <CardTitle className="text-xs flex items-center gap-2 text-red-900 dark:text-red-100">
+                <Card className="bg-[#141414] border border-[#DC143C]/30 shadow-md">
+                  <CardHeader className="border-b-2 border-[#DC143C]/20 p-2 pb-2">
+                    <CardTitle className="text-xs flex items-center gap-2 text-[#DC143C]">
                       <span>🎬</span>
                       Director&apos;s Tips
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-2">
-                    <ul className="text-sm text-red-900 dark:text-red-100 space-y-2">
+                    <ul className="text-sm text-slate-300 space-y-2">
                       <li className="flex items-start gap-2">
                         <span className="text-red-600 dark:text-red-400">•</span>
                         <span>Use 9:16 aspect ratio for phone call layouts</span>

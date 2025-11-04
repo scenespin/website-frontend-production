@@ -81,7 +81,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
           <div className="flex items-center justify-between p-6 border-b border-purple-500/20">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-500/10 rounded-lg">
-                <UserPlus className="w-5 h-5 text-purple-400" />
+                <UserPlus className="w-5 h-5 text-[#DC143C]" />
               </div>
               <h2 className="text-xl font-semibold text-base-content">Add Collaborator</h2>
             </div>
@@ -142,7 +142,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="text-purple-400">{getRoleIcon(role.id)}</div>
+                          <div className="text-[#DC143C]">{getRoleIcon(role.id)}</div>
                           <div className="font-medium text-base-content">{role.name}</div>
                         </div>
                         <div className="text-sm text-base-content/60 mb-2">{role.description}</div>
@@ -160,7 +160,7 @@ export function AddCollaboratorModal({ isOpen, onClose, onAdd, roles }) {
                             </span>
                           )}
                           {role.capabilities.canManageAssets && (
-                            <span className="flex items-center gap-1 px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded">
+                            <span className="flex items-center gap-1 px-2 py-1 bg-purple-500/10 text-[#DC143C] text-xs rounded">
                               <CheckCircle className="w-3 h-3" />
                               Manage Assets
                             </span>

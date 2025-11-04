@@ -101,7 +101,7 @@ export function ProductionStudio({
                 </p>
                 <button
                   onClick={() => setCurrentStage('screenplay')}
-                  className="mt-4 px-4 py-2 bg-yellow-400 text-black rounded-lg font-bold hover:bg-yellow-500"
+                  className="mt-4 px-4 py-2 bg-yellow-400 text-black rounded-lg font-bold hover:bg-[#DC143C]"
                 >
                   ← Back to Screenplay
                 </button>
