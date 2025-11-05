@@ -1164,8 +1164,15 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                         onClick={() => {
                           const selectedIds = Array.from(timeline.selectedClips);
                           if (selectedIds.length === 1) {
-                            setSelectedClipForSpeed(selectedIds[0]);
-                            setShowSpeedSelector(true);
+                            const asset = timeline.assets.find(a => a.id === selectedIds[0]);
+                            if (asset) {
+                              setSelectedClipForSpeed({
+                                id: asset.id,
+                                currentSpeed: asset.speed || 1,
+                                duration: asset.duration || 0
+                              });
+                              setShowSpeedSelector(true);
+                            }
                           }
                           setShowDesktopToolsMenu(false);
                         }}
