@@ -139,6 +139,9 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
   // NEW: Audio Agent drawer state (UnifiedChatPanel in audio-only mode)
   const [showAudioAgent, setShowAudioAgent] = useState(false);
   
+  // NEW: Desktop Tools Menu state
+  const [showDesktopToolsMenu, setShowDesktopToolsMenu] = useState(false);
+  
   // NEW: Mobile More Menu state
   const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false);
   
@@ -930,6 +933,18 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
 
           {/* Center: Playback Controls */}
           <div className="flex items-center gap-2">
+            {/* NEW: Jump to Start Button (Desktop) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={timeline.jumpToStart}
+              title="Jump to start (Home)"
+              className="hidden md:flex"
+            >
+              <SkipBack className="w-4 h-4" />
+              <SkipBack className="w-4 h-4 -ml-3" />
+            </Button>
+            
             <Button
               variant="ghost"
               size="sm"
@@ -965,6 +980,18 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
               title="Skip forward 5s"
             >
               <SkipForward className="w-4 h-4" />
+            </Button>
+            
+            {/* NEW: Jump to End Button (Desktop) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={timeline.jumpToEnd}
+              title="Jump to end (End)"
+              className="hidden md:flex"
+            >
+              <SkipForward className="w-4 h-4" />
+              <SkipForward className="w-4 h-4 -ml-3" />
             </Button>
 
             {/* NEW: Preview Mode Toggle (Feature 0103) */}
@@ -1057,6 +1084,222 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             </Button>
 
             <div className="w-px h-6 bg-slate-700 mx-2" />
+            
+            {/* NEW: Desktop Tools Dropdown (Feature Parity with Mobile) */}
+            <div className="relative hidden md:block">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDesktopToolsMenu(!showDesktopToolsMenu)}
+                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                title="All editing tools"
+              >
+                <Layers className="w-4 h-4 mr-2" />
+                Tools
+              </Button>
+              
+              {showDesktopToolsMenu && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowDesktopToolsMenu(false)}
+                  />
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-[600px] overflow-y-auto">
+                    {/* Header */}
+                    <div className="p-4 border-b border-slate-700">
+                      <h3 className="font-semibold text-lg text-slate-100">Timeline Tools</h3>
+                      <p className="text-xs text-slate-400 mt-1">Advanced editing features</p>
+                    </div>
+                    
+                    {/* Video Tools */}
+                    <div className="p-4 space-y-2">
+                      <h4 className="text-sm font-semibold text-slate-300 mb-3">📹 Video Tools</h4>
+                      
+                      <button
+                        onClick={() => {
+                          const selectedIds = Array.from(timeline.selectedClips);
+                          if (selectedIds.length === 1) {
+                            setSelectedClipForTransition(selectedIds[0]);
+                            setShowTransitionPicker(true);
+                          }
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        disabled={timeline.selectedClips.size !== 1}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+                          <Film className="w-5 h-5 text-indigo-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Transitions</div>
+                          <div className="text-xs text-slate-400">55 Hollywood transitions</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const selectedIds = Array.from(timeline.selectedClips);
+                          if (selectedIds.length === 1) {
+                            setSelectedClipForLUT(selectedIds[0]);
+                            setShowLUTPicker(true);
+                          }
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        disabled={timeline.selectedClips.size !== 1}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                          <ImageIcon className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Color Filters</div>
+                          <div className="text-xs text-slate-400">34 cinematic filters</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const selectedIds = Array.from(timeline.selectedClips);
+                          if (selectedIds.length === 1) {
+                            setSelectedClipForSpeed(selectedIds[0]);
+                            setShowSpeedSelector(true);
+                          }
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        disabled={timeline.selectedClips.size !== 1}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-5 h-5 text-orange-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Speed Control</div>
+                          <div className="text-xs text-slate-400">0.25x - 4x speed</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const selectedIds = Array.from(timeline.selectedClips);
+                          if (selectedIds.length === 1) {
+                            const asset = timeline.assets.find(a => a.id === selectedIds[0]);
+                            if (asset) {
+                              timeline.updateAsset(asset.id, { ...asset, reverse: !asset.reverse });
+                              toast.success(`${!asset.reverse ? '🔄' : '➡️'} Reverse ${!asset.reverse ? 'ON' : 'OFF'}`);
+                            }
+                          }
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        disabled={timeline.selectedClips.size !== 1}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Reverse</div>
+                          <div className="text-xs text-slate-400">Play clip backwards</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const selectedIds = Array.from(timeline.selectedClips);
+                          if (selectedIds.length === 1) {
+                            setSelectedClipForEffects(selectedIds[0]);
+                            setShowEffectsPanel(true);
+                          }
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        disabled={timeline.selectedClips.size !== 1}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center flex-shrink-0">
+                          <Sparkles className="w-5 h-5 text-pink-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Effects</div>
+                          <div className="text-xs text-slate-400">10 visual effects</div>
+                        </div>
+                      </button>
+                    </div>
+                    
+                    {/* Audio Tools */}
+                    <div className="p-4 border-t border-slate-700 space-y-2">
+                      <h4 className="text-sm font-semibold text-slate-300 mb-3">🎵 Audio Tools</h4>
+                      
+                      <button
+                        onClick={() => {
+                          setShowAudioAgent(true);
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                          <Music className="w-5 h-5 text-green-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Audio Agent</div>
+                          <div className="text-xs text-slate-400">Generate music & SFX</div>
+                        </div>
+                      </button>
+                    </div>
+                    
+                    {/* Timeline Settings */}
+                    <div className="p-4 border-t border-slate-700 space-y-2">
+                      <h4 className="text-sm font-semibold text-slate-300 mb-3">⚙️ Timeline Settings</h4>
+                      
+                      <button
+                        onClick={() => {
+                          timeline.setSnapToGrid(!timeline.snapToGrid);
+                          toast.success(timeline.snapToGrid ? '📐 Snap to Grid OFF' : '📐 Snap to Grid ON');
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Snap to Grid</div>
+                          <div className="text-xs text-slate-400">{timeline.snapToGrid ? 'ON' : 'OFF'} - Frame-accurate</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setShowAudioTracks(!showAudioTracks);
+                          setShowDesktopToolsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+                          {showAudioTracks ? <Maximize2 className="w-5 h-5 text-slate-400" /> : <Minimize2 className="w-5 h-5 text-slate-400" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-200">Audio Tracks</div>
+                          <div className="text-xs text-slate-400">{showAudioTracks ? 'Visible' : 'Hidden'}</div>
+                        </div>
+                      </button>
+                    </div>
+                    
+                    {/* Help Text */}
+                    <div className="p-4 bg-slate-800/50 border-t border-slate-700">
+                      <p className="text-xs text-slate-400 text-center">
+                        Select a clip to enable editing tools
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             
             {/* NEW: Desktop Add Media Button (Feature 0070) */}
             <Button

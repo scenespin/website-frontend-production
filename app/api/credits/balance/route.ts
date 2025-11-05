@@ -1,7 +1,7 @@
 /**
- * Composition Layouts API Route
+ * Credits Balance API Route
  * 
- * Proxies requests to backend composition layouts service
+ * Proxies requests to backend credits service
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const token = await getToken();
 
     if (!token) {
-      console.error('[Composition Layouts] No auth token');
+      console.error('[Credits Balance] No auth token');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/composition/layouts`;
+    const url = `${backendUrl}/api/credits/balance`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -40,10 +40,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error('[Composition Layouts] API error:', error);
+    console.error('[Credits Balance] API error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
 }
+
