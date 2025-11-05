@@ -243,8 +243,7 @@ export default function Page() {
                   <div className="text-5xl mb-3">👥</div>
                   <h3 className="card-title text-xl mb-2">5 Collaboration Roles</h3>
                   <p className="text-sm opacity-80 mb-4">
-                    <strong>Manage everything from the software</strong> - no GitHub expertise needed.
-                    Add teammates in seconds. <strong>Permissions sync across GitHub + your cloud storage automatically.</strong>
+                    <strong>Manage everything from the software</strong> - no GitHub expertise needed. Add teammates in seconds.
                   </p>
                   <div className="space-y-2 text-xs opacity-70">
                     <div className="flex items-start gap-2">
