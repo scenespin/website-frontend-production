@@ -1194,8 +1194,8 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                           if (selectedIds.length === 1) {
                             const asset = timeline.assets.find(a => a.id === selectedIds[0]);
                             if (asset) {
-                              timeline.updateAsset(asset.id, { ...asset, reverse: !asset.reverse });
-                              toast.success(`${!asset.reverse ? '🔄' : '➡️'} Reverse ${!asset.reverse ? 'ON' : 'OFF'}`);
+                              timeline.updateAsset(asset.id, { ...asset, reversed: !asset.reversed });
+                              toast.success(`${!asset.reversed ? '🔄' : '➡️'} Reverse ${!asset.reversed ? 'ON' : 'OFF'}`);
                             }
                           }
                           setShowDesktopToolsMenu(false);
