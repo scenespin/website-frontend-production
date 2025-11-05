@@ -15,6 +15,7 @@
     "@aws-sdk/client-dynamodb": "^3.919.0",
     "@aws-sdk/client-s3": "^3.922.0",
     "@aws-sdk/lib-dynamodb": "^3.919.0",
+    "@aws-sdk/s3-request-presigner": "^3.922.0",
     "@clerk/nextjs": "^6.34.0",
     "@headlessui/react": "^2.2.0",
     "@hello-pangea/dnd": "^18.0.1",
