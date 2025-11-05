@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const S3_BUCKET = process.env.S3_BUCKET || 'wryda-assets';
+const S3_BUCKET = process.env.S3_BUCKET || 'screenplay-assets-043309365215';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 // Initialize S3 client

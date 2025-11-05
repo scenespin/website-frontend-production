@@ -170,7 +170,7 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
       }
       
       // Step 3: Generate S3 URL
-      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-assets';
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
       const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
       const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
       
