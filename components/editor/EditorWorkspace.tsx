@@ -249,7 +249,10 @@ Tip:
                                                 <p className="text-xs text-success">✓ Auto-syncing every 30 seconds</p>
                                             </div>
                                             <button 
-                                                onClick={() => screenplay.disconnectGitHub()}
+                                                onClick={() => {
+                                                    screenplay.disconnect();
+                                                    setGithubConfig(null);
+                                                }}
                                                 className="btn btn-error btn-sm"
                                             >
                                                 Disconnect GitHub
@@ -267,7 +270,8 @@ Tip:
                                                     const owner = prompt('Enter repository owner (username):');
                                                     const repo = prompt('Enter repository name:');
                                                     if (token && owner && repo) {
-                                                        screenplay.connectGitHub(token, owner, repo);
+                                                        screenplay.connect(token, owner, repo);
+                                                        setGithubConfig({ token, owner, repo });
                                                     }
                                                 }}
                                                 className="btn btn-primary"

@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { Cloud, Download, Clock, Check, Loader2, X } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 
 interface MusicStorageModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
   const [error, setError] = useState<string | null>(null);
   const [selectedStorage, setSelectedStorage] = useState<'google-drive' | 'dropbox' | 'temp' | null>(null);
 
+  const { getToken } = useAuth();
+
   if (!isOpen) return null;
 
   const handleSaveToCloud = async (storage: 'google-drive' | 'dropbox') => {
@@ -41,8 +44,8 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
       // Generate filename
       const filename = `${musicData.title || 'music'}-${Date.now()}.mp3`.replace(/\s+/g, '-');
 
-      // Get auth token
-      const token = localStorage.getItem('cognito_id_token');
+      // Get auth token from Clerk
+      const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated. Please sign in.');
       }

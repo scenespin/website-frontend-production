@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 interface StorageConnection {
   provider: string;
@@ -31,15 +32,27 @@ export function useStorageConnections(): StorageConnections {
   const [error, setError] = useState<string | null>(null);
   const [connections, setConnections] = useState<StorageConnection[]>([]);
 
+  const { getToken, isSignedIn } = useAuth();
+
   const fetchConnections = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get auth token
-      const token = localStorage.getItem('cognito_id_token');
-      if (!token) {
+      // Check if user is signed in
+      if (!isSignedIn) {
         // User not logged in - silently set connections to false
+        setGoogleDrive(false);
+        setDropbox(false);
+        setConnections([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get auth token from Clerk
+      const token = await getToken();
+      if (!token) {
+        // No token available - user not authenticated
         setGoogleDrive(false);
         setDropbox(false);
         setConnections([]);
@@ -78,7 +91,7 @@ export function useStorageConnections(): StorageConnections {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [getToken, isSignedIn]);
 
   // Fetch on mount
   useEffect(() => {

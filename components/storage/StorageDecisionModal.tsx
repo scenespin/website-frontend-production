@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { Cloud, Download, Clock, Check, Loader2, X, Image, Video, Film } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 import { useStorageConnections } from '@/hooks/useStorageConnections';
 
 type AssetType = 'image' | 'video' | 'composition';
@@ -42,6 +43,7 @@ export function StorageDecisionModal({
   const [error, setError] = useState<string | null>(null);
   const [selectedStorage, setSelectedStorage] = useState<StorageLocation | null>(null);
   
+  const { getToken } = useAuth();
   const { googleDrive, dropbox, isLoading: connectionsLoading } = useStorageConnections();
 
   if (!isOpen) return null;
@@ -52,8 +54,8 @@ export function StorageDecisionModal({
     setSelectedStorage(storage);
 
     try {
-      // Get auth token
-      const token = localStorage.getItem('cognito_id_token');
+      // Get auth token from Clerk
+      const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated. Please sign in.');
       }
@@ -107,8 +109,8 @@ export function StorageDecisionModal({
     setSelectedStorage('download');
 
     try {
-      // Get auth token
-      const token = localStorage.getItem('cognito_id_token');
+      // Get auth token from Clerk
+      const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated. Please sign in.');
       }
