@@ -184,12 +184,12 @@ export default function Page() {
                   <div className="flex-grow">
                     <div className="text-5xl mb-3">📚</div>
                     <h3 className="card-title text-xl mb-2">GitHub Version Control</h3>
-                    <p className="text-sm opacity-80 mb-4">
+                    <p className="text-sm opacity-80">
                       Screenplay + Timeline backed up to <strong>YOUR GitHub repository</strong> every 10 seconds.
                       Full version history, branch management, revert anytime.
                     </p>
                   </div>
-                  <div className="space-y-2 text-xs opacity-70 mt-auto pt-4">
+                  <div className="space-y-2 text-xs opacity-70 mt-4 pt-4">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
                       <span>Auto-save every 10 seconds</span>
@@ -215,12 +215,12 @@ export default function Page() {
                   <div className="flex-grow">
                     <div className="text-5xl mb-3">☁️</div>
                     <h3 className="card-title text-xl mb-2">Your Cloud Storage</h3>
-                    <p className="text-sm opacity-80 mb-4">
+                    <p className="text-sm opacity-80">
                       Videos, audio, images stored in <strong>YOUR Google Drive or Dropbox</strong>.
                       We store files for 7 days max, then YOU choose where they go.
                     </p>
                   </div>
-                  <div className="space-y-2 text-xs opacity-70 mt-auto pt-4">
+                  <div className="space-y-2 text-xs opacity-70 mt-4 pt-4">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
                       <span>Choose Google Drive or Dropbox</span>
