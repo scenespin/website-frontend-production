@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import config from "@/config";
 import { setAuthTokenGetter } from "@/lib/api";
+import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 
 // Auth Initializer: Sets up Clerk token getter for API calls
 // This MUST run before any API calls are made
@@ -68,10 +69,11 @@ const CrispChat = () => {
 // 3. Toaster: Show Success/Error messages anywhere from the app with toast()
 // 4. Tooltip: Show tooltips if any JSX elements has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content=""
 // 5. CrispChat: Set Crisp customer chat support (see above)
+// 6. ScreenplayProvider: Provides screenplay context for beats, characters, and locations
 // Note: No SessionProvider needed - Clerk handles auth via ClerkProvider in layout.js
 const ClientLayout = ({ children }) => {
   return (
-    <>
+    <ScreenplayProvider>
       {/* Initialize auth token getter FIRST before any API calls */}
       <AuthInitializer />
 
@@ -96,7 +98,7 @@ const ClientLayout = ({ children }) => {
 
       {/* Set Crisp customer chat support */}
       <CrispChat />
-    </>
+    </ScreenplayProvider>
   );
 };
 

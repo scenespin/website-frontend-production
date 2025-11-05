@@ -28,3 +28,347 @@
 [33m57cb0db[m fix: add Suspense boundary to /write page
 [33me01a0e4[m feat: add podcast/social media composition types + fix composition page Suspense
 [33m6501b70[m feat: add music video beat-sync composition mode + fix assets page Suspense
+[1mdiff --git a/app/api/character-bank/list/route.ts b/app/api/character-bank/list/route.ts[m
+[1mindex f50099a..2d14a22 100644[m
+[1m--- a/app/api/character-bank/list/route.ts[m
+[1m+++ b/app/api/character-bank/list/route.ts[m
+[36m@@ -11,7 +11,7 @@[m [mexport async function GET(request: NextRequest) {[m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       return NextResponse.json([m
+[1mdiff --git a/app/api/composition/animations/route.ts b/app/api/composition/animations/route.ts[m
+[1mindex 6c0eabf..d77515e 100644[m
+[1m--- a/app/api/composition/animations/route.ts[m
+[1m+++ b/app/api/composition/animations/route.ts[m
+[36m@@ -11,7 +11,7 @@[m [mexport async function GET(request: NextRequest) {[m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       return NextResponse.json([m
+[1mdiff --git a/app/api/composition/layouts/route.ts b/app/api/composition/layouts/route.ts[m
+[1mindex 823b884..1a0dfb1 100644[m
+[1m--- a/app/api/composition/layouts/route.ts[m
+[1m+++ b/app/api/composition/layouts/route.ts[m
+[36m@@ -10,7 +10,7 @@[m [mimport { auth } from '@clerk/nextjs/server';[m
+ export async function GET(request: NextRequest) {[m
+   try {[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       console.error('[Composition Layouts] No auth token');[m
+[1mdiff --git a/app/api/composition/pacing/route.ts b/app/api/composition/pacing/route.ts[m
+[1mindex 6be96a3..be8214c 100644[m
+[1m--- a/app/api/composition/pacing/route.ts[m
+[1m+++ b/app/api/composition/pacing/route.ts[m
+[36m@@ -11,7 +11,7 @@[m [mexport async function GET(request: NextRequest) {[m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       return NextResponse.json([m
+[1mdiff --git a/app/api/credits/balance/route.ts b/app/api/credits/balance/route.ts[m
+[1mindex c555341..cc6f271 100644[m
+[1m--- a/app/api/credits/balance/route.ts[m
+[1m+++ b/app/api/credits/balance/route.ts[m
+[36m@@ -9,13 +9,19 @@[m [mimport { auth } from '@clerk/nextjs/server';[m
+ [m
+ export async function GET(request: NextRequest) {[m
+   try {[m
+[31m-    const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    console.log('[Credits Balance] Starting request...');[m
+[32m+[m[32m    const { getToken, userId } = await auth();[m
+[32m+[m[32m    console.log('[Credits Balance] Auth result - userId:', userId);[m
+[32m+[m[41m    [m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+[32m+[m[32m    console.log('[Credits Balance] Token result:', token ? 'Token received (length: ' + token.length + ')' : 'NO TOKEN RECEIVED');[m
+ [m
+     if (!token) {[m
+[31m-      console.error('[Credits Balance] No auth token');[m
+[32m+[m[32m      console.error('[Credits Balance] ❌ No auth token - getToken returned null/undefined');[m
+[32m+[m[32m      console.error('[Credits Balance] Template requested: wryda-backend');[m
+[32m+[m[32m      console.error('[Credits Balance] UserId from auth:', userId);[m
+       return NextResponse.json([m
+[31m-        { error: 'Unauthorized' },[m
+[32m+[m[32m        { error: 'Unauthorized - Could not generate JWT token with template: wryda-backend' },[m
+         { status: 401 }[m
+       );[m
+     }[m
+[1mdiff --git a/app/api/projects/create/route.ts b/app/api/projects/create/route.ts[m
+[1mindex 577c42f..cb60b61 100644[m
+[1m--- a/app/api/projects/create/route.ts[m
+[1m+++ b/app/api/projects/create/route.ts[m
+[36m@@ -6,7 +6,7 @@[m [mconst BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai[m
+ export async function POST(request: Request) {[m
+   try {[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+     [m
+     if (!token) {[m
+       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });[m
+[1mdiff --git a/app/api/projects/list/route.ts b/app/api/projects/list/route.ts[m
+[1mindex aeb2c96..0e20b0b 100644[m
+[1m--- a/app/api/projects/list/route.ts[m
+[1m+++ b/app/api/projects/list/route.ts[m
+[36m@@ -10,7 +10,7 @@[m [mimport { auth } from '@clerk/nextjs/server';[m
+ export async function GET(request: NextRequest) {[m
+   try {[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       console.error('[Projects List] No auth token');[m
+[1mdiff --git a/app/api/rewrite/route.ts b/app/api/rewrite/route.ts[m
+[1mindex 7d0e684..c2d9a23 100644[m
+[1m--- a/app/api/rewrite/route.ts[m
+[1m+++ b/app/api/rewrite/route.ts[m
+[36m@@ -11,7 +11,7 @@[m [mexport async function POST(request: NextRequest) {[m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       console.error('[Rewrite] No auth token');[m
+[1mdiff --git a/app/api/timeline/project/[projectId]/route.ts b/app/api/timeline/project/[projectId]/route.ts[m
+[1mindex dd243e9..b8c8fd7 100644[m
+[1m--- a/app/api/timeline/project/[projectId]/route.ts[m
+[1m+++ b/app/api/timeline/project/[projectId]/route.ts[m
+[36m@@ -14,7 +14,7 @@[m [mexport async function GET([m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       return NextResponse.json([m
+[36m@@ -65,7 +65,7 @@[m [mexport async function PUT([m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       return NextResponse.json([m
+[1mdiff --git a/app/api/video/upload/get-presigned-url/route.ts b/app/api/video/upload/get-presigned-url/route.ts[m
+[1mindex 0f35c45..adf1379 100644[m
+[1m--- a/app/api/video/upload/get-presigned-url/route.ts[m
+[1m+++ b/app/api/video/upload/get-presigned-url/route.ts[m
+[36m@@ -28,7 +28,7 @@[m [mexport async function GET(request: Request) {[m
+   try {[m
+     // Get Clerk auth and user ID[m
+     const { getToken, userId: clerkUserId } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+     [m
+     if (!token || !clerkUserId) {[m
+       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });[m
+[1mdiff --git a/app/api/video/upload/route.ts b/app/api/video/upload/route.ts[m
+[1mindex 6a7e098..f324b6b 100644[m
+[1m--- a/app/api/video/upload/route.ts[m
+[1m+++ b/app/api/video/upload/route.ts[m
+[36m@@ -18,7 +18,7 @@[m [mexport async function POST(request: Request) {[m
+   try {[m
+     // Get Clerk auth and user ID[m
+     const { getToken, userId: clerkUserId } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+     [m
+     if (!token || !clerkUserId) {[m
+       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });[m
+[1mdiff --git a/app/api/workflows/list/route.ts b/app/api/workflows/list/route.ts[m
+[1mindex 0682dbf..6368d3c 100644[m
+[1m--- a/app/api/workflows/list/route.ts[m
+[1m+++ b/app/api/workflows/list/route.ts[m
+[36m@@ -11,7 +11,7 @@[m [mexport async function GET(request: NextRequest) {[m
+   try {[m
+     // Get auth token[m
+     const { getToken } = await auth();[m
+[31m-    const token = await getToken();[m
+[32m+[m[32m    const token = await getToken({ template: 'wryda-backend' });[m
+ [m
+     if (!token) {[m
+       console.error('[Workflows List] No auth token');[m
+[1mdiff --git a/components/timeline/EnhancedTimelineEditor.tsx b/components/timeline/EnhancedTimelineEditor.tsx[m
+[1mindex 2f444e0..7bcd2fe 100644[m
+[1m--- a/components/timeline/EnhancedTimelineEditor.tsx[m
+[1m+++ b/components/timeline/EnhancedTimelineEditor.tsx[m
+[36m@@ -1194,8 +1194,8 @@[m [mexport function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip[m
+                           if (selectedIds.length === 1) {[m
+                             const asset = timeline.assets.find(a => a.id === selectedIds[0]);[m
+                             if (asset) {[m
+[31m-                              timeline.updateAsset(asset.id, { ...asset, reverse: !asset.reverse });[m
+[31m-                              toast.success(`${!asset.reverse ? '🔄' : '➡️'} Reverse ${!asset.reverse ? 'ON' : 'OFF'}`);[m
+[32m+[m[32m                              timeline.updateAsset(asset.id, { ...asset, reversed: !asset.reversed });[m
+[32m+[m[32m                              toast.success(`${!asset.reversed ? '🔄' : '➡️'} Reverse ${!asset.reversed ? 'ON' : 'OFF'}`);[m
+                             }[m
+                           }[m
+                           setShowDesktopToolsMenu(false);[m
+[36m@@ -1261,25 +1261,6 @@[m [mexport function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip[m
+                     <div className="p-4 border-t border-slate-700 space-y-2">[m
+                       <h4 className="text-sm font-semibold text-slate-300 mb-3">⚙️ Timeline Settings</h4>[m
+                       [m
+[31m-                      <button[m
+[31m-                        onClick={() => {[m
+[31m-                          timeline.setSnapToGrid(!timeline.snapToGrid);[m
+[31m-                          toast.success(timeline.snapToGrid ? '📐 Snap to Grid OFF' : '📐 Snap to Grid ON');[m
+[31m-                          setShowDesktopToolsMenu(false);[m
+[31m-                        }}[m
+[31m-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"[m
+[31m-                      >[m
+[31m-                        <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">[m
+[31m-                          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+[31m-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />[m
+[31m-                          </svg>[m
+[31m-                        </div>[m
+[31m-                        <div className="flex-1 min-w-0">[m
+[31m-                          <div className="font-medium text-slate-200">Snap to Grid</div>[m
+[31m-                          <div className="text-xs text-slate-400">{timeline.snapToGrid ? 'ON' : 'OFF'} - Frame-accurate</div>[m
+[31m-                        </div>[m
+[31m-                      </button>[m
+[31m-                      [m
+                       <button[m
+                         onClick={() => {[m
+                           setShowAudioTracks(!showAudioTracks);[m
+[1mdiff --git a/package-lock.json b/package-lock.json[m
+[1mindex 0671890..8153518 100644[m
+[1m--- a/package-lock.json[m
+[1m+++ b/package-lock.json[m
+[36m@@ -13,6 +13,7 @@[m
+         "@aws-sdk/client-dynamodb": "^3.919.0",[m
+         "@aws-sdk/client-s3": "^3.922.0",[m
+         "@aws-sdk/lib-dynamodb": "^3.919.0",[m
+[32m+[m[32m        "@aws-sdk/s3-request-presigner": "^3.925.0",[m
+         "@clerk/nextjs": "^6.34.0",[m
+         "@headlessui/react": "^2.2.0",[m
+         "@hello-pangea/dnd": "^18.0.1",[m
+[36m@@ -7230,6 +7231,38 @@[m
+         "node": ">=18.0.0"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/@aws-sdk/s3-request-presigner": {[m
+[32m+[m[32m      "version": "3.925.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.925.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-RJE7cgvylkcnitZ1oaMQJoxS7oCZilf7472hH2qfS17L55Kx1RpwQjDcvRZ6IwmkpQuVMQX52jilhNmRa7xt1g==",[m
+[32m+[m[32m      "license": "Apache-2.0",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@aws-sdk/signature-v4-multi-region": "3.922.0",[m
+[32m+[m[32m        "@aws-sdk/types": "3.922.0",[m
+[32m+[m[32m        "@aws-sdk/util-format-url": "3.922.0",[m
+[32m+[m[32m        "@smithy/middleware-endpoint": "^4.3.6",[m
+[32m+[m[32m        "@smithy/protocol-http": "^5.3.4",[m
+[32m+[m[32m        "@smithy/smithy-client": "^4.9.2",[m
+[32m+[m[32m        "@smithy/types": "^4.8.1",[m
+[32m+[m[32m        "tslib": "^2.6.2"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=18.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@aws-sdk/s3-request-presigner/node_modules/@aws-sdk/types": {[m
+[32m+[m[32m      "version": "3.922.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@aws-sdk/types/-/types-3.922.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-eLA6XjVobAUAMivvM7DBL79mnHyrm+32TkXNWZua5mnxF+6kQCfblKKJvxMZLGosO53/Ex46ogim8IY5Nbqv2w==",[m
+[32m+[m[32m      "license": "Apache-2.0",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@smithy/types": "^4.8.1",[m
+[32m+[m[32m        "tslib": "^2.6.2"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=18.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/@aws-sdk/signature-v4-multi-region": {[m
+       "version": "3.922.0",[m
+       "resolved": "https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.922.0.tgz",[m
+[36m@@ -7334,6 +7367,34 @@[m
+         "node": ">=18.0.0"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/@aws-sdk/util-format-url": {[m
+[32m+[m[32m      "version": "3.922.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@aws-sdk/util-format-url/-/util-format-url-3.922.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-UYLWPvZEd6TYilNkrQrIeXh2bXZsY3ighYErSEjD24f3JQhg0XdXoR/QHIE8licHu2qFrTRM6yi9LH1GY6X0cg==",[m
+[32m+[m[32m      "license": "Apache-2.0",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@aws-sdk/types": "3.922.0",[m
+[32m+[m[32m        "@smithy/querystring-builder": "^4.2.4",[m
+[32m+[m[32m        "@smithy/types": "^4.8.1",[m
+[32m+[m[32m        "tslib": "^2.6.2"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=18.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "node_modules/@aws-sdk/util-format-url/node_modules/@aws-sdk/types": {[m
+[32m+[m[32m      "version": "3.922.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/@aws-sdk/types/-/types-3.922.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-eLA6XjVobAUAMivvM7DBL79mnHyrm+32TkXNWZua5mnxF+6kQCfblKKJvxMZLGosO53/Ex46ogim8IY5Nbqv2w==",[m
+[32m+[m[32m      "license": "Apache-2.0",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "@smithy/types": "^4.8.1",[m
+[32m+[m[32m        "tslib": "^2.6.2"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">=18.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/@aws-sdk/util-locate-window": {[m
+       "version": "3.893.0",[m
+       "resolved": "https://registry.npmjs.org/@aws-sdk/util-locate-window/-/util-locate-window-3.893.0.tgz",[m
+[1mdiff --git a/package.json b/package.json[m
+[1mindex 728bbac..fd726e0 100644[m
+[1m--- a/package.json[m
+[1m+++ b/package.json[m
+[36m@@ -15,7 +15,7 @@[m
+     "@aws-sdk/client-dynamodb": "^3.919.0",[m
+     "@aws-sdk/client-s3": "^3.922.0",[m
+     "@aws-sdk/lib-dynamodb": "^3.919.0",[m
+[31m-    "@aws-sdk/s3-request-presigner": "^3.922.0",[m
+[32m+[m[32m    "@aws-sdk/s3-request-presigner": "^3.925.0",[m
+     "@clerk/nextjs": "^6.34.0",[m
+     "@headlessui/react": "^2.2.0",[m
+     "@hello-pangea/dnd": "^18.0.1",[m
+[1mdiff --git a/utils/api.ts b/utils/api.ts[m
+[1mindex 7d107f1..2832806 100644[m
+[1m--- a/utils/api.ts[m
+[1m+++ b/utils/api.ts[m
+[36m@@ -3,6 +3,19 @@[m
+  * Handles Clerk authentication and secure API requests[m
+  */[m
+ [m
+[32m+[m[32m// Extend Window interface to include Clerk[m
+[32m+[m[32mdeclare global {[m
+[32m+[m[32m    interface Window {[m
+[32m+[m[32m        Clerk?: {[m
+[32m+[m[32m            user?: any;[m
+[32m+[m[32m            session?: {[m
+[32m+[m[32m                getToken: () => Promise<string | null>;[m
+[32m+[m[32m            };[m
+[32m+[m[32m            signOut: () => Promise<void>;[m
+[32m+[m[32m        };[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+ // Import Clerk auth for client-side (will be null on server)[m
+ let clerkAuth: any = null;[m
+ if (typeof window !== 'undefined') {[m
