@@ -17,25 +17,6 @@ function WritePageContent() {
   const searchParams = useSearchParams();
   const { currentProject, isLoading, error } = useScreenplay();
   const projectId = searchParams?.get('project');
-  const [hasAttemptedRedirect, setHasAttemptedRedirect] = useState(false);
-
-  useEffect(() => {
-    // Auth guaranteed by wrapper
-    // If no project specified, try to redirect once, then show UI
-    if (!projectId && !isLoading && !hasAttemptedRedirect) {
-      setHasAttemptedRedirect(true);
-      // Give dashboard 2 seconds to load, then show create project UI if still no redirect
-      const timer = setTimeout(() => {
-        // If we're still here after 2 seconds, user needs to create/select a project
-        setHasAttemptedRedirect(true);
-      }, 2000);
-      
-      // Try to redirect to dashboard
-      router.replace('/dashboard');
-      
-      return () => clearTimeout(timer);
-    }
-  }, [projectId, isLoading, router, hasAttemptedRedirect]);
 
   // Show error state if something went wrong
   if (error) {
@@ -68,8 +49,8 @@ function WritePageContent() {
     );
   }
 
-  // Show "Create/Select Project" UI if no project after redirect attempt
-  if (!projectId && hasAttemptedRedirect) {
+  // Show "Create/Select Project" UI if no project
+  if (!projectId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <div className="max-w-2xl w-full">
