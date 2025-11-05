@@ -94,6 +94,9 @@ export default function Dashboard() {
       
       // Handle credits (critical)
       if (creditsRes.status === 'fulfilled') {
+        console.log('[Dashboard] Credits API response:', creditsRes.value);
+        console.log('[Dashboard] Credits data:', creditsRes.value.data);
+        console.log('[Dashboard] Credits balance:', creditsRes.value.data?.data);
         // creditsRes.value is axios response, .data is API response, .data.data is actual data
         setCredits(creditsRes.value.data.data);
       } else {
