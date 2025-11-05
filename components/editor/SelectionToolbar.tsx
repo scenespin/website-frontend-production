@@ -71,11 +71,15 @@ export default function SelectionToolbar({
 
   return (
     <div
-      className="fixed bg-base-100 rounded-lg shadow-2xl border border-primary/20 z-[10000] min-w-[280px] overflow-hidden"
+      className="fixed bg-base-100 rounded-lg shadow-2xl border border-primary/20 z-[10000] min-w-[280px] max-w-[320px] overflow-hidden"
       style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-        transform: 'translateY(-100%) translateY(-8px)'
+        top: position.top < 250 
+          ? `${position.top + 20}px`  // If too close to top, show below selection
+          : `${position.top}px`,
+        left: `${Math.min(position.left, window.innerWidth - 340)}px`, // Keep within viewport
+        transform: position.top < 250
+          ? 'translateY(0)'  // Below selection
+          : 'translateY(-100%) translateY(-8px)'  // Above selection
       }}
     >
       {/* Header */}
