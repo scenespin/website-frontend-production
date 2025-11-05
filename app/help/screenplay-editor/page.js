@@ -42,7 +42,7 @@ export default function ScreenplayEditorPage() {
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <div>
               <div className="font-bold">🚀 What Makes This Different?</div>
-              <div className="text-sm">Industry-standard Fountain format • 3 AI writing agents • Context-aware assistance • Auto-saves every 2 seconds • Always FREE</div>
+              <div className="text-sm">Industry-standard Fountain format • 3 AI writing agents • Context-aware assistance • Auto-saves locally every 2s, syncs to GitHub every 30s • Always FREE</div>
             </div>
           </div>
 

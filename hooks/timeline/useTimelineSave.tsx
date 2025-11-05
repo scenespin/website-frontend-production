@@ -43,7 +43,7 @@ export function useTimelineSave(
   const {
     projectId,
     enableLocalStorageBackup = true,
-    enableGitHubBackup = false,
+    enableGitHubBackup = true, // Changed to true - GitHub is now primary storage
     onSaveSuccess,
     onSaveError
   } = options;
@@ -85,12 +85,34 @@ export function useTimelineSave(
    */
   const saveToGitHub = useCallback(async (projectData: TimelineProject) => {
     try {
-      // This would integrate with GitHub API
-      // For now, just log - implement when GitHub integration is ready
-      console.log('[Timeline] GitHub backup triggered (not yet implemented)');
+      // Get GitHub config from localStorage
+      const githubConfigStr = localStorage.getItem('screenplay_github_config');
+      if (!githubConfigStr) {
+        console.log('[Timeline] GitHub not connected, skipping GitHub backup');
+        return;
+      }
+      
+      const githubConfig = JSON.parse(githubConfigStr);
+      if (!githubConfig.token || !githubConfig.owner || !githubConfig.repo) {
+        console.log('[Timeline] GitHub config incomplete, skipping GitHub backup');
+        return;
+      }
+      
+      // Import saveToGitHub utility
+      const { saveToGitHub: saveFile } = await import('@/utils/github');
+      
+      // Save timeline project as JSON file
+      await saveFile(githubConfig, {
+        path: `timeline/${projectData.id}.json`,
+        content: JSON.stringify(projectData, null, 2),
+        message: `Auto-save: Timeline project "${projectData.name}"`,
+        branch: 'main'
+      });
+      
+      console.log('[Timeline] ✅ Saved to GitHub:', projectData.id);
     } catch (error) {
       console.error('[Timeline] GitHub backup failed:', error);
-      throw error;
+      // Don't throw - localStorage and DynamoDB are primary backups
     }
   }, []);
 

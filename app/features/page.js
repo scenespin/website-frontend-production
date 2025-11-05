@@ -111,7 +111,7 @@ export default function Features() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FeatureCard
               title="Professional Screenplay Editor"
-              description="Full Fountain format support, real-time GitHub sync, version control integration, industry-standard formatting"
+              description="Full Fountain format support, auto-saves locally (2s), syncs to GitHub (30s), version control integration, industry-standard formatting"
               free={true}
             />
             <FeatureCard

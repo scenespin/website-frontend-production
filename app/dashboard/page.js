@@ -32,12 +32,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Auth guaranteed by wrapper, fetch data immediately
-    // Note: We keep user in scope for welcome modal logic
     if (user) {
       fetchDashboardData();
-      checkFirstVisit();
     }
   }, [user]);
+
+  // Check first visit ONCE on mount (not every time user changes)
+  useEffect(() => {
+    if (user) {
+      checkFirstVisit();
+    }
+  }, []); // Empty dependency array = run once on mount
 
   const checkFirstVisit = async () => {
     try {

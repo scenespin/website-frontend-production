@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { FountainElementType } from '@/utils/fountain';
+import { useScreenplay } from './ScreenplayContext';
+import { saveToGitHub } from '@/utils/github';
 
 interface EditorState {
     // Current document content
@@ -104,6 +106,15 @@ const EditorContext = createContext<EditorContextType | undefined>(undefined);
 export function EditorProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<EditorState>(defaultState);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Get GitHub config from ScreenplayContext
+    const screenplay = useScreenplay();
+    const githubConfig = screenplay?.isConnected ? {
+        token: localStorage.getItem('screenplay_github_config') ? JSON.parse(localStorage.getItem('screenplay_github_config')!).token : null,
+        owner: localStorage.getItem('screenplay_github_config') ? JSON.parse(localStorage.getItem('screenplay_github_config')!).owner : null,
+        repo: localStorage.getItem('screenplay_github_config') ? JSON.parse(localStorage.getItem('screenplay_github_config')!).repo : null,
+    } : null;
     
     // Content operations
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
@@ -386,6 +397,42 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             }
         };
     }, [state.content, state.title, state.author, state.isDirty]);
+    
+    // Auto-sync to GitHub with longer debounce (20 seconds)
+    useEffect(() => {
+        if (!state.isDirty || !githubConfig || !githubConfig.token) return;
+        
+        // Clear any existing timer
+        if (githubSyncTimerRef.current) {
+            clearTimeout(githubSyncTimerRef.current);
+        }
+        
+        // Set new timer for GitHub sync
+            githubSyncTimerRef.current = setTimeout(async () => {
+                try {
+                    console.log('[EditorContext] Syncing to GitHub...');
+
+                    await saveToGitHub(githubConfig, {
+                        path: 'screenplay.fountain',
+                        content: state.content,
+                        message: `Auto-save: ${state.title}`,
+                        branch: 'main'
+                    });
+
+                    console.log('[EditorContext] ✅ Synced to GitHub');
+                } catch (err) {
+                    console.error('[EditorContext] GitHub sync failed:', err);
+                    // Don't throw - localStorage backup is already saved
+                }
+            }, 30000); // 30 second debounce for GitHub (industry standard)
+        
+        // Cleanup
+        return () => {
+            if (githubSyncTimerRef.current) {
+                clearTimeout(githubSyncTimerRef.current);
+            }
+        };
+    }, [state.content, state.title, state.isDirty, githubConfig]);
     
     // Load from localStorage on mount
     useEffect(() => {
