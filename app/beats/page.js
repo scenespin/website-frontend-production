@@ -1,13 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import BeatBoard from '@/components/structure/BeatBoard';
 // ResponsiveHeader removed - will use Navigation.js from wrapper
 
-export default function StoryBeatsPage() {
+function StoryBeatsPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId');
   
@@ -70,6 +70,14 @@ export default function StoryBeatsPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function StoryBeatsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">Loading...</div>}>
+      <StoryBeatsPageContent />
+    </Suspense>
   );
 }
 

@@ -1,12 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import LocationBoard from '@/components/screenplay/LocationBoard';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatContext } from '@/contexts/ChatContext';
 
-export default function LocationsPage() {
+function LocationsPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId') || 'default';
   const { setIsDrawerOpen } = useDrawer();
@@ -34,6 +35,14 @@ export default function LocationsPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function LocationsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">Loading...</div>}>
+      <LocationsPageContent />
+    </Suspense>
   );
 }
 

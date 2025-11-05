@@ -1,12 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import CharacterBoard from '@/components/screenplay/CharacterBoard';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatContext } from '@/contexts/ChatContext';
 
-export default function CharactersPage() {
+function CharactersPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId') || 'default';
   const { setIsDrawerOpen } = useDrawer();
@@ -34,6 +35,14 @@ export default function CharactersPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function CharactersPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">Loading...</div>}>
+      <CharactersPageContent />
+    </Suspense>
   );
 }
 
