@@ -9,13 +9,19 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const { getToken } = await auth();
+    console.log('[Credits Balance] Starting request...');
+    const { getToken, userId } = await auth();
+    console.log('[Credits Balance] Auth result - userId:', userId);
+    
     const token = await getToken({ template: 'wryda-backend' });
+    console.log('[Credits Balance] Token result:', token ? 'Token received (length: ' + token.length + ')' : 'NO TOKEN RECEIVED');
 
     if (!token) {
-      console.error('[Credits Balance] No auth token');
+      console.error('[Credits Balance] ❌ No auth token - getToken returned null/undefined');
+      console.error('[Credits Balance] Template requested: wryda-backend');
+      console.error('[Credits Balance] UserId from auth:', userId);
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Could not generate JWT token with template: wryda-backend' },
         { status: 401 }
       );
     }
