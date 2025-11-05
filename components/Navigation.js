@@ -97,7 +97,7 @@ export default function Navigation() {
     {
       name: 'Editor',
       icon: FileText,
-      href: '/write', // Changed from /editor (which redirects to dashboard)
+      href: '/dashboard', // Go to dashboard to select/create project first
       // Mobile-only sub-items (for accordion)
       subItems: [
         { name: 'Write', href: '/write', icon: FileText, description: 'Screenplay editor' },
