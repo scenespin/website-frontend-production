@@ -94,7 +94,8 @@ export default function Dashboard() {
       
       // Handle credits (critical)
       if (creditsRes.status === 'fulfilled') {
-        setCredits(creditsRes.value.data);
+        // creditsRes.value is axios response, .data is API response, .data.data is actual data
+        setCredits(creditsRes.value.data.data);
       } else {
         console.error('Error fetching credits:', creditsRes.reason);
         setCredits({ balance: 0 }); // Fallback
@@ -110,7 +111,7 @@ export default function Dashboard() {
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
-        setRecentVideos(videosRes.value.data.jobs?.slice(0, 5) || []);
+        setRecentVideos(videosRes.value.data.data.jobs?.slice(0, 5) || []);
       } else {
         console.error('Error fetching videos:', videosRes.reason);
         setRecentVideos([]);
