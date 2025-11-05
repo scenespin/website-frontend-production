@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get auth token
     const { getToken } = await auth();
-    const token = await getToken({ template: 'wryda-backend' });
+    const token = await getToken();
 
     if (!token) {
       return NextResponse.json(

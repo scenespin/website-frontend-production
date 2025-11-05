@@ -36,7 +36,7 @@ export async function POST(req) {
     }
 
     // Get auth token for backend API
-    const token = await getToken({ template: 'wryda-backend' });
+    const token = await getToken();
     
     // Call backend API which uses DynamoDB
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3200';

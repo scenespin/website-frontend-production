@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get auth token
     const { getToken } = await auth();
-    const token = await getToken({ template: 'wryda-backend' });
+    const token = await getToken();
 
     if (!token) {
       console.error('[Rewrite] No auth token');

@@ -10,7 +10,7 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET(request: NextRequest) {
   try {
     const { getToken } = await auth();
-    const token = await getToken({ template: 'wryda-backend' });
+    const token = await getToken();
 
     if (!token) {
       console.error('[Projects List] No auth token');
