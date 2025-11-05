@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   try {
     // Get Clerk auth and user ID
     const { getToken, userId: clerkUserId } = await auth();
-    const token = await getToken();
+    const token = await getToken({ template: 'wryda-backend' });
     
     if (!token || !clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

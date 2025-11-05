@@ -14,7 +14,7 @@ export async function GET(
   try {
     // Get auth token
     const { getToken } = await auth();
-    const token = await getToken();
+    const token = await getToken({ template: 'wryda-backend' });
 
     if (!token) {
       return NextResponse.json(
@@ -65,7 +65,7 @@ export async function PUT(
   try {
     // Get auth token
     const { getToken } = await auth();
-    const token = await getToken();
+    const token = await getToken({ template: 'wryda-backend' });
 
     if (!token) {
       return NextResponse.json(

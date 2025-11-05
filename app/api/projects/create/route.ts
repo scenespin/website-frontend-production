@@ -6,7 +6,7 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
 export async function POST(request: Request) {
   try {
     const { getToken } = await auth();
-    const token = await getToken();
+    const token = await getToken({ template: 'wryda-backend' });
     
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
