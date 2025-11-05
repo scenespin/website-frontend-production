@@ -69,9 +69,9 @@ export default function Navigation() {
   
   async function fetchCreditBalance(retryCount = 0) {
     try {
-      // Set up auth token first
+      // Set up auth token first (no template needed - backend accepts default Clerk tokens)
       const { api, setAuthTokenGetter } = await import('@/lib/api');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      setAuthTokenGetter(() => getToken());
       
       // Now make the API call
       const response = await api.user.getCredits();
