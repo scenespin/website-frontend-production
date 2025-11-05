@@ -31,6 +31,20 @@ export default function EditorWorkspace() {
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     
+    // Get GitHub config from localStorage
+    const [githubConfig, setGithubConfig] = useState<{ owner: string; repo: string; token: string } | null>(null);
+    
+    useEffect(() => {
+        try {
+            const configStr = localStorage.getItem('screenplay_github_config');
+            if (configStr) {
+                setGithubConfig(JSON.parse(configStr));
+            }
+        } catch (err) {
+            console.error('[EditorWorkspace] Failed to load GitHub config:', err);
+        }
+    }, [screenplay.isConnected]);
+    
     /**
      * Manual Save Handler
      * Saves to GitHub if connected, otherwise saves to localStorage
@@ -230,8 +244,8 @@ Tip:
                                                 <span>Connected to GitHub</span>
                                             </div>
                                             <div className="text-sm text-base-content/60 space-y-1">
-                                                <p><strong>Repository:</strong> {screenplay.githubRepo}</p>
-                                                <p><strong>Owner:</strong> {screenplay.githubOwner}</p>
+                                                <p><strong>Repository:</strong> {githubConfig?.repo || 'Unknown'}</p>
+                                                <p><strong>Owner:</strong> {githubConfig?.owner || 'Unknown'}</p>
                                                 <p className="text-xs text-success">✓ Auto-syncing every 30 seconds</p>
                                             </div>
                                             <button 
