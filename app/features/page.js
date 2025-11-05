@@ -136,7 +136,7 @@ export default function Features() {
               title="🎨 Asset Bank - Digital Prop Department (NEW!)"
               description="Scan any real-world object once (props, vehicles, furniture) → Use in unlimited scenes with perfect consistency. Generate photorealistic 3D models (GLB/OBJ/USDZ) for games, AR, and video. Never worry about inconsistent props again."
               free={false}
-              credits="30 credits per prop, 70 credits per vehicle/furniture"
+              credits="300 credits per prop, 700 credits per vehicle/furniture"
               highlight={true}
             />
             <FeatureCard
