@@ -28,10 +28,10 @@ export default function ProductionPage() {
   
   if (!mounted) {
   return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-base-content/60">Loading production tools...</p>
+          <p className="text-slate-400">Loading production tools...</p>
           </div>
         </div>
     );
@@ -40,7 +40,7 @@ export default function ProductionPage() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js comes from production/layout.js */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="min-h-screen bg-[#0A0A0A]">
         <ProductionPageLayout projectId={screenplay.projectId || 'default'} />
       </div>
     </>

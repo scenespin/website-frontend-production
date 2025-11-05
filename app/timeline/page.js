@@ -20,7 +20,7 @@ function TimelineContent() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-[#0A0A0A]">
         <EnhancedTimelineEditor 
           projectId={projectId}
           preloadedClips={preloadedClipsData}
@@ -33,10 +33,10 @@ function TimelineContent() {
 export default function TimelinePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-base-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-base-content">Loading timeline editor...</p>
+          <div className="w-16 h-16 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading timeline editor...</p>
         </div>
       </div>
     }>

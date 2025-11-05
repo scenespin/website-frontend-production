@@ -23,7 +23,7 @@ function CompositionContent() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js will be added via wrapper */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="min-h-screen bg-[#0A0A0A]">
         <CompositionStudio 
           userId={user?.id}
           recomposeData={recomposeData}
@@ -37,10 +37,10 @@ function CompositionContent() {
 export default function CompositionPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto mb-4"></div>
-          <p className="text-base-content/60">Loading Composition Studio...</p>
+          <p className="text-slate-400">Loading Composition Studio...</p>
         </div>
       </div>
     }>
