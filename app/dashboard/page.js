@@ -85,15 +85,36 @@ export default function Dashboard() {
       const { setAuthTokenGetter } = await import('@/lib/api');
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       
-      const [creditsRes, projectsRes, videosRes] = await Promise.all([
+      // Fetch data independently so one failure doesn't break everything
+      const [creditsRes, projectsRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
         fetch('/api/projects/list').then(r => r.json()),
         api.video.getJobs()
       ]);
       
-      setCredits(creditsRes.data);
-      setProjects(projectsRes.projects || []);
-      setRecentVideos(videosRes.data.jobs?.slice(0, 5) || []);
+      // Handle credits (critical)
+      if (creditsRes.status === 'fulfilled') {
+        setCredits(creditsRes.value.data);
+      } else {
+        console.error('Error fetching credits:', creditsRes.reason);
+        setCredits({ balance: 0 }); // Fallback
+      }
+      
+      // Handle projects (non-critical)
+      if (projectsRes.status === 'fulfilled') {
+        setProjects(projectsRes.value.projects || []);
+      } else {
+        console.error('Error fetching projects:', projectsRes.reason);
+        setProjects([]);
+      }
+      
+      // Handle videos (non-critical)
+      if (videosRes.status === 'fulfilled') {
+        setRecentVideos(videosRes.value.data.jobs?.slice(0, 5) || []);
+      } else {
+        console.error('Error fetching videos:', videosRes.reason);
+        setRecentVideos([]);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
