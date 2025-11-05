@@ -583,14 +583,16 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
         status: 'completed',
         resultUrl: videoUrl,
         resultS3Key: finalS3Key,
-          creditsUsed: (clip.enhanceStyle ? 12 : 0) + (clip.reframe ? 10 : 0)
-        });
-      }
-    } catch (error) {
+        creditsUsed: (clip.enhanceStyle ? 12 : 0) + (clip.reframe ? 10 : 0)
+      });
+      
+    } catch (error: any) {
       console.error(`[ProductionPage] Failed to upload clip ${clip.clipIndex}:`, error);
+      const errorMessage = error?.message || 'Upload failed';
+      toast.error(errorMessage);
       updateClipAssignment(clip.clipIndex, {
         status: 'error',
-        errorMessage: error instanceof Error ? error.message : 'Upload failed'
+        errorMessage: errorMessage
       });
     }
   }
