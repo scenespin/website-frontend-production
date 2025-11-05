@@ -14,15 +14,24 @@ export async function GET(request: NextRequest) {
     const token = await getToken();
 
     if (!token) {
+      console.error('[Workflows List] No auth token');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    // Get query params from request URL
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId') || 'default';
+    const status = searchParams.get('status') || '';
+    const limit = searchParams.get('limit') || '50';
+
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/workflows/list`;
+    const url = `${backendUrl}/api/workflows/list?projectId=${projectId}&status=${status}&limit=${limit}`;
+
+    console.log('[Workflows List] Fetching from:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -32,8 +41,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('[Workflows List] Backend response status:', response.status);
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Backend error' }));
+      console.error('[Workflows List] Backend error:', error);
       return NextResponse.json(
         error,
         { status: response.status }
@@ -44,7 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error('Workflows list API error:', error);
+    console.error('[Workflows List] API error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

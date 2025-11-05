@@ -261,29 +261,29 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
         
         // Step 4: Add to clips and show storage modal
-        const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const preview = URL.createObjectURL(file);
+          const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const preview = URL.createObjectURL(file);
 
-        newClips.push({
-          id: clipId,
-          file,
-          preview,
+          newClips.push({
+            id: clipId,
+            file,
+            preview,
           s3Url: s3Url,
           s3Key: s3Key,
-          size: file.size,
-          name: file.name,
-        });
-        
+            size: file.size,
+            name: file.name,
+          });
+          
         // Show storage decision modal
-        setSelectedAsset({
+          setSelectedAsset({
           url: s3Url,
           s3Key: s3Key,
-          name: file.name,
-          type: 'video'
-        });
-        setShowStorageModal(true);
-        
-        toast.success(`✅ ${file.name} uploaded! Choose where to save it.`, { id: uploadToastId.toString() });
+            name: file.name,
+            type: 'video'
+          });
+          setShowStorageModal(true);
+          
+          toast.success(`✅ ${file.name} uploaded! Choose where to save it.`, { id: uploadToastId.toString() });
         
       } catch (error: any) {
         console.error('[CompositionStudio] Upload failed:', error);

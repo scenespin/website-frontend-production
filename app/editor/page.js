@@ -10,12 +10,12 @@ import { useRouter } from 'next/navigation';
 
 export default function EditorPage() {
   const router = useRouter();
-
+  
   useEffect(() => {
     // Redirect to the actual editor at /write
     router.replace('/write');
   }, [router]);
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
       <div className="text-center">
