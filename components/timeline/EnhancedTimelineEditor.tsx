@@ -1263,25 +1263,6 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
                       
                       <button
                         onClick={() => {
-                          timeline.setSnapToGrid(!timeline.snapToGrid);
-                          toast.success(timeline.snapToGrid ? '📐 Snap to Grid OFF' : '📐 Snap to Grid ON');
-                          setShowDesktopToolsMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-left transition-colors"
-                      >
-                        <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-slate-200">Snap to Grid</div>
-                          <div className="text-xs text-slate-400">{timeline.snapToGrid ? 'ON' : 'OFF'} - Frame-accurate</div>
-                        </div>
-                      </button>
-                      
-                      <button
-                        onClick={() => {
                           setShowAudioTracks(!showAudioTracks);
                           setShowDesktopToolsMenu(false);
                         }}

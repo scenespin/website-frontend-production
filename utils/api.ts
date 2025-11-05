@@ -3,6 +3,19 @@
  * Handles Clerk authentication and secure API requests
  */
 
+// Extend Window interface to include Clerk
+declare global {
+    interface Window {
+        Clerk?: {
+            user?: any;
+            session?: {
+                getToken: () => Promise<string | null>;
+            };
+            signOut: () => Promise<void>;
+        };
+    }
+}
+
 // Import Clerk auth for client-side (will be null on server)
 let clerkAuth: any = null;
 if (typeof window !== 'undefined') {
