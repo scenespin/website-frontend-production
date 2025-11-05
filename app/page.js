@@ -520,7 +520,7 @@ export default function Page() {
                   <div className="text-4xl mb-4">📊</div>
                   <h3 className="card-title mb-2">Story Beat Integration</h3>
                   <p className="opacity-80">
-                    Organize scenes with 3-act structure. Visual story flow overview 
+                    Organize scenes with 8-act structure. Visual story flow overview 
                     with proven beat sheets keeps your narrative on track.
                   </p>
                 </div>

@@ -351,6 +351,51 @@ export default function Navigation() {
                 Buy Credits
               </Link>
             </div>
+
+            {/* NEW: Mobile Account Section */}
+            <div className="pt-2 border-t border-base-300 space-y-2">
+              {/* User Info */}
+              <div className="flex items-center gap-3 px-4 py-3 bg-base-200 rounded-lg">
+                <div className="avatar">
+                  <div className="w-10 h-10 rounded-full bg-cinema-red flex items-center justify-center text-white font-bold">
+                    {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-base-content truncate">
+                    {user?.firstName || user?.emailAddresses?.[0]?.emailAddress}
+                  </div>
+                  <div className="text-xs text-base-content/60 truncate">
+                    {user?.emailAddresses?.[0]?.emailAddress}
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Settings Button */}
+              <Link
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn btn-block gap-2 btn-ghost justify-start text-left"
+              >
+                <Users className="w-4 h-4" />
+                Account Settings
+              </Link>
+
+              {/* Sign Out Button */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  // Clerk sign out
+                  window.Clerk?.signOut();
+                }}
+                className="btn btn-block gap-2 btn-ghost justify-start text-left text-error hover:bg-error/10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+            </div>
           </div>
         )}
       </div>
