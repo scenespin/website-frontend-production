@@ -4,13 +4,12 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import { DrawerProvider } from "@/contexts/DrawerContext";
-import { ChatProvider } from "@/contexts/ChatContext";
-import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
 
 // Client-side auth check - cleaner and no server redirect loops
+// Note: Context providers (ScreenplayProvider, DrawerProvider, ChatProvider) 
+// are in LayoutClient.js - don't duplicate them here
 export default function LayoutPrivate({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
@@ -36,18 +35,12 @@ export default function LayoutPrivate({ children }) {
   }
 
   return (
-    <ScreenplayProvider>
-      <DrawerProvider>
-        <ChatProvider>
-          <div className="min-h-screen bg-base-100">
-            <Navigation />
-            {children}
-            <AgentDrawer>
-              <UnifiedChatPanel />
-            </AgentDrawer>
-          </div>
-        </ChatProvider>
-      </DrawerProvider>
-    </ScreenplayProvider>
+    <div className="min-h-screen bg-base-100">
+      <Navigation />
+      {children}
+      <AgentDrawer>
+        <UnifiedChatPanel />
+      </AgentDrawer>
+    </div>
   );
 }
