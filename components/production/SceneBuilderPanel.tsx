@@ -354,47 +354,78 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       newUploadingState[index] = true;
       setUploadingMedia(newUploadingState);
       
-      // Determine file type and endpoint
       const fileType = file.type.startsWith('video/') ? 'video' : 
-                       file.type.startsWith('audio/') ? 'video' : 'image';
-      const endpoint = fileType === 'video' ? '/api/video/upload' : '/api/media/upload-image';
-      
-      // Upload to S3
-      const formData = new FormData();
-      formData.append(fileType, file);
-      formData.append('projectId', projectId);
+                       file.type.startsWith('audio/') ? 'audio' : 'image';
       
       toast.info('Uploading...');
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData
+      // PROFESSIONAL UPLOAD: Direct to S3 using pre-signed URL
+      // Step 1: Get pre-signed URL
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&projectId=${encodeURIComponent(projectId)}`
+      );
+      
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error('File too large. Maximum size is 50GB.');
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Upload failed: ${presignedResponse.status}`);
+        }
+      }
+      
+      const { uploadUrl, s3Key } = await presignedResponse.json();
+      
+      if (!uploadUrl || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+      
+      toast.info('Uploading to S3...');
+      
+      // Step 2: Upload directly to S3 (bypasses Next.js!)
+      const s3Response = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
       });
       
-      const data = await response.json();
-      
-      if (data.success) {
-        // Update local state
-        const newUploads = [...mediaUploads];
-        newUploads[index] = file;
-        setMediaUploads(newUploads);
-        
-        // Show storage decision modal
-        setSelectedAsset({
-          url: data.url,
-          s3Key: data.s3Key || extractS3Key(data.url),
-          name: file.name,
-          type: fileType as 'video' | 'image'
-        });
-        setShowStorageModal(true);
-        
-        toast.success('✅ File uploaded! Choose where to save it.');
-      } else {
-        throw new Error(data.message || 'Upload failed');
+      if (!s3Response.ok) {
+        throw new Error(`S3 upload failed: ${s3Response.statusText}`);
       }
-    } catch (error) {
+      
+      // Step 3: Generate S3 URL
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-assets';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      
+      // Update local state
+      const newUploads = [...mediaUploads];
+      newUploads[index] = file;
+      setMediaUploads(newUploads);
+      
+      // Show storage decision modal
+      setSelectedAsset({
+        url: s3Url,
+        s3Key: s3Key,
+        name: file.name,
+        type: fileType as 'video' | 'image'
+      });
+      setShowStorageModal(true);
+      
+      toast.success('✅ File uploaded! Choose where to save it.');
+      
+    } catch (error: any) {
       console.error('[SceneBuilderPanel] Upload failed:', error);
-      toast.error('Upload failed. Please try again.');
+      const errorMessage = error?.message || 'Upload failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
       // Clear uploading state
       const newUploadingState = [...uploadingMedia];

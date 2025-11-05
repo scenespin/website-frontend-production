@@ -498,55 +498,91 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     updateClipAssignment(clip.clipIndex, { status: 'uploading' });
     
     try {
-      // Upload to S3
-      const formData = new FormData();
-      formData.append('video', clip.uploadedFile);
-      formData.append('projectId', projectId);
+      toast.info(`Uploading ${clip.uploadedFile.name}...`);
       
-      const response = await fetch('/api/video/upload', {
-        method: 'POST',
-        body: formData
+      // PROFESSIONAL UPLOAD: Direct to S3 using pre-signed URL
+      // Step 1: Get pre-signed URL
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(clip.uploadedFile.name)}` +
+        `&fileType=${encodeURIComponent(clip.uploadedFile.type)}` +
+        `&fileSize=${clip.uploadedFile.size}` +
+        `&projectId=${encodeURIComponent(projectId)}`
+      );
+      
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error('File too large. Maximum size is 50GB.');
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Upload failed: ${presignedResponse.status}`);
+        }
+      }
+      
+      const { uploadUrl, s3Key } = await presignedResponse.json();
+      
+      if (!uploadUrl || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+      
+      toast.info('Uploading to S3...');
+      
+      // Step 2: Upload directly to S3 (bypasses Next.js!)
+      const s3Response = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: clip.uploadedFile,
+        headers: {
+          'Content-Type': clip.uploadedFile.type
+        }
       });
       
-      const data = await response.json();
+      if (!s3Response.ok) {
+        throw new Error(`S3 upload failed: ${s3Response.statusText}`);
+      }
       
-      if (data.success) {
-        let s3Key = data.s3Key;
-        let videoUrl = data.url;
-        
-        // Apply enhancements if requested
-        if (clip.enhanceStyle) {
-          const enhanceRes = await fetch('/api/video/enhance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              videoS3Key: s3Key,
-              enhancement: 'cinematic-style'
-            })
-          });
-          const enhanceData = await enhanceRes.json();
-          s3Key = enhanceData.s3Key;
-          videoUrl = enhanceData.url;
-        }
-        
-        if (clip.reframe) {
-          const reframeRes = await fetch('/api/video/reframe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              videoS3Key: s3Key,
-              targetAspectRatio: '16:9'
-            })
-          });
-          const reframeData = await reframeRes.json();
-          s3Key = reframeData.s3Key;
-          videoUrl = reframeData.url;
-        }
-        
-        updateClipAssignment(clip.clipIndex, {
-          status: 'completed',
-          resultUrl: videoUrl,
-          resultS3Key: s3Key,
+      // Step 3: Generate S3 URL
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-assets';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      let videoUrl = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      let finalS3Key = s3Key;
+      
+      toast.success('✅ File uploaded successfully!');
+      
+      // Apply enhancements if requested
+      if (clip.enhanceStyle) {
+        const enhanceRes = await fetch('/api/video/enhance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoS3Key: finalS3Key,
+            enhancement: 'cinematic-style'
+          })
+        });
+        const enhanceData = await enhanceRes.json();
+        finalS3Key = enhanceData.s3Key;
+        videoUrl = enhanceData.url;
+      }
+      
+      if (clip.reframe) {
+        const reframeRes = await fetch('/api/video/reframe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoS3Key: finalS3Key,
+            targetAspectRatio: '16:9'
+          })
+        });
+        const reframeData = await reframeRes.json();
+        finalS3Key = reframeData.s3Key;
+        videoUrl = reframeData.url;
+      }
+      
+      updateClipAssignment(clip.clipIndex, {
+        status: 'completed',
+        resultUrl: videoUrl,
+        resultS3Key: finalS3Key,
           creditsUsed: (clip.enhanceStyle ? 12 : 0) + (clip.reframe ? 10 : 0)
         });
       }
