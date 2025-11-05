@@ -109,6 +109,9 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
   /**
    * Handle file upload
    */
+  /**
+   * Handle file upload using direct S3 upload (industry standard)
+   */
   async function handleFileUpload(file: File) {
     // Validate
     const error = validateFile(file);
@@ -120,51 +123,71 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
     setIsUploading(true);
     
     try {
-      const formData = new FormData();
       const fileType = file.type.startsWith('video/') ? 'video' : 
-                       file.type.startsWith('audio/') ? 'video' : 'image';
-      formData.append(fileType, file);
-      formData.append('projectId', projectId || 'default');
-      
-      const endpoint = '/api/video/upload';
+                       file.type.startsWith('audio/') ? 'audio' : 'image';
       
       toast.info('Uploading...');
       
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData
-      });
+      // Step 1: Get pre-signed URL
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&projectId=${encodeURIComponent(projectId || 'default')}`
+      );
       
-      // Handle HTTP error status codes
-      if (!response.ok) {
-        if (response.status === 413) {
-          throw new Error('File too large. Please upload a smaller file.');
-        } else if (response.status === 401) {
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error('File too large. Maximum size is 50GB.');
+        } else if (presignedResponse.status === 401) {
           throw new Error('Please sign in to upload files.');
         } else {
-          throw new Error(`Upload failed with status ${response.status}`);
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Upload failed: ${presignedResponse.status}`);
         }
       }
       
-      const data = await response.json();
+      const { uploadUrl, s3Key } = await presignedResponse.json();
       
-      if (data.success) {
-        // Show storage decision modal
-        setSelectedAsset({
-          url: data.url,
-          s3Key: data.s3Key || extractS3Key(data.url),
-          name: file.name,
-          type: fileType
-        });
-        setShowStorageModal(true);
-        
-        // Also notify parent to add to timeline
-        onUploadComplete(data.url, data.s3Key, fileType, file.name);
-        
-        toast.success('✅ File uploaded! Choose where to save it.');
-      } else {
-        throw new Error(data.message || 'Upload failed');
+      if (!uploadUrl || !s3Key) {
+        throw new Error('Invalid response from server');
       }
+      
+      toast.info('Uploading to S3...');
+      
+      // Step 2: Upload directly to S3 (bypasses Next.js!)
+      const s3Response = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+      
+      if (!s3Response.ok) {
+        throw new Error(`S3 upload failed: ${s3Response.statusText}`);
+      }
+      
+      // Step 3: Generate S3 URL
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-assets';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      
+      // Show storage decision modal
+      setSelectedAsset({
+        url: s3Url,
+        s3Key: s3Key,
+        name: file.name,
+        type: fileType
+      });
+      setShowStorageModal(true);
+      
+      // Also notify parent to add to timeline
+      onUploadComplete(s3Url, s3Key, fileType, file.name);
+      
+      toast.success('✅ File uploaded! Choose where to save it.');
+      
     } catch (error: any) {
       console.error('[UploadModal] Upload failed:', error);
       const errorMessage = error?.message || 'Upload failed';

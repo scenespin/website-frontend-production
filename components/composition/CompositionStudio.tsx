@@ -48,8 +48,8 @@ import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
 
 // Video file validation
-const MAX_VIDEO_SIZE_MB = 100;
-const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+const MAX_VIDEO_SIZE_GB = 50;
+const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_GB * 1024 * 1024 * 1024;
 const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
 
 interface VideoClip {
@@ -186,8 +186,8 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
       return `Invalid video format. Supported: MP4, MOV, WEBM. Your file: ${file.type}`;
     }
     if (file.size > MAX_VIDEO_SIZE_BYTES) {
-      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-      return `Video too large. Max: ${MAX_VIDEO_SIZE_MB}MB. Your file: ${fileSizeMB}MB`;
+      const fileSizeGB = (file.size / 1024 / 1024 / 1024).toFixed(2);
+      return `Video too large. Max: ${MAX_VIDEO_SIZE_GB}GB. Your file: ${fileSizeGB}GB`;
     }
     return null;
   };
@@ -207,61 +207,84 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
       }
 
       try {
-        // NEW (Feature 0070): Upload to S3 immediately
-        const formData = new FormData();
-        formData.append('video', file);
-        formData.append('projectId', userId || 'default');
-        
-        // Show uploading toast
+        // PROFESSIONAL UPLOAD: Direct to S3 using pre-signed URL
         const uploadToastId = Date.now();
         const { toast } = await import('sonner');
         toast.info(`Uploading ${file.name}...`, { id: uploadToastId.toString() });
         
-        const response = await fetch('/api/video/upload', {
-          method: 'POST',
-          body: formData
-        });
+        // Step 1: Get pre-signed URL from backend
+        const presignedResponse = await fetch(
+          `/api/video/upload/get-presigned-url?` + 
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&projectId=${encodeURIComponent(userId || 'default')}`
+        );
         
-        // Handle HTTP error status codes
-        if (!response.ok) {
-          if (response.status === 413) {
-            throw new Error(`File too large. Maximum size is ${MAX_VIDEO_SIZE_MB}MB.`);
-          } else if (response.status === 401) {
+        if (!presignedResponse.ok) {
+          if (presignedResponse.status === 413) {
+            throw new Error('File too large. Maximum size is 50GB.');
+          } else if (presignedResponse.status === 401) {
             throw new Error('Please sign in to upload videos.');
           } else {
-            throw new Error(`Upload failed with status ${response.status}`);
+            const errorData = await presignedResponse.json();
+            throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
           }
         }
         
-        const data = await response.json();
+        const { uploadUrl, s3Key } = await presignedResponse.json();
         
-        if (data.success) {
-          const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const preview = URL.createObjectURL(file);
-
-          newClips.push({
-            id: clipId,
-            file,
-            preview,
-            s3Url: data.url,       // NEW: Store S3 URL
-            s3Key: data.s3Key || extractS3Key(data.url), // NEW: Store S3 key
-            size: file.size,
-            name: file.name,
-          });
-          
-          // NEW (Feature 0070): Show storage decision modal
-          setSelectedAsset({
-            url: data.url,
-            s3Key: data.s3Key || extractS3Key(data.url),
-            name: file.name,
-            type: 'video'
-          });
-          setShowStorageModal(true);
-          
-          toast.success(`✅ ${file.name} uploaded! Choose where to save it.`, { id: uploadToastId.toString() });
-        } else {
-          throw new Error(data.message || 'Upload failed');
+        if (!uploadUrl || !s3Key) {
+          throw new Error('Invalid response from server');
         }
+        
+        toast.info(`Uploading ${file.name} to S3...`, { id: uploadToastId.toString() });
+        
+        // Step 2: Upload directly to S3 (bypasses Next.js entirely!)
+        const s3Response = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type
+          }
+        });
+        
+        if (!s3Response.ok) {
+          throw new Error(`S3 upload failed: ${s3Response.statusText}`);
+        }
+        
+        console.log('[CompositionStudio] File uploaded to S3:', s3Key);
+        
+        // Step 3: Generate S3 URL
+        const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'wryda-assets';
+        const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+        const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+        
+        // Step 4: Add to clips and show storage modal
+        const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const preview = URL.createObjectURL(file);
+
+        newClips.push({
+          id: clipId,
+          file,
+          preview,
+          s3Url: s3Url,
+          s3Key: s3Key,
+          size: file.size,
+          name: file.name,
+        });
+        
+        // Show storage decision modal
+        setSelectedAsset({
+          url: s3Url,
+          s3Key: s3Key,
+          name: file.name,
+          type: 'video'
+        });
+        setShowStorageModal(true);
+        
+        toast.success(`✅ ${file.name} uploaded! Choose where to save it.`, { id: uploadToastId.toString() });
+        
       } catch (error: any) {
         console.error('[CompositionStudio] Upload failed:', error);
         const { toast } = await import('sonner');
@@ -908,7 +931,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                         Drag & drop videos here
                       </p>
                       <p className="text-xs text-slate-500">
-                        or click to browse · MP4, MOV, WEBM · Max {MAX_VIDEO_SIZE_MB}MB each
+                        or click to browse · MP4, MOV, WEBM · Max {MAX_VIDEO_SIZE_GB}GB each
                       </p>
                     </div>
 
