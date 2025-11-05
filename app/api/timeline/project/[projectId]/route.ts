@@ -9,7 +9,7 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     // Get auth token
@@ -23,7 +23,8 @@ export async function GET(
       );
     }
 
-    const projectId = params.projectId;
+    // Next.js 15: params is now a Promise
+    const { projectId } = await params;
 
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
@@ -59,7 +60,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     // Get auth token
@@ -73,7 +74,8 @@ export async function PUT(
       );
     }
 
-    const projectId = params.projectId;
+    // Next.js 15: params is now a Promise
+    const { projectId } = await params;
     const body = await request.json();
 
     // Forward request to backend
