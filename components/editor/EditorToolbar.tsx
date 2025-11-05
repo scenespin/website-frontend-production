@@ -116,10 +116,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     <button
                         onClick={() => formatCurrentLine('parenthetical')}
                         className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                        title="Parenthetical"
+                        title="Parenthetical (Wryly)"
                     >
                         <span className="text-base">( )</span>
-                        <span className="text-[9px] hidden sm:inline">NOTE</span>
+                        <span className="text-[9px] hidden sm:inline">PAREN</span>
                     </button>
                     
                     {/* More formats toggle */}

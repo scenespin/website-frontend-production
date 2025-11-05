@@ -13,8 +13,13 @@ export async function GET(request: NextRequest) {
     const { getToken, userId } = await auth();
     console.log('[Credits Balance] Auth result - userId:', userId);
     
+    // DIAGNOSTIC: Try getting token WITHOUT template first
+    const tokenNoTemplate = await getToken();
+    console.log('[Credits Balance] Token WITHOUT template:', tokenNoTemplate ? 'SUCCESS (length: ' + tokenNoTemplate.length + ')' : 'FAILED - returned null');
+    
+    // Now try WITH template
     const token = await getToken({ template: 'wryda-backend' });
-    console.log('[Credits Balance] Token result:', token ? 'Token received (length: ' + token.length + ')' : 'NO TOKEN RECEIVED');
+    console.log('[Credits Balance] Token WITH template:', token ? 'SUCCESS (length: ' + token.length + ')' : 'FAILED - returned null');
 
     if (!token) {
       console.error('[Credits Balance] ❌ No auth token - getToken returned null/undefined');
