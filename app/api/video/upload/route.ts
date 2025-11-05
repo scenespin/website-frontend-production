@@ -9,6 +9,11 @@ const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 // Initialize S3 client
 const s3Client = new S3Client({ region: AWS_REGION });
 
+// Configure API route to accept larger payloads (100MB for video uploads)
+// In Next.js 13+ App Router, we need to set maxDuration and handle the body parser differently
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes timeout
+
 export async function POST(request: Request) {
   try {
     // Get Clerk auth and user ID

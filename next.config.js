@@ -10,6 +10,13 @@ const nextConfig = {
   // CDN & Performance Optimization
   compress: true, // Enable gzip/brotli compression
   
+  // Enable larger body size for API routes (for video uploads)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb',
+    },
+  },
+  
   // Redirects for deprecated routes (Feature 0100)
   async redirects() {
     return [

@@ -135,6 +135,17 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
         body: formData
       });
       
+      // Handle HTTP error status codes
+      if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error('File too large. Please upload a smaller file.');
+        } else if (response.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -154,9 +165,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
       } else {
         throw new Error(data.message || 'Upload failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[UploadModal] Upload failed:', error);
-      toast.error('Upload failed');
+      const errorMessage = error?.message || 'Upload failed';
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }

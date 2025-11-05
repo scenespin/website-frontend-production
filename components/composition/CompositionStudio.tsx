@@ -222,6 +222,17 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
           body: formData
         });
         
+        // Handle HTTP error status codes
+        if (!response.ok) {
+          if (response.status === 413) {
+            throw new Error(`File too large. Maximum size is ${MAX_VIDEO_SIZE_MB}MB.`);
+          } else if (response.status === 401) {
+            throw new Error('Please sign in to upload videos.');
+          } else {
+            throw new Error(`Upload failed with status ${response.status}`);
+          }
+        }
+        
         const data = await response.json();
         
         if (data.success) {
@@ -251,10 +262,12 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         } else {
           throw new Error(data.message || 'Upload failed');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[CompositionStudio] Upload failed:', error);
         const { toast } = await import('sonner');
-        toast.error(`Failed to upload ${file.name}`);
+        const errorMessage = error?.message || `Failed to upload ${file.name}`;
+        toast.error(errorMessage);
+        setUploadError(errorMessage);
       }
     }
 
