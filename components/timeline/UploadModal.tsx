@@ -22,7 +22,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { extractS3Key } from '@/utils/s3';
 
 const MAX_VIDEO_SIZE_MB = 100;
-const MAX_AUDIO_SIZE_MB = 10;
+const MAX_AUDIO_SIZE_MB = 500; // Increased for long audio files (podcasts, etc)
 const MAX_IMAGE_SIZE_MB = 10;
 
 const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
