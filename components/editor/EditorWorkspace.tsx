@@ -31,6 +31,10 @@ export default function EditorWorkspace() {
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     
+    // Get projectId from URL params (for collaboration)
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const projectId = searchParams?.get('project') || 'default';
+    
     // Get GitHub config from localStorage
     const [githubConfig, setGithubConfig] = useState<{ owner: string; repo: string; token: string } | null>(null);
     
@@ -287,9 +291,9 @@ Tip:
                             </div>
 
                             {/* Collaboration Management */}
-                            {screenplay.projectId && (
+                            {projectId && projectId !== 'default' && (
                                 <CollaborationPanel 
-                                    projectId={screenplay.projectId}
+                                    projectId={projectId}
                                     isOwner={true}
                                 />
                             )}
