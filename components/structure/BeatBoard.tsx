@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
+import {
+    DndContext,
+    DragEndEvent,
+    DragStartEvent,
+    DragOverlay,
+    closestCorners,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Plus, MoreVertical, Users, MapPin, Film, BookOpen, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -55,7 +66,17 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     const [isCreating, setIsCreating] = useState(false);
     const [highlightedBeatId, setHighlightedBeatId] = useState<string | null>(null);
     const [highlightedSceneId, setHighlightedSceneId] = useState<string | null>(null);
+    const [activeScene, setActiveScene] = useState<Scene | null>(null);
     const beatRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    
+    // Configure sensors for @dnd-kit
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px movement required before drag starts
+            },
+        })
+    );
     
     // Color palette for story beats (matches 8-Sequence structure)
     const beatColors = [
@@ -129,31 +150,45 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         setIsCreating(false);
     };
     
-    const handleDragEnd = async (result: DropResult) => {
-        const { destination, source, draggableId } = result;
-
-        // No destination or dropped in same place
-        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
-            return;
-        }
-
-        const sourceBeatId = source.droppableId;
-        const destBeatId = destination.droppableId;
+    const handleDragStart = (event: DragStartEvent) => {
+        const sceneId = event.active.id as string;
+        const scene = beats.flatMap(b => Array.isArray(b.scenes) ? b.scenes : []).find(s => s.id === sceneId);
+        setActiveScene(scene || null);
+    };
+    
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
         
-        const sourceBeat = beats.find(b => b.id === sourceBeatId);
-        const destBeat = beats.find(b => b.id === destBeatId);
-
+        setActiveScene(null);
+        
+        if (!over) return;
+        
+        const sceneId = active.id as string;
+        const targetBeatId = over.id as string;
+        
+        // Find source and destination beats
+        const sourceBeat = beats.find(b =>
+            Array.isArray(b.scenes) && b.scenes.some(s => s.id === sceneId)
+        );
+        const destBeat = beats.find(b => b.id === targetBeatId);
+        
         if (!sourceBeat || !destBeat) return;
+        
+        // If dropping on same beat, no action needed
+        if (sourceBeat.id === destBeat.id) return;
 
         // SAFETY: Ensure scenes is an array before attempting to find
         const sourceScenes = Array.isArray(sourceBeat.scenes) ? sourceBeat.scenes : [];
-        const scene = sourceScenes.find(s => s.id === draggableId);
+        const scene = sourceScenes.find(s => s.id === sceneId);
         if (!scene) return;
 
         try {
+            // Calculate new order (append to end of target beat)
+            const newOrder = Array.isArray(destBeat.scenes) ? destBeat.scenes.length : 0;
+            
             // Move scene to new beat using ScreenplayContext
             // This automatically updates GitHub and the .fountain script!
-            await moveScene(scene.id, destBeatId, destination.index);
+            await moveScene(scene.id, destBeat.id, newOrder);
             
             toast.success(`Moved scene "${scene.heading}" to ${destBeat.title}`, {
                 description: 'GitHub synced automatically'
@@ -164,6 +199,10 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                 description: error instanceof Error ? error.message : 'Unknown error'
             });
         }
+    };
+    
+    const handleDragCancel = () => {
+        setActiveScene(null);
     };
     
     const getStatusColor = (status: 'draft' | 'review' | 'final') => {
@@ -186,7 +225,13 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     };
 
     return (
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+            collisionDetection={closestCorners}
+        >
             <div 
                 className="flex flex-col h-full w-full overflow-hidden bg-slate-900"
             >
@@ -315,171 +360,16 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                                         </div>
 
                                         {/* Droppable Scene Cards */}
-                                        <Droppable droppableId={column.id}>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.droppableProps}
-                                                    className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200"
-                                                    style={{
-                                                        backgroundColor: snapshot.isDraggingOver 
-                                                            ? column.color + '15'
-                                                            : '#0A0A0B',
-                                                        border: snapshot.isDraggingOver
-                                                            ? `2px dashed ${column.color}`
-                                                            : '2px solid #1C1C1E'
-                                                    }}
-                                                >
-                                                    {/* Empty State */}
-                                                    {scenes.length === 0 && (
-                                                        <div className="flex flex-col items-center justify-center h-full py-12 px-4">
-                                                            <div 
-                                                                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                                                                style={{ 
-                                                                    backgroundColor: column.color + '15',
-                                                                    border: `2px dashed ${column.color}40`
-                                                                }}
-                                                            >
-                                                                <Film size={28} style={{ color: column.color + '80' }} />
-                                                            </div>
-                                                            <p className="text-sm text-center text-slate-500">
-                                                                No scenes yet
-                                                            </p>
-                                                            <p className="text-xs text-center mt-1 text-slate-600">
-                                                                Drag scenes here or create new ones
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Scene Cards */}
-                                                    {scenes.map((scene, index) => {
-                                                        const sceneCharacters = getSceneCharacters(scene.id);
-                                                        const location = scene.fountain?.tags?.location 
-                                                            ? locations.find(l => l.id === scene.fountain.tags.location)
-                                                            : undefined;
-                                                        const isSceneHighlighted = highlightedSceneId === scene.id;
-
-                                                        return (
-                                                            <Draggable
-                                                                key={scene.id}
-                                                                draggableId={scene.id}
-                                                                index={index}
-                                                            >
-                                                                {(provided, snapshot) => (
-                                                                    <div
-                                                                        ref={provided.innerRef}
-                                                                        {...provided.draggableProps}
-                                                                        {...provided.dragHandleProps}
-                                                                        style={provided.draggableProps.style}
-                                                                    >
-                                                                        <motion.div
-                                                                            data-scene-id={scene.id}
-                                                                            initial={{ opacity: 0, y: 20 }}
-                                                                            animate={{ opacity: 1, y: 0 }}
-                                                                            transition={{ delay: index * 0.05 }}
-                                                                            whileHover={{ 
-                                                                                scale: snapshot.isDragging ? 1 : 1.02,
-                                                                                y: snapshot.isDragging ? 0 : -4
-                                                                            }}
-                                                                            className={`mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all ${
-                                                                                isSceneHighlighted ? 'ring-2 ring-blue-400' : ''
-                                                                            }`}
-                                                                            style={{
-                                                                                backgroundColor: isSceneHighlighted
-                                                                                    ? column.color + '30'
-                                                                                    : snapshot.isDragging
-                                                                                    ? '#3F3F46'
-                                                                                    : '#1C1C1E',
-                                                                                borderColor: isSceneHighlighted
-                                                                                    ? '#3B82F6'
-                                                                                    : snapshot.isDragging
-                                                                                    ? column.color
-                                                                                    : '#3F3F46'
-                                                                            }}
-                                                                            onClick={() => handleEditScene(scene, column.beat)}
-                                                                        >
-                                                                            {/* Card Header */}
-                                                                            <div className="flex items-start gap-2">
-                                                                                <div 
-                                                                                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                                                                                    style={{ 
-                                                                                        backgroundColor: column.color + '30',
-                                                                                        color: column.color
-                                                                                    }}
-                                                                                >
-                                                                                    <span className="text-xs font-bold">{scene.number}</span>
-                                                                                </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                                        <div 
-                                                                                            className="w-2 h-2 rounded-full"
-                                                                                            style={{ backgroundColor: getStatusColor(scene.status) }}
-                                                                                            title={scene.status}
-                                                                                        />
-                                                                                        <span className="text-xs capitalize text-slate-400">
-                                                                                            {scene.status}
-                                                                                        </span>
-                                                                                    </div>
-
-                                                                                    {/* Scene Heading */}
-                                                                                    <h4 
-                                                                                        className="font-medium text-sm line-clamp-2 leading-tight mt-1 text-slate-200"
-                                                                                    >
-                                                                                        {scene.heading}
-                                                                                    </h4>
-                                                                                </div>
-                                                                                <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleEditScene(scene, column.beat);
-                                                                                }}
-                                                                                    className="p-1 rounded hover:bg-slate-700 transition-colors flex-shrink-0 text-slate-400"
-                                                                                    title="Edit scene"
-                                                                                >
-                                                                                    <MoreVertical size={14} />
-                                                                                </button>
-                                                                            </div>
-
-                                                                            {/* Synopsis */}
-                                                                            {scene.synopsis && (
-                                                                                <p 
-                                                                                    className="text-xs mt-3 line-clamp-2 leading-relaxed text-slate-400"
-                                                                                >
-                                                                                    {scene.synopsis}
-                                                                                </p>
-                                                                            )}
-
-                                                                            {/* Metadata */}
-                                                                            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-                                                                                {sceneCharacters.length > 0 && (
-                                                                                    <span className="flex items-center gap-1">
-                                                                                        <Users size={12} />
-                                                                                        {sceneCharacters.length}
-                                                                                    </span>
-                                                                                )}
-                                                                                {location && (
-                                                                                    <span className="flex items-center gap-1 truncate">
-                                                                                        <MapPin size={12} />
-                                                                                        <span className="truncate">{location.name}</span>
-                                                                                    </span>
-                                                                                )}
-                                                                                {scene.images && scene.images.length > 0 && (
-                                                                                    <span className="flex items-center gap-1">
-                                                                                        <ImageIcon size={12} />
-                                                                                        {scene.images.length}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        </motion.div>
-                                                                    </div>
-                                                                )}
-                                                            </Draggable>
-                                                        );
-                                                    })}
-                                                    {provided.placeholder}
-                                                </div>
-                                            )}
-                                        </Droppable>
+                                        <BeatColumn
+                                            beat={column.beat}
+                                            scenes={scenes}
+                                            color={column.color}
+                                            getSceneCharacters={getSceneCharacters}
+                                            locations={locations}
+                                            getStatusColor={getStatusColor}
+                                            handleEditScene={handleEditScene}
+                                            highlightedSceneId={highlightedSceneId}
+                                        />
                                     </div>
                                 );
                             })}
@@ -487,7 +377,292 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                     )}
                 </div>
             </div>
-        </DragDropContext>
+            
+            {/* Drag Overlay */}
+            <DragOverlay>
+                {activeScene ? (
+                    <div className="opacity-90 scale-105">
+                        <SceneCardContent
+                            scene={activeScene}
+                            color={beatColors[0]}
+                            sceneCharacters={getSceneCharacters(activeScene.id)}
+                            location={activeScene.fountain?.tags?.location 
+                                ? locations.find(l => l.id === activeScene.fountain.tags.location)
+                                : undefined}
+                            getStatusColor={getStatusColor}
+                            isDragging
+                        />
+                    </div>
+                ) : null}
+            </DragOverlay>
+        </DndContext>
+    );
+}
+
+// ============================================================================
+// BeatColumn Component (Droppable)
+// ============================================================================
+
+interface BeatColumnComponentProps {
+    beat: StoryBeat;
+    scenes: Scene[];
+    color: string;
+    getSceneCharacters: (sceneId: string) => any[];
+    locations: any[];
+    getStatusColor: (status: 'draft' | 'review' | 'final') => string;
+    handleEditScene: (scene: Scene, beat: StoryBeat) => void;
+    highlightedSceneId: string | null;
+}
+
+function BeatColumn({
+    beat,
+    scenes,
+    color,
+    getSceneCharacters,
+    locations,
+    getStatusColor,
+    handleEditScene,
+    highlightedSceneId,
+}: BeatColumnComponentProps) {
+    const { setNodeRef, isOver } = useSortable({
+        id: beat.id,
+        data: { beatId: beat.id },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200"
+            style={{
+                backgroundColor: isOver ? color + '15' : '#0A0A0B',
+                border: isOver ? `2px dashed ${color}` : '2px solid #1C1C1E',
+            }}
+        >
+            {/* Empty State */}
+            {scenes.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
+                    <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                        style={{
+                            backgroundColor: color + '15',
+                            border: `2px dashed ${color}40`,
+                        }}
+                    >
+                        <Film size={28} style={{ color: color + '80' }} />
+                    </div>
+                    <p className="text-sm text-center text-slate-500">No scenes yet</p>
+                    <p className="text-xs text-center mt-1 text-slate-600">
+                        Drag scenes here or create new ones
+                    </p>
+                </div>
+            )}
+
+            {/* Scene Cards */}
+            <SortableContext items={scenes.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                {scenes.map((scene, index) => {
+                    const sceneCharacters = getSceneCharacters(scene.id);
+                    const location = scene.fountain?.tags?.location
+                        ? locations.find(l => l.id === scene.fountain.tags.location)
+                        : undefined;
+                    const isSceneHighlighted = highlightedSceneId === scene.id;
+
+                    return (
+                        <SceneCard
+                            key={scene.id}
+                            scene={scene}
+                            beat={beat}
+                            color={color}
+                            sceneCharacters={sceneCharacters}
+                            location={location}
+                            getStatusColor={getStatusColor}
+                            handleEditScene={handleEditScene}
+                            isSceneHighlighted={isSceneHighlighted}
+                            index={index}
+                        />
+                    );
+                })}
+            </SortableContext>
+        </div>
+    );
+}
+
+// ============================================================================
+// SceneCard Component (Draggable)
+// ============================================================================
+
+interface SceneCardProps {
+    scene: Scene;
+    beat: StoryBeat;
+    color: string;
+    sceneCharacters: any[];
+    location: any;
+    getStatusColor: (status: 'draft' | 'review' | 'final') => string;
+    handleEditScene: (scene: Scene, beat: StoryBeat) => void;
+    isSceneHighlighted: boolean;
+    index: number;
+}
+
+function SceneCard({
+    scene,
+    beat,
+    color,
+    sceneCharacters,
+    location,
+    getStatusColor,
+    handleEditScene,
+    isSceneHighlighted,
+    index,
+}: SceneCardProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: scene.id,
+        data: { sceneId: scene.id },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            <motion.div
+                data-scene-id={scene.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{
+                    scale: isDragging ? 1 : 1.02,
+                    y: isDragging ? 0 : -4,
+                }}
+                className={`mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all ${
+                    isSceneHighlighted ? 'ring-2 ring-blue-400' : ''
+                }`}
+                style={{
+                    backgroundColor: isSceneHighlighted
+                        ? color + '30'
+                        : isDragging
+                        ? '#3F3F46'
+                        : '#1C1C1E',
+                    borderColor: isSceneHighlighted
+                        ? '#3B82F6'
+                        : isDragging
+                        ? color
+                        : '#3F3F46',
+                }}
+                onClick={() => handleEditScene(scene, beat)}
+            >
+                <SceneCardContent
+                    scene={scene}
+                    color={color}
+                    sceneCharacters={sceneCharacters}
+                    location={location}
+                    getStatusColor={getStatusColor}
+                    isDragging={false}
+                />
+            </motion.div>
+        </div>
+    );
+}
+
+// ============================================================================
+// SceneCardContent Component (Reusable content for both scene card and overlay)
+// ============================================================================
+
+interface SceneCardContentProps {
+    scene: Scene;
+    color: string;
+    sceneCharacters: any[];
+    location: any;
+    getStatusColor: (status: 'draft' | 'review' | 'final') => string;
+    isDragging: boolean;
+}
+
+function SceneCardContent({
+    scene,
+    color,
+    sceneCharacters,
+    location,
+    getStatusColor,
+    isDragging,
+}: SceneCardContentProps) {
+    return (
+        <div className={isDragging ? 'bg-gray-800 p-3 rounded-lg border border-gray-600' : ''}>
+            {/* Card Header */}
+            <div className="flex items-start gap-2">
+                <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                        backgroundColor: color + '30',
+                        color: color,
+                    }}
+                >
+                    <span className="text-xs font-bold">{scene.number}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: getStatusColor(scene.status) }}
+                            title={scene.status}
+                        />
+                        <span className="text-xs capitalize text-slate-400">{scene.status}</span>
+                    </div>
+
+                    {/* Scene Heading */}
+                    <h4 className="font-medium text-sm line-clamp-2 leading-tight mt-1 text-slate-200">
+                        {scene.heading}
+                    </h4>
+                </div>
+                {!isDragging && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                        className="p-1 rounded hover:bg-slate-700 transition-colors flex-shrink-0 text-slate-400"
+                        title="Edit scene"
+                    >
+                        <MoreVertical size={14} />
+                    </button>
+                )}
+            </div>
+
+            {/* Synopsis */}
+            {scene.synopsis && (
+                <p className="text-xs mt-3 line-clamp-2 leading-relaxed text-slate-400">
+                    {scene.synopsis}
+                </p>
+            )}
+
+            {/* Metadata */}
+            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                {sceneCharacters.length > 0 && (
+                    <span className="flex items-center gap-1">
+                        <Users size={12} />
+                        {sceneCharacters.length}
+                    </span>
+                )}
+                {location && (
+                    <span className="flex items-center gap-1 truncate">
+                        <MapPin size={12} />
+                        <span className="truncate">{location.name}</span>
+                    </span>
+                )}
+                {scene.images && scene.images.length > 0 && (
+                    <span className="flex items-center gap-1">
+                        <ImageIcon size={12} />
+                        {scene.images.length}
+                    </span>
+                )}
+            </div>
+        </div>
     );
 }
 
