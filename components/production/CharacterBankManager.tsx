@@ -81,12 +81,14 @@ export default function CharacterBankManager({ projectId, onCharacterSelect }: P
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createMethod, setCreateMethod] = useState<'upload' | 'generate'>('upload');
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   
   // Load characters on mount
   useEffect(() => {
-    loadCharacters();
-  }, [projectId]);
+    if (isLoaded && isSignedIn) {
+      loadCharacters();
+    }
+  }, [projectId, isLoaded, isSignedIn]);
   
   async function loadCharacters() {
     setIsLoading(true);

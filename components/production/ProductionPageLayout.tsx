@@ -119,7 +119,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   const screenplay = useScreenplay();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   
   // Get context from editor (scene, character, etc.)
   const editorContext = useEditorContext();
@@ -209,8 +209,10 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
 
   // Load characters from Character Bank on mount
   useEffect(() => {
-    loadCharacters();
-  }, [projectId]);
+    if (isLoaded && isSignedIn) {
+      loadCharacters();
+    }
+  }, [projectId, isLoaded, isSignedIn]);
   
   // Watch video generation progress (real polling)
   useEffect(() => {
