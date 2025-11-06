@@ -101,7 +101,16 @@ export function parseContentForImport(content: string): AutoImportResult {
             const isNotSceneHeading = !/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]/i.test(trimmed);
             const isNotTransition = !/TO:$/.test(trimmed);
             
-            if (isAllCaps && isNotSceneHeading && isNotTransition) {
+            // CRITICAL: Exclude centered text (starts with >) and common screenplay elements
+            const isNotCentered = !trimmed.startsWith('>');
+            const isNotEnd = !/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO)\.?$/i.test(trimmed);
+            const isNotTitle = !/^(ACT|SCENE|CHAPTER|PART|TITLE|INTERLUDE|MONTAGE|SERIES OF SHOTS)/i.test(trimmed);
+            
+            // Must look like an actual name (2-4 words max, not a full sentence)
+            const wordCount = trimmed.split(/\s+/).length;
+            const seemsLikeName = wordCount >= 1 && wordCount <= 4;
+            
+            if (isAllCaps && isNotSceneHeading && isNotTransition && isNotCentered && isNotEnd && isNotTitle && seemsLikeName) {
                 isCharacter = true;
                 console.log('[AutoImport] Character detected (lenient mode) at line', lineIndex, ':', trimmed);
             }
