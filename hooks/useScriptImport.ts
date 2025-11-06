@@ -84,7 +84,8 @@ export function useScriptImport(): UseScriptImportReturn {
                 characterNames: characterNames,
                 locations: locationNames.length,
                 locationNames: locationNames,
-                scenes: parseResult.scenes.length
+                scenes: parseResult.scenes.length,
+                characterDescriptions: parseResult.characterDescriptions ? Array.from(parseResult.characterDescriptions.entries()) : []
             });
             
             // Bulk import characters and locations
@@ -93,7 +94,7 @@ export function useScriptImport(): UseScriptImportReturn {
             let importedScenes = 0;
             
             const importedCharacters = characterNames.length > 0 
-                ? await screenplay.bulkImportCharacters(characterNames) 
+                ? await screenplay.bulkImportCharacters(characterNames, parseResult.characterDescriptions) 
                 : [];
             importedChars = importedCharacters.length;
             
