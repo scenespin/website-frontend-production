@@ -509,102 +509,101 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, beats, characters, locations, relationships]);
     
     // ========================================================================
-    // Auto-Sync to GitHub (TEMPORARILY DISABLED FOR TESTING)
+    // Auto-Sync to GitHub (Debounced)
     // ========================================================================
     
-    // TESTING: Disable auto-sync to see if it's causing the freeze
     // Mark changes as pending whenever data changes
-    // useEffect(() => {
-    //     if (!isConnected || !githubConfig) return;
-    //     
-    //     hasPendingChanges.current = true;
-    //     
-    //     if (autoSyncTimerRef.current) {
-    //         clearTimeout(autoSyncTimerRef.current);
-    //     }
-    //     
-    //     autoSyncTimerRef.current = setTimeout(() => {
-    //         if (hasPendingChanges.current && isConnected && githubConfig) {
-    //             const performSync = async () => {
-    //         try {
-    //                     setIsLoading(true);
-    //                     const now = new Date().toISOString();
-    //                     
-    //                     const beatsFile: BeatsFile = {
-    //                         version: '1.0',
-    //                         lastUpdated: now,
-    //                         beats
-    //                     };
-    //                     
-    //                     const charsFile: CharactersFile = {
-    //                         version: '1.0',
-    //                         lastUpdated: now,
-    //                         characters
-    //                     };
-    //                     
-    //                     const locsFile: LocationsFile = {
-    //                         version: '1.0',
-    //                         lastUpdated: now,
-    //                         locations
-    //                     };
-    //                     
-    //                     const relsFile: RelationshipsFile = {
-    //                         version: '1.0',
-    //                         lastUpdated: now,
-    //                         relationships
-    //                     };
-    //                     
-    //                     try {
-    //                         await createMultiFileCommit(
-    //                             githubConfig,
-    //                             [
-    //                                 {
-    //                                     path: 'structure/beats.json',
-    //                                     content: JSON.stringify(beatsFile, null, 2)
-    //                                 },
-    //                                 {
-    //                                     path: 'structure/characters.json',
-    //                                     content: JSON.stringify(charsFile, null, 2)
-    //                                 },
-    //                                 {
-    //                                     path: 'structure/locations.json',
-    //                                     content: JSON.stringify(locsFile, null, 2)
-    //                                 },
-    //                                 {
-    //                                     path: 'structure/relationships.json',
-    //                                     content: JSON.stringify(relsFile, null, 2)
-    //                                 }
-    //                             ],
-    //                             'auto: Screenplay structure update'
-    //                         );
-    //                     } catch (multiFileErr: any) {
-    //                         await Promise.all([
-    //                             saveStructureFile(githubConfig, 'beats', beatsFile, 'auto: Update beats'),
-    //                             saveStructureFile(githubConfig, 'characters', charsFile, 'auto: Update characters'),
-    //                             saveStructureFile(githubConfig, 'locations', locsFile, 'auto: Update locations'),
-    //                             saveStructureFile(githubConfig, 'relationships', relsFile, 'auto: Update relationships')
-    //                         ]);
-    //                     }
-    //                     
-    //                     hasPendingChanges.current = false;
-    //                     console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
-    //                 } catch (err) {
-    //                     console.error('[ScreenplayContext] Auto-sync failed:', err);
-    //                 } finally {
-    //                     setIsLoading(false);
-    //                 }
-    //             };
-    //             
-    //             performSync();
-    //         }
-    //     }, 30000); // 30 seconds after last change
-    //     
-    //     return () => {
-    //         if (autoSyncTimerRef.current) {
-    //             clearTimeout(autoSyncTimerRef.current);
-    //         }
-    //     };
-    // }, [beats, characters, locations, relationships, isConnected, githubConfig]);
+    useEffect(() => {
+        if (!isConnected || !githubConfig) return;
+        
+        hasPendingChanges.current = true;
+        
+        if (autoSyncTimerRef.current) {
+            clearTimeout(autoSyncTimerRef.current);
+        }
+        
+        autoSyncTimerRef.current = setTimeout(() => {
+            if (hasPendingChanges.current && isConnected && githubConfig) {
+                const performSync = async () => {
+            try {
+                        setIsLoading(true);
+                        const now = new Date().toISOString();
+                        
+                        const beatsFile: BeatsFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            beats
+                        };
+                        
+                        const charsFile: CharactersFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            characters
+                        };
+                        
+                        const locsFile: LocationsFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            locations
+                        };
+                        
+                        const relsFile: RelationshipsFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            relationships
+                        };
+                        
+                        try {
+                            await createMultiFileCommit(
+                                githubConfig,
+                                [
+                                    {
+                                        path: 'structure/beats.json',
+                                        content: JSON.stringify(beatsFile, null, 2)
+                                    },
+                                    {
+                                        path: 'structure/characters.json',
+                                        content: JSON.stringify(charsFile, null, 2)
+                                    },
+                                    {
+                                        path: 'structure/locations.json',
+                                        content: JSON.stringify(locsFile, null, 2)
+                                    },
+                                    {
+                                        path: 'structure/relationships.json',
+                                        content: JSON.stringify(relsFile, null, 2)
+                                    }
+                                ],
+                                'auto: Screenplay structure update'
+                            );
+                        } catch (multiFileErr: any) {
+                            await Promise.all([
+                                saveStructureFile(githubConfig, 'beats', beatsFile, 'auto: Update beats'),
+                                saveStructureFile(githubConfig, 'characters', charsFile, 'auto: Update characters'),
+                                saveStructureFile(githubConfig, 'locations', locsFile, 'auto: Update locations'),
+                                saveStructureFile(githubConfig, 'relationships', relsFile, 'auto: Update relationships')
+                            ]);
+                        }
+                        
+                        hasPendingChanges.current = false;
+                        console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
+                    } catch (err) {
+                        console.error('[ScreenplayContext] Auto-sync failed:', err);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                
+                performSync();
+            }
+        }, 30000); // 30 seconds after last change
+        
+        return () => {
+            if (autoSyncTimerRef.current) {
+                clearTimeout(autoSyncTimerRef.current);
+            }
+        };
+    }, [beats, characters, locations, relationships, isConnected, githubConfig]);
     
     // ========================================================================
     // CRUD - Story Beats

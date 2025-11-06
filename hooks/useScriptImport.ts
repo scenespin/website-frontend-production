@@ -102,21 +102,8 @@ export function useScriptImport(): UseScriptImportReturn {
                 : [];
             importedLocs = importedLocations.length;
             
-            // Create a default "Imported Scenes" story beat if we have scenes
+            // Distribute scenes across the 8-sequence structure proportionally
             if (parseResult.scenes.length > 0) {
-                // Check if an "Imported Scenes" beat already exists
-                let importBeat = screenplay.beats.find(b => b.title === 'Imported Scenes');
-                
-                // Create beat if it doesn't exist
-                if (!importBeat) {
-                    importBeat = await screenplay.createBeat({
-                        title: 'Imported Scenes',
-                        description: 'Scenes automatically imported from pasted Fountain screenplay',
-                        order: screenplay.beats.length,
-                        scenes: []
-                    });
-                }
-                
                 // Map character names to IDs
                 const characterMap = new Map(
                     importedCharacters.map(char => [char.name.toUpperCase(), char.id])
@@ -127,8 +114,52 @@ export function useScriptImport(): UseScriptImportReturn {
                     importedLocations.map(loc => [loc.name.toUpperCase(), loc.id])
                 );
                 
-                // Prepare scene data with character/location IDs
-                const sceneDataArray = parseResult.scenes.map(scene => {
+                // Calculate total script lines to determine proportional distribution
+                const totalLines = content.split('\n').length;
+                const scenesCount = parseResult.scenes.length;
+                
+                // Standard 8-Sequence breakdown (as percentages of total):
+                // Seq 1: 0-12.5%    (Status Quo)
+                // Seq 2: 12.5-22.7% (Predicament) 
+                // Seq 3: 22.7-37.5% (Lock In)
+                // Seq 4: 37.5-50%   (First Culmination)
+                // Seq 5: 50-62.5%   (Midpoint Shift)
+                // Seq 6: 62.5-77.3% (Complications)
+                // Seq 7: 77.3-87.5% (All Is Lost)
+                // Seq 8: 87.5-100%  (Resolution)
+                const sequenceBreakpoints = [0, 0.125, 0.227, 0.375, 0.50, 0.625, 0.773, 0.875, 1.0];
+                
+                // Get existing 8-sequence beats (or use defaults if missing)
+                const sequenceBeats = screenplay.beats.filter(b => 
+                    b.title.includes('Sequence ')
+                ).sort((a, b) => a.order - b.order);
+                
+                console.log('[useScriptImport] Found', sequenceBeats.length, 'sequence beats');
+                
+                // Prepare scenes grouped by sequence
+                const scenesBySequence: Array<Array<{
+                    heading: string;
+                    location: string;
+                    characterIds: string[];
+                    locationId?: string;
+                    startLine: number;
+                    endLine: number;
+                }>> = Array(8).fill(null).map(() => []);
+                
+                // Distribute each scene to the appropriate sequence based on its position
+                parseResult.scenes.forEach((scene, index) => {
+                    // Calculate scene position as percentage of total scenes
+                    const scenePosition = index / scenesCount;
+                    
+                    // Find which sequence this scene belongs to
+                    let sequenceIndex = 0;
+                    for (let i = 0; i < sequenceBreakpoints.length - 1; i++) {
+                        if (scenePosition >= sequenceBreakpoints[i] && scenePosition < sequenceBreakpoints[i + 1]) {
+                            sequenceIndex = i;
+                            break;
+                        }
+                    }
+                    
                     // Match character names to IDs
                     const characterIds = scene.characters
                         .map(charName => characterMap.get(formatCharacterName(charName).toUpperCase()))
@@ -137,27 +168,30 @@ export function useScriptImport(): UseScriptImportReturn {
                     // Match location to ID
                     const locationId = locationMap.get(formatLocationName(scene.location).toUpperCase());
                     
-                    return {
+                    scenesBySequence[sequenceIndex].push({
                         heading: scene.heading,
                         location: scene.location,
                         characterIds,
                         locationId,
                         startLine: scene.startLine,
                         endLine: scene.endLine
-                    };
+                    });
                 });
                 
-                // Bulk create scenes
-                const createdScenes = await screenplay.bulkImportScenes(importBeat.id, sceneDataArray);
-                importedScenes = createdScenes.length;
+                // Import scenes into each sequence
+                for (let i = 0; i < 8; i++) {
+                    if (scenesBySequence[i].length > 0 && sequenceBeats[i]) {
+                        const createdScenes = await screenplay.bulkImportScenes(
+                            sequenceBeats[i].id, 
+                            scenesBySequence[i]
+                        );
+                        importedScenes += createdScenes.length;
+                        
+                        console.log('[useScriptImport] Sequence', i + 1, ':', createdScenes.length, 'scenes');
+                    }
+                }
                 
-                console.log('[useScriptImport] Created', importedScenes, 'scenes in beat:', importBeat.title);
-                console.log('[useScriptImport] Scene details:', createdScenes.map(s => ({
-                    id: s.id,
-                    heading: s.heading,
-                    startLine: s.fountain.startLine,
-                    endLine: s.fountain.endLine
-                })));
+                console.log('[useScriptImport] Total scenes imported:', importedScenes, 'across', sequenceBeats.length, 'sequences');
             }
             
             // Show notification if anything was imported
