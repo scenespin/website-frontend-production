@@ -263,8 +263,13 @@ export function useScriptImport(): UseScriptImportReturn {
                 setShowImportReviewModal(true);
             } else {
                 console.log('[useScriptImport] No formatting issues, proceeding with direct import');
-                // No issues, proceed with normal import
-                await performImport(pastedText);
+                // No issues, allow the paste AND perform import
+                // Let default paste happen first, then import in background
+                setTimeout(async () => {
+                    await performImport(pastedText);
+                    // Mark as saved after import completes
+                    markSaved();
+                }, 100);
             }
         } else {
             console.log('[useScriptImport] ❌ Not a screenplay (no scene headings), allowing normal paste');
