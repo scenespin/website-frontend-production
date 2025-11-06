@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { toast } from 'sonner';
 import { 
     parseContentForImport, 
     shouldAutoImport, 
@@ -266,9 +267,20 @@ export function useScriptImport(): UseScriptImportReturn {
             
             console.log('[useScriptImport] ✓ Auto-imported', characterNames.length, 'characters and', locationNames.length, 'locations');
             
+            // Show success toast with import summary
+            const totalImported = characterNames.length + locationNames.length;
+            if (totalImported > 0) {
+                toast.success('✅ Screenplay Imported', {
+                    description: `${characterNames.length} characters, ${locationNames.length} locations, ${parseResult.scenes.length} scenes`
+                });
+            }
+            
             // Show modal if there are questionable items
             if (parseResult.questionableItems.length > 0) {
                 console.log('[useScriptImport] Showing review modal for', parseResult.questionableItems.length, 'questionable items');
+                toast.warning('⚠️ Some formatting issues detected', {
+                    description: `${parseResult.questionableItems.length} items need review. Check the modal for details.`
+                });
                 setImportReviewData({
                     original: pastedText,
                     corrected: pastedText, // No correction needed
@@ -281,6 +293,13 @@ export function useScriptImport(): UseScriptImportReturn {
                 setShowImportReviewModal(true);
             }
             
+            // Warn if very few items were imported (might indicate poor formatting)
+            if (parseResult.scenes.length > 3 && characterNames.length === 0 && locationNames.length === 0) {
+                toast.warning('⚠️ No characters or locations detected', {
+                    description: 'Make sure character names are in ALL CAPS and scene headings start with INT./EXT.'
+                });
+            }
+            
             // Save the pasted content to editor context
             // Let the paste happen naturally, then save it after a brief delay
             setTimeout(() => {
@@ -290,6 +309,15 @@ export function useScriptImport(): UseScriptImportReturn {
             
         } else {
             console.log('[useScriptImport] ❌ Not a screenplay (no scene headings), allowing normal paste');
+            
+            // Show helpful info toast if pasting substantial text without screenplay format
+            const lineCount = pastedText.split('\n').length;
+            if (lineCount > 10) {
+                toast.info('ℹ️ Plain text pasted', {
+                    description: 'No screenplay detected. Add scene headings (INT./EXT.) to enable auto-import.',
+                    duration: 5000
+                });
+            }
         }
     }, [screenplay, setContent, markSaved]);
     
