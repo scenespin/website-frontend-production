@@ -94,7 +94,7 @@ export function useScriptImport(): UseScriptImportReturn {
             let importedScenes = 0;
             
             const importedCharacters = characterNames.length > 0 
-                ? await screenplay.bulkImportCharacters(characterNames, parseResult.characterDescriptions) 
+                ? await screenplay.bulkImportCharacters(characterNames) 
                 : [];
             importedChars = importedCharacters.length;
             
