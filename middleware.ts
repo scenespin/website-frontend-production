@@ -1,8 +1,29 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// Let Clerk handle everything automatically
-// No manual protection - Clerk will redirect unauthenticated users from protected pages
-export default clerkMiddleware()
+// Define which routes are public (don't require authentication)
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhooks(.*)',
+  '/features(.*)',
+  '/pricing(.*)',
+  '/blog(.*)',
+  '/social-creators(.*)',
+  '/screenwriters(.*)',
+  '/filmmakers(.*)',
+  '/agencies(.*)',
+  '/marketing-teams(.*)',
+])
+
+// Clerk middleware with explicit route protection
+// This ensures auth() works correctly in API routes
+export default clerkMiddleware(async (auth, req) => {
+  // Protect all routes except public ones
+  if (!isPublicRoute(req)) {
+    await auth.protect()
+  }
+})
 
 export const config = {
   matcher: [

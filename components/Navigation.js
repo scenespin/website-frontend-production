@@ -67,29 +67,48 @@ export default function Navigation() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user?.id, getToken]);
   
-  async function fetchCreditBalance(retryCount = 0) {
-    try {
-      // Set up auth token first (no template needed - backend accepts default Clerk tokens)
-      const { api, setAuthTokenGetter } = await import('@/lib/api');
-      setAuthTokenGetter(() => getToken());
-      
-      // Now make the API call
-      const response = await api.user.getCredits();
-      setCredits(response.data.balance || 0);
-    } catch (error) {
-      console.error('[Navigation] Failed to fetch credits:', error);
-      // Retry on network error for new accounts
-      if (retryCount < 3) {
-        setTimeout(() => fetchCreditBalance(retryCount + 1), 2000 * (retryCount + 1));
-      } else {
-        setCredits(0); // Fallback to 0 after retries
+      async function fetchCreditBalance(retryCount = 0) {
+        try {
+          console.log('[Navigation] Fetching credit balance...');
+          
+          // Set up auth token with wryda-backend template
+          const { api, setAuthTokenGetter } = await import('@/lib/api');
+          setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+          
+          // Now make the API call
+          const response = await api.user.getCredits();
+          console.log('[Navigation] Credits response:', response.data);
+          
+          // Check if there's a warning or error in the response
+          if (response.data.warning || response.data.error) {
+            console.warn('[Navigation] API returned warning:', response.data.warning || response.data.error);
+            console.warn('[Navigation] Check Clerk Dashboard → JWT Templates');
+            console.warn('[Navigation] Make sure a default JWT template is configured');
+          }
+          
+          setCredits(response.data.balance || 0);
+        } catch (error) {
+          console.error('[Navigation] Failed to fetch credits:', error);
+          console.error('[Navigation] Error details:', error.response?.data || error.message);
+          
+          // If it's a 401 error, don't retry - just set to 0
+          if (error?.response?.status === 401) {
+            console.log('[Navigation] 401 Unauthorized - Check Clerk configuration');
+            setCredits(0);
+          } else if (retryCount < 2) {
+            // Retry on network error (reduced from 3 to 2 retries)
+            console.log(`[Navigation] Retrying... (attempt ${retryCount + 1})`);
+            setTimeout(() => fetchCreditBalance(retryCount + 1), 1000 * (retryCount + 1));
+          } else {
+            console.log('[Navigation] Max retries reached, setting credits to 0');
+            setCredits(0); // Fallback to 0 after retries
+          }
+        } finally {
+          if (retryCount === 0) {
+            setLoadingCredits(false);
+          }
+        }
       }
-    } finally {
-      if (retryCount === 0) {
-        setLoadingCredits(false);
-      }
-    }
-  }
 
   // Navigation structure - Desktop: flat links, Mobile: hierarchical accordions
   // VERIFIED ROUTES - All pages exist in /app directory

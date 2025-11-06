@@ -22,9 +22,9 @@ const AuthInitializer = () => {
   useEffect(() => {
     if (isSignedIn && getToken) {
       // Set the global auth token getter for all API requests
-      // Note: No template needed - backend accepts default Clerk tokens
-      setAuthTokenGetter(() => getToken());
-      console.log('[Auth] Token getter initialized for API requests');
+      // Using wryda-backend template for consistent JWT claims
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      console.log('[Auth] Token getter initialized with wryda-backend template');
     }
   }, [isSignedIn, getToken]);
 

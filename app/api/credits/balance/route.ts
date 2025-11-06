@@ -10,21 +10,37 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET(request: NextRequest) {
   try {
     console.log('[Credits Balance] Starting request...');
-    const { getToken, userId } = await auth();
+    const { getToken, userId, sessionClaims } = await auth();
     console.log('[Credits Balance] Auth result - userId:', userId);
+    console.log('[Credits Balance] Session claims:', sessionClaims ? 'Present' : 'Missing');
     
-    // Use default Clerk token (no template needed)
-    const token = await getToken();
-    console.log('[Credits Balance] Token result:', token ? 'Token received (length: ' + token.length + ')' : 'NO TOKEN RECEIVED');
+    if (!userId) {
+      console.error('[Credits Balance] ❌ No userId - user not authenticated');
+      return NextResponse.json(
+        { error: 'Unauthorized - User not authenticated', balance: 0 },
+        { status: 401 }
+      );
+    }
+    
+    // Get token - use wryda-backend template for custom backend API
+    // This template should be configured in Clerk Dashboard → JWT Templates
+    const token = await getToken({ template: 'wryda-backend' });
+    
+    console.log('[Credits Balance] Token result:', token ? `Token received (length: ${token.length})` : 'NO TOKEN RECEIVED');
 
     if (!token) {
       console.error('[Credits Balance] ❌ No auth token - getToken returned null/undefined');
-      console.error('[Credits Balance] Template requested: wryda-backend');
-      console.error('[Credits Balance] UserId from auth:', userId);
-      return NextResponse.json(
-        { error: 'Unauthorized - Could not generate JWT token with template: wryda-backend' },
-        { status: 401 }
-      );
+      console.error('[Credits Balance] This usually means:');
+      console.error('  1. Clerk JWT Templates are not configured properly');
+      console.error('  2. User session has expired');
+      console.error('  3. Clerk middleware is not set up correctly');
+      
+      // Instead of failing, return 0 balance with error
+      return NextResponse.json({ 
+        balance: 0, 
+        error: 'Could not generate authentication token',
+        userId: userId 
+      }, { status: 200 }); // Return 200 so frontend doesn't retry
     }
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';

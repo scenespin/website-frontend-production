@@ -146,9 +146,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return [];
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
-            return saved ? JSON.parse(saved) : [];
+            if (!saved) return [];
+            
+            const parsed = JSON.parse(saved);
+            
+            // CRITICAL: Validate that parsed data is actually an array
+            // This prevents crashes from corrupted localStorage data
+            if (!Array.isArray(parsed)) {
+                console.error('[ScreenplayContext] ❌ Corrupted beats data detected:', typeof parsed, parsed);
+                console.log('[ScreenplayContext] 🔧 Clearing corrupted data and reinitializing...');
+                localStorage.removeItem(STORAGE_KEYS.BEATS);
+                return [];
+            }
+            
+            return parsed;
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
+            localStorage.removeItem(STORAGE_KEYS.BEATS); // Clear corrupted data
             return [];
         }
     });
@@ -157,9 +171,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return [];
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.CHARACTERS);
-            return saved ? JSON.parse(saved) : [];
+            if (!saved) return [];
+            
+            const parsed = JSON.parse(saved);
+            
+            // Validate that parsed data is actually an array
+            if (!Array.isArray(parsed)) {
+                console.error('[ScreenplayContext] ❌ Corrupted characters data detected:', typeof parsed);
+                localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
+                return [];
+            }
+            
+            return parsed;
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load characters from localStorage', error);
+            localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
             return [];
         }
     });
@@ -168,9 +194,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return [];
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
-            return saved ? JSON.parse(saved) : [];
+            if (!saved) return [];
+            
+            const parsed = JSON.parse(saved);
+            
+            // Validate that parsed data is actually an array
+            if (!Array.isArray(parsed)) {
+                console.error('[ScreenplayContext] ❌ Corrupted locations data detected:', typeof parsed);
+                localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
+                return [];
+            }
+            
+            return parsed;
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load locations from localStorage', error);
+            localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
             return [];
         }
     });
