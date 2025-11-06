@@ -267,13 +267,6 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                             Drag scenes between sequences to reorganize your screenplay
                         </p>
                     </div>
-                    <button
-                        onClick={() => toast.info('Add scene feature (to be connected)')}
-                        className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0 bg-[#DC143C] hover:bg-[#B01030] text-white"
-                    >
-                        <Plus size={18} />
-                        <span className="hidden sm:inline">Add Scene</span>
-                    </button>
                 </div>
                 
                 {/* 🎯 Context Banner - Shows where user came from */}
