@@ -30,6 +30,7 @@ import {
 import {
     updateScriptTags
 } from '@/utils/fountainTags';
+import { fixCorruptedBeatsInLocalStorage } from '@/utils/fixCorruptedBeats';
 
 // ============================================================================
 // Context Type Definition
@@ -315,6 +316,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     // Log successful load on mount + Auto-create 8-Sequence Structure
     useEffect(() => {
+        // 🔧 ONE-TIME MIGRATION: Fix any corrupted beats in localStorage
+        const lastMigration = localStorage.getItem('wryda_last_migration');
+        if (!lastMigration) {
+            console.log('[ScreenplayContext] 🔧 Running one-time data migration...');
+            fixCorruptedBeatsInLocalStorage();
+        }
+        
         const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
         if (lastSaved) {
             console.log(`[ScreenplayContext] ✅ Loaded screenplay data (last saved: ${new Date(lastSaved).toLocaleString()})`);
