@@ -1031,19 +1031,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, syncToGitHub]);
     
     const updateLocation = useCallback(async (id: string, updates: Partial<Location>) => {
-        setLocations(prev => prev.map(loc =>
-            loc.id === id
-                ? { ...loc, ...updates, updatedAt: new Date().toISOString() }
-                : loc
-        ));
+        let updatedLocation: Location | undefined;
         
-        if (githubConfig) {
-            const loc = locations.find(l => l.id === id);
-            if (loc?.githubIssueNumber) {
-                await syncToGitHub(`feat: [#${loc.githubIssueNumber}] Updated location ${loc.name}`);
-            }
+        setLocations(prev => {
+            const updated = prev.map(loc => {
+                if (loc.id === id) {
+                    updatedLocation = { ...loc, ...updates, updatedAt: new Date().toISOString() };
+                    return updatedLocation;
+                }
+                return loc;
+            });
+            return updated;
+        });
+        
+        if (githubConfig && updatedLocation?.githubIssueNumber) {
+            await syncToGitHub(`feat: [#${updatedLocation.githubIssueNumber}] Updated location ${updatedLocation.name}`);
         }
-    }, [locations, githubConfig, syncToGitHub]);
+    }, [githubConfig, syncToGitHub]);
     
     const deleteLocation = useCallback(async (id: string, cascade: CascadeOption): Promise<DeletionResult> => {
         if (cascade === 'cancel') {
