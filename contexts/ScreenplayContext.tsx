@@ -145,6 +145,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     const [beats, setBeats] = useState<StoryBeat[]>(() => {
         if (typeof window === 'undefined') return [];
+        
+        // 🔧 ONE-TIME MIGRATION: Fix corrupted beats BEFORE loading state
+        const lastMigration = localStorage.getItem('wryda_last_migration');
+        if (!lastMigration) {
+            console.log('[ScreenplayContext] 🔧 Running one-time data migration...');
+            fixCorruptedBeatsInLocalStorage();
+        }
+        
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
             if (!saved) return [];
@@ -316,13 +324,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     // Log successful load on mount + Auto-create 8-Sequence Structure
     useEffect(() => {
-        // 🔧 ONE-TIME MIGRATION: Fix any corrupted beats in localStorage
-        const lastMigration = localStorage.getItem('wryda_last_migration');
-        if (!lastMigration) {
-            console.log('[ScreenplayContext] 🔧 Running one-time data migration...');
-            fixCorruptedBeatsInLocalStorage();
-        }
-        
         const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
         if (lastSaved) {
             console.log(`[ScreenplayContext] ✅ Loaded screenplay data (last saved: ${new Date(lastSaved).toLocaleString()})`);

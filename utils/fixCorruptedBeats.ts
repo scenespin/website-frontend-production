@@ -11,6 +11,7 @@ export function fixCorruptedBeatsInLocalStorage(): void {
         const beatsJSON = localStorage.getItem('screenplay_beats_v1');
         if (!beatsJSON) {
             console.log('[Migration] No beats found in localStorage');
+            localStorage.setItem('wryda_last_migration', new Date().toISOString());
             return;
         }
         
@@ -18,6 +19,7 @@ export function fixCorruptedBeatsInLocalStorage(): void {
         
         if (!Array.isArray(beats)) {
             console.error('[Migration] beats is not an array:', typeof beats);
+            localStorage.setItem('wryda_last_migration', new Date().toISOString());
             return;
         }
         
@@ -37,16 +39,15 @@ export function fixCorruptedBeatsInLocalStorage(): void {
         if (fixedCount > 0) {
             console.log(`[Migration] ✅ Fixed ${fixedCount} corrupted beat(s). Saving to localStorage...`);
             localStorage.setItem('screenplay_beats_v1', JSON.stringify(fixedBeats));
-            localStorage.setItem('wryda_last_migration', new Date().toISOString());
-            console.log('[Migration] ✅ Migration complete! Please refresh the page.');
-            
-            // Force reload to apply fixes
-            window.location.reload();
         } else {
             console.log('[Migration] ✅ No corruption found. All beats are healthy!');
         }
+        
+        // Mark migration as complete
+        localStorage.setItem('wryda_last_migration', new Date().toISOString());
     } catch (error) {
         console.error('[Migration] ❌ Failed to fix corrupted beats:', error);
+        localStorage.setItem('wryda_last_migration', new Date().toISOString());
     }
 }
 
