@@ -195,3 +195,33 @@ progress::-webkit-progress-value {
 .hover\:opacity-90:hover {
   opacity: 0.9;
 }
+
+/* ===== CLEAN EDITOR SCROLLBARS ===== */
+/* Hide scrollbars for editor textarea while keeping functionality */
+.editor-textarea-clean {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.editor-textarea-clean::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Optional: Style fountain editor with minimal scrollbar */
+.fountain-editor-textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fountain-editor-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fountain-editor-textarea::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.fountain-editor-textarea::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

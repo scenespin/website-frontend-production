@@ -305,9 +305,8 @@ export default function FountainEditor({
                         caretColor: '#60a5fa',
                         overflow: 'auto',
                         boxSizing: 'border-box',
-                        scrollbarWidth: 'none', // Firefox
-                        msOverflowStyle: 'none', // IE and Edge
                     }}
+                    className="editor-textarea-clean"
                     value={displayContent}
                     onChange={handleChange}
                     onPaste={scriptImport.handlePaste}
