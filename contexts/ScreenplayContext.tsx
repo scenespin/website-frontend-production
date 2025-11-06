@@ -202,6 +202,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Ref for auto-sync timer
     const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     
+    // Ref to track if there are pending changes that need syncing
+    const hasPendingChanges = useRef(false);
+    
     // GitHub connection - Load from localStorage if available
     const [githubConfig, setGithubConfig] = useState<ReturnType<typeof initializeGitHub> | null>(() => {
         if (typeof window === 'undefined') return null;
@@ -337,7 +340,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters));
         } catch (error) {
             console.error('[ScreenplayContext] Failed to save characters:', error);
-        }
+                    }
     }, [characters]);
     
     // Save locations to localStorage
@@ -401,8 +404,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // 🛡️ CRITICAL FIX: Sanitize beat.scenes when loading from GitHub
             const sanitizedBeats = (beatsFile?.beats || []).map(beat => {
                 return {
-                    ...beat,
-                    scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+                ...beat,
+                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
                 };
             });
             
@@ -506,39 +509,102 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, beats, characters, locations, relationships]);
     
     // ========================================================================
-    // Auto-Sync to GitHub (DISABLED - was causing infinite re-render loop)
+    // Auto-Sync to GitHub (TEMPORARILY DISABLED FOR TESTING)
     // ========================================================================
     
-    // FIXME: Auto-sync was causing performance issues due to circular dependencies
-    // The syncToGitHub callback depends on data state, which triggers useEffect when data changes,
-    // which sets a timer, which syncs, which updates data, which triggers useEffect again...
-    // 
+    // TESTING: Disable auto-sync to see if it's causing the freeze
+    // Mark changes as pending whenever data changes
     // useEffect(() => {
-    //     // Skip if not connected to GitHub
     //     if (!isConnected || !githubConfig) return;
     //     
-    //     // Clear existing timer
+    //     hasPendingChanges.current = true;
+    //     
     //     if (autoSyncTimerRef.current) {
     //         clearTimeout(autoSyncTimerRef.current);
     //     }
     //     
-    //     // Set new timer for GitHub auto-sync (30 seconds)
-    //     autoSyncTimerRef.current = setTimeout(async () => {
+    //     autoSyncTimerRef.current = setTimeout(() => {
+    //         if (hasPendingChanges.current && isConnected && githubConfig) {
+    //             const performSync = async () => {
     //         try {
-    //             await syncToGitHub('auto: Screenplay structure update');
-    //         } catch (err) {
-    //             console.error('[ScreenplayContext] Auto-sync failed:', err);
-    //             // Don't throw - just log the error
+    //                     setIsLoading(true);
+    //                     const now = new Date().toISOString();
+    //                     
+    //                     const beatsFile: BeatsFile = {
+    //                         version: '1.0',
+    //                         lastUpdated: now,
+    //                         beats
+    //                     };
+    //                     
+    //                     const charsFile: CharactersFile = {
+    //                         version: '1.0',
+    //                         lastUpdated: now,
+    //                         characters
+    //                     };
+    //                     
+    //                     const locsFile: LocationsFile = {
+    //                         version: '1.0',
+    //                         lastUpdated: now,
+    //                         locations
+    //                     };
+    //                     
+    //                     const relsFile: RelationshipsFile = {
+    //                         version: '1.0',
+    //                         lastUpdated: now,
+    //                         relationships
+    //                     };
+    //                     
+    //                     try {
+    //                         await createMultiFileCommit(
+    //                             githubConfig,
+    //                             [
+    //                                 {
+    //                                     path: 'structure/beats.json',
+    //                                     content: JSON.stringify(beatsFile, null, 2)
+    //                                 },
+    //                                 {
+    //                                     path: 'structure/characters.json',
+    //                                     content: JSON.stringify(charsFile, null, 2)
+    //                                 },
+    //                                 {
+    //                                     path: 'structure/locations.json',
+    //                                     content: JSON.stringify(locsFile, null, 2)
+    //                                 },
+    //                                 {
+    //                                     path: 'structure/relationships.json',
+    //                                     content: JSON.stringify(relsFile, null, 2)
+    //                                 }
+    //                             ],
+    //                             'auto: Screenplay structure update'
+    //                         );
+    //                     } catch (multiFileErr: any) {
+    //                         await Promise.all([
+    //                             saveStructureFile(githubConfig, 'beats', beatsFile, 'auto: Update beats'),
+    //                             saveStructureFile(githubConfig, 'characters', charsFile, 'auto: Update characters'),
+    //                             saveStructureFile(githubConfig, 'locations', locsFile, 'auto: Update locations'),
+    //                             saveStructureFile(githubConfig, 'relationships', relsFile, 'auto: Update relationships')
+    //                         ]);
+    //                     }
+    //                     
+    //                     hasPendingChanges.current = false;
+    //                     console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
+    //                 } catch (err) {
+    //                     console.error('[ScreenplayContext] Auto-sync failed:', err);
+    //                 } finally {
+    //                     setIsLoading(false);
+    //                 }
+    //             };
+    //             
+    //             performSync();
     //         }
-    //     }, 30000); // 30 seconds
+    //     }, 30000); // 30 seconds after last change
     //     
-    //     // Cleanup
     //     return () => {
     //         if (autoSyncTimerRef.current) {
     //             clearTimeout(autoSyncTimerRef.current);
     //         }
     //     };
-    // }, [beats, characters, locations, relationships, isConnected, githubConfig, syncToGitHub]);
+    // }, [beats, characters, locations, relationships, isConnected, githubConfig]);
     
     // ========================================================================
     // CRUD - Story Beats
