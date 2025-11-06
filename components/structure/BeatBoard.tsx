@@ -31,6 +31,8 @@ interface BeatBoardProps {
 }
 
 export default function BeatBoard({ projectId }: BeatBoardProps) {
+    console.log('[BeatBoard] MOUNT - Starting render');
+    
     const { 
         beats: rawBeats, 
         characters, 
@@ -41,8 +43,12 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
+    console.log('[BeatBoard] Got rawBeats:', rawBeats?.length, 'beats');
+    
     // 🛡️ Trust the data from ScreenplayContext (it's already sanitized on load)
     const beats = rawBeats;
+    
+    console.log('[BeatBoard] Using beats:', beats?.length, 'beats');
     
     // Contextual Navigation Integration
     const context = useContextStore((state) => state.context);
@@ -81,6 +87,8 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     // Initialize columns based on story beats
     useEffect(() => {
+        console.log('[BeatBoard] useEffect[beats] - Creating columns from', beats?.length, 'beats');
+        
         const newColumns: BeatColumn[] = beats.map((beat, index) => {
             return {
                 id: beat.id,
@@ -90,7 +98,16 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         });
         
         setColumns(newColumns);
+        console.log('[BeatBoard] useEffect[beats] - Set', newColumns.length, 'columns');
     }, [beats]);
+    
+    // Mount/unmount logging
+    useEffect(() => {
+        console.log('[BeatBoard] MOUNTED ✅');
+        return () => {
+            console.log('[BeatBoard] UNMOUNTING ❌');
+        };
+    }, []);
     
     // 🎯 CONTEXTUAL NAVIGATION: Auto-focus on current beat/scene from editor
     useEffect(() => {
