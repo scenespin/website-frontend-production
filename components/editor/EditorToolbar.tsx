@@ -48,11 +48,11 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     
     return (
         <div className={`bg-base-200 border-t border-base-300 shadow-sm ${className}`}>
-            {/* Mobile-friendly toolbar with large touch targets */}
-            <div className="flex items-center justify-between p-2 overflow-x-auto">
+            {/* Mobile-friendly toolbar - wraps instead of scrolling */}
+            <div className="flex flex-wrap items-center gap-2 p-2">
                 
                 {/* Undo/Redo */}
-                <div className="flex space-x-1 mr-2">
+                <div className="flex space-x-1">
                     <div className="tooltip tooltip-bottom" data-tip="Undo • Ctrl+Z">
                         <button
                             onClick={undo}
@@ -74,8 +74,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </div>
                 </div>
 
-                {/* Divider */}
-                <div className="h-8 w-px bg-base-300 mx-2"></div>
+                {/* Divider - only visible on larger screens */}
+                <div className="hidden sm:block h-8 w-px bg-base-300"></div>
                 
                 {/* Quick Formatting buttons */}
                 <div className="flex space-x-1">
