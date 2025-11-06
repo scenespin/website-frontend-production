@@ -16,6 +16,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@clerk/nextjs';
 import { 
   User, 
   Plus, 
@@ -80,6 +81,7 @@ export default function CharacterBankManager({ projectId, onCharacterSelect }: P
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createMethod, setCreateMethod] = useState<'upload' | 'generate'>('upload');
+  const { getToken } = useAuth();
   
   // Load characters on mount
   useEffect(() => {
@@ -89,11 +91,10 @@ export default function CharacterBankManager({ projectId, onCharacterSelect }: P
   async function loadCharacters() {
     setIsLoading(true);
     try {
-      // Call real backend API
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
-      const response = await fetch(`${backendUrl}/api/character-bank/list?projectId=${projectId}`, {
+      const token = await getToken({ template: 'wryda-backend' });
+      const response = await fetch(`/api/character-bank/list?projectId=${projectId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });

@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEditorContext } from '@/lib/contextStore';
 import { toast } from 'sonner';
 import { useVideoGeneration } from '@/hooks/useVideoGeneration';
+import { useAuth } from '@clerk/nextjs';
 import type { StoryBeat, Character } from '@/types/screenplay';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { MobileProductionBanner } from './MobileProductionBanner';
@@ -118,6 +119,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   const screenplay = useScreenplay();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { getToken } = useAuth();
   
   // Get context from editor (scene, character, etc.)
   const editorContext = useEditorContext();
@@ -280,7 +282,17 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   async function loadCharacters() {
     setIsLoadingCharacters(true);
     try {
-      const response = await fetch(`/api/character-bank/list?projectId=${projectId}`);
+      // Get auth token and set it for the API client
+      const { api, setAuthTokenGetter } = await import('@/lib/api');
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      
+      const token = await getToken({ template: 'wryda-backend' });
+      const response = await fetch(`/api/character-bank/list?projectId=${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -299,9 +311,13 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   async function loadAISuggestion(beat: StoryBeat) {
     setIsLoadingSuggestion(true);
     try {
+      const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch('/api/composition/suggest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({
           beat: {
             title: beat.title,
