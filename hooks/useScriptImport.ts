@@ -281,13 +281,17 @@ export function useScriptImport(): UseScriptImportReturn {
                 setShowImportReviewModal(true);
             }
             
-            // Allow the paste to happen normally (content goes into editor)
-            // No need to preventDefault - let it paste, we've already imported the metadata
+            // Save the pasted content to editor context
+            // Let the paste happen naturally, then save it after a brief delay
+            setTimeout(() => {
+                setContent(pastedText);
+                markSaved();
+            }, 100);
             
         } else {
             console.log('[useScriptImport] ❌ Not a screenplay (no scene headings), allowing normal paste');
         }
-    }, [screenplay, performImport]);
+    }, [screenplay, setContent, markSaved]);
     
     /**
      * Handle import review modal close
