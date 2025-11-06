@@ -54,6 +54,12 @@ export default function ImportReviewModal({
         }
     };
     
+    // Style for showing scrollbars
+    const scrollbarStyle = {
+        scrollbarWidth: 'auto' as const,
+        msOverflowStyle: 'auto' as const
+    };
+    
     return (
         <>
             {/* Backdrop */}
@@ -139,7 +145,7 @@ export default function ImportReviewModal({
                                         📄 Original Content
                                     </h3>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-300">
+                                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-300" style={scrollbarStyle}>
                                     <pre className="font-mono text-xs md:text-sm leading-relaxed whitespace-pre-wrap text-base-content">
                                         {originalContent}
                                     </pre>
@@ -162,7 +168,7 @@ export default function ImportReviewModal({
                                         {isEditing ? 'Done' : 'Edit'}
                                     </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-300">
+                                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-300" style={scrollbarStyle}>
                                     {isEditing ? (
                                         <textarea
                                             value={editedContent}
@@ -181,7 +187,7 @@ export default function ImportReviewModal({
                         </div>
                     ) : (
                         /* Issues Tab */
-                        <div className="h-full overflow-y-auto p-4 md:p-6 bg-base-300">
+                        <div className="h-full overflow-y-auto p-4 md:p-6 bg-base-300" style={scrollbarStyle}>
                             {/* Issue Summary */}
                             <div className="p-4 rounded-lg border border-base-300 bg-base-100 mb-4">
                                 <h3 className="font-semibold mb-3 flex items-center gap-2 text-base-content">
