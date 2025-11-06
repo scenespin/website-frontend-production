@@ -41,14 +41,8 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
-    // 🛡️ CRITICAL: Use useMemo to prevent infinite re-render loop
-    // Only sanitize beats when rawBeats actually changes (not on every render)
-    const beats = useMemo(() => {
-        return (Array.isArray(rawBeats) ? rawBeats : []).map(beat => ({
-            ...beat,
-            scenes: Array.isArray(beat?.scenes) ? beat.scenes : []
-        }));
-    }, [rawBeats]);
+    // 🛡️ Trust the data from ScreenplayContext (it's already sanitized on load)
+    const beats = rawBeats;
     
     // Contextual Navigation Integration
     const context = useContextStore((state) => state.context);
@@ -87,19 +81,10 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     // Initialize columns based on story beats
     useEffect(() => {
-        // 🛡️ Sanitize beats before mapping
-        const sanitizedBeats = beats.map(beat => ({
-            ...beat,
-            scenes: Array.isArray(beat.scenes) ? beat.scenes : []
-        }));
-        
-        const newColumns: BeatColumn[] = sanitizedBeats.map((beat, index) => {
+        const newColumns: BeatColumn[] = beats.map((beat, index) => {
             return {
                 id: beat.id,
-                beat: {
-                    ...beat,
-                    scenes: beat.scenes // Already sanitized above
-                },
+                beat: beat,
                 color: beatColors[index % beatColors.length]
             };
         });
@@ -158,7 +143,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     const handleDragStart = (event: DragStartEvent) => {
         const sceneId = event.active.id as string;
-        const scene = beats.flatMap(b => Array.isArray(b.scenes) ? b.scenes : []).find(s => s.id === sceneId);
+        const scene = beats.flatMap(b => b.scenes).find(s => s.id === sceneId);
         setActiveScene(scene || null);
     };
     
@@ -173,9 +158,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         const targetBeatId = over.id as string;
         
         // Find source and destination beats
-        const sourceBeat = beats.find(b =>
-            Array.isArray(b.scenes) && b.scenes.some(s => s.id === sceneId)
-        );
+        const sourceBeat = beats.find(b => b.scenes.some(s => s.id === sceneId));
         const destBeat = beats.find(b => b.id === targetBeatId);
         
         if (!sourceBeat || !destBeat) return;
@@ -183,14 +166,12 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         // If dropping on same beat, no action needed
         if (sourceBeat.id === destBeat.id) return;
 
-        // SAFETY: Ensure scenes is an array before attempting to find
-        const sourceScenes = Array.isArray(sourceBeat.scenes) ? sourceBeat.scenes : [];
-        const scene = sourceScenes.find(s => s.id === sceneId);
+        const scene = sourceBeat.scenes.find(s => s.id === sceneId);
         if (!scene) return;
 
         try {
             // Calculate new order (append to end of target beat)
-            const newOrder = Array.isArray(destBeat.scenes) ? destBeat.scenes.length : 0;
+            const newOrder = destBeat.scenes.length;
             
             // Move scene to new beat using ScreenplayContext
             // This automatically updates GitHub and the .fountain script!
@@ -222,8 +203,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     // Helper to get scene characters
     const getSceneCharacters = (sceneId: string) => {
-        // SAFETY: Ensure each beat's scenes is an array before flatMapping
-        const scene = beats.flatMap(b => Array.isArray(b.scenes) ? b.scenes : []).find(s => s.id === sceneId);
+        const scene = beats.flatMap(b => b.scenes).find(s => s.id === sceneId);
         if (!scene) return [];
         
         const characterIds = scene.fountain.tags.characters || [];
@@ -301,10 +281,9 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                                     : 'flex gap-4 md:gap-6 overflow-x-auto'
                             }`}
                         >
-                            {(Array.isArray(columns) ? columns : []).map(column => {
-                                // CRITICAL FIX: Ensure scenes is always an array, not a number or other type
-                                const scenes = Array.isArray(column?.beat?.scenes) ? column.beat.scenes : [];
-                                const isHighlighted = highlightedBeatId === column?.id;
+                            {columns.map(column => {
+                                const scenes = column.beat.scenes;
+                                const isHighlighted = highlightedBeatId === column.id;
                                 
                                 return (
                                     <div 
