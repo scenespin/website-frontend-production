@@ -11,7 +11,7 @@ function StoryBeatsPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId');
   
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [viewMode, setViewMode] = useState('board');
   const [isClient, setIsClient] = useState(false);
 
   // Only render after client-side hydration to prevent server/client mismatch
