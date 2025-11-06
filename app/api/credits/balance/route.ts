@@ -10,12 +10,14 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET(request: NextRequest) {
   try {
     console.log('[Credits Balance] Starting request...');
+    console.log('[Credits Balance] Headers:', Object.fromEntries(request.headers.entries()));
     
     // Get the token from the Authorization header that the client sent
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
-    console.log('[Credits Balance] Token from client:', token ? `Present (${token.length} chars)` : 'Missing');
+    console.log('[Credits Balance] Auth header:', authHeader ? 'Present' : 'Missing');
+    console.log('[Credits Balance] Token extracted:', token ? `Present (${token.length} chars)` : 'Missing');
     
     if (!token) {
       console.error('[Credits Balance] ❌ No token in Authorization header');
@@ -27,6 +29,8 @@ export async function GET(request: NextRequest) {
     
     // Verify user is authenticated with Clerk
     const { userId } = await auth();
+    console.log('[Credits Balance] Clerk userId:', userId);
+    
     if (!userId) {
       console.error('[Credits Balance] ❌ No userId - user not authenticated');
       return NextResponse.json(
