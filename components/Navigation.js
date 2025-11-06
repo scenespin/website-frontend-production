@@ -79,14 +79,17 @@ export default function Navigation() {
           const response = await api.user.getCredits();
           console.log('[Navigation] Credits response:', response.data);
           
-          // Check if there's a warning or error in the response
-          if (response.data.warning || response.data.error) {
-            console.warn('[Navigation] API returned warning:', response.data.warning || response.data.error);
-            console.warn('[Navigation] Check Clerk Dashboard → JWT Templates');
-            console.warn('[Navigation] Make sure a default JWT template is configured');
-          }
+          // FIX: API response is response.data.data.balance (not response.data.balance)
+          const creditsData = response.data.data;
+          console.log('[Navigation] Credits data:', creditsData);
           
-          setCredits(response.data.balance || 0);
+          if (creditsData && typeof creditsData.balance === 'number') {
+            setCredits(creditsData.balance);
+            console.log('[Navigation] ✅ Set credits to:', creditsData.balance);
+          } else {
+            console.warn('[Navigation] ⚠️ Unexpected credits response structure:', creditsData);
+            setCredits(0);
+          }
         } catch (error) {
           console.error('[Navigation] Failed to fetch credits:', error);
           console.error('[Navigation] Error details:', error.response?.data || error.message);
