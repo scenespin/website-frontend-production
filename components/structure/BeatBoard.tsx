@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     DndContext,
     DragEndEvent,
@@ -41,11 +41,14 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
-    // 🛡️ Sanitize beats on receipt from context
-    const beats = (Array.isArray(rawBeats) ? rawBeats : []).map(beat => ({
-        ...beat,
-        scenes: Array.isArray(beat?.scenes) ? beat.scenes : []
-    }));
+    // 🛡️ CRITICAL: Use useMemo to prevent infinite re-render loop
+    // Only sanitize beats when rawBeats actually changes (not on every render)
+    const beats = useMemo(() => {
+        return (Array.isArray(rawBeats) ? rawBeats : []).map(beat => ({
+            ...beat,
+            scenes: Array.isArray(beat?.scenes) ? beat.scenes : []
+        }));
+    }, [rawBeats]);
     
     // Contextual Navigation Integration
     const context = useContextStore((state) => state.context);
