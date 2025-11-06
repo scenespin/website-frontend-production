@@ -10,11 +10,23 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET(request: NextRequest) {
   try {
     console.log('[Credits Balance] Starting request...');
-    console.log('[Credits Balance] Request headers:', Object.fromEntries(request.headers.entries()));
     
-    const { getToken, userId, sessionClaims, sessionId } = await auth();
-    console.log('[Credits Balance] Auth result:', { userId, sessionId, hasClaims: !!sessionClaims });
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
     
+    console.log('[Credits Balance] Token from client:', token ? `Present (${token.length} chars)` : 'Missing');
+    
+    if (!token) {
+      console.error('[Credits Balance] ❌ No token in Authorization header');
+      return NextResponse.json(
+        { error: 'Unauthorized - No token provided', balance: 0 },
+        { status: 401 }
+      );
+    }
+    
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
     if (!userId) {
       console.error('[Credits Balance] ❌ No userId - user not authenticated');
       return NextResponse.json(
@@ -23,33 +35,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Try to get token with template
-    console.log('[Credits Balance] Calling getToken with template: wryda-backend');
-    let token;
-    try {
-      token = await getToken({ template: 'wryda-backend' });
-      console.log('[Credits Balance] getToken returned:', token ? `SUCCESS (${token.length} chars)` : 'NULL');
-    } catch (tokenError: any) {
-      console.error('[Credits Balance] getToken threw error:', tokenError.message);
-      console.error('[Credits Balance] Error stack:', tokenError.stack);
-      return NextResponse.json({ 
-        balance: 0, 
-        error: `Token generation error: ${tokenError.message}`,
-        userId 
-      }, { status: 200 });
-    }
-    
-    if (!token) {
-      console.error('[Credits Balance] ❌ getToken returned null/undefined');
-      console.error('[Credits Balance] userId:', userId);
-      console.error('[Credits Balance] sessionId:', sessionId);
-      return NextResponse.json({ 
-        balance: 0, 
-        error: 'Could not generate authentication token',
-        userId,
-        debug: { hasUserId: !!userId, hasSessionId: !!sessionId }
-      }, { status: 200 });
-    }
+    console.log('[Credits Balance] User authenticated:', userId);
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/credits/balance`;
