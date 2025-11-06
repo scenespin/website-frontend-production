@@ -171,16 +171,12 @@ export function normalizeCharacterNames(content: string): string {
  * while fixing obvious errors
  */
 export function smartFormat(content: string): string {
-    // Step 1: Quick corrections for common patterns
-    let formatted = quickCorrect(content);
-    
-    // Step 2: Normalize character names
-    formatted = normalizeCharacterNames(formatted);
-    
-    // Step 3: Ensure proper spacing
-    formatted = ensureProperSpacing(formatted);
-    
-    return formatted;
+    // DO NOT APPLY CORRECTIONS - The auto-correction functions were too aggressive
+    // and caused false positives (converting title page elements and character names
+    // into scene headings).
+    // 
+    // Return content unchanged and let users review issues manually.
+    return content;
 }
 
 /**
