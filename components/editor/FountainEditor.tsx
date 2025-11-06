@@ -379,11 +379,10 @@ export default function FountainEditor({
             {/* Import Review Modal - Screenplay paste validation */}
             {scriptImport.importReviewModal.show && scriptImport.importReviewModal.data && (
                 <ImportReviewModal
-                    originalContent={scriptImport.importReviewModal.data.original}
-                    correctedContent={scriptImport.importReviewModal.data.corrected}
-                    issues={scriptImport.importReviewModal.data.issues}
-                    onAccept={scriptImport.importReviewModal.onAccept}
-                    onReject={scriptImport.importReviewModal.onReject}
+                    importedCharacters={scriptImport.importReviewModal.data.importedCharacters}
+                    importedLocations={scriptImport.importReviewModal.data.importedLocations}
+                    importedScenes={scriptImport.importReviewModal.data.importedScenes}
+                    questionableItems={scriptImport.importReviewModal.data.questionableItems}
                     onClose={scriptImport.importReviewModal.onClose}
                 />
             )}

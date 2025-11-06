@@ -1,64 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Check, Edit, ArrowLeftRight, AlertCircle, CheckCircle } from 'lucide-react';
-import { FormatIssue, getIssueSummary } from '@/utils/fountainValidator';
+import React from 'react';
+import { X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { QuestionableItem } from '@/utils/fountainAutoImport';
 
 interface ImportReviewModalProps {
-    originalContent: string;
-    correctedContent: string;
-    issues: FormatIssue[];
-    onAccept: (content: string) => void;
-    onReject: () => void;
+    importedCharacters: string[];
+    importedLocations: string[];
+    importedScenes: number;
+    questionableItems: QuestionableItem[];
     onClose: () => void;
 }
 
 /**
- * ImportReviewModal - Side-by-side comparison of original vs corrected screenplay
- * Theme-aware with semantic color-coding (red=original, green=corrected)
+ * ImportReviewModal - Shows what was successfully imported and what needs fixing
+ * Simple informational modal - no editing, just tells user what worked and what didn't
  */
 export default function ImportReviewModal({
-    originalContent,
-    correctedContent,
-    issues,
-    onAccept,
-    onReject,
+    importedCharacters,
+    importedLocations,
+    importedScenes,
+    questionableItems,
     onClose
 }: ImportReviewModalProps) {
-    const [selectedTab, setSelectedTab] = useState<'comparison' | 'issues'>('comparison');
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedContent, setEditedContent] = useState(correctedContent);
-    
-    const issueSummary = getIssueSummary(issues);
-    const totalIssues = issues.length;
-    
-    const handleAccept = () => {
-        onAccept(isEditing ? editedContent : correctedContent);
-    };
-    
-    const getSeverityColor = (severity: FormatIssue['severity']) => {
-        switch (severity) {
-            case 'error': return '#dc2626';
-            case 'warning': return '#f59e0b';
-            case 'info': return '#3b82f6';
-            default: return '#6b7280';
-        }
-    };
-    
-    const getSeverityIcon = (severity: FormatIssue['severity']) => {
-        switch (severity) {
-            case 'error': return '❌';
-            case 'warning': return '⚠️';
-            case 'info': return 'ℹ️';
-            default: return '•';
-        }
-    };
-    
-    // Style for showing scrollbars
-    const scrollbarStyle = {
-        scrollbarWidth: 'auto' as const,
-        msOverflowStyle: 'auto' as const
-    };
     
     return (
         <>
@@ -76,7 +40,7 @@ export default function ImportReviewModal({
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
                     width: '90vw',
-                    maxWidth: '1200px',
+                    maxWidth: '800px',
                     maxHeight: '85vh'
                 }}
                 onClick={(e) => e.stopPropagation()}
@@ -84,16 +48,13 @@ export default function ImportReviewModal({
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-base-300 bg-primary flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-primary-content" />
+                        <CheckCircle className="w-6 h-6 text-primary-content" />
                         <div>
-                            <h2 className="text-lg font-bold text-primary-content">
-                                Import Review
+                            <h2 className="text-xl font-bold text-primary-content">
+                                Import Complete
                             </h2>
-                            <p className="text-xs text-primary-content/80">
-                                {totalIssues === 0 
-                                    ? 'No formatting issues detected' 
-                                    : `${totalIssues} formatting ${totalIssues === 1 ? 'issue' : 'issues'} found`
-                                }
+                            <p className="text-sm text-primary-content/80">
+                                {importedCharacters.length + importedLocations.length + importedScenes} items imported
                             </p>
                         </div>
                     </div>
@@ -106,199 +67,130 @@ export default function ImportReviewModal({
                     </button>
                 </div>
                 
-                {/* Tabs */}
-                {totalIssues > 0 && (
-                    <div className="flex border-b border-base-300 bg-base-200 flex-shrink-0">
-                        <button
-                            onClick={() => setSelectedTab('comparison')}
-                            className={`px-6 py-3 font-medium transition-all relative ${
-                                selectedTab === 'comparison' 
-                                    ? 'text-primary border-b-2 border-primary' 
-                                    : 'text-base-content/60 border-b-2 border-transparent'
-                            }`}
-                        >
-                            <ArrowLeftRight className="w-4 h-4 inline mr-2" />
-                            Side-by-Side
-                        </button>
-                        <button
-                            onClick={() => setSelectedTab('issues')}
-                            className={`px-6 py-3 font-medium transition-all relative ${
-                                selectedTab === 'issues' 
-                                    ? 'text-primary border-b-2 border-primary' 
-                                    : 'text-base-content/60 border-b-2 border-transparent'
-                            }`}
-                        >
-                            <AlertCircle className="w-4 h-4 inline mr-2" />
-                            Issues ({totalIssues})
-                        </button>
-                    </div>
-                )}
-
-                {/* Content Area */}
-                <div className="flex-1 overflow-hidden flex flex-col" style={{ minHeight: '300px', maxHeight: 'calc(85vh - 200px)' }}>
-                    {selectedTab === 'comparison' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 h-full" style={{ maxHeight: 'calc(85vh - 200px)' }}>
-                            {/* Original Content */}
-                            <div className="flex flex-col md:border-r border-base-300 h-full">
-                                <div className="px-4 py-3 border-b border-red-900 bg-red-900 flex-shrink-0">
-                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-red-200">
-                                        📄 Original Content
-                                    </h3>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-300" style={scrollbarStyle}>
-                                    <pre className="font-mono text-xs md:text-sm leading-relaxed whitespace-pre-wrap text-base-content">
-                                        {originalContent}
-                                    </pre>
-                                </div>
-                            </div>
-
-                            {/* Corrected Content */}
-                            <div className="flex flex-col h-full">
-                                <div className="px-4 py-3 border-b border-green-900 bg-green-900 flex items-center justify-between flex-shrink-0">
-                                    <h3 className="text-sm font-semibold uppercase tracking-wide text-green-200">
-                                        ✨ Corrected Format {isEditing && '(Editing)'}
-                                    </h3>
-                                    <button
-                                        onClick={() => setIsEditing(!isEditing)}
-                                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                            isEditing ? 'bg-success text-success-content' : 'bg-white/10 text-base-content'
-                                        }`}
-                                    >
-                                        <Edit className="w-3 h-3" />
-                                        {isEditing ? 'Done' : 'Edit'}
-                                    </button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-base-300" style={scrollbarStyle}>
-                                    {isEditing ? (
-                                        <textarea
-                                            value={editedContent}
-                                            onChange={(e) => setEditedContent(e.target.value)}
-                                            className="textarea w-full h-full font-mono text-xs md:text-sm leading-relaxed resize-none bg-base-100 text-base-content"
-                                            style={{ minHeight: '400px', ...scrollbarStyle }}
-                                            spellCheck={false}
-                                        />
-                                    ) : (
-                                        <pre className="font-mono text-xs md:text-sm leading-relaxed whitespace-pre-wrap text-base-content">
-                                            {editedContent}
-                                        </pre>
-                                    )}
-                                </div>
-                            </div>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6" style={{ scrollbarWidth: 'auto', msOverflowStyle: 'auto' }}>
+                    
+                    {/* Successfully Imported Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-success" />
+                            <h3 className="text-lg font-semibold text-base-content">
+                                ✅ Successfully Imported
+                            </h3>
                         </div>
-                    ) : (
-                        /* Issues Tab */
-                        <div className="h-full overflow-y-auto p-4 md:p-6 bg-base-300" style={scrollbarStyle}>
-                            {/* Issue Summary */}
-                            <div className="p-4 rounded-lg border border-base-300 bg-base-100 mb-4">
-                                <h3 className="font-semibold mb-3 flex items-center gap-2 text-base-content">
-                                    <CheckCircle className="w-4 h-4 text-success" />
-                                    Issue Summary
+                        
+                        <div className="bg-success/10 border border-success/30 rounded-lg p-4 space-y-3">
+                            {/* Characters */}
+                            {importedCharacters.length > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium text-base-content mb-2">
+                                        <span className="text-success font-bold">{importedCharacters.length}</span> Characters:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {importedCharacters.map((char, idx) => (
+                                            <span key={idx} className="px-2 py-1 bg-base-200 rounded text-xs font-mono text-base-content">
+                                                {char}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Locations */}
+                            {importedLocations.length > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium text-base-content mb-2">
+                                        <span className="text-success font-bold">{importedLocations.length}</span> Locations:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {importedLocations.map((loc, idx) => (
+                                            <span key={idx} className="px-2 py-1 bg-base-200 rounded text-xs font-mono text-base-content">
+                                                {loc}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Scenes */}
+                            {importedScenes > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium text-base-content">
+                                        <span className="text-success font-bold">{importedScenes}</span> Scenes detected
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Questionable Items Section */}
+                    {questionableItems.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-warning" />
+                                <h3 className="text-lg font-semibold text-base-content">
+                                    ⚠️ Needs Review ({questionableItems.length} items)
                                 </h3>
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                    {Object.entries(issueSummary).map(([type, count]) => count > 0 && (
-                                        <div key={type} className="text-center p-2 rounded bg-base-200">
-                                            <div className="text-2xl font-bold text-primary">
-                                                {count}
-                                            </div>
-                                            <div className="text-xs capitalize mt-1 text-base-content/60">
-                                                {type.replace('_', ' ')}
+                            </div>
+                            
+                            <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+                                <p className="text-sm text-base-content/80 mb-4">
+                                    These items don't match proper Fountain format. Fix them in the editor and they'll automatically appear in the sidebar.
+                                </p>
+                                
+                                <div className="space-y-3">
+                                    {questionableItems.map((item, idx) => (
+                                        <div key={idx} className="bg-base-200 rounded-lg p-3 space-y-1">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex-1">
+                                                    <p className="font-mono text-sm text-error font-medium">
+                                                        Line {item.lineNumber}: "{item.text}"
+                                                    </p>
+                                                    <p className="text-xs text-base-content/70 mt-1">
+                                                        {item.reason}
+                                                    </p>
+                                                    {item.suggestion && (
+                                                        <p className="text-xs text-success mt-1">
+                                                            Suggestion: <span className="font-mono">{item.suggestion}</span>
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                                                    item.type === 'character' ? 'bg-purple-500/20 text-purple-300' :
+                                                    item.type === 'location' ? 'bg-blue-500/20 text-blue-300' :
+                                                    'bg-yellow-500/20 text-yellow-300'
+                                                }`}>
+                                                    {item.type}
+                                                </span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            
-                            {/* Individual Issues */}
-                            <div className="space-y-2">
-                                {issues.map((issue, index) => (
-                                    <div key={index} className="p-3 rounded-lg border border-base-300 bg-base-100">
-                                        <div className="flex items-start gap-3">
-                                            <span className="text-lg flex-shrink-0">
-                                                {getSeverityIcon(issue.severity)}
-                                            </span>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                    <span className="badge badge-sm">
-                                                        Line {issue.lineNumber + 1}
-                                                    </span>
-                                                    <span 
-                                                        className="text-xs capitalize px-2 py-0.5 rounded"
-                                                        style={{ 
-                                                            color: getSeverityColor(issue.severity),
-                                                            backgroundColor: `${getSeverityColor(issue.severity)}15`
-                                                        }}
-                                                    >
-                                                        {issue.severity}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm mb-2 text-base-content">
-                                                    {issue.description}
-                                                </p>
-                                                {issue.suggestedFix && (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs mt-2">
-                                                        <div>
-                                                            <div className="font-semibold mb-1 text-base-content/60">
-                                                                Original:
-                                                            </div>
-                                                            <code className="block p-2 rounded font-mono bg-red-900/10 text-red-400 border border-red-900">
-                                                                {issue.originalText}
-                                                            </code>
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-semibold mb-1 text-base-content/60">
-                                                                Fixed:
-                                                            </div>
-                                                            <code className="block p-2 rounded font-mono whitespace-pre bg-green-900/10 text-green-400 border border-green-900">
-                                                                {issue.suggestedFix}
-                                                            </code>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
                     )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="px-4 md:px-6 py-4 border-t border-base-300 flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0 bg-base-200">
-                    <div className="flex items-center gap-2 text-center md:text-left">
-                        <span className="text-xs md:text-sm text-base-content/60">
-                            {totalIssues > 0 
-                                ? 'Review corrections and import screenplay'
-                                : 'Ready to import screenplay'
-                            }
-                        </span>
-                    </div>
                     
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <button
-                            onClick={onReject}
-                            className="btn btn-error flex-1 md:flex-none"
-                        >
-                            <X className="w-4 h-4" />
-                            <span>Keep Original</span>
-                        </button>
-                        
-                        <button
-                            onClick={handleAccept}
-                            className="btn btn-success flex-1 md:flex-none"
-                        >
-                            <Check className="w-4 h-4" />
-                            <span>{isEditing && editedContent !== correctedContent ? 'Accept Edited & Import' : 'Accept & Import'}</span>
-                        </button>
-                    </div>
+                    {/* No Issues */}
+                    {questionableItems.length === 0 && (
+                        <div className="bg-info/10 border border-info/30 rounded-lg p-4">
+                            <p className="text-sm text-base-content/80">
+                                🎉 Perfect! Your screenplay is properly formatted according to Fountain spec.
+                            </p>
+                        </div>
+                    )}
+                    
                 </div>
-
-                {/* Keyboard Shortcuts Hint */}
-                <div className="hidden md:block px-6 py-2 border-t border-base-300 text-xs text-center bg-base-300 text-base-content/50 flex-shrink-0">
-                    <kbd className="kbd kbd-sm">Esc</kbd> to close
+                
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-base-300 bg-base-200 flex justify-end flex-shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="btn btn-primary"
+                    >
+                        Got It, Continue Writing
+                    </button>
                 </div>
             </div>
         </>
     );
 }
-

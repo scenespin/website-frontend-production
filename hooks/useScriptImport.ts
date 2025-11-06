@@ -7,10 +7,9 @@ import {
     parseContentForImport, 
     shouldAutoImport, 
     formatLocationName, 
-    formatCharacterName 
+    formatCharacterName,
+    QuestionableItem
 } from '@/utils/fountainAutoImport';
-import { validateFountainContent, FormatIssue } from '@/utils/fountainValidator';
-import { smartFormat } from '@/utils/fountainCorrector';
 
 interface ImportResults {
     characters: number;
@@ -21,7 +20,11 @@ interface ImportResults {
 interface ImportReviewData {
     original: string;
     corrected: string;
-    issues: FormatIssue[];
+    issues: any[]; // Legacy, not used
+    importedCharacters: string[];
+    importedLocations: string[];
+    importedScenes: number;
+    questionableItems: QuestionableItem[];
 }
 
 interface UseScriptImportReturn {
@@ -32,8 +35,6 @@ interface UseScriptImportReturn {
     importReviewModal: {
         show: boolean;
         data: ImportReviewData | null;
-        onAccept: (correctedContent: string) => Promise<void>;
-        onReject: () => void;
         onClose: () => void;
     };
     
@@ -233,90 +234,67 @@ export function useScriptImport(): UseScriptImportReturn {
         const pastedText = e.clipboardData.getData('text');
         
         console.log('[useScriptImport] Paste detected. Length:', pastedText.length, 'chars');
-        console.log('[useScriptImport] First 200 chars:', pastedText.substring(0, 200));
         
         // Check if this looks like a full screenplay that should be auto-imported
         if (shouldAutoImport(pastedText)) {
-            console.log('[useScriptImport] ✅ Detected screenplay paste, analyzing for auto-import...');
+            console.log('[useScriptImport] ✅ Detected screenplay paste, parsing...');
             
-            // Validate the content
-            const validation = validateFountainContent(pastedText);
+            // Parse the content (strict Fountain parsing)
+            const parseResult = parseContentForImport(pastedText);
             
-            console.log('[useScriptImport] Validation result:', {
-                hasAutoFixableIssues: validation.hasAutoFixableIssues,
-                issueCount: validation.issues.length,
-                issues: validation.issues
+            console.log('[useScriptImport] Parse complete:', {
+                characters: parseResult.characters.size,
+                locations: parseResult.locations.size,
+                scenes: parseResult.scenes.length,
+                questionable: parseResult.questionableItems.length,
+                characterDescriptions: parseResult.characterDescriptions ? Array.from(parseResult.characterDescriptions.entries()) : []
             });
             
-            if (validation.hasAutoFixableIssues) {
-                // Apply smart formatting
-                const corrected = smartFormat(pastedText);
-                
-                console.log('[useScriptImport] Found', validation.issues.length, 'formatting issues, showing review modal');
-                
-                // Show review modal
-                e.preventDefault(); // Prevent default paste
+            // Auto-import the confident items
+            const characterNames = Array.from(parseResult.characters);
+            const locationNames = Array.from(parseResult.locations);
+            
+            // Import characters with descriptions
+            if (characterNames.length > 0) {
+                await screenplay.bulkImportCharacters(characterNames, parseResult.characterDescriptions);
+            }
+            
+            // Import locations
+            if (locationNames.length > 0) {
+                await screenplay.bulkImportLocations(locationNames);
+            }
+            
+            console.log('[useScriptImport] ✓ Auto-imported', characterNames.length, 'characters and', locationNames.length, 'locations');
+            
+            // Show modal if there are questionable items
+            if (parseResult.questionableItems.length > 0) {
+                console.log('[useScriptImport] Showing review modal for', parseResult.questionableItems.length, 'questionable items');
                 setImportReviewData({
                     original: pastedText,
-                    corrected,
-                    issues: validation.issues
+                    corrected: pastedText, // No correction needed
+                    issues: [], // Legacy field, not used anymore
+                    importedCharacters: characterNames,
+                    importedLocations: locationNames,
+                    importedScenes: parseResult.scenes.length,
+                    questionableItems: parseResult.questionableItems
                 });
                 setShowImportReviewModal(true);
-            } else {
-                console.log('[useScriptImport] No formatting issues, proceeding with direct import');
-                // No issues, allow the paste AND perform import
-                // Let default paste happen first, then import in background
-                setTimeout(async () => {
-                    await performImport(pastedText);
-                    // Mark as saved after import completes
-                    markSaved();
-                }, 100);
             }
+            
+            // Allow the paste to happen normally (content goes into editor)
+            // No need to preventDefault - let it paste, we've already imported the metadata
+            
         } else {
             console.log('[useScriptImport] ❌ Not a screenplay (no scene headings), allowing normal paste');
         }
-    }, [performImport]);
+    }, [screenplay, performImport]);
     
     /**
-     * Handle import review modal - Accept corrected content
-     */
-    const handleImportAccept = useCallback(async (correctedContent: string) => {
-        setShowImportReviewModal(false);
-        setImportReviewData(null);
-        
-        // Set the corrected content in the editor
-        setContent(correctedContent);
-        
-        // DON'T mark as saved yet - let the auto-save trigger
-        // This ensures the content is persisted to localStorage
-        
-        // Perform the import in the background
-        setTimeout(async () => {
-            await performImport(correctedContent);
-        }, 100);
-    }, [setContent, performImport]);
-    
-    /**
-     * Handle import review modal - Reject corrections, use original
-     */
-    const handleImportReject = useCallback(() => {
-        setShowImportReviewModal(false);
-        const originalContent = importReviewData?.original;
-        setImportReviewData(null);
-        
-        // User wants to keep original, perform import anyway
-        if (originalContent) {
-            performImport(originalContent);
-        }
-    }, [importReviewData, performImport]);
-    
-    /**
-     * Handle import review modal - Close without importing
+     * Handle import review modal close
      */
     const handleImportClose = useCallback(() => {
         setShowImportReviewModal(false);
         setImportReviewData(null);
-        // Just close, don't import anything
     }, []);
     
     /**
@@ -331,8 +309,6 @@ export function useScriptImport(): UseScriptImportReturn {
         importReviewModal: {
             show: showImportReviewModal,
             data: importReviewData,
-            onAccept: handleImportAccept,
-            onReject: handleImportReject,
             onClose: handleImportClose
         },
         importNotification: {
