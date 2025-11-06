@@ -9,36 +9,41 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return forwardRequest(request, params.path, 'GET');
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return forwardRequest(request, params.path, 'POST');
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return forwardRequest(request, params.path, 'PUT');
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return forwardRequest(request, params.path, 'DELETE');
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return forwardRequest(request, params.path, 'PATCH');
 }
 
