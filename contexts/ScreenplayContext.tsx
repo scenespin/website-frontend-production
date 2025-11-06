@@ -162,7 +162,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // ADDITIONAL VALIDATION: Check each beat has a scenes array
             const validatedBeats = parsed.map((beat: any) => {
                 if (!beat.scenes || !Array.isArray(beat.scenes)) {
-                    console.warn(`[ScreenplayContext] ⚠️ Beat "${beat.title || beat.id}" has corrupted scenes:`, typeof beat.scenes, beat.scenes);
+                    console.error(`[ScreenplayContext] 🔴 CORRUPTED DATA FOUND ON LOAD! Beat "${beat.title || beat.id}" has scenes:`, typeof beat.scenes, beat.scenes);
+                    console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
                     return {
                         ...beat,
                         scenes: [] // Replace corrupted scenes with empty array
@@ -266,6 +267,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         try {
+            // 🔍 DEBUG: Check for corrupted beats BEFORE saving
+            beats.forEach((beat, index) => {
+                if (!Array.isArray(beat.scenes)) {
+                    console.error(`[ScreenplayContext] 🔴 CORRUPTION DETECTED BEFORE SAVE! Beat #${index} "${beat.title}" has scenes:`, typeof beat.scenes, beat.scenes);
+                    console.error('[ScreenplayContext] 🔴 Full beat object:', JSON.stringify(beat, null, 2));
+                    console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
+                }
+            });
+            
             localStorage.setItem(STORAGE_KEYS.BEATS, JSON.stringify(beats));
             localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
         } catch (error) {
@@ -518,6 +528,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const createBeat = useCallback(async (beat: CreateInput<StoryBeat>): Promise<StoryBeat> => {
+        // 🔍 DEBUG: Log incoming beat data
+        if (!Array.isArray(beat.scenes)) {
+            console.error('[ScreenplayContext] 🔴 createBeat() called with CORRUPTED scenes!');
+            console.error('[ScreenplayContext] 🔴 Input beat:', JSON.stringify(beat, null, 2));
+            console.error('[ScreenplayContext] 🔴 scenes type:', typeof beat.scenes);
+            console.error('[ScreenplayContext] 🔴 scenes value:', beat.scenes);
+            console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
+        }
+        
         const now = new Date().toISOString();
         const newBeat: StoryBeat = {
             ...beat,
@@ -527,6 +546,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: now,
             updatedAt: now
         };
+        
+        console.log('[ScreenplayContext] ✅ createBeat() created:', newBeat.title, 'with', newBeat.scenes.length, 'scenes');
         
         setBeats(prev => [...prev, newBeat]);
         
@@ -538,6 +559,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, syncToGitHub]);
     
     const updateBeat = useCallback(async (id: string, updates: Partial<StoryBeat>) => {
+        // 🔍 DEBUG: Log if scenes is being updated with corrupted data
+        if ('scenes' in updates && !Array.isArray(updates.scenes)) {
+            console.error('[ScreenplayContext] 🔴 updateBeat() called with CORRUPTED scenes!');
+            console.error('[ScreenplayContext] 🔴 Beat ID:', id);
+            console.error('[ScreenplayContext] 🔴 Updates:', JSON.stringify(updates, null, 2));
+            console.error('[ScreenplayContext] 🔴 scenes type:', typeof updates.scenes);
+            console.error('[ScreenplayContext] 🔴 scenes value:', updates.scenes);
+            console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
+        }
+        
         setBeats(prev => prev.map(beat => {
             if (beat.id !== id) return beat;
             
