@@ -239,7 +239,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             // After loading (or if not connected), check if we need to create default structure
             if (beats.length === 0) {
-                console.log('[ScreenplayContext] No beats found - Auto-creating 8-Sequence Structure...');
                 const sequences = [
                     {
                         title: 'Sequence 1: Status Quo',
@@ -283,8 +282,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                 ];
                 
-                // Create all 8 sequences with EXPLICIT property assignment to prevent corruption
-                const now = new Date().toISOString();
+                // 🛡️ CRITICAL: EXPLICIT empty array, not from spread
                 const newBeats = sequences.map((seq, index) => ({
                     id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
                     title: seq.title,
@@ -295,14 +293,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updatedAt: now
                 }));
                 
-                // 🔍 DEBUG: Verify scenes is an array before setting state
-                console.log('[ScreenplayContext] Created beats with explicit scenes arrays:');
-                newBeats.forEach((beat, i) => {
-                    console.log(`  Beat ${i}: "${beat.title}" - scenes is ${Array.isArray(beat.scenes) ? 'array' : typeof beat.scenes}`);
-                });
-                
                 setBeats(newBeats);
-                console.log('[ScreenplayContext] ✅ 8-Sequence Structure created with', newBeats.length, 'beats');
                 
                 // ⚠️ DO NOT sync to GitHub immediately - let useEffect handle it after state settles
                 // This prevents race conditions where GitHub sync reads old/incomplete state
@@ -316,20 +307,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Auto-save to localStorage when data changes
     // ========================================================================
     
-    // Validation: Log any corruption but don't crash the app
-    useEffect(() => {
-        beats.forEach((beat, index) => {
-            if (!Array.isArray(beat.scenes)) {
-                console.error(`🚨 CORRUPTION WARNING in ScreenplayContext!`);
-                console.error(`Beat ${index}: "${beat.title}"`);
-                console.error(`  - scenes type: ${typeof beat.scenes}`);
-                console.error(`  - scenes value:`, beat.scenes);
-                console.error(`  - order value:`, beat.order);
-                console.error('Stack trace:', new Error().stack);
-                // DON'T throw - just log and let sanitization handle it
-            }
-        });
-    }, [beats]);
+    // Removed aggressive validation logging that was causing performance issues
     
     // Save beats to localStorage (with sanitization!)
     useEffect(() => {
@@ -419,18 +397,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             ]);
             
             // 🛡️ CRITICAL FIX: Sanitize beat.scenes when loading from GitHub
-            console.log('[ScreenplayContext] 🟡 GitHub sync: Raw beats from GitHub:', beatsFile?.beats);
             const sanitizedBeats = (beatsFile?.beats || []).map(beat => {
-                const wasCorrupted = !Array.isArray(beat.scenes);
-                if (wasCorrupted) {
-                    console.error(`[ScreenplayContext] 🚨 CORRUPTED BEAT FROM GITHUB: "${beat.title}" - scenes was:`, typeof beat.scenes, beat.scenes);
-                }
                 return {
                     ...beat,
                     scenes: Array.isArray(beat.scenes) ? beat.scenes : []
                 };
             });
-            console.log('[ScreenplayContext] 🟡 GitHub sync: Sanitized beats:', sanitizedBeats);
             
             setBeats(sanitizedBeats);
             setCharacters(charsFile?.characters || []);
@@ -569,15 +541,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const createBeat = useCallback(async (beat: CreateInput<StoryBeat>): Promise<StoryBeat> => {
-        // 🔍 DEBUG: Log incoming beat data
-        if (!Array.isArray(beat.scenes)) {
-            console.error('[ScreenplayContext] 🔴 createBeat() called with CORRUPTED scenes!');
-            console.error('[ScreenplayContext] 🔴 Input beat:', JSON.stringify(beat, null, 2));
-            console.error('[ScreenplayContext] 🔴 scenes type:', typeof beat.scenes);
-            console.error('[ScreenplayContext] 🔴 scenes value:', beat.scenes);
-            console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
-        }
-        
         const now = new Date().toISOString();
         const newBeat: StoryBeat = {
             ...beat,
@@ -587,8 +550,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: now,
             updatedAt: now
         };
-        
-        console.log('[ScreenplayContext] ✅ createBeat() created:', newBeat.title, 'with', newBeat.scenes.length, 'scenes');
         
         setBeats(prev => [...prev, newBeat]);
         
@@ -600,16 +561,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, syncToGitHub]);
     
     const updateBeat = useCallback(async (id: string, updates: Partial<StoryBeat>) => {
-        // 🔍 DEBUG: Log if scenes is being updated with corrupted data
-        if ('scenes' in updates && !Array.isArray(updates.scenes)) {
-            console.error('[ScreenplayContext] 🔴 updateBeat() called with CORRUPTED scenes!');
-            console.error('[ScreenplayContext] 🔴 Beat ID:', id);
-            console.error('[ScreenplayContext] 🔴 Updates:', JSON.stringify(updates, null, 2));
-            console.error('[ScreenplayContext] 🔴 scenes type:', typeof updates.scenes);
-            console.error('[ScreenplayContext] 🔴 scenes value:', updates.scenes);
-            console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
-        }
-        
         setBeats(prev => prev.map(beat => {
             if (beat.id !== id) return beat;
             
