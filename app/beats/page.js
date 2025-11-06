@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import BeatBoard from '@/components/structure/BeatBoard';
@@ -12,6 +12,20 @@ function StoryBeatsPageContent() {
   const projectId = searchParams.get('projectId');
   
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [isClient, setIsClient] = useState(false);
+
+  // Only render after client-side hydration to prevent server/client mismatch
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <>
