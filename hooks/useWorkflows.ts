@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -48,7 +49,9 @@ export function useWorkflows(): UseWorkflowsResult {
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  
+  // Use Clerk's auth hook to know when auth is ready
+  const { isLoaded, isSignedIn } = useAuth();
 
   const fetchWorkflows = async () => {
     try {
@@ -69,21 +72,17 @@ export function useWorkflows(): UseWorkflowsResult {
     }
   };
 
-  // Wait a tick for auth to initialize before fetching
+  // Wait for Clerk auth to be loaded and user to be signed in
   useEffect(() => {
-    // Small delay to ensure auth token getter is initialized
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (isReady) {
+    if (isLoaded && isSignedIn) {
+      console.log('[useWorkflows] Auth ready, fetching workflows...');
       fetchWorkflows();
+    } else if (isLoaded && !isSignedIn) {
+      console.log('[useWorkflows] User not signed in');
+      setIsLoading(false);
+      setError(new Error('User not authenticated'));
     }
-  }, [isReady]);
+  }, [isLoaded, isSignedIn]);
 
   // Organize workflows by category
   const workflowsByCategory = workflows.reduce((acc, workflow) => {
