@@ -180,8 +180,12 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
 
+  // Wait for auth to be ready before fetching
   useEffect(() => {
-    fetchLayouts();
+    const timer = setTimeout(() => {
+      fetchLayouts();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchLayouts = async () => {
