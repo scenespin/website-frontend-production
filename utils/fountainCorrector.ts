@@ -115,27 +115,6 @@ function applyIntelligentCorrections(lines: string[]): string[] {
 export function quickCorrect(content: string): string {
     let corrected = content;
     
-    // Fix colon-separated dialogue - handles both cases: "john: hello" and "JOHN: Hello"
-    // Convert character name to ALL CAPS and put dialogue on next line
-    corrected = corrected.replace(
-        /^([A-Za-z][A-Za-z\s']+?):\s*(.+)$/gm,
-        (match, name, dialogue) => {
-            // Exclude narrative text starting with articles (The, A, An)
-            const startsWithArticle = /^(The|A|An)\s/i.test(name);
-            // Only if name looks reasonable (not too long, no punctuation, not an article)
-            if (name.length < 30 && !/[.!?;]/.test(name) && !startsWithArticle) {
-                return `${name.toUpperCase()}\n${dialogue}`;
-            }
-            return match;
-        }
-    );
-    
-    // Fix dash-separated dialogue (JOHN - Hello -> JOHN\nHello)
-    corrected = corrected.replace(
-        /^([A-Z][A-Z\s']{2,30})\s*-\s*([^-].+)$/gm,
-        '$1\n$2'
-    );
-    
     // Normalize scene headings to uppercase and add periods after INT/EXT
     corrected = corrected.replace(
         /^(int|ext|est|i\/e)([\.\s]+)([^\n]+)$/gim,
