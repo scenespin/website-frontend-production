@@ -288,7 +288,7 @@ export default function FountainEditor({
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
                 <textarea
                     ref={textareaRef}
-                    className="fountain-editor-textarea min-h-[calc(100vh-10rem)] sm:min-h-[70vh]"
+                    className="fountain-editor-textarea editor-textarea-clean min-h-[calc(100vh-10rem)] sm:min-h-[70vh]"
                     style={{
                         flex: 1,
                         width: '100%',
@@ -306,7 +306,6 @@ export default function FountainEditor({
                         overflow: 'auto',
                         boxSizing: 'border-box',
                     }}
-                    className="editor-textarea-clean"
                     value={displayContent}
                     onChange={handleChange}
                     onPaste={scriptImport.handlePaste}
