@@ -153,6 +153,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Track if we've auto-created the 8-Sequence Structure to prevent duplicates
     const hasAutoCreated = useRef(false);
     
+    // Ref for auto-sync timer
+    const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
     // GitHub connection - Load from localStorage if available
     const [githubConfig, setGithubConfig] = useState<ReturnType<typeof initializeGitHub> | null>(() => {
         if (typeof window === 'undefined') return null;
@@ -171,41 +174,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return false;
         return !!localStorage.getItem(STORAGE_KEYS.GITHUB_CONFIG);
     });
-
-    // ========================================================================
-    // Auto-Sync to GitHub (every 30 seconds, debounced)
-    // ========================================================================
-    
-    const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
-    
-    useEffect(() => {
-        // Skip if not connected to GitHub
-        if (!isConnected || !githubConfig) return;
-        
-        // Clear existing timer
-        if (autoSyncTimerRef.current) {
-            clearTimeout(autoSyncTimerRef.current);
-        }
-        
-        // Set new timer for GitHub auto-sync (30 seconds)
-        autoSyncTimerRef.current = setTimeout(async () => {
-            try {
-                console.log('[ScreenplayContext] Auto-syncing to GitHub...');
-                await syncToGitHub('auto: Screenplay structure update');
-                console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
-            } catch (err) {
-                console.error('[ScreenplayContext] Auto-sync failed:', err);
-                // Don't throw - just log the error
-            }
-        }, 30000); // 30 seconds
-        
-        // Cleanup
-        return () => {
-            if (autoSyncTimerRef.current) {
-                clearTimeout(autoSyncTimerRef.current);
-            }
-        };
-    }, [beats, characters, locations, relationships, isConnected, githubConfig, syncToGitHub]);
 
     // Load from GitHub on mount + Auto-create 8-Sequence Structure if empty
     useEffect(() => {
@@ -429,6 +397,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setIsLoading(false);
         }
     }, [githubConfig, beats, characters, locations, relationships]);
+    
+    // ========================================================================
+    // Auto-Sync to GitHub (every 30 seconds, debounced)
+    // ========================================================================
+    
+    useEffect(() => {
+        // Skip if not connected to GitHub
+        if (!isConnected || !githubConfig) return;
+        
+        // Clear existing timer
+        if (autoSyncTimerRef.current) {
+            clearTimeout(autoSyncTimerRef.current);
+        }
+        
+        // Set new timer for GitHub auto-sync (30 seconds)
+        autoSyncTimerRef.current = setTimeout(async () => {
+            try {
+                console.log('[ScreenplayContext] Auto-syncing to GitHub...');
+                await syncToGitHub('auto: Screenplay structure update');
+                console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
+            } catch (err) {
+                console.error('[ScreenplayContext] Auto-sync failed:', err);
+                // Don't throw - just log the error
+            }
+        }, 30000); // 30 seconds
+        
+        // Cleanup
+        return () => {
+            if (autoSyncTimerRef.current) {
+                clearTimeout(autoSyncTimerRef.current);
+            }
+        };
+    }, [beats, characters, locations, relationships, isConnected, githubConfig, syncToGitHub]);
     
     // ========================================================================
     // CRUD - Story Beats
