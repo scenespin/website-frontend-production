@@ -41,22 +41,11 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
-    // 🛡️ NUCLEAR OPTION: Fix scenes IMMEDIATELY on receipt from context
+    // 🛡️ Sanitize beats on receipt from context
     const beats = (Array.isArray(rawBeats) ? rawBeats : []).map(beat => ({
         ...beat,
         scenes: Array.isArray(beat?.scenes) ? beat.scenes : []
     }));
-    
-    // 🔍 DEBUG: Log beats on every render
-    console.log('[BeatBoard] Rendering with beats:', beats);
-    console.log('[BeatBoard] beats type:', Array.isArray(beats) ? 'array' : typeof beats);
-    console.log('[BeatBoard] beats.length:', beats?.length);
-    if (beats && beats.length > 0) {
-        beats.forEach((beat, i) => {
-            const scenesInfo = Array.isArray(beat?.scenes) ? beat.scenes.length : `CORRUPTED (${typeof beat?.scenes}): ${beat?.scenes}`;
-            console.log(`[BeatBoard] Beat #${i}:`, beat?.title, 'scenes:', scenesInfo);
-        });
-    }
     
     // Contextual Navigation Integration
     const context = useContextStore((state) => state.context);
@@ -95,20 +84,13 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     // Initialize columns based on story beats
     useEffect(() => {
-        console.log('[BeatBoard useEffect] Creating columns from beats:', beats);
-        
-        // 🛡️ ULTRA-AGGRESSIVE SANITIZATION: Fix any corruption before mapping
+        // 🛡️ Sanitize beats before mapping
         const sanitizedBeats = beats.map(beat => ({
             ...beat,
             scenes: Array.isArray(beat.scenes) ? beat.scenes : []
         }));
         
         const newColumns: BeatColumn[] = sanitizedBeats.map((beat, index) => {
-            const scenesType = Array.isArray(beat.scenes) ? 'array' : typeof beat.scenes;
-            const scenesValue = beat.scenes;
-            
-            console.log(`[BeatBoard] Beat "${beat.title}" - scenes type: ${scenesType}, value:`, scenesValue);
-            
             return {
                 id: beat.id,
                 beat: {
@@ -119,7 +101,6 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
             };
         });
         
-        console.log('[BeatBoard useEffect] Created columns:', newColumns);
         setColumns(newColumns);
     }, [beats]);
     
