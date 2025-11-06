@@ -31,15 +31,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get query params from request URL
-    const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('projectId') || 'default';
-    const status = searchParams.get('status') || '';
-    const limit = searchParams.get('limit') || '50';
-
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/workflows/list?projectId=${projectId}&status=${status}&limit=${limit}`;
+    const url = `${backendUrl}/api/workflows/list`;
 
     console.log('[Workflows List] Fetching from:', url);
 
