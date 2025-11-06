@@ -861,19 +861,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, syncToGitHub]);
     
     const updateCharacter = useCallback(async (id: string, updates: Partial<Character>) => {
-        setCharacters(prev => prev.map(char =>
-            char.id === id
-                ? { ...char, ...updates, updatedAt: new Date().toISOString() }
-                : char
-        ));
+        let updatedCharacter: Character | undefined;
         
-        if (githubConfig) {
-            const char = characters.find(c => c.id === id);
-            if (char?.githubIssueNumber) {
-                await syncToGitHub(`feat: [#${char.githubIssueNumber}] Updated character ${char.name}`);
-            }
+        setCharacters(prev => {
+            const updated = prev.map(char => {
+                if (char.id === id) {
+                    updatedCharacter = { ...char, ...updates, updatedAt: new Date().toISOString() };
+                    return updatedCharacter;
+                }
+                return char;
+            });
+            return updated;
+        });
+        
+        if (githubConfig && updatedCharacter?.githubIssueNumber) {
+            await syncToGitHub(`feat: [#${updatedCharacter.githubIssueNumber}] Updated character ${updatedCharacter.name}`);
         }
-    }, [characters, githubConfig, syncToGitHub]);
+    }, [githubConfig, syncToGitHub]);
     
     const deleteCharacter = useCallback(async (id: string, cascade: CascadeOption): Promise<DeletionResult> => {
         if (cascade === 'cancel') {
