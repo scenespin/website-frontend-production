@@ -135,7 +135,7 @@ export default function ImportReviewModal({
                 )}
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-hidden" style={{ minHeight: '300px' }}>
+                <div className="flex-1 overflow-hidden flex flex-col" style={{ minHeight: '300px', maxHeight: 'calc(85vh - 200px)' }}>
                     {selectedTab === 'comparison' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 h-full">
                             {/* Original Content */}
