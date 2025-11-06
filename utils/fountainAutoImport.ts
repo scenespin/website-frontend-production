@@ -137,7 +137,25 @@ export function parseContentForImport(content: string): AutoImportResult {
         }
         
         // STRICT: Character must be all caps after blank line
-        if (elementType === 'character' && currentScene) {
+        if (elementType === 'character') {
+            // Exclude transitions and endings (even outside scenes)
+            if (/^(FADE OUT|FADE IN|FADE TO BLACK|CUT TO|DISSOLVE TO|THE END|END|BLACK|MORE|CONT'D|CONTINUED)\.?$/i.test(trimmed)) {
+                previousType = elementType;
+                continue;
+            }
+            
+            // Exclude narrative section headings (like "The blog post goes live:")
+            if (/^(THE .* GOES LIVE|THE .* BEGINS|THE .* ENDS|THE .* ARRIVES)$/i.test(trimmed.replace(/:\s*$/, ''))) {
+                previousType = elementType;
+                continue;
+            }
+            
+            // Only import characters that are within a scene
+            if (!currentScene) {
+                previousType = elementType;
+                continue;
+            }
+            
             // Must be ALL CAPS
             if (trimmed !== trimmed.toUpperCase()) {
                 questionableItems.push({
@@ -147,12 +165,6 @@ export function parseContentForImport(content: string): AutoImportResult {
                     reason: 'Character name must be ALL CAPS',
                     suggestion: trimmed.toUpperCase()
                 });
-                previousType = elementType;
-                continue;
-            }
-            
-            // Exclude transitions
-            if (/^(FADE OUT|FADE IN|FADE TO BLACK|CUT TO|DISSOLVE TO|THE END|END)\.?$/i.test(trimmed)) {
                 previousType = elementType;
                 continue;
             }
