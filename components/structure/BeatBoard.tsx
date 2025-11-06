@@ -131,7 +131,9 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
 
         if (!sourceBeat || !destBeat) return;
 
-        const scene = sourceBeat.scenes.find(s => s.id === draggableId);
+        // SAFETY: Ensure scenes is an array before attempting to find
+        const sourceScenes = Array.isArray(sourceBeat.scenes) ? sourceBeat.scenes : [];
+        const scene = sourceScenes.find(s => s.id === draggableId);
         if (!scene) return;
 
         try {
@@ -161,7 +163,8 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     // Helper to get scene characters
     const getSceneCharacters = (sceneId: string) => {
-        const scene = beats.flatMap(b => b.scenes).find(s => s.id === sceneId);
+        // SAFETY: Ensure each beat's scenes is an array before flatMapping
+        const scene = beats.flatMap(b => Array.isArray(b.scenes) ? b.scenes : []).find(s => s.id === sceneId);
         if (!scene) return [];
         
         const characterIds = scene.fountain.tags.characters || [];

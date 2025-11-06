@@ -269,6 +269,13 @@ export default function FountainEditor({
                 backgroundColor: 'var(--color-bg-secondary)' 
             }}
         >
+            {/* Hide scrollbar for editor */}
+            <style jsx>{`
+                .fountain-editor-textarea::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
+            
             {/* Editor Header */}
             <EditorHeader
                 currentLine={state.currentLine}
@@ -297,7 +304,9 @@ export default function FountainEditor({
                         color: 'var(--color-text-primary)',
                         caretColor: '#60a5fa',
                         overflow: 'auto',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        scrollbarWidth: 'none', // Firefox
+                        msOverflowStyle: 'none', // IE and Edge
                     }}
                     value={displayContent}
                     onChange={handleChange}

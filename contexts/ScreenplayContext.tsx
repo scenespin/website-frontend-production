@@ -521,6 +521,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         const newBeat: StoryBeat = {
             ...beat,
+            // SAFETY: Ensure scenes is always an array, never undefined or corrupted
+            scenes: Array.isArray(beat.scenes) ? beat.scenes : [],
             id: `beat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             createdAt: now,
             updatedAt: now
@@ -536,11 +538,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, syncToGitHub]);
     
     const updateBeat = useCallback(async (id: string, updates: Partial<StoryBeat>) => {
-        setBeats(prev => prev.map(beat =>
-            beat.id === id
-                ? { ...beat, ...updates, updatedAt: new Date().toISOString() }
-                : beat
-        ));
+        setBeats(prev => prev.map(beat => {
+            if (beat.id !== id) return beat;
+            
+            const updatedBeat = { ...beat, ...updates, updatedAt: new Date().toISOString() };
+            
+            // SAFETY: If scenes is being updated, ensure it's always an array
+            if ('scenes' in updates) {
+                updatedBeat.scenes = Array.isArray(updates.scenes) ? updates.scenes : [];
+            }
+            
+            return updatedBeat;
+        }));
         
         if (githubConfig) {
             await syncToGitHub(`feat: Updated story beat`);
