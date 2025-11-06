@@ -1353,7 +1353,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Bulk Import
     // ========================================================================
     
-    const bulkImportCharacters = useCallback(async (characterNames: string[]): Promise<Character[]> => {
+    const bulkImportCharacters = useCallback(async (
+        characterNames: string[],
+        descriptions?: Map<string, string>
+    ): Promise<Character[]> => {
         const now = new Date().toISOString();
         const newCharacters: Character[] = [];
         
@@ -1364,11 +1367,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         );
         
         for (const name of uniqueNames) {
+            const upperName = name.toUpperCase();
+            const description = descriptions?.get(upperName) || `Imported from script`;
+            
             const newCharacter: Character = {
                 id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 name,
                 type: 'supporting', // Default type
-                description: `Imported from script`,
+                description,
                 firstAppearance: undefined,
                 arcStatus: 'introduced',
                 customFields: [],

@@ -10,6 +10,7 @@ import { detectElementType, FountainElementType } from './fountain';
 export interface AutoImportResult {
     locations: Set<string>;
     characters: Set<string>;
+    characterDescriptions: Map<string, string>; // NEW: Map character name to description
     scenes: Array<{
         heading: string;
         location: string;
@@ -28,10 +29,12 @@ export function parseContentForImport(content: string): AutoImportResult {
     const lines = content.split('\n');
     const locations = new Set<string>();
     const characters = new Set<string>();
+    const characterDescriptions = new Map<string, string>();
     const scenes: AutoImportResult['scenes'] = [];
     
     let currentScene: AutoImportResult['scenes'][0] | null = null;
     let previousType: FountainElementType | undefined;
+    let currentCharacterForDescription: string | null = null; // Track @CHARACTER for multi-line descriptions
     
     console.log('[AutoImport] Parsing', lines.length, 'lines...');
     console.log('[AutoImport] First 5 lines:', lines.slice(0, 5));
@@ -44,6 +47,39 @@ export function parseContentForImport(content: string): AutoImportResult {
         // Debug: Log every non-empty line with its detected type
         if (trimmed.length > 0) {
             console.log(`[AutoImport] Line ${lineIndex} [${elementType}]: "${trimmed}"`);
+        }
+        
+        // NEW: Detect @CHARACTER notation for character descriptions
+        if (trimmed.startsWith('@')) {
+            const characterName = trimmed.substring(1).trim().toUpperCase();
+            if (characterName && characterName.length > 0 && characterName.length < 40) {
+                currentCharacterForDescription = characterName;
+                characters.add(characterName);
+                characterDescriptions.set(characterName, ''); // Initialize empty description
+                console.log('[AutoImport] Character with description marker:', characterName);
+            }
+            previousType = elementType;
+            continue;
+        }
+        
+        // NEW: If we're collecting a character description, append this line to it
+        if (currentCharacterForDescription && trimmed.length > 0 && !elementType.includes('heading')) {
+            const existingDesc = characterDescriptions.get(currentCharacterForDescription) || '';
+            const newDesc = existingDesc + (existingDesc ? ' ' : '') + trimmed;
+            characterDescriptions.set(currentCharacterForDescription, newDesc);
+            console.log('[AutoImport] Adding description to', currentCharacterForDescription, ':', trimmed);
+            
+            // Stop collecting description if we hit a blank line or new section
+            if (trimmed.length === 0 || trimmed.startsWith('=') || elementType === 'scene_heading') {
+                currentCharacterForDescription = null;
+            }
+            previousType = elementType;
+            continue;
+        }
+        
+        // Reset character description collection on blank line or new section
+        if (currentCharacterForDescription && (trimmed.length === 0 || trimmed.startsWith('=') || elementType === 'scene_heading')) {
+            currentCharacterForDescription = null;
         }
         
         // Debug log for character detection
@@ -160,6 +196,7 @@ export function parseContentForImport(content: string): AutoImportResult {
     return {
         locations,
         characters,
+        characterDescriptions,
         scenes
     };
 }
