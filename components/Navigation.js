@@ -73,41 +73,31 @@ export default function Navigation() {
   
       async function fetchCreditBalance(retryCount = 0) {
         try {
-          console.log('[Navigation] Fetching credit balance...');
-          
           // Set up auth token with wryda-backend template
           const { api, setAuthTokenGetter } = await import('@/lib/api');
           setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
           
           // Now make the API call
           const response = await api.user.getCredits();
-          console.log('[Navigation] Credits response:', response.data);
           
           // FIX: API response is response.data.data.balance (not response.data.balance)
           const creditsData = response.data.data;
-          console.log('[Navigation] Credits data:', creditsData);
           
           if (creditsData && typeof creditsData.balance === 'number') {
             setCredits(creditsData.balance);
-            console.log('[Navigation] ✅ Set credits to:', creditsData.balance);
           } else {
-            console.warn('[Navigation] ⚠️ Unexpected credits response structure:', creditsData);
             setCredits(0);
           }
         } catch (error) {
           console.error('[Navigation] Failed to fetch credits:', error);
-          console.error('[Navigation] Error details:', error.response?.data || error.message);
           
           // If it's a 401 error, don't retry - just set to 0
           if (error?.response?.status === 401) {
-            console.log('[Navigation] 401 Unauthorized - Check Clerk configuration');
             setCredits(0);
           } else if (retryCount < 2) {
-            // Retry on network error (reduced from 3 to 2 retries)
-            console.log(`[Navigation] Retrying... (attempt ${retryCount + 1})`);
+            // Retry on network error
             setTimeout(() => fetchCreditBalance(retryCount + 1), 1000 * (retryCount + 1));
           } else {
-            console.log('[Navigation] Max retries reached, setting credits to 0');
             setCredits(0); // Fallback to 0 after retries
           }
         } finally {
