@@ -140,12 +140,58 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     };
 
     // ========================================================================
-    // State - Load from GitHub (no localStorage!)
+    // State - Load from localStorage on mount (with sanitization!)
     // ========================================================================
-    const [beats, setBeats] = useState<StoryBeat[]>([]);
-    const [characters, setCharacters] = useState<Character[]>([]);
-    const [locations, setLocations] = useState<Location[]>([]);
-    const [relationships, setRelationships] = useState<Relationships>({ scenes: {}, characters: {}, locations: {}, props: {} });
+    const [beats, setBeats] = useState<StoryBeat[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
+            if (!saved) return [];
+            
+            const parsed = JSON.parse(saved);
+            // 🛡️ CRITICAL: Sanitize beats on load to prevent corruption
+            return parsed.map((beat: any) => ({
+                ...beat,
+                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+            }));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
+            return [];
+        }
+    });
+    
+    const [characters, setCharacters] = useState<Character[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.CHARACTERS);
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load characters', error);
+            return [];
+        }
+    });
+    
+    const [locations, setLocations] = useState<Location[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load locations', error);
+            return [];
+        }
+    });
+    
+    const [relationships, setRelationships] = useState<Relationships>(() => {
+        if (typeof window === 'undefined') return { scenes: {}, characters: {}, locations: {}, props: {} };
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.RELATIONSHIPS);
+            return saved ? JSON.parse(saved) : { scenes: {}, characters: {}, locations: {}, props: {} };
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load relationships', error);
+            return { scenes: {}, characters: {}, locations: {}, props: {} };
+        }
+    });
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -265,6 +311,60 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         initializeData();
     }, []); // Empty deps - run only once on mount
+    
+    // ========================================================================
+    // Auto-save to localStorage when data changes
+    // ========================================================================
+    
+    // Save beats to localStorage (with sanitization!)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (beats.length === 0) return; // Don't save empty state
+        
+        try {
+            // 🛡️ CRITICAL: Sanitize before saving to prevent corruption
+            const sanitized = beats.map(beat => ({
+                ...beat,
+                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+            }));
+            
+            localStorage.setItem(STORAGE_KEYS.BEATS, JSON.stringify(sanitized));
+            localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
+            console.log('[ScreenplayContext] ✅ Saved', beats.length, 'beats to localStorage');
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save beats to localStorage:', error);
+        }
+    }, [beats]);
+    
+    // Save characters to localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save characters:', error);
+        }
+    }, [characters]);
+    
+    // Save locations to localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save locations:', error);
+        }
+    }, [locations]);
+    
+    // Save relationships to localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.RELATIONSHIPS, JSON.stringify(relationships));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save relationships:', error);
+        }
+    }, [relationships]);
     
     // ========================================================================
     // GitHub Connection
