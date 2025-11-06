@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Backend error' }));
+      console.error('[Character Bank] Backend error:', error);
       return NextResponse.json(
         error,
         { status: response.status }

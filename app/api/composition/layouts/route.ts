@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Backend error' }));
+      console.error('[Composition Layouts] Backend error:', error);
       return NextResponse.json(error, { status: response.status });
     }
 

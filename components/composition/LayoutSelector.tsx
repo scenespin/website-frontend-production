@@ -195,7 +195,8 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
       const response = await authFetch('/api/composition/layouts');
       if (!response.ok) throw new Error('API not available');
       const data = await response.json();
-      setLayouts(data.layouts || []);
+      // Backend sendSuccess wraps data: { success: true, data: { layouts: [...] } }
+      setLayouts(data.data?.layouts || data.layouts || []);
     } catch (error) {
       console.error('Failed to fetch layouts, using defaults:', error);
       // Fallback to default layouts

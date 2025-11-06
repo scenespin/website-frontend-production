@@ -35,8 +35,6 @@ export async function GET(request: NextRequest) {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/workflows/list`;
 
-    console.log('[Workflows List] Fetching from:', url);
-
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -44,8 +42,6 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/json',
       },
     });
-
-    console.log('[Workflows List] Backend response status:', response.status);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Backend error' }));

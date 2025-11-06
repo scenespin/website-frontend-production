@@ -25,7 +25,8 @@ export async function fetchCompositionLayouts(
   // Use apiClient to automatically include auth token via interceptor
   const response = await apiClient.get(url);
   
-  return response.data.layouts;
+  // Backend sendSuccess wraps data: { success: true, data: { layouts: [...] } }
+  return response.data.data?.layouts || response.data.layouts || [];
 }
 
 /**

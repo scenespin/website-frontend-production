@@ -63,13 +63,12 @@ export function useWorkflows(): UseWorkflowsResult {
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
       const response = await api.workflows.list();
-      console.log('[useWorkflows] Raw response:', response);
-      console.log('[useWorkflows] Response data:', response.data);
       
-      const workflowsData = response.data.workflows || [];
+      // Backend sendSuccess wraps data: { success: true, data: { workflows: [...] } }
+      const workflowsData = response.data?.data?.workflows || response.data?.workflows || [];
 
       setWorkflows(workflowsData);
-      console.log(`[useWorkflows] ✅ Loaded ${workflowsData.length} workflows from backend`);
+      console.log(`[useWorkflows] ✅ Loaded ${workflowsData.length} workflows`);
     } catch (err: any) {
       console.error('[useWorkflows] Failed to fetch workflows:', err);
       setError(err);
