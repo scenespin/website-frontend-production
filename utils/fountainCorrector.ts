@@ -113,28 +113,14 @@ function applyIntelligentCorrections(lines: string[]): string[] {
  * This is a lighter-weight option for quick fixes
  */
 export function quickCorrect(content: string): string {
-    let corrected = content;
-    
-    // Normalize scene headings to uppercase and add periods after INT/EXT
-    corrected = corrected.replace(
-        /^(int|ext|est|i\/e)([\.\s]+)([^\n]+)$/gim,
-        (match, prefix, separator, rest) => {
-            // Uppercase the prefix and the entire rest (location + time)
-            return `${prefix.toUpperCase()}. ${rest.toUpperCase()}`;
-        }
-    );
-    
-    // Ensure scene headings have time of day if missing
-    corrected = corrected.replace(
-        /^(INT|EXT|EST|I\/E)[\.\s]+([^-\n]+)$/gim,
-        (match, prefix, location) => {
-            // Check if it already has a dash (time of day)
-            if (match.includes('-')) return match;
-            return `${prefix}. ${location.trim()} - DAY`;
-        }
-    );
-    
-    return corrected;
+    // DO NOT APPLY CORRECTIONS - This function was causing false positives
+    // by converting title page elements and character names into scene headings.
+    // 
+    // The validator should detect issues, but we should not auto-"fix" things
+    // that might not actually be errors.
+    //
+    // Leave content unchanged and let users review issues manually.
+    return content;
 }
 
 /**
