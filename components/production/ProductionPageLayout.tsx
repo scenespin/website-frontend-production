@@ -524,12 +524,19 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       
       // PROFESSIONAL UPLOAD: Direct to S3 using pre-signed URL
       // Step 1: Get pre-signed URL
+      const token = await getToken({ template: 'wryda-backend' });
       const presignedResponse = await fetch(
         `/api/video/upload/get-presigned-url?` +
         `fileName=${encodeURIComponent(clip.uploadedFile.name)}` +
         `&fileType=${encodeURIComponent(clip.uploadedFile.type)}` +
         `&fileSize=${clip.uploadedFile.size}` +
-        `&projectId=${encodeURIComponent(projectId)}`
+        `&projectId=${encodeURIComponent(projectId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       
       if (!presignedResponse.ok) {
