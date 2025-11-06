@@ -10,6 +10,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    useDroppable,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -533,7 +534,7 @@ function CharacterColumn({
     setSelectedCharacter,
     setImageViewerCharacter,
 }: CharacterColumnProps) {
-    const { setNodeRef, isOver } = useSortable({
+    const { setNodeRef, isOver } = useDroppable({
         id: column.id,
         data: { arcStatus: column.arcStatus },
     });

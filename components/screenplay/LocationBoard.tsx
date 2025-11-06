@@ -10,6 +10,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    useDroppable,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -421,7 +422,7 @@ function LocationColumn({
     openEditForm,
     setSelectedLocation,
 }: LocationColumnProps) {
-    const { setNodeRef, isOver } = useSortable({
+    const { setNodeRef, isOver } = useDroppable({
         id: column.id,
         data: { locationType: column.locationType },
     });
