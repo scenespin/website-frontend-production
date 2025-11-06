@@ -145,7 +145,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [beats, setBeats] = useState<StoryBeat[]>([]);
     const [characters, setCharacters] = useState<Character[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
-    const [relationships, setRelationships] = useState<Relationships>({ scenes: {}, characters: {}, locations: {} });
+    const [relationships, setRelationships] = useState<Relationships>({ scenes: {}, characters: {}, locations: {}, props: {} });
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
