@@ -30,6 +30,16 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
+    // 🔍 DEBUG: Log beats on every render
+    console.log('[BeatBoard] Rendering with beats:', beats);
+    console.log('[BeatBoard] beats type:', Array.isArray(beats) ? 'array' : typeof beats);
+    console.log('[BeatBoard] beats.length:', beats?.length);
+    if (beats && beats.length > 0) {
+        beats.forEach((beat, i) => {
+            console.log(`[BeatBoard] Beat #${i}:`, beat.title, 'scenes:', Array.isArray(beat.scenes) ? beat.scenes.length : `CORRUPTED (${typeof beat.scenes}): ${beat.scenes}`);
+        });
+    }
+    
     // Contextual Navigation Integration
     const context = useContextStore((state) => state.context);
     const setCurrentBeat = useContextStore((state) => state.setCurrentBeat);
