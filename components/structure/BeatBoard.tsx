@@ -241,7 +241,8 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                             }`}
                         >
                             {columns.map(column => {
-                                const scenes = column.beat.scenes || [];
+                                // CRITICAL FIX: Ensure scenes is always an array, not a number or other type
+                                const scenes = Array.isArray(column.beat.scenes) ? column.beat.scenes : [];
                                 const isHighlighted = highlightedBeatId === column.id;
                                 
                                 return (
