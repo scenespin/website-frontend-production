@@ -316,6 +316,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Auto-save to localStorage when data changes
     // ========================================================================
     
+    // 🚨 AGGRESSIVE VALIDATION: Catch corruption the MOMENT it happens
+    useEffect(() => {
+        beats.forEach((beat, index) => {
+            if (!Array.isArray(beat.scenes)) {
+                console.error(`🚨🚨🚨 CORRUPTION DETECTED in ScreenplayContext! 🚨🚨🚨`);
+                console.error(`Beat ${index}: "${beat.title}"`);
+                console.error(`  - scenes type: ${typeof beat.scenes}`);
+                console.error(`  - scenes value:`, beat.scenes);
+                console.error(`  - order value:`, beat.order);
+                console.error('Stack trace:', new Error().stack);
+                throw new Error(`CORRUPTION: Beat "${beat.title}" has scenes=${beat.scenes} (${typeof beat.scenes}) instead of array!`);
+            }
+        });
+    }, [beats]);
+    
     // Save beats to localStorage (with sanitization!)
     useEffect(() => {
         if (typeof window === 'undefined') return;
