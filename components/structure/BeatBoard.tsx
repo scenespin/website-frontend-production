@@ -94,7 +94,11 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     useEffect(() => {
         const newColumns: BeatColumn[] = beats.map((beat, index) => ({
             id: beat.id,
-            beat,
+            beat: {
+                ...beat,
+                // 🛡️ CRITICAL FIX: Sanitize scenes array at column creation time
+                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+            },
             color: beatColors[index % beatColors.length]
         }));
         
