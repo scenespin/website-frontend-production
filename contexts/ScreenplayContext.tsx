@@ -1406,7 +1406,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
         
         return newCharacters;
-    }, [characters]);
+    }, [characters, setCharacters, setRelationships]);
     
     const bulkImportLocations = useCallback(async (locationNames: string[]): Promise<Location[]> => {
         const now = new Date().toISOString();
