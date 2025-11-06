@@ -104,6 +104,13 @@ export function useScriptImport(): UseScriptImportReturn {
             
             // Distribute scenes across the 8-sequence structure proportionally
             if (parseResult.scenes.length > 0) {
+                // FIRST: Delete "Imported Scenes" beat if it exists (legacy)
+                const importedScenesBeat = screenplay.beats.find(b => b.title === 'Imported Scenes');
+                if (importedScenesBeat) {
+                    console.log('[useScriptImport] Removing legacy "Imported Scenes" beat');
+                    await screenplay.deleteBeat(importedScenesBeat.id);
+                }
+                
                 // Map character names to IDs
                 const characterMap = new Map(
                     importedCharacters.map(char => [char.name.toUpperCase(), char.id])
@@ -129,12 +136,17 @@ export function useScriptImport(): UseScriptImportReturn {
                 // Seq 8: 87.5-100%  (Resolution)
                 const sequenceBreakpoints = [0, 0.125, 0.227, 0.375, 0.50, 0.625, 0.773, 0.875, 1.0];
                 
-                // Get existing 8-sequence beats (or use defaults if missing)
-                const sequenceBeats = screenplay.beats.filter(b => 
-                    b.title.includes('Sequence ')
-                ).sort((a, b) => a.order - b.order);
+                // Get existing 8-sequence beats (refresh after potential deletion)
+                const sequenceBeats = screenplay.beats
+                    .filter(b => b.title.includes('Sequence '))
+                    .sort((a, b) => a.order - b.order);
                 
                 console.log('[useScriptImport] Found', sequenceBeats.length, 'sequence beats');
+                
+                if (sequenceBeats.length !== 8) {
+                    console.error('[useScriptImport] ⚠️ Expected 8 sequence beats, found', sequenceBeats.length);
+                    return;
+                }
                 
                 // Prepare scenes grouped by sequence
                 const scenesBySequence: Array<Array<{
