@@ -146,14 +146,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return [];
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
-            if (!saved) return [];
+            if (!saved) {
+                console.log('[ScreenplayContext] 🟡 useState init: No saved beats in localStorage');
+                return [];
+            }
             
             const parsed = JSON.parse(saved);
+            
+            // 🔍 DEBUG: Log loaded data BEFORE sanitization
+            console.log('[ScreenplayContext] 🟡 useState init: Loaded from localStorage, beat[0].scenes:', parsed[0]?.scenes);
+            
             // 🛡️ CRITICAL: Sanitize beats on load to prevent corruption
-            return parsed.map((beat: any) => ({
+            const sanitized = parsed.map((beat: any) => ({
                 ...beat,
                 scenes: Array.isArray(beat.scenes) ? beat.scenes : []
             }));
+            
+            // 🔍 DEBUG: Log AFTER sanitization
+            console.log('[ScreenplayContext] 🟡 useState init: After sanitization, beat[0].scenes:', sanitized[0]?.scenes);
+            
+            return sanitized;
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
             return [];
@@ -343,7 +355,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 scenes: Array.isArray(beat.scenes) ? beat.scenes : []
             }));
             
-            localStorage.setItem(STORAGE_KEYS.BEATS, JSON.stringify(sanitized));
+            // 🔍 DEBUG: Log BEFORE stringify to see if corruption happens during serialization
+            console.log('[ScreenplayContext] 🟡 BEFORE stringify - checking beat[0].scenes:', sanitized[0]?.scenes);
+            
+            const jsonString = JSON.stringify(sanitized);
+            const reparsed = JSON.parse(jsonString);
+            
+            // 🔍 DEBUG: Log AFTER stringify/parse to see if corruption happens during serialization
+            console.log('[ScreenplayContext] 🟡 AFTER stringify/parse - beat[0].scenes:', reparsed[0]?.scenes);
+            
+            localStorage.setItem(STORAGE_KEYS.BEATS, jsonString);
             localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
             console.log('[ScreenplayContext] ✅ Saved', beats.length, 'beats to localStorage');
         } catch (error) {
