@@ -48,6 +48,7 @@ export function useWorkflows(): UseWorkflowsResult {
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   const fetchWorkflows = async () => {
     try {
@@ -68,9 +69,21 @@ export function useWorkflows(): UseWorkflowsResult {
     }
   };
 
+  // Wait a tick for auth to initialize before fetching
   useEffect(() => {
-    fetchWorkflows();
+    // Small delay to ensure auth token getter is initialized
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (isReady) {
+      fetchWorkflows();
+    }
+  }, [isReady]);
 
   // Organize workflows by category
   const workflowsByCategory = workflows.reduce((acc, workflow) => {
