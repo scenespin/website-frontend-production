@@ -12,6 +12,7 @@ import { setAuthTokenGetter } from "@/lib/api";
 import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
+import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 
 // Auth Initializer: Sets up Clerk token getter for API calls
 // This MUST run before any API calls are made
@@ -66,22 +67,47 @@ const CrispChat = () => {
   return null;
 };
 
+// Data Migration Component: Fixes corrupted beats data from localStorage
+const DataMigration = () => {
+  useEffect(() => {
+    // Run migration ONCE on app mount to fix any corrupted beats
+    // This fixes the "number 1 is not iterable" bug where scenes is a number instead of array
+    if (typeof window !== 'undefined') {
+      const migrationKey = 'wryda_beats_migration_v2';
+      const alreadyMigrated = localStorage.getItem(migrationKey);
+      
+      if (!alreadyMigrated) {
+        console.log('[Migration] Running beats data migration...');
+        fixCorruptedBeatsInLocalStorage();
+        localStorage.setItem(migrationKey, new Date().toISOString());
+        console.log('[Migration] ✅ Migration complete');
+      }
+    }
+  }, []);
+  
+  return null;
+};
+
 // All the client wrappers are here (they can't be in server components)
-// 1. AuthInitializer: Set up Clerk auth token for API calls (MUST RUN FIRST)
-// 2. NextTopLoader: Show a progress bar at the top when navigating between pages
-// 3. Toaster: Show Success/Error messages anywhere from the app with toast()
-// 4. Tooltip: Show tooltips if any JSX elements has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content=""
-// 5. CrispChat: Set Crisp customer chat support (see above)
-// 6. ScreenplayProvider: Provides screenplay context for beats, characters, and locations
-// 7. DrawerProvider: Provides drawer context for AI chat drawer
-// 8. ChatProvider: Provides chat context for AI workflows
+// 1. DataMigration: Fix corrupted beats data (MUST RUN FIRST)
+// 2. AuthInitializer: Set up Clerk auth token for API calls
+// 3. NextTopLoader: Show a progress bar at the top when navigating between pages
+// 4. Toaster: Show Success/Error messages anywhere from the app with toast()
+// 5. Tooltip: Show tooltips if any JSX elements has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content=""
+// 6. CrispChat: Set Crisp customer chat support (see above)
+// 7. ScreenplayProvider: Provides screenplay context for beats, characters, and locations
+// 8. DrawerProvider: Provides drawer context for AI chat drawer
+// 9. ChatProvider: Provides chat context for AI workflows
 // Note: No SessionProvider needed - Clerk handles auth via ClerkProvider in layout.js
 const ClientLayout = ({ children }) => {
   return (
     <ScreenplayProvider>
       <DrawerProvider>
         <ChatProvider>
-          {/* Initialize auth token getter FIRST before any API calls */}
+          {/* Run data migration FIRST to fix corrupted beats */}
+          <DataMigration />
+          
+          {/* Initialize auth token getter before any API calls */}
           <AuthInitializer />
 
           {/* Show a progress bar at the top when navigating between pages */}

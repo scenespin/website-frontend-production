@@ -186,7 +186,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] ✅ Loaded from GitHub');
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to load from GitHub:', err);
-                }
+        }
             } else {
                 console.log('[ScreenplayContext] GitHub not connected - will create default structure');
             }
@@ -237,29 +237,31 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                 ];
                 
-                // Create all 8 sequences
+                // Create all 8 sequences with EXPLICIT property assignment to prevent corruption
                 const now = new Date().toISOString();
-                const newBeats = sequences.map(seq => ({
-                    ...seq,
-                    id: `beat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    scenes: [],
+                const newBeats = sequences.map((seq, index) => ({
+                    id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                    title: seq.title,
+                    description: seq.description,
+                    order: seq.order,
+                    scenes: [],  // 🛡️ CRITICAL: EXPLICIT empty array, not from spread
                     createdAt: now,
                     updatedAt: now
                 }));
                 
-                setBeats(newBeats);
-                console.log('[ScreenplayContext] ✅ 8-Sequence Structure created');
+                // 🔍 DEBUG: Verify scenes is an array before setting state
+                console.log('[ScreenplayContext] Created beats with explicit scenes arrays:');
+                newBeats.forEach((beat, i) => {
+                    console.log(`  Beat ${i}: "${beat.title}" - scenes is ${Array.isArray(beat.scenes) ? 'array' : typeof beat.scenes}`);
+                });
                 
-                // If connected to GitHub, sync immediately
-                if (githubConfig && isConnected) {
-                    try {
-                        await syncToGitHub('feat: Created 8-Sequence Structure');
-                        console.log('[ScreenplayContext] ✅ Synced to GitHub');
-                    } catch (err) {
-                        console.error('[ScreenplayContext] Failed to sync to GitHub:', err);
-                    }
-                }
+                setBeats(newBeats);
+                console.log('[ScreenplayContext] ✅ 8-Sequence Structure created with', newBeats.length, 'beats');
+                
+                // ⚠️ DO NOT sync to GitHub immediately - let useEffect handle it after state settles
+                // This prevents race conditions where GitHub sync reads old/incomplete state
             }
+        }
         }
         
         // Only run once on mount

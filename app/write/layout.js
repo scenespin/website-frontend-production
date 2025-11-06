@@ -38,22 +38,18 @@ export default function WriteLayout({ children }) {
     return null;
   }
 
+  // Note: ScreenplayProvider is already provided by LayoutClient.js (root layout)
+  // DO NOT wrap with another ScreenplayProvider here as it creates duplicate contexts
   return (
-    <ScreenplayProvider>
-      <EditorProvider>
-        <DrawerProvider>
-          <ChatProvider>
-            <div className="min-h-screen bg-base-100">
-              <Navigation />
-              {children}
-              <AgentDrawer>
-                <UnifiedChatPanel />
-              </AgentDrawer>
-            </div>
-          </ChatProvider>
-        </DrawerProvider>
-      </EditorProvider>
-    </ScreenplayProvider>
+    <EditorProvider>
+      <div className="min-h-screen bg-base-100">
+        <Navigation />
+        {children}
+        <AgentDrawer>
+          <UnifiedChatPanel />
+        </AgentDrawer>
+      </div>
+    </EditorProvider>
   );
 }
 
