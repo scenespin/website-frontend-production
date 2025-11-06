@@ -159,7 +159,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 return [];
             }
             
-            return parsed;
+            // ADDITIONAL VALIDATION: Check each beat has a scenes array
+            const validatedBeats = parsed.map((beat: any) => {
+                if (!beat.scenes || !Array.isArray(beat.scenes)) {
+                    console.warn(`[ScreenplayContext] ⚠️ Beat "${beat.title || beat.id}" has corrupted scenes:`, typeof beat.scenes, beat.scenes);
+                    return {
+                        ...beat,
+                        scenes: [] // Replace corrupted scenes with empty array
+                    };
+                }
+                return beat;
+            });
+            
+            return validatedBeats;
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
             localStorage.removeItem(STORAGE_KEYS.BEATS); // Clear corrupted data
