@@ -74,7 +74,7 @@ interface ScreenplayContextType {
     setSceneLocation: (sceneId: string, locationId: string) => Promise<void>;
     
     // Bulk Import
-    bulkImportCharacters: (characterNames: string[]) => Promise<Character[]>;
+    bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>) => Promise<Character[]>;
     bulkImportLocations: (locationNames: string[]) => Promise<Location[]>;
     bulkImportScenes: (beatId: string, scenes: Array<{
         heading: string;
