@@ -201,7 +201,7 @@ export function useScriptImport(): UseScriptImportReturn {
                             scenesBySequence[i]
                         );
                         importedScenes += createdScenes.length;
-                        
+                
                         console.log('[useScriptImport] Sequence', i + 1, ':', createdScenes.length, 'scenes');
                     }
                 }
@@ -247,7 +247,7 @@ export function useScriptImport(): UseScriptImportReturn {
                 characters: parseResult.characters.size,
                 locations: parseResult.locations.size,
                 scenes: parseResult.scenes.length,
-                questionable: parseResult.questionableItems.length,
+                questionable: parseResult.questionableItems?.length || 0,
                 characterDescriptions: parseResult.characterDescriptions ? Array.from(parseResult.characterDescriptions.entries()) : []
             });
             
@@ -264,7 +264,7 @@ export function useScriptImport(): UseScriptImportReturn {
             if (locationNames.length > 0) {
                 await screenplay.bulkImportLocations(locationNames);
             }
-            
+                
             console.log('[useScriptImport] ✓ Auto-imported', characterNames.length, 'characters and', locationNames.length, 'locations');
             
             // Show success toast with import summary
@@ -276,7 +276,7 @@ export function useScriptImport(): UseScriptImportReturn {
             }
             
             // Show modal if there are questionable items
-            if (parseResult.questionableItems.length > 0) {
+            if (parseResult.questionableItems && parseResult.questionableItems.length > 0) {
                 console.log('[useScriptImport] Showing review modal for', parseResult.questionableItems.length, 'questionable items');
                 toast.warning('⚠️ Some formatting issues detected', {
                     description: `${parseResult.questionableItems.length} items need review. Check the modal for details.`
@@ -304,12 +304,12 @@ export function useScriptImport(): UseScriptImportReturn {
             // Let the paste happen naturally, then save it after a brief delay
             setTimeout(() => {
                 setContent(pastedText);
-                markSaved();
+        markSaved();
             }, 100);
             
         } else {
             console.log('[useScriptImport] ❌ Not a screenplay (no scene headings), allowing normal paste');
-            
+    
             // Show helpful info toast if pasting substantial text without screenplay format
             const lineCount = pastedText.split('\n').length;
             if (lineCount > 10) {
