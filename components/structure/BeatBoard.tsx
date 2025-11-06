@@ -106,8 +106,9 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         }
         
         // Auto-scroll to the beat
+        let scrollTimer: NodeJS.Timeout | null = null;
         if (context.currentBeatId && beatRefs.current[context.currentBeatId]) {
-            setTimeout(() => {
+            scrollTimer = setTimeout(() => {
                 beatRefs.current[context.currentBeatId]?.scrollIntoView({
                     behavior: 'smooth',
                     block: 'nearest',
@@ -117,12 +118,16 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         }
         
         // Clear highlights after 3 seconds
-        const timer = setTimeout(() => {
+        const highlightTimer = setTimeout(() => {
             setHighlightedBeatId(null);
             setHighlightedSceneId(null);
         }, 3000);
         
-        return () => clearTimeout(timer);
+        // CRITICAL: Cleanup BOTH timers
+        return () => {
+            if (scrollTimer) clearTimeout(scrollTimer);
+            clearTimeout(highlightTimer);
+        };
     }, [context.currentBeatId, context.currentSceneId]);
     
     const handleEditScene = (scene: Scene, beat: StoryBeat) => {
