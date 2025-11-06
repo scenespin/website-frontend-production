@@ -24,7 +24,7 @@ import {
   Image,
   Plus
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import { useRouter } from 'next/navigation';
@@ -48,12 +48,16 @@ export default function Navigation() {
     router.push(`/write?project=${project.project_id}`);
   };
   
-  // Fetch user's credit balance
+  // Use ref to track if we've fetched credits to prevent infinite loops
+  const hasFetchedCredits = useRef(false);
+  
+  // Fetch user's credit balance (only once per user session)
   useEffect(() => {
-    if (user?.id && getToken) {
+    if (user?.id && getToken && !hasFetchedCredits.current) {
+      hasFetchedCredits.current = true;
       fetchCreditBalance();
     }
-  }, [user?.id, getToken]);
+  }, [user?.id]);
   
   // Refetch credits when page becomes visible (fixes logout/login persistence issue)
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function Navigation() {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user?.id, getToken]);
+  }, [user?.id]);
   
       async function fetchCreditBalance(retryCount = 0) {
         try {
