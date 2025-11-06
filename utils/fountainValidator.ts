@@ -88,22 +88,6 @@ function detectCharacterIssues(
     lineNumber: number, 
     previousType?: FountainElementType
 ): FormatIssue | null {
-    // Check for colon-separated dialogue format (JOHN: Hello)
-    const colonMatch = line.match(/^([A-Za-z][A-Za-z\s']+):\s*(.+)$/);
-    if (colonMatch) {
-        const characterName = colonMatch[1].trim();
-        const dialogue = colonMatch[2].trim();
-        
-        return {
-            lineNumber,
-            severity: 'warning',
-            type: 'character',
-            description: `Character name "${characterName}" uses colon format. Should be on separate line in ALL CAPS.`,
-            originalText: line,
-            suggestedFix: `${characterName.toUpperCase()}\n${dialogue}`
-        };
-    }
-    
     // Check for mixed-case character names that should be ALL CAPS
     // Look for pattern: Starts with capital, contains lowercase, looks like a name
     const mixedCaseMatch = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)$/);
