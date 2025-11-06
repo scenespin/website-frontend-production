@@ -120,8 +120,10 @@ export function quickCorrect(content: string): string {
     corrected = corrected.replace(
         /^([A-Za-z][A-Za-z\s']+?):\s*(.+)$/gm,
         (match, name, dialogue) => {
-            // Only if name looks reasonable (not too long, no punctuation)
-            if (name.length < 30 && !/[.!?;]/.test(name)) {
+            // Exclude narrative text starting with articles (The, A, An)
+            const startsWithArticle = /^(The|A|An)\s/i.test(name);
+            // Only if name looks reasonable (not too long, no punctuation, not an article)
+            if (name.length < 30 && !/[.!?;]/.test(name) && !startsWithArticle) {
                 return `${name.toUpperCase()}\n${dialogue}`;
             }
             return match;
