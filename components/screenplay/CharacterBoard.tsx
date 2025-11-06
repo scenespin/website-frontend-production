@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
+import {
+    DndContext,
+    DragEndEvent,
+    DragStartEvent,
+    DragOverlay,
+    closestCorners,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Plus, MoreVertical, User, Users, GitBranch, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -39,6 +50,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [viewMode, setViewMode] = useState<'board' | 'map'>('board');
+    const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         type: 'lead' as 'lead' | 'supporting' | 'minor',
@@ -46,6 +58,15 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         description: '',
         arcNotes: ''
     });
+    
+    // Configure sensors for @dnd-kit
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
     
     // Delete confirmation dialog state
     const [characterToDelete, setCharacterToDelete] = useState<Character | null>(null);
@@ -101,25 +122,36 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         setColumns(newColumns);
     }, [characters]);
 
-    const handleDragEnd = async (result: DropResult) => {
-        const { destination, source, draggableId } = result;
+    const handleDragStart = (event: DragStartEvent) => {
+        const characterId = event.active.id as string;
+        const character = characters.find(c => c.id === characterId);
+        setActiveCharacter(character || null);
+    };
 
-        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
-            return;
-        }
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        
+        setActiveCharacter(null);
+        
+        if (!over) return;
 
-        const sourceColumn = columns.find(col => col.id === source.droppableId);
-        const destColumn = columns.find(col => col.id === destination.droppableId);
+        const characterId = active.id as string;
+        const targetColumnId = over.id as string;
+        
+        // Extract arc status from column ID
+        const targetArcStatus = targetColumnId.replace('col-', '') as ArcStatus;
 
-        if (!sourceColumn || !destColumn) return;
-
-        const character = sourceColumn.characters.find(c => c.id === draggableId);
-        if (!character) return;
+        const character = characters.find(c => c.id === characterId);
+        if (!character || character.arcStatus === targetArcStatus) return;
 
         // Update character arc status
         await updateCharacter(character.id, {
-            arcStatus: destColumn.arcStatus
+            arcStatus: targetArcStatus
         });
+    };
+    
+    const handleDragCancel = () => {
+        setActiveCharacter(null);
     };
 
     const handleCreate = async () => {
@@ -269,7 +301,13 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                     transition={{ duration: 0.2 }}
                     className="flex-1 overflow-x-auto p-6"
                 >
-                    <DragDropContext onDragEnd={handleDragEnd}>
+                    <DndContext
+                        sensors={sensors}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDragCancel={handleDragCancel}
+                        collisionDetection={closestCorners}
+                    >
                         {/* Mobile: Vertical Stack, Desktop: 3 Columns */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
                         {columns.map((column) => (
@@ -301,168 +339,31 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 </Card>
 
                                 {/* Droppable Area */}
-                                <Droppable droppableId={column.id}>
-                                    {(provided, snapshot) => (
-                                        <div
-                                            ref={provided.innerRef}
-                                            {...provided.droppableProps}
-                                            className={cn(
-                                                "flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200",
-                                                "border-2",
-                                                snapshot.isDraggingOver 
-                                                    ? "border-dashed bg-accent/10" 
-                                                    : "border-border bg-card/30"
-                                            )}
-                                            style={{
-                                                backgroundColor: snapshot.isDraggingOver ? column.color + '10' : undefined,
-                                                borderColor: snapshot.isDraggingOver ? column.color : undefined
-                                            }}
-                                        >
-                                            {/* Empty State */}
-                                            {column.characters.length === 0 && (
-                                                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
-                                                    <div 
-                                                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border-2 border-dashed"
-                                                        style={{ 
-                                                            backgroundColor: column.color + '10',
-                                                            borderColor: column.color + '40'
-                                                        }}
-                                                    >
-                                                        <Users size={28} style={{ color: column.color }} />
-                                                    </div>
-                                                    <p className="text-sm text-center text-muted-foreground">
-                                                        No characters yet
-                                                    </p>
-                                                    <p className="text-xs text-center mt-1 text-muted-foreground/60">
-                                                        Drag characters here or create new ones
-                                                    </p>
-                                                </div>
-                                            )}
-                                            
-                                            {/* Character Cards */}
-                                            {column.characters.map((character, index) => {
-                                                const scenes = getCharacterScenes(character.id);
-                                                
-                                                return (
-                                                    <Draggable
-                                                        key={character.id}
-                                                        draggableId={character.id}
-                                                        index={index}
-                                                    >
-                                                        {(provided, snapshot) => (
-                                                            <div
-                                                                ref={provided.innerRef}
-                                                                {...provided.draggableProps}
-                                                                {...provided.dragHandleProps}
-                                                                style={provided.draggableProps.style}
-                                                            >
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, y: 20 }}
-                                                                    animate={{ opacity: 1, y: 0 }}
-                                                                    transition={{ delay: index * 0.05 }}
-                                                                    whileHover={{ 
-                                                                        scale: snapshot.isDragging ? 1 : 1.02,
-                                                                        y: snapshot.isDragging ? 0 : -2
-                                                                    }}
-                                                                    onClick={() => setSelectedCharacter(character)}
-                                                                >
-                                                                <Card 
-                                                                    className={cn(
-                                                                        "p-3 cursor-pointer hover:shadow-lg transition-all border-l-2",
-                                                                        snapshot.isDragging && "shadow-xl ring-2"
-                                                                    )}
-                                                                    style={{
-                                                                        borderLeftColor: column.color,
-                                                                        ['--tw-ring-color' as any]: snapshot.isDragging ? column.color : undefined
-                                                                    }}
-                                                                >
-                                                                {/* Character Info */}
-                                                                <div className="flex items-start gap-3">
-                                                                    <div 
-                                                                        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                                                                        style={{ 
-                                                                            backgroundColor: column.color + '20',
-                                                                            color: column.color
-                                                                        }}
-                                                                    >
-                                                                        <User size={18} />
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <h4 className="font-semibold truncate text-foreground">
-                                                                            {character.name}
-                                                                        </h4>
-                                                                        <p className="text-xs truncate text-muted-foreground capitalize">
-                                                                            {character.type}
-                                                                        </p>
-                                                                    </div>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 shrink-0"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            openEditForm(character);
-                                                                        }}
-                                                                        title="Edit character"
-                                                                    >
-                                                                        <MoreVertical size={16} />
-                                                                    </Button>
-                                                                </div>
-
-                                                                {/* Description */}
-                                                                {character.description && (
-                                                                    <p className="text-xs mt-3 line-clamp-2 text-muted-foreground leading-relaxed">
-                                                                        {character.description}
-                                                                    </p>
-                                                                )}
-
-                                                                {/* Stats */}
-                                                                <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                                                                    <span className="flex items-center gap-1">
-                                                                        📝 {scenes.length} scenes
-                                                                    </span>
-                                                                    {character.githubIssueNumber && (
-                                                                        <span className="flex items-center gap-1">
-                                                                            🔗 #{character.githubIssueNumber}
-                                                                        </span>
-                                                                    )}
-                                                                    {character.images && character.images.length > 0 && (
-                                                                        <span className="flex items-center gap-1 text-blue-400">
-                                                                            🖼️ {character.images.length}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                
-                                                                {/* View Images Button - Show if images exist */}
-                                                                {character.images && character.images.length > 0 && (
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        className="w-full mt-3 h-8 text-xs gap-1.5"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setImageViewerCharacter(character);
-                                                                        }}
-                                                                    >
-                                                                        <ImageIcon size={14} />
-                                                                        View Images ({character.images.length})
-                                                                    </Button>
-                                                                )}
-                                                            </Card>
-                                                                </motion.div>
-                                                            </div>
-                                                        )}
-                                                    </Draggable>
-                                                );
-                                            })}
-                                            {provided.placeholder}
-                                        </div>
-                                    )}
-                                </Droppable>
+                                <CharacterColumn
+                                    column={column}
+                                    getCharacterScenes={getCharacterScenes}
+                                    openEditForm={openEditForm}
+                                    setSelectedCharacter={setSelectedCharacter}
+                                    setImageViewerCharacter={setImageViewerCharacter}
+                                />
                             </div>
                         ))}
                     </div>
-                </DragDropContext>
+                    
+                    {/* Drag Overlay */}
+                    <DragOverlay>
+                        {activeCharacter ? (
+                            <div className="opacity-90">
+                                <CharacterCardContent
+                                    character={activeCharacter}
+                                    color={columns.find(c => c.arcStatus === activeCharacter.arcStatus)?.color || '#3B82F6'}
+                                    sceneCount={getCharacterScenes(activeCharacter.id).length}
+                                    isDragging
+                                />
+                            </div>
+                        ) : null}
+                    </DragOverlay>
+                </DndContext>
                 </motion.div>
             )}
             
@@ -610,6 +511,247 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                 </div>
             )}
         </div>
+    );
+}
+
+// ============================================================================
+// CharacterColumn Component (Droppable)
+// ============================================================================
+
+interface CharacterColumnProps {
+    column: CharacterColumn;
+    getCharacterScenes: (characterId: string) => any[];
+    openEditForm: (character: Character) => void;
+    setSelectedCharacter: (character: Character | null) => void;
+    setImageViewerCharacter: (character: Character | null) => void;
+}
+
+function CharacterColumn({
+    column,
+    getCharacterScenes,
+    openEditForm,
+    setSelectedCharacter,
+    setImageViewerCharacter,
+}: CharacterColumnProps) {
+    const { setNodeRef, isOver } = useSortable({
+        id: column.id,
+        data: { arcStatus: column.arcStatus },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={cn(
+                "flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200",
+                "border-2",
+                isOver ? "border-dashed bg-accent/10" : "border-border bg-card/30"
+            )}
+            style={{
+                backgroundColor: isOver ? column.color + '10' : undefined,
+                borderColor: isOver ? column.color : undefined,
+            }}
+        >
+            {/* Empty State */}
+            {column.characters.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
+                    <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border-2 border-dashed"
+                        style={{
+                            backgroundColor: column.color + '10',
+                            borderColor: column.color + '40',
+                        }}
+                    >
+                        <Users size={28} style={{ color: column.color }} />
+                    </div>
+                    <p className="text-sm text-center text-muted-foreground">No characters yet</p>
+                    <p className="text-xs text-center mt-1 text-muted-foreground/60">
+                        Drag characters here or create new ones
+                    </p>
+                </div>
+            )}
+
+            {/* Character Cards */}
+            <SortableContext items={column.characters.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                {column.characters.map((character, index) => (
+                    <CharacterCard
+                        key={character.id}
+                        character={character}
+                        color={column.color}
+                        sceneCount={getCharacterScenes(character.id).length}
+                        index={index}
+                        openEditForm={openEditForm}
+                        setSelectedCharacter={setSelectedCharacter}
+                        setImageViewerCharacter={setImageViewerCharacter}
+                    />
+                ))}
+            </SortableContext>
+        </div>
+    );
+}
+
+// ============================================================================
+// CharacterCard Component (Draggable)
+// ============================================================================
+
+interface CharacterCardProps {
+    character: Character;
+    color: string;
+    sceneCount: number;
+    index: number;
+    openEditForm: (character: Character) => void;
+    setSelectedCharacter: (character: Character | null) => void;
+    setImageViewerCharacter: (character: Character | null) => void;
+}
+
+function CharacterCard({
+    character,
+    color,
+    sceneCount,
+    index,
+    openEditForm,
+    setSelectedCharacter,
+    setImageViewerCharacter,
+}: CharacterCardProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: character.id,
+        data: { characterId: character.id },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{
+                    scale: isDragging ? 1 : 1.02,
+                    y: isDragging ? 0 : -2,
+                }}
+                onClick={() => setSelectedCharacter(character)}
+            >
+                <CharacterCardContent
+                    character={character}
+                    color={color}
+                    sceneCount={sceneCount}
+                    isDragging={isDragging}
+                    openEditForm={openEditForm}
+                    setImageViewerCharacter={setImageViewerCharacter}
+                />
+            </motion.div>
+        </div>
+    );
+}
+
+// ============================================================================
+// CharacterCardContent Component
+// ============================================================================
+
+interface CharacterCardContentProps {
+    character: Character;
+    color: string;
+    sceneCount: number;
+    isDragging: boolean;
+    openEditForm?: (character: Character) => void;
+    setImageViewerCharacter?: (character: Character | null) => void;
+}
+
+function CharacterCardContent({
+    character,
+    color,
+    sceneCount,
+    isDragging,
+    openEditForm,
+    setImageViewerCharacter,
+}: CharacterCardContentProps) {
+    return (
+        <Card
+            className={cn(
+                "p-3 cursor-pointer hover:shadow-lg transition-all border-l-2",
+                isDragging && "shadow-xl ring-2"
+            )}
+            style={{
+                borderLeftColor: color,
+                ['--tw-ring-color' as any]: isDragging ? color : undefined,
+            }}
+        >
+            {/* Character Info */}
+            <div className="flex items-start gap-3">
+                <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                        backgroundColor: color + '20',
+                        color: color,
+                    }}
+                >
+                    <User size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold truncate text-foreground">{character.name}</h4>
+                    <p className="text-xs truncate text-muted-foreground capitalize">{character.type}</p>
+                </div>
+                {openEditForm && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openEditForm(character);
+                        }}
+                        title="Edit character"
+                    >
+                        <MoreVertical size={16} />
+                    </Button>
+                )}
+            </div>
+
+            {/* Description */}
+            {character.description && (
+                <p className="text-xs mt-3 line-clamp-2 text-muted-foreground leading-relaxed">
+                    {character.description}
+                </p>
+            )}
+
+            {/* Stats */}
+            <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">📝 {sceneCount} scenes</span>
+                {character.githubIssueNumber && (
+                    <span className="flex items-center gap-1">🔗 #{character.githubIssueNumber}</span>
+                )}
+                {character.images && character.images.length > 0 && (
+                    <span className="flex items-center gap-1 text-blue-400">🖼️ {character.images.length}</span>
+                )}
+            </div>
+
+            {/* View Images Button - Show if images exist */}
+            {character.images && character.images.length > 0 && setImageViewerCharacter && (
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-3 h-8 text-xs gap-1.5"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setImageViewerCharacter(character);
+                    }}
+                >
+                    <ImageIcon size={14} />
+                    View Images ({character.images.length})
+                </Button>
+            )}
+        </Card>
     );
 }
 

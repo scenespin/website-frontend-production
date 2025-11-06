@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
+import {
+    DndContext,
+    DragEndEvent,
+    DragStartEvent,
+    DragOverlay,
+    closestCorners,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Plus, MapPin, Film, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -31,6 +42,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [activeLocation, setActiveLocation] = useState<Location | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         type: 'INT' as 'INT' | 'EXT' | 'INT/EXT',
@@ -40,6 +52,15 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         setRequirements: '',
         productionNotes: ''
     });
+    
+    // Configure sensors for @dnd-kit
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
     
     // Delete confirmation dialog state
     const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
@@ -88,25 +109,43 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         setColumns(newColumns);
     }, [locations]);
 
-    const handleDragEnd = async (result: DropResult) => {
-        const { destination, source, draggableId } = result;
+    const handleDragStart = (event: DragStartEvent) => {
+        const locationId = event.active.id as string;
+        const location = locations.find(l => l.id === locationId);
+        setActiveLocation(location || null);
+    };
 
-        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
-            return;
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        
+        setActiveLocation(null);
+        
+        if (!over) return;
+
+        const locationId = active.id as string;
+        const targetColumnId = over.id as string;
+        
+        // Extract location type from column ID
+        let targetType: LocationType;
+        if (targetColumnId === 'col-int') {
+            targetType = 'INT';
+        } else if (targetColumnId === 'col-ext') {
+            targetType = 'EXT';
+        } else {
+            targetType = 'INT/EXT';
         }
 
-        const sourceColumn = columns.find(col => col.id === source.droppableId);
-        const destColumn = columns.find(col => col.id === destination.droppableId);
-
-        if (!sourceColumn || !destColumn) return;
-
-        const location = sourceColumn.locations.find(l => l.id === draggableId);
-        if (!location) return;
+        const location = locations.find(l => l.id === locationId);
+        if (!location || location.type === targetType) return;
 
         // Update location type
         await updateLocation(location.id, {
-            type: destColumn.locationType
+            type: targetType
         });
+    };
+    
+    const handleDragCancel = () => {
+        setActiveLocation(null);
     };
 
     const handleCreate = async () => {
@@ -230,7 +269,13 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
 
             {/* Kanban Board */}
             <div className="flex-1 overflow-x-auto p-6">
-                <DragDropContext onDragEnd={handleDragEnd}>
+                <DndContext
+                    sensors={sensors}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragCancel={handleDragCancel}
+                    collisionDetection={closestCorners}
+                >
                     {/* Mobile: Vertical Stack, Desktop: 3 Columns */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
                         {columns.map((column) => (
@@ -267,159 +312,30 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 </div>
 
                                 {/* Droppable Area */}
-                                <Droppable droppableId={column.id}>
-                                    {(provided, snapshot) => (
-                                        <div
-                                            ref={provided.innerRef}
-                                            {...provided.droppableProps}
-                                            className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200"
-                                            style={{
-                                                backgroundColor: snapshot.isDraggingOver 
-                                                    ? column.color + '15'
-                                                    : '#0A0A0B',
-                                                border: snapshot.isDraggingOver
-                                                    ? `2px dashed ${column.color}`
-                                                    : '2px solid #1C1C1E'
-                                            }}
-                                        >
-                                            {/* Empty State */}
-                                            {column.locations.length === 0 && (
-                                                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
-                                                    <div 
-                                                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                                                        style={{ 
-                                                            backgroundColor: column.color + '15',
-                                                            border: `2px dashed ${column.color}40`
-                                                        }}
-                                                    >
-                                                        <MapPin size={28} style={{ color: column.color + '80' }} />
-                                                    </div>
-                                                    <p className="text-sm text-center" style={{ color: '#6B7280' }}>
-                                                        No locations yet
-                                                    </p>
-                                                    <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
-                                                        Drag locations here or create new ones
-                                                    </p>
-                                                </div>
-                                            )}
-                                            
-                                            {/* Location Cards */}
-                                            {column.locations.map((location, index) => {
-                                                const scenes = getLocationScenes(location.id);
-                                                
-                                                return (
-                                                    <Draggable
-                                                        key={location.id}
-                                                        draggableId={location.id}
-                                                        index={index}
-                                                    >
-                                                        {(provided, snapshot) => (
-                                                            <div
-                                                                ref={provided.innerRef}
-                                                                {...provided.draggableProps}
-                                                                {...provided.dragHandleProps}
-                                                                style={provided.draggableProps.style}
-                                                            >
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, y: 20 }}
-                                                                    animate={{ opacity: 1, y: 0 }}
-                                                                    transition={{ delay: index * 0.05 }}
-                                                                    whileHover={{ 
-                                                                        scale: snapshot.isDragging ? 1 : 1.02,
-                                                                        y: snapshot.isDragging ? 0 : -2
-                                                                    }}
-                                                                    className="mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all"
-                                                                    style={{
-                                                                        backgroundColor: snapshot.isDragging
-                                                                            ? '#3F3F46'
-                                                                            : '#1C1C1E',
-                                                                        borderColor: snapshot.isDragging
-                                                                            ? column.color
-                                                                            : '#3F3F46'
-                                                                    }}
-                                                                    onClick={() => setSelectedLocation(location)}
-                                                                >
-                                                                {/* Location Info */}
-                                                                <div className="flex items-start gap-2">
-                                                                    <div 
-                                                                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                                                                        style={{ 
-                                                                            backgroundColor: column.color + '30',
-                                                                            color: column.color
-                                                                        }}
-                                                                    >
-                                                                        <MapPin size={16} />
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <h4 className="font-medium truncate" style={{ color: '#E5E7EB' }}>
-                                                                            {location.name}
-                                                                        </h4>
-                                                                        <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>
-                                                                            {location.type}
-                                                                        </p>
-                                                                    </div>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            openEditForm(location);
-                                                                        }}
-                                                                        className="p-1 rounded hover:bg-base-content/20 transition-colors"
-                                                                        style={{ color: '#9CA3AF' }}
-                                                                        title="Edit location"
-                                                                    >
-                                                                        <MoreVertical size={14} />
-                                                                    </button>
-                                                                </div>
-
-                                                                {/* Description */}
-                                                                {location.description && (
-                                                                    <p 
-                                                                        className="text-xs mt-2 line-clamp-2"
-                                                                        style={{ color: '#6B7280' }}
-                                                                    >
-                                                                        {location.description}
-                                                                    </p>
-                                                                )}
-
-                                                                {/* Stats */}
-                                                                <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: '#6B7280' }}>
-                                                                    <span className="flex items-center gap-1">
-                                                                        <Film size={12} />
-                                                                        {scenes.length} scenes
-                                                                    </span>
-                                                                    {location.githubIssueNumber && (
-                                                                        <span>
-                                                                            🔗 #{location.githubIssueNumber}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Address Tag */}
-                                                                    {location.address && (
-                                                                        <div 
-                                                                            className="mt-2 text-xs px-2 py-1 rounded"
-                                                                            style={{ 
-                                                                                backgroundColor: '#2C2C2E',
-                                                                                color: '#9CA3AF'
-                                                                            }}
-                                                                        >
-                                                                            📍 {location.address}
-                                                                        </div>
-                                                                    )}
-                                                                </motion.div>
-                                                            </div>
-                                                            )}
-                                                        </Draggable>
-                                                    );
-                                                })}
-                                            {provided.placeholder}
-                                        </div>
-                                    )}
-                                </Droppable>
+                                <LocationColumn
+                                    column={column}
+                                    getLocationScenes={getLocationScenes}
+                                    openEditForm={openEditForm}
+                                    setSelectedLocation={setSelectedLocation}
+                                />
                             </div>
                         ))}
                     </div>
-                </DragDropContext>
+                    
+                    {/* Drag Overlay */}
+                    <DragOverlay>
+                        {activeLocation ? (
+                            <div className="opacity-90">
+                                <LocationCardContent
+                                    location={activeLocation}
+                                    color={columns.find(c => c.locationType === activeLocation.type)?.color || '#8B5CF6'}
+                                    sceneCount={getLocationScenes(activeLocation.id).length}
+                                    isDragging
+                                />
+                            </div>
+                        ) : null}
+                    </DragOverlay>
+                </DndContext>
             </div>
 
             {/* Location Detail Sidebar */}
@@ -484,6 +400,232 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
+        </div>
+    );
+}
+
+// ============================================================================
+// LocationColumn Component (Droppable)
+// ============================================================================
+
+interface LocationColumnProps {
+    column: LocationColumn;
+    getLocationScenes: (locationId: string) => any[];
+    openEditForm: (location: Location) => void;
+    setSelectedLocation: (location: Location | null) => void;
+}
+
+function LocationColumn({
+    column,
+    getLocationScenes,
+    openEditForm,
+    setSelectedLocation,
+}: LocationColumnProps) {
+    const { setNodeRef, isOver } = useSortable({
+        id: column.id,
+        data: { locationType: column.locationType },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200"
+            style={{
+                backgroundColor: isOver ? column.color + '15' : '#0A0A0B',
+                border: isOver ? `2px dashed ${column.color}` : '2px solid #1C1C1E',
+            }}
+        >
+            {/* Empty State */}
+            {column.locations.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
+                    <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                        style={{
+                            backgroundColor: column.color + '15',
+                            border: `2px dashed ${column.color}40`,
+                        }}
+                    >
+                        <MapPin size={28} style={{ color: column.color + '80' }} />
+                    </div>
+                    <p className="text-sm text-center" style={{ color: '#6B7280' }}>
+                        No locations yet
+                    </p>
+                    <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
+                        Drag locations here or create new ones
+                    </p>
+                </div>
+            )}
+
+            {/* Location Cards */}
+            <SortableContext items={column.locations.map(l => l.id)} strategy={verticalListSortingStrategy}>
+                {column.locations.map((location, index) => (
+                    <LocationCard
+                        key={location.id}
+                        location={location}
+                        color={column.color}
+                        sceneCount={getLocationScenes(location.id).length}
+                        index={index}
+                        openEditForm={openEditForm}
+                        setSelectedLocation={setSelectedLocation}
+                    />
+                ))}
+            </SortableContext>
+        </div>
+    );
+}
+
+// ============================================================================
+// LocationCard Component (Draggable)
+// ============================================================================
+
+interface LocationCardProps {
+    location: Location;
+    color: string;
+    sceneCount: number;
+    index: number;
+    openEditForm: (location: Location) => void;
+    setSelectedLocation: (location: Location | null) => void;
+}
+
+function LocationCard({
+    location,
+    color,
+    sceneCount,
+    index,
+    openEditForm,
+    setSelectedLocation,
+}: LocationCardProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: location.id,
+        data: { locationId: location.id },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{
+                    scale: isDragging ? 1 : 1.02,
+                    y: isDragging ? 0 : -2,
+                }}
+                onClick={() => setSelectedLocation(location)}
+            >
+                <LocationCardContent
+                    location={location}
+                    color={color}
+                    sceneCount={sceneCount}
+                    isDragging={isDragging}
+                    openEditForm={openEditForm}
+                />
+            </motion.div>
+        </div>
+    );
+}
+
+// ============================================================================
+// LocationCardContent Component
+// ============================================================================
+
+interface LocationCardContentProps {
+    location: Location;
+    color: string;
+    sceneCount: number;
+    isDragging: boolean;
+    openEditForm?: (location: Location) => void;
+}
+
+function LocationCardContent({
+    location,
+    color,
+    sceneCount,
+    isDragging,
+    openEditForm,
+}: LocationCardContentProps) {
+    return (
+        <div
+            className="mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all"
+            style={{
+                backgroundColor: isDragging ? '#3F3F46' : '#1C1C1E',
+                borderColor: isDragging ? color : '#3F3F46',
+            }}
+        >
+            {/* Location Info */}
+            <div className="flex items-start gap-2">
+                <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                        backgroundColor: color + '30',
+                        color: color,
+                    }}
+                >
+                    <MapPin size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h4 className="font-medium truncate" style={{ color: '#E5E7EB' }}>
+                        {location.name}
+                    </h4>
+                    <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>
+                        {location.type}
+                    </p>
+                </div>
+                {openEditForm && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openEditForm(location);
+                        }}
+                        className="p-1 rounded hover:bg-base-content/20 transition-colors"
+                        style={{ color: '#9CA3AF' }}
+                        title="Edit location"
+                    >
+                        <MoreVertical size={14} />
+                    </button>
+                )}
+            </div>
+
+            {/* Description */}
+            {location.description && (
+                <p className="text-xs mt-2 line-clamp-2" style={{ color: '#6B7280' }}>
+                    {location.description}
+                </p>
+            )}
+
+            {/* Stats */}
+            <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: '#6B7280' }}>
+                <span className="flex items-center gap-1">
+                    <Film size={12} />
+                    {sceneCount} scenes
+                </span>
+                {location.githubIssueNumber && <span>🔗 #{location.githubIssueNumber}</span>}
+            </div>
+
+            {/* Address Tag */}
+            {location.address && (
+                <div
+                    className="mt-2 text-xs px-2 py-1 rounded"
+                    style={{
+                        backgroundColor: '#2C2C2E',
+                        color: '#9CA3AF',
+                    }}
+                >
+                    📍 {location.address}
+                </div>
+            )}
         </div>
     );
 }
