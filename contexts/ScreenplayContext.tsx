@@ -506,37 +506,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [githubConfig, beats, characters, locations, relationships]);
     
     // ========================================================================
-    // Auto-Sync to GitHub (every 30 seconds, debounced)
+    // Auto-Sync to GitHub (DISABLED - was causing infinite re-render loop)
     // ========================================================================
     
-    useEffect(() => {
-        // Skip if not connected to GitHub
-        if (!isConnected || !githubConfig) return;
-        
-        // Clear existing timer
-        if (autoSyncTimerRef.current) {
-            clearTimeout(autoSyncTimerRef.current);
-        }
-        
-        // Set new timer for GitHub auto-sync (30 seconds)
-        autoSyncTimerRef.current = setTimeout(async () => {
-            try {
-                console.log('[ScreenplayContext] Auto-syncing to GitHub...');
-                await syncToGitHub('auto: Screenplay structure update');
-                console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
-            } catch (err) {
-                console.error('[ScreenplayContext] Auto-sync failed:', err);
-                // Don't throw - just log the error
-            }
-        }, 30000); // 30 seconds
-        
-        // Cleanup
-        return () => {
-            if (autoSyncTimerRef.current) {
-                clearTimeout(autoSyncTimerRef.current);
-            }
-        };
-    }, [beats, characters, locations, relationships, isConnected, githubConfig, syncToGitHub]);
+    // FIXME: Auto-sync was causing performance issues due to circular dependencies
+    // The syncToGitHub callback depends on data state, which triggers useEffect when data changes,
+    // which sets a timer, which syncs, which updates data, which triggers useEffect again...
+    // 
+    // useEffect(() => {
+    //     // Skip if not connected to GitHub
+    //     if (!isConnected || !githubConfig) return;
+    //     
+    //     // Clear existing timer
+    //     if (autoSyncTimerRef.current) {
+    //         clearTimeout(autoSyncTimerRef.current);
+    //     }
+    //     
+    //     // Set new timer for GitHub auto-sync (30 seconds)
+    //     autoSyncTimerRef.current = setTimeout(async () => {
+    //         try {
+    //             await syncToGitHub('auto: Screenplay structure update');
+    //         } catch (err) {
+    //             console.error('[ScreenplayContext] Auto-sync failed:', err);
+    //             // Don't throw - just log the error
+    //         }
+    //     }, 30000); // 30 seconds
+    //     
+    //     // Cleanup
+    //     return () => {
+    //         if (autoSyncTimerRef.current) {
+    //             clearTimeout(autoSyncTimerRef.current);
+    //         }
+    //     };
+    // }, [beats, characters, locations, relationships, isConnected, githubConfig, syncToGitHub]);
     
     // ========================================================================
     // CRUD - Story Beats
