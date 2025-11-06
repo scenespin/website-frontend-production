@@ -160,20 +160,6 @@ function detectSceneHeadingIssues(line: string, lineNumber: number): FormatIssue
         };
     }
     
-    // Check for location without INT/EXT prefix
-    // Heuristic: Short line (< 40 chars), title case or all caps, no punctuation at end
-    const potentialLocationMatch = line.match(/^([A-Z][A-Za-z\s']+)$/);
-    if (potentialLocationMatch && line.length < 40 && line.length > 5 && !line.includes('.')) {
-        return {
-            lineNumber,
-            severity: 'info',
-            type: 'scene_heading',
-            description: `"${line}" looks like a location but missing scene heading format.`,
-            originalText: line,
-            suggestedFix: `INT. ${line.toUpperCase()} - DAY`
-        };
-    }
-    
     return null;
 }
 
