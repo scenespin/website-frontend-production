@@ -262,13 +262,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // This prevents race conditions where GitHub sync reads old/incomplete state
             }
         }
-        }
         
-        // Only run once on mount
-        if (!hasAutoCreated.current) {
-            hasAutoCreated.current = true;
-            initializeData();
-        }
+        initializeData();
     }, []); // Empty deps - run only once on mount
     
     // ========================================================================
