@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Layout, Check, Lock } from 'lucide-react';
+import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 
 interface LayoutOption {
   id: string;
@@ -179,6 +180,7 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
   const [layouts, setLayouts] = useState<LayoutOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const authFetch = useAuthenticatedFetch();
 
   // Wait for auth to be ready before fetching
   useEffect(() => {
@@ -190,7 +192,7 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
 
   const fetchLayouts = async () => {
     try {
-      const response = await fetch('/api/composition/layouts');
+      const response = await authFetch('/api/composition/layouts');
       if (!response.ok) throw new Error('API not available');
       const data = await response.json();
       setLayouts(data.layouts || []);
