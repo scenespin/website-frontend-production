@@ -7,10 +7,19 @@
 
 import { detectElementType, FountainElementType } from './fountain';
 
+export interface QuestionableItem {
+    type: 'character' | 'location' | 'scene_heading';
+    text: string;
+    lineNumber: number;
+    reason: string;
+    suggestion?: string;
+}
+
 export interface AutoImportResult {
+    // Items that clearly match Fountain spec - auto-import these
     locations: Set<string>;
     characters: Set<string>;
-    characterDescriptions: Map<string, string>; // NEW: Map character name to description
+    characterDescriptions: Map<string, string>;
     scenes: Array<{
         heading: string;
         location: string;
@@ -18,6 +27,9 @@ export interface AutoImportResult {
         startLine: number;
         endLine: number;
     }>;
+    
+    // Items that don't match spec - show in review modal
+    questionableItems: QuestionableItem[];
 }
 
 /**
@@ -31,152 +43,177 @@ export function parseContentForImport(content: string): AutoImportResult {
     const characters = new Set<string>();
     const characterDescriptions = new Map<string, string>();
     const scenes: AutoImportResult['scenes'] = [];
+    const questionableItems: QuestionableItem[] = [];
     
     let currentScene: AutoImportResult['scenes'][0] | null = null;
     let previousType: FountainElementType | undefined;
-    let currentCharacterForDescription: string | null = null; // Track @CHARACTER for multi-line descriptions
+    let currentCharacterForDescription: string | null = null;
     
     console.log('[AutoImport] Parsing', lines.length, 'lines...');
-    console.log('[AutoImport] First 5 lines:', lines.slice(0, 5));
     
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         const line = lines[lineIndex];
         const trimmed = line.trim();
-        const elementType = detectElementType(line, previousType);
         
-        // Debug: Log every non-empty line with its detected type
-        if (trimmed.length > 0) {
-            console.log(`[AutoImport] Line ${lineIndex} [${elementType}]: "${trimmed}"`);
+        // Skip empty lines
+        if (!trimmed) {
+            previousType = 'empty';
+            continue;
         }
         
-        // NEW: Detect @CHARACTER notation for character descriptions
+        const elementType = detectElementType(line, previousType);
+        
+        // Skip title page elements
+        if (trimmed.match(/^(Title|Credit|Author|Source|Draft date|Contact|Copyright):/i)) {
+            previousType = elementType;
+            continue;
+        }
+        
+        // Skip section headings (= Characters =)
+        if (trimmed.startsWith('=') && trimmed.endsWith('=')) {
+            previousType = elementType;
+            continue;
+        }
+        
+        // Handle @CHARACTER notation (Fountain forced character with description)
         if (trimmed.startsWith('@')) {
             const characterName = trimmed.substring(1).trim().toUpperCase();
             if (characterName && characterName.length > 0 && characterName.length < 40) {
                 currentCharacterForDescription = characterName;
                 characters.add(characterName);
-                characterDescriptions.set(characterName, ''); // Initialize empty description
-                console.log('[AutoImport] Character with description marker:', characterName);
+                characterDescriptions.set(characterName, '');
+                console.log('[AutoImport] ✓ Character (forced):', characterName);
             }
             previousType = elementType;
             continue;
         }
         
-        // NEW: If we're collecting a character description, append this line to it
-        if (currentCharacterForDescription && trimmed.length > 0 && !elementType.includes('heading')) {
+        // Collect character description lines
+        if (currentCharacterForDescription && !elementType.includes('heading')) {
             const existingDesc = characterDescriptions.get(currentCharacterForDescription) || '';
             const newDesc = existingDesc + (existingDesc ? ' ' : '') + trimmed;
             characterDescriptions.set(currentCharacterForDescription, newDesc);
-            console.log('[AutoImport] Adding description to', currentCharacterForDescription, ':', trimmed);
-            
-            // Stop collecting description if we hit a blank line or new section
-            if (trimmed.length === 0 || trimmed.startsWith('=') || elementType === 'scene_heading') {
-                currentCharacterForDescription = null;
-            }
             previousType = elementType;
             continue;
         }
         
-        // Reset character description collection on blank line or new section
-        if (currentCharacterForDescription && (trimmed.length === 0 || trimmed.startsWith('=') || elementType === 'scene_heading')) {
+        // Reset description collection
+        if (currentCharacterForDescription && (elementType === 'scene_heading' || elementType === 'empty')) {
             currentCharacterForDescription = null;
         }
         
-        // Debug log for character detection
-        if (elementType === 'character') {
-            console.log('[AutoImport] Character detected (strict) at line', lineIndex, ':', trimmed, '(previousType:', previousType, ')');
-        }
-        
-        // Detect scene heading and extract location
+        // STRICT: Scene heading must match proper format
         if (elementType === 'scene_heading') {
-            // Save previous scene if exists (set its end line)
             if (currentScene) {
                 currentScene.endLine = lineIndex - 1;
                 scenes.push(currentScene);
             }
             
-            // Extract location from scene heading
-            // Format: INT. LOCATION - TIME or EXT. LOCATION - TIME
             const locationMatch = trimmed.match(/^(?:INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i);
-            const location = locationMatch ? locationMatch[1].trim() : trimmed;
-            
-            locations.add(location);
-            
-            console.log('[AutoImport] Scene detected:', trimmed, '-> Location:', location);
-            
-            // Start new scene
-            currentScene = {
-                heading: trimmed,
-                location: location,
-                characters: [],
-                startLine: lineIndex,
-                endLine: lineIndex // Will be updated when next scene starts or at end
-            };
-        }
-        
-        // Detect character names - use both strict Fountain detection AND lenient ALL CAPS detection
-        let isCharacter = elementType === 'character';
-        
-        // LENIENT MODE: Also detect ALL CAPS lines within scenes as potential character names
-        // This helps catch characters that might not have perfect spacing
-        if (!isCharacter && currentScene && trimmed.length > 0 && trimmed.length < 40) {
-            // Check if line is ALL CAPS (allowing spaces, apostrophes, numbers)
-            const isAllCaps = /^[A-Z][A-Z\s'0-9]*$/.test(trimmed);
-            // Check if it's not a scene heading or transition
-            const isNotSceneHeading = !/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]/i.test(trimmed);
-            const isNotTransition = !/TO:$/.test(trimmed);
-            
-            // CRITICAL: Exclude centered text (starts with >) and common screenplay elements
-            const isNotCentered = !trimmed.startsWith('>');
-            const isNotEnd = !/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO)\.?$/i.test(trimmed);
-            const isNotTitle = !/^(ACT|SCENE|CHAPTER|PART|TITLE|INTERLUDE|MONTAGE|SERIES OF SHOTS)/i.test(trimmed);
-            
-            // Must look like an actual name (2-4 words max, not a full sentence)
-            const wordCount = trimmed.split(/\s+/).length;
-            const seemsLikeName = wordCount >= 1 && wordCount <= 4;
-            
-            if (isAllCaps && isNotSceneHeading && isNotTransition && isNotCentered && isNotEnd && isNotTitle && seemsLikeName) {
-                isCharacter = true;
-                console.log('[AutoImport] Character detected (lenient mode) at line', lineIndex, ':', trimmed);
+            if (locationMatch) {
+                const location = locationMatch[1].trim();
+                locations.add(location);
+                console.log('[AutoImport] ✓ Scene:', location);
+                
+                currentScene = {
+                    heading: trimmed,
+                    location: location,
+                    characters: [],
+                    startLine: lineIndex,
+                    endLine: lineIndex
+                };
+            } else {
+                // Missing time of day - questionable
+                questionableItems.push({
+                    type: 'scene_heading',
+                    text: trimmed,
+                    lineNumber: lineIndex + 1,
+                    reason: 'Scene heading missing time of day (DAY/NIGHT)',
+                    suggestion: trimmed + ' - DAY'
+                });
             }
+            previousType = elementType;
+            continue;
         }
         
-        if (isCharacter && currentScene) {
-            // Extract character name (remove dual dialogue marker ^ and extensions like (V.O.))
+        // STRICT: Character must be all caps after blank line
+        if (elementType === 'character' && currentScene) {
+            // Must be ALL CAPS
+            if (trimmed !== trimmed.toUpperCase()) {
+                questionableItems.push({
+                    type: 'character',
+                    text: trimmed,
+                    lineNumber: lineIndex + 1,
+                    reason: 'Character name must be ALL CAPS',
+                    suggestion: trimmed.toUpperCase()
+                });
+                previousType = elementType;
+                continue;
+            }
+            
+            // Exclude transitions
+            if (/^(FADE OUT|FADE IN|FADE TO BLACK|CUT TO|DISSOLVE TO|THE END|END)\.?$/i.test(trimmed)) {
+                previousType = elementType;
+                continue;
+            }
+            
+            // Exclude centered text
+            if (trimmed.startsWith('>')) {
+                previousType = elementType;
+                continue;
+            }
+            
+            // Must be reasonable length (1-4 words)
+            const wordCount = trimmed.split(/\s+/).length;
+            if (wordCount > 4) {
+                questionableItems.push({
+                    type: 'character',
+                    text: trimmed,
+                    lineNumber: lineIndex + 1,
+                    reason: 'Too long to be a character name (5+ words)',
+                    suggestion: undefined
+                });
+                previousType = elementType;
+                continue;
+            }
+            
+            // Clean name
             let characterName = trimmed
                 .replace(/\^$/, '')
                 .replace(/\(.*\)$/, '')
                 .trim();
             
-            if (characterName && characterName.length > 0) {
-                console.log('[AutoImport] Adding character:', characterName);
+            if (characterName) {
                 characters.add(characterName);
                 if (!currentScene.characters.includes(characterName)) {
                     currentScene.characters.push(characterName);
                 }
+                console.log('[AutoImport] ✓ Character:', characterName);
             }
         }
         
         previousType = elementType;
     }
     
-    // Save last scene (set end to last line)
+    // Save last scene
     if (currentScene) {
         currentScene.endLine = lines.length - 1;
         scenes.push(currentScene);
     }
     
-    console.log('[AutoImport] Parse complete:', {
+    console.log('[AutoImport] Complete:', {
         characters: Array.from(characters),
         locations: Array.from(locations),
-        scenes: scenes.length
+        scenes: scenes.length,
+        questionable: questionableItems.length
     });
     
     return {
         locations,
         characters,
         characterDescriptions,
-        scenes
+        scenes,
+        questionableItems
     };
 }
 
