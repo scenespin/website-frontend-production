@@ -355,9 +355,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             </button>
                         </div>
                     </div>
-                    <div className="mt-2 text-xs text-base-content/50 text-center">
-                        Keyboard shortcuts: Tab (Character) • Shift+Tab (Scene) • Enter (New line/Action)
-                    </div>
                 </div>
             )}
         </div>

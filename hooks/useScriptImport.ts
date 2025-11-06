@@ -286,12 +286,14 @@ export function useScriptImport(): UseScriptImportReturn {
         // Set the corrected content in the editor
         setContent(correctedContent);
         
-        // Mark as saved to clear "Saving..." indicator
-        markSaved();
+        // DON'T mark as saved yet - let the auto-save trigger
+        // This ensures the content is persisted to localStorage
         
-        // Perform the import
-        await performImport(correctedContent);
-    }, [setContent, markSaved, performImport]);
+        // Perform the import in the background
+        setTimeout(async () => {
+            await performImport(correctedContent);
+        }, 100);
+    }, [setContent, performImport]);
     
     /**
      * Handle import review modal - Reject corrections, use original
