@@ -174,7 +174,7 @@ export default function ImportReviewModal({
                                             value={editedContent}
                                             onChange={(e) => setEditedContent(e.target.value)}
                                             className="textarea w-full h-full font-mono text-xs md:text-sm leading-relaxed resize-none bg-base-100 text-base-content"
-                                            style={{ minHeight: '200px' }}
+                                            style={{ minHeight: '400px', ...scrollbarStyle }}
                                             spellCheck={false}
                                         />
                                     ) : (
