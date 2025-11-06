@@ -54,8 +54,8 @@ export function StorageDecisionModal({
     setSelectedStorage(storage);
 
     try {
-      // Get auth token from Clerk
-      const token = await getToken();
+      // Get auth token from Clerk with wryda-backend template
+      const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         throw new Error('Not authenticated. Please sign in.');
       }
@@ -109,8 +109,8 @@ export function StorageDecisionModal({
     setSelectedStorage('download');
 
     try {
-      // Get auth token from Clerk
-      const token = await getToken();
+      // Get auth token from Clerk with wryda-backend template
+      const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         throw new Error('Not authenticated. Please sign in.');
       }

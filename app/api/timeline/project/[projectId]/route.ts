@@ -12,13 +12,22 @@ export async function GET(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    // Get auth token
-    const { getToken } = await auth();
-    const token = await getToken();
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+    
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
       );
     }
@@ -63,13 +72,22 @@ export async function PUT(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    // Get auth token
-    const { getToken } = await auth();
-    const token = await getToken();
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+    
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
       );
     }

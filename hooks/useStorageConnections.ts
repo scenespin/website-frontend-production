@@ -49,8 +49,8 @@ export function useStorageConnections(): StorageConnections {
         return;
       }
 
-      // Get auth token from Clerk
-      const token = await getToken();
+      // Get auth token from Clerk with wryda-backend template
+      const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         // No token available - user not authenticated
         setGoogleDrive(false);

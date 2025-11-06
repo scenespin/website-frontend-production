@@ -9,13 +9,24 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const { getToken } = await auth();
-    const token = await getToken();
-
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
     if (!token) {
-      console.error('[Projects List] No auth token');
+      console.error('[Projects List] No token in Authorization header');
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+    
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
+    if (!userId) {
+      console.error('[Projects List] User not authenticated');
+      return NextResponse.json(
+        { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
       );
     }

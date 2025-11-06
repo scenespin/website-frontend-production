@@ -31,7 +31,7 @@ export function useCreditUpsell() {
 
   async function checkCreditStatus() {
     try {
-      const token = await getToken();
+      const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         setLoading(false);
         return;

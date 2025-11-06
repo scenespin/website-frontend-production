@@ -26,9 +26,12 @@ const s3Client = new S3Client({ region: AWS_REGION });
  */
 export async function GET(request: Request) {
   try {
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
     // Get Clerk auth and user ID
-    const { getToken, userId: clerkUserId } = await auth();
-    const token = await getToken();
+    const { userId: clerkUserId } = await auth();
     
     if (!token || !clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

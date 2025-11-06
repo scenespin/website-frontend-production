@@ -16,9 +16,12 @@ export const maxDuration = 300; // 5 minutes timeout
 
 export async function POST(request: Request) {
   try {
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
     // Get Clerk auth and user ID
-    const { getToken, userId: clerkUserId } = await auth();
-    const token = await getToken();
+    const { userId: clerkUserId } = await auth();
     
     if (!token || !clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

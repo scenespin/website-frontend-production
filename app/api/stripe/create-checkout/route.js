@@ -26,17 +26,18 @@ export async function POST(req) {
   }
 
   try {
-    const { userId, getToken } = await auth();
+    // Get the token from the Authorization header that the client sent
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    const { userId } = await auth();
 
-    if (!userId) {
+    if (!userId || !token) {
       return NextResponse.json(
         { error: "Unauthorized - please sign in" },
         { status: 401 }
       );
     }
-
-    // Get auth token for backend API
-    const token = await getToken();
     
     // Call backend API which uses DynamoDB
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3200';

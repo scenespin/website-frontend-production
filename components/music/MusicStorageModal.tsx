@@ -44,8 +44,8 @@ export function MusicStorageModal({ isOpen, onClose, musicData }: MusicStorageMo
       // Generate filename
       const filename = `${musicData.title || 'music'}-${Date.now()}.mp3`.replace(/\s+/g, '-');
 
-      // Get auth token from Clerk
-      const token = await getToken();
+      // Get auth token from Clerk with wryda-backend template
+      const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         throw new Error('Not authenticated. Please sign in.');
       }
