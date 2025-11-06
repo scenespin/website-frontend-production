@@ -92,16 +92,26 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     
     // Initialize columns based on story beats
     useEffect(() => {
-        const newColumns: BeatColumn[] = beats.map((beat, index) => ({
-            id: beat.id,
-            beat: {
-                ...beat,
-                // 🛡️ CRITICAL FIX: Sanitize scenes array at column creation time
-                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
-            },
-            color: beatColors[index % beatColors.length]
-        }));
+        console.log('[BeatBoard useEffect] Creating columns from beats:', beats);
         
+        const newColumns: BeatColumn[] = beats.map((beat, index) => {
+            const scenesType = Array.isArray(beat.scenes) ? 'array' : typeof beat.scenes;
+            const scenesValue = beat.scenes;
+            
+            console.log(`[BeatBoard] Beat "${beat.title}" - scenes type: ${scenesType}, value:`, scenesValue);
+            
+            return {
+                id: beat.id,
+                beat: {
+                    ...beat,
+                    // 🛡️ CRITICAL FIX: Sanitize scenes array at column creation time
+                    scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+                },
+                color: beatColors[index % beatColors.length]
+            };
+        });
+        
+        console.log('[BeatBoard useEffect] Created columns:', newColumns);
         setColumns(newColumns);
     }, [beats]);
     
