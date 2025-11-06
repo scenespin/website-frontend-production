@@ -94,7 +94,13 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
     useEffect(() => {
         console.log('[BeatBoard useEffect] Creating columns from beats:', beats);
         
-        const newColumns: BeatColumn[] = beats.map((beat, index) => {
+        // 🛡️ ULTRA-AGGRESSIVE SANITIZATION: Fix any corruption before mapping
+        const sanitizedBeats = beats.map(beat => ({
+            ...beat,
+            scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+        }));
+        
+        const newColumns: BeatColumn[] = sanitizedBeats.map((beat, index) => {
             const scenesType = Array.isArray(beat.scenes) ? 'array' : typeof beat.scenes;
             const scenesValue = beat.scenes;
             
@@ -104,8 +110,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                 id: beat.id,
                 beat: {
                     ...beat,
-                    // 🛡️ CRITICAL FIX: Sanitize scenes array at column creation time
-                    scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+                    scenes: beat.scenes // Already sanitized above
                 },
                 color: beatColors[index % beatColors.length]
             };
