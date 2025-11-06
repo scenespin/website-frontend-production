@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { extractS3Key } from '@/utils/s3';
+import { useAuth } from '@clerk/nextjs';
 
 const MAX_VIDEO_SIZE_MB = 100;
 const MAX_AUDIO_SIZE_MB = 500; // Increased for long audio files (podcasts, etc)
@@ -59,6 +60,7 @@ interface UploadModalProps {
 }
 
 export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: UploadModalProps) {
+  const { getToken } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -129,12 +131,19 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
       toast.info('Uploading...');
       
       // Step 1: Get pre-signed URL
+      const token = await getToken({ template: 'wryda-backend' });
       const presignedResponse = await fetch(
         `/api/video/upload/get-presigned-url?` +
         `fileName=${encodeURIComponent(file.name)}` +
         `&fileType=${encodeURIComponent(file.type)}` +
         `&fileSize=${file.size}` +
-        `&projectId=${encodeURIComponent(projectId || 'default')}`
+        `&projectId=${encodeURIComponent(projectId || 'default')}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       
       if (!presignedResponse.ok) {
