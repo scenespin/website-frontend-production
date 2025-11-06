@@ -21,7 +21,7 @@ interface BeatBoardProps {
 
 export default function BeatBoard({ projectId }: BeatBoardProps) {
     const { 
-        beats, 
+        beats: rawBeats, 
         characters, 
         locations, 
         updateScene, 
@@ -30,13 +30,17 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
+    // 🛡️ CRITICAL SAFETY: Ensure beats is ALWAYS an array, no matter what
+    const beats = Array.isArray(rawBeats) ? rawBeats : [];
+    
     // 🔍 DEBUG: Log beats on every render
     console.log('[BeatBoard] Rendering with beats:', beats);
     console.log('[BeatBoard] beats type:', Array.isArray(beats) ? 'array' : typeof beats);
     console.log('[BeatBoard] beats.length:', beats?.length);
     if (beats && beats.length > 0) {
         beats.forEach((beat, i) => {
-            console.log(`[BeatBoard] Beat #${i}:`, beat.title, 'scenes:', Array.isArray(beat.scenes) ? beat.scenes.length : `CORRUPTED (${typeof beat.scenes}): ${beat.scenes}`);
+            const scenesInfo = Array.isArray(beat?.scenes) ? beat.scenes.length : `CORRUPTED (${typeof beat?.scenes}): ${beat?.scenes}`;
+            console.log(`[BeatBoard] Beat #${i}:`, beat?.title, 'scenes:', scenesInfo);
         });
     }
     
@@ -253,10 +257,10 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                                     : 'flex gap-4 md:gap-6 overflow-x-auto'
                             }`}
                         >
-                            {columns.map(column => {
+                            {(Array.isArray(columns) ? columns : []).map(column => {
                                 // CRITICAL FIX: Ensure scenes is always an array, not a number or other type
-                                const scenes = Array.isArray(column.beat.scenes) ? column.beat.scenes : [];
-                                const isHighlighted = highlightedBeatId === column.id;
+                                const scenes = Array.isArray(column?.beat?.scenes) ? column.beat.scenes : [];
+                                const isHighlighted = highlightedBeatId === column?.id;
                                 
                                 return (
                                     <div 
