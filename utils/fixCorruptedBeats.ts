@@ -7,7 +7,8 @@ export function fixCorruptedBeatsInLocalStorage(): void {
     if (typeof window === 'undefined') return;
     
     try {
-        const beatsJSON = localStorage.getItem('wryda_screenplay_beats');
+        // Use the CORRECT localStorage key
+        const beatsJSON = localStorage.getItem('screenplay_beats_v1');
         if (!beatsJSON) {
             console.log('[Migration] No beats found in localStorage');
             return;
@@ -35,7 +36,7 @@ export function fixCorruptedBeatsInLocalStorage(): void {
         
         if (fixedCount > 0) {
             console.log(`[Migration] ✅ Fixed ${fixedCount} corrupted beat(s). Saving to localStorage...`);
-            localStorage.setItem('wryda_screenplay_beats', JSON.stringify(fixedBeats));
+            localStorage.setItem('screenplay_beats_v1', JSON.stringify(fixedBeats));
             localStorage.setItem('wryda_last_migration', new Date().toISOString());
             console.log('[Migration] ✅ Migration complete! Please refresh the page.');
             
