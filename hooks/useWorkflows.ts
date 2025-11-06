@@ -63,6 +63,9 @@ export function useWorkflows(): UseWorkflowsResult {
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
       const response = await api.workflows.list();
+      console.log('[useWorkflows] Raw response:', response);
+      console.log('[useWorkflows] Response data:', response.data);
+      
       const workflowsData = response.data.workflows || [];
 
       setWorkflows(workflowsData);

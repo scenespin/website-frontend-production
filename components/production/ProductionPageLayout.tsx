@@ -302,7 +302,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       console.log('[ProductionPage] Character load response:', response.status, data);
       
       if (data.success) {
-        setCharacters(data.characters || []);
+        setCharacters(data.data?.characters || []);
       }
     } catch (error) {
       console.error('[ProductionPage] Failed to load characters:', error);

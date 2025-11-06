@@ -103,7 +103,7 @@ export default function CharacterBankManager({ projectId, onCharacterSelect }: P
       
       if (response.ok) {
         const data = await response.json();
-        setCharacters(data.characters || []);
+        setCharacters(data.data?.characters || []);
       } else {
         console.error('Failed to load characters:', response.statusText);
       }
