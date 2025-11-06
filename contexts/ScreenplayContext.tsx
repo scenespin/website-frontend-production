@@ -325,18 +325,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Log successful load on mount + Auto-create 8-Sequence Structure
     useEffect(() => {
         const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
-        if (lastSaved) {
+        
+        // Log what was loaded
+        if (lastSaved && beats.length > 0) {
             console.log(`[ScreenplayContext] ✅ Loaded screenplay data (last saved: ${new Date(lastSaved).toLocaleString()})`);
             console.log(`  - ${beats.length} beats`);
             console.log(`  - ${characters.length} characters`);
             console.log(`  - ${locations.length} locations`);
-        } else {
-            console.log('[ScreenplayContext] Starting with empty screenplay');
-            
-            // Auto-create 8-Sequence Structure if no beats exist
-            if (beats.length === 0) {
-                console.log('[ScreenplayContext] Auto-creating 8-Sequence Structure...');
-                const sequences = [
+        }
+        
+        // Auto-create 8-Sequence Structure if no beats exist (regardless of lastSaved)
+        if (beats.length === 0) {
+            console.log('[ScreenplayContext] Starting with empty screenplay - Auto-creating 8-Sequence Structure...');
+            const sequences = [
                     {
                         title: 'Sequence 1: Status Quo',
                         description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
@@ -392,7 +393,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 setBeats(newBeats);
                 console.log('[ScreenplayContext] ✅ 8-Sequence Structure created');
             }
-        }
     }, []); // Run once on mount
     
     // ========================================================================
