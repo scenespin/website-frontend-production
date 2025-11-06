@@ -441,10 +441,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             ]);
             
             // 🛡️ CRITICAL FIX: Sanitize beat.scenes when loading from GitHub
-            const sanitizedBeats = (beatsFile?.beats || []).map(beat => ({
-                ...beat,
-                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
-            }));
+            console.log('[ScreenplayContext] 🟡 GitHub sync: Raw beats from GitHub:', beatsFile?.beats);
+            const sanitizedBeats = (beatsFile?.beats || []).map(beat => {
+                const wasCorrupted = !Array.isArray(beat.scenes);
+                if (wasCorrupted) {
+                    console.error(`[ScreenplayContext] 🚨 CORRUPTED BEAT FROM GITHUB: "${beat.title}" - scenes was:`, typeof beat.scenes, beat.scenes);
+                }
+                return {
+                    ...beat,
+                    scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+                };
+            });
+            console.log('[ScreenplayContext] 🟡 GitHub sync: Sanitized beats:', sanitizedBeats);
             
             setBeats(sanitizedBeats);
             setCharacters(charsFile?.characters || []);
