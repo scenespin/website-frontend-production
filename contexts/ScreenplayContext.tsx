@@ -146,26 +146,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return [];
         try {
             const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
-            if (!saved) {
-                console.log('[ScreenplayContext] 🟡 useState init: No saved beats in localStorage');
-                return [];
-            }
+            if (!saved) return [];
             
             const parsed = JSON.parse(saved);
-            
-            // 🔍 DEBUG: Log loaded data BEFORE sanitization
-            console.log('[ScreenplayContext] 🟡 useState init: Loaded from localStorage, beat[0].scenes:', parsed[0]?.scenes);
-            
             // 🛡️ CRITICAL: Sanitize beats on load to prevent corruption
-            const sanitized = parsed.map((beat: any) => ({
+            return parsed.map((beat: any) => ({
                 ...beat,
                 scenes: Array.isArray(beat.scenes) ? beat.scenes : []
             }));
-            
-            // 🔍 DEBUG: Log AFTER sanitization
-            console.log('[ScreenplayContext] 🟡 useState init: After sanitization, beat[0].scenes:', sanitized[0]?.scenes);
-            
-            return sanitized;
         } catch (error) {
             console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
             return [];
@@ -328,17 +316,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Auto-save to localStorage when data changes
     // ========================================================================
     
-    // 🚨 AGGRESSIVE VALIDATION: Catch corruption the MOMENT it happens
+    // Validation: Log any corruption but don't crash the app
     useEffect(() => {
         beats.forEach((beat, index) => {
             if (!Array.isArray(beat.scenes)) {
-                console.error(`🚨🚨🚨 CORRUPTION DETECTED in ScreenplayContext! 🚨🚨🚨`);
+                console.error(`🚨 CORRUPTION WARNING in ScreenplayContext!`);
                 console.error(`Beat ${index}: "${beat.title}"`);
                 console.error(`  - scenes type: ${typeof beat.scenes}`);
                 console.error(`  - scenes value:`, beat.scenes);
                 console.error(`  - order value:`, beat.order);
                 console.error('Stack trace:', new Error().stack);
-                throw new Error(`CORRUPTION: Beat "${beat.title}" has scenes=${beat.scenes} (${typeof beat.scenes}) instead of array!`);
+                // DON'T throw - just log and let sanitization handle it
             }
         });
     }, [beats]);
@@ -355,18 +343,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 scenes: Array.isArray(beat.scenes) ? beat.scenes : []
             }));
             
-            // 🔍 DEBUG: Log BEFORE stringify to see if corruption happens during serialization
-            console.log('[ScreenplayContext] 🟡 BEFORE stringify - checking beat[0].scenes:', sanitized[0]?.scenes);
-            
-            const jsonString = JSON.stringify(sanitized);
-            const reparsed = JSON.parse(jsonString);
-            
-            // 🔍 DEBUG: Log AFTER stringify/parse to see if corruption happens during serialization
-            console.log('[ScreenplayContext] 🟡 AFTER stringify/parse - beat[0].scenes:', reparsed[0]?.scenes);
-            
-            localStorage.setItem(STORAGE_KEYS.BEATS, jsonString);
+            localStorage.setItem(STORAGE_KEYS.BEATS, JSON.stringify(sanitized));
             localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
-            console.log('[ScreenplayContext] ✅ Saved', beats.length, 'beats to localStorage');
         } catch (error) {
             console.error('[ScreenplayContext] Failed to save beats to localStorage:', error);
         }
