@@ -41,8 +41,11 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
-    // 🛡️ CRITICAL SAFETY: Ensure beats is ALWAYS an array, no matter what
-    const beats = Array.isArray(rawBeats) ? rawBeats : [];
+    // 🛡️ NUCLEAR OPTION: Fix scenes IMMEDIATELY on receipt from context
+    const beats = (Array.isArray(rawBeats) ? rawBeats : []).map(beat => ({
+        ...beat,
+        scenes: Array.isArray(beat?.scenes) ? beat.scenes : []
+    }));
     
     // 🔍 DEBUG: Log beats on every render
     console.log('[BeatBoard] Rendering with beats:', beats);
