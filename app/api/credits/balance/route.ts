@@ -10,9 +10,10 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET(request: NextRequest) {
   try {
     console.log('[Credits Balance] Starting request...');
-    const { getToken, userId, sessionClaims } = await auth();
-    console.log('[Credits Balance] Auth result - userId:', userId);
-    console.log('[Credits Balance] Session claims:', sessionClaims ? 'Present' : 'Missing');
+    console.log('[Credits Balance] Request headers:', Object.fromEntries(request.headers.entries()));
+    
+    const { getToken, userId, sessionClaims, sessionId } = await auth();
+    console.log('[Credits Balance] Auth result:', { userId, sessionId, hasClaims: !!sessionClaims });
     
     if (!userId) {
       console.error('[Credits Balance] ❌ No userId - user not authenticated');
@@ -22,25 +23,32 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Get token - use wryda-backend template for custom backend API
-    // This template should be configured in Clerk Dashboard → JWT Templates
-    const token = await getToken({ template: 'wryda-backend' });
+    // Try to get token with template
+    console.log('[Credits Balance] Calling getToken with template: wryda-backend');
+    let token;
+    try {
+      token = await getToken({ template: 'wryda-backend' });
+      console.log('[Credits Balance] getToken returned:', token ? `SUCCESS (${token.length} chars)` : 'NULL');
+    } catch (tokenError: any) {
+      console.error('[Credits Balance] getToken threw error:', tokenError.message);
+      console.error('[Credits Balance] Error stack:', tokenError.stack);
+      return NextResponse.json({ 
+        balance: 0, 
+        error: `Token generation error: ${tokenError.message}`,
+        userId 
+      }, { status: 200 });
+    }
     
-    console.log('[Credits Balance] Token result:', token ? `Token received (length: ${token.length})` : 'NO TOKEN RECEIVED');
-
     if (!token) {
-      console.error('[Credits Balance] ❌ No auth token - getToken returned null/undefined');
-      console.error('[Credits Balance] This usually means:');
-      console.error('  1. Clerk JWT Templates are not configured properly');
-      console.error('  2. User session has expired');
-      console.error('  3. Clerk middleware is not set up correctly');
-      
-      // Instead of failing, return 0 balance with error
+      console.error('[Credits Balance] ❌ getToken returned null/undefined');
+      console.error('[Credits Balance] userId:', userId);
+      console.error('[Credits Balance] sessionId:', sessionId);
       return NextResponse.json({ 
         balance: 0, 
         error: 'Could not generate authentication token',
-        userId: userId 
-      }, { status: 200 }); // Return 200 so frontend doesn't retry
+        userId,
+        debug: { hasUserId: !!userId, hasSessionId: !!sessionId }
+      }, { status: 200 });
     }
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
