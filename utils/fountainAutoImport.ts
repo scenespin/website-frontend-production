@@ -121,8 +121,10 @@ export function parseContentForImport(content: string): AutoImportResult {
         const colonMatch = trimmed.match(/^([A-Za-z][A-Za-z\s']+?):\s*(.+)$/);
         if (!isCharacter && colonMatch && currentScene) {
             const potentialCharName = colonMatch[1].trim();
-            // Only if it looks like a name (not too long, doesn't contain weird chars)
-            if (potentialCharName.length < 30 && !/[.!?;]/.test(potentialCharName)) {
+            // Exclude if starts with "The", "A", "An" (likely not a character)
+            const startsWithArticle = /^(The|A|An)\s/i.test(potentialCharName);
+            // Only if it looks like a name (not too long, doesn't contain weird chars, not an article)
+            if (potentialCharName.length < 30 && !/[.!?;]/.test(potentialCharName) && !startsWithArticle) {
                 isCharacter = true;
                 console.log('[AutoImport] Character detected (colon format) at line', lineIndex, ':', potentialCharName);
             }
@@ -139,7 +141,7 @@ export function parseContentForImport(content: string): AutoImportResult {
             
             // CRITICAL: Exclude centered text (starts with >) and common screenplay elements
             const isNotCentered = !trimmed.startsWith('>');
-            const isNotEnd = !/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO)\.?$/i.test(trimmed);
+            const isNotEnd = !/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO|.*BLOG POST.*|.*GOES LIVE.*)\.?$/i.test(trimmed);
             const isNotTitle = !/^(ACT|SCENE|CHAPTER|PART|TITLE|INTERLUDE|MONTAGE|SERIES OF SHOTS)/i.test(trimmed);
             
             // Must look like an actual name (2-4 words max, not a full sentence)
