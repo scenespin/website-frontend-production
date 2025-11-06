@@ -168,8 +168,8 @@ export function useEditorAgent() {
         return callAgent({
             endpoint: '/api/rewrite',
             body: {
-                originalScript: originalText,
-                userPrompt: instructions,
+                selectedText: originalText,
+                instruction: instructions,
                 desiredModelId: modelId
             }
         });

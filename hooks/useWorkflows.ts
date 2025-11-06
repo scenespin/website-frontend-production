@@ -51,12 +51,16 @@ export function useWorkflows(): UseWorkflowsResult {
   const [error, setError] = useState<Error | null>(null);
   
   // Use Clerk's auth hook to know when auth is ready
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
 
   const fetchWorkflows = async () => {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Set auth token getter before API call
+      const { api, setAuthTokenGetter } = await import('@/lib/api');
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
       const response = await api.workflows.list();
       const workflowsData = response.data.workflows || [];
