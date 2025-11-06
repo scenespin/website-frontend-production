@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import type {
     StoryBeat,
     Scene,
@@ -30,7 +30,6 @@ import {
 import {
     updateScriptTags
 } from '@/utils/fountainTags';
-import { fixCorruptedBeatsInLocalStorage } from '@/utils/fixCorruptedBeats';
 
 // ============================================================================
 // Context Type Definition
@@ -141,113 +140,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     };
 
     // ========================================================================
-    // State - Load from localStorage if available
+    // State - Load from GitHub (no localStorage!)
     // ========================================================================
-    const [beats, setBeats] = useState<StoryBeat[]>(() => {
-        if (typeof window === 'undefined') return [];
-        
-        // 🔧 ONE-TIME MIGRATION: Fix corrupted beats BEFORE loading state
-        const lastMigration = localStorage.getItem('wryda_last_migration');
-        if (!lastMigration) {
-            console.log('[ScreenplayContext] 🔧 Running one-time data migration...');
-            fixCorruptedBeatsInLocalStorage();
-        }
-        
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
-            if (!saved) return [];
-            
-            const parsed = JSON.parse(saved);
-            
-            // CRITICAL: Validate that parsed data is actually an array
-            // This prevents crashes from corrupted localStorage data
-            if (!Array.isArray(parsed)) {
-                console.error('[ScreenplayContext] ❌ Corrupted beats data detected:', typeof parsed, parsed);
-                console.log('[ScreenplayContext] 🔧 Clearing corrupted data and reinitializing...');
-                localStorage.removeItem(STORAGE_KEYS.BEATS);
-                return [];
-            }
-            
-            // ADDITIONAL VALIDATION: Check each beat has a scenes array
-            const validatedBeats = parsed.map((beat: any) => {
-                if (!beat.scenes || !Array.isArray(beat.scenes)) {
-                    console.error(`[ScreenplayContext] 🔴 CORRUPTED DATA FOUND ON LOAD! Beat "${beat.title || beat.id}" has scenes:`, typeof beat.scenes, beat.scenes);
-                    console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
-                    return {
-                        ...beat,
-                        scenes: [] // Replace corrupted scenes with empty array
-                    };
-                }
-                return beat;
-            });
-            
-            return validatedBeats;
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
-            localStorage.removeItem(STORAGE_KEYS.BEATS); // Clear corrupted data
-            return [];
-        }
-    });
-
-    const [characters, setCharacters] = useState<Character[]>(() => {
-        if (typeof window === 'undefined') return [];
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.CHARACTERS);
-            if (!saved) return [];
-            
-            const parsed = JSON.parse(saved);
-            
-            // Validate that parsed data is actually an array
-            if (!Array.isArray(parsed)) {
-                console.error('[ScreenplayContext] ❌ Corrupted characters data detected:', typeof parsed);
-                localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
-                return [];
-            }
-            
-            return parsed;
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load characters from localStorage', error);
-            localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
-            return [];
-        }
-    });
-
-    const [locations, setLocations] = useState<Location[]>(() => {
-        if (typeof window === 'undefined') return [];
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
-            if (!saved) return [];
-            
-            const parsed = JSON.parse(saved);
-            
-            // Validate that parsed data is actually an array
-            if (!Array.isArray(parsed)) {
-                console.error('[ScreenplayContext] ❌ Corrupted locations data detected:', typeof parsed);
-                localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
-                return [];
-            }
-            
-            return parsed;
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load locations from localStorage', error);
-            localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
-            return [];
-        }
-    });
-
-    const [relationships, setRelationships] = useState<Relationships>(() => {
-        if (typeof window === 'undefined') return { scenes: {}, characters: {}, locations: {} };
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.RELATIONSHIPS);
-            return saved ? JSON.parse(saved) : { scenes: {}, characters: {}, locations: {} };
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load relationships from localStorage', error);
-            return { scenes: {}, characters: {}, locations: {} };
-        }
-    });
+    const [beats, setBeats] = useState<StoryBeat[]>([]);
+    const [characters, setCharacters] = useState<Character[]>([]);
+    const [locations, setLocations] = useState<Location[]>([]);
+    const [relationships, setRelationships] = useState<Relationships>({ scenes: {}, characters: {}, locations: {} });
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // Track if we've auto-created the 8-Sequence Structure to prevent duplicates
+    const hasAutoCreated = useRef(false);
     
     // GitHub connection - Load from localStorage if available
     const [githubConfig, setGithubConfig] = useState<ReturnType<typeof initializeGitHub> | null>(() => {
@@ -269,131 +173,125 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     });
 
     // ========================================================================
-    // Auto-Save to localStorage
+    // Auto-Sync to GitHub (every 30 seconds, debounced)
     // ========================================================================
     
-    // Save beats
+    const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            // 🔍 DEBUG: Check for corrupted beats BEFORE saving
-            beats.forEach((beat, index) => {
-                if (!Array.isArray(beat.scenes)) {
-                    console.error(`[ScreenplayContext] 🔴 CORRUPTION DETECTED BEFORE SAVE! Beat #${index} "${beat.title}" has scenes:`, typeof beat.scenes, beat.scenes);
-                    console.error('[ScreenplayContext] 🔴 Full beat object:', JSON.stringify(beat, null, 2));
-                    console.error('[ScreenplayContext] 🔴 Stack trace:', new Error().stack);
-                }
-            });
-            
-            localStorage.setItem(STORAGE_KEYS.BEATS, JSON.stringify(beats));
-            localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save beats to localStorage', error);
-        }
-    }, [beats]);
-
-    // Save characters
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save characters to localStorage', error);
-        }
-    }, [characters]);
-
-    // Save locations
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save locations to localStorage', error);
-        }
-    }, [locations]);
-
-    // Save relationships
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            localStorage.setItem(STORAGE_KEYS.RELATIONSHIPS, JSON.stringify(relationships));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save relationships to localStorage', error);
-        }
-    }, [relationships]);
-
-    // Log successful load on mount + Auto-create 8-Sequence Structure
-    useEffect(() => {
-        const lastSaved = localStorage.getItem(STORAGE_KEYS.LAST_SAVED);
+        // Skip if not connected to GitHub
+        if (!isConnected || !githubConfig) return;
         
-        // Log what was loaded
-        if (lastSaved && beats.length > 0) {
-            console.log(`[ScreenplayContext] ✅ Loaded screenplay data (last saved: ${new Date(lastSaved).toLocaleString()})`);
-            console.log(`  - ${beats.length} beats`);
-            console.log(`  - ${characters.length} characters`);
-            console.log(`  - ${locations.length} locations`);
+        // Clear existing timer
+        if (autoSyncTimerRef.current) {
+            clearTimeout(autoSyncTimerRef.current);
         }
         
-        // Auto-create 8-Sequence Structure if no beats exist (regardless of lastSaved)
-        if (beats.length === 0) {
-            console.log('[ScreenplayContext] Starting with empty screenplay - Auto-creating 8-Sequence Structure...');
-            const sequences = [
-                    {
-                        title: 'Sequence 1: Status Quo',
-                        description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
-                        order: 0
-                    },
-                    {
-                        title: 'Sequence 2: Predicament',
-                        description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
-                        order: 1
-                    },
-                    {
-                        title: 'Sequence 3: Lock In',
-                        description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
-                        order: 2
-                    },
-                    {
-                        title: 'Sequence 4: First Culmination',
-                        description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
-                        order: 3
-                    },
-                    {
-                        title: 'Sequence 5: Midpoint Shift',
-                        description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
-                        order: 4
-                    },
-                    {
-                        title: 'Sequence 6: Complications',
-                        description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
-                        order: 5
-                    },
-                    {
-                        title: 'Sequence 7: All Is Lost',
-                        description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
-                        order: 6
-                    },
-                    {
-                        title: 'Sequence 8: Resolution',
-                        description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
-                        order: 7
-                    }
-                ];
-                
-                // Create all 8 sequences
-                const now = new Date().toISOString();
-                const newBeats = sequences.map(seq => ({
-                    ...seq,
-                    id: `beat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    scenes: [],
-                    createdAt: now,
-                    updatedAt: now
-                }));
-                
-                setBeats(newBeats);
-                console.log('[ScreenplayContext] ✅ 8-Sequence Structure created');
+        // Set new timer for GitHub auto-sync (30 seconds)
+        autoSyncTimerRef.current = setTimeout(async () => {
+            try {
+                console.log('[ScreenplayContext] Auto-syncing to GitHub...');
+                await syncToGitHub('auto: Screenplay structure update');
+                console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
+            } catch (err) {
+                console.error('[ScreenplayContext] Auto-sync failed:', err);
+                // Don't throw - just log the error
             }
-    }, []); // Run once on mount
+        }, 30000); // 30 seconds
+        
+        // Cleanup
+        return () => {
+            if (autoSyncTimerRef.current) {
+                clearTimeout(autoSyncTimerRef.current);
+            }
+        };
+    }, [beats, characters, locations, relationships, isConnected, githubConfig, syncToGitHub]);
+
+    // Load from GitHub on mount + Auto-create 8-Sequence Structure if empty
+    useEffect(() => {
+        async function initializeData() {
+            if (!githubConfig || !isConnected) {
+                console.log('[ScreenplayContext] Not connected to GitHub - waiting for connection');
+                return;
+            }
+            
+            try {
+                console.log('[ScreenplayContext] Loading data from GitHub...');
+                await syncFromGitHub();
+                
+                // After loading from GitHub, check if we need to create default structure
+                if (beats.length === 0) {
+                    console.log('[ScreenplayContext] No beats found - Auto-creating 8-Sequence Structure...');
+                    const sequences = [
+                        {
+                            title: 'Sequence 1: Status Quo',
+                            description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
+                            order: 0
+                        },
+                        {
+                            title: 'Sequence 2: Predicament',
+                            description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
+                            order: 1
+                        },
+                        {
+                            title: 'Sequence 3: Lock In',
+                            description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
+                            order: 2
+                        },
+                        {
+                            title: 'Sequence 4: First Culmination',
+                            description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
+                            order: 3
+                        },
+                        {
+                            title: 'Sequence 5: Midpoint Shift',
+                            description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
+                            order: 4
+                        },
+                        {
+                            title: 'Sequence 6: Complications',
+                            description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
+                            order: 5
+                        },
+                        {
+                            title: 'Sequence 7: All Is Lost',
+                            description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
+                            order: 6
+                        },
+                        {
+                            title: 'Sequence 8: Resolution',
+                            description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
+                            order: 7
+                        }
+                    ];
+                    
+                    // Create all 8 sequences
+                    const now = new Date().toISOString();
+                    const newBeats = sequences.map(seq => ({
+                        ...seq,
+                        id: `beat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        scenes: [],
+                        createdAt: now,
+                        updatedAt: now
+                    }));
+                    
+                    setBeats(newBeats);
+                    
+                    // Immediately sync to GitHub
+                    await syncToGitHub('feat: Created 8-Sequence Structure');
+                    console.log('[ScreenplayContext] ✅ 8-Sequence Structure created and synced to GitHub');
+                }
+            } catch (err) {
+                console.error('[ScreenplayContext] Failed to initialize from GitHub:', err);
+            }
+        }
+        
+        // Only run once on mount when GitHub is connected
+        if (!hasAutoCreated.current && githubConfig && isConnected) {
+            hasAutoCreated.current = true;
+            initializeData();
+        }
+    }, [githubConfig, isConnected]); // Only re-run if connection changes
     
     // ========================================================================
     // GitHub Connection
