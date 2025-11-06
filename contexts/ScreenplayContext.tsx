@@ -586,14 +586,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                         
                         hasPendingChanges.current = false;
-                        console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
-                    } catch (err) {
-                        console.error('[ScreenplayContext] Auto-sync failed:', err);
+                console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
+            } catch (err) {
+                console.error('[ScreenplayContext] Auto-sync failed:', err);
                     } finally {
                         setIsLoading(false);
-                    }
+            }
                 };
-                
+        
                 performSync();
             }
         }, 30000); // 30 seconds after last change

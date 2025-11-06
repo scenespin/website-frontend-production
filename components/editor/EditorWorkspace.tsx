@@ -120,9 +120,8 @@ export default function EditorWorkspace() {
     // Handle scene navigation
     const handleSceneClick = (scene: Scene) => {
         if (scene.fountain?.startLine) {
-            setCurrentLine(scene.fountain.startLine);
-            // Scroll to the scene in the editor
-            // This would require a ref to the editor textarea
+            // Pass 'true' as second param to trigger programmatic navigation
+            setCurrentLine(scene.fountain.startLine, true);
         }
     };
     
