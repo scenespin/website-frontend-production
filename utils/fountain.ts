@@ -85,8 +85,16 @@ export function detectElementType(line: string, previousType?: FountainElementTy
     
     // Character name (ALL CAPS, optionally with ^)
     // Must be preceded by empty line or dialogue
-    if (/^[A-Z\s]+(\^)?$/.test(trimmed) && trimmed.length < 40) {
+    if (/^[A-Z\s'0-9]+(\^)?$/.test(trimmed) && trimmed.length < 40) {
         if (!previousType || previousType === 'empty' || previousType === 'dialogue' || previousType === 'parenthetical') {
+            // Exclude common transitions and screenplay elements
+            if (/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO|CONTINUED|MORE|CONT'D)\.?$/i.test(trimmed)) {
+                return 'transition';
+            }
+            // Exclude narrative section headings that look like characters
+            if (/^(THE .* GOES LIVE|THE .* BEGINS|THE .* ENDS)$/i.test(trimmed)) {
+                return 'action';
+            }
             return 'character';
         }
     }
