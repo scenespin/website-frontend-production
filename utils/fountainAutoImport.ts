@@ -117,21 +117,8 @@ export function parseContentForImport(content: string): AutoImportResult {
         // Detect character names - use both strict Fountain detection AND lenient ALL CAPS detection
         let isCharacter = elementType === 'character';
         
-        // LENIENT MODE 1: Detect colon-separated dialogue (john: hello, JOHN: hello)
-        const colonMatch = trimmed.match(/^([A-Za-z][A-Za-z\s']+?):\s*(.+)$/);
-        if (!isCharacter && colonMatch && currentScene) {
-            const potentialCharName = colonMatch[1].trim();
-            // Exclude if starts with "The", "A", "An" (likely not a character)
-            const startsWithArticle = /^(The|A|An)\s/i.test(potentialCharName);
-            // Only if it looks like a name (not too long, doesn't contain weird chars, not an article)
-            if (potentialCharName.length < 30 && !/[.!?;]/.test(potentialCharName) && !startsWithArticle) {
-                isCharacter = true;
-                console.log('[AutoImport] Character detected (colon format) at line', lineIndex, ':', potentialCharName);
-            }
-        }
-        
-        // LENIENT MODE 2: Also detect ALL CAPS lines within scenes as potential character names
-        // This helps with auto-import when content isn't perfectly formatted
+        // LENIENT MODE: Also detect ALL CAPS lines within scenes as potential character names
+        // This helps catch characters that might not have perfect spacing
         if (!isCharacter && currentScene && trimmed.length > 0 && trimmed.length < 40) {
             // Check if line is ALL CAPS (allowing spaces, apostrophes, numbers)
             const isAllCaps = /^[A-Z][A-Z\s'0-9]*$/.test(trimmed);
@@ -141,7 +128,7 @@ export function parseContentForImport(content: string): AutoImportResult {
             
             // CRITICAL: Exclude centered text (starts with >) and common screenplay elements
             const isNotCentered = !trimmed.startsWith('>');
-            const isNotEnd = !/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO|.*BLOG POST.*|.*GOES LIVE.*)\.?$/i.test(trimmed);
+            const isNotEnd = !/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO)\.?$/i.test(trimmed);
             const isNotTitle = !/^(ACT|SCENE|CHAPTER|PART|TITLE|INTERLUDE|MONTAGE|SERIES OF SHOTS)/i.test(trimmed);
             
             // Must look like an actual name (2-4 words max, not a full sentence)
@@ -156,17 +143,7 @@ export function parseContentForImport(content: string): AutoImportResult {
         
         if (isCharacter && currentScene) {
             // Extract character name (remove dual dialogue marker ^ and extensions like (V.O.))
-            // Also handle colon format (john: hello -> john)
-            let characterName = trimmed;
-            
-            // If colon format, extract just the name part
-            const colonMatch2 = characterName.match(/^([A-Za-z][A-Za-z\s']+?):\s*.+$/);
-            if (colonMatch2) {
-                characterName = colonMatch2[1].trim();
-            }
-            
-            // Clean up character name
-            characterName = characterName
+            let characterName = trimmed
                 .replace(/\^$/, '')
                 .replace(/\(.*\)$/, '')
                 .trim();
