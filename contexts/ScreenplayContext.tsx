@@ -307,12 +307,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 getStructureFile<RelationshipsFile>(githubConfig, 'relationships')
             ]);
             
-            setBeats(beatsFile?.beats || []);
+            // 🛡️ CRITICAL FIX: Sanitize beat.scenes when loading from GitHub
+            const sanitizedBeats = (beatsFile?.beats || []).map(beat => ({
+                ...beat,
+                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+            }));
+            
+            setBeats(sanitizedBeats);
             setCharacters(charsFile?.characters || []);
             setLocations(locsFile?.locations || []);
             setRelationships(relsFile?.relationships || { scenes: {}, characters: {}, locations: {}, props: {} });
             
-            console.log('[ScreenplayContext] Synced from GitHub');
+            console.log('[ScreenplayContext] Synced from GitHub (sanitized corrupted data)');
             
         } catch (err: any) {
             setError(err.message);
