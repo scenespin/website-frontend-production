@@ -282,6 +282,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                 ];
                 
+                const now = new Date().toISOString();
+                
                 // 🛡️ CRITICAL: EXPLICIT empty array, not from spread
                 const newBeats = sequences.map((seq, index) => ({
                     id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
