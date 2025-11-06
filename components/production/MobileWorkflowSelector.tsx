@@ -20,6 +20,7 @@ import { WorkflowInputForm, type WorkflowInputs } from './WorkflowInputForm';
 import { WorkflowProgressTracker, type WorkflowResults } from './WorkflowProgressTracker';
 import { WorkflowResultsDisplay } from './WorkflowResultsDisplay';
 import { useRouter } from 'next/navigation';
+import apiClient from '@/lib/api';
 
 interface MobileWorkflowSelectorProps {
   projectId: string;
@@ -128,13 +129,13 @@ export function MobileWorkflowSelector({
         formData.append('performanceVideoFile', inputs.performanceVideoFile);
       }
 
-      // Start workflow execution
-      const response = await fetch('/api/workflows/execute', {
-        method: 'POST',
-        body: formData
+      // Use apiClient which automatically includes auth token via interceptor
+      // Note: apiClient handles FormData properly and sets correct Content-Type
+      const response = await apiClient.post('/api/workflows/execute', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      const data = await response.json();
+      const data = response.data;
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to start workflow');

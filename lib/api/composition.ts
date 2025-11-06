@@ -4,8 +4,7 @@
  */
 
 import { CompositionLayout, CompositionFilters, CompositionResponse } from '@/types/composition';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+import apiClient from '@/lib/api';
 
 /**
  * Fetch all composition layouts with optional filters
@@ -21,22 +20,12 @@ export async function fetchCompositionLayouts(
   if (filters?.audioEnabled) params.append('audio_enabled', 'true');
   if (filters?.animated) params.append('animated', 'true');
   
-  const url = `${API_BASE}/api/composition/layouts${params.toString() ? '?' + params.toString() : ''}`;
+  const url = `/api/composition/layouts${params.toString() ? '?' + params.toString() : ''}`;
   
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include', // Include auth cookies
-  });
+  // Use apiClient to automatically include auth token via interceptor
+  const response = await apiClient.get(url);
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch compositions: ${response.statusText}`);
-  }
-  
-  const data: CompositionResponse = await response.json();
-  return data.layouts;
+  return response.data.layouts;
 }
 
 /**
@@ -50,22 +39,12 @@ export async function fetchAnimatedCompositions(
   if (filters?.tag) params.append('tag', filters.tag);
   if (filters?.numRegions) params.append('num_videos', filters.numRegions.toString());
   
-  const url = `${API_BASE}/api/composition/animations${params.toString() ? '?' + params.toString() : ''}`;
+  const url = `/api/composition/animations${params.toString() ? '?' + params.toString() : ''}`;
   
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
+  // Use apiClient to automatically include auth token via interceptor
+  const response = await apiClient.get(url);
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch animations: ${response.statusText}`);
-  }
-  
-  const data = await response.json();
-  return data.animations;
+  return response.data.animations;
 }
 
 /**
@@ -79,43 +58,23 @@ export async function suggestComposition(data: {
   };
   characters?: string[];
 }): Promise<any> {
-  const url = `${API_BASE}/api/composition/suggest`;
+  const url = `/api/composition/suggest`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
+  // Use apiClient to automatically include auth token via interceptor
+  const response = await apiClient.post(url, data);
   
-  if (!response.ok) {
-    throw new Error(`Failed to get composition suggestion: ${response.statusText}`);
-  }
-  
-  return response.json();
+  return response.data;
 }
 
 /**
  * Fetch composition presets (for builder)
  */
 export async function fetchCompositionPresets(): Promise<any[]> {
-  const url = `${API_BASE}/api/composition-builder/presets`;
+  const url = `/api/composition-builder/presets`;
   
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
+  // Use apiClient to automatically include auth token via interceptor
+  const response = await apiClient.get(url);
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch presets: ${response.statusText}`);
-  }
-  
-  const data = await response.json();
-  return data.presets || [];
+  return response.data.presets || [];
 }
 

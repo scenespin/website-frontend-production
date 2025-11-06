@@ -20,6 +20,7 @@ import { WorkflowInputForm, type WorkflowInputs } from './WorkflowInputForm';
 import { WorkflowProgressTracker, type WorkflowResults } from './WorkflowProgressTracker';
 import { WorkflowResultsDisplay } from './WorkflowResultsDisplay';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 interface DesktopWorkflowSelectorProps {
   projectId: string;
@@ -108,26 +109,14 @@ export function DesktopWorkflowSelector({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/workflows/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          projectId,
-          workflowId: selectedWorkflow.id,
-          inputs,
-        }),
+      // Use the api client which automatically includes auth token
+      const response = await api.workflows.execute({
+        projectId,
+        workflowId: selectedWorkflow.id,
+        inputs,
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to start workflow');
-      }
-
-      const data = await response.json();
-      setCurrentJobId(data.jobId);
+      setCurrentJobId(response.data.jobId);
       setViewMode('progress');
       toast.success('Workflow started successfully');
     } catch (error: any) {
