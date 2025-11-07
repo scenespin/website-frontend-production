@@ -328,7 +328,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="p-4 border-b border-gray-800">
           <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>
           <p className="text-sm text-gray-400 truncate">
-            {screenplay.title || 'Untitled Project'}
+            {editor.state.title || 'Untitled Project'}
           </p>
         </div>
 
