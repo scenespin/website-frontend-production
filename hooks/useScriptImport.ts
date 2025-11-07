@@ -264,6 +264,9 @@ export function useScriptImport(): UseScriptImportReturn {
             if (locationNames.length > 0) {
                 await screenplay.bulkImportLocations(locationNames);
             }
+            
+            // Import scenes into story beats
+            await performImport(pastedText);
                 
             console.log('[useScriptImport] ✓ Auto-imported', characterNames.length, 'characters and', locationNames.length, 'locations');
             

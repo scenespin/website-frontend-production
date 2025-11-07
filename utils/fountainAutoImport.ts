@@ -112,14 +112,14 @@ export function parseContentForImport(content: string): AutoImportResult {
             const locationMatch = trimmed.match(/^(?:INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i);
             if (locationMatch) {
                 const location = locationMatch[1].trim();
-                locations.add(location);
+            locations.add(location);
                 console.log('[AutoImport] ✓ Scene:', location);
-                
-                currentScene = {
-                    heading: trimmed,
-                    location: location,
-                    characters: [],
-                    startLine: lineIndex,
+            
+            currentScene = {
+                heading: trimmed,
+                location: location,
+                characters: [],
+                startLine: lineIndex,
                     endLine: lineIndex
                 };
             } else {
