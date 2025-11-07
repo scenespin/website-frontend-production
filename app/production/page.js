@@ -6,16 +6,23 @@ import { useEffect, useState } from 'react';
 export const dynamic = 'force-dynamic';
 
 /**
- * Production Page - Integrated TypeScript Components
+ * Production Page - Feature 0109 Complete Redesign
  * 
- * Provides advanced production features:
- * - Tab 1: Workflows (guided, workflow-based production)
- * - Tab 2: Scene Builder (advanced, script-based production)
- * - Tab 3: Characters (character bank with references)
- * - Tab 4: Jobs (workflow history & recovery)
+ * Mobile-first, screenplay-centric production interface with:
+ * - AI Chat (conversational workflows)
+ * - Scene Builder (from screenplay)
+ * - Media Library (upload management + style matching)
+ * - Character/Location/Asset Banks
+ * - Jobs (monitoring)
+ * - Creative Gallery (inspiration)
+ * 
+ * Three Clear Paths:
+ * 1. One-Off Creation → AI Chat
+ * 2. Screenplay-Driven → Scene Builder
+ * 3. Hybrid Workflow → Media Library + Style Analyzer + Scene Builder
  */
 
-import { ProductionPageLayout } from '@/components/production/ProductionPageLayout';
+import { ProductionHub } from '@/components/production/ProductionHub';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 export default function ProductionPage() {
@@ -27,22 +34,20 @@ export default function ProductionPage() {
   }, []);
   
   if (!mounted) {
-  return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading production tools...</p>
-          </div>
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading Production Hub...</p>
         </div>
+      </div>
     );
   }
   
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js comes from production/layout.js */}
-      <div className="min-h-screen bg-[#0A0A0A]">
-        <ProductionPageLayout projectId={screenplay.projectId || 'default'} />
-      </div>
+      <ProductionHub projectId={screenplay.projectId || 'default'} />
     </>
   );
 }

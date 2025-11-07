@@ -1,0 +1,631 @@
+'use client';
+
+/**
+ * Production Hub - Feature 0109 Complete Redesign
+ * 
+ * Mobile-first, screenplay-centric production interface with:
+ * - AI Chat (conversational workflows)
+ * - Scene Builder (from screenplay)
+ * - Media Library (upload management)
+ * - Style Analyzer (match existing footage)
+ * - Character/Location/Asset Banks
+ * - Jobs (monitoring)
+ * - Creative Gallery (inspiration)
+ * 
+ * Three Clear Paths:
+ * 1. One-Off Creation → AI Chat
+ * 2. Screenplay-Driven → Scene Builder
+ * 3. Hybrid Workflow → Media Library + Style Analyzer + Scene Builder
+ */
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { 
+  MessageSquare, 
+  Video, 
+  FolderOpen, 
+  Users, 
+  MapPin, 
+  Box,
+  Clock,
+  Sparkles,
+  ChevronRight,
+  X
+} from 'lucide-react';
+
+// Phase 2 Components (Feature 0109)
+import AIInterviewChat from '../chat/AIInterviewChat';
+import StyleAnalyzer from './StyleAnalyzer';
+import MediaLibrary from './MediaLibrary';
+import CreativePossibilitiesGallery from './CreativePossibilitiesGallery';
+
+// Existing components
+import { SceneBuilderPanel } from './SceneBuilderPanel';
+import { CharacterBankPanel } from './CharacterBankPanel';
+import { LocationBankPanel } from './LocationBankPanel';
+import AssetBankPanel from './AssetBankPanel';
+import { ProductionJobsPanel } from './ProductionJobsPanel';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+type ProductionTab = 
+  | 'overview'      // Dashboard + Creative Gallery
+  | 'chat'          // AI Conversational Workflows
+  | 'scene-builder' // Screenplay-driven scene generation
+  | 'media'         // Media Library + Style Analyzer
+  | 'characters'    // Character Bank
+  | 'locations'     // Location Bank
+  | 'assets'        // Asset Bank
+  | 'jobs';         // Job Monitoring
+
+interface ProductionHubProps {
+  projectId: string;
+}
+
+interface TabConfig {
+  id: ProductionTab;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+  badge?: string;
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export function ProductionHub({ projectId }: ProductionHubProps) {
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const screenplay = useScreenplay();
+
+  // State
+  const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
+  const [isMobile, setIsMobile] = useState(false);
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
+
+  // ============================================================================
+  // RESPONSIVE DETECTION
+  // ============================================================================
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // ============================================================================
+  // TAB CONFIGURATION
+  // ============================================================================
+
+  const tabs: TabConfig[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      icon: <Sparkles className="w-5 h-5" />,
+      description: 'Project dashboard & creative possibilities'
+    },
+    {
+      id: 'chat',
+      label: 'AI Chat',
+      icon: <MessageSquare className="w-5 h-5" />,
+      description: 'Conversational workflows & one-offs',
+      badge: 'NEW'
+    },
+    {
+      id: 'scene-builder',
+      label: 'Scene Builder',
+      icon: <Video className="w-5 h-5" />,
+      description: 'Generate scenes from screenplay'
+    },
+    {
+      id: 'media',
+      label: 'Media',
+      icon: <FolderOpen className="w-5 h-5" />,
+      description: 'Uploads & style matching'
+    },
+    {
+      id: 'characters',
+      label: 'Characters',
+      icon: <Users className="w-5 h-5" />,
+      description: 'Character bank & references'
+    },
+    {
+      id: 'locations',
+      label: 'Locations',
+      icon: <MapPin className="w-5 h-5" />,
+      description: 'Location bank & references'
+    },
+    {
+      id: 'assets',
+      label: 'Assets',
+      icon: <Box className="w-5 h-5" />,
+      description: '3D models & props'
+    },
+    {
+      id: 'jobs',
+      label: 'Jobs',
+      icon: <Clock className="w-5 h-5" />,
+      description: 'Monitor generation status'
+    }
+  ];
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  const handleStartExample = (example: any) => {
+    // Start new chat session with example prompt
+    setChatSessionId(null); // Reset to create new session
+    setActiveTab('chat');
+    
+    // The AIInterviewChat component will auto-start with the prompt
+    setTimeout(() => {
+      // Trigger the chat with the example prompt
+      const chatInput = document.querySelector('[data-chat-input]') as HTMLInputElement;
+      if (chatInput) {
+        chatInput.value = example.conversationPrompt;
+        chatInput.dispatchEvent(new Event('submit', { bubbles: true }));
+      }
+    }, 100);
+  };
+
+  const handleStyleAnalysisComplete = (profile: any) => {
+    console.log('[ProductionHub] Style analysis complete:', profile);
+    setShowStyleAnalyzer(false);
+    // Could auto-navigate to scene builder or chat with style profile context
+  };
+
+  const handleMediaSelect = (file: any) => {
+    console.log('[ProductionHub] Media selected:', file);
+    // Could open in composition or timeline
+  };
+
+  // ============================================================================
+  // RENDER: MOBILE LAYOUT
+  // ============================================================================
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-950">
+        {/* Mobile Header */}
+        <div className="bg-gray-900 border-b border-gray-800 p-4">
+          <h1 className="text-xl font-bold text-white">Production Hub</h1>
+          <p className="text-sm text-gray-400">
+            {screenplay.title || 'Untitled Project'}
+          </p>
+        </div>
+
+        {/* Mobile Tab Selector (Dropdown) */}
+        <div className="bg-gray-900 border-b border-gray-800 p-3">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as ProductionTab)}
+            className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            {tabs.map((tab) => (
+              <option key={tab.id} value={tab.id}>
+                {tab.label} - {tab.description}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Mobile Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'overview' && (
+            <div className="h-full overflow-y-auto p-4">
+              <OverviewTab
+                projectId={projectId}
+                onStartExample={handleStartExample}
+                onNavigate={setActiveTab}
+                isMobile={true}
+              />
+            </div>
+          )}
+
+          {activeTab === 'chat' && (
+            <AIInterviewChat
+              context="production-hub"
+              initialPrompt={chatSessionId ? undefined : ''}
+              className="h-full"
+            />
+          )}
+
+          {activeTab === 'scene-builder' && (
+            <div className="h-full overflow-y-auto">
+              <SceneBuilderPanel
+                projectId={projectId}
+                isMobile={true}
+                simplified={true}
+              />
+            </div>
+          )}
+
+          {activeTab === 'media' && (
+            <div className="h-full overflow-y-auto p-4">
+              <MediaLibrary
+                projectId={projectId}
+                onSelectFile={handleMediaSelect}
+                className="mb-4"
+              />
+              
+              <button
+                onClick={() => setShowStyleAnalyzer(!showStyleAnalyzer)}
+                className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors mt-4"
+              >
+                {showStyleAnalyzer ? 'Hide' : 'Show'} Style Analyzer
+              </button>
+
+              {showStyleAnalyzer && (
+                <div className="mt-4">
+                  <StyleAnalyzer
+                    projectId={projectId}
+                    onAnalyzeComplete={handleStyleAnalysisComplete}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'characters' && (
+            <div className="h-full overflow-y-auto">
+              <CharacterBankPanel
+                characters={[]}
+                isLoading={false}
+                projectId={projectId}
+                onCharactersUpdate={() => {}}
+              />
+            </div>
+          )}
+
+          {activeTab === 'locations' && (
+            <div className="h-full overflow-y-auto">
+              <LocationBankPanel
+                projectId={projectId}
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'assets' && (
+            <div className="h-full overflow-y-auto">
+              <AssetBankPanel
+                projectId={projectId}
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'jobs' && (
+            <div className="h-full overflow-y-auto p-4">
+              <ProductionJobsPanel projectId={projectId} />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // RENDER: DESKTOP LAYOUT
+  // ============================================================================
+
+  return (
+    <div className="flex h-screen bg-gray-950">
+      {/* Sidebar Navigation */}
+      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
+        {/* Project Header */}
+        <div className="p-4 border-b border-gray-800">
+          <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>
+          <p className="text-sm text-gray-400 truncate">
+            {screenplay.title || 'Untitled Project'}
+          </p>
+        </div>
+
+        {/* Navigation Tabs */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all
+                  ${isActive 
+                    ? 'bg-purple-600 text-white shadow-lg' 
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }
+                `}
+              >
+                <span className={isActive ? 'text-white' : 'text-gray-500'}>
+                  {tab.icon}
+                </span>
+                <div className="flex-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{tab.label}</span>
+                    {tab.badge && (
+                      <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </div>
+                  {!isActive && (
+                    <p className="text-xs text-gray-500 mt-0.5">{tab.description}</p>
+                  )}
+                </div>
+                {isActive && <ChevronRight className="w-4 h-4" />}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Help Footer */}
+        <div className="p-4 border-t border-gray-800">
+          <div className="bg-purple-900/30 border border-purple-700/50 rounded-lg p-3">
+            <p className="text-sm text-purple-300 font-medium mb-1">💡 Quick Tip</p>
+            <p className="text-xs text-purple-200">
+              Start with the AI Chat for guided workflows, or use Scene Builder for screenplay-driven generation.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Content Header */}
+        <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-1">
+                {tabs.find(t => t.id === activeTab)?.label}
+              </h1>
+              <p className="text-sm text-gray-400">
+                {tabs.find(t => t.id === activeTab)?.description}
+              </p>
+            </div>
+
+            {/* Quick Actions */}
+            {activeTab === 'media' && (
+              <button
+                onClick={() => setShowStyleAnalyzer(!showStyleAnalyzer)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                {showStyleAnalyzer ? 'Hide' : 'Show'} Style Analyzer
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-hidden bg-gray-950">
+          {activeTab === 'overview' && (
+            <div className="h-full overflow-y-auto">
+              <OverviewTab
+                projectId={projectId}
+                onStartExample={handleStartExample}
+                onNavigate={setActiveTab}
+                isMobile={false}
+              />
+            </div>
+          )}
+
+          {activeTab === 'chat' && (
+            <div className="h-full">
+              <AIInterviewChat
+                context="production-hub"
+                initialPrompt={chatSessionId ? undefined : ''}
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'scene-builder' && (
+            <div className="h-full overflow-y-auto">
+              <SceneBuilderPanel
+                projectId={projectId}
+                isMobile={false}
+                simplified={false}
+              />
+            </div>
+          )}
+
+          {activeTab === 'media' && (
+            <div className="h-full overflow-y-auto">
+              <div className="p-6">
+                <MediaLibrary
+                  projectId={projectId}
+                  onSelectFile={handleMediaSelect}
+                  className="mb-6"
+                />
+
+                {showStyleAnalyzer && (
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold text-white">Style Analyzer</h3>
+                      <button
+                        onClick={() => setShowStyleAnalyzer(false)}
+                        className="p-2 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <StyleAnalyzer
+                      projectId={projectId}
+                      onAnalyzeComplete={handleStyleAnalysisComplete}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'characters' && (
+            <div className="h-full overflow-y-auto">
+              <CharacterBankPanel
+                characters={[]}
+                isLoading={false}
+                projectId={projectId}
+                onCharactersUpdate={() => {}}
+              />
+            </div>
+          )}
+
+          {activeTab === 'locations' && (
+            <div className="h-full overflow-y-auto">
+              <LocationBankPanel
+                projectId={projectId}
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'assets' && (
+            <div className="h-full overflow-y-auto">
+              <AssetBankPanel
+                projectId={projectId}
+                className="h-full"
+              />
+            </div>
+          )}
+
+          {activeTab === 'jobs' && (
+            <div className="h-full overflow-y-auto">
+              <div className="p-6">
+                <ProductionJobsPanel projectId={projectId} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// OVERVIEW TAB COMPONENT
+// ============================================================================
+
+interface OverviewTabProps {
+  projectId: string;
+  onStartExample: (example: any) => void;
+  onNavigate: (tab: ProductionTab) => void;
+  isMobile: boolean;
+}
+
+function OverviewTab({ projectId, onStartExample, onNavigate, isMobile }: OverviewTabProps) {
+  const screenplay = useScreenplay();
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-700/50 rounded-xl p-6">
+        <h2 className="text-3xl font-bold text-white mb-3">
+          Welcome to Production Hub
+        </h2>
+        <p className="text-lg text-purple-100 mb-4">
+          Three powerful ways to create your video content:
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* One-Off Path */}
+          <button
+            onClick={() => onNavigate('chat')}
+            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
+          >
+            <MessageSquare className="w-8 h-8 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+            <h3 className="text-white font-bold mb-1">One-Off Creation</h3>
+            <p className="text-sm text-purple-200">
+              Quick scenes with AI guidance
+            </p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-purple-300">
+              <span>Start Chat</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </button>
+
+          {/* Screenplay Path */}
+          <button
+            onClick={() => onNavigate('scene-builder')}
+            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
+          >
+            <Video className="w-8 h-8 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
+            <h3 className="text-white font-bold mb-1">From Screenplay</h3>
+            <p className="text-sm text-blue-200">
+              Generate scenes from your script
+            </p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-blue-300">
+              <span>Open Scene Builder</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </button>
+
+          {/* Hybrid Path */}
+          <button
+            onClick={() => onNavigate('media')}
+            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
+          >
+            <FolderOpen className="w-8 h-8 text-green-400 mb-2 group-hover:scale-110 transition-transform" />
+            <h3 className="text-white font-bold mb-1">Hybrid Workflow</h3>
+            <p className="text-sm text-green-200">
+              Mix your footage with AI
+            </p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-green-300">
+              <span>Open Media Library</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Project Stats */}
+      {!isMobile && (
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-400 mb-1">Scenes</p>
+            <p className="text-2xl font-bold text-white">
+              {screenplay.beats?.length || 0}
+            </p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-400 mb-1">Characters</p>
+            <p className="text-2xl font-bold text-white">
+              {screenplay.characters?.length || 0}
+            </p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-400 mb-1">Locations</p>
+            <p className="text-2xl font-bold text-white">
+              {screenplay.locations?.length || 0}
+            </p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-400 mb-1">Jobs Running</p>
+            <p className="text-2xl font-bold text-purple-400">0</p>
+          </div>
+        </div>
+      )}
+
+      {/* Creative Possibilities Gallery */}
+      <div>
+        <h3 className="text-2xl font-bold text-white mb-4">
+          Creative Possibilities
+        </h3>
+        <CreativePossibilitiesGallery
+          onStartExample={onStartExample}
+          className="rounded-xl overflow-hidden"
+        />
+      </div>
+    </div>
+  );
+}
+
