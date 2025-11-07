@@ -436,15 +436,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     useEffect(() => {
-        const lineCount = state.content.split('\n').length;
-        const charCount = state.content.trim().length;
+        const trimmedContent = state.content.trim();
+        const lineCount = state.content.split('\n').filter(line => line.trim()).length;
         
-        // If editor is essentially empty (< 10 lines and < 50 characters)
-        if (lineCount < 10 && charCount < 50) {
+        // If editor is essentially empty (< 3 non-empty lines OR < 20 characters total)
+        const isEffectivelyEmpty = lineCount < 3 || trimmedContent.length < 20;
+        
+        if (isEffectivelyEmpty) {
             // Check if we actually have data to clear
-            if (screenplay && (screenplay.characters.length > 0 || screenplay.locations.length > 0)) {
-                console.log('[EditorContext] Editor cleared - clearing all screenplay data');
-                screenplay.clearAllData();
+            const hasScenes = screenplay?.beats?.some(beat => beat.scenes && beat.scenes.length > 0);
+            const hasCharacters = screenplay?.characters && screenplay.characters.length > 0;
+            const hasLocations = screenplay?.locations && screenplay.locations.length > 0;
+            
+            if (hasScenes || hasCharacters || hasLocations) {
+                console.log('[EditorContext] 🗑️ Editor cleared - clearing all screenplay data');
+                screenplay?.clearAllData();
             }
         }
     }, [state.content, screenplay]);
