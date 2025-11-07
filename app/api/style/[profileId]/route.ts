@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { profileId: string } }
+  context: { params: Promise<{ profileId: string }> }
 ) {
   try {
     // Get auth token from header
@@ -19,7 +19,7 @@ export async function DELETE(
       );
     }
 
-    const { profileId } = params;
+    const { profileId } = await context.params;
 
     // Forward to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';

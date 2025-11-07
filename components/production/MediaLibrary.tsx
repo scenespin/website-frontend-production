@@ -46,6 +46,13 @@ interface StorageQuota {
   storageType: string;
 }
 
+interface CloudStorageConnection {
+  provider: 'google-drive' | 'dropbox';
+  connected: boolean;
+  connectedAt?: string;
+  quota?: StorageQuota;
+}
+
 interface MediaLibraryProps {
   projectId: string;
   onSelectFile?: (file: MediaFile) => void;
@@ -82,6 +89,7 @@ export default function MediaLibrary({
   const [filterType, setFilterType] = useState<string>('all');
   const [storageQuota, setStorageQuota] = useState<StorageQuota | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [cloudConnections, setCloudConnections] = useState<CloudStorageConnection[]>([]);
 
   // ============================================================================
   // EFFECTS
@@ -90,6 +98,7 @@ export default function MediaLibrary({
   useEffect(() => {
     loadFiles();
     loadStorageQuota();
+    loadCloudConnections();
   }, [projectId]);
 
   // ============================================================================
@@ -104,18 +113,68 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetch(`/api/media/list?projectId=${projectId}`, {
+      // Load local/S3 files
+      const localResponse = await fetch(`/api/media/list?projectId=${projectId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to load files: ${response.status}`);
+      let allFiles: MediaFile[] = [];
+
+      if (localResponse.ok) {
+        const localData = await localResponse.json();
+        allFiles = localData.files || [];
       }
 
-      const data = await response.json();
-      setFiles(data.files || []);
+      // Load cloud storage files (Google Drive & Dropbox)
+      try {
+        const connectionsResponse = await fetch('/api/storage/connections', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (connectionsResponse.ok) {
+          const connectionsData = await connectionsResponse.json();
+          const connections = connectionsData.connections || [];
+
+          // Fetch files from each connected provider
+          for (const connection of connections) {
+            if (connection.status === 'active' || connection.status === 'connected') {
+              try {
+                const filesResponse = await fetch(`/api/storage/files/${connection.provider}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  },
+                });
+
+                if (filesResponse.ok) {
+                  const filesData = await filesResponse.json();
+                  const cloudFiles = (filesData.files || []).map((file: any) => ({
+                    id: file.id,
+                    fileName: file.name,
+                    fileUrl: file.webViewLink || file.downloadUrl || '',
+                    fileType: detectFileType(file.mimeType || file.name),
+                    fileSize: file.size || 0,
+                    storageType: connection.provider,
+                    uploadedAt: file.createdTime || file.modified || new Date().toISOString(),
+                    thumbnailUrl: file.thumbnailLink || undefined,
+                  }));
+                  allFiles = [...allFiles, ...cloudFiles];
+                }
+              } catch (error) {
+                console.warn(`[MediaLibrary] Failed to load files from ${connection.provider}:`, error);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('[MediaLibrary] Failed to load cloud storage files:', error);
+        // Don't fail the whole load, just show local files
+      }
+
+      setFiles(allFiles);
 
     } catch (err) {
       console.error('[MediaLibrary] Load error:', err);
@@ -123,6 +182,21 @@ export default function MediaLibrary({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to detect file type from MIME type or filename
+  const detectFileType = (mimeTypeOrFilename: string): 'video' | 'image' | 'audio' | 'other' => {
+    const lower = mimeTypeOrFilename.toLowerCase();
+    if (lower.includes('video') || lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.avi')) {
+      return 'video';
+    }
+    if (lower.includes('image') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.gif')) {
+      return 'image';
+    }
+    if (lower.includes('audio') || lower.endsWith('.mp3') || lower.endsWith('.wav') || lower.endsWith('.aac')) {
+      return 'audio';
+    }
+    return 'other';
   };
 
   const loadStorageQuota = async () => {
@@ -142,6 +216,36 @@ export default function MediaLibrary({
       }
     } catch (error) {
       console.error('[MediaLibrary] Quota error:', error);
+    }
+  };
+
+  const loadCloudConnections = async () => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+
+      const response = await fetch('/api/storage/connections', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const connections: CloudStorageConnection[] = (data.connections || []).map((conn: any) => ({
+          provider: conn.provider,
+          connected: conn.status === 'active' || conn.status === 'connected',
+          connectedAt: conn.connected_at,
+          quota: conn.quota_used && conn.quota_total ? {
+            used: conn.quota_used,
+            total: conn.quota_total,
+            storageType: conn.provider
+          } : undefined,
+        }));
+        setCloudConnections(connections);
+      }
+    } catch (error) {
+      console.error('[MediaLibrary] Cloud connections error:', error);
     }
   };
 
@@ -266,10 +370,62 @@ export default function MediaLibrary({
     }
   };
 
-  const handleConnectDrive = (storageType: 'google-drive' | 'dropbox') => {
-    // Open OAuth flow in popup
-    const authUrl = `/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}`;
-    window.open(authUrl, '_blank', 'width=600,height=700');
+  const handleConnectDrive = async (storageType: 'google-drive' | 'dropbox') => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      // Get OAuth authorization URL from backend
+      const response = await fetch(`/api/storage/connect/${storageType}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get auth URL: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Open OAuth flow in popup
+      const popup = window.open(data.authUrl, '_blank', 'width=600,height=700');
+      
+      // Poll for connection status
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.connected) {
+              clearInterval(pollInterval);
+              if (popup && !popup.closed) {
+                popup.close();
+              }
+              // Refresh file list to include cloud storage files
+              await loadFiles();
+              alert(`${storageType === 'google-drive' ? 'Google Drive' : 'Dropbox'} connected successfully!`);
+            }
+          }
+        } catch (error) {
+          console.error('[MediaLibrary] Status poll error:', error);
+        }
+      }, 2000); // Poll every 2 seconds
+      
+      // Stop polling after 5 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+      }, 5 * 60 * 1000);
+      
+    } catch (error) {
+      console.error('[MediaLibrary] Connect error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to connect storage');
+    }
   };
 
   // ============================================================================
@@ -394,18 +550,44 @@ export default function MediaLibrary({
           {/* Cloud Storage Buttons */}
           <button
             onClick={() => handleConnectDrive('google-drive')}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+            className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              cloudConnections.find(c => c.provider === 'google-drive')?.connected
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
           >
-            <Cloud className="w-5 h-5 text-blue-500" />
-            <span className="hidden sm:inline">Google Drive</span>
+            {cloudConnections.find(c => c.provider === 'google-drive')?.connected ? (
+              <>
+                <Check className="w-5 h-5 text-green-500" />
+                <span className="hidden sm:inline text-green-700 dark:text-green-400">Drive Connected</span>
+              </>
+            ) : (
+              <>
+                <Cloud className="w-5 h-5 text-blue-500" />
+                <span className="hidden sm:inline">Google Drive</span>
+              </>
+            )}
           </button>
 
           <button
             onClick={() => handleConnectDrive('dropbox')}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+            className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              cloudConnections.find(c => c.provider === 'dropbox')?.connected
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
           >
-            <Cloud className="w-5 h-5 text-blue-600" />
-            <span className="hidden sm:inline">Dropbox</span>
+            {cloudConnections.find(c => c.provider === 'dropbox')?.connected ? (
+              <>
+                <Check className="w-5 h-5 text-green-500" />
+                <span className="hidden sm:inline text-green-700 dark:text-green-400">Dropbox Connected</span>
+              </>
+            ) : (
+              <>
+                <Cloud className="w-5 h-5 text-blue-600" />
+                <span className="hidden sm:inline">Dropbox</span>
+              </>
+            )}
           </button>
         </div>
 

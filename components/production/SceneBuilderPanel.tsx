@@ -110,6 +110,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [duration, setDuration] = useState('5s');
   const [enableSound, setEnableSound] = useState(false);
   
+  // Style matching state (Feature 0109)
+  const [selectedStyleProfile, setSelectedStyleProfile] = useState<string | null>(null);
+  const [showStyleSelector, setShowStyleSelector] = useState(false);
+  const [styleProfiles, setStyleProfiles] = useState<any[]>([]);
+  
   // Media uploads state (Feature 0070)
   const [mediaUploads, setMediaUploads] = useState<(File | null)[]>([null, null, null]);
   const [uploadingMedia, setUploadingMedia] = useState<boolean[]>([false, false, false]);
@@ -122,6 +127,30 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       setEnableSound(false);            // Force audio off on mobile
     }
   }, [isMobile, simplified]);
+  
+  // Load style profiles for this project (Feature 0109)
+  useEffect(() => {
+    async function loadStyleProfiles() {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        const response = await fetch(`/api/style/project/${projectId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStyleProfiles(data.profiles || []);
+          console.log(`[SceneBuilder] Loaded ${data.profiles?.length || 0} style profiles`);
+        }
+      } catch (error) {
+        console.error('[SceneBuilder] Failed to load style profiles:', error);
+      }
+    }
+    
+    if (projectId) {
+      loadStyleProfiles();
+    }
+  }, [projectId, getToken]);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -255,6 +284,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Start workflow execution with authentication
       const token = await getToken({ template: 'wryda-backend' });
+      
+      // Get style profile data if selected
+      const selectedProfile = selectedStyleProfile 
+        ? styleProfiles.find(p => p.profileId === selectedStyleProfile)
+        : null;
+      
       const response = await fetch('/api/workflows/execute', {
         method: 'POST',
         headers: { 
@@ -271,7 +306,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             duration,
             enableSound,
             userId: 'default-user', // TODO: Get from auth
-            projectId
+            projectId,
+            // Feature 0109: Style matching support
+            styleProfile: selectedProfile ? {
+              profileId: selectedProfile.profileId,
+              stylePromptAdditions: selectedProfile.stylePromptAdditions,
+              confidence: selectedProfile.confidence
+            } : undefined
           }
         })
       });
@@ -1027,6 +1068,91 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     </div>
                   )}
                 </div>
+                
+                {/* Style Matching (Feature 0109) */}
+                {styleProfiles.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                      🎨 Style Matching
+                      <Badge variant="secondary" className="text-xs">NEW</Badge>
+                    </Label>
+                    <div className="space-y-3">
+                      <div className="text-xs text-muted-foreground">
+                        Match the visual style of your uploaded footage ({styleProfiles.length} profile{styleProfiles.length > 1 ? 's' : ''} available)
+                      </div>
+                      
+                      {!showStyleSelector ? (
+                        <button
+                          onClick={() => setShowStyleSelector(true)}
+                          className="w-full p-3 rounded-lg border-2 border-dashed border-border hover:border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-all text-sm text-muted-foreground"
+                        >
+                          Click to select style profile
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-background border border-border rounded-lg">
+                            {styleProfiles.map((profile) => (
+                              <button
+                                key={profile.profileId}
+                                onClick={() => {
+                                  setSelectedStyleProfile(profile.profileId);
+                                  setShowStyleSelector(false);
+                                }}
+                                className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
+                                  selectedStyleProfile === profile.profileId
+                                    ? 'border-[#DC143C] bg-purple-50 dark:bg-purple-950/20'
+                                    : 'border-border hover:border-purple-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  {profile.extractedFrames?.[0] && (
+                                    <img 
+                                      src={profile.extractedFrames[0]} 
+                                      alt="Style preview" 
+                                      className="w-16 h-16 object-cover rounded"
+                                    />
+                                  )}
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-sm">
+                                      {profile.sceneId || 'Default Style'}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      Confidence: {profile.confidence}%
+                                    </div>
+                                  </div>
+                                  {selectedStyleProfile === profile.profileId && (
+                                    <CheckCircle2 className="w-5 h-5 text-[#DC143C]" />
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          
+                          {selectedStyleProfile && (
+                            <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                <div className="text-xs text-green-700 dark:text-green-400">
+                                  Style profile selected! Your generated videos will match the visual style of your uploaded footage.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <button
+                            onClick={() => {
+                              setShowStyleSelector(false);
+                              setSelectedStyleProfile(null);
+                            }}
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Clear selection
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
             

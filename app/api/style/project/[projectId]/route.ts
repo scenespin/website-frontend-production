@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: Promise<{ projectId: string }> }
 ) {
   try {
     // Get auth token from header
@@ -19,7 +19,7 @@ export async function GET(
       );
     }
 
-    const { projectId } = params;
+    const { projectId } = await context.params;
 
     // Forward to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
