@@ -435,6 +435,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }, [state.content, state.title, state.isDirty, githubConfig]);
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
+    // Use a debounced check to avoid clearing immediately after import
     useEffect(() => {
         const trimmedContent = state.content.trim();
         const lineCount = state.content.split('\n').filter(line => line.trim()).length;
@@ -443,19 +444,24 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         const isEffectivelyEmpty = lineCount < 3 || trimmedContent.length < 20;
         
         if (isEffectivelyEmpty) {
-            // Check if we actually have data to clear
-            const hasScenes = screenplay?.beats?.some(beat => beat.scenes && beat.scenes.length > 0);
-            const hasCharacters = screenplay?.characters && screenplay.characters.length > 0;
-            const hasLocations = screenplay?.locations && screenplay.locations.length > 0;
+            // Debounce: Wait 1 second before clearing to avoid clearing right after paste
+            const clearTimer = setTimeout(() => {
+                // Check if we actually have data to clear
+                const hasScenes = screenplay?.beats?.some(beat => beat.scenes && beat.scenes.length > 0);
+                const hasCharacters = screenplay?.characters && screenplay.characters.length > 0;
+                const hasLocations = screenplay?.locations && screenplay.locations.length > 0;
+                
+                if (hasScenes || hasCharacters || hasLocations) {
+                    console.log('[EditorContext] 🗑️ Editor cleared - clearing all screenplay data');
+                    screenplay?.clearAllData();
+                }
+            }, 1000); // 1 second delay
             
-            if (hasScenes || hasCharacters || hasLocations) {
-                console.log('[EditorContext] 🗑️ Editor cleared - clearing all screenplay data');
-                screenplay?.clearAllData();
-            }
+            return () => clearTimeout(clearTimer);
         }
     }, [state.content, screenplay]);
     
-    // Load from localStorage on mount
+    // Load from localStorage on mount AND auto-import if content exists
     useEffect(() => {
         try {
             const savedContent = localStorage.getItem('screenplay_draft');
@@ -471,11 +477,77 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     author: savedAuthor || prev.author,
                     isDirty: false
                 }));
+                
+                // Auto-import characters/locations from loaded content
+                // Since we no longer persist them, we need to re-parse on page load
+                if (screenplay && savedContent.trim().length > 100) {
+                    console.log('[EditorContext] 🔄 Re-importing screenplay data from loaded content...');
+                    // Delay to ensure screenplay context is fully initialized
+                    setTimeout(async () => {
+                        try {
+                            // Import the content using the performImport logic
+                            const { parseContentForImport, shouldAutoImport, formatCharacterName, formatLocationName } = await import('@/utils/fountainAutoImport');
+                            
+                            if (shouldAutoImport(savedContent)) {
+                                const parseResult = parseContentForImport(savedContent);
+                                const characterNames = Array.from(parseResult.characters).map(formatCharacterName);
+                                const locationNames = Array.from(parseResult.locations).map(formatLocationName);
+                                
+                                // Import characters and locations
+                                const importedCharacters = await screenplay.bulkImportCharacters(characterNames, parseResult.characterDescriptions);
+                                const importedLocations = await screenplay.bulkImportLocations(locationNames);
+                                
+                                // Distribute scenes across beats
+                                if (parseResult.scenes.length > 0) {
+                                    const characterMap = new Map(importedCharacters.map(char => [char.name.toUpperCase(), char.id]));
+                                    const locationMap = new Map(importedLocations.map(loc => [loc.name.toUpperCase(), loc.id]));
+                                    
+                                    const sequenceBreakpoints = [0, 0.125, 0.227, 0.375, 0.50, 0.625, 0.773, 0.875, 1.0];
+                                    const sequenceBeats = screenplay.beats.filter(b => b.title.includes('Sequence ')).sort((a, b) => a.order - b.order);
+                                    const scenesBySequence: Array<Array<any>> = Array(8).fill(null).map(() => []);
+                                    
+                                    parseResult.scenes.forEach((scene, index) => {
+                                        const scenePosition = index / parseResult.scenes.length;
+                                        let sequenceIndex = 0;
+                                        for (let i = 0; i < sequenceBreakpoints.length - 1; i++) {
+                                            if (scenePosition >= sequenceBreakpoints[i] && scenePosition < sequenceBreakpoints[i + 1]) {
+                                                sequenceIndex = i;
+                                                break;
+                                            }
+                                        }
+                                        
+                                        const characterIds = scene.characters.map((charName: string) => characterMap.get(formatCharacterName(charName).toUpperCase())).filter((id): id is string => id !== undefined);
+                                        const locationId = locationMap.get(formatLocationName(scene.location).toUpperCase());
+                                        
+                                        scenesBySequence[sequenceIndex].push({
+                                            heading: scene.heading,
+                                            location: scene.location,
+                                            characterIds,
+                                            locationId,
+                                            startLine: scene.startLine,
+                                            endLine: scene.endLine
+                                        });
+                                    });
+                                    
+                                    for (let i = 0; i < 8; i++) {
+                                        if (scenesBySequence[i].length > 0 && sequenceBeats[i]) {
+                                            await screenplay.bulkImportScenes(sequenceBeats[i].id, scenesBySequence[i]);
+                                        }
+                                    }
+                                }
+                                
+                                console.log('[EditorContext] ✅ Auto-import complete:', characterNames.length, 'characters,', locationNames.length, 'locations,', parseResult.scenes.length, 'scenes');
+                            }
+                        } catch (error) {
+                            console.error('[EditorContext] Auto-import failed:', error);
+                        }
+                    }, 1000);
+                }
             }
         } catch (err) {
             console.error('[EditorContext] Failed to load from localStorage:', err);
         }
-    }, []); // Only run on mount
+    }, [screenplay]); // Depend on screenplay to ensure it's initialized
     
     return (
         <EditorContext.Provider value={value}>
