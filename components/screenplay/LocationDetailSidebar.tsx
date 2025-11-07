@@ -59,6 +59,9 @@ export default function LocationDetailSidebar({
     } else {
       onUpdate(formData)
     }
+    
+    // Close the modal after successful save
+    onClose()
   }
 
   const handleDelete = () => {

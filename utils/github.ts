@@ -16,6 +16,7 @@ interface SaveFileOptions {
     content: string;
     message: string;
     branch?: string;
+    sha?: string; // Optional: Pre-fetched file SHA to avoid re-fetching
 }
 
 interface GetFileOptions {
@@ -45,32 +46,34 @@ export function initializeGitHub(token: string, owner: string, repo: string): Gi
 export async function saveToGitHub(
     config: GitHubConfig,
     options: SaveFileOptions
-): Promise<string> {
+): Promise<{ commitSHA: string; fileSHA: string }> {
     const { token, owner, repo } = config;
-    const { path, content, message, branch = 'main' } = options;
+    const { path, content, message, branch = 'main', sha: providedSHA } = options;
     
     try {
-        // First, try to get the existing file to get its SHA (required for updates)
-        let sha: string | undefined;
+        // Use provided SHA if available, otherwise fetch it
+        let sha: string | undefined = providedSHA;
         
-        try {
-            const getResponse = await fetch(
-                `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
+        if (!sha) {
+            try {
+                const getResponse = await fetch(
+                    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
                     }
+                );
+                
+                if (getResponse.ok) {
+                    const data = await getResponse.json();
+                    sha = data.sha;
                 }
-            );
-            
-            if (getResponse.ok) {
-                const data = await getResponse.json();
-                sha = data.sha;
+            } catch (err) {
+                // File doesn't exist yet, that's okay
+                console.log('[GitHub] File does not exist, will create new file');
             }
-        } catch (err) {
-            // File doesn't exist yet, that's okay
-            console.log('[GitHub] File does not exist, will create new file');
         }
         
         // Create or update the file
@@ -105,7 +108,11 @@ export async function saveToGitHub(
         const data = await response.json();
         console.log('[GitHub] File saved successfully:', data.commit.sha);
         
-        return data.commit.sha;
+        // Return both commit SHA and new file SHA
+        return {
+            commitSHA: data.commit.sha,
+            fileSHA: data.content.sha
+        };
         
     } catch (error) {
         console.error('[GitHub] Save failed:', error);
@@ -118,12 +125,12 @@ export async function saveToGitHub(
  * 
  * @param config GitHub configuration
  * @param options File get options
- * @returns File content
+ * @returns File content and SHA
  */
 export async function getFromGitHub(
     config: GitHubConfig,
     options: GetFileOptions
-): Promise<string> {
+): Promise<{ content: string; sha: string }> {
     const { token, owner, repo } = config;
     const { path, branch = 'main' } = options;
     
@@ -152,7 +159,7 @@ export async function getFromGitHub(
         const content = atob(data.content);
         
         console.log('[GitHub] File retrieved successfully');
-        return content;
+        return { content, sha: data.sha };
         
     } catch (error) {
         console.error('[GitHub] Retrieval failed:', error);
@@ -368,17 +375,17 @@ export async function getStructureFile<T>(
     config: GitHubConfig,
     filename: 'beats' | 'characters' | 'locations' | 'relationships',
     branch?: string
-): Promise<T | null> {
+): Promise<{ data: T | null; sha: string | null }> {
     try {
         // Get default branch if not specified
         const targetBranch = branch || await getDefaultBranch(config);
         const path = `structure/${filename}.json`;
-        const content = await getFromGitHub(config, { path, branch: targetBranch });
-        return JSON.parse(content) as T;
+        const result = await getFromGitHub(config, { path, branch: targetBranch });
+        return { data: JSON.parse(result.content) as T, sha: result.sha };
     } catch (error: any) {
         if (error.message === 'File not found') {
             console.log(`[GitHub] ${filename}.json not found, returning null`);
-            return null;
+            return { data: null, sha: null };
         }
         throw error;
     }
@@ -391,15 +398,17 @@ export async function getStructureFile<T>(
  * @param filename Structure file type
  * @param data Data to save
  * @param message Commit message
- * @returns Commit SHA
+ * @param cachedSHA Optional cached file SHA to avoid re-fetching
+ * @returns Commit SHA and new file SHA
  */
 export async function saveStructureFile<T>(
     config: GitHubConfig,
     filename: 'beats' | 'characters' | 'locations' | 'relationships',
     data: T,
     message: string,
-    branch?: string
-): Promise<string> {
+    branch?: string,
+    cachedSHA?: string
+): Promise<{ commitSHA: string; fileSHA: string }> {
     // Get default branch if not specified
     const targetBranch = branch || await getDefaultBranch(config);
     const path = `structure/${filename}.json`;
@@ -409,7 +418,8 @@ export async function saveStructureFile<T>(
         path,
         content,
         message,
-        branch: targetBranch
+        branch: targetBranch,
+        sha: cachedSHA
     });
 }
 

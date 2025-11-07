@@ -230,6 +230,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (typeof window === 'undefined') return false;
         return !!localStorage.getItem(STORAGE_KEYS.GITHUB_CONFIG);
     });
+    
+    // File SHAs for optimistic GitHub updates (prevents "file changed" errors)
+    const [fileSHAs, setFileSHAs] = useState<{
+        beats?: string;
+        characters?: string;
+        locations?: string;
+        relationships?: string;
+    }>({});
 
     // Load from GitHub on mount + Auto-create 8-Sequence Structure if empty
     useEffect(() => {
@@ -408,15 +416,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         try {
             // Load all structure files
-            const [beatsFile, charsFile, locsFile, relsFile] = await Promise.all([
+            const [beatsResult, charsResult, locsResult, relsResult] = await Promise.all([
                 getStructureFile<BeatsFile>(githubConfig, 'beats'),
                 getStructureFile<CharactersFile>(githubConfig, 'characters'),
                 getStructureFile<LocationsFile>(githubConfig, 'locations'),
                 getStructureFile<RelationshipsFile>(githubConfig, 'relationships')
             ]);
             
+            // Update local file SHAs
+            setFileSHAs({
+                beats: beatsResult.sha || undefined,
+                characters: charsResult.sha || undefined,
+                locations: locsResult.sha || undefined,
+                relationships: relsResult.sha || undefined
+            });
+            
             // 🛡️ CRITICAL FIX: Sanitize beat.scenes when loading from GitHub
-            const sanitizedBeats = (beatsFile?.beats || []).map(beat => {
+            const sanitizedBeats = (beatsResult.data?.beats || []).map(beat => {
                 return {
                 ...beat,
                 scenes: Array.isArray(beat.scenes) ? beat.scenes : []
@@ -424,9 +440,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             setBeats(sanitizedBeats);
-            setCharacters(charsFile?.characters || []);
-            setLocations(locsFile?.locations || []);
-            setRelationships(relsFile?.relationships || { scenes: {}, characters: {}, locations: {}, props: {} });
+            setCharacters(charsResult.data?.characters || []);
+            setLocations(locsResult.data?.locations || []);
+            setRelationships(relsResult.data?.relationships || { scenes: {}, characters: {}, locations: {}, props: {} });
             
             console.log('[ScreenplayContext] Synced from GitHub (sanitized corrupted data)');
             
@@ -503,12 +519,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // fall back to individual file saves
                 console.log('[ScreenplayContext] Multi-file commit failed, falling back to individual saves');
                 
-                await Promise.all([
-                    saveStructureFile(githubConfig, 'beats', beatsFile, `${message} (beats)`),
-                    saveStructureFile(githubConfig, 'characters', charsFile, `${message} (characters)`),
-                    saveStructureFile(githubConfig, 'locations', locsFile, `${message} (locations)`),
-                    saveStructureFile(githubConfig, 'relationships', relsFile, `${message} (relationships)`)
+                const [beatsResult, charsResult, locsResult, relsResult] = await Promise.all([
+                    saveStructureFile(githubConfig, 'beats', beatsFile, `${message} (beats)`, undefined, fileSHAs.beats),
+                    saveStructureFile(githubConfig, 'characters', charsFile, `${message} (characters)`, undefined, fileSHAs.characters),
+                    saveStructureFile(githubConfig, 'locations', locsFile, `${message} (locations)`, undefined, fileSHAs.locations),
+                    saveStructureFile(githubConfig, 'relationships', relsFile, `${message} (relationships)`, undefined, fileSHAs.relationships)
                 ]);
+                
+                // Update local file SHAs to prevent "file changed" errors
+                setFileSHAs({
+                    beats: beatsResult.fileSHA,
+                    characters: charsResult.fileSHA,
+                    locations: locsResult.fileSHA,
+                    relationships: relsResult.fileSHA
+                });
             }
             
             console.log('[ScreenplayContext] Synced to GitHub');
@@ -591,12 +615,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 'auto: Screenplay structure update'
                             );
                         } catch (multiFileErr: any) {
-                            await Promise.all([
-                                saveStructureFile(githubConfig, 'beats', beatsFile, 'auto: Update beats'),
-                                saveStructureFile(githubConfig, 'characters', charsFile, 'auto: Update characters'),
-                                saveStructureFile(githubConfig, 'locations', locsFile, 'auto: Update locations'),
-                                saveStructureFile(githubConfig, 'relationships', relsFile, 'auto: Update relationships')
+                            const [beatsResult, charsResult, locsResult, relsResult] = await Promise.all([
+                                saveStructureFile(githubConfig, 'beats', beatsFile, 'auto: Update beats', undefined, fileSHAs.beats),
+                                saveStructureFile(githubConfig, 'characters', charsFile, 'auto: Update characters', undefined, fileSHAs.characters),
+                                saveStructureFile(githubConfig, 'locations', locsFile, 'auto: Update locations', undefined, fileSHAs.locations),
+                                saveStructureFile(githubConfig, 'relationships', relsFile, 'auto: Update relationships', undefined, fileSHAs.relationships)
                             ]);
+                            
+                            // Update local file SHAs to prevent "file changed" errors
+                            setFileSHAs({
+                                beats: beatsResult.fileSHA,
+                                characters: charsResult.fileSHA,
+                                locations: locsResult.fileSHA,
+                                relationships: relsResult.fileSHA
+                            });
                         }
                         
                         hasPendingChanges.current = false;
