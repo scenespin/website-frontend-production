@@ -270,7 +270,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 <div className="mt-4">
                   <StyleAnalyzer
                     projectId={projectId}
-                    onAnalyzeComplete={handleStyleAnalysisComplete}
+                    onAnalysisComplete={handleStyleAnalysisComplete}
                   />
                 </div>
               )}
