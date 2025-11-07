@@ -2,26 +2,28 @@
 
 /**
  * /app/write Page
- * Main screenplay editor - requires authentication and project selection
+ * Main screenplay editor - requires authentication and GitHub connection
  */
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import EditorWorkspace from '@/components/editor/EditorWorkspace';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
+import GitHubRequiredGate from '@/components/onboarding/GitHubRequiredGate';
 
 function WritePageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams?.get('project');
 
-  // INDUSTRY STANDARD: Load editor immediately, let user write
-  // EditorWorkspace handles autosave to "Untitled" project
-  // No blocking on project selection
+  // GitHub connection required for full functionality
+  // (characters, locations, scenes persistence)
   return (
-    <div className="bg-slate-900">
-      <EditorSubNav activeTab="write" projectId={projectId} />
-      <EditorWorkspace />
-    </div>
+    <GitHubRequiredGate>
+      <div className="bg-slate-900">
+        <EditorSubNav activeTab="write" projectId={projectId} />
+        <EditorWorkspace />
+      </div>
+    </GitHubRequiredGate>
   );
 }
 
