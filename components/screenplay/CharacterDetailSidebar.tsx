@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Character } from '@/types/screenplay'
@@ -56,6 +56,29 @@ export default function CharacterDetailSidebar({
       arcNotes: ''
     })
   )
+  
+  // Update form data when character prop changes
+  useEffect(() => {
+    if (character) {
+      setFormData({ ...character })
+    } else if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        type: initialData.type || 'lead',
+        arcStatus: initialData.arcStatus || 'introduced',
+        description: initialData.description || '',
+        arcNotes: initialData.arcNotes || ''
+      })
+    } else if (isCreating) {
+      setFormData({
+        name: '',
+        type: 'lead',
+        arcStatus: 'introduced',
+        description: '',
+        arcNotes: ''
+      })
+    }
+  }, [character, initialData, isCreating])
 
   const handleSave = () => {
     if (!formData.name.trim()) return
