@@ -1367,98 +1367,133 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     ): Promise<Character[]> => {
         const now = new Date().toISOString();
         const newCharacters: Character[] = [];
+        const allCharacters: Character[] = [];
         
-        // Filter out duplicates (check against existing characters)
-        const existingNames = new Set(characters.map(c => c.name.toUpperCase()));
-        const uniqueNames = characterNames.filter(name => 
-            !existingNames.has(name.toUpperCase())
+        // Check for existing characters and reuse them
+        const existingCharactersMap = new Map(
+            characters.map(c => [c.name.toUpperCase(), c])
         );
         
-        for (const name of uniqueNames) {
+        for (const name of characterNames) {
             const upperName = name.toUpperCase();
-            const description = descriptions?.get(upperName) || `Imported from script`;
+            const existing = existingCharactersMap.get(upperName);
             
-            const newCharacter: Character = {
-                id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                name,
-                type: 'supporting', // Default type
-                description,
-                firstAppearance: undefined,
-                arcStatus: 'introduced',
-                customFields: [],
-                createdAt: now,
-                updatedAt: now,
-                images: []
-            };
-            
-            newCharacters.push(newCharacter);
+            if (existing) {
+                // Character already exists, reuse it
+                console.log('[ScreenplayContext] Character already exists, reusing:', name);
+                allCharacters.push(existing);
+            } else {
+                // Create new character
+                const description = descriptions?.get(upperName) || `Imported from script`;
+                
+                const newCharacter: Character = {
+                    id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name,
+                    type: 'supporting', // Default type
+                    description,
+                    firstAppearance: undefined,
+                    arcStatus: 'introduced',
+                    customFields: [],
+                    createdAt: now,
+                    updatedAt: now,
+                    images: []
+                };
+                
+                newCharacters.push(newCharacter);
+                allCharacters.push(newCharacter);
+            }
         }
         
-        // Bulk add to state
-        setCharacters(prev => [...prev, ...newCharacters]);
-        
-        // Bulk add to relationships
-        setRelationships(prev => {
-            const updatedCharacters = { ...prev.characters };
-            newCharacters.forEach(char => {
-                updatedCharacters[char.id] = {
-                    type: 'character',
-                    appearsInScenes: [],
-                    relatedBeats: []
+        // Bulk add to state (only new characters)
+        if (newCharacters.length > 0) {
+            setCharacters(prev => [...prev, ...newCharacters]);
+            
+            // Bulk add to relationships
+            setRelationships(prev => {
+                const updatedCharacters = { ...prev.characters };
+                newCharacters.forEach(char => {
+                    updatedCharacters[char.id] = {
+                        type: 'character',
+                        appearsInScenes: [],
+                        relatedBeats: []
+                    };
+                });
+                return {
+                    ...prev,
+                    characters: updatedCharacters
                 };
             });
-            return {
-                ...prev,
-                characters: updatedCharacters
-            };
-        });
+            
+            console.log('[ScreenplayContext] Created', newCharacters.length, 'new characters');
+        }
         
-        return newCharacters;
+        console.log('[ScreenplayContext] Returning', allCharacters.length, 'total characters (', newCharacters.length, 'new,', allCharacters.length - newCharacters.length, 'existing)');
+        
+        // Return all characters (new + existing) so scenes can link to them
+        return allCharacters;
     }, [characters, setCharacters, setRelationships]);
     
     const bulkImportLocations = useCallback(async (locationNames: string[]): Promise<Location[]> => {
         const now = new Date().toISOString();
         const newLocations: Location[] = [];
+        const allLocations: Location[] = [];
         
-        // Filter out duplicates (check against existing locations)
-        const existingNames = new Set(locations.map(l => l.name.toUpperCase()));
-        const uniqueNames = locationNames.filter(name => 
-            !existingNames.has(name.toUpperCase())
+        // Check for existing locations and reuse them
+        const existingLocationsMap = new Map(
+            locations.map(l => [l.name.toUpperCase(), l])
         );
         
-        for (const name of uniqueNames) {
-            const newLocation: Location = {
-                id: `loc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                name,
-                description: `Imported from script`,
-                type: 'INT', // Default type
-                createdAt: now,
-                updatedAt: now,
-                images: []
-            };
+        for (const name of locationNames) {
+            const upperName = name.toUpperCase();
+            const existing = existingLocationsMap.get(upperName);
             
-            newLocations.push(newLocation);
+            if (existing) {
+                // Location already exists, reuse it
+                console.log('[ScreenplayContext] Location already exists, reusing:', name);
+                allLocations.push(existing);
+            } else {
+                // Create new location
+                const newLocation: Location = {
+                    id: `loc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name,
+                    description: `Imported from script`,
+                    type: 'INT', // Default type
+                    createdAt: now,
+                    updatedAt: now,
+                    images: []
+                };
+                
+                newLocations.push(newLocation);
+                allLocations.push(newLocation);
+            }
         }
         
-        // Bulk add to state
-        setLocations(prev => [...prev, ...newLocations]);
-        
-        // Bulk add to relationships
-        setRelationships(prev => {
-            const updatedLocations = { ...prev.locations };
-            newLocations.forEach(loc => {
-                updatedLocations[loc.id] = {
-                    type: 'location',
-                    scenes: []
+        // Bulk add to state (only new locations)
+        if (newLocations.length > 0) {
+            setLocations(prev => [...prev, ...newLocations]);
+            
+            // Bulk add to relationships
+            setRelationships(prev => {
+                const updatedLocations = { ...prev.locations };
+                newLocations.forEach(loc => {
+                    updatedLocations[loc.id] = {
+                        type: 'location',
+                        scenes: []
+                    };
+                });
+                return {
+                    ...prev,
+                    locations: updatedLocations
                 };
             });
-            return {
-                ...prev,
-                locations: updatedLocations
-            };
-        });
+            
+            console.log('[ScreenplayContext] Created', newLocations.length, 'new locations');
+        }
         
-        return newLocations;
+        console.log('[ScreenplayContext] Returning', allLocations.length, 'total locations (', newLocations.length, 'new,', allLocations.length - newLocations.length, 'existing)');
+        
+        // Return all locations (new + existing) so scenes can link to them
+        return allLocations;
     }, [locations]);
     
     const bulkImportScenes = useCallback(async (
