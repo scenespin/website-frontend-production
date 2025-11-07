@@ -760,8 +760,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="h-full flex flex-col">
-      {/* Screenplay Context Banner */}
-      {screenplay.title && (
+      {/* Screenplay Context Banner (when connected) */}
+      {screenplay.title && screenplay.isConnected && (
         <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
           <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -778,6 +778,29 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             <Badge variant="secondary" className="flex-shrink-0">
               From GitHub
             </Badge>
+          </div>
+        </div>
+      )}
+
+      {/* GitHub Connection Prompt (when not connected) */}
+      {!screenplay.isConnected && (
+        <div className="flex-shrink-0 bg-yellow-50 dark:bg-yellow-950/20 border-b border-yellow-200 dark:border-yellow-900 px-6 py-3">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
+                💡 Pro Tip: Connect GitHub to import scenes from your screenplay
+              </p>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                You can still create scenes manually by typing descriptions below
+              </p>
+            </div>
+            <a 
+              href="/write" 
+              className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-yellow-900 dark:text-yellow-100 bg-yellow-100 dark:bg-yellow-900/40 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 rounded-md transition-colors border border-yellow-300 dark:border-yellow-700"
+            >
+              Connect GitHub
+            </a>
           </div>
         </div>
       )}
