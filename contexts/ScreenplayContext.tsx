@@ -114,6 +114,9 @@ interface ScreenplayContextType {
     // Sync
     syncFromGitHub: () => Promise<void>;
     syncToGitHub: (message: string) => Promise<void>;
+    
+    // Clear all data (when editor is cleared)
+    clearAllData: () => Promise<void>;
 }
 
 const ScreenplayContext = createContext<ScreenplayContextType | undefined>(undefined);
@@ -1692,6 +1695,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [beats]);
     
     // ========================================================================
+    // Clear All Data (Editor Source of Truth)
+    // ========================================================================
+    
+    const clearAllData = useCallback(async () => {
+        console.log('[ScreenplayContext] 🗑️ Clearing all screenplay data (editor cleared)');
+        
+        // Clear all scenes from all beats
+        setBeats(prev => prev.map(beat => ({
+            ...beat,
+            scenes: [],
+            updatedAt: new Date().toISOString()
+        })));
+        
+        // Clear all characters
+        setCharacters([]);
+        
+        // Clear all locations
+        setLocations([]);
+        
+        // Clear all relationships
+        setRelationships({
+            characters: {},
+            locations: {},
+            scenes: {},
+            props: {}
+        });
+        
+        console.log('[ScreenplayContext] ✅ All data cleared');
+    }, []);
+    
+    // ========================================================================
     // Context Value
     // ========================================================================
     
@@ -1754,7 +1788,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Sync
         syncFromGitHub,
-        syncToGitHub
+        syncToGitHub,
+        
+        // Clear all data
+        clearAllData
     };
     
     return (

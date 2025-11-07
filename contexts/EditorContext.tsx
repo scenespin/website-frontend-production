@@ -434,6 +434,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         };
     }, [state.content, state.title, state.isDirty, githubConfig]);
     
+    // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
+    useEffect(() => {
+        const lineCount = state.content.split('\n').length;
+        const charCount = state.content.trim().length;
+        
+        // If editor is essentially empty (< 10 lines and < 50 characters)
+        if (lineCount < 10 && charCount < 50) {
+            // Check if we actually have data to clear
+            if (screenplay && (screenplay.characters.length > 0 || screenplay.locations.length > 0)) {
+                console.log('[EditorContext] Editor cleared - clearing all screenplay data');
+                screenplay.clearAllData();
+            }
+        }
+    }, [state.content, screenplay]);
+    
     // Load from localStorage on mount
     useEffect(() => {
         try {
