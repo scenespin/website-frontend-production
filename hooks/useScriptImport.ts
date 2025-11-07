@@ -251,30 +251,15 @@ export function useScriptImport(): UseScriptImportReturn {
                 characterDescriptions: parseResult.characterDescriptions ? Array.from(parseResult.characterDescriptions.entries()) : []
             });
             
-            // Auto-import the confident items
-            const characterNames = Array.from(parseResult.characters);
-            const locationNames = Array.from(parseResult.locations);
-            
-            // Import characters with descriptions
-            if (characterNames.length > 0) {
-                await screenplay.bulkImportCharacters(characterNames, parseResult.characterDescriptions);
-            }
-            
-            // Import locations
-            if (locationNames.length > 0) {
-                await screenplay.bulkImportLocations(locationNames);
-            }
-            
-            // Import scenes into story beats
+            // Import scenes into story beats (this will also import characters and locations)
             await performImport(pastedText);
                 
-            console.log('[useScriptImport] ✓ Auto-imported', characterNames.length, 'characters and', locationNames.length, 'locations');
+            console.log('[useScriptImport] ✓ Auto-import complete');
             
             // Show success toast with import summary
-            const totalImported = characterNames.length + locationNames.length;
-            if (totalImported > 0) {
+            if (parseResult.characters.size > 0 || parseResult.locations.size > 0 || parseResult.scenes.length > 0) {
                 toast.success('✅ Screenplay Imported', {
-                    description: `${characterNames.length} characters, ${locationNames.length} locations, ${parseResult.scenes.length} scenes`
+                    description: `${parseResult.characters.size} characters, ${parseResult.locations.size} locations, ${parseResult.scenes.length} scenes`
                 });
             }
             
@@ -288,8 +273,8 @@ export function useScriptImport(): UseScriptImportReturn {
                     original: pastedText,
                     corrected: pastedText, // No correction needed
                     issues: [], // Legacy field, not used anymore
-                    importedCharacters: characterNames,
-                    importedLocations: locationNames,
+                    importedCharacters: Array.from(parseResult.characters),
+                    importedLocations: Array.from(parseResult.locations),
                     importedScenes: parseResult.scenes.length,
                     questionableItems: parseResult.questionableItems
                 });
@@ -297,7 +282,7 @@ export function useScriptImport(): UseScriptImportReturn {
             }
             
             // Warn if very few items were imported (might indicate poor formatting)
-            if (parseResult.scenes.length > 3 && characterNames.length === 0 && locationNames.length === 0) {
+            if (parseResult.scenes.length > 3 && parseResult.characters.size === 0 && parseResult.locations.size === 0) {
                 toast.warning('⚠️ No characters or locations detected', {
                     description: 'Make sure character names are in ALL CAPS and scene headings start with INT./EXT.'
                 });
