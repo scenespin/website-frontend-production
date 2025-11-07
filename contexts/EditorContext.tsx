@@ -107,6 +107,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<EditorState>(defaultState);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
     
     // Get GitHub config from ScreenplayContext
     const screenplay = useScreenplay();
@@ -437,6 +438,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // Use a debounced check to avoid clearing immediately after import
     useEffect(() => {
+        // Skip auto-clear during initial load/import
+        if (isInitialLoadRef.current) {
+            return;
+        }
+        
         const trimmedContent = state.content.trim();
         const lineCount = state.content.split('\n').filter(line => line.trim()).length;
         
@@ -537,15 +543,27 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                                 }
                                 
                                 console.log('[EditorContext] ✅ Auto-import complete:', characterNames.length, 'characters,', locationNames.length, 'locations,', parseResult.scenes.length, 'scenes');
+                                
+                                // Mark initial load as complete
+                                isInitialLoadRef.current = false;
                             }
                         } catch (error) {
                             console.error('[EditorContext] Auto-import failed:', error);
+                            // Mark initial load as complete even on error
+                            isInitialLoadRef.current = false;
                         }
-                    }, 1000);
+                    }, 1500); // 1.5 second delay to ensure everything is initialized
+                } else {
+                    // No content to import, mark as complete
+                    isInitialLoadRef.current = false;
                 }
+            } else {
+                // No saved content, mark as complete
+                isInitialLoadRef.current = false;
             }
         } catch (err) {
             console.error('[EditorContext] Failed to load from localStorage:', err);
+            isInitialLoadRef.current = false;
         }
     }, [screenplay]); // Depend on screenplay to ensure it's initialized
     

@@ -291,8 +291,7 @@ export function useScriptImport(): UseScriptImportReturn {
             // Save the pasted content to editor context
             // Let the paste happen naturally, then save it after a brief delay
             setTimeout(() => {
-                setContent(pastedText);
-        markSaved();
+                setContent(pastedText, true); // Mark as dirty so it auto-saves
             }, 100);
             
         } else {
