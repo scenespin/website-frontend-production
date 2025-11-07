@@ -475,6 +475,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             return;
         }
         
+        // Wait for screenplay context to be ready
+        if (!screenplay) {
+            return;
+        }
+        
         try {
             const savedContent = localStorage.getItem('screenplay_draft');
             const savedTitle = localStorage.getItem('screenplay_title');
@@ -492,9 +497,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 
                 // Auto-import characters/locations from loaded content
                 // Since we no longer persist them, we need to re-parse on page load
-                if (screenplay && savedContent.trim().length > 100) {
+                if (savedContent.trim().length > 100) {
                     console.log('[EditorContext] 🔄 Re-importing screenplay data from loaded content...');
-                    hasRunAutoImportRef.current = true; // Mark as started
+                    hasRunAutoImportRef.current = true; // Mark as started RIGHT BEFORE import
                     
                     // Delay to ensure screenplay context is fully initialized
                     setTimeout(async () => {
@@ -562,7 +567,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         }
                     }, 1500); // 1.5 second delay to ensure everything is initialized
                 } else {
-                    // No content to import, mark as complete
+                    // Content too short to import, mark as complete
                     hasRunAutoImportRef.current = true;
                     isInitialLoadRef.current = false;
                 }
