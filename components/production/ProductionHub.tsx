@@ -21,6 +21,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 import { 
   MessageSquare, 
   Video, 
@@ -80,6 +81,7 @@ interface TabConfig {
 export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
+  const editor = useEditor();
 
   // State
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
