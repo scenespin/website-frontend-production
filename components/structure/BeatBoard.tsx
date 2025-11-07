@@ -161,29 +161,69 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         if (!over) return;
         
         const sceneId = active.id as string;
-        const targetBeatId = over.id as string;
         
-        // Find source and destination beats
+        // Find source beat
         const sourceBeat = beats.find(b => b.scenes.some(s => s.id === sceneId));
-        const destBeat = beats.find(b => b.id === targetBeatId);
+        if (!sourceBeat) return;
         
-        if (!sourceBeat || !destBeat) return;
-        
-        // If dropping on same beat, no action needed
-        if (sourceBeat.id === destBeat.id) return;
-
         const scene = sourceBeat.scenes.find(s => s.id === sceneId);
         if (!scene) return;
+        
+        // Determine if we're dropping on a beat column or another scene
+        let targetBeatId: string;
+        let targetSceneId: string | null = null;
+        
+        // Check if dropping on a beat column (droppable zone)
+        const destBeat = beats.find(b => b.id === over.id);
+        if (destBeat) {
+            targetBeatId = destBeat.id;
+        } else {
+            // Dropping on another scene - find which beat it belongs to
+            const targetScene = beats.flatMap(b => b.scenes).find(s => s.id === over.id);
+            if (!targetScene) return;
+            
+            targetSceneId = targetScene.id;
+            const targetBeatForScene = beats.find(b => b.scenes.some(s => s.id === targetScene.id));
+            if (!targetBeatForScene) return;
+            
+            targetBeatId = targetBeatForScene.id;
+        }
+        
+        const targetBeat = beats.find(b => b.id === targetBeatId);
+        if (!targetBeat) return;
 
         try {
-            // Calculate new order (append to end of target beat)
-            const newOrder = destBeat.scenes.length;
+            let newOrder: number;
             
-            // Move scene to new beat using ScreenplayContext
-            // This automatically updates GitHub and the .fountain script!
-            await moveScene(scene.id, destBeat.id, newOrder);
+            // Calculate new order based on drop position
+            if (targetSceneId) {
+                // Dropping on a specific scene - insert before/after it
+                const targetSceneIndex = targetBeat.scenes.findIndex(s => s.id === targetSceneId);
+                newOrder = targetSceneIndex >= 0 ? targetSceneIndex : targetBeat.scenes.length;
+            } else {
+                // Dropping on beat column - append to end
+                newOrder = targetBeat.scenes.length;
+            }
             
-            toast.success(`Moved scene "${scene.heading}" to ${destBeat.title}`, {
+            // If moving within the same beat and the scene is before the target, adjust order
+            if (sourceBeat.id === targetBeat.id) {
+                const sourceIndex = sourceBeat.scenes.findIndex(s => s.id === sceneId);
+                if (sourceIndex < newOrder) {
+                    newOrder--; // Adjust because we're removing the scene first
+                }
+                
+                // Prevent no-op moves
+                if (sourceIndex === newOrder) return;
+            }
+            
+            // Move scene using ScreenplayContext
+            await moveScene(scene.id, targetBeat.id, newOrder);
+            
+            const message = sourceBeat.id === targetBeat.id
+                ? `Reordered scene "${scene.heading}" within ${targetBeat.title}`
+                : `Moved scene "${scene.heading}" to ${targetBeat.title}`;
+            
+            toast.success(message, {
                 description: 'GitHub synced automatically'
             });
         } catch (error) {

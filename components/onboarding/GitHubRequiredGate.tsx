@@ -358,15 +358,15 @@ export default function GitHubRequiredGate({ children }: GitHubRequiredGateProps
                                     >
                                         Create New
                                     </a>
-                                </div>
+                        </div>
 
                                 {/* Select Existing Repository */}
                                 {!createNewRepo && (
-                                    <div className="space-y-4">
-                                        <div className="form-control">
-                                            <label className="label">
+                        <div className="space-y-4">
+                            <div className="form-control">
+                                <label className="label">
                                                 <span className="label-text font-semibold">Select Repository</span>
-                                            </label>
+                                </label>
                                             <select
                                                 className="select select-bordered w-full"
                                                 value={selectedRepo}
@@ -380,12 +380,12 @@ export default function GitHubRequiredGate({ children }: GitHubRequiredGateProps
                                                     </option>
                                                 ))}
                                             </select>
-                                            <label className="label">
-                                                <span className="label-text-alt">
+                                <label className="label">
+                                    <span className="label-text-alt">
                                                     {repositories.length} repositories found
-                                                </span>
-                                            </label>
-                                        </div>
+                                    </span>
+                                </label>
+                            </div>
 
                                         <button
                                             onClick={handleSelectRepo}
@@ -401,30 +401,30 @@ export default function GitHubRequiredGate({ children }: GitHubRequiredGateProps
                                                 'Connect to Repository'
                                             )}
                                         </button>
-                                    </div>
+                            </div>
                                 )}
 
                                 {/* Create New Repository */}
                                 {createNewRepo && (
                                     <div className="space-y-4">
-                                        <div className="form-control">
-                                            <label className="label">
-                                                <span className="label-text font-semibold">Repository Name</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="my-screenplay"
-                                                className="input input-bordered w-full"
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text font-semibold">Repository Name</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="my-screenplay"
+                                    className="input input-bordered w-full"
                                                 value={newRepoName}
                                                 onChange={(e) => setNewRepoName(e.target.value)}
                                                 disabled={isLoading}
-                                            />
-                                            <label className="label">
-                                                <span className="label-text-alt">
+                                />
+                                <label className="label">
+                                    <span className="label-text-alt">
                                                     Will create a private repository
-                                                </span>
-                                            </label>
-                                        </div>
+                                    </span>
+                                </label>
+                            </div>
 
                                         <button
                                             onClick={handleCreateRepo}
@@ -443,14 +443,14 @@ export default function GitHubRequiredGate({ children }: GitHubRequiredGateProps
                                     </div>
                                 )}
 
-                                {error && (
-                                    <div className="alert alert-error">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        <span>{error}</span>
-                                    </div>
-                                )}
+                            {error && (
+                                <div className="alert alert-error">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{error}</span>
+                                </div>
+                            )}
                             </div>
                         )}
                     </div>

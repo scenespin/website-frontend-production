@@ -163,15 +163,41 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     });
     
-    // Characters, locations, and relationships start EMPTY each session
-    // They are regenerated from editor content via paste/import
-    const [characters, setCharacters] = useState<Character[]>([]);
-    const [locations, setLocations] = useState<Location[]>([]);
-    const [relationships, setRelationships] = useState<Relationships>({ 
-        scenes: {}, 
-        characters: {}, 
-        locations: {}, 
-        props: {} 
+    // Characters, locations, and relationships - Load from localStorage on mount
+    const [characters, setCharacters] = useState<Character[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.CHARACTERS);
+            if (!saved) return [];
+            return JSON.parse(saved);
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load characters from localStorage', error);
+            return [];
+        }
+    });
+    
+    const [locations, setLocations] = useState<Location[]>(() => {
+        if (typeof window === 'undefined') return [];
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
+            if (!saved) return [];
+            return JSON.parse(saved);
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load locations from localStorage', error);
+            return [];
+        }
+    });
+    
+    const [relationships, setRelationships] = useState<Relationships>(() => {
+        if (typeof window === 'undefined') return { scenes: {}, characters: {}, locations: {}, props: {} };
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.RELATIONSHIPS);
+            if (!saved) return { scenes: {}, characters: {}, locations: {}, props: {} };
+            return JSON.parse(saved);
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to load relationships from localStorage', error);
+            return { scenes: {}, characters: {}, locations: {}, props: {} };
+        }
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -185,15 +211,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Ref to track if there are pending changes that need syncing
     const hasPendingChanges = useRef(false);
-    
-    // Clear old localStorage data for characters/locations (cleanup from previous version)
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
-        localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
-        localStorage.removeItem(STORAGE_KEYS.RELATIONSHIPS);
-        console.log('[ScreenplayContext] Cleared transient data from localStorage');
-    }, []);
     
     // GitHub connection - Load from localStorage if available
     const [githubConfig, setGithubConfig] = useState<ReturnType<typeof initializeGitHub> | null>(() => {
@@ -323,9 +340,35 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [beats]);
     
-    // NOTE: Characters, locations, and scenes are NOT saved to localStorage
-    // They are transient and regenerated from editor content on each session
-    // Only the beat structure (8-sequence framework) persists
+    // Save characters to localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save characters to localStorage:', error);
+        }
+    }, [characters]);
+    
+    // Save locations to localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save locations to localStorage:', error);
+        }
+    }, [locations]);
+    
+    // Save relationships to localStorage
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            localStorage.setItem(STORAGE_KEYS.RELATIONSHIPS, JSON.stringify(relationships));
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save relationships to localStorage:', error);
+        }
+    }, [relationships]);
     
     // ========================================================================
     // GitHub Connection
@@ -335,7 +378,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const config = initializeGitHub(token, owner, repo);
         setGithubConfig(config);
         setIsConnected(true);
-        console.log('[ScreenplayContext] Connected to GitHub');
+        
+        // Save to localStorage so it persists across page refreshes
+        try {
+            localStorage.setItem(STORAGE_KEYS.GITHUB_CONFIG, JSON.stringify({ token, owner, repo }));
+            console.log('[ScreenplayContext] Connected to GitHub and saved config');
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to save GitHub config to localStorage:', error);
+        }
     }, []);
     
     const disconnect = useCallback(() => {
