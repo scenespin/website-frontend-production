@@ -47,9 +47,8 @@ import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisi
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
-import { extractS3Key } from '@/utils/s3';
-import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
 import { useAuth } from '@clerk/nextjs';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -100,8 +99,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Authentication
   const { getToken } = useAuth();
   
-  // Contextual navigation - Get current scene context from editor
-  const editorContext = useEditorContext();
+  // Get screenplay context (for scene data from GitHub)
+  const screenplay = useScreenplay();
   
   // Form state
   const [sceneDescription, setSceneDescription] = useState('');
@@ -761,33 +760,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="h-full flex flex-col">
-      {/* Context Indicator Banner */}
-      {editorContext.currentSceneName && (
+      {/* Screenplay Context Banner */}
+      {screenplay.title && (
         <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
           <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Film className="w-4 h-4 text-info flex-shrink-0" />
-              <span className="opacity-70">Building scene:</span>
-              <span className="font-semibold text-info truncate">{editorContext.currentSceneName}</span>
-              {editorContext.currentBeatName && (
+              <span className="opacity-70">Screenplay:</span>
+              <span className="font-semibold text-info truncate">{screenplay.title}</span>
+              {screenplay.scenes && screenplay.scenes.length > 0 && (
                 <>
                   <span className="opacity-50">•</span>
-                  <span className="opacity-70">Beat:</span>
-                  <span className="font-semibold truncate">{editorContext.currentBeatName}</span>
+                  <span className="opacity-70">{screenplay.scenes.length} scenes available</span>
                 </>
               )}
             </div>
-            <button
-              onClick={() => {
-                const { clearContext } = useContextStore.getState();
-                clearContext();
-                toast.success('Context cleared');
-              }}
-              className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0 transition-colors"
-              title="Clear context"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <Badge variant="secondary" className="flex-shrink-0">
+              From GitHub
+            </Badge>
           </div>
         </div>
       )}
