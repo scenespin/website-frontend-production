@@ -9,7 +9,8 @@ interface GitHubRequiredGateProps {
 }
 
 // Configuration
-const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+const GITHUB_APP_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_APP_CLIENT_ID;
+const GITHUB_APP_SLUG = process.env.NEXT_PUBLIC_GITHUB_APP_SLUG || 'wryda-screenplay-editor';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 const FRONTEND_URL = typeof window !== 'undefined' ? window.location.origin : '';
 
@@ -128,24 +129,24 @@ export default function GitHubRequiredGate({ children }: GitHubRequiredGateProps
 
     const handleOAuthConnect = () => {
         // Validate configuration
-        if (!GITHUB_CLIENT_ID) {
-            setError('GitHub OAuth is not configured. Please contact support.');
-            console.error('[OAuth] Missing NEXT_PUBLIC_GITHUB_CLIENT_ID environment variable');
+        if (!GITHUB_APP_CLIENT_ID) {
+            setError('GitHub App is not configured. Please contact support.');
+            console.error('[GitHub App] Missing NEXT_PUBLIC_GITHUB_APP_CLIENT_ID environment variable');
             return;
         }
         
         if (!BACKEND_URL) {
             setError('Backend URL is not configured. Please contact support.');
-            console.error('[OAuth] Missing NEXT_PUBLIC_BACKEND_URL environment variable');
+            console.error('[GitHub App] Missing NEXT_PUBLIC_BACKEND_URL environment variable');
             return;
         }
         
-        // Redirect to GitHub OAuth
-        const scope = 'repo,user';
-        const state = 'github_oauth_wryda';
-        const redirectUri = `${FRONTEND_URL}/write`;
-        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+        // Redirect to GitHub App Installation
+        // User will be prompted to select which repositories to grant access to
+        const state = 'github_app_wryda';
+        const authUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new?state=${state}`;
         
+        console.log('[GitHub App] Redirecting to installation:', authUrl);
         window.location.href = authUrl;
     };
 
@@ -291,11 +292,11 @@ export default function GitHubRequiredGate({ children }: GitHubRequiredGateProps
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                     <div className="text-sm">
-                                        <p className="font-semibold mb-2">✨ One-Click Connection</p>
-                                        <p>• No manual token creation needed</p>
-                                        <p>• Secure OAuth authentication</p>
-                                        <p>• Select or create repository after connecting</p>
-                                        <p>• Your data stays in your GitHub account</p>
+                                        <p className="font-semibold mb-2">🔒 Secure & Granular Access</p>
+                                        <p>• Select which repositories to share</p>
+                                        <p>• Only screenplay content access (no issues/PRs)</p>
+                                        <p>• You control what we can see</p>
+                                        <p>• Revoke access anytime from GitHub settings</p>
                                     </div>
                                 </div>
 
