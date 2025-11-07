@@ -22,6 +22,7 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 
 // ===== INLINE UI COMPONENTS =====
 
@@ -130,6 +131,7 @@ export function ExportProgressModal({
   onClose,
   autoCloseOnComplete = false
 }: ExportProgressModalProps) {
+  const { getToken } = useAuth();
   const [status, setStatus] = useState<ExportStatus | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime] = useState(Date.now());
@@ -142,7 +144,7 @@ export function ExportProgressModal({
 
     const pollStatus = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = await getToken({ template: 'wryda-backend' });
         const response = await fetch(`/api/timeline/export/status/${jobId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,

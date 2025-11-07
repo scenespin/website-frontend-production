@@ -296,6 +296,7 @@ function CharacterDetailView({
   onUpdate: () => void;
   onClose: () => void;
 }) {
+  const { getToken } = useAuth();
   const [isGeneratingSheet, setIsGeneratingSheet] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   
@@ -305,10 +306,11 @@ function CharacterDetailView({
     
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+      const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch(`${backendUrl}/api/character-bank/generate-sheet`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -546,6 +548,7 @@ function CreateCharacterDialog({
   onSuccess: () => void;
   projectId: string;
 }) {
+  const { getToken } = useAuth();
   const [method, setMethod] = useState<'upload' | 'generate'>('upload');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -609,10 +612,11 @@ function CreateCharacterDialog({
         requestBody.baseReference.model = model;
       }
       
+      const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch(`${backendUrl}/api/character-bank/create`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)

@@ -48,6 +48,7 @@ import { TrackHeader } from './TrackHeader';
 import { ExportModal, ExportSettings } from './ExportModal';  // NEW
 import { ExportProgressModal, ExportStatus } from './ExportProgressModal';  // NEW
 import { VideoPreviewModal } from './VideoPreviewModal';  // NEW
+import { useAuth } from '@clerk/nextjs';
 import { TransitionPicker } from './TransitionPicker';  // NEW: Feature 0065
 import { LUTPicker } from './LUTPicker';  // NEW: Feature 0065
 import { SpeedSelector } from './SpeedSelector';  // NEW: Feature 0103
@@ -71,6 +72,9 @@ interface EnhancedTimelineEditorProps {
 }
 
 export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClips }: EnhancedTimelineEditorProps) {
+  // Authentication
+  const { getToken } = useAuth();
+  
   const timeline = useTimeline({
     projectId,
     autoSave: true,
@@ -572,7 +576,7 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
   // NEW: Handle export
   const handleExport = async (settings: ExportSettings) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = await getToken({ template: 'wryda-backend' });
       
       const response = await fetch('/api/timeline/export', {
         method: 'POST',

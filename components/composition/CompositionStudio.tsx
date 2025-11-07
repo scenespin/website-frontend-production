@@ -46,6 +46,7 @@ import { extractS3Key } from '@/utils/s3';
 import { MobileCompositionBanner } from './MobileCompositionBanner';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
+import { useAuth } from '@clerk/nextjs';
 
 // Video file validation
 const MAX_VIDEO_SIZE_GB = 50;
@@ -77,6 +78,9 @@ interface CompositionStudioProps {
 }
 
 export function CompositionStudio({ userId, preloadedClip, preloadedClips, recomposeData }: CompositionStudioProps) {
+  // Authentication
+  const { getToken } = useAuth();
+  
   // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
   
@@ -212,13 +216,20 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         const { toast } = await import('sonner');
         toast.info(`Uploading ${file.name}...`, { id: uploadToastId.toString() });
         
-        // Step 1: Get pre-signed URL from backend
+        // Step 1: Get pre-signed URL from backend with authentication
+        const token = await getToken({ template: 'wryda-backend' });
         const presignedResponse = await fetch(
           `/api/video/upload/get-presigned-url?` + 
           `fileName=${encodeURIComponent(file.name)}` +
           `&fileType=${encodeURIComponent(file.type)}` +
           `&fileSize=${file.size}` +
-          `&projectId=${encodeURIComponent(userId || 'default')}`
+          `&projectId=${encodeURIComponent(userId || 'default')}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
         );
         
         if (!presignedResponse.ok) {

@@ -15,6 +15,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useDrawer } from '@/contexts/DrawerContext';
 import LocationDetailSidebar from '../screenplay/LocationDetailSidebar';
 import { AnimatePresence } from 'framer-motion';
+import { useAuth } from '@clerk/nextjs';
 
 interface LocationProfile {
   location_id: string;
@@ -38,6 +39,7 @@ export function LocationBankPanel({
   projectId,
   className = ''
 }: LocationBankPanelProps) {
+  const { getToken } = useAuth();
   
   const { createLocation, updateLocation, deleteLocation } = useScreenplay();
   const { setWorkflow } = useChatContext();
@@ -57,9 +59,10 @@ export function LocationBankPanel({
     try {
       setIsLoading(true);
       
+      const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch(`/api/projects/${projectId}/locations`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       

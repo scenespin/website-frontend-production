@@ -49,6 +49,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { extractS3Key } from '@/utils/s3';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
+import { useAuth } from '@clerk/nextjs';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -96,6 +97,9 @@ interface WorkflowStatus {
 }
 
 export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
+  // Authentication
+  const { getToken } = useAuth();
+  
   // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
   
@@ -249,10 +253,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         }
       }
       
-      // Start workflow execution
+      // Start workflow execution with authentication
+      const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch('/api/workflows/execute', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           workflowId: 'complete-scene',
           inputs: {
@@ -360,13 +368,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       toast.info('Uploading...');
       
       // PROFESSIONAL UPLOAD: Direct to S3 using pre-signed URL
-      // Step 1: Get pre-signed URL
+      // Step 1: Get pre-signed URL with authentication
+      const token = await getToken({ template: 'wryda-backend' });
       const presignedResponse = await fetch(
         `/api/video/upload/get-presigned-url?` +
         `fileName=${encodeURIComponent(file.name)}` +
         `&fileType=${encodeURIComponent(file.type)}` +
         `&fileSize=${file.size}` +
-        `&projectId=${encodeURIComponent(projectId)}`
+        `&projectId=${encodeURIComponent(projectId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       
       if (!presignedResponse.ok) {

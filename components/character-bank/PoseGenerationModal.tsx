@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import PosePackageSelector from './PosePackageSelector';
+import { useAuth } from '@clerk/nextjs';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function PoseGenerationModal({
   projectId,
   onComplete
 }: PoseGenerationModalProps) {
+  const { getToken } = useAuth();
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
@@ -77,13 +79,14 @@ export default function PoseGenerationModal({
       setProgress(20);
       
       // Call backend API to generate pose package
+      const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch(
         `/api/projects/${projectId}/characters/${characterId}/generate-poses`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             characterName,
