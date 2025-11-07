@@ -468,120 +468,83 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
     }, [state.content, screenplay]);
     
-    // Load from localStorage on mount AND auto-import if content exists
+    // Load screenplay from GitHub (or localStorage as fallback) on mount
     useEffect(() => {
         // Only run once on mount
         if (hasRunAutoImportRef.current) {
             return;
         }
         
+        hasRunAutoImportRef.current = true; // Mark as run
+        
         // Wait for screenplay context to be ready
         if (!screenplay) {
             return;
         }
         
-        try {
-            const savedContent = localStorage.getItem('screenplay_draft');
-            const savedTitle = localStorage.getItem('screenplay_title');
-            const savedAuthor = localStorage.getItem('screenplay_author');
-            
-            if (savedContent) {
-                console.log('[EditorContext] Loaded draft from localStorage');
-                setState(prev => ({
-                    ...prev,
-                    content: savedContent,
-                    title: savedTitle || prev.title,
-                    author: savedAuthor || prev.author,
-                    isDirty: false
-                }));
-                
-                // Auto-import characters/locations from loaded content
-                // Since we no longer persist them, we need to re-parse on page load
-                if (savedContent.trim().length > 100) {
-                    console.log('[EditorContext] 🔄 Re-importing screenplay data from loaded content...');
-                    hasRunAutoImportRef.current = true; // Mark as started RIGHT BEFORE import
-                    
-                    // Delay to ensure screenplay context is fully initialized
-                    setTimeout(async () => {
-                        try {
-                            // Import the content using the performImport logic
-                            const { parseContentForImport, shouldAutoImport, formatCharacterName, formatLocationName } = await import('@/utils/fountainAutoImport');
-                            
-                            if (shouldAutoImport(savedContent)) {
-                                const parseResult = parseContentForImport(savedContent);
-                                const characterNames = Array.from(parseResult.characters).map(formatCharacterName);
-                                const locationNames = Array.from(parseResult.locations).map(formatLocationName);
-                                
-                                // Import characters and locations
-                                const importedCharacters = await screenplay.bulkImportCharacters(characterNames, parseResult.characterDescriptions);
-                                const importedLocations = await screenplay.bulkImportLocations(locationNames);
-                                
-                                // Distribute scenes across beats
-                                if (parseResult.scenes.length > 0) {
-                                    const characterMap = new Map(importedCharacters.map(char => [char.name.toUpperCase(), char.id]));
-                                    const locationMap = new Map(importedLocations.map(loc => [loc.name.toUpperCase(), loc.id]));
-                                    
-                                    const sequenceBreakpoints = [0, 0.125, 0.227, 0.375, 0.50, 0.625, 0.773, 0.875, 1.0];
-                                    const sequenceBeats = screenplay.beats.filter(b => b.title.includes('Sequence ')).sort((a, b) => a.order - b.order);
-                                    const scenesBySequence: Array<Array<any>> = Array(8).fill(null).map(() => []);
-                                    
-                                    parseResult.scenes.forEach((scene, index) => {
-                                        const scenePosition = index / parseResult.scenes.length;
-                                        let sequenceIndex = 0;
-                                        for (let i = 0; i < sequenceBreakpoints.length - 1; i++) {
-                                            if (scenePosition >= sequenceBreakpoints[i] && scenePosition < sequenceBreakpoints[i + 1]) {
-                                                sequenceIndex = i;
-                                                break;
-                                            }
-                                        }
-                                        
-                                        const characterIds = scene.characters.map((charName: string) => characterMap.get(formatCharacterName(charName).toUpperCase())).filter((id): id is string => id !== undefined);
-                                        const locationId = locationMap.get(formatLocationName(scene.location).toUpperCase());
-                                        
-                                        scenesBySequence[sequenceIndex].push({
-                                            heading: scene.heading,
-                                            location: scene.location,
-                                            characterIds,
-                                            locationId,
-                                            startLine: scene.startLine,
-                                            endLine: scene.endLine
-                                        });
-                                    });
-                                    
-                                    for (let i = 0; i < 8; i++) {
-                                        if (scenesBySequence[i].length > 0 && sequenceBeats[i]) {
-                                            await screenplay.bulkImportScenes(sequenceBeats[i].id, scenesBySequence[i]);
-                                        }
-                                    }
+        async function loadContent() {
+            try {
+                // Priority 1: Load from GitHub if connected
+                if (githubConfig && githubConfig.token) {
+                    try {
+                        console.log('[EditorContext] Loading screenplay from GitHub...');
+                        const response = await fetch(
+                            `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/screenplay.fountain`,
+                            {
+                                headers: {
+                                    'Authorization': `token ${githubConfig.token}`,
+                                    'Accept': 'application/vnd.github.v3.raw'
                                 }
-                                
-                                console.log('[EditorContext] ✅ Auto-import complete:', characterNames.length, 'characters,', locationNames.length, 'locations,', parseResult.scenes.length, 'scenes');
-                                
-                                // Mark initial load as complete
-                                isInitialLoadRef.current = false;
                             }
-                        } catch (error) {
-                            console.error('[EditorContext] Auto-import failed:', error);
-                            // Mark initial load as complete even on error
+                        );
+                        
+                        if (response.ok) {
+                            const content = await response.text();
+                            console.log('[EditorContext] ✅ Loaded screenplay from GitHub');
+                            setState(prev => ({
+                                ...prev,
+                                content,
+                                isDirty: false
+                            }));
                             isInitialLoadRef.current = false;
+                            return; // Success!
+                        } else if (response.status === 404) {
+                            console.log('[EditorContext] No screenplay in GitHub yet (404), using localStorage fallback');
+                        } else {
+                            console.warn('[EditorContext] GitHub load failed:', response.status);
                         }
-                    }, 1500); // 1.5 second delay to ensure everything is initialized
-                } else {
-                    // Content too short to import, mark as complete
-                    hasRunAutoImportRef.current = true;
-                    isInitialLoadRef.current = false;
+                    } catch (err) {
+                        console.error('[EditorContext] Error loading from GitHub:', err);
+                    }
                 }
-            } else {
-                // No saved content, mark as complete
-                hasRunAutoImportRef.current = true;
+                
+                // Priority 2: Fallback to localStorage (for first-time users or offline)
+                const savedContent = localStorage.getItem('screenplay_draft');
+                const savedTitle = localStorage.getItem('screenplay_title');
+                const savedAuthor = localStorage.getItem('screenplay_author');
+                
+                if (savedContent) {
+                    console.log('[EditorContext] Loaded draft from localStorage (fallback)');
+                    setState(prev => ({
+                        ...prev,
+                        content: savedContent,
+                        title: savedTitle || prev.title,
+                        author: savedAuthor || prev.author,
+                        isDirty: false
+                    }));
+                } else {
+                    console.log('[EditorContext] No saved content found (new user)');
+                }
+                
+                isInitialLoadRef.current = false;
+            } catch (err) {
+                console.error('[EditorContext] Failed to load content:', err);
                 isInitialLoadRef.current = false;
             }
-        } catch (err) {
-            console.error('[EditorContext] Failed to load from localStorage:', err);
-            hasRunAutoImportRef.current = true;
-            isInitialLoadRef.current = false;
         }
-    }, [screenplay]); // Keep screenplay dependency but use ref to prevent re-runs
+        
+        loadContent();
+    }, [screenplay, githubConfig]); // Depend on both
     
     return (
         <EditorContext.Provider value={value}>
