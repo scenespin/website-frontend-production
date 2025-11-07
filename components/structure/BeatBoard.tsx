@@ -10,6 +10,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    useDroppable,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -407,7 +408,7 @@ function BeatColumn({
     handleEditScene,
     highlightedSceneId,
 }: BeatColumnComponentProps) {
-    const { setNodeRef, isOver } = useSortable({
+    const { setNodeRef, isOver } = useDroppable({
         id: beat.id,
         data: { beatId: beat.id },
     });
