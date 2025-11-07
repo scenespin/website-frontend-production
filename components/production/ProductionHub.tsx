@@ -463,7 +463,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                     </div>
                     <StyleAnalyzer
                       projectId={projectId}
-                      onAnalyzeComplete={handleStyleAnalysisComplete}
+                      onAnalysisComplete={handleStyleAnalysisComplete}
                     />
                   </div>
                 )}
