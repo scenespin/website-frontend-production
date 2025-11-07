@@ -108,6 +108,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
+    const hasRunAutoImportRef = useRef(false); // Prevent infinite import loop
     
     // Get GitHub config from ScreenplayContext
     const screenplay = useScreenplay();
@@ -469,6 +470,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     
     // Load from localStorage on mount AND auto-import if content exists
     useEffect(() => {
+        // Only run once on mount
+        if (hasRunAutoImportRef.current) {
+            return;
+        }
+        
         try {
             const savedContent = localStorage.getItem('screenplay_draft');
             const savedTitle = localStorage.getItem('screenplay_title');
@@ -488,6 +494,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 // Since we no longer persist them, we need to re-parse on page load
                 if (screenplay && savedContent.trim().length > 100) {
                     console.log('[EditorContext] 🔄 Re-importing screenplay data from loaded content...');
+                    hasRunAutoImportRef.current = true; // Mark as started
+                    
                     // Delay to ensure screenplay context is fully initialized
                     setTimeout(async () => {
                         try {
@@ -555,17 +563,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     }, 1500); // 1.5 second delay to ensure everything is initialized
                 } else {
                     // No content to import, mark as complete
+                    hasRunAutoImportRef.current = true;
                     isInitialLoadRef.current = false;
                 }
             } else {
                 // No saved content, mark as complete
+                hasRunAutoImportRef.current = true;
                 isInitialLoadRef.current = false;
             }
         } catch (err) {
             console.error('[EditorContext] Failed to load from localStorage:', err);
+            hasRunAutoImportRef.current = true;
             isInitialLoadRef.current = false;
         }
-    }, [screenplay]); // Depend on screenplay to ensure it's initialized
+    }, [screenplay]); // Keep screenplay dependency but use ref to prevent re-runs
     
     return (
         <EditorContext.Provider value={value}>
