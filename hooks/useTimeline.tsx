@@ -1234,16 +1234,18 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     }
   }, [isOnline, onSaveSuccess, onSaveError]);
 
-  // ==================== NEW: GITHUB BACKUP (OPTIONAL) ====================
+  // ==================== GITHUB EXPORT (MANUAL ONLY) ====================
 
   /**
-   * Save timeline to GitHub (version control backup)
+   * Export timeline to GitHub (manual user action)
    * 
    * STORAGE PROVIDERS: Feature GitHub prominently - users OWN their data!
    * WRAPPER STRATEGY: Only hides AI providers (Runway, Luma, etc.)
+   * 
+   * Note: This is NO LONGER part of auto-save. It's a manual export feature.
    */
   const saveToGitHub = useCallback(async (projectData: TimelineProject) => {
-    if (!enableGitHubBackup) return false;
+    // Note: enableGitHubBackup check removed - this is always available as manual export
     
     try {
       // Get GitHub config from localStorage (set by screenplay editor)
@@ -1293,13 +1295,21 @@ export function useTimeline(options: UseTimelineOptions = {}) {
         { path, content, message }
       );
       
-      console.log('[Timeline] ✅ Saved to GitHub - YOU own this data!');
+      console.log('[Timeline] ✅ Exported to GitHub - YOU own this data!');
       return true;
     } catch (error) {
-      console.error('[Timeline] GitHub backup failed:', error);
+      console.error('[Timeline] GitHub export failed:', error);
       return false;
     }
-  }, [enableGitHubBackup]);
+  }, []); // No dependencies - always available
+
+  /**
+   * Manual Export to GitHub (wrapper function with user feedback)
+   */
+  const exportToGitHub = useCallback(async () => {
+    const success = await saveToGitHub(project);
+    return success;
+  }, [project, saveToGitHub]);
 
   // ==================== ASSET OPERATIONS (Multi-Type Support) ====================
 
@@ -1776,16 +1786,8 @@ export function useTimeline(options: UseTimelineOptions = {}) {
         throw new Error(`Save failed: HTTP ${response.status}`);
       }
 
-      // Step 4: (OPTIONAL) Save to GitHub if enabled
-      // FEATURE THIS PROMINENTLY: Users OWN their data in THEIR GitHub repo!
-      if (enableGitHubBackup) {
-        try {
-          await saveToGitHub(project);
-        } catch (gitError) {
-          // Don't fail entire save if GitHub fails
-          console.warn('[Timeline] GitHub backup failed, but primary save succeeded');
-        }
-      }
+      // GitHub backup removed from auto-save - now manual export only
+      // (See exportToGitHub function for manual GitHub export)
 
       // Success!
       console.log('[Timeline] Project saved successfully');
@@ -1810,7 +1812,7 @@ export function useTimeline(options: UseTimelineOptions = {}) {
       
       return false;
     }
-  }, [project, isOnline, enableLocalStorageBackup, enableGitHubBackup, saveToLocalStorage, saveToGitHub, addToRetryQueue, onSaveSuccess, onSaveError]);
+  }, [project, isOnline, enableLocalStorageBackup, saveToLocalStorage, addToRetryQueue, onSaveSuccess, onSaveError]);
 
   /**
    * Load project
@@ -1881,17 +1883,34 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   }, [projectId]); // Only run on mount or projectId change
 
   /**
-   * Auto-save (if enabled) - NOW 10 SECONDS (was 30)
+   * Auto-save with dual-interval strategy
+   * - localStorage: Every 10 seconds (fast, free, crash protection)
+   * - DynamoDB: Every 60 seconds (slower, costs money, cloud backup)
+   * 
+   * This reduces DynamoDB writes by 90% while maintaining excellent crash protection
    */
   useEffect(() => {
     if (!autoSave) return;
 
+    let localSaveCounter = 0;
+
     const interval = setInterval(() => {
-      saveProject();
+      // Always save to localStorage (fast, free)
+      if (enableLocalStorageBackup) {
+        saveToLocalStorage(project);
+      }
+      
+      localSaveCounter++;
+      
+      // Only save to DynamoDB every 6th cycle (60 seconds)
+      if (localSaveCounter >= 6) {
+        saveProject();
+        localSaveCounter = 0;
+      }
     }, autoSaveInterval);
 
     return () => clearInterval(interval);
-  }, [autoSave, autoSaveInterval, saveProject]);
+  }, [autoSave, autoSaveInterval, project, enableLocalStorageBackup, saveToLocalStorage, saveProject]);
 
   /**
    * NEW: Online/Offline detection
@@ -2058,6 +2077,7 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     saveProject,
     loadProject,
     clearProject,
+    exportToGitHub,  // NEW: Manual GitHub export function
     
     // ==================== NEW: SAVE STATUS & PROTECTION ====================
     saveStatus,          // 'saved' | 'saving' | 'failed' | 'offline' | 'pending'

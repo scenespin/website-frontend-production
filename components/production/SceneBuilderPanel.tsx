@@ -49,6 +49,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 import { extractS3Key } from '@/utils/s3';
 
 const MAX_IMAGE_SIZE_MB = 10;
@@ -102,6 +103,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Get screenplay context (for scene data from GitHub)
   const screenplay = useScreenplay();
+  const editor = useEditor();
   
   // Form state
   const [sceneDescription, setSceneDescription] = useState('');
@@ -762,13 +764,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   return (
     <div className="h-full flex flex-col">
       {/* Screenplay Context Banner (when connected) */}
-      {screenplay.title && screenplay.isConnected && (
+      {editor.state.title && screenplay.isConnected && (
         <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
           <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Film className="w-4 h-4 text-info flex-shrink-0" />
               <span className="opacity-70">Screenplay:</span>
-              <span className="font-semibold text-info truncate">{screenplay.title}</span>
+              <span className="font-semibold text-info truncate">{editor.state.title}</span>
               {screenplay.scenes && screenplay.scenes.length > 0 && (
                 <>
                   <span className="opacity-50">•</span>

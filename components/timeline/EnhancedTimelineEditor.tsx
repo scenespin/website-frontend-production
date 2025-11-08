@@ -40,7 +40,8 @@ import {
   Copy,  // NEW: Copy clips icon (Feature 0103 Sprint 2)
   Clipboard,  // NEW: Paste clips icon (Feature 0103 Sprint 2)
   Link,  // NEW: Ripple mode icon (Feature 0103 Sprint 2)
-  Type  // NEW: Add text icon (Feature 0103 Sprint 3)
+  Type,  // NEW: Add text icon (Feature 0103 Sprint 3)
+  Github  // NEW: GitHub export icon (Feature 0110)
 } from 'lucide-react';
 import { useTimeline, TimelineAsset, calculateProjectCost, getCostBreakdown, createDefaultLUTMetadata } from '@/hooks/useTimeline';
 import { TimelineAssetComponent } from './TimelineAssetComponent';
@@ -1317,6 +1318,31 @@ export function EnhancedTimelineEditor({ projectId, preloadedClip, preloadedClip
             >
               <Download className="w-4 h-4 mr-2" />
               Export
+            </Button>
+
+            {/* NEW: Export to GitHub Button (Feature 0110) */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const success = await timeline.exportToGitHub();
+                if (success) {
+                  toast.success('✅ Timeline exported to your GitHub repository!', {
+                    description: 'Your timeline data is now version controlled in your repo.',
+                    duration: 4000
+                  });
+                } else {
+                  toast.info('Connect GitHub to export your timeline', {
+                    description: 'Go to Settings to link your GitHub repository.',
+                    duration: 4000
+                  });
+                }
+              }}
+              title="Export timeline to GitHub (optional)"
+              className="border-slate-600 hover:bg-slate-800"
+            >
+              <Github className="w-4 h-4 mr-2" />
+              Export to GitHub
             </Button>
 
             <Button

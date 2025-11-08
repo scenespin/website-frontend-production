@@ -4,8 +4,7 @@
  * Displays real-time save status with visual feedback
  * Includes offline warnings and retry queue information
  * 
- * STORAGE PROVIDERS: GitHub, Google Drive, Dropbox - FEATURE THESE PROMINENTLY!
- * WRAPPER STRATEGY: Only applies to AI providers (Runway, Luma, etc.) - NEVER mention those
+ * Updated: GitHub removed from auto-save messaging (now manual export only)
  */
 
 'use client';
@@ -78,7 +77,7 @@ export function SaveStatusIndicator({
           text: 'Saving',
           color: 'text-[#DC143C]',
           bg: 'bg-[#DC143C]/10',
-          detail: 'Syncing to GitHub...'  // ← Show "GitHub" proudly!
+          detail: 'Saving changes...'
         };
       
       case 'saved':
@@ -87,7 +86,7 @@ export function SaveStatusIndicator({
           text: 'Saved',
           color: 'text-green-500',
           bg: 'bg-green-500/10',
-          detail: timeAgo ? `Saved to GitHub ${timeAgo}` : 'Saved to GitHub'  // ← Show "GitHub"!
+          detail: timeAgo ? `Saved ${timeAgo}` : 'All changes saved'
         };
       
       case 'failed':
@@ -96,7 +95,7 @@ export function SaveStatusIndicator({
           text: 'Failed',
           color: 'text-red-500',
           bg: 'bg-red-500/10',
-          detail: queueLength > 0 ? `${queueLength} pending retries` : 'Retrying GitHub sync...'
+          detail: queueLength > 0 ? `${queueLength} pending retries` : 'Retrying...'
         };
       
       case 'offline':
@@ -105,7 +104,7 @@ export function SaveStatusIndicator({
           text: 'Offline',
           color: 'text-orange-500',
           bg: 'bg-orange-500/10',
-          detail: 'Saved locally, will sync to GitHub when online'  // ← Show "GitHub"!
+          detail: 'Saved locally, will sync when online'
         };
       
       case 'pending':
