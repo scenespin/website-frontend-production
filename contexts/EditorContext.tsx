@@ -521,7 +521,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         isDirty: true // Mark dirty to trigger DynamoDB save
                     }));
                 } else {
-                    console.log('[EditorContext] No saved content found (new user)');
+                    console.log('[EditorContext] No saved content found - creating new screenplay in DynamoDB');
+                    // Priority 3: Create a new empty screenplay immediately
+                    try {
+                        const newScreenplay = await createScreenplay({
+                            title: state.title,
+                            author: state.author,
+                            content: state.content
+                        }, getToken);
+                        
+                        screenplayIdRef.current = newScreenplay.screenplay_id;
+                        localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
+                        console.log('[EditorContext] ✅ Created new screenplay:', newScreenplay.screenplay_id);
+                    } catch (err) {
+                        console.error('[EditorContext] Failed to create new screenplay:', err);
+                    }
                 }
                 
                 isInitialLoadRef.current = false;
