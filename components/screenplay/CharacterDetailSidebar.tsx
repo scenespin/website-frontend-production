@@ -144,9 +144,13 @@ export default function CharacterDetailSidebar({
           <Label htmlFor="type">Type</Label>
           <Select
             value={formData.type}
-            onValueChange={(value) => setFormData({ ...formData, type: value as 'lead' | 'supporting' | 'minor' })}
+            onValueChange={(value) => {
+              console.log('[CharacterModal] Type changed to:', value);
+              setFormData({ ...formData, type: value as 'lead' | 'supporting' | 'minor' });
+            }}
+            onOpenChange={(open) => console.log('[CharacterModal] Type dropdown open:', open)}
           >
-            <SelectTrigger id="type">
+            <SelectTrigger id="type" onClick={() => console.log('[CharacterModal] Type trigger clicked')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" sideOffset={4}>
