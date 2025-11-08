@@ -394,11 +394,259 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [relationships]);
     
     // ========================================================================
-    // Feature 0111 Phase 3: GitHub Connection & Sync (REMOVED)
+    // Feature 0111 Phase 3: GitHub Connection (REMOVED)
     // GitHub is now optional - config stored in localStorage for export only
     // Old connect/disconnect/sync functions removed - see EditorToolbar for export
-    // All structure data now auto-saves to DynamoDB via EditorContext
     // ========================================================================
+    
+    // ========================================================================
+    // Sync Operations
+    // ========================================================================
+    
+    const syncFromGitHub = useCallback(async () => {
+        if (!githubConfig) {
+            throw new Error('Not connected to GitHub');
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            // Load all structure files
+            const [beatsResult, charsResult, locsResult, relsResult] = await Promise.all([
+                getStructureFile<BeatsFile>(githubConfig, 'beats'),
+                getStructureFile<CharactersFile>(githubConfig, 'characters'),
+                getStructureFile<LocationsFile>(githubConfig, 'locations'),
+                getStructureFile<RelationshipsFile>(githubConfig, 'relationships')
+            ]);
+            
+            // Update local file SHAs
+            setFileSHAs({
+                beats: beatsResult.sha || undefined,
+                characters: charsResult.sha || undefined,
+                locations: locsResult.sha || undefined,
+                relationships: relsResult.sha || undefined
+            });
+            
+            // 🛡️ CRITICAL FIX: Sanitize beat.scenes when loading from GitHub
+            const sanitizedBeats = (beatsResult.data?.beats || []).map(beat => {
+                return {
+                ...beat,
+                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
+                };
+            });
+            
+            setBeats(sanitizedBeats);
+            setCharacters(charsResult.data?.characters || []);
+            setLocations(locsResult.data?.locations || []);
+            setRelationships(relsResult.data?.relationships || { scenes: {}, characters: {}, locations: {}, props: {} });
+            
+            console.log('[ScreenplayContext] Synced from GitHub (sanitized corrupted data)');
+            
+        } catch (err: any) {
+            setError(err.message);
+            console.error('[ScreenplayContext] Sync from GitHub failed:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [githubConfig]);
+    
+    const syncToGitHub = useCallback(async (message: string) => {
+        if (!githubConfig) {
+            throw new Error('Not connected to GitHub');
+        }
+        
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const now = new Date().toISOString();
+            
+            // Prepare structure files
+            const beatsFile: BeatsFile = {
+                version: '1.0',
+                lastUpdated: now,
+                beats
+            };
+            
+            const charsFile: CharactersFile = {
+                version: '1.0',
+                lastUpdated: now,
+                characters
+            };
+            
+            const locsFile: LocationsFile = {
+                version: '1.0',
+                lastUpdated: now,
+                locations
+            };
+            
+            const relsFile: RelationshipsFile = {
+                version: '1.0',
+                lastUpdated: now,
+                relationships
+            };
+            
+            try {
+                // Try atomic multi-file commit first
+                await createMultiFileCommit(
+                    githubConfig,
+                    [
+                        {
+                            path: 'structure/beats.json',
+                            content: JSON.stringify(beatsFile, null, 2)
+                        },
+                        {
+                            path: 'structure/characters.json',
+                            content: JSON.stringify(charsFile, null, 2)
+                        },
+                        {
+                            path: 'structure/locations.json',
+                            content: JSON.stringify(locsFile, null, 2)
+                        },
+                        {
+                            path: 'structure/relationships.json',
+                            content: JSON.stringify(relsFile, null, 2)
+                        }
+                    ],
+                    message
+                );
+            } catch (multiFileErr: any) {
+                // If multi-file commit fails (e.g., new repo without main branch),
+                // fall back to individual file saves
+                console.log('[ScreenplayContext] Multi-file commit failed, falling back to individual saves');
+                
+                const [beatsResult, charsResult, locsResult, relsResult] = await Promise.all([
+                    saveStructureFile(githubConfig, 'beats', beatsFile, `${message} (beats)`, undefined, fileSHAs.beats),
+                    saveStructureFile(githubConfig, 'characters', charsFile, `${message} (characters)`, undefined, fileSHAs.characters),
+                    saveStructureFile(githubConfig, 'locations', locsFile, `${message} (locations)`, undefined, fileSHAs.locations),
+                    saveStructureFile(githubConfig, 'relationships', relsFile, `${message} (relationships)`, undefined, fileSHAs.relationships)
+                ]);
+                
+                // Update local file SHAs to prevent "file changed" errors
+                setFileSHAs({
+                    beats: beatsResult.fileSHA,
+                    characters: charsResult.fileSHA,
+                    locations: locsResult.fileSHA,
+                    relationships: relsResult.fileSHA
+                });
+            }
+            
+            console.log('[ScreenplayContext] Synced to GitHub');
+            
+        } catch (err: any) {
+            setError(err.message);
+            console.error('[ScreenplayContext] Sync to GitHub failed:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [githubConfig, beats, characters, locations, relationships]);
+    
+    // ========================================================================
+    // Auto-Sync to GitHub (Debounced)
+    // ========================================================================
+    
+    // Mark changes as pending whenever data changes
+    useEffect(() => {
+        if (!isConnected || !githubConfig) return;
+        
+        hasPendingChanges.current = true;
+        
+        if (autoSyncTimerRef.current) {
+            clearTimeout(autoSyncTimerRef.current);
+        }
+        
+        autoSyncTimerRef.current = setTimeout(() => {
+            if (hasPendingChanges.current && isConnected && githubConfig) {
+                const performSync = async () => {
+            try {
+                        setIsLoading(true);
+                        const now = new Date().toISOString();
+                        
+                        const beatsFile: BeatsFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            beats
+                        };
+                        
+                        const charsFile: CharactersFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            characters
+                        };
+                        
+                        const locsFile: LocationsFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            locations
+                        };
+                        
+                        const relsFile: RelationshipsFile = {
+                            version: '1.0',
+                            lastUpdated: now,
+                            relationships
+                        };
+                        
+                        try {
+                            await createMultiFileCommit(
+                                githubConfig,
+                                [
+                                    {
+                                        path: 'structure/beats.json',
+                                        content: JSON.stringify(beatsFile, null, 2)
+                                    },
+                                    {
+                                        path: 'structure/characters.json',
+                                        content: JSON.stringify(charsFile, null, 2)
+                                    },
+                                    {
+                                        path: 'structure/locations.json',
+                                        content: JSON.stringify(locsFile, null, 2)
+                                    },
+                                    {
+                                        path: 'structure/relationships.json',
+                                        content: JSON.stringify(relsFile, null, 2)
+                                    }
+                                ],
+                                'auto: Screenplay structure update'
+                            );
+                        } catch (multiFileErr: any) {
+                            const [beatsResult, charsResult, locsResult, relsResult] = await Promise.all([
+                                saveStructureFile(githubConfig, 'beats', beatsFile, 'auto: Update beats', undefined, fileSHAs.beats),
+                                saveStructureFile(githubConfig, 'characters', charsFile, 'auto: Update characters', undefined, fileSHAs.characters),
+                                saveStructureFile(githubConfig, 'locations', locsFile, 'auto: Update locations', undefined, fileSHAs.locations),
+                                saveStructureFile(githubConfig, 'relationships', relsFile, 'auto: Update relationships', undefined, fileSHAs.relationships)
+                            ]);
+                            
+                            // Update local file SHAs to prevent "file changed" errors
+                            setFileSHAs({
+                                beats: beatsResult.fileSHA,
+                                characters: charsResult.fileSHA,
+                                locations: locsResult.fileSHA,
+                                relationships: relsResult.fileSHA
+                            });
+                        }
+                        
+                        hasPendingChanges.current = false;
+                console.log('[ScreenplayContext] ✅ Auto-synced to GitHub');
+            } catch (err) {
+                console.error('[ScreenplayContext] Auto-sync failed:', err);
+                    } finally {
+                        setIsLoading(false);
+            }
+                };
+        
+                performSync();
+            }
+        }, 30000); // 30 seconds after last change
+        
+        return () => {
+            if (autoSyncTimerRef.current) {
+                clearTimeout(autoSyncTimerRef.current);
+            }
+        };
+    }, [beats, characters, locations, relationships, isConnected, githubConfig]);
     
     // ========================================================================
     // CRUD - Story Beats
