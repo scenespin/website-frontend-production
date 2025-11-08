@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 // Define public routes that don't require authentication
+// Pattern format: '/path' or '/path(.*)' for path and all sub-paths
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
@@ -9,7 +10,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/waitlist(.*)',           // Waitlist signup
   '/api/affiliates(.*)',         // Affiliate tracking  
   '/api/analytics(.*)',          // Analytics events
-  '/api/auth/(.*)',              // All OAuth routes
+  '/api/auth(.*)',               // All OAuth routes (GitHub, Google, Dropbox)
 ])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -21,7 +22,7 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
+    // Skip Next.js internals and all static files, unless found in search params
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
