@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Upload, Send, Loader2, X, CheckCircle, AlertCircle, FileVideo, Image as ImageIcon } from 'lucide-react';
+import { Upload, Send, Loader2, X, CheckCircle, AlertCircle, FileVideo, Image as ImageIcon, Copy, ExternalLink } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -12,7 +12,7 @@ interface Message {
   id: string;
   role: 'user' | 'ai';
   text: string;
-  type?: 'text' | 'choice' | 'file-upload' | 'credit-confirmation' | 'progress';
+  type?: 'text' | 'choice' | 'file-upload' | 'credit-confirmation' | 'progress' | 'scene-generated';
   options?: Array<{ id: string; label: string; primary?: boolean }>;
   creditBreakdown?: Array<{
     item: string;
@@ -24,6 +24,8 @@ interface Message {
   oneTimeCost?: boolean;
   worthIt?: string;
   generationDetails?: any;
+  fountainFormat?: string; // NEW: Fountain format scene text
+  actions?: Array<{ id: string; label: string; icon?: string; disabled?: boolean }>; // NEW: Action buttons
   timestamp: Date;
 }
 
@@ -134,15 +136,17 @@ export default function AIInterviewChat({
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
         role: 'ai',
-        text: data.text,
-        type: data.type,
-        options: data.options,
-        creditBreakdown: data.creditBreakdown,
-        totalCredits: data.totalCredits,
-        estimatedTime: data.estimatedTime,
-        oneTimeCost: data.oneTimeCost,
-        worthIt: data.worthIt,
-        generationDetails: data.generationDetails,
+        text: data.response.text,
+        type: data.response.type,
+        options: data.response.options,
+        creditBreakdown: data.response.creditBreakdown,
+        totalCredits: data.response.totalCredits,
+        estimatedTime: data.response.estimatedTime,
+        oneTimeCost: data.response.oneTimeCost,
+        worthIt: data.response.worthIt,
+        generationDetails: data.response.result,
+        fountainFormat: data.response.fountainFormat, // NEW: Fountain format
+        actions: data.response.actions, // NEW: Action buttons
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
@@ -153,8 +157,8 @@ export default function AIInterviewChat({
       setShowFileUpload(false);
 
       // Notify parent if scene was generated
-      if (data.type === 'progress' && data.generationDetails && onSceneGenerated) {
-        onSceneGenerated(data.generationDetails);
+      if (data.response.type === 'scene-generated' && data.response.result && onSceneGenerated) {
+        onSceneGenerated(data.response.result);
       }
 
     } catch (error) {
@@ -359,6 +363,72 @@ export default function AIInterviewChat({
                 <Upload className="w-4 h-4" />
                 Upload Files
               </button>
+            </div>
+          )}
+
+          {/* ✅ PHASE 5: Scene Generated with Fountain Format */}
+          {message.type === 'scene-generated' && message.fountainFormat && (
+            <div className="mt-4 space-y-3">
+              {/* Fountain Format Display */}
+              <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto max-h-96 overflow-y-auto border border-gray-700">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-700">
+                  <span className="text-white font-bold">📜 Fountain Format Scene</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(message.fountainFormat!);
+                      alert('✅ Fountain format copied to clipboard!');
+                    }}
+                    className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded flex items-center gap-1"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
+                </div>
+                <pre className="whitespace-pre-wrap text-xs leading-relaxed">
+                  {message.fountainFormat}
+                </pre>
+              </div>
+
+              {/* Action Buttons */}
+              {message.actions && message.actions.length > 0 && (
+                <div className="flex gap-2">
+                  {message.actions.map(action => (
+                    <button
+                      key={action.id}
+                      onClick={() => {
+                        if (action.id === 'copy-fountain') {
+                          navigator.clipboard.writeText(message.fountainFormat!);
+                          alert('✅ Fountain format copied to clipboard!');
+                        } else if (action.id === 'view-jobs') {
+                          // Navigate to Jobs tab - will be handled by parent component
+                          console.log('[AIInterviewChat] View in Jobs clicked');
+                        }
+                      }}
+                      disabled={action.disabled || isLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      {action.icon === 'clipboard' && <Copy className="w-4 h-4" />}
+                      {action.icon === 'external-link' && <ExternalLink className="w-4 h-4" />}
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Generation Progress Indicator */}
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 p-3 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <div className="font-medium text-blue-900 dark:text-blue-100">
+                      Videos generating in background...
+                    </div>
+                    <div className="text-blue-700 dark:text-blue-300 mt-1">
+                      {message.estimatedTime && `⏱️ ${message.estimatedTime}`}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
