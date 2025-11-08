@@ -1,32 +1,33 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import type {
     StoryBeat,
     Scene,
     Character,
     Location,
     Relationships,
-    BeatsFile,
-    CharactersFile,
-    LocationsFile,
-    RelationshipsFile,
     CreateInput,
     CascadeOption,
     DeletionResult,
     ImageAsset
 } from '@/types/screenplay';
 import {
-    initializeGitHub,
-    getStructureFile,
-    saveStructureFile,
-    createMultiFileCommit
-} from '@/utils/github';
-import {
-    createCharacterIssue,
-    createLocationIssue,
-    closeIssue
-} from '@/utils/githubIssues';
+    listCharacters,
+    createCharacter as apiCreateCharacter,
+    updateCharacter as apiUpdateCharacter,
+    deleteCharacter as apiDeleteCharacter,
+    listLocations,
+    createLocation as apiCreateLocation,
+    updateLocation as apiUpdateLocation,
+    deleteLocation as apiDeleteLocation,
+    listBeats,
+    createBeat as apiCreateBeat,
+    updateBeat as apiUpdateBeat,
+    deleteBeat as apiDeleteBeat,
+    updateRelationships as apiUpdateRelationships
+} from '@/utils/screenplayStorage';
 import {
     updateScriptTags
 } from '@/utils/fountainTags';
@@ -44,10 +45,8 @@ interface ScreenplayContextType {
     isLoading: boolean;
     error: string | null;
     
-    // GitHub Config
-    isConnected: boolean;
-    connect: (token: string, owner: string, repo: string) => void;
-    disconnect: () => void;
+    // Feature 0111 Phase 3: DynamoDB screenplay tracking
+    screenplayId: string | null;
     
     // CRUD - Story Beats
     createBeat: (beat: CreateInput<StoryBeat>) => Promise<StoryBeat>;
@@ -110,10 +109,6 @@ interface ScreenplayContextType {
         entityType: 'character' | 'location' | 'scene' | 'storybeat',
         entityId: string
     ) => ImageAsset[];
-    
-    // Sync
-    syncFromGitHub: () => Promise<void>;
-    syncToGitHub: (message: string) => Promise<void>;
     
     // Clear all data (when editor is cleared)
     clearAllData: () => Promise<void>;
@@ -206,57 +201,78 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Track if we've auto-created the 8-Sequence Structure to prevent duplicates
     const hasAutoCreated = useRef(false);
     
-    // Ref for auto-sync timer
-    const autoSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // ========================================================================
+    // Feature 0111 Phase 3: DynamoDB Integration & Clerk Auth
+    // ========================================================================
+    const { getToken } = useAuth();
     
-    // Ref to track if there are pending changes that need syncing
-    const hasPendingChanges = useRef(false);
-    
-    // GitHub connection - Load from localStorage if available
-    const [githubConfig, setGithubConfig] = useState<ReturnType<typeof initializeGitHub> | null>(() => {
+    // Track current screenplay_id (from EditorContext via localStorage)
+    const [screenplayId, setScreenplayId] = useState<string | null>(() => {
         if (typeof window === 'undefined') return null;
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.GITHUB_CONFIG);
-            if (saved) {
-                const config = JSON.parse(saved);
-                return initializeGitHub(config.token, config.owner, config.repo);
-            }
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load GitHub config from localStorage', error);
-        }
-        return null;
-    });
-    const [isConnected, setIsConnected] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return !!localStorage.getItem(STORAGE_KEYS.GITHUB_CONFIG);
+        return localStorage.getItem('current_screenplay_id');
     });
     
-    // File SHAs for optimistic GitHub updates (prevents "file changed" errors)
-    const [fileSHAs, setFileSHAs] = useState<{
-        beats?: string;
-        characters?: string;
-        locations?: string;
-        relationships?: string;
-    }>({});
+    // Update screenplay_id when localStorage changes (EditorContext saves it)
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const id = localStorage.getItem('current_screenplay_id');
+            setScreenplayId(id);
+            console.log('[ScreenplayContext] Screenplay ID updated:', id);
+        };
+        
+        // Listen for changes from other tabs/windows
+        window.addEventListener('storage', handleStorageChange);
+        
+        // Also check periodically in case same-tab updates don't fire storage event
+        const interval = setInterval(handleStorageChange, 5000);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, []);
 
-    // Load from GitHub on mount + Auto-create 8-Sequence Structure if empty
+    // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
         async function initializeData() {
-            // Try to load from GitHub if connected
-            if (githubConfig && isConnected) {
+            // Feature 0111 Phase 3: Load from DynamoDB if screenplay exists
+            if (screenplayId) {
                 try {
-                    console.log('[ScreenplayContext] Loading data from GitHub...');
-                    await syncFromGitHub();
-                    console.log('[ScreenplayContext] ✅ Loaded from GitHub');
+                    console.log('[ScreenplayContext] Loading structure from DynamoDB for:', screenplayId);
+                    
+                    // Load characters, locations from DynamoDB
+                    // Note: Beats are kept in localStorage for now (scenes are complex nested data)
+                    const [charactersData, locationsData] = await Promise.all([
+                        listCharacters(screenplayId, getToken).catch(err => {
+                            console.warn('[ScreenplayContext] Failed to load characters:', err);
+                            return [];
+                        }),
+                        listLocations(screenplayId, getToken).catch(err => {
+                            console.warn('[ScreenplayContext] Failed to load locations:', err);
+                            return [];
+                        })
+                    ]);
+                    
+                    // Update state with loaded data
+                    if (charactersData.length > 0) {
+                        setCharacters(charactersData as Character[]);
+                        console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
+                    }
+                    
+                    if (locationsData.length > 0) {
+                        setLocations(locationsData as Location[]);
+                        console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
+                    }
+                    
                 } catch (err) {
-                    console.error('[ScreenplayContext] Failed to load from GitHub:', err);
-        }
+                    console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
+                }
             } else {
-                console.log('[ScreenplayContext] GitHub not connected - will create default structure');
+                console.log('[ScreenplayContext] No screenplay_id yet - waiting for EditorContext');
             }
             
-            // After loading (or if not connected), check if we need to create default structure
-            if (beats.length === 0) {
+            // After loading (or if no screenplay), check if we need to create default 8-sequence structure
+            if (beats.length === 0 && !hasAutoCreated.current) {
                 const sequences = [
                     {
                         title: 'Sequence 1: Status Quo',
@@ -314,14 +330,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }));
                 
                 setBeats(newBeats);
-                
-                // ⚠️ DO NOT sync to GitHub immediately - let useEffect handle it after state settles
-                // This prevents race conditions where GitHub sync reads old/incomplete state
+                hasAutoCreated.current = true;
+                console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure');
             }
         }
         
         initializeData();
-    }, []); // Empty deps - run only once on mount
+    }, [screenplayId, getToken]); // Re-run when screenplay changes or auth ready
     
     // ========================================================================
     // Auto-save to localStorage when data changes
