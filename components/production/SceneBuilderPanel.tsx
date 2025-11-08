@@ -49,6 +49,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { extractS3Key } from '@/utils/s3';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;

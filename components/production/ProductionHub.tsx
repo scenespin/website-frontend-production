@@ -32,7 +32,10 @@ import {
   Clock,
   Sparkles,
   ChevronRight,
-  X
+  X,
+  Loader2,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 // Phase 2 Components (Feature 0109)
@@ -88,6 +91,8 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
+  const [activeJobs, setActiveJobs] = useState<number>(0);
+  const [showJobsBanner, setShowJobsBanner] = useState(true);
 
   // ============================================================================
   // RESPONSIVE DETECTION
@@ -102,6 +107,36 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // ============================================================================
+  // POLL FOR ACTIVE JOBS
+  // ============================================================================
+
+  useEffect(() => {
+    const fetchActiveJobs = async () => {
+      try {
+        const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=running&limit=100`);
+        const data = await response.json();
+        
+        if (data.success && data.jobs) {
+          const runningCount = data.jobs.filter((job: any) => 
+            job.status === 'running' || job.status === 'queued'
+          ).length;
+          setActiveJobs(runningCount);
+        }
+      } catch (error) {
+        console.error('[ProductionHub] Failed to fetch active jobs:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchActiveJobs();
+
+    // Poll every 10 seconds if there are active jobs
+    const interval = setInterval(fetchActiveJobs, 10000);
+    
+    return () => clearInterval(interval);
+  }, [projectId]);
 
   // ============================================================================
   // TAB CONFIGURATION
@@ -204,6 +239,38 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             {editor.state.title || 'Untitled Project'}
           </p>
         </div>
+
+        {/* Active Jobs Banner */}
+        {activeJobs > 0 && showJobsBanner && (
+          <div className="bg-blue-950 border-b border-blue-800 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-4 h-4 text-blue-400 animate-spin flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-blue-100">
+                  {activeJobs} {activeJobs === 1 ? 'job' : 'jobs'} running
+                </p>
+                <p className="text-xs text-blue-300">
+                  Generating videos in background
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab('jobs')}
+                className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-md transition-colors flex items-center gap-1"
+              >
+                View
+                <ChevronRight className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setShowJobsBanner(false)}
+                className="p-1 hover:bg-blue-800 rounded text-blue-300 hover:text-blue-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Tab Selector (Dropdown) */}
         <div className="bg-gray-900 border-b border-gray-800 p-3">
@@ -383,6 +450,39 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Active Jobs Banner */}
+        {activeJobs > 0 && showJobsBanner && (
+          <div className="bg-blue-950 border-b border-blue-800 px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-blue-100">
+                  {activeJobs} {activeJobs === 1 ? 'job' : 'jobs'} running
+                </p>
+                <p className="text-xs text-blue-300">
+                  Videos generating in background • Auto-refreshing every 10s
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab('jobs')}
+                className="text-sm px-4 py-2 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-lg transition-colors flex items-center gap-2 font-medium"
+              >
+                <Clock className="w-4 h-4" />
+                View Jobs
+              </button>
+              <button
+                onClick={() => setShowJobsBanner(false)}
+                className="p-2 hover:bg-blue-800 rounded-lg text-blue-300 hover:text-blue-100 transition-colors"
+                title="Dismiss banner"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Content Header */}
         <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
           <div className="flex items-center justify-between">
