@@ -250,13 +250,14 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
             <AnimatePresence>
             {(isCreating || isEditing || selectedLocation) && (
                 <>
-                    {/* Backdrop */}
+                    {/* Backdrop - doesn't cover the sidebar area */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-0 bg-background z-[9998]"
+                        className="fixed inset-0 bg-background z-[9998] pointer-events-auto"
+                        style={{ right: 'min(480px, 100vw)' }}
                         onClick={() => {
                             setIsCreating(false);
                             setIsEditing(false);
