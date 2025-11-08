@@ -75,6 +75,26 @@ export default function AIInterviewChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Check for pending workflow prompt from Creative Possibilities Gallery
+  useEffect(() => {
+    const pendingPrompt = localStorage.getItem('pending-workflow-prompt');
+    if (pendingPrompt && !sessionId) {
+      try {
+        const workflowData = JSON.parse(pendingPrompt);
+        console.log('[AIInterviewChat] Starting workflow:', workflowData);
+        
+        // Clear the pending prompt
+        localStorage.removeItem('pending-workflow-prompt');
+        
+        // Send the workflow prompt to start the conversation
+        sendMessage(workflowData.prompt);
+      } catch (err) {
+        console.error('[AIInterviewChat] Error parsing pending workflow prompt:', err);
+        localStorage.removeItem('pending-workflow-prompt');
+      }
+    }
+  }, []); // Only run once on mount
+
   // Send initial prompt if provided
   useEffect(() => {
     if (initialPrompt && !sessionId) {

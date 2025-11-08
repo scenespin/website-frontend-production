@@ -80,12 +80,15 @@ interface CreativePossibilitiesGalleryProps {
  */
 function workflowToExample(workflow: WorkflowFromAPI): CreativeExample {
   // Determine difficulty based on quality and complexity
+  // More balanced distribution across all three levels
   let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate';
-  if (workflow.quality <= 2 || workflow.time.max <= 5) {
+  
+  if (workflow.quality <= 2 || (workflow.time.max <= 5 && workflow.cost.max < 50)) {
     difficulty = 'beginner';
-  } else if (workflow.quality >= 4 || workflow.requiresVideoUpload) {
+  } else if (workflow.quality >= 4 || workflow.requiresVideoUpload || workflow.cost.max > 200) {
     difficulty = 'advanced';
   }
+  // Otherwise stays intermediate (quality 3, moderate time/cost)
 
   // Format time range
   const timeRange = workflow.time.min === workflow.time.max
@@ -97,10 +100,8 @@ function workflowToExample(workflow: WorkflowFromAPI): CreativeExample {
     ? `${workflow.cost.min}`
     : `${workflow.cost.min}-${workflow.cost.max}`;
 
-  // Generate conversation prompt from bestFor or examples
-  const conversationPrompt = workflow.bestFor[0] 
-    ? `I want to ${workflow.bestFor[0].toLowerCase()}`
-    : `Create ${workflow.name.toLowerCase()}`;
+  // Generate conversation prompt from workflow name and description
+  const conversationPrompt = `I want to create: ${workflow.name}. ${workflow.description.substring(0, 100)}`;
 
   // Use placeholder thumbnails (in production, these would come from workflow definitions)
   const thumbnailUrl = `https://images.unsplash.com/photo-${1485846234645 + workflow.popularityScore}?w=400`;

@@ -207,19 +207,16 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   // ============================================================================
 
   const handleStartExample = (example: any) => {
+    // Store the example prompt to pass to AI Chat
+    localStorage.setItem('pending-workflow-prompt', JSON.stringify({
+      workflowId: example.id,
+      workflowName: example.title,
+      prompt: example.conversationPrompt
+    }));
+    
     // Start new chat session with example prompt
     setChatSessionId(null); // Reset to create new session
     setActiveTab('chat');
-    
-    // The AIInterviewChat component will auto-start with the prompt
-    setTimeout(() => {
-      // Trigger the chat with the example prompt
-      const chatInput = document.querySelector('[data-chat-input]') as HTMLInputElement;
-      if (chatInput) {
-        chatInput.value = example.conversationPrompt;
-        chatInput.dispatchEvent(new Event('submit', { bubbles: true }));
-      }
-    }, 100);
   };
 
   const handleStyleAnalysisComplete = (profile: any) => {
