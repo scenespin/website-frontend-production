@@ -771,10 +771,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               <Film className="w-4 h-4 text-info flex-shrink-0" />
               <span className="opacity-70">Screenplay:</span>
               <span className="font-semibold text-info truncate">{editor.state.title}</span>
-              {screenplay.scenes && screenplay.scenes.length > 0 && (
+              {screenplay.beats.length > 0 && (
                 <>
                   <span className="opacity-50">•</span>
-                  <span className="opacity-70">{screenplay.scenes.length} scenes available</span>
+                  <span className="opacity-70">
+                    {screenplay.beats.reduce((total, beat) => total + (beat.scenes?.length || 0), 0)} scenes available
+                  </span>
                 </>
               )}
             </div>
