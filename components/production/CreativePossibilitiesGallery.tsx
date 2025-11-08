@@ -11,6 +11,7 @@ import {
   DollarSign,
   Play,
   ChevronRight,
+  ChevronDown,
   Filter,
   Search,
   Loader2,
@@ -138,6 +139,8 @@ export default function CreativePossibilitiesGallery({
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredExample, setHoveredExample] = useState<string | null>(null);
+  const [showBrowseAll, setShowBrowseAll] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // ============================================================================
   // DATA FETCHING
@@ -205,6 +208,37 @@ export default function CreativePossibilitiesGallery({
 
     return true;
   });
+
+  // ============================================================================
+  // TWO-TIER STRUCTURE
+  // ============================================================================
+
+  // Featured workflows (top 8 by popularity)
+  const featuredWorkflows = filteredExamples
+    .filter(w => w.featured)
+    .slice(0, 8);
+
+  // Remaining workflows grouped by category
+  const remainingWorkflows = filteredExamples.slice(featuredWorkflows.length);
+  
+  const workflowsByCategory = remainingWorkflows.reduce((acc, workflow) => {
+    const category = workflow.categoryLabel || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(workflow);
+    return acc;
+  }, {} as Record<string, CreativeExample[]>);
+
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
 
   // ============================================================================
   // HANDLERS
@@ -327,117 +361,138 @@ export default function CreativePossibilitiesGallery({
         </div>
       )}
 
-      {/* Examples Grid */}
+      {/* Examples Grid - TWO-TIER STRUCTURE */}
       {!loading && !error && (
         <div className="p-6">
-        {filteredExamples.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">No examples found</p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('all');
-                setSelectedDifficulty('all');
-              }}
-              className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
-            >
-              Clear filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredExamples.map((example) => (
-              <div
-                key={example.id}
-                onMouseEnter={() => setHoveredExample(example.id)}
-                onMouseLeave={() => setHoveredExample(null)}
-                className="group relative bg-gray-50 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:shadow-xl cursor-pointer"
-                onClick={() => handleStartExample(example)}
+          {filteredExamples.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 dark:text-gray-400">No examples found</p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                  setSelectedDifficulty('all');
+                }}
+                className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
               >
-                {/* Thumbnail */}
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={example.thumbnailUrl}
-                    alt={example.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                  
-                  {/* Category Badge */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-medium">
-                    {getCategoryIcon(example.category)}
-                    <span className="text-gray-900 dark:text-white">
-                      {getCategoryLabel(example.category)}
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* TIER 1: FEATURED WORKFLOWS (Always Visible) */}
+              {featuredWorkflows.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      Featured Workflows
+                    </h3>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {featuredWorkflows.length} workflows
                     </span>
                   </div>
-
-                  {/* Difficulty Badge */}
-                  <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(example.difficulty)}`}>
-                    {example.difficulty.charAt(0).toUpperCase() + example.difficulty.slice(1)}
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {featuredWorkflows.map((example) => (
+                      <WorkflowCard
+                        key={example.id}
+                        example={example}
+                        isHovered={hoveredExample === example.id}
+                        onMouseEnter={() => setHoveredExample(example.id)}
+                        onMouseLeave={() => setHoveredExample(null)}
+                        onClick={() => handleStartExample(example)}
+                        getCategoryIcon={getCategoryIcon}
+                        getCategoryLabel={getCategoryLabel}
+                        getDifficultyColor={getDifficultyColor}
+                      />
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  {/* Play Button Overlay */}
-                  {hoveredExample === example.id && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 animate-in fade-in">
-                      <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
-                        <Play className="w-8 h-8 text-white ml-1" />
+              {/* TIER 2: BROWSE ALL BUTTON */}
+              {remainingWorkflows.length > 0 && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                  <button
+                    onClick={() => setShowBrowseAll(!showBrowseAll)}
+                    className="w-full px-6 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-white" />
                       </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                          Browse All {filteredExamples.length} Workflows
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Explore the complete catalog organized by category
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown 
+                      className={`w-6 h-6 text-purple-600 dark:text-purple-400 transition-transform ${showBrowseAll ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {/* TIER 2: ALL WORKFLOWS BY CATEGORY */}
+                  {showBrowseAll && (
+                    <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-4">
+                      {Object.entries(workflowsByCategory)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([category, categoryWorkflows]) => (
+                          <div 
+                            key={category}
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                          >
+                            {/* Category Header */}
+                            <button
+                              onClick={() => toggleCategory(category)}
+                              className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-3">
+                                <ChevronRight 
+                                  className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${expandedCategories.has(category) ? 'rotate-90' : ''}`}
+                                />
+                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                  {category}
+                                </h4>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                  ({categoryWorkflows.length})
+                                </span>
+                              </div>
+                            </button>
+
+                            {/* Category Workflows */}
+                            {expandedCategories.has(category) && (
+                              <div className="p-6 bg-white dark:bg-gray-900">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                  {categoryWorkflows.map((example) => (
+                                    <WorkflowCard
+                                      key={example.id}
+                                      example={example}
+                                      isHovered={hoveredExample === example.id}
+                                      onMouseEnter={() => setHoveredExample(example.id)}
+                                      onMouseLeave={() => setHoveredExample(null)}
+                                      onClick={() => handleStartExample(example)}
+                                      getCategoryIcon={getCategoryIcon}
+                                      getCategoryLabel={getCategoryLabel}
+                                      getDifficultyColor={getDifficultyColor}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                     </div>
                   )}
                 </div>
-
-                {/* Content */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1">
-                    {example.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                    {example.description}
-                  </p>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mb-3">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{example.estimatedTime}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="w-3 h-3" />
-                      <span>{example.estimatedCredits} credits</span>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {example.tags.slice(0, 3).map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Try Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStartExample(example);
-                    }}
-                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium group-hover:bg-purple-700"
-                  >
-                    Try This
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* Footer Tip */}
@@ -456,6 +511,121 @@ export default function CreativePossibilitiesGallery({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// WORKFLOW CARD COMPONENT
+// ============================================================================
+
+interface WorkflowCardProps {
+  example: CreativeExample;
+  isHovered: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onClick: () => void;
+  getCategoryIcon: (category: string) => React.ReactNode;
+  getCategoryLabel: (category: string) => string;
+  getDifficultyColor: (difficulty: string) => string;
+}
+
+function WorkflowCard({
+  example,
+  isHovered,
+  onMouseEnter,
+  onMouseLeave,
+  onClick,
+  getCategoryIcon,
+  getCategoryLabel,
+  getDifficultyColor,
+}: WorkflowCardProps) {
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="group relative bg-gray-50 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:shadow-xl cursor-pointer"
+      onClick={onClick}
+    >
+      {/* Thumbnail */}
+      <div className="relative h-48 overflow-hidden">
+        <img
+          src={example.thumbnailUrl}
+          alt={example.title}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+        />
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        
+        {/* Category Badge */}
+        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-medium">
+          {getCategoryIcon(example.category)}
+          <span className="text-gray-900 dark:text-white">
+            {getCategoryLabel(example.category)}
+          </span>
+        </div>
+
+        {/* Difficulty Badge */}
+        <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(example.difficulty)}`}>
+          {example.difficulty.charAt(0).toUpperCase() + example.difficulty.slice(1)}
+        </div>
+
+        {/* Play Button Overlay */}
+        {isHovered && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 animate-in fade-in">
+            <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
+              <Play className="w-8 h-8 text-white ml-1" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1">
+          {example.title}
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+          {example.description}
+        </p>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mb-3">
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{example.estimatedTime}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <DollarSign className="w-3 h-3" />
+            <span>{example.estimatedCredits} credits</span>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1 mb-3">
+          {example.tags.slice(0, 3).map((tag, idx) => (
+            <span
+              key={idx}
+              className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Try Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium group-hover:bg-purple-700"
+        >
+          Try This
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }
