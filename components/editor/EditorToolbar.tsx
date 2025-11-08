@@ -1,15 +1,109 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement } from '@/utils/fountain';
+import { saveToGitHub } from '@/utils/github';
 
 interface EditorToolbarProps {
     className?: string;
     onExportPDF?: () => void;
     onOpenCollaboration?: () => void;
     onSave?: () => void;
+}
+
+/**
+ * Feature 0111: Export to GitHub Button
+ * Optional manual export since auto-sync is removed
+ */
+function ExportToGitHubButton() {
+    const { state } = useEditor();
+    const [exporting, setExporting] = useState(false);
+    const [showSetup, setShowSetup] = useState(false);
+
+    const handleExport = async () => {
+        const githubConfigStr = localStorage.getItem('screenplay_github_config');
+        
+        if (!githubConfigStr) {
+            setShowSetup(true);
+            return;
+        }
+
+        try {
+            setExporting(true);
+            const config = JSON.parse(githubConfigStr);
+
+            await saveToGitHub(config, {
+                path: 'screenplay.fountain',
+                content: state.content,
+                message: `Manual export: ${state.title}`,
+                branch: 'main'
+            });
+
+            alert('✅ Exported to GitHub successfully!');
+        } catch (error: any) {
+            console.error('[GitHub Export] Failed:', error);
+            alert('❌ Export failed: ' + (error.message || 'Unknown error'));
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    return (
+        <>
+            <div className="tooltip tooltip-bottom" data-tip="Export to GitHub (Optional)">
+                <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm text-purple-400"
+                >
+                    {exporting ? (
+                        <>
+                            <span className="loading loading-spinner loading-xs"></span>
+                            <span className="hidden sm:inline">Exporting...</span>
+                        </>
+                    ) : (
+                        <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            <span className="hidden sm:inline">GitHub</span>
+                        </>
+                    )}
+                </button>
+            </div>
+
+            {/* Setup Modal */}
+            {showSetup && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-base-200 rounded-lg p-6 max-w-md mx-4 shadow-xl">
+                        <h3 className="text-lg font-bold mb-3">Connect GitHub</h3>
+                        <p className="text-sm text-base-content/70 mb-4">
+                            GitHub connection is optional. Your screenplay auto-saves to secure cloud storage.
+                            Connect GitHub for version control and backup.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    window.location.href = '/settings?tab=github';
+                                }}
+                                className="btn btn-primary flex-1"
+                            >
+                                Connect GitHub
+                            </button>
+                            <button
+                                onClick={() => setShowSetup(false)}
+                                className="btn btn-ghost flex-1"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
 }
 
 /**
@@ -215,23 +309,11 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </div>
                 )}
                 
-                {/* Divider */}
+                {                /* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
-                {/* GitHub & Collaboration */}
-                {onOpenCollaboration && (
-                    <div className="tooltip tooltip-bottom" data-tip="Connect GitHub • Auto-sync every 30s • Version control">
-                        <button
-                            onClick={onOpenCollaboration}
-                            className="px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm text-purple-400"
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                            <span className="hidden sm:inline">GitHub</span>
-                        </button>
-                    </div>
-                )}
+                {/* Feature 0111: Optional Export to GitHub */}
+                <ExportToGitHubButton />
                 
                 {/* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
