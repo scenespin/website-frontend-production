@@ -420,7 +420,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Create in DynamoDB
         if (screenplayId) {
             try {
-                await apiCreateBeat(screenplayId, newBeat, getToken);
+                // Transform: Extract scene IDs for backend (backend expects string[], not Scene[])
+                const beatForBackend = {
+                    ...newBeat,
+                    scenes: newBeat.scenes.map(s => s.id)
+                };
+                await apiCreateBeat(screenplayId, beatForBackend as any, getToken);
                 console.log('[ScreenplayContext] ✅ Created beat in DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create beat in DynamoDB:', error);
@@ -447,17 +452,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Update in DynamoDB
         if (screenplayId) {
             try {
-                await apiUpdateBeat(
-                    screenplayId,
-                    id,
-                    {
-                        title: updates.title,
-                        description: updates.description,
-                        order: updates.order,
-                        scenes: updates.scenes
-                    },
-                    getToken
-                );
+                // Transform: Extract scene IDs if scenes are being updated
+                const updatesForBackend: any = {};
+                if (updates.title !== undefined) updatesForBackend.title = updates.title;
+                if (updates.description !== undefined) updatesForBackend.description = updates.description;
+                if (updates.order !== undefined) updatesForBackend.order = updates.order;
+                if (updates.scenes !== undefined) {
+                    updatesForBackend.scenes = updates.scenes.map(s => s.id);
+                }
+                
+                await apiUpdateBeat(screenplayId, id, updatesForBackend, getToken);
                 console.log('[ScreenplayContext] ✅ Updated beat in DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
