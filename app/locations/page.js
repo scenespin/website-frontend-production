@@ -16,8 +16,8 @@ function LocationsPageContent() {
   // Handler for AI Interview workflow
   const handleSwitchToChatImageMode = (modelId, entityContext) => {
     if (entityContext?.workflow === 'interview') {
-      setMode('interview');
-      setWorkflow(entityContext);
+      setMode('chat'); // Set to 'chat' mode (interview is a workflow, not a mode)
+      setWorkflow(entityContext); // Set the workflow context
       setIsDrawerOpen(true);
     }
   };
