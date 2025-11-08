@@ -153,7 +153,7 @@ export default function CharacterDetailSidebar({
             <SelectTrigger id="type" onClick={() => console.log('[CharacterModal] Type trigger clicked')}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" sideOffset={4}>
+            <SelectContent position="popper" sideOffset={4} className="z-[10000]">
               <SelectItem value="lead">Lead</SelectItem>
               <SelectItem value="supporting">Supporting</SelectItem>
               <SelectItem value="minor">Minor</SelectItem>
@@ -171,7 +171,7 @@ export default function CharacterDetailSidebar({
             <SelectTrigger id="arc-status">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" sideOffset={4}>
+            <SelectContent position="popper" sideOffset={4} className="z-[10000]">
               <SelectItem value="introduced">Introduced</SelectItem>
               <SelectItem value="developing">Developing</SelectItem>
               <SelectItem value="resolved">Resolved</SelectItem>
