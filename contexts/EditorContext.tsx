@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { saveToGitHub } from '@/utils/github';
+import { useAuth } from '@clerk/nextjs';
+import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 
 interface EditorState {
     // Current document content
@@ -109,6 +111,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
     const hasRunAutoImportRef = useRef(false); // Prevent infinite import loop
+    
+    // Feature 0111: DynamoDB Storage
+    const { getToken } = useAuth();
+    const screenplayIdRef = useRef<string | null>(null);
+    const localSaveCounterRef = useRef(0);
     
     // Get GitHub config from ScreenplayContext
     const screenplay = useScreenplay();
@@ -362,79 +369,72 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         reset
     };
     
-    // Auto-save to localStorage with debounce
+    // Feature 0111: Dual-Interval Auto-Save (like Timeline)
+    // Every 5s → localStorage (crash protection)
+    // Every 30s → DynamoDB (persistent storage)
     useEffect(() => {
-        if (!state.isDirty) return;
-        
-        // Clear any existing timer
-        if (autoSaveTimerRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-        }
-        
-        // Set new timer for auto-save
-        autoSaveTimerRef.current = setTimeout(() => {
+        const interval = setInterval(async () => {
+            // Always save to localStorage every 5 seconds (crash protection)
             try {
-                // Save to localStorage
                 localStorage.setItem('screenplay_draft', state.content);
                 localStorage.setItem('screenplay_title', state.title);
                 localStorage.setItem('screenplay_author', state.author);
-                
-                console.log('[EditorContext] Auto-saved to localStorage');
-                
-                // Mark as saved
-                setState(prev => ({
-                    ...prev,
-                    isDirty: false,
-                    lastSaved: new Date()
-                }));
+                console.log('[EditorContext] ✅ Auto-saved to localStorage');
             } catch (err) {
-                console.error('[EditorContext] Auto-save to localStorage failed:', err);
+                console.error('[EditorContext] localStorage save failed:', err);
             }
-        }, 2000); // 2 second debounce
-        
-        // Cleanup
-        return () => {
-            if (autoSaveTimerRef.current) {
-                clearTimeout(autoSaveTimerRef.current);
-            }
-        };
-    }, [state.content, state.title, state.author, state.isDirty]);
-    
-    // Auto-sync to GitHub with longer debounce (20 seconds)
-    useEffect(() => {
-        if (!state.isDirty || !githubConfig || !githubConfig.token) return;
-        
-        // Clear any existing timer
-        if (githubSyncTimerRef.current) {
-            clearTimeout(githubSyncTimerRef.current);
-        }
-        
-        // Set new timer for GitHub sync
-            githubSyncTimerRef.current = setTimeout(async () => {
+            
+            // Increment counter
+            localSaveCounterRef.current++;
+            
+            // Save to DynamoDB every 6th cycle (30 seconds total)
+            if (localSaveCounterRef.current >= 6) {
                 try {
-                    console.log('[EditorContext] Syncing to GitHub...');
-
-                    await saveToGitHub(githubConfig, {
-                        path: 'screenplay.fountain',
-                        content: state.content,
-                        message: `Auto-save: ${state.title}`,
-                        branch: 'main'
-                    });
-
-                    console.log('[EditorContext] ✅ Synced to GitHub');
-                } catch (err) {
-                    console.error('[EditorContext] GitHub sync failed:', err);
-                    // Don't throw - localStorage backup is already saved
+                    console.log('[EditorContext] Saving to DynamoDB...');
+                    
+                    if (!screenplayIdRef.current) {
+                        // Create new screenplay in DynamoDB
+                        console.log('[EditorContext] Creating new screenplay...');
+                        const screenplay = await createScreenplay({
+                            title: state.title,
+                            author: state.author,
+                            content: state.content
+                        }, getToken);
+                        
+                        screenplayIdRef.current = screenplay.screenplay_id;
+                        localStorage.setItem('current_screenplay_id', screenplay.screenplay_id);
+                        console.log('[EditorContext] ✅ Created screenplay:', screenplay.screenplay_id);
+                    } else {
+                        // Update existing screenplay
+                        console.log('[EditorContext] Updating screenplay:', screenplayIdRef.current);
+                        await updateScreenplay({
+                            screenplay_id: screenplayIdRef.current,
+                            title: state.title,
+                            author: state.author,
+                            content: state.content
+                        }, getToken);
+                        
+                        console.log('[EditorContext] ✅ Updated screenplay');
+                    }
+                    
+                    // Mark as saved
+                    setState(prev => ({
+                        ...prev,
+                        lastSaved: new Date(),
+                        isDirty: false
+                    }));
+                } catch (error: any) {
+                    console.error('[EditorContext] DynamoDB save failed:', error);
+                    // Don't throw - localStorage backup is safe
                 }
-            }, 30000); // 30 second debounce for GitHub (industry standard)
-        
-        // Cleanup
-        return () => {
-            if (githubSyncTimerRef.current) {
-                clearTimeout(githubSyncTimerRef.current);
+                
+                // Reset counter
+                localSaveCounterRef.current = 0;
             }
-        };
-    }, [state.content, state.title, state.isDirty, githubConfig]);
+        }, 5000); // 5 second fixed interval
+        
+        return () => clearInterval(interval);
+    }, [state.content, state.title, state.author, getToken]);
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // Use a debounced check to avoid clearing immediately after import
@@ -468,7 +468,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
     }, [state.content, screenplay]);
     
-    // Load screenplay from GitHub (or localStorage as fallback) on mount
+    // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
         // Only run once on mount
         if (hasRunAutoImportRef.current) {
@@ -484,53 +484,44 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         
         async function loadContent() {
             try {
-                // Priority 1: Load from GitHub if connected
-                if (githubConfig && githubConfig.token) {
+                // Priority 1: Load from DynamoDB
+                const savedScreenplayId = localStorage.getItem('current_screenplay_id');
+                if (savedScreenplayId) {
                     try {
-                        console.log('[EditorContext] Loading screenplay from GitHub...');
-                        const response = await fetch(
-                            `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/screenplay.fountain`,
-                            {
-                                headers: {
-                                    'Authorization': `token ${githubConfig.token}`,
-                                    'Accept': 'application/vnd.github.v3.raw'
-                                }
-                            }
-                        );
+                        console.log('[EditorContext] Loading screenplay from DynamoDB...');
+                        const savedScreenplay = await getScreenplay(savedScreenplayId, getToken);
                         
-                        if (response.ok) {
-                            const content = await response.text();
-                            console.log('[EditorContext] ✅ Loaded screenplay from GitHub');
+                        if (savedScreenplay) {
+                            console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB');
+                            screenplayIdRef.current = savedScreenplayId;
                             setState(prev => ({
                                 ...prev,
-                                content,
+                                content: savedScreenplay.content,
+                                title: savedScreenplay.title,
+                                author: savedScreenplay.author,
                                 isDirty: false
                             }));
                             isInitialLoadRef.current = false;
                             return; // Success!
-                        } else if (response.status === 404) {
-                            console.log('[EditorContext] No screenplay in GitHub yet (404), using localStorage fallback');
-                        } else {
-                            console.warn('[EditorContext] GitHub load failed:', response.status);
                         }
                     } catch (err) {
-                        console.error('[EditorContext] Error loading from GitHub:', err);
+                        console.error('[EditorContext] Error loading from DynamoDB:', err);
                     }
                 }
                 
-                // Priority 2: Fallback to localStorage (for first-time users or offline)
+                // Priority 2: Fallback to localStorage (crash recovery)
                 const savedContent = localStorage.getItem('screenplay_draft');
                 const savedTitle = localStorage.getItem('screenplay_title');
                 const savedAuthor = localStorage.getItem('screenplay_author');
                 
                 if (savedContent) {
-                    console.log('[EditorContext] Loaded draft from localStorage (fallback)');
+                    console.log('[EditorContext] Recovered draft from localStorage');
                     setState(prev => ({
                         ...prev,
                         content: savedContent,
                         title: savedTitle || prev.title,
                         author: savedAuthor || prev.author,
-                        isDirty: false
+                        isDirty: true // Mark dirty to trigger DynamoDB save
                     }));
                 } else {
                     console.log('[EditorContext] No saved content found (new user)');
@@ -544,7 +535,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
         
         loadContent();
-    }, [screenplay, githubConfig]); // Depend on both
+    }, [screenplay, getToken]); // Depend on screenplay and getToken
     
     return (
         <EditorContext.Provider value={value}>
