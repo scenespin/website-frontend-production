@@ -247,6 +247,362 @@ export async function getScreenplayCount(
 }
 
 // ============================================================================
+// CHARACTER API FUNCTIONS
+// ============================================================================
+
+/**
+ * List characters for a screenplay
+ */
+export async function listCharacters(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Character[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to list characters');
+  }
+
+  const data = await response.json();
+  return data.data.characters;
+}
+
+/**
+ * Create a new character
+ */
+export async function createCharacter(
+  screenplayId: string,
+  character: Omit<Character, 'id'>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Character> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(character)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create character');
+  }
+
+  const data = await response.json();
+  return data.data.character;
+}
+
+/**
+ * Update a character
+ */
+export async function updateCharacter(
+  screenplayId: string,
+  characterId: string,
+  updates: Partial<Omit<Character, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Character> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update character');
+  }
+
+  const data = await response.json();
+  return data.data.character;
+}
+
+/**
+ * Delete a character
+ */
+export async function deleteCharacter(
+  screenplayId: string,
+  characterId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete character');
+  }
+}
+
+// ============================================================================
+// LOCATION API FUNCTIONS
+// ============================================================================
+
+/**
+ * List locations for a screenplay
+ */
+export async function listLocations(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Location[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to list locations');
+  }
+
+  const data = await response.json();
+  return data.data.locations;
+}
+
+/**
+ * Create a new location
+ */
+export async function createLocation(
+  screenplayId: string,
+  location: Omit<Location, 'id'>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Location> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(location)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create location');
+  }
+
+  const data = await response.json();
+  return data.data.location;
+}
+
+/**
+ * Update a location
+ */
+export async function updateLocation(
+  screenplayId: string,
+  locationId: string,
+  updates: Partial<Omit<Location, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Location> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations/${locationId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update location');
+  }
+
+  const data = await response.json();
+  return data.data.location;
+}
+
+/**
+ * Delete a location
+ */
+export async function deleteLocation(
+  screenplayId: string,
+  locationId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations/${locationId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete location');
+  }
+}
+
+// ============================================================================
+// BEAT API FUNCTIONS
+// ============================================================================
+
+/**
+ * List beats for a screenplay
+ */
+export async function listBeats(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Beat[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to list beats');
+  }
+
+  const data = await response.json();
+  return data.data.beats;
+}
+
+/**
+ * Create a new beat
+ */
+export async function createBeat(
+  screenplayId: string,
+  beat: Omit<Beat, 'id'>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Beat> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(beat)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create beat');
+  }
+
+  const data = await response.json();
+  return data.data.beat;
+}
+
+/**
+ * Update a beat
+ */
+export async function updateBeat(
+  screenplayId: string,
+  beatId: string,
+  updates: Partial<Omit<Beat, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Beat> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats/${beatId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update beat');
+  }
+
+  const data = await response.json();
+  return data.data.beat;
+}
+
+/**
+ * Delete a beat
+ */
+export async function deleteBeat(
+  screenplayId: string,
+  beatId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats/${beatId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete beat');
+  }
+}
+
+// ============================================================================
+// RELATIONSHIPS API FUNCTIONS
+// ============================================================================
+
+/**
+ * Update relationships (full replace)
+ */
+export async function updateRelationships(
+  screenplayId: string,
+  relationships: Relationships,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Relationships> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/relationships`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(relationships)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update relationships');
+  }
+
+  const data = await response.json();
+  return data.data.relationships;
+}
+
+// ============================================================================
 // LOCALSTORAGE HELPERS
 // ============================================================================
 
