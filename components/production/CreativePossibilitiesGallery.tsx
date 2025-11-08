@@ -15,7 +15,8 @@ import {
   Filter,
   Search,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 // ============================================================================
@@ -142,6 +143,8 @@ export default function CreativePossibilitiesGallery({
   const [hoveredExample, setHoveredExample] = useState<string | null>(null);
   const [showBrowseAll, setShowBrowseAll] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<CreativeExample | null>(null);
 
   // ============================================================================
   // DATA FETCHING
@@ -409,6 +412,11 @@ export default function CreativePossibilitiesGallery({
                         onMouseEnter={() => setHoveredExample(example.id)}
                         onMouseLeave={() => setHoveredExample(null)}
                         onClick={() => handleStartExample(example)}
+                        onPlayClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVideo(example);
+                          setVideoModalOpen(true);
+                        }}
                         getCategoryIcon={getCategoryIcon}
                         getCategoryLabel={getCategoryLabel}
                         getDifficultyColor={getDifficultyColor}
@@ -487,6 +495,11 @@ export default function CreativePossibilitiesGallery({
                                       onMouseEnter={() => setHoveredExample(example.id)}
                                       onMouseLeave={() => setHoveredExample(null)}
                                       onClick={() => handleStartExample(example)}
+                                      onPlayClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedVideo(example);
+                                        setVideoModalOpen(true);
+                                      }}
                                       getCategoryIcon={getCategoryIcon}
                                       getCategoryLabel={getCategoryLabel}
                                       getDifficultyColor={getDifficultyColor}
@@ -522,6 +535,72 @@ export default function CreativePossibilitiesGallery({
           </div>
         </div>
       )}
+
+      {/* Video Preview Modal */}
+      {videoModalOpen && selectedVideo && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setVideoModalOpen(false)}
+        >
+          <div 
+            className="relative w-full max-w-4xl mx-4 bg-gray-900 rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setVideoModalOpen(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center transition-colors"
+              aria-label="Close video preview"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+
+            {/* Video Player */}
+            <div className="aspect-video bg-black">
+              {selectedVideo.previewVideoUrl ? (
+                <video
+                  src={selectedVideo.previewVideoUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-full"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>Video preview coming soon</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Video Info */}
+            <div className="p-6 border-t border-gray-800">
+              <h3 className="text-xl font-bold text-white mb-2">
+                {selectedVideo.title}
+              </h3>
+              <p className="text-gray-400 mb-4">
+                {selectedVideo.description}
+              </p>
+              
+              <button
+                onClick={() => {
+                  setVideoModalOpen(false);
+                  if (onStartExample) {
+                    onStartExample(selectedVideo);
+                  }
+                }}
+                className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
+                Start This Workflow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -536,6 +615,7 @@ interface WorkflowCardProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onClick: () => void;
+  onPlayClick: (e: React.MouseEvent) => void;
   getCategoryIcon: (category: string) => React.ReactNode;
   getCategoryLabel: (category: string) => string;
   getDifficultyColor: (difficulty: string) => string;
@@ -547,6 +627,7 @@ function WorkflowCard({
   onMouseEnter,
   onMouseLeave,
   onClick,
+  onPlayClick,
   getCategoryIcon,
   getCategoryLabel,
   getDifficultyColor,
@@ -594,10 +675,13 @@ function WorkflowCard({
           {example.difficulty.charAt(0).toUpperCase() + example.difficulty.slice(1)}
         </div>
 
-        {/* Play Button Overlay */}
+        {/* Play Button Overlay - Stops propagation to show video preview */}
         {isHovered && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 animate-in fade-in">
-            <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
+          <div 
+            className="absolute inset-0 flex items-center justify-center bg-black/50 animate-in fade-in"
+            onClick={onPlayClick}
+          >
+            <div className="w-16 h-16 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center transition-colors">
               <Play className="w-8 h-8 text-white ml-1" />
             </div>
           </div>
