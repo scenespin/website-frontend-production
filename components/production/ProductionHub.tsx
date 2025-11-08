@@ -241,7 +241,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="bg-gray-900 border-b border-gray-800 p-4">
           <h1 className="text-xl font-bold text-white">Production Hub</h1>
           <p className="text-sm text-gray-400">
-            {screenplay.isConnected ? `${screenplay.beats.length} beats • ${screenplay.characters.length} characters` : 'No screenplay connected'}
+            {screenplay.screenplayId ? `${screenplay.beats.length} beats • ${screenplay.characters.length} characters` : 'No screenplay loaded'}
           </p>
         </div>
 
@@ -400,7 +400,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="p-4 border-b border-gray-800">
           <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>
           <p className="text-sm text-gray-400 truncate">
-            {screenplay.isConnected ? `${screenplay.beats.length} beats` : 'No screenplay'}
+            {screenplay.screenplayId ? `${screenplay.beats.length} beats` : 'No screenplay'}
           </p>
         </div>
 

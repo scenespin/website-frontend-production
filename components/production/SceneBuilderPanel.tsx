@@ -761,8 +761,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="h-full flex flex-col">
-      {/* Screenplay Context Banner (when connected) */}
-      {screenplay.isConnected && screenplay.beats.length > 0 && (
+      {/* Screenplay Context Banner (when loaded) */}
+      {screenplay.screenplayId && screenplay.beats.length > 0 && (
         <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
           <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -783,8 +783,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         </div>
       )}
 
-      {/* GitHub Connection Prompt (when not connected) */}
-      {!screenplay.isConnected && (
+      {/* DynamoDB Storage Info (when not loaded from screenplay) */}
+      {!screenplay.screenplayId && (
         <div className="flex-shrink-0 bg-yellow-50 dark:bg-yellow-950/20 border-b border-yellow-200 dark:border-yellow-900 px-6 py-3">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />

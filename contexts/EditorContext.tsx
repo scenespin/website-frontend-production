@@ -117,13 +117,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
     
-    // Get GitHub config from ScreenplayContext
+    // Get GitHub config from localStorage (optional export feature)
     const screenplay = useScreenplay();
-    const githubConfig = screenplay?.isConnected ? {
-        token: localStorage.getItem('screenplay_github_config') ? JSON.parse(localStorage.getItem('screenplay_github_config')!).token : null,
-        owner: localStorage.getItem('screenplay_github_config') ? JSON.parse(localStorage.getItem('screenplay_github_config')!).owner : null,
-        repo: localStorage.getItem('screenplay_github_config') ? JSON.parse(localStorage.getItem('screenplay_github_config')!).repo : null,
-    } : null;
+    const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
+    const githubConfig = githubConfigStr ? JSON.parse(githubConfigStr) : null;
     
     // Content operations
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
