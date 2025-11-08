@@ -9,9 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/waitlist(.*)',           // Waitlist signup
   '/api/affiliates(.*)',         // Affiliate tracking  
   '/api/analytics(.*)',          // Analytics events
-  '/api/auth/github(.*)',        // GitHub OAuth
-  '/api/auth/google(.*)',        // Google OAuth
-  '/api/auth/dropbox(.*)',       // Dropbox OAuth
+  '/api/auth/(.*)',              // All OAuth routes
 ])
 
 export default clerkMiddleware(async (auth, req) => {
