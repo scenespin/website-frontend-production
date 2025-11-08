@@ -160,14 +160,15 @@ export default function CreativePossibilitiesGallery({
           throw new Error(`Failed to fetch workflows: ${response.status}`);
         }
 
-        const data = await response.json();
+        const result = await response.json();
         
-        if (!data.success || !data.workflows) {
+        // Backend uses sendSuccess() which wraps data in { success, data: { workflows, ... } }
+        if (!result.success || !result.data || !result.data.workflows) {
           throw new Error('Invalid response format');
         }
 
         // Convert API workflows to CreativeExample format
-        const examples = data.workflows.map(workflowToExample);
+        const examples = result.data.workflows.map(workflowToExample);
         setWorkflows(examples);
 
       } catch (err) {
