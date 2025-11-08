@@ -394,28 +394,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [relationships]);
     
     // ========================================================================
-    // GitHub Connection
+    // Feature 0111 Phase 3: GitHub Connection (REMOVED)
+    // GitHub is now optional - config stored in localStorage for export only
+    // Old connect/disconnect/sync functions removed - see EditorToolbar for export
     // ========================================================================
-    
-    const connect = useCallback((token: string, owner: string, repo: string) => {
-        const config = initializeGitHub(token, owner, repo);
-        setGithubConfig(config);
-        setIsConnected(true);
-        
-        // Save to localStorage so it persists across page refreshes
-        try {
-            localStorage.setItem(STORAGE_KEYS.GITHUB_CONFIG, JSON.stringify({ token, owner, repo }));
-            console.log('[ScreenplayContext] Connected to GitHub and saved config');
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save GitHub config to localStorage:', error);
-        }
-    }, []);
-    
-    const disconnect = useCallback(() => {
-        setGithubConfig(null);
-        setIsConnected(false);
-        console.log('[ScreenplayContext] Disconnected from GitHub');
-    }, []);
     
     // ========================================================================
     // Sync Operations

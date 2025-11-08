@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 /**
  * Feature 0111: GitHub OAuth Callback Handler
  * Handles the OAuth callback when user connects GitHub (optional)
- * This replaces the removed GitHubRequiredGate's OAuth handling
+ * Saves GitHub config to localStorage for export functionality
  */
 export default function GitHubOAuthHandler() {
     const searchParams = useSearchParams();
-    const screenplay = useScreenplay();
     const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
@@ -79,9 +77,16 @@ export default function GitHubOAuthHandler() {
                     const repo = repos[0];
                     const [owner, repoName] = repo.full_name.split('/');
                     
-                    // Connect to screenplay context
-                    screenplay?.connect(accessToken, owner, repoName);
+                    // Feature 0111: Save GitHub config to localStorage for export
+                    const githubConfig = {
+                        accessToken,
+                        owner,
+                        repo: repoName,
+                        branch: 'main'
+                    };
+                    localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
                     
+                    console.log('[GitHub OAuth] ✅ Saved GitHub config for export');
                     alert(`✅ Connected to GitHub: ${repo.full_name}\n\nYou can now export your screenplay!`);
                 } else {
                     alert('⚠️ No repositories found. Please create a repository on GitHub first.');
@@ -90,7 +95,7 @@ export default function GitHubOAuthHandler() {
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
-            } catch (err) {
+            } catch (err: any) {
                 console.error('[GitHub OAuth] Error:', err);
                 alert('❌ GitHub connection failed: ' + (err.message || 'Unknown error'));
                 
@@ -102,7 +107,7 @@ export default function GitHubOAuthHandler() {
         };
         
         handleOAuthCallback();
-    }, [searchParams, screenplay, isProcessing]);
+    }, [searchParams, isProcessing]);
 
     // This component renders nothing - it just handles the OAuth callback
     return null;
