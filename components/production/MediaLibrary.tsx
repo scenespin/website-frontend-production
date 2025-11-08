@@ -263,21 +263,71 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('projectId', projectId);
+      // Step 1: Get pre-signed URL for S3 upload
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` + 
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&projectId=${encodeURIComponent(projectId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      const response = await fetch('/api/media/upload', {
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error(`File too large. Maximum size is ${maxFileSize}MB.`);
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
+      }
+
+      const { uploadUrl, s3Key } = await presignedResponse.json();
+      
+      if (!uploadUrl || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Step 2: Upload directly to S3 (bypasses Next.js!)
+      const s3Response = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!s3Response.ok) {
+        throw new Error(`S3 upload failed: ${s3Response.status}`);
+      }
+
+      setUploadProgress(75);
+
+      // Step 3: Register the file with the backend
+      const registerResponse = await fetch('/api/media/register', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify({
+          projectId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          s3Key,
+        }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Upload failed: ${response.status}`);
+      if (!registerResponse.ok) {
+        throw new Error('Failed to register file');
       }
 
       await loadFiles(); // Refresh list
