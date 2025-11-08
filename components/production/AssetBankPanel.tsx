@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Plus, Package, Car, Armchair, Box, Trash2, Edit2, Sparkles, Image as ImageIcon, Download, X, Film } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
@@ -23,6 +24,9 @@ interface AssetBankPanelProps {
 }
 
 export default function AssetBankPanel({ projectId, className = '', isMobile = false }: AssetBankPanelProps) {
+  // Authentication
+  const { getToken } = useAuth();
+  
   // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
   
@@ -42,6 +46,13 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   const fetchAssets = async () => {
     setLoading(true);
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        console.log('[AssetBank] No auth token available');
+        setLoading(false);
+        return;
+      }
+      
       const params = new URLSearchParams({ projectId });
       if (selectedCategory !== 'all') {
         params.append('category', selectedCategory);
@@ -49,7 +60,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
 
       const response = await fetch(`/api/asset-bank?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -86,10 +97,16 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
 
   const handleDownload3D = async (asset: Asset) => {
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+      
       // Fetch the 3D model URLs from the API
       const response = await fetch(`/api/asset-bank/${asset.id}/3d-models`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

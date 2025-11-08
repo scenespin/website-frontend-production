@@ -113,7 +113,17 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   useEffect(() => {
     const fetchActiveJobs = async () => {
       try {
-        const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=running&limit=100`);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          console.log('[ProductionHub] No auth token, skipping job fetch');
+          return;
+        }
+        
+        const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=running&limit=100`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const data = await response.json();
         
         if (data.success && data.jobs) {
@@ -134,7 +144,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
     const interval = setInterval(fetchActiveJobs, 10000);
     
     return () => clearInterval(interval);
-  }, [projectId]);
+  }, [projectId, getToken]);
 
   // ============================================================================
   // TAB CONFIGURATION
