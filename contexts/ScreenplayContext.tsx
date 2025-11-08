@@ -785,16 +785,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Update in DynamoDB
         if (screenplayId && updatedCharacter) {
             try {
-                await apiUpdateCharacter(
-                    screenplayId,
-                    id,
-                    {
-                        name: updates.name,
-                        description: updates.description,
-                        referenceImages: updates.referenceImages
-                    },
-                    getToken
-                );
+                // Only send fields that are defined in updates
+                const updatesForBackend: any = {};
+                if (updates.name !== undefined) updatesForBackend.name = updates.name;
+                if (updates.description !== undefined) updatesForBackend.description = updates.description;
+                // Note: referenceImages is not in frontend Character type yet, skip for now
+                
+                await apiUpdateCharacter(screenplayId, id, updatesForBackend, getToken);
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update character in DynamoDB:', error);
@@ -987,18 +984,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Update in DynamoDB
         if (screenplayId && updatedLocation) {
             try {
-                await apiUpdateLocation(
-                    screenplayId,
-                    id,
-                    {
-                        name: updates.name,
-                        description: updates.description,
-                        type: updates.type,
-                        productionNotes: updates.productionNotes,
-                        referenceImages: updates.referenceImages
-                    },
-                    getToken
-                );
+                // Only send fields that are defined in updates
+                const updatesForBackend: any = {};
+                if (updates.name !== undefined) updatesForBackend.name = updates.name;
+                if (updates.description !== undefined) updatesForBackend.description = updates.description;
+                // Note: Backend expects referenceImages (string[]), frontend has images (ImageAsset[])
+                // Skip for now until we implement image upload in Phase 3.6
+                
+                await apiUpdateLocation(screenplayId, id, updatesForBackend, getToken);
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update location in DynamoDB:', error);
