@@ -683,12 +683,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         setBeats(prev => [...prev, newBeat]);
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Created story beat "${newBeat.title}"`);
+        // Feature 0111 Phase 3: Create in DynamoDB
+        if (screenplayId) {
+            try {
+                await apiCreateBeat(screenplayId, newBeat, getToken);
+                console.log('[ScreenplayContext] ✅ Created beat in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to create beat in DynamoDB:', error);
+            }
         }
         
         return newBeat;
-    }, [githubConfig, syncToGitHub]);
+    }, [screenplayId, getToken]);
     
     const updateBeat = useCallback(async (id: string, updates: Partial<StoryBeat>) => {
         setBeats(prev => prev.map(beat => {
@@ -704,19 +710,41 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return updatedBeat;
         }));
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Updated story beat`);
+        // Feature 0111 Phase 3: Update in DynamoDB
+        if (screenplayId) {
+            try {
+                await apiUpdateBeat(
+                    screenplayId,
+                    id,
+                    {
+                        title: updates.title,
+                        description: updates.description,
+                        order: updates.order,
+                        scenes: updates.scenes
+                    },
+                    getToken
+                );
+                console.log('[ScreenplayContext] ✅ Updated beat in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [screenplayId, getToken]);
     
     const deleteBeat = useCallback(async (id: string) => {
         const beat = beats.find(b => b.id === id);
         setBeats(prev => prev.filter(b => b.id !== id));
         
-        if (githubConfig && beat) {
-            await syncToGitHub(`feat: Deleted story beat "${beat.title}"`);
+        // Feature 0111 Phase 3: Delete from DynamoDB
+        if (screenplayId && beat) {
+            try {
+                await apiDeleteBeat(screenplayId, id, getToken);
+                console.log('[ScreenplayContext] ✅ Deleted beat from DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to delete beat from DynamoDB:', error);
+            }
         }
-    }, [beats, githubConfig, syncToGitHub]);
+    }, [beats, screenplayId, getToken]);
     
     // ========================================================================
     // CRUD - Scenes
@@ -753,12 +781,29 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }));
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Created scene ${newScene.number} - ${newScene.heading}`);
+        // Feature 0111 Phase 3: Update beat in DynamoDB (scenes are nested)
+        if (screenplayId) {
+            try {
+                // Find the updated beat
+                const updatedBeat = beats.find(b => b.id === beatId);
+                if (updatedBeat) {
+                    await apiUpdateBeat(
+                        screenplayId,
+                        beatId,
+                        {
+                            scenes: [...updatedBeat.scenes, newScene]
+                        },
+                        getToken
+                    );
+                    console.log('[ScreenplayContext] ✅ Updated beat (added scene) in DynamoDB');
+                }
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+            }
         }
         
         return newScene;
-    }, [githubConfig, syncToGitHub]);
+    }, [beats, screenplayId, getToken]);
     
     const updateScene = useCallback(async (id: string, updates: Partial<Scene>) => {
         const now = new Date().toISOString();
@@ -782,10 +827,29 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return updatedBeats;
         });
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Updated scene`);
+        // Feature 0111 Phase 3: Update all beats in DynamoDB (since scene updated)
+        if (screenplayId) {
+            try {
+                // Find which beat contains this scene
+                const parentBeat = beats.find(beat => beat.scenes.some(s => s.id === id));
+                if (parentBeat) {
+                    const updatedScenes = parentBeat.scenes.map(scene =>
+                        scene.id === id ? { ...scene, ...updates, updatedAt: now } : scene
+                    );
+                    
+                    await apiUpdateBeat(
+                        screenplayId,
+                        parentBeat.id,
+                        { scenes: updatedScenes },
+                        getToken
+                    );
+                    console.log('[ScreenplayContext] ✅ Updated beat (modified scene) in DynamoDB');
+                }
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [beats, screenplayId, getToken]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
     const recalculateBeatPageRanges = (beats: StoryBeat[]): StoryBeat[] => {
@@ -836,10 +900,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        if (githubConfig && deletedScene) {
-            await syncToGitHub(`feat: Deleted scene ${deletedScene.number}`);
+        // Feature 0111 Phase 3: Update beat in DynamoDB (scene deleted)
+        if (screenplayId && deletedScene) {
+            try {
+                const parentBeat = beats.find(beat => beat.scenes.some(s => s.id === id));
+                if (parentBeat) {
+                    const updatedScenes = parentBeat.scenes.filter(s => s.id !== id);
+                    
+                    await apiUpdateBeat(
+                        screenplayId,
+                        parentBeat.id,
+                        { scenes: updatedScenes },
+                        getToken
+                    );
+                    console.log('[ScreenplayContext] ✅ Updated beat (deleted scene) in DynamoDB');
+                }
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [beats, screenplayId, getToken]);
     
     const moveScene = useCallback(async (sceneId: string, targetBeatId: string, newOrder: number) => {
         let movedScene: Scene | undefined;
@@ -868,11 +948,41 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 return beat;
             }));
             
-            if (githubConfig) {
-                await syncToGitHub(`feat: Moved scene ${movedScene.number}`);
+            // Feature 0111 Phase 3: Update both beats in DynamoDB (scene moved)
+            if (screenplayId) {
+                try {
+                    // Update source beat (scene removed)
+                    const sourceBeat = beats.find(beat => beat.scenes.some(s => s.id === sceneId));
+                    if (sourceBeat) {
+                        await apiUpdateBeat(
+                            screenplayId,
+                            sourceBeat.id,
+                            { scenes: sourceBeat.scenes.filter(s => s.id !== sceneId) },
+                            getToken
+                        );
+                    }
+                    
+                    // Update target beat (scene added)
+                    const targetBeat = beats.find(b => b.id === targetBeatId);
+                    if (targetBeat) {
+                        const scenes = [...targetBeat.scenes];
+                        scenes.splice(newOrder, 0, { ...movedScene, beatId: targetBeatId });
+                        
+                        await apiUpdateBeat(
+                            screenplayId,
+                            targetBeatId,
+                            { scenes },
+                            getToken
+                        );
+                    }
+                    
+                    console.log('[ScreenplayContext] ✅ Updated beats (moved scene) in DynamoDB');
+                } catch (error) {
+                    console.error('[ScreenplayContext] Failed to update beats in DynamoDB:', error);
+                }
             }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [beats, screenplayId, getToken]);
     
     // ========================================================================
     // CRUD - Characters
@@ -886,18 +996,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: now,
             updatedAt: now
         };
-        
-        // Create GitHub Issue if connected
-        if (githubConfig) {
-            const issueNumber = await createCharacterIssue(githubConfig, {
-                name: newCharacter.name,
-                type: newCharacter.type,
-                description: newCharacter.description,
-                firstAppearance: newCharacter.firstAppearance,
-                arcStatus: newCharacter.arcStatus
-            });
-            newCharacter.githubIssueNumber = issueNumber;
-        }
         
         setCharacters(prev => [...prev, newCharacter]);
         
@@ -914,12 +1012,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }));
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: [#${newCharacter.githubIssueNumber}] Added character ${newCharacter.name}`);
+        // Feature 0111 Phase 3: Create in DynamoDB
+        if (screenplayId) {
+            try {
+                await apiCreateCharacter(screenplayId, newCharacter, getToken);
+                console.log('[ScreenplayContext] ✅ Created character in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to create character in DynamoDB:', error);
+            }
         }
         
         return newCharacter;
-    }, [githubConfig, syncToGitHub]);
+    }, [screenplayId, getToken]);
     
     const updateCharacter = useCallback(async (id: string, updates: Partial<Character>) => {
         let updatedCharacter: Character | undefined;
@@ -935,10 +1039,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return updated;
         });
         
-        if (githubConfig && updatedCharacter?.githubIssueNumber) {
-            await syncToGitHub(`feat: [#${updatedCharacter.githubIssueNumber}] Updated character ${updatedCharacter.name}`);
+        // Feature 0111 Phase 3: Update in DynamoDB
+        if (screenplayId && updatedCharacter) {
+            try {
+                await apiUpdateCharacter(
+                    screenplayId,
+                    id,
+                    {
+                        name: updates.name,
+                        description: updates.description,
+                        referenceImages: updates.referenceImages
+                    },
+                    getToken
+                );
+                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update character in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [screenplayId, getToken]);
     
     const deleteCharacter = useCallback(async (id: string, cascade: CascadeOption): Promise<DeletionResult> => {
         if (cascade === 'cancel') {
@@ -982,18 +1101,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         setCharacters(prev => prev.filter(c => c.id !== id));
         
-        // Close GitHub Issue
-        if (githubConfig && character.githubIssueNumber) {
-            await closeIssue(
-                githubConfig,
-                character.githubIssueNumber,
-                'removed',
-                `Removed character ${character.name} from screenplay`
-            );
-        }
-        
-        if (githubConfig) {
-            await syncToGitHub(`fix: [#${character.githubIssueNumber}] Removed character ${character.name}`);
+        // Feature 0111 Phase 3: Delete from DynamoDB
+        if (screenplayId) {
+            try {
+                await apiDeleteCharacter(screenplayId, id, getToken);
+                console.log('[ScreenplayContext] ✅ Deleted character from DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to delete character from DynamoDB:', error);
+            }
         }
         
         return {
@@ -1002,7 +1117,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             entityType: 'character',
             removedReferences: removedCount
         };
-    }, [characters, relationships, githubConfig, syncToGitHub]);
+    }, [characters, relationships, screenplayId, getToken]);
     
     const addCharacterToScene = useCallback(async (characterId: string, sceneId: string) => {
         setRelationships(prev => {
@@ -1021,10 +1136,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Added character to scene`);
+        // Feature 0111 Phase 3: Update relationships in DynamoDB
+        if (screenplayId) {
+            try {
+                const updatedRels = relationships;
+                // Apply the local change to the copy
+                if (!updatedRels.scenes[sceneId].characters.includes(characterId)) {
+                    updatedRels.scenes[sceneId].characters.push(characterId);
+                }
+                if (!updatedRels.characters[characterId].appearsInScenes.includes(sceneId)) {
+                    updatedRels.characters[characterId].appearsInScenes.push(sceneId);
+                }
+                
+                await apiUpdateRelationships(screenplayId, updatedRels, getToken);
+                console.log('[ScreenplayContext] ✅ Updated relationships in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update relationships in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [relationships, screenplayId, getToken]);
     
     const removeCharacterFromScene = useCallback(async (characterId: string, sceneId: string) => {
         setRelationships(prev => {
@@ -1040,10 +1170,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Removed character from scene`);
+        // Feature 0111 Phase 3: Update relationships in DynamoDB
+        if (screenplayId) {
+            try {
+                const updatedRels = { ...relationships };
+                // Apply the local change
+                updatedRels.scenes[sceneId].characters = updatedRels.scenes[sceneId].characters.filter(cId => cId !== characterId);
+                updatedRels.characters[characterId].appearsInScenes = 
+                    updatedRels.characters[characterId].appearsInScenes.filter(sId => sId !== sceneId);
+                
+                await apiUpdateRelationships(screenplayId, updatedRels, getToken);
+                console.log('[ScreenplayContext] ✅ Updated relationships in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update relationships in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [relationships, screenplayId, getToken]);
     
     // ========================================================================
     // CRUD - Locations
@@ -1057,18 +1199,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: now,
             updatedAt: now
         };
-        
-        // Create GitHub Issue if connected
-        if (githubConfig) {
-            const issueNumber = await createLocationIssue(githubConfig, {
-                name: newLocation.name,
-                type: newLocation.type,
-                description: newLocation.description,
-                productionNotes: newLocation.productionNotes,
-                sceneCount: 0
-            });
-            newLocation.githubIssueNumber = issueNumber;
-        }
         
         setLocations(prev => [...prev, newLocation]);
         
@@ -1084,12 +1214,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }));
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: [#${newLocation.githubIssueNumber}] Added location ${newLocation.name}`);
+        // Feature 0111 Phase 3: Create in DynamoDB
+        if (screenplayId) {
+            try {
+                await apiCreateLocation(screenplayId, newLocation, getToken);
+                console.log('[ScreenplayContext] ✅ Created location in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to create location in DynamoDB:', error);
+            }
         }
         
         return newLocation;
-    }, [githubConfig, syncToGitHub]);
+    }, [screenplayId, getToken]);
     
     const updateLocation = useCallback(async (id: string, updates: Partial<Location>) => {
         let updatedLocation: Location | undefined;
@@ -1105,10 +1241,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return updated;
         });
         
-        if (githubConfig && updatedLocation?.githubIssueNumber) {
-            await syncToGitHub(`feat: [#${updatedLocation.githubIssueNumber}] Updated location ${updatedLocation.name}`);
+        // Feature 0111 Phase 3: Update in DynamoDB
+        if (screenplayId && updatedLocation) {
+            try {
+                await apiUpdateLocation(
+                    screenplayId,
+                    id,
+                    {
+                        name: updates.name,
+                        description: updates.description,
+                        type: updates.type,
+                        productionNotes: updates.productionNotes,
+                        referenceImages: updates.referenceImages
+                    },
+                    getToken
+                );
+                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update location in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [screenplayId, getToken]);
     
     const deleteLocation = useCallback(async (id: string, cascade: CascadeOption): Promise<DeletionResult> => {
         if (cascade === 'cancel') {
@@ -1152,18 +1305,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         setLocations(prev => prev.filter(l => l.id !== id));
         
-        // Close GitHub Issue
-        if (githubConfig && location.githubIssueNumber) {
-            await closeIssue(
-                githubConfig,
-                location.githubIssueNumber,
-                'removed',
-                `Removed location ${location.name} from screenplay`
-            );
-        }
-        
-        if (githubConfig) {
-            await syncToGitHub(`fix: [#${location.githubIssueNumber}] Removed location ${location.name}`);
+        // Feature 0111 Phase 3: Delete from DynamoDB
+        if (screenplayId) {
+            try {
+                await apiDeleteLocation(screenplayId, id, getToken);
+                console.log('[ScreenplayContext] ✅ Deleted location from DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to delete location from DynamoDB:', error);
+            }
         }
         
         return {
@@ -1172,7 +1321,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             entityType: 'location',
             removedReferences: removedCount
         };
-    }, [locations, relationships, githubConfig, syncToGitHub]);
+    }, [locations, relationships, screenplayId, getToken]);
     
     const setSceneLocation = useCallback(async (sceneId: string, locationId: string) => {
         setRelationships(prev => {
@@ -1189,10 +1338,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        if (githubConfig) {
-            await syncToGitHub(`feat: Updated scene location`);
+        // Feature 0111 Phase 3: Update relationships in DynamoDB
+        if (screenplayId) {
+            try {
+                const updatedRels = { ...relationships };
+                updatedRels.scenes[sceneId].location = locationId;
+                if (!updatedRels.locations[locationId].scenes.includes(sceneId)) {
+                    updatedRels.locations[locationId].scenes.push(sceneId);
+                }
+                
+                await apiUpdateRelationships(screenplayId, updatedRels, getToken);
+                console.log('[ScreenplayContext] ✅ Updated relationships in DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to update relationships in DynamoDB:', error);
+            }
         }
-    }, [githubConfig, syncToGitHub]);
+    }, [relationships, screenplayId, getToken]);
     
     // ========================================================================
     // Relationship Queries
@@ -1796,10 +1957,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         isLoading,
         error,
         
-        // Connection
-        isConnected,
-        connect,
-        disconnect,
+        // Feature 0111 Phase 3: DynamoDB screenplay tracking
+        screenplayId,
         
         // Story Beats
         createBeat,
@@ -1843,10 +2002,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         addImageToEntity,
         removeImageFromEntity,
         getEntityImages,
-        
-        // Sync
-        syncFromGitHub,
-        syncToGitHub,
         
         // Clear all data
         clearAllData
