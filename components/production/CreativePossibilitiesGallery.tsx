@@ -150,7 +150,8 @@ export default function CreativePossibilitiesGallery({
 
       try {
         // PUBLIC endpoint - no authentication required
-        const response = await fetch('/api/workflows/gallery');
+        // NEW: Using /api/gallery/workflows (separate from protected /api/workflows)
+        const response = await fetch('/api/gallery/workflows');
 
         if (!response.ok) {
           throw new Error(`Failed to fetch workflows: ${response.status}`);
