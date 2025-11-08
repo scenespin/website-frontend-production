@@ -49,7 +49,6 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useEditor } from '@/contexts/EditorContext';
 import { extractS3Key } from '@/utils/s3';
 
 const MAX_IMAGE_SIZE_MB = 10;
@@ -103,7 +102,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Get screenplay context (for scene data from GitHub)
   const screenplay = useScreenplay();
-  const editor = useEditor();
   
   // Form state
   const [sceneDescription, setSceneDescription] = useState('');
@@ -764,21 +762,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   return (
     <div className="h-full flex flex-col">
       {/* Screenplay Context Banner (when connected) */}
-      {editor.state.title && screenplay.isConnected && (
+      {screenplay.isConnected && screenplay.beats.length > 0 && (
         <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
           <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <Film className="w-4 h-4 text-info flex-shrink-0" />
-              <span className="opacity-70">Screenplay:</span>
-              <span className="font-semibold text-info truncate">{editor.state.title}</span>
-              {screenplay.beats.length > 0 && (
-                <>
-                  <span className="opacity-50">•</span>
-                  <span className="opacity-70">
-                    {screenplay.beats.reduce((total, beat) => total + (beat.scenes?.length || 0), 0)} scenes available
-                  </span>
-                </>
-              )}
+              <span className="opacity-70">Screenplay Connected:</span>
+              <span className="font-semibold text-info">
+                {screenplay.beats.length} beat{screenplay.beats.length > 1 ? 's' : ''}
+              </span>
+              <span className="opacity-50">•</span>
+              <span className="opacity-70">
+                {screenplay.beats.reduce((total, beat) => total + (beat.scenes?.length || 0), 0)} scenes available
+              </span>
             </div>
             <Badge variant="secondary" className="flex-shrink-0">
               From GitHub
