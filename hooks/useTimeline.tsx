@@ -908,6 +908,9 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   const retryIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isUnmountingRef = useRef(false);
   
+  // Counter for dual-interval save strategy (persists across re-renders)
+  const localSaveCounterRef = useRef(0);
+  
   // LocalStorage key
   const STORAGE_KEY = `timeline_project_${project.id}`;
 
@@ -1888,11 +1891,12 @@ export function useTimeline(options: UseTimelineOptions = {}) {
    * - DynamoDB: Every 60 seconds (slower, costs money, cloud backup)
    * 
    * This reduces DynamoDB writes by 90% while maintaining excellent crash protection
+   * 
+   * FIXED: Uses useRef to persist counter across re-renders
+   * FIXED: Removed 'project' from dependencies to prevent effect re-runs
    */
   useEffect(() => {
     if (!autoSave) return;
-
-    let localSaveCounter = 0;
 
     const interval = setInterval(() => {
       // Always save to localStorage (fast, free)
@@ -1900,17 +1904,17 @@ export function useTimeline(options: UseTimelineOptions = {}) {
         saveToLocalStorage(project);
       }
       
-      localSaveCounter++;
+      localSaveCounterRef.current++;
       
       // Only save to DynamoDB every 6th cycle (60 seconds)
-      if (localSaveCounter >= 6) {
+      if (localSaveCounterRef.current >= 6) {
         saveProject();
-        localSaveCounter = 0;
+        localSaveCounterRef.current = 0;
       }
     }, autoSaveInterval);
 
     return () => clearInterval(interval);
-  }, [autoSave, autoSaveInterval, project, enableLocalStorageBackup, saveToLocalStorage, saveProject]);
+  }, [autoSave, autoSaveInterval, enableLocalStorageBackup, saveToLocalStorage, saveProject]);
 
   /**
    * NEW: Online/Offline detection
