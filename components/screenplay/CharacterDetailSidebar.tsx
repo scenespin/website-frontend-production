@@ -149,7 +149,7 @@ export default function CharacterDetailSidebar({
             <SelectTrigger id="type">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4}>
               <SelectItem value="lead">Lead</SelectItem>
               <SelectItem value="supporting">Supporting</SelectItem>
               <SelectItem value="minor">Minor</SelectItem>
@@ -167,7 +167,7 @@ export default function CharacterDetailSidebar({
             <SelectTrigger id="arc-status">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" sideOffset={4}>
               <SelectItem value="introduced">Introduced</SelectItem>
               <SelectItem value="developing">Developing</SelectItem>
               <SelectItem value="resolved">Resolved</SelectItem>
