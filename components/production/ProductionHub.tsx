@@ -21,7 +21,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useEditor } from '@/contexts/EditorContext';
 import { 
   MessageSquare, 
   Video, 
@@ -84,7 +83,6 @@ interface TabConfig {
 export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
-  const editor = useEditor();
 
   // State
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
@@ -236,7 +234,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="bg-gray-900 border-b border-gray-800 p-4">
           <h1 className="text-xl font-bold text-white">Production Hub</h1>
           <p className="text-sm text-gray-400">
-            {editor.state.title || 'Untitled Project'}
+            {screenplay.title || 'Untitled Project'}
           </p>
         </div>
 
@@ -395,7 +393,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="p-4 border-b border-gray-800">
           <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>
           <p className="text-sm text-gray-400 truncate">
-            {editor.state.title || 'Untitled Project'}
+            {screenplay.title || 'Untitled Project'}
           </p>
         </div>
 
