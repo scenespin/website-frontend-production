@@ -50,6 +50,26 @@ function ExportToGitHubButton() {
         }
     };
 
+    const handleConnectGitHub = () => {
+        // Validate configuration
+        const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+        
+        if (!GITHUB_CLIENT_ID) {
+            alert('GitHub OAuth is not configured. Please contact support.');
+            console.error('[OAuth] Missing NEXT_PUBLIC_GITHUB_CLIENT_ID environment variable');
+            return;
+        }
+        
+        // Redirect to GitHub OAuth (same flow as GitHubRequiredGate)
+        const scope = 'repo,user';
+        const state = 'github_oauth_wryda';
+        const redirectUri = `${window.location.origin}/write`;
+        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+        
+        console.log('[OAuth] Redirecting to GitHub authorization');
+        window.location.href = authUrl;
+    };
+
     return (
         <>
             <div className="tooltip tooltip-bottom" data-tip="Export to GitHub (Optional)">
@@ -85,9 +105,7 @@ function ExportToGitHubButton() {
                         </p>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => {
-                                    window.location.href = '/settings?tab=github';
-                                }}
+                                onClick={handleConnectGitHub}
                                 className="btn btn-primary flex-1"
                             >
                                 Connect GitHub

@@ -10,17 +10,22 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import EditorWorkspace from '@/components/editor/EditorWorkspace';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
+import GitHubOAuthHandler from '@/components/editor/GitHubOAuthHandler';
 
 function WritePageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams?.get('project');
 
   // Feature 0111: No GitHub gate - screenplay saves to DynamoDB automatically
+  // GitHub OAuth handler processes callback if user connects GitHub (optional)
   return (
-    <div className="bg-slate-900">
-      <EditorSubNav activeTab="write" projectId={projectId} />
-      <EditorWorkspace />
-    </div>
+    <>
+      <GitHubOAuthHandler />
+      <div className="bg-slate-900">
+        <EditorSubNav activeTab="write" projectId={projectId} />
+        <EditorWorkspace />
+      </div>
+    </>
   );
 }
 
