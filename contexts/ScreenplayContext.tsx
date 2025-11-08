@@ -525,11 +525,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Find the updated beat
                 const updatedBeat = beats.find(b => b.id === beatId);
                 if (updatedBeat) {
+                    // Transform: Extract scene IDs (backend expects string[], not Scene[])
                     await apiUpdateBeat(
                         screenplayId,
                         beatId,
                         {
-                            scenes: [...updatedBeat.scenes, newScene]
+                            scenes: [...updatedBeat.scenes.map(s => s.id), newScene.id]
                         },
                         getToken
                     );
@@ -575,10 +576,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         scene.id === id ? { ...scene, ...updates, updatedAt: now } : scene
                     );
                     
+                    // Transform: Extract scene IDs (backend expects string[], not Scene[])
                     await apiUpdateBeat(
                         screenplayId,
                         parentBeat.id,
-                        { scenes: updatedScenes },
+                        { scenes: updatedScenes.map(s => s.id) },
                         getToken
                     );
                     console.log('[ScreenplayContext] ✅ Updated beat (modified scene) in DynamoDB');
@@ -645,10 +647,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (parentBeat) {
                     const updatedScenes = parentBeat.scenes.filter(s => s.id !== id);
                     
+                    // Transform: Extract scene IDs (backend expects string[], not Scene[])
                     await apiUpdateBeat(
                         screenplayId,
                         parentBeat.id,
-                        { scenes: updatedScenes },
+                        { scenes: updatedScenes.map(s => s.id) },
                         getToken
                     );
                     console.log('[ScreenplayContext] ✅ Updated beat (deleted scene) in DynamoDB');
@@ -692,10 +695,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Update source beat (scene removed)
                     const sourceBeat = beats.find(beat => beat.scenes.some(s => s.id === sceneId));
                     if (sourceBeat) {
+                        // Transform: Extract scene IDs (backend expects string[], not Scene[])
                         await apiUpdateBeat(
                             screenplayId,
                             sourceBeat.id,
-                            { scenes: sourceBeat.scenes.filter(s => s.id !== sceneId) },
+                            { scenes: sourceBeat.scenes.filter(s => s.id !== sceneId).map(s => s.id) },
                             getToken
                         );
                     }
@@ -706,10 +710,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         const scenes = [...targetBeat.scenes];
                         scenes.splice(newOrder, 0, { ...movedScene, beatId: targetBeatId });
                         
+                        // Transform: Extract scene IDs (backend expects string[], not Scene[])
                         await apiUpdateBeat(
                             screenplayId,
                             targetBeatId,
-                            { scenes },
+                            { scenes: scenes.map(s => s.id) },
                             getToken
                         );
                     }
