@@ -186,8 +186,8 @@ export default function CreativePossibilitiesGallery({
   // ============================================================================
 
   const filteredExamples = workflows.filter(example => {
-    // Category filter
-    if (selectedCategory !== 'all' && example.category !== selectedCategory) {
+    // Category filter (using categoryLabel for human-readable names)
+    if (selectedCategory !== 'all' && example.categoryLabel !== selectedCategory) {
       return false;
     }
 
@@ -212,6 +212,11 @@ export default function CreativePossibilitiesGallery({
   // ============================================================================
   // TWO-TIER STRUCTURE
   // ============================================================================
+
+  // Get unique categories from workflows for the filter dropdown
+  const availableCategories = Array.from(
+    new Set(workflows.map(w => w.categoryLabel))
+  ).sort();
 
   // Featured workflows (top 8 by popularity)
   const featuredWorkflows = filteredExamples
@@ -317,11 +322,11 @@ export default function CreativePossibilitiesGallery({
             className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="all">All Categories</option>
-            <option value="scenes">Scenes</option>
-            <option value="effects">Effects</option>
-            <option value="style-match">Style Match</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="characters">Characters</option>
+            {availableCategories.map(category => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
           </select>
 
           {/* Difficulty Filter */}
@@ -416,7 +421,9 @@ export default function CreativePossibilitiesGallery({
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                   <button
                     onClick={() => setShowBrowseAll(!showBrowseAll)}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all flex items-center justify-between group"
+                    aria-expanded={showBrowseAll}
+                    aria-label={showBrowseAll ? "Hide all workflows" : "Browse all workflows"}
+                    className="w-full px-6 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
@@ -449,7 +456,9 @@ export default function CreativePossibilitiesGallery({
                             {/* Category Header */}
                             <button
                               onClick={() => toggleCategory(category)}
-                              className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors flex items-center justify-between"
+                              aria-expanded={expandedCategories.has(category)}
+                              aria-label={`${expandedCategories.has(category) ? 'Collapse' : 'Expand'} ${category} workflows (${workflows.length} items)`}
+                              className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset"
                             >
                               <div className="flex items-center gap-3">
                                 <ChevronRight 
@@ -540,11 +549,23 @@ function WorkflowCard({
   getCategoryLabel,
   getDifficultyColor,
 }: WorkflowCardProps) {
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Start ${example.title} workflow - ${example.description}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="group relative bg-gray-50 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:shadow-xl cursor-pointer"
+      onKeyDown={handleKeyDown}
+      className="group relative bg-gray-50 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:shadow-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
       onClick={onClick}
     >
       {/* Thumbnail */}
