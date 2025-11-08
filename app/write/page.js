@@ -2,28 +2,25 @@
 
 /**
  * /app/write Page
- * Main screenplay editor - requires authentication and GitHub connection
+ * Main screenplay editor - requires authentication
+ * Feature 0111: GitHub is now optional (DynamoDB storage)
  */
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import EditorWorkspace from '@/components/editor/EditorWorkspace';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
-import GitHubRequiredGate from '@/components/onboarding/GitHubRequiredGate';
 
 function WritePageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams?.get('project');
 
-  // GitHub connection required for full functionality
-  // (characters, locations, scenes persistence)
+  // Feature 0111: No GitHub gate - screenplay saves to DynamoDB automatically
   return (
-    <GitHubRequiredGate>
-      <div className="bg-slate-900">
-        <EditorSubNav activeTab="write" projectId={projectId} />
-        <EditorWorkspace />
-      </div>
-    </GitHubRequiredGate>
+    <div className="bg-slate-900">
+      <EditorSubNav activeTab="write" projectId={projectId} />
+      <EditorWorkspace />
+    </div>
   );
 }
 
