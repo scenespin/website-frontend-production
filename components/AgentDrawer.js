@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * AgentDrawer - Unified AI Drawer Component
+ * Slides from right (desktop) or bottom (mobile)
+ * Wraps UnifiedChatPanel and shows dynamic agent labels
+ * Build: 2024-11-09-17:30 UTC (cache bust - audio label fix)
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { X, GripHorizontal, ChevronRight } from 'lucide-react';
 import { useDrawer } from '@/contexts/DrawerContext';
