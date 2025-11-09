@@ -10,36 +10,21 @@ import { useChatContext } from '@/contexts/ChatContext';
 function LocationsPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId') || 'default';
-  const { setIsDrawerOpen } = useDrawer();
+  const { openDrawer } = useDrawer();
   const { setMode, setWorkflow } = useChatContext();
 
   // Handler for AI Interview workflow
   const handleSwitchToChatImageMode = (modelId, entityContext) => {
     console.log('[LocationPage] AI Interview triggered:', entityContext);
-    console.log('[LocationPage] Functions available:', { 
-      hasSetMode: typeof setMode === 'function',
-      hasSetWorkflow: typeof setWorkflow === 'function',
-      hasSetIsDrawerOpen: typeof setIsDrawerOpen === 'function'
-    });
     
     if (entityContext?.workflow === 'interview') {
-      if (typeof setMode === 'function') {
-        setMode('chat'); // Set to 'chat' mode (interview is a workflow, not a mode)
-      } else {
-        console.error('[LocationPage] setMode is not a function!');
-      }
+      // Set mode and workflow context
+      setMode('chat'); // Set to 'chat' mode (interview is a workflow, not a mode)
+      setWorkflow(entityContext); // Set the workflow context
       
-      if (typeof setWorkflow === 'function') {
-        setWorkflow(entityContext); // Set the workflow context
-      } else {
-        console.error('[LocationPage] setWorkflow is not a function!');
-      }
-      
-      if (typeof setIsDrawerOpen === 'function') {
-        setIsDrawerOpen(true);
-      } else {
-        console.error('[LocationPage] setIsDrawerOpen is not a function!');
-      }
+      // Open the drawer
+      openDrawer('chat');
+      console.log('[LocationPage] Opened AI Interview drawer');
     }
   };
 
