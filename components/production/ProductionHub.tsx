@@ -4,7 +4,7 @@
  * Production Hub - Feature 0109 Complete Redesign
  * 
  * Mobile-first, screenplay-centric production interface with:
- * - AI Chat (conversational workflows) - NOW VIA DRAWER
+ * - AI Chat (conversational workflows) - NOW VIA DRAWER (right-side desktop, bottom mobile)
  * - Scene Builder (from screenplay)
  * - Media Library (upload management)
  * - Style Analyzer (match existing footage)
@@ -16,6 +16,8 @@
  * 1. One-Off Creation → AI Chat Drawer
  * 2. Screenplay-Driven → Scene Builder
  * 3. Hybrid Workflow → Media Library + Style Analyzer + Scene Builder
+ * 
+ * Build: 2024-11-09-10:30 UTC (cache bust)
  */
 
 import React, { useState, useEffect } from 'react';
