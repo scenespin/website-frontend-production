@@ -90,6 +90,23 @@ export function useScriptImport(): UseScriptImportReturn {
                 characterDescriptions: parseResult.characterDescriptions ? Array.from(parseResult.characterDescriptions.entries()) : []
             });
             
+            // CRITICAL FIX: Clear existing scenes before importing new ones
+            // This prevents duplicates when user re-pastes the screenplay
+            console.log('[useScriptImport] Clearing existing scenes before import to prevent duplicates...');
+            const sequenceBeats = screenplay.beats
+                .filter(b => b.title.includes('Sequence '))
+                .sort((a, b) => a.order - b.order);
+            
+            for (const beat of sequenceBeats) {
+                if (beat.scenes && beat.scenes.length > 0) {
+                    console.log(`[useScriptImport] Clearing ${beat.scenes.length} scenes from ${beat.title}`);
+                    for (const scene of beat.scenes) {
+                        await screenplay.deleteScene(scene.id);
+                    }
+                }
+            }
+            console.log('[useScriptImport] ✅ Cleared all existing scenes');
+            
             // Bulk import characters and locations
             let importedChars = 0;
             let importedLocs = 0;
