@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Force new build ID to invalidate cache
+  generateBuildId: async () => {
+    return `build-${Date.now()}`;
+  },
+  
   // Disable ESLint during production builds (warnings won't block deployment)
   eslint: {
     ignoreDuringBuilds: true,
