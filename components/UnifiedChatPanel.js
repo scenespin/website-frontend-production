@@ -417,15 +417,21 @@ function UnifiedChatPanelInner({
         const workflowData = JSON.parse(pendingWorkflow);
         console.log('[UnifiedChatPanel] Found pending workflow, auto-starting:', workflowData);
         
-        // Clear the pending workflow
+        // Clear the pending workflow from localStorage
         localStorage.removeItem('pending-workflow-prompt');
         
         // Switch to workflows mode
         setMode('workflows');
         
-        // Set the initial prompt if provided
+        // Set the initial prompt if provided, then clear it after a short delay
+        // This prevents the prompt from persisting across sessions
         if (workflowData.prompt) {
           setInput(workflowData.prompt);
+          
+          // Clear the input after 3 seconds to prevent it from staying
+          setTimeout(() => {
+            setInput('');
+          }, 3000);
         }
         
         // TODO: Start the specific workflow if workflowId is provided
