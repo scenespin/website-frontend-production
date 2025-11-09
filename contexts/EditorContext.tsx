@@ -117,6 +117,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
     
+    // Create refs to hold latest state values without causing interval restart
+    const stateRef = useRef(state);
+    useEffect(() => {
+        stateRef.current = state;
+    }, [state]);
+    
     // Get GitHub config from localStorage (optional export feature)
     const screenplay = useScreenplay();
     const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
@@ -372,11 +378,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     // Every 60s → DynamoDB (persistent storage, changed from 30s for performance)
     useEffect(() => {
         const interval = setInterval(async () => {
+            // Get current state from ref (doesn't restart interval)
+            const currentState = stateRef.current;
+            
             // Always save to localStorage every 5 seconds (crash protection)
             try {
-                localStorage.setItem('screenplay_draft', state.content);
-                localStorage.setItem('screenplay_title', state.title);
-                localStorage.setItem('screenplay_author', state.author);
+                localStorage.setItem('screenplay_draft', currentState.content);
+                localStorage.setItem('screenplay_title', currentState.title);
+                localStorage.setItem('screenplay_author', currentState.author);
                 console.log('[EditorContext] ✅ Auto-saved to localStorage');
             } catch (err) {
                 console.error('[EditorContext] localStorage save failed:', err);
@@ -394,9 +403,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         // Create new screenplay in DynamoDB
                         console.log('[EditorContext] Creating new screenplay...');
                         const screenplay = await createScreenplay({
-                            title: state.title,
-                            author: state.author,
-                            content: state.content
+                            title: currentState.title,
+                            author: currentState.author,
+                            content: currentState.content
                         }, getToken);
                         
                         screenplayIdRef.current = screenplay.screenplay_id;
@@ -407,9 +416,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         console.log('[EditorContext] Updating screenplay:', screenplayIdRef.current);
                         await updateScreenplay({
                             screenplay_id: screenplayIdRef.current,
-                            title: state.title,
-                            author: state.author,
-                            content: state.content
+                            title: currentState.title,
+                            author: currentState.author,
+                            content: currentState.content
                         }, getToken);
                         
                         console.log('[EditorContext] ✅ Updated screenplay');
@@ -432,7 +441,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 5000); // 5 second fixed interval
         
         return () => clearInterval(interval);
-    }, [getToken, state.content, state.title, state.author]); // MUST include state to access current values!
+    }, [getToken]); // Only depend on getToken - use stateRef for current values!
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss

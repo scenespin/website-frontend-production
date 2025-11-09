@@ -185,8 +185,12 @@ export default function AgentDrawer({ children }) {
         }`}
         style={{ width: '480px' }}
       >
-             {/* Header (Desktop) - No label, just close button */}
-             <div className="h-16 flex items-center justify-end px-4 bg-base-300 border-b border-cinema-red/20">
+             {/* Header (Desktop) */}
+             <div className="h-14 flex items-center justify-between px-4 bg-base-300 border-b border-cinema-red/20">
+               <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 bg-cinema-red rounded-full animate-pulse"></div>
+                 <h3 className="text-base font-semibold text-base-content">{currentModeLabel}</h3>
+               </div>
                <button
                  onClick={closeDrawer}
                  className="btn btn-sm btn-ghost btn-circle"
