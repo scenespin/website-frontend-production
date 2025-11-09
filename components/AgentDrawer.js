@@ -11,7 +11,7 @@ const MODE_LABELS = {
   director: 'Director',
   image: 'Image Generation',
   'quick-video': 'Video Generation',
-  audio: 'Audio & Music Generation',
+  audio: 'Audio',
   'try-on': 'Virtual Try-On',
   workflows: 'AI Workflow Selector'
 };

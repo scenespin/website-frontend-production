@@ -157,7 +157,7 @@ export function AudioModePanel({ onInsert }) {
       <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
         <div className="flex items-center gap-2">
           <Music className="w-5 h-5 text-cinema-red" />
-          <h3 className="font-bold text-base-content">Audio & Music Generation</h3>
+          <h3 className="font-bold text-base-content">Audio</h3>
         </div>
         <p className="text-xs text-base-content/60 mt-1">Soundtracks, background music & sound effects</p>
       </div>
