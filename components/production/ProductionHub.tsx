@@ -84,7 +84,15 @@ interface TabConfig {
 export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
-  const { setIsDrawerOpen } = useDrawer(); // NEW: For triggering AI Interview drawer
+  const drawerContext = useDrawer(); // Get the full context
+  const { setIsDrawerOpen } = drawerContext;
+
+  // DEBUG: Log drawer context
+  console.log('[ProductionHub] Drawer context:', {
+    hasContext: !!drawerContext,
+    setIsDrawerOpen: typeof setIsDrawerOpen,
+    isFunction: typeof setIsDrawerOpen === 'function'
+  });
 
   // State
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
