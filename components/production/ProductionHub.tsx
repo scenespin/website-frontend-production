@@ -21,6 +21,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useDrawer } from '@/contexts/DrawerContext'; // NEW: For AI Interview drawer
 import { 
   MessageSquare, 
   Video, 
@@ -38,7 +39,7 @@ import {
 } from 'lucide-react';
 
 // Phase 2 Components (Feature 0109)
-import AIInterviewChat from '../chat/AIInterviewChat';
+// Note: AIInterviewChat is now rendered in layout drawer, not as a tab
 import StyleAnalyzer from './StyleAnalyzer';
 import MediaLibrary from './MediaLibrary';
 import CreativePossibilitiesGallery from './CreativePossibilitiesGallery';
@@ -56,13 +57,13 @@ import { ProductionJobsPanel } from './ProductionJobsPanel';
 
 type ProductionTab = 
   | 'overview'      // Dashboard + Creative Gallery
-  | 'chat'          // AI Conversational Workflows
   | 'scene-builder' // Screenplay-driven scene generation
   | 'media'         // Media Library + Style Analyzer
   | 'characters'    // Character Bank
   | 'locations'     // Location Bank
   | 'assets'        // Asset Bank
   | 'jobs';         // Job Monitoring
+  // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
 
 interface ProductionHubProps {
   projectId: string;
@@ -83,11 +84,11 @@ interface TabConfig {
 export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
+  const { openDrawer } = useDrawer(); // NEW: For triggering AI Interview drawer
 
   // State
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
   const [isMobile, setIsMobile] = useState(false);
-  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
@@ -158,13 +159,6 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
       description: 'Project dashboard & creative possibilities'
     },
     {
-      id: 'chat',
-      label: 'AI Chat',
-      icon: <MessageSquare className="w-5 h-5" />,
-      description: 'Conversational workflows & one-offs',
-      badge: 'NEW'
-    },
-    {
       id: 'scene-builder',
       label: 'Scene Builder',
       icon: <Video className="w-5 h-5" />,
@@ -207,16 +201,16 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   // ============================================================================
 
   const handleStartExample = (example: any) => {
-    // Store the example prompt to pass to AI Chat
+    // Store the example prompt to pass to AI Chat Drawer
     localStorage.setItem('pending-workflow-prompt', JSON.stringify({
       workflowId: example.id,
       workflowName: example.title,
       prompt: example.conversationPrompt
     }));
     
-    // Start new chat session with example prompt
-    setChatSessionId(null); // Reset to create new session
-    setActiveTab('chat');
+    // Open AI Interview drawer (mobile: bottom, desktop: right-side)
+    openDrawer('chat');
+    console.log('[ProductionHub] Opening AI Interview drawer for example:', example);
   };
 
   const handleStyleAnalysisComplete = (profile: any) => {
@@ -303,14 +297,6 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 isMobile={true}
               />
             </div>
-          )}
-
-          {activeTab === 'chat' && (
-            <AIInterviewChat
-              context="production-hub"
-              initialPrompt={chatSessionId ? undefined : ''}
-              className="h-full"
-            />
           )}
 
           {activeTab === 'scene-builder' && (
@@ -522,16 +508,6 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 onStartExample={handleStartExample}
                 onNavigate={setActiveTab}
                 isMobile={false}
-              />
-            </div>
-          )}
-
-          {activeTab === 'chat' && (
-            <div className="h-full">
-              <AIInterviewChat
-                context="production-hub"
-                initialPrompt={chatSessionId ? undefined : ''}
-                className="h-full"
               />
             </div>
           )}
