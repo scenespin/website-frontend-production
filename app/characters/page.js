@@ -15,10 +15,31 @@ function CharactersPageContent() {
 
   // Handler for AI Interview workflow
   const handleSwitchToChatImageMode = (modelId, entityContext) => {
+    console.log('[CharacterPage] AI Interview triggered:', entityContext);
+    console.log('[CharacterPage] Functions available:', { 
+      hasSetMode: typeof setMode === 'function',
+      hasSetWorkflow: typeof setWorkflow === 'function',
+      hasSetIsDrawerOpen: typeof setIsDrawerOpen === 'function'
+    });
+    
     if (entityContext?.workflow === 'interview') {
-      setMode('chat'); // Set to 'chat' mode (interview is a workflow, not a mode)
-      setWorkflow(entityContext); // Set the workflow context
-      setIsDrawerOpen(true);
+      if (typeof setMode === 'function') {
+        setMode('chat'); // Set to 'chat' mode (interview is a workflow, not a mode)
+      } else {
+        console.error('[CharacterPage] setMode is not a function!');
+      }
+      
+      if (typeof setWorkflow === 'function') {
+        setWorkflow(entityContext); // Set the workflow context
+      } else {
+        console.error('[CharacterPage] setWorkflow is not a function!');
+      }
+      
+      if (typeof setIsDrawerOpen === 'function') {
+        setIsDrawerOpen(true);
+      } else {
+        console.error('[CharacterPage] setIsDrawerOpen is not a function!');
+      }
     }
   };
 
