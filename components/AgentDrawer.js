@@ -3,14 +3,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, GripHorizontal, ChevronRight } from 'lucide-react';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { useChatContext } from '@/contexts/ChatContext';
+
+// Mode labels for drawer header
+const MODE_LABELS = {
+  chat: 'Screenwriter',
+  director: 'Director',
+  image: 'Image Generation',
+  'quick-video': 'Video Generation',
+  audio: 'Audio & Music Generation',
+  'try-on': 'Virtual Try-On',
+  workflows: 'AI Workflow Selector'
+};
 
 export default function AgentDrawer({ children }) {
   const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
+  const { state } = useChatContext();
   const [height, setHeight] = useState(500);
   const [isDragging, setIsDragging] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
+  
+  // Get current mode label
+  const currentModeLabel = MODE_LABELS[state?.activeMode] || 'AI Assistant';
 
   // Detect mobile vs desktop
   useEffect(() => {
@@ -164,7 +180,7 @@ export default function AgentDrawer({ children }) {
       >
              {/* Header (Desktop) */}
              <div className="h-16 flex items-center justify-between px-4 bg-base-300 border-b border-cinema-red/20">
-               <h3 className="text-lg font-bold text-base-content">Screenwriting Assistant</h3>
+               <h3 className="text-lg font-bold text-base-content">{currentModeLabel}</h3>
                <button
                  onClick={closeDrawer}
                  className="btn btn-sm btn-ghost btn-circle"

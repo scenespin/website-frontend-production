@@ -57,9 +57,9 @@ function getAvailableModesForPage(pathname) {
     return ['chat', 'director'];
   }
   
-  // /production page - Production agents ONLY
+  // /production page - Production agents ONLY (workflows first as default)
   if (pathname.includes('/production')) {
-    return ['image', 'quick-video', 'audio', 'try-on', 'workflows'];
+    return ['workflows', 'image', 'quick-video', 'audio', 'try-on'];
   }
   
   // /composition and /timeline pages - Audio agent ONLY
