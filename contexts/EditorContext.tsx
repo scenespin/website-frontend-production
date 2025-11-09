@@ -432,7 +432,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 5000); // 5 second fixed interval
         
         return () => clearInterval(interval);
-    }, [getToken]); // Only depend on getToken, not state (to prevent interval restart on every keystroke)
+    }, [getToken, state.content, state.title, state.author]); // MUST include state to access current values!
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss
