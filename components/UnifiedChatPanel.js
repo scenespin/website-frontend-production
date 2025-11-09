@@ -16,7 +16,6 @@ import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
 import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useDrawer } from '@/contexts/DrawerContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
