@@ -147,7 +147,7 @@ export default function AgentDrawer({ children }) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  openDrawer('chat');
+                  openDrawer();
                 }}
                 className="text-sm font-medium text-base-content"
               >
@@ -205,7 +205,7 @@ export default function AgentDrawer({ children }) {
       {/* Floating Open Button (Desktop - when closed) */}
       {!isDrawerOpen && (
         <button
-          onClick={() => openDrawer('chat')}
+          onClick={() => openDrawer()}
           className="fixed top-1/2 right-0 -translate-y-1/2 btn bg-cinema-red hover:opacity-90 text-base-content btn-sm rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none"
           style={{ writingMode: 'vertical-rl' }}
         >

@@ -686,38 +686,6 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         </div>
       </div>
       
-      {/* Instructional Banner - Two Ways to Use */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="bg-gradient-to-r from-purple-900/30 via-blue-900/30 to-purple-900/30 border border-purple-500/30 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h4 className="text-white font-semibold mb-2 text-sm">🎼 Two Ways to Use Composition Studio</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="bg-black/30 rounded p-3 border border-purple-500/20">
-                  <div className="font-semibold text-purple-300 mb-1">1️⃣ Standalone Music Video</div>
-                  <div className="text-gray-300 leading-relaxed">
-                    Generate music → Choose shot style → Bake audio into video
-                    <div className="text-purple-400 mt-1">Perfect for: Music videos, lyric videos, visualizers</div>
-                  </div>
-                </div>
-                <div className="bg-black/30 rounded p-3 border border-blue-500/20">
-                  <div className="font-semibold text-blue-300 mb-1">2️⃣ Background Music for Timeline</div>
-                  <div className="text-gray-300 leading-relaxed">
-                    Generate music → Keep audio separate → Export to Timeline
-                    <div className="text-blue-400 mt-1">Perfect for: Scene soundtracks, background scores</div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 text-xs text-gray-400 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-purple-400" />
-                <span>💡 <strong className="text-white">Quick Tip:</strong> Need to edit your composition? Export it to Timeline! Or use the AI drawer (right) for quick audio generation.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
       {/* NEW: Recompose Mode Card */}
       {recomposeData && (
         <div className="max-w-7xl mx-auto mb-6">
@@ -1481,6 +1449,38 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
           {/* Music Tab */}
           <TabsContent value="music" className="mt-6">
+            {/* Instructional Banner - Two Ways to Use */}
+            <div className="mb-6">
+              <div className="bg-gradient-to-r from-purple-900/30 via-blue-900/30 to-purple-900/30 border border-purple-500/30 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="text-white font-semibold mb-2 text-sm">🎼 Two Ways to Use Music Generation</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      <div className="bg-black/30 rounded p-3 border border-purple-500/20">
+                        <div className="font-semibold text-purple-300 mb-1">1️⃣ Standalone Music Video</div>
+                        <div className="text-gray-300 leading-relaxed">
+                          Generate music → Choose shot style → Bake audio into video
+                          <div className="text-purple-400 mt-1">Perfect for: Music videos, lyric videos, visualizers</div>
+                        </div>
+                      </div>
+                      <div className="bg-black/30 rounded p-3 border border-blue-500/20">
+                        <div className="font-semibold text-blue-300 mb-1">2️⃣ Background Music for Timeline</div>
+                        <div className="text-gray-300 leading-relaxed">
+                          Generate music → Keep audio separate → Export to Timeline
+                          <div className="text-blue-400 mt-1">Perfect for: Scene soundtracks, background scores</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-gray-400 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                      <span>💡 <strong className="text-white">Quick Tip:</strong> Need to edit your composition? Export it to Timeline! Or use the AI drawer (right) for quick audio generation.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Music Generator */}
               {showMusicGenerator ? (
