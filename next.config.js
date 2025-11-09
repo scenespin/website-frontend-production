@@ -56,13 +56,34 @@ const nextConfig = {
   // Cache-Control headers for optimal CloudFront caching
   async headers() {
     return [
-      // Static assets - cache aggressively (1 year)
+      // Static assets with content hash - cache aggressively (1 year)
+      // Next.js automatically adds content hashes to these files
+      {
+        source: '/_next/static/chunks/:hash*.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // CSS files with content hash
+      {
+        source: '/_next/static/css/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Build manifest and other metadata - shorter cache
       {
         source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=3600, must-revalidate',
           },
         ],
       },
