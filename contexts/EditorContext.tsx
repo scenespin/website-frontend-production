@@ -397,11 +397,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             // Save to DynamoDB every 12th cycle (60 seconds total)
             if (localSaveCounterRef.current >= 12) {
                 try {
-                    console.log('[EditorContext] Saving to DynamoDB...');
+                    const contentLength = currentState.content.length;
+                    console.log('[EditorContext] 🔄 Saving to DynamoDB... (content length:', contentLength, 'chars)');
                     
                     if (!screenplayIdRef.current) {
                         // Create new screenplay in DynamoDB
-                        console.log('[EditorContext] Creating new screenplay...');
+                        console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
                         const screenplay = await createScreenplay({
                             title: currentState.title,
                             author: currentState.author,
@@ -410,10 +411,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         
                         screenplayIdRef.current = screenplay.screenplay_id;
                         localStorage.setItem('current_screenplay_id', screenplay.screenplay_id);
-                        console.log('[EditorContext] ✅ Created screenplay:', screenplay.screenplay_id);
+                        console.log('[EditorContext] ✅ Created NEW screenplay:', screenplay.screenplay_id, '| Content:', contentLength, 'chars');
                     } else {
                         // Update existing screenplay
-                        console.log('[EditorContext] Updating screenplay:', screenplayIdRef.current);
+                        console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
                         await updateScreenplay({
                             screenplay_id: screenplayIdRef.current,
                             title: currentState.title,
@@ -421,7 +422,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                             content: currentState.content
                         }, getToken);
                         
-                        console.log('[EditorContext] ✅ Updated screenplay');
+                        console.log('[EditorContext] ✅ Updated screenplay:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
                     }
                     
                     // Mark as saved
