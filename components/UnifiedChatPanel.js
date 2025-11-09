@@ -27,7 +27,7 @@ const MODE_CONFIG = {
   chat: { icon: MessageSquare, label: 'Screenwriter', color: 'text-purple-500', description: 'AI interviews & brainstorming', isAgent: true },
   director: { icon: Clapperboard, label: 'Director', color: 'text-pink-500', description: 'Shot planning, dialogue & blocking', isAgent: true },
   audio: { icon: Music, label: 'Audio Agent', color: 'text-green-500', description: 'Music & SFX with AI interview', isAgent: true },
-  workflows: { icon: Zap, label: 'Workflows', color: 'text-orange-500', description: '42 pre-built AI workflows', isAgent: true },
+  workflows: { icon: Zap, label: 'Workflows', color: 'text-orange-500', description: '58 pre-built AI workflows', isAgent: true },
   'try-on': { icon: Users, label: 'Try-On', color: 'text-teal-500', description: 'Virtual character try-on', isAgent: true },
   
   // GENERATION FEATURES (separate selectors)

@@ -170,7 +170,7 @@ export default function HelpCenter() {
             <HelpArticleCard
               href="/help/workflows"
               title="AI Workflows Guide"
-              description="Use 42 pre-built professional workflows"
+              description="Use 58 pre-built professional workflows"
               time="10 min read"
             />
           </div>

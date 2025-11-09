@@ -44,7 +44,7 @@ export default function WelcomePage() {
             <li>Professional screenplay writing tools</li>
             <li>AI-powered video generation (3 quality tiers)</li>
             <li>11 AI image generation models</li>
-            <li>42 guided production workflows</li>
+            <li>58 guided production workflows</li>
             <li>Professional timeline editor</li>
             <li>Audio and music generation</li>
             <li>Dialogue generation with lip-sync</li>
