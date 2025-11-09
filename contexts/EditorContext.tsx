@@ -435,36 +435,37 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }, [getToken]); // Only depend on getToken, not state (to prevent interval restart on every keystroke)
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
-    // Use a debounced check to avoid clearing immediately after import
-    useEffect(() => {
-        // Skip auto-clear during initial load/import
-        if (isInitialLoadRef.current) {
-            return;
-        }
-        
-        const trimmedContent = state.content.trim();
-        const lineCount = state.content.split('\n').filter(line => line.trim()).length;
-        
-        // If editor is essentially empty (< 3 non-empty lines OR < 20 characters total)
-        const isEffectivelyEmpty = lineCount < 3 || trimmedContent.length < 20;
-        
-        if (isEffectivelyEmpty) {
-            // Debounce: Wait 1 second before clearing to avoid clearing right after paste
-            const clearTimer = setTimeout(() => {
-                // Check if we actually have data to clear
-                const hasScenes = screenplay?.beats?.some(beat => beat.scenes && beat.scenes.length > 0);
-                const hasCharacters = screenplay?.characters && screenplay.characters.length > 0;
-                const hasLocations = screenplay?.locations && screenplay.locations.length > 0;
-                
-                if (hasScenes || hasCharacters || hasLocations) {
-                    console.log('[EditorContext] 🗑️ Editor cleared - clearing all screenplay data');
-                    screenplay?.clearAllData();
-                }
-            }, 1000); // 1 second delay
-            
-            return () => clearTimeout(clearTimer);
-        }
-    }, [state.content, screenplay]);
+    // DISABLED: This logic is too aggressive and causes data loss
+    // If user accidentally deletes content or page loads slowly, entire screenplay gets deleted
+    // useEffect(() => {
+    //     // Skip auto-clear during initial load/import
+    //     if (isInitialLoadRef.current) {
+    //         return;
+    //     }
+    //     
+    //     const trimmedContent = state.content.trim();
+    //     const lineCount = state.content.split('\n').filter(line => line.trim()).length;
+    //     
+    //     // If editor is essentially empty (< 3 non-empty lines OR < 20 characters total)
+    //     const isEffectivelyEmpty = lineCount < 3 || trimmedContent.length < 20;
+    //     
+    //     if (isEffectivelyEmpty) {
+    //         // Debounce: Wait 1 second before clearing to avoid clearing right after paste
+    //         const clearTimer = setTimeout(() => {
+    //             // Check if we actually have data to clear
+    //             const hasScenes = screenplay?.beats?.some(beat => beat.scenes && beat.scenes.length > 0);
+    //             const hasCharacters = screenplay?.characters && screenplay.characters.length > 0;
+    //             const hasLocations = screenplay?.locations && screenplay.locations.length > 0;
+    //             
+    //             if (hasScenes || hasCharacters || hasLocations) {
+    //                 console.log('[EditorContext] 🗑️ Editor cleared - clearing all screenplay data');
+    //                 screenplay?.clearAllData();
+    //             }
+    //         }, 1000); // 1 second delay
+    //         
+    //         return () => clearTimeout(clearTimer);
+    //     }
+    // }, [state.content, screenplay]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
@@ -482,8 +483,32 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         
         async function loadContent() {
             try {
-                // Priority 1: Load from DynamoDB
-                const savedScreenplayId = localStorage.getItem('current_screenplay_id');
+                // Priority 1: Load from DynamoDB using saved screenplay ID
+                let savedScreenplayId = localStorage.getItem('current_screenplay_id');
+                
+                // If no screenplay ID in localStorage, try to fetch user's most recent screenplay
+                if (!savedScreenplayId) {
+                    try {
+                        console.log('[EditorContext] No screenplay ID in localStorage, fetching user screenplays...');
+                        const response = await fetch('/api/screenplays?limit=1&status=active', {
+                            headers: {
+                                'Authorization': `Bearer ${await getToken()}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.data.screenplays.length > 0) {
+                                savedScreenplayId = data.data.screenplays[0].screenplay_id;
+                                localStorage.setItem('current_screenplay_id', savedScreenplayId);
+                                console.log('[EditorContext] ✅ Found most recent screenplay:', savedScreenplayId);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('[EditorContext] Failed to fetch user screenplays:', err);
+                    }
+                }
+                
                 if (savedScreenplayId) {
                     try {
                         console.log('[EditorContext] Loading screenplay from DynamoDB...');
@@ -512,7 +537,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 const savedTitle = localStorage.getItem('screenplay_title');
                 const savedAuthor = localStorage.getItem('screenplay_author');
                 
-                if (savedContent) {
+                if (savedContent && savedContent.trim().length > 0) {
                     console.log('[EditorContext] Recovered draft from localStorage');
                     setState(prev => ({
                         ...prev,
@@ -521,22 +546,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         author: savedAuthor || prev.author,
                         isDirty: true // Mark dirty to trigger DynamoDB save
                     }));
+                    
+                    // Don't create a new screenplay yet - wait for auto-save to create it
+                    // This prevents orphaning screenplays when localStorage is cleared
                 } else {
-                    console.log('[EditorContext] No saved content found - creating new screenplay in DynamoDB');
-                    // Priority 3: Create a new empty screenplay immediately
-                    try {
-                        const newScreenplay = await createScreenplay({
-                            title: state.title,
-                            author: state.author,
-                            content: state.content
-                        }, getToken);
-                        
-                        screenplayIdRef.current = newScreenplay.screenplay_id;
-                        localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
-                        console.log('[EditorContext] ✅ Created new screenplay:', newScreenplay.screenplay_id);
-                    } catch (err) {
-                        console.error('[EditorContext] Failed to create new screenplay:', err);
-                    }
+                    console.log('[EditorContext] No saved content found - user will start with empty editor');
+                    // DON'T automatically create a screenplay here!
+                    // Wait for user to type something, then auto-save will create it
+                    // This prevents creating empty orphaned screenplays
                 }
                 
                 isInitialLoadRef.current = false;
