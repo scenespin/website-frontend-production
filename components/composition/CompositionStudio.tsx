@@ -1449,38 +1449,6 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
 
           {/* Music Tab */}
           <TabsContent value="music" className="mt-6">
-            {/* Instructional Banner - Two Ways to Use */}
-            <div className="mb-6">
-              <div className="bg-gradient-to-r from-purple-900/30 via-blue-900/30 to-purple-900/30 border border-purple-500/30 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="text-white font-semibold mb-2 text-sm">🎼 Two Ways to Use Music Generation</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                      <div className="bg-black/30 rounded p-3 border border-purple-500/20">
-                        <div className="font-semibold text-purple-300 mb-1">1️⃣ Standalone Music Video</div>
-                        <div className="text-gray-300 leading-relaxed">
-                          Generate music → Choose shot style → Bake audio into video
-                          <div className="text-purple-400 mt-1">Perfect for: Music videos, lyric videos, visualizers</div>
-                        </div>
-                      </div>
-                      <div className="bg-black/30 rounded p-3 border border-blue-500/20">
-                        <div className="font-semibold text-blue-300 mb-1">2️⃣ Background Music for Timeline</div>
-                        <div className="text-gray-300 leading-relaxed">
-                          Generate music → Keep audio separate → Export to Timeline
-                          <div className="text-blue-400 mt-1">Perfect for: Scene soundtracks, background scores</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 text-xs text-gray-400 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-purple-400" />
-                      <span>💡 <strong className="text-white">Quick Tip:</strong> Need to edit your composition? Export it to Timeline! Or use the AI drawer (right) for quick audio generation.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Music Generator */}
               {showMusicGenerator ? (
@@ -1600,35 +1568,60 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
                     </CardContent>
                   </Card>
                   
-                  {/* Info Card */}
-                  <Card>
+                  {/* Workflow Guide Card - Right Side */}
+                  <Card className="bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-purple-900/20 border-purple-500/30">
                     <CardHeader>
-                      <CardTitle className="text-lg">💡 Music Tips</CardTitle>
+                      <CardTitle className="flex items-center gap-2 text-purple-300">
+                        <Sparkles className="w-5 h-5" />
+                        🎼 Two Ways to Use Music
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div>
-                        <p className="font-medium mb-1">Match the Mood</p>
-                        <p className="text-muted-foreground">
-                          Generate music that matches your video&apos;s emotional tone
-                        </p>
+                    <CardContent className="space-y-4">
+                      {/* Workflow 1: Music Videos */}
+                      <div className="bg-black/40 rounded-lg p-4 border border-purple-500/30 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center flex-shrink-0 font-bold text-xs">1</div>
+                          <div>
+                            <p className="font-semibold text-purple-300 mb-1">Standalone Music Video</p>
+                            <p className="text-xs text-slate-300 leading-relaxed mb-2">
+                              Generate music → Choose shot style → <strong className="text-purple-400">Bake audio into video</strong>
+                            </p>
+                            <div className="bg-purple-950/50 rounded px-2 py-1">
+                              <p className="text-xs text-purple-300">
+                                <strong>Perfect for:</strong> Music videos, lyric videos, visualizers
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium mb-1">Instrumental Works Best</p>
-                        <p className="text-muted-foreground">
-                          Instrumental tracks won&apos;t compete with dialogue
-                        </p>
+
+                      {/* Workflow 2: Timeline Integration */}
+                      <div className="bg-black/40 rounded-lg p-4 border border-blue-500/30 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 font-bold text-xs">2</div>
+                          <div>
+                            <p className="font-semibold text-blue-300 mb-1">Background Music for Timeline</p>
+                            <p className="text-xs text-slate-300 leading-relaxed mb-2">
+                              Generate music → <strong className="text-blue-400">Keep audio separate</strong> → Export to Timeline
+                            </p>
+                            <div className="bg-blue-950/50 rounded px-2 py-1">
+                              <p className="text-xs text-blue-300">
+                                <strong>Perfect for:</strong> Scene soundtracks, background scores
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium mb-1">Adjust Volume</p>
-                        <p className="text-muted-foreground">
-                          Keep music at 30-50% for background ambience
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-medium mb-1">Royalty-Free</p>
-                        <p className="text-muted-foreground">
-                          All generated music is watermark-free and commercial-ready
-                        </p>
+
+                      {/* Quick Tips */}
+                      <div className="border-t border-slate-700 pt-3 space-y-2">
+                        <p className="text-xs font-semibold text-slate-300">💡 Pro Tips:</p>
+                        <div className="text-xs text-slate-400 space-y-1.5">
+                          <p>• <strong className="text-white">Instrumental works best</strong> - won't compete with dialogue</p>
+                          <p>• <strong className="text-white">Volume:</strong> Keep at 30-50% for background ambience</p>
+                          <p>• <strong className="text-white">Royalty-free:</strong> All music is watermark-free & commercial-ready</p>
+                          <p>• <strong className="text-white">Quick generation:</strong> Use AI drawer (right) for fast audio</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
