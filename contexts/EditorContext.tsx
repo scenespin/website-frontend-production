@@ -367,8 +367,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     };
     
     // Feature 0111: Dual-Interval Auto-Save (like Timeline)
+    // Auto-save system:
     // Every 5s → localStorage (crash protection)
-    // Every 30s → DynamoDB (persistent storage)
+    // Every 60s → DynamoDB (persistent storage, changed from 30s for performance)
     useEffect(() => {
         const interval = setInterval(async () => {
             // Always save to localStorage every 5 seconds (crash protection)
@@ -384,8 +385,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             // Increment counter
             localSaveCounterRef.current++;
             
-            // Save to DynamoDB every 6th cycle (30 seconds total)
-            if (localSaveCounterRef.current >= 6) {
+            // Save to DynamoDB every 12th cycle (60 seconds total)
+            if (localSaveCounterRef.current >= 12) {
                 try {
                     console.log('[EditorContext] Saving to DynamoDB...');
                     
@@ -431,7 +432,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 5000); // 5 second fixed interval
         
         return () => clearInterval(interval);
-    }, [state.content, state.title, state.author, getToken]);
+    }, [getToken]); // Only depend on getToken, not state (to prevent interval restart on every keystroke)
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // Use a debounced check to avoid clearing immediately after import
