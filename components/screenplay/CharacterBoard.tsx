@@ -148,7 +148,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         <div className="flex flex-col h-full bg-background">
             {/* Header - Optional */}
             {showHeader && (
-                <div className="p-6 pl-16 sm:pl-6 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-sm">
+                <div className="p-6 pl-16 sm:pl-6 border-b border-border flex items-center justify-between bg-card">
                     <div>
                         <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                             {viewMode === 'board' ? 'Character Board' : 'Character Relationships'}

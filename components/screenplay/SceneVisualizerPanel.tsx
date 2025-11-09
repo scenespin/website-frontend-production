@@ -349,9 +349,9 @@ export function SceneVisualizerPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-card/50 backdrop-blur-sm rounded-lg border border-border/50">
+    <div className="flex flex-col h-full bg-card rounded-lg border border-border">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border/50">
+      <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-purple-500/10 rounded-lg">
             <Film className="w-5 h-5 text-purple-500" />
@@ -382,7 +382,7 @@ export function SceneVisualizerPanel({
         </div>
         
         {/* Quality Tier Selector (Simple 2-tier) */}
-        <div className="mb-4 p-3 rounded-md bg-background/50 border border-border/50">
+        <div className="mb-4 p-3 rounded-md bg-card border border-border">
           <label className="text-sm font-medium mb-2 block">🎬 Quality Tier</label>
           <div className="grid grid-cols-2 gap-3">
             {/* Professional Tier (1080p) - 50 credits */}
@@ -476,7 +476,7 @@ export function SceneVisualizerPanel({
         {selectedProvider === 'professional' && (
           <div className="mt-3 space-y-3">
             {/* Image Prompt URL */}
-            <div className="p-3 rounded-md bg-background/50 border border-border/50">
+            <div className="p-3 rounded-md bg-card border border-border">
               <label className="text-sm font-medium mb-2 block">🖼️ Image Prompt (Optional)</label>
               <input
                 type="text"
@@ -491,7 +491,7 @@ export function SceneVisualizerPanel({
             </div>
             
             {/* Watermark Toggle */}
-            <div className="flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50">
+            <div className="flex items-center gap-2 p-2 rounded-md bg-card border border-border">
               <input
                 type="checkbox"
                 id="watermark-free"
@@ -511,7 +511,7 @@ export function SceneVisualizerPanel({
         {selectedProvider === 'cinema' && (
           <div className="mt-3 space-y-3">
             {/* Cinematic Concepts */}
-            <div className="p-3 rounded-md bg-background/50 border border-border/50">
+            <div className="p-3 rounded-md bg-card border border-border">
               <label className="text-sm font-medium mb-2 block">🎬 Cinematic Effects</label>
               <div className="grid grid-cols-2 gap-2">
                 {VIDEO_CONCEPTS.map((concept) => (
@@ -545,7 +545,7 @@ export function SceneVisualizerPanel({
             </div>
             
             {/* Camera Motion Preset */}
-            <div className="p-3 rounded-md bg-background/50 border border-border/50">
+            <div className="p-3 rounded-md bg-card border border-border">
               <label className="text-sm font-medium mb-2 block">🎥 Camera Movement</label>
               <Select value={cameraMotion} onValueChange={setCameraMotion}>
                 <SelectTrigger className="w-full">
@@ -570,7 +570,7 @@ export function SceneVisualizerPanel({
         
         {/* Video Extension Toggle (Premium 4K tier) */}
         {selectedProvider === 'premium' && (
-          <div className="mt-2 flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50">
+          <div className="mt-2 flex items-center gap-2 p-2 rounded-md bg-card border border-border">
             <input
               type="checkbox"
               id="video-extension"

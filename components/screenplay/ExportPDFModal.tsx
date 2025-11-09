@@ -113,7 +113,7 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
   };
   
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
       <div className="bg-base-100 border border-base-300 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         
         {/* Header */}

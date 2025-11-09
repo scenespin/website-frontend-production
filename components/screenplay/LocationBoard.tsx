@@ -169,9 +169,9 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                         <div key={column.id} className="flex flex-col min-w-0">
                             {/* Column Header - Modern Style */}
                             <div 
-                                className="rounded-xl p-4 mb-3 backdrop-blur-sm"
+                                className="rounded-xl p-4 mb-3"
                                 style={{ 
-                                    background: `linear-gradient(135deg, ${column.color}15, ${column.color}05)`,
+                                    background: `linear-gradient(135deg, ${column.color}20, ${column.color}10)`,
                                     borderLeft: `3px solid ${column.color}`,
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                                 }}
