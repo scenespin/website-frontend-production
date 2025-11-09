@@ -84,7 +84,7 @@ interface TabConfig {
 export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
-  const { openDrawer } = useDrawer(); // NEW: For triggering AI Interview drawer
+  const { setIsDrawerOpen } = useDrawer(); // NEW: For triggering AI Interview drawer
 
   // State
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
@@ -209,7 +209,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
     }));
     
     // Open AI Interview drawer (mobile: bottom, desktop: right-side)
-    openDrawer('chat');
+    setIsDrawerOpen(true);
     console.log('[ProductionHub] Opening AI Interview drawer for example:', example);
   };
 
