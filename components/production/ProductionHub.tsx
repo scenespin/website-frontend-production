@@ -210,9 +210,9 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
       prompt: example.conversationPrompt
     }));
     
-    // Open AI Interview drawer (mobile: bottom, desktop: right-side)
-    openDrawer('chat');
-    console.log('[ProductionHub] Opening AI Interview drawer for example:', example);
+    // Open AI drawer with workflows mode (Production page default)
+    openDrawer('workflows');
+    console.log('[ProductionHub] Opening AI drawer with Workflows agent for example:', example);
   };
 
   const handleStyleAnalysisComplete = (profile: any) => {
@@ -296,7 +296,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 projectId={projectId}
                 onStartExample={handleStartExample}
                 onNavigate={setActiveTab}
-                onOpenChat={() => openDrawer('chat')}
+                onOpenChat={() => openDrawer('workflows')}
                 isMobile={true}
               />
             </div>
@@ -510,7 +510,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
               projectId={projectId}
               onStartExample={handleStartExample}
               onNavigate={setActiveTab}
-              onOpenChat={() => openDrawer('chat')}
+              onOpenChat={() => openDrawer('workflows')}
               isMobile={false}
             />
             </div>

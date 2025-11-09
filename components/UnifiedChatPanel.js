@@ -4,6 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { ChatModePanel } from './modes/ChatModePanel';
 import { DirectorModePanel } from './modes/DirectorModePanel';
@@ -443,6 +444,50 @@ function UnifiedChatPanelInner({
       }
     }
   }, []); // Run once on mount
+
+  // ============================================================================
+  // DRAWER AGENT MODE (Fix: Correct default agent per page)
+  // ============================================================================
+  
+  // Check for pending agent mode from openDrawer() calls
+  useEffect(() => {
+    const pendingAgentMode = localStorage.getItem('pending-agent-mode');
+    
+    if (pendingAgentMode) {
+      console.log('[UnifiedChatPanel] Setting agent mode from drawer open:', pendingAgentMode);
+      
+      // Clear from localStorage
+      localStorage.removeItem('pending-agent-mode');
+      
+      // Set the mode
+      setMode(pendingAgentMode);
+    }
+  }, []); // Run once on mount
+  
+  // Set correct default agent when drawer opens (based on page)
+  const { isDrawerOpen } = useDrawer();
+  useEffect(() => {
+    if (isDrawerOpen) {
+      // Check if there's a pending agent mode first
+      const pendingAgentMode = localStorage.getItem('pending-agent-mode');
+      
+      if (pendingAgentMode) {
+        console.log('[UnifiedChatPanel] Drawer opened with specific agent:', pendingAgentMode);
+        localStorage.removeItem('pending-agent-mode');
+        setMode(pendingAgentMode);
+      } else {
+        // No pending mode, use smart default based on page
+        const availableModes = getAvailableModesForPage(pathname);
+        const firstAvailableMode = availableModes[0] || 'chat';
+        
+        // Only switch if current mode is not available on this page
+        if (!availableModes.includes(state.activeMode)) {
+          console.log('[UnifiedChatPanel] Drawer opened, setting default agent for page:', firstAvailableMode);
+          setMode(firstAvailableMode);
+        }
+      }
+    }
+  }, [isDrawerOpen, pathname]); // Trigger when drawer opens or page changes
 
   // Auto-scroll to latest message
   useEffect(() => {

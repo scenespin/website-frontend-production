@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState } from 'react';
+import { useChatContext } from './ChatContext';
 
 const DrawerContext = createContext();
 
@@ -9,10 +10,17 @@ export function DrawerProvider({ children }) {
   const [drawerMode, setDrawerMode] = useState('chat');
   const [launchTrigger, setLaunchTrigger] = useState(null);
 
-  const openDrawer = (mode = 'chat', trigger = null) => {
-    setDrawerMode(mode);
+  // Open drawer with optional agent mode parameter
+  // agentMode: 'chat', 'director', 'audio', 'workflows', 'image', etc.
+  const openDrawer = (agentMode = null, trigger = null) => {
+    setDrawerMode('chat'); // Legacy drawerMode (always 'chat' now)
     setLaunchTrigger(trigger);
     setIsDrawerOpen(true);
+    
+    // Store agent mode in localStorage to be picked up by UnifiedChatPanel
+    if (agentMode) {
+      localStorage.setItem('pending-agent-mode', agentMode);
+    }
   };
 
   const closeDrawer = () => {
