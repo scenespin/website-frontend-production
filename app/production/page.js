@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * Production Page - Feature 0109 Complete Redesign
  * 
  * Mobile-first, screenplay-centric production interface with:
- * - AI Chat (conversational workflows)
+ * - AI Chat (conversational workflows) - NOW VIA DRAWER
  * - Scene Builder (from screenplay)
  * - Media Library (upload management + style matching)
  * - Character/Location/Asset Banks
@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * - Creative Gallery (inspiration)
  * 
  * Three Clear Paths:
- * 1. One-Off Creation → AI Chat
+ * 1. One-Off Creation → AI Chat Drawer
  * 2. Screenplay-Driven → Scene Builder
  * 3. Hybrid Workflow → Media Library + Style Analyzer + Scene Builder
  */
