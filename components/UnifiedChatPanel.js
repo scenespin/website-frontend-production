@@ -252,6 +252,7 @@ function UnifiedChatPanelInner({
   const { state, setMode, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
+  const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const { closeDrawer } = useDrawer();
@@ -386,6 +387,56 @@ function UnifiedChatPanelInner({
       }
     }
   }, [selectedTextContext, state.activeMode, initialMode, setMode, setSelectedTextContext]);
+
+  // ============================================================================
+  // SMART DEFAULT MODE (Issue #1 Fix)
+  // ============================================================================
+  
+  // Set intelligent default mode based on available modes for current page
+  useEffect(() => {
+    const availableModes = getAvailableModesForPage(pathname);
+    
+    // If current mode is not available on this page, switch to first available mode
+    if (!availableModes.includes(state.activeMode)) {
+      const defaultMode = availableModes[0] || 'chat';
+      console.log('[UnifiedChatPanel] Current mode not available on this page, switching to:', defaultMode);
+      setMode(defaultMode);
+    }
+  }, [pathname, state.activeMode, setMode]);
+
+  // ============================================================================
+  // WORKFLOW AUTO-START (Issue #2 Fix)
+  // ============================================================================
+  
+  // Check for pending workflow prompt from localStorage and auto-start
+  useEffect(() => {
+    const pendingWorkflow = localStorage.getItem('pending-workflow-prompt');
+    
+    if (pendingWorkflow) {
+      try {
+        const workflowData = JSON.parse(pendingWorkflow);
+        console.log('[UnifiedChatPanel] Found pending workflow, auto-starting:', workflowData);
+        
+        // Clear the pending workflow
+        localStorage.removeItem('pending-workflow-prompt');
+        
+        // Switch to workflows mode
+        setMode('workflows');
+        
+        // Set the initial prompt if provided
+        if (workflowData.prompt) {
+          setInput(workflowData.prompt);
+        }
+        
+        // TODO: Start the specific workflow if workflowId is provided
+        // This would require integration with the workflow system
+        
+      } catch (error) {
+        console.error('[UnifiedChatPanel] Failed to parse pending workflow:', error);
+        localStorage.removeItem('pending-workflow-prompt');
+      }
+    }
+  }, []); // Run once on mount
 
   // Auto-scroll to latest message
   useEffect(() => {

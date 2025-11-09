@@ -90,7 +90,7 @@ const defaultState: EditorState = {
     currentLine: 1,
     currentElementType: 'action',
     title: 'Untitled Screenplay',
-    author: '',
+    author: 'Anonymous', // Backend requires author field
     lastSaved: null,
     isDirty: false,
     isFocusMode: false,
