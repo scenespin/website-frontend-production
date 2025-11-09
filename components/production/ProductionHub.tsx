@@ -86,7 +86,7 @@ interface TabConfig {
 export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
-  const { setIsDrawerOpen } = useDrawer();
+  const { openDrawer } = useDrawer();
 
   // State
   const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
@@ -211,7 +211,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
     }));
     
     // Open AI Interview drawer (mobile: bottom, desktop: right-side)
-    setIsDrawerOpen(true);
+    openDrawer('chat');
     console.log('[ProductionHub] Opening AI Interview drawer for example:', example);
   };
 
@@ -292,11 +292,11 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="flex-1 overflow-hidden">
           {activeTab === 'overview' && (
             <div className="h-full overflow-y-auto p-4">
-              <OverviewTab
+              <OverviewTab 
                 projectId={projectId}
                 onStartExample={handleStartExample}
                 onNavigate={setActiveTab}
-                onOpenChat={() => setIsDrawerOpen(true)}
+                onOpenChat={() => openDrawer('chat')}
                 isMobile={true}
               />
             </div>
@@ -506,13 +506,13 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="flex-1 overflow-hidden bg-gray-950">
           {activeTab === 'overview' && (
             <div className="h-full overflow-y-auto">
-              <OverviewTab
-                projectId={projectId}
-                onStartExample={handleStartExample}
-                onNavigate={setActiveTab}
-                onOpenChat={() => setIsDrawerOpen(true)}
-                isMobile={false}
-              />
+            <OverviewTab 
+              projectId={projectId}
+              onStartExample={handleStartExample}
+              onNavigate={setActiveTab}
+              onOpenChat={() => openDrawer('chat')}
+              isMobile={false}
+            />
             </div>
           )}
 

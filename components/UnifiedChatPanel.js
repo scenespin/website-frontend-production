@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
@@ -38,6 +39,39 @@ const MODE_CONFIG = {
 // Mode order: Agents first, then generation features
 const MODE_ORDER = ['chat', 'director', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
 
+// ============================================================================
+// PAGE-BASED AGENT FILTERING
+// ============================================================================
+
+/**
+ * Get available agents based on current page
+ * @param {string} pathname - Current page path (e.g., '/write', '/production')
+ * @returns {string[]} - Array of available mode keys
+ */
+function getAvailableModesForPage(pathname) {
+  // Default: all modes
+  if (!pathname) return MODE_ORDER;
+  
+  // /write page - Writing agents ONLY
+  if (pathname.includes('/write') || pathname.includes('/editor')) {
+    return ['chat', 'director'];
+  }
+  
+  // /production page - Production agents ONLY
+  if (pathname.includes('/production')) {
+    return ['image', 'quick-video', 'audio', 'try-on', 'workflows'];
+  }
+  
+  // /composition and /timeline pages - Audio agent ONLY
+  if (pathname.includes('/composition') || pathname.includes('/timeline')) {
+    return ['audio'];
+  }
+  
+  // Default: all modes
+  return MODE_ORDER;
+}
+
+
 // LLM Models (Text Generation) - User Choice for Creative Style
 const LLM_MODELS = [
   // Claude (Anthropic)
@@ -59,10 +93,14 @@ const LLM_MODELS = [
 
 function ModeSelector() {
   const { state, setMode } = useChatContext();
+  const pathname = usePathname(); // Get current page path
   
-  // Separate agents from features
-  const agents = MODE_ORDER.filter(mode => MODE_CONFIG[mode].isAgent);
-  const features = MODE_ORDER.filter(mode => !MODE_CONFIG[mode].isAgent);
+  // Filter modes based on current page
+  const availableModes = getAvailableModesForPage(pathname);
+  
+  // Separate agents from features (only from available modes)
+  const agents = availableModes.filter(mode => MODE_CONFIG[mode]?.isAgent);
+  const features = availableModes.filter(mode => !MODE_CONFIG[mode]?.isAgent);
   
   const handleModeChange = (mode) => {
     setMode(mode);
@@ -79,50 +117,58 @@ function ModeSelector() {
       </label>
       <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-64 mb-2 border border-base-300 max-h-[80vh] overflow-y-auto">
         {/* AI AGENTS Section */}
-        <li className="menu-title">
-          <span className="text-xs font-bold text-base-content/70">AI Agents</span>
-        </li>
-        {agents.map((mode) => {
-          const config = MODE_CONFIG[mode];
-          const Icon = config.icon;
-          return (
-            <li key={mode}>
-              <button
-                onClick={() => handleModeChange(mode)}
-                className={`flex flex-col items-start gap-0.5 py-2 ${state.activeMode === mode ? 'active bg-cinema-red/10' : ''}`}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <Icon className={`w-4 h-4 ${config.color}`} />
-                  <span className="font-medium text-sm">{config.label}</span>
-                </div>
-                <span className="text-[10px] opacity-60 text-left ml-6">{config.description}</span>
-              </button>
+        {agents.length > 0 && (
+          <>
+            <li className="menu-title">
+              <span className="text-xs font-bold text-base-content/70">AI Agents</span>
             </li>
-          );
-        })}
+            {agents.map((mode) => {
+              const config = MODE_CONFIG[mode];
+              const Icon = config.icon;
+              return (
+                <li key={mode}>
+                  <button
+                    onClick={() => handleModeChange(mode)}
+                    className={`flex flex-col items-start gap-0.5 py-2 ${state.activeMode === mode ? 'active bg-cinema-red/10' : ''}`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <Icon className={`w-4 h-4 ${config.color}`} />
+                      <span className="font-medium text-sm">{config.label}</span>
+                    </div>
+                    <span className="text-[10px] opacity-60 text-left ml-6">{config.description}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </>
+        )}
         
         {/* GENERATION FEATURES Section */}
-        <li className="menu-title mt-2">
-          <span className="text-xs font-bold text-base-content/70">Generation</span>
-        </li>
-        {features.map((mode) => {
-          const config = MODE_CONFIG[mode];
-          const Icon = config.icon;
-          return (
-            <li key={mode}>
-              <button
-                onClick={() => handleModeChange(mode)}
-                className={`flex flex-col items-start gap-0.5 py-2 ${state.activeMode === mode ? 'active bg-cinema-red/10' : ''}`}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <Icon className={`w-4 h-4 ${config.color}`} />
-                  <span className="font-medium text-sm">{config.label}</span>
-                </div>
-                <span className="text-[10px] opacity-60 text-left ml-6">{config.description}</span>
-              </button>
+        {features.length > 0 && (
+          <>
+            <li className="menu-title mt-2">
+              <span className="text-xs font-bold text-base-content/70">Generation</span>
             </li>
-          );
-        })}
+            {features.map((mode) => {
+              const config = MODE_CONFIG[mode];
+              const Icon = config.icon;
+              return (
+                <li key={mode}>
+                  <button
+                    onClick={() => handleModeChange(mode)}
+                    className={`flex flex-col items-start gap-0.5 py-2 ${state.activeMode === mode ? 'active bg-cinema-red/10' : ''}`}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <Icon className={`w-4 h-4 ${config.color}`} />
+                      <span className="font-medium text-sm">{config.label}</span>
+                    </div>
+                    <span className="text-[10px] opacity-60 text-left ml-6">{config.description}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </>
+        )}
       </ul>
     </div>
   );
