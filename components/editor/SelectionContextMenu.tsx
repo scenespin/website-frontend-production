@@ -34,14 +34,25 @@ export default function SelectionContextMenu({
 }: SelectionContextMenuProps) {
     
     // Prevent menu from going off-screen
+    // Menu height is approximately 350px
+    const menuHeight = 350;
+    const menuWidth = 280;
+    
+    // Calculate if menu should appear above or below the cursor
+    const spaceBelow = window.innerHeight - position.y;
+    const spaceAbove = position.y;
+    const showBelow = spaceBelow >= menuHeight || spaceBelow > spaceAbove;
+    
     const adjustedPosition = {
-        x: Math.min(position.x, window.innerWidth - 280),
-        y: Math.min(position.y, window.innerHeight - 400)
+        x: Math.min(position.x, window.innerWidth - menuWidth),
+        y: showBelow 
+            ? Math.min(position.y + 20, window.innerHeight - menuHeight - 10) // Show below with offset
+            : Math.max(position.y - menuHeight - 20, 10) // Show above with offset
     };
 
     const menuStyle: React.CSSProperties = {
         position: 'fixed',
-        top: Math.max(10, adjustedPosition.y),
+        top: adjustedPosition.y,
         left: Math.max(10, adjustedPosition.x),
         zIndex: 1000,
         maxWidth: '300px',
