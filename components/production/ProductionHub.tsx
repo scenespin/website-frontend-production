@@ -294,6 +294,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 projectId={projectId}
                 onStartExample={handleStartExample}
                 onNavigate={setActiveTab}
+                onOpenChat={() => setIsDrawerOpen(true)}
                 isMobile={true}
               />
             </div>
@@ -507,6 +508,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 projectId={projectId}
                 onStartExample={handleStartExample}
                 onNavigate={setActiveTab}
+                onOpenChat={() => setIsDrawerOpen(true)}
                 isMobile={false}
               />
             </div>
@@ -602,10 +604,11 @@ interface OverviewTabProps {
   projectId: string;
   onStartExample: (example: any) => void;
   onNavigate: (tab: ProductionTab) => void;
+  onOpenChat?: () => void; // NEW: For opening AI Interview drawer
   isMobile: boolean;
 }
 
-function OverviewTab({ projectId, onStartExample, onNavigate, isMobile }: OverviewTabProps) {
+function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobile }: OverviewTabProps) {
   const screenplay = useScreenplay();
 
   return (
@@ -622,7 +625,11 @@ function OverviewTab({ projectId, onStartExample, onNavigate, isMobile }: Overvi
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* One-Off Path */}
           <button
-            onClick={() => onNavigate('chat')}
+            onClick={() => {
+              if (onOpenChat) {
+                onOpenChat(); // Open AI Interview drawer
+              }
+            }}
             className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
           >
             <MessageSquare className="w-8 h-8 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
