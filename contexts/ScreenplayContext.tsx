@@ -261,8 +261,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                     // Update state with loaded data
                     if (beatsData.length > 0) {
-                        setBeats(beatsData as StoryBeat[]);
-                        console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats');
+                        // Transform simple API Beats to complex app StoryBeats
+                        const transformedBeats: StoryBeat[] = beatsData.map((apiBeat: any) => ({
+                            id: apiBeat.id,
+                            title: apiBeat.title,
+                            description: apiBeat.description,
+                            order: apiBeat.order,
+                            scenes: [], // Empty array - scenes will be populated separately
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        }));
+                        setBeats(transformedBeats);
+                        console.log('[ScreenplayContext] ✅ Loaded', transformedBeats.length, 'beats');
                         // Prevent auto-creation of default beats since we loaded existing ones
                         hasAutoCreated.current = true;
                     }
@@ -1399,7 +1409,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const newCharacters: Character[] = [];
         const allCharacters: Character[] = [];
         
-        // Check for existing characters and reuse them
+        // CRITICAL FIX: Delete ALL existing characters from DynamoDB before re-importing
+        // This prevents duplicates when user pastes screenplay multiple times
+        if (screenplayId && characters.length > 0) {
+            console.log('[ScreenplayContext] Clearing', characters.length, 'existing characters from DynamoDB before re-import...');
+            await Promise.all(
+                characters.map(char => 
+                    apiDeleteCharacter(screenplayId, char.id, getToken).catch(err => {
+                        console.warn('[ScreenplayContext] Failed to delete character:', char.name, err);
+                    })
+                )
+            );
+            // Clear local state
+            setCharacters([]);
+            console.log('[ScreenplayContext] ✅ Cleared existing characters');
+        }
+        
+        // Now import fresh characters
+        // Check for existing characters and reuse them (within this import batch only)
         const existingCharactersMap = new Map(
             characters.map(c => [c.name.toUpperCase(), c])
         );
@@ -1487,7 +1514,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const newLocations: Location[] = [];
         const allLocations: Location[] = [];
         
-        // Check for existing locations and reuse them
+        // CRITICAL FIX: Delete ALL existing locations from DynamoDB before re-importing
+        // This prevents duplicates when user pastes screenplay multiple times
+        if (screenplayId && locations.length > 0) {
+            console.log('[ScreenplayContext] Clearing', locations.length, 'existing locations from DynamoDB before re-import...');
+            await Promise.all(
+                locations.map(loc => 
+                    apiDeleteLocation(screenplayId, loc.id, getToken).catch(err => {
+                        console.warn('[ScreenplayContext] Failed to delete location:', loc.name, err);
+                    })
+                )
+            );
+            // Clear local state
+            setLocations([]);
+            console.log('[ScreenplayContext] ✅ Cleared existing locations');
+        }
+        
+        // Now import fresh locations
+        // Check for existing locations and reuse them (within this import batch only)
         const existingLocationsMap = new Map(
             locations.map(l => [l.name.toUpperCase(), l])
         );
