@@ -226,6 +226,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 try {
                     console.log('[ScreenplayContext] 🔄 Loading structure from DynamoDB for:', screenplayId);
                     
+                    // 🔥 CRITICAL: Initialize persistence manager with screenplay_id and getToken
+                    persistenceManager.setScreenplay(screenplayId, getToken);
+                    
                     // 🔥 NEW: Use persistence manager to load all data
                     // This handles all transformation logic internally
                     const [beatsData, charactersData, locationsData] = await Promise.all([
