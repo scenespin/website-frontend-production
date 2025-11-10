@@ -5,6 +5,7 @@ import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement } from '@/utils/fountain';
 import { saveToGitHub } from '@/utils/github';
+import { toast } from 'sonner';
 
 interface EditorToolbarProps {
     className?: string;
@@ -129,8 +130,29 @@ function ExportToGitHubButton() {
  * Theme-aware styling with DaisyUI classes
  */
 export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave }: EditorToolbarProps) {
-    const { state, setContent, toggleFocusMode, setFontSize, undo, redo } = useEditor();
+    const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
     const screenplay = useScreenplay();
+    const [isSaving, setIsSaving] = useState(false);
+    
+    // Handle immediate save to DynamoDB
+    const handleSave = async () => {
+        if (isSaving || !state.isDirty) return;
+        
+        setIsSaving(true);
+        try {
+            await saveNow();
+            toast.success('💾 Saved to database', {
+                description: 'Your screenplay is safe!'
+            });
+        } catch (error) {
+            console.error('[EditorToolbar] Save failed:', error);
+            toast.error('⚠️ Save failed', {
+                description: 'Will retry automatically'
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
     
     const formatCurrentLine = (type: FountainElementType) => {
         const lines = state.content.split('\n');
@@ -298,17 +320,27 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* Save Button */}
                 {onSave && (
-                    <div className="tooltip tooltip-bottom" data-tip={state.isDirty ? 'Save changes to localStorage & GitHub' : 'All changes saved!'}>
+                    <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : (state.isDirty ? 'Save to database immediately' : 'All changes saved!')}>
                         <button
-                            onClick={onSave}
-                            disabled={!state.isDirty}
+                            onClick={handleSave}
+                            disabled={!state.isDirty || isSaving}
                             className={`px-3 py-2 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-all font-medium text-sm ${
-                                state.isDirty
+                                state.isDirty && !isSaving
                                     ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white shadow-lg shadow-[#DC143C]/20'
+                                    : isSaving
+                                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-wait'
                                     : 'bg-green-500/10 text-green-400 border border-green-500/30 cursor-default'
                             }`}
                         >
-                            {state.isDirty ? (
+                            {isSaving ? (
+                                <>
+                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Saving...</span>
+                                </>
+                            ) : state.isDirty ? (
                                 <>
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />

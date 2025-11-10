@@ -68,6 +68,7 @@ interface EditorContextType {
     setAuthor: (author: string) => void;
     markSaved: () => void;
     markDirty: () => void;
+    saveNow: () => Promise<boolean>;
     
     // Editor settings
     toggleFocusMode: () => void;
@@ -343,6 +344,63 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, highlightRange: null }));
     }, []);
     
+    // Manual save function - for save button and paste trigger
+    const saveNow = useCallback(async () => {
+        const currentState = stateRef.current;
+        const contentLength = currentState.content.length;
+        
+        console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
+        
+        try {
+            // Save to localStorage immediately
+            localStorage.setItem('screenplay_draft', currentState.content);
+            localStorage.setItem('screenplay_title', currentState.title);
+            localStorage.setItem('screenplay_author', currentState.author);
+            console.log('[EditorContext] ✅ Saved to localStorage');
+            
+            // Save to DynamoDB immediately
+            if (!screenplayIdRef.current) {
+                // Create new screenplay in DynamoDB
+                console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
+                const screenplay = await createScreenplay({
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                }, getToken);
+                
+                screenplayIdRef.current = screenplay.screenplay_id;
+                localStorage.setItem('current_screenplay_id', screenplay.screenplay_id);
+                console.log('[EditorContext] ✅ Created NEW screenplay:', screenplay.screenplay_id, '| Content:', contentLength, 'chars');
+            } else {
+                // Update existing screenplay
+                console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
+                await updateScreenplay({
+                    screenplay_id: screenplayIdRef.current,
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                }, getToken);
+                
+                console.log('[EditorContext] ✅ Updated screenplay:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
+            }
+            
+            // Mark as saved
+            setState(prev => ({
+                ...prev,
+                lastSaved: new Date(),
+                isDirty: false
+            }));
+            
+            // Reset the auto-save counter since we just saved manually
+            localSaveCounterRef.current = 0;
+            
+            return true;
+        } catch (error: any) {
+            console.error('[EditorContext] Manual save failed:', error);
+            throw error; // Let the caller handle the error
+        }
+    }, [getToken]);
+    
     // Utility
     const reset = useCallback(() => {
         setState(defaultState);
@@ -364,6 +422,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setAuthor,
         markSaved,
         markDirty,
+        saveNow,
         toggleFocusMode,
         toggleLineNumbers,
         setFontSize,
