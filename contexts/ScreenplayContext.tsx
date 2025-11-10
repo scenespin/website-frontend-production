@@ -87,7 +87,7 @@ interface ScreenplayContextType {
         startLine: number;
         endLine: number;
     }>) => Promise<Scene[]>;
-    saveBeatsToD ynamoDB: () => Promise<void>; // NEW: Save beats after all imports complete
+    saveBeatsToDynamoDB: () => Promise<void>; // NEW: Save beats after all imports complete
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -1682,7 +1682,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [beats, screenplayId, getToken]);
     
     // Helper: Save all beats to DynamoDB (called after bulk imports complete)
-    const saveBeatsToD ynamoDB = useCallback(async () => {
+    const saveBeatsToDynamoDB = useCallback(async () => {
         if (!screenplayId || beats.length === 0) return;
         
         try {
@@ -1908,7 +1908,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportCharacters,
         bulkImportLocations,
         bulkImportScenes,
-        saveBeatsToD ynamoDB, // NEW: Save beats after all imports complete
+        saveBeatsToDynamoDB, // NEW: Save beats after all imports complete
         
         // Scene Position Management
         updateScenePositions,
