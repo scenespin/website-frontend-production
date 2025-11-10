@@ -288,15 +288,19 @@ export class ScreenplayPersistenceManager {
     }
     
     console.log('[Persistence] 💾 Saving characters...', characters.length);
+    console.log('[Persistence] 🔍 Characters to save:', characters.map(c => ({ id: c.id, name: c.name })));
     
     try {
       const apiCharacters = this.transformCharactersToAPI(characters);
+      console.log('[Persistence] 🔍 Transformed to API format:', apiCharacters.length, 'characters');
+      console.log('[Persistence] 🔍 API payload:', JSON.stringify({ screenplay_id: this.screenplayId, characters: apiCharacters }).substring(0, 500));
       
-      await apiUpdateScreenplay({
+      const result = await apiUpdateScreenplay({
         screenplay_id: this.screenplayId,
         characters: apiCharacters
       }, this.getToken);
       
+      console.log('[Persistence] 🔍 API RESPONSE:', result ? JSON.stringify(result).substring(0, 500) : 'null');
       console.log('[Persistence] ✅ Saved', characters.length, 'characters');
       
     } catch (error) {
@@ -346,15 +350,19 @@ export class ScreenplayPersistenceManager {
     }
     
     console.log('[Persistence] 💾 Saving beats...', beats.length);
+    console.log('[Persistence] 🔍 Beats to save:', beats.map(b => ({ id: b.id, title: b.title, scenes: b.scenes?.length || 0 })));
     
     try {
       const apiBeats = this.transformBeatsToAPI(beats);
+      console.log('[Persistence] 🔍 Transformed to API format:', apiBeats.length, 'beats');
+      console.log('[Persistence] 🔍 API payload:', JSON.stringify({ screenplay_id: this.screenplayId, beats: apiBeats }).substring(0, 500));
       
-      await apiUpdateScreenplay({
+      const result = await apiUpdateScreenplay({
         screenplay_id: this.screenplayId,
         beats: apiBeats
       }, this.getToken);
       
+      console.log('[Persistence] 🔍 API RESPONSE:', result ? JSON.stringify(result).substring(0, 500) : 'null');
       console.log('[Persistence] ✅ Saved', beats.length, 'beats');
       
     } catch (error) {
