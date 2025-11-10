@@ -1,20 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, MoreVertical, User, Users, GitBranch, Image as ImageIcon } from 'lucide-react';
+import { Plus, MoreVertical, User, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import type { Character, ArcStatus } from '@/types/screenplay';
 import CharacterDetailSidebar from './CharacterDetailSidebar';
-import CharacterRelationshipMap from './CharacterRelationshipMap';
 import { DeleteCharacterDialog } from '../structure/DeleteConfirmDialog';
-import { CharacterImageViewer } from '@/components/characters/CharacterImageViewer';
-import CharacterBankManager from '@/components/production/CharacterBankManager';
 import { getCharacterDependencies, generateCharacterReport } from '@/utils/dependencyChecker';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 interface CharacterColumn {
     id: string;
@@ -37,26 +30,11 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [viewMode, setViewMode] = useState<'board' | 'map'>('board');
-    const [formData, setFormData] = useState({
-        name: '',
-        type: 'lead' as 'lead' | 'supporting' | 'minor',
-        arcStatus: 'introduced' as 'introduced' | 'developing' | 'resolved',
-        description: '',
-        arcNotes: ''
-    });
     
     // Delete confirmation dialog state
     const [characterToDelete, setCharacterToDelete] = useState<Character | null>(null);
     const [deleteDependencyReport, setDeleteDependencyReport] = useState('');
     const [deleteSceneCount, setDeleteSceneCount] = useState(0);
-    
-    // Image viewer state
-    const [imageViewerCharacter, setImageViewerCharacter] = useState<Character | null>(null);
-    
-    // Character Bank Manager state
-    const [characterBankOpen, setCharacterBankOpen] = useState(false);
-    const [characterBankTarget, setCharacterBankTarget] = useState<Character | null>(null);
     
     // Listen for external trigger to add character
     useEffect(() => {
@@ -133,235 +111,157 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     };
 
     const openEditForm = (character: Character) => {
-        setFormData({
-            name: character.name,
-            type: character.type,
-            arcStatus: character.arcStatus,
-            description: character.description || '',
-            arcNotes: character.arcNotes || ''
-        });
         setSelectedCharacter(character);
         setIsEditing(true);
     };
 
     return (
-        <div className="flex flex-col h-full bg-background">
-            {/* Header - Optional */}
+        <div className="flex flex-col h-full">
+            {/* Header - Simplified, matches LocationBoard */}
             {showHeader && (
-                <div className="p-6 pl-16 sm:pl-6 border-b border-border flex items-center justify-between bg-card">
-                    <div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-                            {viewMode === 'board' ? 'Character Board' : 'Character Relationships'}
-                        </h2>
-                        <p className="text-xs sm:text-sm mt-1 text-muted-foreground">
-                            {viewMode === 'board' 
-                                ? 'View and manage all characters from your screenplay'
-                                : 'Visualize how characters interact throughout your screenplay'
-                            }
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {/* View Toggle */}
-                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted">
-                            <Button
-                                variant={viewMode === 'board' ? 'default' : 'ghost'}
-                                size="sm"
-                                onClick={() => setViewMode('board')}
-                                className="gap-2"
-                            >
-                                <Users size={16} />
-                                Board
-                            </Button>
-                            <Button
-                                variant={viewMode === 'map' ? 'default' : 'ghost'}
-                                size="sm"
-                                onClick={() => setViewMode('map')}
-                                className="gap-2"
-                            >
-                                <GitBranch size={16} />
-                                Map
-                            </Button>
+                <div className="mb-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                Character Board
+                            </h2>
+                            <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                Track character arcs throughout your screenplay
+                            </p>
                         </div>
-                        {viewMode === 'board' && (
-                            <Button
-                                onClick={() => setIsCreating(true)}
-                                className="gap-2 shrink-0"
-                            >
-                                <Plus size={18} />
-                                <span className="hidden sm:inline">Add Character</span>
-                                <span className="sm:hidden">Add</span>
-                            </Button>
-                        )}
+                        <button
+                            onClick={() => setIsCreating(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                            style={{
+                                backgroundColor: '#DC143C',
+                                color: 'white',
+                            }}
+                        >
+                            <Plus size={18} />
+                            Add Character
+                        </button>
                     </div>
                 </div>
             )}
 
-            {/* Board View - SIMPLIFIED (No Drag) */}
-            <AnimatePresence mode="wait">
-            {viewMode === 'board' && (
-                <motion.div
-                    key="board-view"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-1 overflow-x-auto p-6"
-                >
-                    {/* Mobile: Vertical Stack, Desktop: 3 Columns */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
-                    {columns.map((column) => (
-                        <div key={column.id} className="flex flex-col min-w-0">
-                            {/* Column Header - Modern Style */}
-                            <Card className="p-4 mb-3 border-l-4 shadow-sm" style={{ borderLeftColor: column.color }}>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div 
-                                            className="w-2 h-2 rounded-full animate-pulse"
-                                            style={{ backgroundColor: column.color }}
-                                        />
-                                        <h3 className="font-semibold text-base text-foreground">
-                                            {column.title}
-                                        </h3>
-                                    </div>
-                                    <Badge 
-                                        variant="secondary"
-                                        className="font-semibold"
-                                        style={{ 
-                                            backgroundColor: column.color + '20',
-                                            color: column.color,
-                                            borderColor: column.color + '30'
+            {/* Character Columns - Matches LocationBoard style */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                {columns.map((column) => (
+                    <div key={column.id} className="flex flex-col">
+                        {/* Column Header - Clean style like LocationBoard */}
+                        <div 
+                            className="p-3 mb-3 rounded-lg border-l-4 flex items-center justify-between"
+                            style={{
+                                backgroundColor: '#1C1C1E',
+                                borderLeftColor: column.color,
+                            }}
+                        >
+                            <h3 className="font-semibold" style={{ color: '#E5E7EB' }}>
+                                {column.title}
+                            </h3>
+                            <span 
+                                className="px-2 py-1 rounded-md text-xs font-semibold"
+                                style={{
+                                    backgroundColor: column.color + '20',
+                                    color: column.color,
+                                }}
+                            >
+                                {column.characters.length}
+                            </span>
+                        </div>
+
+                        {/* Characters List */}
+                        <div 
+                            className="flex-1 p-3 rounded-lg"
+                            style={{
+                                backgroundColor: '#0F0F11',
+                                border: '1px solid #27272A',
+                                minHeight: '400px',
+                            }}
+                        >
+                            {/* Empty State */}
+                            {column.characters.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
+                                    <div
+                                        className="w-16 h-16 rounded-full flex items-center justify-center mb-3"
+                                        style={{
+                                            backgroundColor: column.color + '15',
+                                            border: `2px dashed ${column.color}40`,
                                         }}
                                     >
-                                        {column.characters.length}
-                                    </Badge>
-                                </div>
-                            </Card>
-
-                            {/* Characters List (STATIC - No Drag) */}
-                            <div className="flex-1 p-3 rounded-xl min-h-[400px] border-2 border-border bg-card/30">
-                                {/* Empty State */}
-                                {column.characters.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center h-full py-12 px-4">
-                                        <div
-                                            className="w-16 h-16 rounded-full flex items-center justify-center mb-4 border-2 border-dashed"
-                                            style={{
-                                                backgroundColor: column.color + '10',
-                                                borderColor: column.color + '40',
-                                            }}
-                                        >
-                                            <Users size={28} style={{ color: column.color }} />
-                                        </div>
-                                        <p className="text-sm text-center text-muted-foreground">No characters yet</p>
-                                        <p className="text-xs text-center mt-1 text-muted-foreground/60">
-                                            Characters appear based on your screenplay
-                                        </p>
+                                        <Users size={24} style={{ color: column.color }} />
                                     </div>
-                                )}
-
-                                {/* Character Cards - STATIC */}
-                                <div className="space-y-2">
-                                    {column.characters.map((character, index) => (
-                                        <motion.div
-                                            key={character.id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            onClick={() => setSelectedCharacter(character)}
-                                        >
-                                            <CharacterCardContent
-                                                character={character}
-                                                color={column.color}
-                                                sceneCount={getCharacterScenes(character.id).length}
-                                                openEditForm={openEditForm}
-                                                setImageViewerCharacter={setImageViewerCharacter}
-                                            />
-                                        </motion.div>
-                                    ))}
+                                    <p className="text-sm text-center" style={{ color: '#9CA3AF' }}>
+                                        No characters yet
+                                    </p>
+                                    <p className="text-xs text-center mt-1" style={{ color: '#6B7280' }}>
+                                        Characters appear based on your screenplay
+                                    </p>
                                 </div>
+                            )}
+
+                            {/* Character Cards - Compact style like LocationBoard */}
+                            <div className="space-y-2">
+                                {column.characters.map((character, index) => (
+                                    <motion.div
+                                        key={character.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                    >
+                                        <CharacterCardContent
+                                            character={character}
+                                            color={column.color}
+                                            sceneCount={getCharacterScenes(character.id).length}
+                                            onClick={() => setSelectedCharacter(character)}
+                                            onEdit={() => openEditForm(character)}
+                                        />
+                                    </motion.div>
+                                ))}
                             </div>
                         </div>
-                    ))}
                     </div>
-                </motion.div>
-            )}
-            
-            {/* Character Relationship Map View */}
-            {viewMode === 'map' && (
-                <motion.div
-                    key="map-view"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-1 overflow-hidden"
-                >
-                    <CharacterRelationshipMap />
-                </motion.div>
-            )}
-            </AnimatePresence>
+                ))}
+            </div>
 
-            {/* Character Detail Sidebar */}
+            {/* Character Detail Sidebar - Clean, no glass modal */}
             <AnimatePresence>
             {(isCreating || isEditing || selectedCharacter) && (
-                <>
-                    {/* Backdrop - doesn't cover the sidebar area */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="fixed inset-0 bg-background z-[9998] pointer-events-auto"
-                        style={{ right: 'min(480px, 100vw)' }}
-                        onClick={() => {
+                <CharacterDetailSidebar
+                    character={isEditing || (!isCreating && selectedCharacter) ? selectedCharacter : null}
+                    isCreating={isCreating}
+                    initialData={isCreating ? initialData : undefined}
+                    onClose={() => {
+                        setIsCreating(false);
+                        setIsEditing(false);
+                        setSelectedCharacter(null);
+                    }}
+                    onCreate={async (data) => {
+                        try {
+                            await createCharacter({
+                                ...data,
+                                customFields: []
+                            });
                             setIsCreating(false);
-                            setIsEditing(false);
-                            setSelectedCharacter(null);
-                        }}
-                    />
-                    
-                    <CharacterDetailSidebar
-                        character={isEditing || (!isCreating && selectedCharacter) ? selectedCharacter : null}
-                        isCreating={isCreating}
-                        initialData={isCreating ? initialData : undefined}
-                        onClose={() => {
-                            setIsCreating(false);
-                            setIsEditing(false);
-                            setSelectedCharacter(null);
-                        }}
-                        onCreate={async (data) => {
-                            try {
-                                await createCharacter({
-                                    ...data,
-                                    customFields: []
-                                });
-                                setIsCreating(false);
-                            } catch (err: any) {
-                                alert(`Error creating character: ${err.message}`);
-                            }
-                        }}
-                        onUpdate={async (character) => {
-                            try {
-                                await updateCharacter(character.id, character);
-                            } catch (err: any) {
-                                alert(`Error updating character: ${err.message}`);
-                            }
-                        }}
-                        onDelete={async (characterId) => {
-                            const character = characters.find(c => c.id === characterId);
-                            if (character) {
-                                handleDelete(characterId, character.name);
-                            }
-                        }}
-                        onSwitchToChatImageMode={onSwitchToChatImageMode}
-                        onOpenCharacterBank={(characterId) => {
-                            const character = characters.find(c => c.id === characterId);
-                            if (character) {
-                                setCharacterBankTarget(character);
-                                setCharacterBankOpen(true);
-                            }
-                        }}
-                    />
-                </>
+                        } catch (err: any) {
+                            alert(`Error creating character: ${err.message}`);
+                        }
+                    }}
+                    onUpdate={async (character) => {
+                        try {
+                            await updateCharacter(character.id, character);
+                        } catch (err: any) {
+                            alert(`Error updating character: ${err.message}`);
+                        }
+                    }}
+                    onDelete={async (characterId) => {
+                        const character = characters.find(c => c.id === characterId);
+                        if (character) {
+                            handleDelete(characterId, character.name);
+                        }
+                    }}
+                    onSwitchToChatImageMode={onSwitchToChatImageMode}
+                />
             )}
             </AnimatePresence>
             
@@ -373,156 +273,83 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
-            
-            {/* Image Viewer */}
-            {imageViewerCharacter && (
-                <CharacterImageViewer
-                    isOpen={true}
-                    character={imageViewerCharacter}
-                    onClose={() => setImageViewerCharacter(null)}
-                    onDeleteImage={async (imageUrl) => {
-                        try {
-                            // Remove image from character's images array
-                            const updatedImages = imageViewerCharacter.images?.filter(img => img.imageUrl !== imageUrl) || [];
-                            await updateCharacter(imageViewerCharacter.id, {
-                                ...imageViewerCharacter,
-                                images: updatedImages
-                            });
-                            // Update local state
-                            setImageViewerCharacter({
-                                ...imageViewerCharacter,
-                                images: updatedImages
-                            });
-                        } catch (err: any) {
-                            alert(`Error deleting image: ${err.message}`);
-                        }
-                    }}
-                />
-            )}
-            
-            {/* Character Bank Manager - Renders as its own modal */}
-            {characterBankOpen && characterBankTarget && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-                    <div className="bg-base-100 dark:bg-base-300 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
-                        <div className="flex justify-between items-center p-4 border-b">
-                            <h2 className="text-xl font-bold">Character Bank - {characterBankTarget.name}</h2>
-                            <button
-                                onClick={() => {
-                                    setCharacterBankOpen(false);
-                                    setCharacterBankTarget(null);
-                                }}
-                                className="p-2 hover:bg-base-100 dark:hover:bg-base-content/20 rounded"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="overflow-auto max-h-[calc(90vh-4rem)]">
-                            <CharacterBankManager
-                                projectId="default"
-                                onCharacterSelect={(characterId) => {
-                                    console.log('Character selected:', characterId);
-                                    setCharacterBankOpen(false);
-                                    setCharacterBankTarget(null);
-                                }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
 
 // ============================================================================
-// CharacterCardContent Component (STATIC - No Drag)
+// CharacterCardContent Component - Compact style matching LocationBoard
 // ============================================================================
 
 interface CharacterCardContentProps {
     character: Character;
     color: string;
     sceneCount: number;
-    openEditForm?: (character: Character) => void;
-    setImageViewerCharacter?: (character: Character | null) => void;
+    onClick: () => void;
+    onEdit: () => void;
 }
 
 function CharacterCardContent({
     character,
     color,
     sceneCount,
-    openEditForm,
-    setImageViewerCharacter,
+    onClick,
+    onEdit,
 }: CharacterCardContentProps) {
     return (
-        <Card
-            className="p-3 cursor-pointer hover:shadow-lg transition-all border-l-2 hover:scale-[1.02]"
+        <div
+            className="p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]"
             style={{
-                borderLeftColor: color,
+                backgroundColor: '#1C1C1E',
+                borderColor: '#3F3F46',
             }}
+            onClick={onClick}
         >
             {/* Character Info */}
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2">
                 <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                     style={{
-                        backgroundColor: color + '20',
+                        backgroundColor: color + '30',
                         color: color,
                     }}
                 >
-                    <User size={18} />
+                    <User size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold truncate text-foreground">{character.name}</h4>
-                    <p className="text-xs truncate text-muted-foreground capitalize">{character.type}</p>
+                    <h4 className="font-medium truncate text-sm" style={{ color: '#E5E7EB' }}>
+                        {character.name}
+                    </h4>
+                    <p className="text-xs truncate capitalize" style={{ color: '#9CA3AF' }}>
+                        {character.type}
+                    </p>
                 </div>
-                {openEditForm && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            openEditForm(character);
-                        }}
-                        title="Edit character"
-                    >
-                        <MoreVertical size={16} />
-                    </Button>
-                )}
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit();
+                    }}
+                    className="p-1 rounded hover:bg-gray-700/50 transition-colors"
+                    title="Edit character"
+                >
+                    <MoreVertical size={14} style={{ color: '#9CA3AF' }} />
+                </button>
             </div>
 
-            {/* Description */}
+            {/* Description - Compact */}
             {character.description && (
-                <p className="text-xs mt-3 line-clamp-2 text-muted-foreground leading-relaxed">
+                <p className="text-xs mt-2 line-clamp-1" style={{ color: '#9CA3AF' }}>
                     {character.description}
                 </p>
             )}
 
-            {/* Stats */}
-            <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">📝 {sceneCount} scenes</span>
-                {character.githubIssueNumber && (
-                    <span className="flex items-center gap-1">🔗 #{character.githubIssueNumber}</span>
-                )}
+            {/* Stats - Compact */}
+            <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: '#6B7280' }}>
+                <span>📝 {sceneCount}</span>
                 {character.images && character.images.length > 0 && (
-                    <span className="flex items-center gap-1 text-blue-400">🖼️ {character.images.length}</span>
+                    <span className="text-blue-400">🖼️ {character.images.length}</span>
                 )}
             </div>
-
-            {/* View Images Button - Show if images exist */}
-            {character.images && character.images.length > 0 && setImageViewerCharacter && (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-3 h-8 text-xs gap-1.5"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setImageViewerCharacter(character);
-                    }}
-                >
-                    <ImageIcon size={14} />
-                    View Images ({character.images.length})
-                </Button>
-            )}
-        </Card>
+        </div>
     );
 }
