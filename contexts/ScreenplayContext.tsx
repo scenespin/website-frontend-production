@@ -87,6 +87,7 @@ interface ScreenplayContextType {
         startLine: number;
         endLine: number;
     }>) => Promise<Scene[]>;
+    saveBeatsToD ynamoDB: () => Promise<void>; // NEW: Save beats after all imports complete
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -846,30 +847,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, getToken]);
     
     const updateCharacter = useCallback(async (id: string, updates: Partial<Character>) => {
-        let updatedCharacter: Character | undefined;
+        let updatedCharacters: Character[] | undefined;
         
         setCharacters(prev => {
-            const updated = prev.map(char => {
+            updatedCharacters = prev.map(char => {
                 if (char.id === id) {
-                    updatedCharacter = { ...char, ...updates, updatedAt: new Date().toISOString() };
-                    return updatedCharacter;
+                    return { ...char, ...updates, updatedAt: new Date().toISOString() };
                 }
                 return char;
             });
-            return updated;
+            return updatedCharacters;
         });
         
-        // Feature 0111 Phase 3: Update in DynamoDB
-        if (screenplayId && updatedCharacter) {
+        // Save entire characters array to DynamoDB using embedded array method
+        if (screenplayId && updatedCharacters) {
             try {
-                // Only send fields that are defined in updates
-                const updatesForBackend: any = {};
-                if (updates.name !== undefined) updatesForBackend.name = updates.name;
-                if (updates.description !== undefined) updatesForBackend.description = updates.description;
-                // Note: referenceImages is not in frontend Character type yet, skip for now
+                const apiCharacters = updatedCharacters.map(char => ({
+                    id: char.id,
+                    name: char.name,
+                    description: char.description,
+                    referenceImages: char.images?.map(img => img.imageUrl) || []
+                }));
                 
-                await apiUpdateCharacter(screenplayId, id, updatesForBackend, getToken);
-                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
+                await apiUpdateScreenplay({
+                    screenplay_id: screenplayId,
+                    characters: apiCharacters
+                }, getToken);
+                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB (embedded array)');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update character in DynamoDB:', error);
             }
@@ -1051,31 +1055,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, getToken]);
     
     const updateLocation = useCallback(async (id: string, updates: Partial<Location>) => {
-        let updatedLocation: Location | undefined;
+        let updatedLocations: Location[] | undefined;
         
         setLocations(prev => {
-            const updated = prev.map(loc => {
+            updatedLocations = prev.map(loc => {
                 if (loc.id === id) {
-                    updatedLocation = { ...loc, ...updates, updatedAt: new Date().toISOString() };
-                    return updatedLocation;
+                    return { ...loc, ...updates, updatedAt: new Date().toISOString() };
                 }
                 return loc;
             });
-            return updated;
+            return updatedLocations;
         });
         
-        // Feature 0111 Phase 3: Update in DynamoDB
-        if (screenplayId && updatedLocation) {
+        // Save entire locations array to DynamoDB using embedded array method
+        if (screenplayId && updatedLocations) {
             try {
-                // Only send fields that are defined in updates
-                const updatesForBackend: any = {};
-                if (updates.name !== undefined) updatesForBackend.name = updates.name;
-                if (updates.description !== undefined) updatesForBackend.description = updates.description;
-                // Note: Backend expects referenceImages (string[]), frontend has images (ImageAsset[])
-                // Skip for now until we implement image upload in Phase 3.6
+                const apiLocations = updatedLocations.map(loc => ({
+                    id: loc.id,
+                    name: loc.name,
+                    description: loc.description,
+                    referenceImages: loc.images?.map(img => img.imageUrl) || []
+                }));
                 
-                await apiUpdateLocation(screenplayId, id, updatesForBackend, getToken);
-                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
+                await apiUpdateScreenplay({
+                    screenplay_id: screenplayId,
+                    locations: apiLocations
+                }, getToken);
+                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB (embedded array)');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update location in DynamoDB:', error);
             }
@@ -1669,33 +1675,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             };
         });
         
-        // Save to DynamoDB if screenplay exists
-        if (screenplayId) {
-            console.log('[ScreenplayContext] Saving', newScenes.length, 'scenes to DynamoDB (by updating beat)...');
-            try {
-                // Find the beat (before it was updated with scenes in setBeats)
-                const existingBeat = beats.find(b => b.id === beatId);
-                if (existingBeat) {
-                    // Get all scenes for this beat (old + new)
-                    const allScenes = [...existingBeat.scenes, ...newScenes];
-                    
-                    // Transform: Extract scene IDs for backend (backend expects string[], not Scene[])
-                    const beatForBackend = {
-                        ...existingBeat,
-                        scenes: allScenes.map(s => s.id),
-                        updatedAt: now
-                    };
-                    
-                    // Update the beat in DynamoDB with all scenes
-                    await apiUpdateBeat(screenplayId, beatId, beatForBackend as any, getToken);
-                    console.log('[ScreenplayContext] ✅ Saved', newScenes.length, 'scenes to DynamoDB');
-                }
-            } catch (err) {
-                console.error('[ScreenplayContext] Failed to save scenes:', err);
-            }
-        }
+        // Note: Beats will be saved to DynamoDB in bulk after all imports complete
+        // Each bulkImportScenes call updates local state, but we save once at the end
         
         return newScenes;
+    }, [beats, screenplayId, getToken]);
+    
+    // Helper: Save all beats to DynamoDB (called after bulk imports complete)
+    const saveBeatsToD ynamoDB = useCallback(async () => {
+        if (!screenplayId || beats.length === 0) return;
+        
+        try {
+            console.log('[ScreenplayContext] Saving', beats.length, 'beats to DynamoDB (embedded array)...');
+            
+            // Transform beats to API format
+            const apiBeats = beats.map(beat => ({
+                id: beat.id,
+                title: beat.title,
+                description: beat.description,
+                order: beat.order,
+                scenes: beat.scenes.map(s => s.id) // Backend expects string[]
+            }));
+            
+            await apiUpdateScreenplay({
+                screenplay_id: screenplayId,
+                beats: apiBeats
+            }, getToken);
+            
+            console.log('[ScreenplayContext] ✅ Saved', beats.length, 'beats to DynamoDB');
+        } catch (err) {
+            console.error('[ScreenplayContext] Failed to save beats to DynamoDB:', err);
+        }
     }, [beats, screenplayId, getToken]);
     
     // ========================================================================
@@ -1898,6 +1908,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportCharacters,
         bulkImportLocations,
         bulkImportScenes,
+        saveBeatsToD ynamoDB, // NEW: Save beats after all imports complete
         
         // Scene Position Management
         updateScenePositions,

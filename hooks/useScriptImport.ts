@@ -224,6 +224,9 @@ export function useScriptImport(): UseScriptImportReturn {
                 }
                 
                 console.log('[useScriptImport] Total scenes imported:', importedScenes, 'across', sequenceBeats.length, 'sequences');
+                
+                // NEW: Save all beats to DynamoDB after all imports complete
+                await screenplay.saveBeatsToD ynamoDB();
             }
             
             // Show notification if anything was imported
