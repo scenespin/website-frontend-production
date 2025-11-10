@@ -47,6 +47,7 @@ interface ScreenplayContextType {
     locations: Location[];
     relationships: Relationships;
     isLoading: boolean;
+    hasInitializedFromDynamoDB: boolean; // NEW: Track if initial load is complete
     error: string | null;
     
     // Feature 0111 Phase 3: DynamoDB screenplay tracking
@@ -167,11 +168,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         props: {}
     });
 
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Start true until DynamoDB loads
     const [error, setError] = useState<string | null>(null);
     
     // Track if we've auto-created the 8-Sequence Structure to prevent duplicates
     const hasAutoCreated = useRef(false);
+    
+    // Track if initial data has been loaded from DynamoDB
+    const [hasInitializedFromDynamoDB, setHasInitializedFromDynamoDB] = useState(false);
     
     // ========================================================================
     // Feature 0111 Phase 3: DynamoDB Integration & Clerk Auth
@@ -329,9 +333,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
+                } finally {
+                    // Mark as initialized and stop loading (even if there was an error)
+                    setHasInitializedFromDynamoDB(true);
+                    setIsLoading(false);
+                    console.log('[ScreenplayContext] ✅ Initialization complete - ready for imports');
                 }
             } else {
                 console.log('[ScreenplayContext] No screenplay_id yet - waiting for EditorContext');
+                // Still mark as initialized so imports can work (for new screenplays)
+                setHasInitializedFromDynamoDB(true);
+                setIsLoading(false);
             }
             
             // After loading (or if no screenplay), check if we need to create default 8-sequence structure
@@ -1966,6 +1978,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         locations,
         relationships,
         isLoading,
+        hasInitializedFromDynamoDB,
         error,
         
         // Feature 0111 Phase 3: DynamoDB screenplay tracking

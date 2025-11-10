@@ -68,6 +68,24 @@ export function useScriptImport(): UseScriptImportReturn {
      */
     const performImport = useCallback(async (content: string) => {
         try {
+            // 🔥 CRITICAL: Wait for DynamoDB to finish loading before importing
+            // This ensures beats exist before we try to add scenes to them
+            if (!screenplay.hasInitializedFromDynamoDB) {
+                console.warn('[useScriptImport] ⏳ Waiting for DynamoDB initialization...');
+                // Wait up to 5 seconds for initialization
+                let attempts = 0;
+                while (!screenplay.hasInitializedFromDynamoDB && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                if (!screenplay.hasInitializedFromDynamoDB) {
+                    console.error('[useScriptImport] ❌ Timeout waiting for DynamoDB initialization');
+                    toast.error('Failed to initialize screenplay data. Please refresh and try again.');
+                    return;
+                }
+                console.log('[useScriptImport] ✅ DynamoDB initialization complete, proceeding with import');
+            }
+            
             // Parse the content
             const parseResult = parseContentForImport(content);
             
