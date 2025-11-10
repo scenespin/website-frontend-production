@@ -282,6 +282,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                     if (charactersData.length > 0) {
                         // Transform simple API Characters to complex app Characters
+                        console.log('[ScreenplayContext] Raw characters from DynamoDB:', charactersData);
+                        
                         const transformedCharacters: Character[] = charactersData.map((apiChar: any) => ({
                             id: apiChar.id,
                             name: apiChar.name,
@@ -867,12 +869,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Save entire characters array to DynamoDB using embedded array method
         if (screenplayId && updatedCharacters) {
             try {
+                console.log('[ScreenplayContext] Updating character in DynamoDB:', {
+                    characterId: id,
+                    totalCharacters: updatedCharacters.length,
+                    updates
+                });
+                
                 const apiCharacters = updatedCharacters.map(char => ({
                     id: char.id,
                     name: char.name,
                     description: char.description,
                     referenceImages: char.images?.map(img => img.imageUrl) || []
                 }));
+                
+                console.log('[ScreenplayContext] API Characters being saved:', apiCharacters);
                 
                 await apiUpdateScreenplay({
                     screenplay_id: screenplayId,
@@ -881,6 +891,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB (embedded array)');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update character in DynamoDB:', error);
+                throw error; // Re-throw so UI knows it failed
             }
         }
     }, [screenplayId, getToken]);
@@ -1075,12 +1086,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Save entire locations array to DynamoDB using embedded array method
         if (screenplayId && updatedLocations) {
             try {
+                console.log('[ScreenplayContext] Updating location in DynamoDB:', {
+                    locationId: id,
+                    totalLocations: updatedLocations.length,
+                    updates
+                });
+                
                 const apiLocations = updatedLocations.map(loc => ({
                     id: loc.id,
                     name: loc.name,
                     description: loc.description,
                     referenceImages: loc.images?.map(img => img.imageUrl) || []
                 }));
+                
+                console.log('[ScreenplayContext] API Locations being saved:', apiLocations);
                 
                 await apiUpdateScreenplay({
                     screenplay_id: screenplayId,
@@ -1089,6 +1108,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB (embedded array)');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update location in DynamoDB:', error);
+                throw error; // Re-throw so UI knows it failed
             }
         }
     }, [screenplayId, getToken]);
