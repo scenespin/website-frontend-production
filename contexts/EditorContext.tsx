@@ -473,17 +473,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     const contentTrimmed = currentState.content.trim();
                     console.log('[EditorContext] 🔄 Saving to DynamoDB... (content length:', contentLength, 'chars)');
                     
-                    // Check if content is empty or nearly empty (depopulation logic)
-                    const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
-                    
-                    if (isEffectivelyEmpty && screenplay) {
-                        console.log('[EditorContext] 🗑️ Auto-save detected empty content, clearing screenplay structure data...');
-                        
-                        // Clear all scenes, characters, and locations
-                        await screenplay.clearAllData();
-                        
-                        console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
-                    }
+                    // DISABLED: Depopulation logic was too aggressive and caused data loss
+                    // If user loads page with empty editor temporarily, entire screenplay gets wiped
+                    // Manual "Clear All" button in toolbar is the safer way to clear data
+                    // 
+                    // // Check if content is empty or nearly empty (depopulation logic)
+                    // const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
+                    // 
+                    // if (isEffectivelyEmpty && screenplay) {
+                    //     console.log('[EditorContext] 🗑️ Auto-save detected empty content, clearing screenplay structure data...');
+                    //     
+                    //     // Clear all scenes, characters, and locations
+                    //     await screenplay.clearAllData();
+                    //     
+                    //     console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
+                    // }
                     
                     if (!screenplayIdRef.current) {
                         // Create new screenplay in DynamoDB
