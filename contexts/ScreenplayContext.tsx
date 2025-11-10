@@ -342,6 +342,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 setBeats(newBeats);
                 hasAutoCreated.current = true;
                 console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure');
+                
+                // 🔥 CRITICAL FIX: Save beats to DynamoDB immediately after creation!
+                // This fixes the 404 error when trying to update beats on paste
+                if (screenplayId) {
+                    console.log('[ScreenplayContext] 💾 Saving default beats to DynamoDB...');
+                    Promise.all(
+                        newBeats.map(beat => 
+                            apiCreateBeat(screenplayId, beat, getToken).catch(err => {
+                                console.error('[ScreenplayContext] Failed to save default beat:', beat.title, err);
+                            })
+                        )
+                    ).then(() => {
+                        console.log('[ScreenplayContext] ✅ Saved', newBeats.length, 'default beats to DynamoDB');
+                    }).catch(err => {
+                        console.error('[ScreenplayContext] Failed to save default beats:', err);
+                    });
+                }
             }
         }
         
