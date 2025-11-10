@@ -160,9 +160,14 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const handleClearAll = async () => {
         setIsClearing(true);
         try {
+            // Clear all structural data (characters, locations, beats, scenes)
             await screenplay?.clearAllData();
-            toast.success('🗑️ Structure cleared', {
-                description: 'All characters, locations, and scenes removed'
+            
+            // Also clear the screenplay text from the editor
+            setContent('');
+            
+            toast.success('🗑️ Complete reset', {
+                description: 'All screenplay data deleted (text, structure, characters, locations)'
             });
             setShowClearConfirm(false);
         } catch (error) {
@@ -538,17 +543,18 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 </svg>
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-bold text-red-500 mb-2">⚠️ Clear All Structure Data?</h3>
+                                <h3 className="text-lg font-bold text-red-500 mb-2">⚠️ Complete Reset - Delete Everything?</h3>
                                 <p className="text-sm text-base-content/90 mb-3">
                                     This will <strong>permanently delete</strong>:
                                 </p>
                                 <ul className="list-disc list-inside text-sm text-base-content/70 space-y-1 mb-3">
+                                    <li><strong>Your entire screenplay text</strong></li>
                                     <li>All characters ({screenplay?.characters.length || 0})</li>
                                     <li>All locations ({screenplay?.locations.length || 0})</li>
-                                    <li>All scenes from story beats</li>
+                                    <li>All story beats and scenes</li>
                                 </ul>
-                                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded p-2 mb-4">
-                                    <strong>Your screenplay text will NOT be deleted.</strong> Only the extracted structure data will be removed.
+                                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded p-2 mb-4">
+                                    <strong>⚠️ This is a COMPLETE RESET.</strong> Everything will be deleted from the database. This action cannot be undone!
                                 </p>
                                 <p className="text-sm text-base-content/80 font-semibold">
                                     Are you absolutely sure?

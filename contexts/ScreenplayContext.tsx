@@ -1834,11 +1834,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const clearAllData = useCallback(async () => {
-        console.log('[ScreenplayContext] 🗑️ Clearing all screenplay data...');
+        console.log('[ScreenplayContext] 🗑️ Clearing ALL screenplay data (COMPLETE RESET)...');
         
         // CRITICAL: Delete from DynamoDB first, then clear local state
         if (screenplayId) {
-            console.log('[ScreenplayContext] Deleting all characters/locations from DynamoDB...');
+            console.log('[ScreenplayContext] Deleting all structural data from DynamoDB...');
             
             // Delete all characters from DynamoDB
             if (characters.length > 0) {
@@ -1862,6 +1862,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     )
                 );
                 console.log('[ScreenplayContext] ✅ Deleted', locations.length, 'locations from DynamoDB');
+            }
+            
+            // Clear all beats and screenplay text from DynamoDB
+            try {
+                console.log('[ScreenplayContext] Clearing beats and screenplay text from DynamoDB...');
+                await updateScreenplayInDynamoDB(screenplayId, {
+                    beats: [],
+                    content: '' // Clear the screenplay text
+                }, getToken);
+                console.log('[ScreenplayContext] ✅ Cleared beats and screenplay text from DynamoDB');
+            } catch (err) {
+                console.error('[ScreenplayContext] Failed to clear beats/text from DynamoDB:', err);
             }
         }
         
@@ -1887,7 +1899,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             props: {}
         });
         
-        console.log('[ScreenplayContext] ✅ All data cleared from DynamoDB and local state');
+        console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB and local state (COMPLETE RESET)');
     }, [screenplayId, characters, locations, getToken]);
     
     // ========================================================================
