@@ -11,7 +11,10 @@ import type {
     CreateInput,
     CascadeOption,
     DeletionResult,
-    ImageAsset
+    ImageAsset,
+    CharacterType,
+    ArcStatus,
+    LocationType
 } from '@/types/screenplay';
 import {
     listCharacters,
