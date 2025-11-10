@@ -262,6 +262,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     setLocations(locationsData);
                     console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
                     
+                    
+                    // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
+                    // Use beatsData (just loaded) instead of beats (stale state) to avoid race condition
+                    if (beatsData.length === 0 && !hasAutoCreated.current) {
+                        await createDefaultBeats(screenplayId);
+                    }
+                    
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
                 } finally {
@@ -275,79 +282,86 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Still mark as initialized so imports can work (for new screenplays)
                 setHasInitializedFromDynamoDB(true);
                 setIsLoading(false);
+                
+                // 🔥 CRITICAL: For new screenplays (no ID yet), create default beats immediately
+                if (beats.length === 0 && !hasAutoCreated.current) {
+                    await createDefaultBeats(null);
+                }
+            }
+        }
+        
+        // Helper function to create default 8-sequence beats (DRY principle)
+        async function createDefaultBeats(screenplay_id: string | null) {
+            if (hasAutoCreated.current) {
+                console.log('[ScreenplayContext] Skipping default beat creation - already created');
+                return;
             }
             
-            // After loading (or if no screenplay), check if we need to create default 8-sequence structure
-            if (beats.length === 0 && !hasAutoCreated.current) {
-                const sequences = [
-                    {
-                        title: 'Sequence 1: Status Quo',
-                        description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
-                        order: 0
-                    },
-                    {
-                        title: 'Sequence 2: Predicament',
-                        description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
-                        order: 1
-                    },
-                    {
-                        title: 'Sequence 3: Lock In',
-                        description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
-                        order: 2
-                    },
-                    {
-                        title: 'Sequence 4: First Culmination',
-                        description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
-                        order: 3
-                    },
-                    {
-                        title: 'Sequence 5: Midpoint Shift',
-                        description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
-                        order: 4
-                    },
-                    {
-                        title: 'Sequence 6: Complications',
-                        description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
-                        order: 5
-                    },
-                    {
-                        title: 'Sequence 7: All Is Lost',
-                        description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
-                        order: 6
-                    },
-                    {
-                        title: 'Sequence 8: Resolution',
-                        description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
-                        order: 7
-                    }
-                ];
-                
-                const now = new Date().toISOString();
-                
-                // 🛡️ CRITICAL: EXPLICIT empty array, not from spread
-                const newBeats = sequences.map((seq, index) => ({
-                    id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-                    title: seq.title,
-                    description: seq.description,
-                    order: seq.order,
-                    scenes: [],  // 🛡️ CRITICAL: EXPLICIT empty array, not from spread
-                    createdAt: now,
-                    updatedAt: now
-                }));
-                
-                setBeats(newBeats);
-                hasAutoCreated.current = true;
-                console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure');
-                
-                // 🔥 NEW: Save beats to DynamoDB using persistence manager (embedded array approach)
-                if (screenplayId) {
-                    console.log('[ScreenplayContext] 💾 Saving default 8 beats to DynamoDB...');
-                    try {
-                        await persistenceManager.saveBeats(newBeats);
-                        console.log('[ScreenplayContext] ✅ Saved 8 default beats to DynamoDB');
-                    } catch (err) {
-                        console.error('[ScreenplayContext] Failed to save default beats:', err);
-                    }
+            const sequences = [
+                {
+                    title: 'Sequence 1: Status Quo',
+                    description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
+                    order: 0
+                },
+                {
+                    title: 'Sequence 2: Predicament',
+                    description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
+                    order: 1
+                },
+                {
+                    title: 'Sequence 3: Lock In',
+                    description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
+                    order: 2
+                },
+                {
+                    title: 'Sequence 4: First Culmination',
+                    description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
+                    order: 3
+                },
+                {
+                    title: 'Sequence 5: Midpoint Shift',
+                    description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
+                    order: 4
+                },
+                {
+                    title: 'Sequence 6: Complications',
+                    description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
+                    order: 5
+                },
+                {
+                    title: 'Sequence 7: All Is Lost',
+                    description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
+                    order: 6
+                },
+                {
+                    title: 'Sequence 8: Resolution',
+                    description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
+                    order: 7
+                }
+            ];
+            
+            const now = new Date().toISOString();
+            const newBeats = sequences.map((seq, index) => ({
+                id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                title: seq.title,
+                description: seq.description,
+                order: seq.order,
+                scenes: [],
+                createdAt: now,
+                updatedAt: now
+            }));
+            
+            setBeats(newBeats);
+            hasAutoCreated.current = true;
+            console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure');
+            
+            if (screenplay_id) {
+                console.log('[ScreenplayContext] 💾 Saving default 8 beats to DynamoDB...');
+                try {
+                    await persistenceManager.saveBeats(newBeats);
+                    console.log('[ScreenplayContext] ✅ Saved 8 default beats to DynamoDB');
+                } catch (err) {
+                    console.error('[ScreenplayContext] Failed to save default beats:', err);
                 }
             }
         }
