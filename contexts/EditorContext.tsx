@@ -353,17 +353,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
         
         try {
-            // Check if content is empty or nearly empty (depopulation logic)
-            const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
-            
-            if (isEffectivelyEmpty && screenplay) {
-                console.log('[EditorContext] 🗑️ Content is empty, clearing screenplay structure data...');
-                
-                // Clear all scenes, characters, and locations
-                await screenplay.clearAllData();
-                
-                console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
-            }
+            // DISABLED: Depopulation logic was too aggressive and caused data loss
+            // Manual "Clear All" button in toolbar is the safer way to clear data
+            // 
+            // // Check if content is empty or nearly empty (depopulation logic)
+            // const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
+            // 
+            // if (isEffectivelyEmpty && screenplay) {
+            //     console.log('[EditorContext] 🗑️ Content is empty, clearing screenplay structure data...');
+            //     
+            //     // Clear all scenes, characters, and locations
+            //     await screenplay.clearAllData();
+            //     
+            //     console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
+            // }
             
             // Save to localStorage immediately
             localStorage.setItem('screenplay_draft', currentState.content);
