@@ -1442,28 +1442,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         characterNames: string[],
         descriptions?: Map<string, string>
     ): Promise<Character[]> => {
+        console.log('[ScreenplayContext] 🔄 Starting bulk character import...', characterNames.length, 'characters');
+        
         const now = new Date().toISOString();
         const newCharacters: Character[] = [];
-        const allCharacters: Character[] = [];
         
-        // Clear local state first (DynamoDB will be updated in bulk at the end)
-        console.log('[ScreenplayContext] Clearing existing characters from local state before re-import...');
-        setCharacters([]);
-        
-        // Now import fresh characters
-        // Check for existing characters and reuse them (within this import batch only)
+        // 🔥 NEW: Get existing characters to check for duplicates
+        // (BUT we'll replace ALL characters in DynamoDB at the end)
         const existingCharactersMap = new Map(
             characters.map(c => [c.name.toUpperCase(), c])
         );
         
+        // Create new characters (skipping duplicates within the import batch)
+        const seenNames = new Set<string>();
+        
         for (const name of characterNames) {
             const upperName = name.toUpperCase();
+            
+            // Skip if we already processed this name in this import
+            if (seenNames.has(upperName)) {
+                console.log('[ScreenplayContext] Skipping duplicate in batch:', name);
+                continue;
+            }
+            seenNames.add(upperName);
+            
+            // Check if character already exists
             const existing = existingCharactersMap.get(upperName);
             
             if (existing) {
-                // Character already exists, reuse it
-                console.log('[ScreenplayContext] Character already exists, reusing:', name);
-                allCharacters.push(existing);
+                console.log('[ScreenplayContext] Character already exists, keeping:', name);
+                newCharacters.push(existing);
             } else {
                 // Create new character
                 const description = descriptions?.get(upperName) || `Imported from script`;
@@ -1471,7 +1479,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const newCharacter: Character = {
                     id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     name,
-                    type: 'supporting', // Default type
+                    type: 'supporting',
                     description,
                     firstAppearance: undefined,
                     arcStatus: 'introduced',
@@ -1481,143 +1489,131 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     images: []
                 };
                 
+                console.log('[ScreenplayContext] Creating new character:', name);
                 newCharacters.push(newCharacter);
-                allCharacters.push(newCharacter);
             }
         }
         
-        // Bulk add to state (only new characters)
-        if (newCharacters.length > 0) {
-            setCharacters(prev => [...prev, ...newCharacters]);
-            
-            // Bulk add to relationships
-            setRelationships(prev => {
-                const updatedCharacters = { ...prev.characters };
-                newCharacters.forEach(char => {
+        // 🔥 NEW: Update local state immediately (optimistic UI)
+        setCharacters(newCharacters);
+        
+        // Update relationships for new characters
+        setRelationships(prev => {
+            const updatedCharacters = { ...prev.characters };
+            newCharacters.forEach(char => {
+                if (!updatedCharacters[char.id]) {
                     updatedCharacters[char.id] = {
                         type: 'character',
                         appearsInScenes: [],
                         relatedBeats: []
                     };
-                });
-                return {
-                    ...prev,
-                    characters: updatedCharacters
-                };
+                }
             });
-            
-            console.log('[ScreenplayContext] Created', newCharacters.length, 'new characters');
-            
-            // Save ALL characters to DynamoDB using embedded array method (NOT individual API calls)
-            if (screenplayId) {
-                console.log('[ScreenplayContext] Saving', allCharacters.length, 'characters to DynamoDB (embedded array)...');
-                // Transform complex Characters to simple API Characters
-                const apiCharacters = allCharacters.map(char => ({
-                    id: char.id,
-                    name: char.name,
-                    description: char.description,
-                    referenceImages: char.images?.map(img => img.imageUrl) || []
-                }));
-                
-                await apiUpdateScreenplay({
-                    screenplay_id: screenplayId,
-                    characters: apiCharacters
-                }, getToken);
-                console.log('[ScreenplayContext] ✅ Saved', allCharacters.length, 'characters to DynamoDB');
+            return {
+                ...prev,
+                characters: updatedCharacters
+            };
+        });
+        
+        // 🔥 NEW: Save ALL characters to DynamoDB through persistence manager
+        if (screenplayId) {
+            try {
+                console.log('[ScreenplayContext] Saving', newCharacters.length, 'characters to DynamoDB...');
+                await persistenceManager.saveCharacters(newCharacters);
+                console.log('[ScreenplayContext] ✅ Saved characters to DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to save characters:', error);
+                throw error;
             }
         }
         
-        console.log('[ScreenplayContext] Returning', allCharacters.length, 'total characters (', newCharacters.length, 'new,', allCharacters.length - newCharacters.length, 'existing)');
-        
-        // Return all characters (new + existing) so scenes can link to them
-        return allCharacters;
-    }, [characters, setCharacters, setRelationships, screenplayId, getToken]);
+        console.log('[ScreenplayContext] ✅ Bulk import complete:', newCharacters.length, 'characters');
+        return newCharacters;
+    }, [characters, screenplayId]);
     
     const bulkImportLocations = useCallback(async (locationNames: string[]): Promise<Location[]> => {
+        console.log('[ScreenplayContext] 🔄 Starting bulk location import...', locationNames.length, 'locations');
+        
         const now = new Date().toISOString();
         const newLocations: Location[] = [];
-        const allLocations: Location[] = [];
         
-        // Clear local state first (DynamoDB will be updated in bulk at the end)
-        console.log('[ScreenplayContext] Clearing existing locations from local state before re-import...');
-        setLocations([]);
-        
-        // Now import fresh locations
-        // Check for existing locations and reuse them (within this import batch only)
+        // 🔥 NEW: Get existing locations to check for duplicates
+        // (BUT we'll replace ALL locations in DynamoDB at the end)
         const existingLocationsMap = new Map(
             locations.map(l => [l.name.toUpperCase(), l])
         );
         
+        // Create new locations (skipping duplicates within the import batch)
+        const seenNames = new Set<string>();
+        
         for (const name of locationNames) {
             const upperName = name.toUpperCase();
+            
+            // Skip if we already processed this name in this import
+            if (seenNames.has(upperName)) {
+                console.log('[ScreenplayContext] Skipping duplicate in batch:', name);
+                continue;
+            }
+            seenNames.add(upperName);
+            
+            // Check if location already exists
             const existing = existingLocationsMap.get(upperName);
             
             if (existing) {
-                // Location already exists, reuse it
-                console.log('[ScreenplayContext] Location already exists, reusing:', name);
-                allLocations.push(existing);
+                console.log('[ScreenplayContext] Location already exists, keeping:', name);
+                newLocations.push(existing);
             } else {
                 // Create new location
                 const newLocation: Location = {
                     id: `loc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     name,
                     description: `Imported from script`,
-                    type: 'INT', // Default type
+                    type: 'INT',
                     createdAt: now,
                     updatedAt: now,
                     images: []
                 };
                 
+                console.log('[ScreenplayContext] Creating new location:', name);
                 newLocations.push(newLocation);
-                allLocations.push(newLocation);
             }
         }
         
-        // Bulk add to state (only new locations)
-        if (newLocations.length > 0) {
-            setLocations(prev => [...prev, ...newLocations]);
-            
-            // Bulk add to relationships
-            setRelationships(prev => {
-                const updatedLocations = { ...prev.locations };
-                newLocations.forEach(loc => {
+        // 🔥 NEW: Update local state immediately (optimistic UI)
+        setLocations(newLocations);
+        
+        // Update relationships for new locations
+        setRelationships(prev => {
+            const updatedLocations = { ...prev.locations };
+            newLocations.forEach(loc => {
+                if (!updatedLocations[loc.id]) {
                     updatedLocations[loc.id] = {
                         type: 'location',
                         scenes: []
                     };
-                });
-                return {
-                    ...prev,
-                    locations: updatedLocations
-                };
+                }
             });
-            
-            console.log('[ScreenplayContext] Created', newLocations.length, 'new locations');
-            
-            // Save ALL locations to DynamoDB using embedded array method (NOT individual API calls)
-            if (screenplayId) {
-                console.log('[ScreenplayContext] Saving', allLocations.length, 'locations to DynamoDB (embedded array)...');
-                // Transform complex Locations to simple API Locations
-                const apiLocations = allLocations.map(loc => ({
-                    id: loc.id,
-                    name: loc.name,
-                    description: loc.description,
-                    referenceImages: loc.images?.map(img => img.imageUrl) || []
-                }));
-                
-                await apiUpdateScreenplay({
-                    screenplay_id: screenplayId,
-                    locations: apiLocations
-                }, getToken);
-                console.log('[ScreenplayContext] ✅ Saved', allLocations.length, 'locations to DynamoDB');
+            return {
+                ...prev,
+                locations: updatedLocations
+            };
+        });
+        
+        // 🔥 NEW: Save ALL locations to DynamoDB through persistence manager
+        if (screenplayId) {
+            try {
+                console.log('[ScreenplayContext] Saving', newLocations.length, 'locations to DynamoDB...');
+                await persistenceManager.saveLocations(newLocations);
+                console.log('[ScreenplayContext] ✅ Saved locations to DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to save locations:', error);
+                throw error;
             }
         }
         
-        console.log('[ScreenplayContext] Returning', allLocations.length, 'total locations (', newLocations.length, 'new,', allLocations.length - newLocations.length, 'existing)');
-        
-        // Return all locations (new + existing) so scenes can link to them
-        return allLocations;
-    }, [locations, screenplayId, getToken]);
+        console.log('[ScreenplayContext] ✅ Bulk import complete:', newLocations.length, 'locations');
+        return newLocations;
+    }, [locations, screenplayId]);
     
     const bulkImportScenes = useCallback(async (
         beatId: string, 
