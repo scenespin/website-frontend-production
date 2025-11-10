@@ -1409,21 +1409,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const newCharacters: Character[] = [];
         const allCharacters: Character[] = [];
         
-        // CRITICAL FIX: Delete ALL existing characters from DynamoDB before re-importing
-        // This prevents duplicates when user pastes screenplay multiple times
-        if (screenplayId && characters.length > 0) {
-            console.log('[ScreenplayContext] Clearing', characters.length, 'existing characters from DynamoDB before re-import...');
-            await Promise.all(
-                characters.map(char => 
-                    apiDeleteCharacter(screenplayId, char.id, getToken).catch(err => {
-                        console.warn('[ScreenplayContext] Failed to delete character:', char.name, err);
-                    })
-                )
-            );
-            // Clear local state
-            setCharacters([]);
-            console.log('[ScreenplayContext] ✅ Cleared existing characters');
-        }
+        // Clear local state first (DynamoDB will be updated in bulk at the end)
+        console.log('[ScreenplayContext] Clearing existing characters from local state before re-import...');
+        setCharacters([]);
         
         // Now import fresh characters
         // Check for existing characters and reuse them (within this import batch only)
@@ -1483,23 +1471,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             console.log('[ScreenplayContext] Created', newCharacters.length, 'new characters');
             
-            // Save to DynamoDB if screenplay exists
+            // Save ALL characters to DynamoDB using embedded array method (NOT individual API calls)
             if (screenplayId) {
-                console.log('[ScreenplayContext] Saving', newCharacters.length, 'characters to DynamoDB...');
-                await Promise.all(
-                    newCharacters.map(char => {
-                        // Transform complex Character to simple API Character
-                        const apiChar = {
-                            name: char.name,
-                            description: char.description,
-                            referenceImages: char.images?.map(img => img.imageUrl) || []
-                        };
-                        return apiCreateCharacter(screenplayId, apiChar, getToken).catch(err => {
-                            console.error('[ScreenplayContext] Failed to save character:', char.name, err);
-                        });
-                    })
-                );
-                console.log('[ScreenplayContext] ✅ Saved', newCharacters.length, 'characters to DynamoDB');
+                console.log('[ScreenplayContext] Saving', allCharacters.length, 'characters to DynamoDB (embedded array)...');
+                // Transform complex Characters to simple API Characters
+                const apiCharacters = allCharacters.map(char => ({
+                    id: char.id,
+                    name: char.name,
+                    description: char.description,
+                    referenceImages: char.images?.map(img => img.imageUrl) || []
+                }));
+                
+                await updateScreenplayInDynamoDB(screenplayId, {
+                    characters: apiCharacters
+                }, getToken);
+                console.log('[ScreenplayContext] ✅ Saved', allCharacters.length, 'characters to DynamoDB');
             }
         }
         
@@ -1514,21 +1500,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const newLocations: Location[] = [];
         const allLocations: Location[] = [];
         
-        // CRITICAL FIX: Delete ALL existing locations from DynamoDB before re-importing
-        // This prevents duplicates when user pastes screenplay multiple times
-        if (screenplayId && locations.length > 0) {
-            console.log('[ScreenplayContext] Clearing', locations.length, 'existing locations from DynamoDB before re-import...');
-            await Promise.all(
-                locations.map(loc => 
-                    apiDeleteLocation(screenplayId, loc.id, getToken).catch(err => {
-                        console.warn('[ScreenplayContext] Failed to delete location:', loc.name, err);
-                    })
-                )
-            );
-            // Clear local state
-            setLocations([]);
-            console.log('[ScreenplayContext] ✅ Cleared existing locations');
-        }
+        // Clear local state first (DynamoDB will be updated in bulk at the end)
+        console.log('[ScreenplayContext] Clearing existing locations from local state before re-import...');
+        setLocations([]);
         
         // Now import fresh locations
         // Check for existing locations and reuse them (within this import batch only)
@@ -1582,23 +1556,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             console.log('[ScreenplayContext] Created', newLocations.length, 'new locations');
             
-            // Save to DynamoDB if screenplay exists
+            // Save ALL locations to DynamoDB using embedded array method (NOT individual API calls)
             if (screenplayId) {
-                console.log('[ScreenplayContext] Saving', newLocations.length, 'locations to DynamoDB...');
-                await Promise.all(
-                    newLocations.map(loc => {
-                        // Transform complex Location to simple API Location
-                        const apiLoc = {
-                            name: loc.name,
-                            description: loc.description,
-                            referenceImages: loc.images?.map(img => img.imageUrl) || []
-                        };
-                        return apiCreateLocation(screenplayId, apiLoc, getToken).catch(err => {
-                            console.error('[ScreenplayContext] Failed to save location:', loc.name, err);
-                        });
-                    })
-                );
-                console.log('[ScreenplayContext] ✅ Saved', newLocations.length, 'locations to DynamoDB');
+                console.log('[ScreenplayContext] Saving', allLocations.length, 'locations to DynamoDB (embedded array)...');
+                // Transform complex Locations to simple API Locations
+                const apiLocations = allLocations.map(loc => ({
+                    id: loc.id,
+                    name: loc.name,
+                    description: loc.description,
+                    referenceImages: loc.images?.map(img => img.imageUrl) || []
+                }));
+                
+                await updateScreenplayInDynamoDB(screenplayId, {
+                    locations: apiLocations
+                }, getToken);
+                console.log('[ScreenplayContext] ✅ Saved', allLocations.length, 'locations to DynamoDB');
             }
         }
         
@@ -1836,44 +1808,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const clearAllData = useCallback(async () => {
         console.log('[ScreenplayContext] 🗑️ Clearing ALL screenplay data (COMPLETE RESET)...');
         
-        // CRITICAL: Delete from DynamoDB first, then clear local state
+        // CRITICAL: Clear EVERYTHING from DynamoDB using embedded arrays (NOT individual API routes)
         if (screenplayId) {
-            console.log('[ScreenplayContext] Deleting all structural data from DynamoDB...');
-            
-            // Delete all characters from DynamoDB
-            if (characters.length > 0) {
-                await Promise.all(
-                    characters.map(char => 
-                        apiDeleteCharacter(screenplayId, char.id, getToken).catch(err => {
-                            console.warn('[ScreenplayContext] Failed to delete character:', char.name, err);
-                        })
-                    )
-                );
-                console.log('[ScreenplayContext] ✅ Deleted', characters.length, 'characters from DynamoDB');
-            }
-            
-            // Delete all locations from DynamoDB
-            if (locations.length > 0) {
-                await Promise.all(
-                    locations.map(loc => 
-                        apiDeleteLocation(screenplayId, loc.id, getToken).catch(err => {
-                            console.warn('[ScreenplayContext] Failed to delete location:', loc.name, err);
-                        })
-                    )
-                );
-                console.log('[ScreenplayContext] ✅ Deleted', locations.length, 'locations from DynamoDB');
-            }
-            
-            // Clear all beats and screenplay text from DynamoDB
             try {
-                console.log('[ScreenplayContext] Clearing beats and screenplay text from DynamoDB...');
+                console.log('[ScreenplayContext] Clearing ALL structural data from DynamoDB...');
                 await updateScreenplayInDynamoDB(screenplayId, {
                     beats: [],
-                    content: '' // Clear the screenplay text
+                    content: '',        // Clear the screenplay text
+                    characters: [],     // Clear embedded characters array
+                    locations: []       // Clear embedded locations array
                 }, getToken);
-                console.log('[ScreenplayContext] ✅ Cleared beats and screenplay text from DynamoDB');
+                console.log('[ScreenplayContext] ✅ Cleared EVERYTHING from DynamoDB (text, beats, characters, locations)');
             } catch (err) {
-                console.error('[ScreenplayContext] Failed to clear beats/text from DynamoDB:', err);
+                console.error('[ScreenplayContext] Failed to clear from DynamoDB:', err);
+                throw err; // Re-throw so toolbar shows error
             }
         }
         
