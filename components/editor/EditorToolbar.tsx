@@ -142,7 +142,14 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         
         setIsSaving(true);
         try {
+            // Save screenplay text (content)
             await saveNow();
+            
+            // CRITICAL FIX: Also save structure (beats, characters, locations)
+            if (screenplay.saveAllToDynamoDB) {
+                await screenplay.saveAllToDynamoDB();
+            }
+            
             toast.success('💾 Saved to database', {
                 description: 'Your screenplay is safe!'
             });

@@ -87,7 +87,8 @@ interface ScreenplayContextType {
         startLine: number;
         endLine: number;
     }>) => Promise<Scene[]>;
-    saveBeatsToDynamoDB: () => Promise<void>; // NEW: Save beats after all imports complete
+    saveBeatsToDynamoDB: () => Promise<void>; // Save beats after all imports complete
+    saveAllToDynamoDB: () => Promise<void>; // Save ALL structure (beats + characters + locations)
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -438,6 +439,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Save characters to localStorage
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (characters.length === 0) return; // Don't save empty array (prevents overwriting on clear)
+        
         try {
             localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters));
         } catch (error) {
@@ -448,6 +451,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Save locations to localStorage
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (locations.length === 0) return; // Don't save empty array (prevents overwriting on clear)
+        
         try {
             localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
         } catch (error) {
@@ -1708,6 +1713,58 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [beats, screenplayId, getToken]);
     
+    // Helper: Save ALL structure to DynamoDB (for Save button)
+    const saveAllToDynamoDB = useCallback(async () => {
+        if (!screenplayId) {
+            console.warn('[ScreenplayContext] Cannot save: no screenplay_id');
+            return;
+        }
+        
+        try {
+            console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB...');
+            
+            // Transform all arrays to API format
+            const apiBeats = beats.map(beat => ({
+                id: beat.id,
+                title: beat.title,
+                description: beat.description,
+                order: beat.order,
+                scenes: beat.scenes.map(s => s.id)
+            }));
+            
+            const apiCharacters = characters.map(char => ({
+                id: char.id,
+                name: char.name,
+                description: char.description,
+                referenceImages: char.images?.map(img => img.imageUrl) || []
+            }));
+            
+            const apiLocations = locations.map(loc => ({
+                id: loc.id,
+                name: loc.name,
+                description: loc.description,
+                referenceImages: loc.images?.map(img => img.imageUrl) || []
+            }));
+            
+            // Save everything in one call
+            await apiUpdateScreenplay({
+                screenplay_id: screenplayId,
+                beats: apiBeats,
+                characters: apiCharacters,
+                locations: apiLocations
+            }, getToken);
+            
+            console.log('[ScreenplayContext] ✅ Saved ALL structure:', {
+                beats: apiBeats.length,
+                characters: apiCharacters.length,
+                locations: apiLocations.length
+            });
+        } catch (err) {
+            console.error('[ScreenplayContext] Failed to save all to DynamoDB:', err);
+            throw err;
+        }
+    }, [beats, characters, locations, screenplayId, getToken]);
+    
     // ========================================================================
     // Scene Position Management
     // ========================================================================
@@ -1861,7 +1918,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             props: {}
         });
         
-        console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB and local state (COMPLETE RESET)');
+        // CRITICAL FIX: Force clear localStorage immediately (don't wait for useEffect)
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(STORAGE_KEYS.BEATS);
+            localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
+            localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
+            localStorage.removeItem(STORAGE_KEYS.RELATIONSHIPS);
+            console.log('[ScreenplayContext] ✅ Cleared localStorage (beats, characters, locations, relationships)');
+        }
+        
+        console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB + local state + localStorage (COMPLETE RESET)');
     }, [screenplayId, characters, locations, getToken]);
     
     // ========================================================================
@@ -1908,7 +1974,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportCharacters,
         bulkImportLocations,
         bulkImportScenes,
-        saveBeatsToDynamoDB, // NEW: Save beats after all imports complete
+        saveBeatsToDynamoDB, // Save beats after all imports complete
+        saveAllToDynamoDB, // Save ALL structure (for Save button)
         
         // Scene Position Management
         updateScenePositions,
