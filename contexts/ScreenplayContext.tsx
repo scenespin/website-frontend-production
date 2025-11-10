@@ -1580,15 +1580,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (screenplayId) {
             console.log('[ScreenplayContext] Saving', newScenes.length, 'scenes to DynamoDB (by updating beat)...');
             try {
-                // Find the beat we just updated
-                const updatedBeat = beats.find(b => b.id === beatId);
-                if (updatedBeat) {
-                    // Update the beat in DynamoDB with the new scenes
-                    await apiUpdateBeat(screenplayId, beatId, {
-                        ...updatedBeat,
-                        scenes: [...updatedBeat.scenes, ...newScenes],
+                // Find the beat (before it was updated with scenes in setBeats)
+                const existingBeat = beats.find(b => b.id === beatId);
+                if (existingBeat) {
+                    // Get all scenes for this beat (old + new)
+                    const allScenes = [...existingBeat.scenes, ...newScenes];
+                    
+                    // Transform: Extract scene IDs for backend (backend expects string[], not Scene[])
+                    const beatForBackend = {
+                        ...existingBeat,
+                        scenes: allScenes.map(s => s.id),
                         updatedAt: now
-                    }, getToken);
+                    };
+                    
+                    // Update the beat in DynamoDB with all scenes
+                    await apiUpdateBeat(screenplayId, beatId, beatForBackend as any, getToken);
                     console.log('[ScreenplayContext] ✅ Saved', newScenes.length, 'scenes to DynamoDB');
                 }
             } catch (err) {
