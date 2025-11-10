@@ -1084,20 +1084,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, getToken]);
     
     const updateLocation = useCallback(async (id: string, updates: Partial<Location>) => {
-        let updatedLocations: Location[] | undefined;
+        // 🔥 NEW: Optimistic UI update with rollback on error
+        const previousLocations = locations;
         
-        setLocations(prev => {
-            updatedLocations = prev.map(loc => {
-                if (loc.id === id) {
-                    return { ...loc, ...updates, updatedAt: new Date().toISOString() };
-                }
-                return loc;
-            });
-            return updatedLocations;
+        // 1. Update local state immediately (optimistic UI)
+        const updatedLocations = locations.map(loc => {
+            if (loc.id === id) {
+                return { ...loc, ...updates, updatedAt: new Date().toISOString() };
+            }
+            return loc;
         });
+        setLocations(updatedLocations);
         
-        // Save entire locations array to DynamoDB using embedded array method
-        if (screenplayId && updatedLocations) {
+        // 2. Save to DynamoDB through persistence manager
+        if (screenplayId) {
             try {
                 console.log('[ScreenplayContext] Updating location in DynamoDB:', {
                     locationId: id,
@@ -1105,26 +1105,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updates
                 });
                 
-                const apiLocations = updatedLocations.map(loc => ({
-                    id: loc.id,
-                    name: loc.name,
-                    description: loc.description,
-                    referenceImages: loc.images?.map(img => img.imageUrl) || []
-                }));
+                // 🔥 NEW: Use persistence manager (handles transformation internally)
+                await persistenceManager.saveLocations(updatedLocations);
                 
-                console.log('[ScreenplayContext] API Locations being saved:', apiLocations);
-                
-                await apiUpdateScreenplay({
-                    screenplay_id: screenplayId,
-                    locations: apiLocations
-                }, getToken);
-                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB (embedded array)');
+                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to update location in DynamoDB:', error);
+                // 3. Rollback on error
+                console.error('[ScreenplayContext] Failed to update location, rolling back:', error);
+                setLocations(previousLocations);
                 throw error; // Re-throw so UI knows it failed
             }
         }
-    }, [screenplayId, getToken]);
+    }, [screenplayId, locations]);
     
     const deleteLocation = useCallback(async (id: string, cascade: CascadeOption): Promise<DeletionResult> => {
         if (cascade === 'cancel') {
@@ -1911,17 +1903,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const clearAllData = useCallback(async () => {
         console.log('[ScreenplayContext] 🗑️ Clearing ALL screenplay data (COMPLETE RESET)...');
         
-        // CRITICAL: Clear EVERYTHING from DynamoDB using embedded arrays (NOT individual API routes)
+        // 🔥 NEW: Use persistence manager to clear everything from DynamoDB
         if (screenplayId) {
             try {
                 console.log('[ScreenplayContext] Clearing ALL structural data from DynamoDB...');
-                await apiUpdateScreenplay({
-                    screenplay_id: screenplayId,
-                    beats: [],
-                    content: '',        // Clear the screenplay text
-                    characters: [],     // Clear embedded characters array
-                    locations: []       // Clear embedded locations array
-                }, getToken);
+                
+                // Use persistence manager's clearAll method
+                await persistenceManager.clearAll();
+                
                 console.log('[ScreenplayContext] ✅ Cleared EVERYTHING from DynamoDB (text, beats, characters, locations)');
             } catch (err) {
                 console.error('[ScreenplayContext] Failed to clear from DynamoDB:', err);
@@ -1930,20 +1919,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
         
         // Now clear local state
-        // Clear all scenes from all beats
         setBeats(prev => prev.map(beat => ({
             ...beat,
             scenes: [],
             updatedAt: new Date().toISOString()
         })));
         
-        // Clear all characters
         setCharacters([]);
-        
-        // Clear all locations
         setLocations([]);
-        
-        // Clear all relationships
         setRelationships({
             characters: {},
             locations: {},
@@ -1951,17 +1934,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             props: {}
         });
         
-        // CRITICAL FIX: Force clear localStorage immediately (don't wait for useEffect)
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem(STORAGE_KEYS.BEATS);
-            localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
-            localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
-            localStorage.removeItem(STORAGE_KEYS.RELATIONSHIPS);
-            console.log('[ScreenplayContext] ✅ Cleared localStorage (beats, characters, locations, relationships)');
-        }
+        // 🔥 REMOVED: No longer using localStorage for persistence
+        // localStorage is being phased out - DynamoDB is single source of truth
         
-        console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB + local state + localStorage (COMPLETE RESET)');
-    }, [screenplayId, characters, locations, getToken]);
+        console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB + local state (COMPLETE RESET)');
+    }, [screenplayId]);
     
     // ========================================================================
     // Context Value
