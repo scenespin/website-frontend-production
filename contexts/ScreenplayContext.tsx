@@ -144,61 +144,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     };
 
     // ========================================================================
-    // State - Load from localStorage on mount (with sanitization!)
+    // State - START WITH EMPTY STATE (DynamoDB is source of truth!)
+    // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount!
+    // Loading from localStorage first causes race conditions where stale data overwrites fresh edits
+    // localStorage is ONLY used as a write cache for performance
     // ========================================================================
-    const [beats, setBeats] = useState<StoryBeat[]>(() => {
-        if (typeof window === 'undefined') return [];
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.BEATS);
-            if (!saved) return [];
-            
-            const parsed = JSON.parse(saved);
-            // 🛡️ CRITICAL: Sanitize beats on load to prevent corruption
-            return parsed.map((beat: any) => ({
-                ...beat,
-                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
-            }));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load beats from localStorage', error);
-            return [];
-        }
-    });
+    const [beats, setBeats] = useState<StoryBeat[]>([]);
     
-    // Characters, locations, and relationships - Load from localStorage on mount
-    const [characters, setCharacters] = useState<Character[]>(() => {
-        if (typeof window === 'undefined') return [];
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.CHARACTERS);
-            if (!saved) return [];
-            return JSON.parse(saved);
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load characters from localStorage', error);
-            return [];
-        }
-    });
+    // Characters, locations - START WITH EMPTY STATE
+    // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount!
+    // DynamoDB is the source of truth - localStorage is just a write cache for performance
+    // Loading from localStorage first causes race conditions where stale data overwrites fresh edits
+    const [characters, setCharacters] = useState<Character[]>([]);
+    const [locations, setLocations] = useState<Location[]>([]);
     
-    const [locations, setLocations] = useState<Location[]>(() => {
-        if (typeof window === 'undefined') return [];
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.LOCATIONS);
-            if (!saved) return [];
-            return JSON.parse(saved);
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load locations from localStorage', error);
-            return [];
-        }
-    });
-    
-    const [relationships, setRelationships] = useState<Relationships>(() => {
-        if (typeof window === 'undefined') return { scenes: {}, characters: {}, locations: {}, props: {} };
-        try {
-            const saved = localStorage.getItem(STORAGE_KEYS.RELATIONSHIPS);
-            if (!saved) return { scenes: {}, characters: {}, locations: {}, props: {} };
-            return JSON.parse(saved);
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to load relationships from localStorage', error);
-            return { scenes: {}, characters: {}, locations: {}, props: {} };
-        }
+    // Relationships - START WITH EMPTY STATE
+    // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
+    const [relationships, setRelationships] = useState<Relationships>({
+        scenes: {},
+        characters: {},
+        locations: {},
+        props: {}
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -268,7 +234,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         })
                     ]);
                     
-                    // Update state with loaded data
+                    // Update state with loaded data (ALWAYS, even if empty!)
+                    // 🔥 CRITICAL FIX: Always update state to ensure it matches DynamoDB, even if empty
                     if (beatsData.length > 0) {
                         // Transform simple API Beats to complex app StoryBeats
                         const transformedBeats: StoryBeat[] = beatsData.map((apiBeat: any) => ({
@@ -286,6 +253,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         hasAutoCreated.current = true;
                     }
                     
+                    // 🔥 CRITICAL: ALWAYS update characters, even if empty (to match DynamoDB)
                     if (charactersData.length > 0) {
                         // Transform simple API Characters to complex app Characters
                         console.log('[ScreenplayContext] Raw characters from DynamoDB:', charactersData);
@@ -314,8 +282,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                         
                         console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters');
+                    } else {
+                        // 🔥 CRITICAL FIX: If DynamoDB has NO characters, clear local state too!
+                        console.log('[ScreenplayContext] ✅ Loaded 0 characters from DynamoDB (empty)');
+                        setCharacters([]);
+                        if (typeof window !== 'undefined') {
+                            localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
+                            console.log('[ScreenplayContext] 💾 Cleared localStorage characters (DynamoDB is empty)');
+                        }
                     }
                     
+                    // 🔥 CRITICAL: ALWAYS update locations, even if empty (to match DynamoDB)
                     if (locationsData.length > 0) {
                         // Transform simple API Locations to complex app Locations
                         const transformedLocations: Location[] = locationsData.map((apiLoc: any) => ({
@@ -340,6 +317,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                         
                         console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations');
+                    } else {
+                        // 🔥 CRITICAL FIX: If DynamoDB has NO locations, clear local state too!
+                        console.log('[ScreenplayContext] ✅ Loaded 0 locations from DynamoDB (empty)');
+                        setLocations([]);
+                        if (typeof window !== 'undefined') {
+                            localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
+                            console.log('[ScreenplayContext] 💾 Cleared localStorage locations (DynamoDB is empty)');
+                        }
                     }
                     
                 } catch (err) {
