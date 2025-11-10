@@ -222,8 +222,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     useEffect(() => {
         const handleStorageChange = () => {
             const id = localStorage.getItem('current_screenplay_id');
-            setScreenplayId(id);
-            console.log('[ScreenplayContext] Screenplay ID updated:', id);
+            // CRITICAL FIX: Only update if ID actually changed (prevents infinite reload loop)
+            setScreenplayId(prev => {
+                if (prev !== id) {
+                    console.log('[ScreenplayContext] Screenplay ID updated:', id);
+                    return id;
+                }
+                return prev; // No change, don't trigger re-render
+            });
         };
         
         // Listen for changes from other tabs/windows
