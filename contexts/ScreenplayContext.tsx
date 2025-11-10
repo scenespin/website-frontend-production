@@ -306,6 +306,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             updatedAt: new Date().toISOString()
                         }));
                         setCharacters(transformedCharacters);
+                        
+                        // CRITICAL: Force update localStorage with DynamoDB data (overwrites stale cache)
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(transformedCharacters));
+                            console.log('[ScreenplayContext] 💾 Force-updated localStorage with DynamoDB characters');
+                        }
+                        
                         console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters');
                     }
                     
@@ -325,6 +332,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             updatedAt: new Date().toISOString()
                         }));
                         setLocations(transformedLocations);
+                        
+                        // CRITICAL: Force update localStorage with DynamoDB data (overwrites stale cache)
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(transformedLocations));
+                            console.log('[ScreenplayContext] 💾 Force-updated localStorage with DynamoDB locations');
+                        }
+                        
                         console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations');
                     }
                     
