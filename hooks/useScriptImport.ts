@@ -274,19 +274,22 @@ export function useScriptImport(): UseScriptImportReturn {
             console.log('[useScriptImport] ✓ Auto-import complete');
             
             // ⚡ IMMEDIATELY save to DynamoDB after paste (don't wait 60 seconds!)
-            try {
-                console.log('[useScriptImport] 💾 Triggering immediate save after paste...');
-                await saveNow();
-                console.log('[useScriptImport] ✅ Paste content saved to DynamoDB immediately');
-                toast.success('💾 Screenplay saved', {
-                    description: 'Content saved to database'
-                });
-            } catch (error) {
-                console.error('[useScriptImport] Failed to save after paste:', error);
-                toast.error('⚠️ Save failed', {
-                    description: 'Content is in localStorage, will retry in 60s'
-                });
-            }
+            // Wait a brief moment for the paste to be written to editor state
+            setTimeout(async () => {
+                try {
+                    console.log('[useScriptImport] 💾 Triggering immediate save after paste...');
+                    await saveNow();
+                    console.log('[useScriptImport] ✅ Paste content saved to DynamoDB immediately');
+                    toast.success('💾 Screenplay saved', {
+                        description: 'Content saved to database'
+                    });
+                } catch (error) {
+                    console.error('[useScriptImport] Failed to save after paste:', error);
+                    toast.error('⚠️ Save failed', {
+                        description: 'Content is in localStorage, will retry in 60s'
+                    });
+                }
+            }, 500); // Wait 500ms for paste to complete
             
             // Show success toast with import summary
             if (parseResult.characters.size > 0 || parseResult.locations.size > 0 || parseResult.scenes.length > 0) {
