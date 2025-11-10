@@ -1657,47 +1657,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         try {
             console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB...');
             
-            // Transform all arrays to API format
-            const apiBeats = beats.map(beat => ({
-                id: beat.id,
-                title: beat.title,
-                description: beat.description,
-                order: beat.order,
-                scenes: beat.scenes.map(s => s.id)
-            }));
-            
-            const apiCharacters = characters.map(char => ({
-                id: char.id,
-                name: char.name,
-                description: char.description,
-                referenceImages: char.images?.map(img => img.imageUrl) || []
-            }));
-            
-            const apiLocations = locations.map(loc => ({
-                id: loc.id,
-                name: loc.name,
-                description: loc.description,
-                referenceImages: loc.images?.map(img => img.imageUrl) || []
-            }));
-            
-            // Save everything in one call
-            await apiUpdateScreenplay({
-                screenplay_id: screenplayId,
-                beats: apiBeats,
-                characters: apiCharacters,
-                locations: apiLocations
-            }, getToken);
+            // 🔥 NEW: Use persistence manager to save everything at once
+            await persistenceManager.saveAll({
+                beats,
+                characters,
+                locations
+            });
             
             console.log('[ScreenplayContext] ✅ Saved ALL structure:', {
-                beats: apiBeats.length,
-                characters: apiCharacters.length,
-                locations: apiLocations.length
+                beats: beats.length,
+                characters: characters.length,
+                locations: locations.length
             });
         } catch (err) {
             console.error('[ScreenplayContext] Failed to save all to DynamoDB:', err);
             throw err;
         }
-    }, [beats, characters, locations, screenplayId, getToken]);
+    }, [beats, characters, locations, screenplayId]);
     
     // ========================================================================
     // Scene Position Management
