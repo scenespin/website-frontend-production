@@ -5,7 +5,7 @@ import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { saveToGitHub } from '@/utils/github';
 import { useAuth } from '@clerk/nextjs';
-import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
+import { createScreenplay, updateScreenplay, getScreenplay, listScreenplays } from '@/utils/screenplayStorage';
 
 interface EditorState {
     // Current document content
@@ -585,19 +585,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 if (!savedScreenplayId) {
                     try {
                         console.log('[EditorContext] No screenplay ID in localStorage, fetching user screenplays...');
-                        const response = await fetch('/api/screenplays?limit=1&status=active', {
-                            headers: {
-                                'Authorization': `Bearer ${await getToken()}`
-                            }
-                        });
+                        const screenplays = await listScreenplays(getToken, 'active', 1);
                         
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success && data.data.screenplays.length > 0) {
-                                savedScreenplayId = data.data.screenplays[0].screenplay_id;
-                                localStorage.setItem('current_screenplay_id', savedScreenplayId);
-                                console.log('[EditorContext] ✅ Found most recent screenplay:', savedScreenplayId);
-                            }
+                        if (screenplays && screenplays.length > 0) {
+                            savedScreenplayId = screenplays[0].screenplay_id;
+                            localStorage.setItem('current_screenplay_id', savedScreenplayId);
+                            console.log('[EditorContext] ✅ Found most recent screenplay:', savedScreenplayId);
+                        } else {
+                            console.log('[EditorContext] No screenplays found for user');
                         }
                     } catch (err) {
                         console.error('[EditorContext] Failed to fetch user screenplays:', err);
