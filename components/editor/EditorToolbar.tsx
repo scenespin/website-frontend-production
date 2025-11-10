@@ -182,13 +182,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     
     const [showMoreFormats, setShowMoreFormats] = React.useState(false);
     
-    const handleClearAll = () => {
-        if (confirm('⚠️ This will clear ALL scenes, characters, and locations. The editor content will remain. Continue?')) {
-            screenplay?.clearAllData();
-            alert('✅ All data cleared! Scenes, characters, and locations have been removed.');
-        }
-    };
-    
     return (
         <div className={`bg-base-200 border-t border-base-300 shadow-sm ${className}`}>
             {/* Mobile-friendly toolbar - wraps instead of scrolling */}
@@ -406,22 +399,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                 )}
-                
-                {/* Divider */}
-                <div className="h-8 w-px bg-base-300 mx-2"></div>
-                
-                {/* Clear All Data button */}
-                <div className="tooltip tooltip-bottom" data-tip="Clear All Data • Remove all scenes/characters/locations">
-                    <button
-                        onClick={handleClearAll}
-                        className="px-3 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm text-red-400"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span className="hidden sm:inline">Clear All</span>
-                    </button>
-                </div>
                 
                 {/* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
