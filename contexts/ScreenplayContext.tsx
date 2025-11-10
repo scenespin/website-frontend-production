@@ -1636,27 +1636,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (!screenplayId || beats.length === 0) return;
         
         try {
-            console.log('[ScreenplayContext] Saving', beats.length, 'beats to DynamoDB (embedded array)...');
+            console.log('[ScreenplayContext] Saving', beats.length, 'beats to DynamoDB...');
             
-            // Transform beats to API format
-            const apiBeats = beats.map(beat => ({
-                id: beat.id,
-                title: beat.title,
-                description: beat.description,
-                order: beat.order,
-                scenes: beat.scenes.map(s => s.id) // Backend expects string[]
-            }));
-            
-            await apiUpdateScreenplay({
-                screenplay_id: screenplayId,
-                beats: apiBeats
-            }, getToken);
+            // 🔥 NEW: Use persistence manager
+            await persistenceManager.saveBeats(beats);
             
             console.log('[ScreenplayContext] ✅ Saved', beats.length, 'beats to DynamoDB');
         } catch (err) {
             console.error('[ScreenplayContext] Failed to save beats to DynamoDB:', err);
         }
-    }, [beats, screenplayId, getToken]);
+    }, [beats, screenplayId]);
     
     // Helper: Save ALL structure to DynamoDB (for Save button)
     const saveAllToDynamoDB = useCallback(async () => {
