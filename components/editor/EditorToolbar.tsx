@@ -541,8 +541,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             
             {/* Clear All Confirmation Modal */}
             {showClearConfirm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                    <div className="bg-base-200 rounded-lg p-6 max-w-md mx-4 shadow-2xl border-2 border-red-500/30">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
+                    <div className="bg-base-200 rounded-lg p-6 max-w-md mx-4 shadow-2xl border-2 border-red-500/30 pointer-events-auto">
                         <div className="flex items-start gap-4">
                             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
                                 <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

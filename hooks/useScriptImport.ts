@@ -163,18 +163,7 @@ export function useScriptImport(): UseScriptImportReturn {
                 const totalLines = content.split('\n').length;
                 const scenesCount = parseResult.scenes.length;
                 
-                // Standard 8-Sequence breakdown (as percentages of total):
-                // Seq 1: 0-12.5%    (Status Quo)
-                // Seq 2: 12.5-22.7% (Predicament) 
-                // Seq 3: 22.7-37.5% (Lock In)
-                // Seq 4: 37.5-50%   (First Culmination)
-                // Seq 5: 50-62.5%   (Midpoint Shift)
-                // Seq 6: 62.5-77.3% (Complications)
-                // Seq 7: 77.3-87.5% (All Is Lost)
-                // Seq 8: 87.5-100%  (Resolution)
-                const sequenceBreakpoints = [0, 0.125, 0.227, 0.375, 0.50, 0.625, 0.773, 0.875, 1.0];
-                
-                // Get existing 8-sequence beats (refresh after potential deletion)
+                // Get existing sequence beats (refresh after potential deletion)
                 const sequenceBeats = screenplay.beats
                     .filter(b => b.title.includes('Sequence '))
                     .sort((a, b) => a.order - b.order);
@@ -182,11 +171,24 @@ export function useScriptImport(): UseScriptImportReturn {
                 console.log('[useScriptImport] Found', sequenceBeats.length, 'sequence beats');
                 
                 if (sequenceBeats.length !== 8) {
-                    console.error('[useScriptImport] ⚠️ Expected 8 sequence beats, found', sequenceBeats.length);
-                    return;
+                    console.warn('[useScriptImport] ⚠️ Expected 8 sequence beats, found', sequenceBeats.length);
+                    console.log('[useScriptImport] 💡 TIP: Use "Clear All" to reset to 8-sequence structure, or import will use existing beats');
+                    
+                    // If no sequence beats at all, we can't import scenes
+                    if (sequenceBeats.length === 0) {
+                        console.error('[useScriptImport] ❌ No sequence beats found - cannot import scenes');
+                        toast.error('No story beats found', {
+                            description: 'Please use Clear All to reset the structure first'
+                        });
+                        return;
+                    }
+                    
+                    // Otherwise, use whatever sequence beats exist
+                    console.log('[useScriptImport] ✅ Will distribute scenes across', sequenceBeats.length, 'existing beats');
                 }
                 
-                // Prepare scenes grouped by sequence
+                // Prepare scenes grouped by sequence (dynamic based on number of beats)
+                const numBeats = sequenceBeats.length;
                 const scenesBySequence: Array<Array<{
                     heading: string;
                     location: string;
@@ -194,7 +196,13 @@ export function useScriptImport(): UseScriptImportReturn {
                     locationId?: string;
                     startLine: number;
                     endLine: number;
-                }>> = Array(8).fill(null).map(() => []);
+                }>> = Array(numBeats).fill(null).map(() => []);
+                
+                // Calculate breakpoints dynamically based on number of beats
+                const sequenceBreakpoints: number[] = [];
+                for (let i = 0; i <= numBeats; i++) {
+                    sequenceBreakpoints.push(i / numBeats);
+                }
                 
                 // Distribute each scene to the appropriate sequence based on its position
                 parseResult.scenes.forEach((scene, index) => {
@@ -229,7 +237,7 @@ export function useScriptImport(): UseScriptImportReturn {
                 });
                 
                 // Import scenes into each sequence
-                for (let i = 0; i < 8; i++) {
+                for (let i = 0; i < numBeats; i++) {
                     if (scenesBySequence[i].length > 0 && sequenceBeats[i]) {
                         const createdScenes = await screenplay.bulkImportScenes(
                             sequenceBeats[i].id, 
