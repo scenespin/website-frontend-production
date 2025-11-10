@@ -1393,13 +1393,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             console.log('[ScreenplayContext] Created', newCharacters.length, 'new characters');
+            
+            // Save to DynamoDB if screenplay exists
+            if (screenplayId) {
+                console.log('[ScreenplayContext] Saving', newCharacters.length, 'characters to DynamoDB...');
+                await Promise.all(
+                    newCharacters.map(char => 
+                        apiCreateCharacter(screenplayId, char, getToken).catch(err => {
+                            console.error('[ScreenplayContext] Failed to save character:', char.name, err);
+                        })
+                    )
+                );
+                console.log('[ScreenplayContext] ✅ Saved', newCharacters.length, 'characters to DynamoDB');
+            }
         }
         
         console.log('[ScreenplayContext] Returning', allCharacters.length, 'total characters (', newCharacters.length, 'new,', allCharacters.length - newCharacters.length, 'existing)');
         
         // Return all characters (new + existing) so scenes can link to them
         return allCharacters;
-    }, [characters, setCharacters, setRelationships]);
+    }, [characters, setCharacters, setRelationships, screenplayId, getToken]);
     
     const bulkImportLocations = useCallback(async (locationNames: string[]): Promise<Location[]> => {
         const now = new Date().toISOString();
@@ -1456,13 +1469,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             console.log('[ScreenplayContext] Created', newLocations.length, 'new locations');
+            
+            // Save to DynamoDB if screenplay exists
+            if (screenplayId) {
+                console.log('[ScreenplayContext] Saving', newLocations.length, 'locations to DynamoDB...');
+                await Promise.all(
+                    newLocations.map(loc => 
+                        apiCreateLocation(screenplayId, loc, getToken).catch(err => {
+                            console.error('[ScreenplayContext] Failed to save location:', loc.name, err);
+                        })
+                    )
+                );
+                console.log('[ScreenplayContext] ✅ Saved', newLocations.length, 'locations to DynamoDB');
+            }
         }
         
         console.log('[ScreenplayContext] Returning', allLocations.length, 'total locations (', newLocations.length, 'new,', allLocations.length - newLocations.length, 'existing)');
         
         // Return all locations (new + existing) so scenes can link to them
         return allLocations;
-    }, [locations]);
+    }, [locations, screenplayId, getToken]);
     
     const bulkImportScenes = useCallback(async (
         beatId: string, 
@@ -1550,8 +1576,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             };
         });
         
+        // Save to DynamoDB if screenplay exists
+        if (screenplayId) {
+            console.log('[ScreenplayContext] Saving', newScenes.length, 'scenes to DynamoDB (by updating beat)...');
+            try {
+                // Find the beat we just updated
+                const updatedBeat = beats.find(b => b.id === beatId);
+                if (updatedBeat) {
+                    // Update the beat in DynamoDB with the new scenes
+                    await apiUpdateBeat(screenplayId, beatId, {
+                        ...updatedBeat,
+                        scenes: [...updatedBeat.scenes, ...newScenes],
+                        updatedAt: now
+                    }, getToken);
+                    console.log('[ScreenplayContext] ✅ Saved', newScenes.length, 'scenes to DynamoDB');
+                }
+            } catch (err) {
+                console.error('[ScreenplayContext] Failed to save scenes:', err);
+            }
+        }
+        
         return newScenes;
-    }, []);
+    }, [beats, screenplayId, getToken]);
     
     // ========================================================================
     // Scene Position Management
