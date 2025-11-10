@@ -903,6 +903,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const charRels = relationships.characters[id];
         const removedCount = charRels?.appearsInScenes.length || 0;
         
+        // 🔥 SAVE ORIGINAL STATE FOR ROLLBACK
+        const originalRelationships = relationships;
+        
         setRelationships(prev => {
             const newRels = { ...prev };
             delete newRels.characters[id];
@@ -936,8 +939,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] ✅ Saved updated characters array to DynamoDB (embedded array method)');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save updated characters array, rolling back:', error);
-                // Rollback: restore the deleted character
+                // Rollback: restore the deleted character AND relationships
                 setCharacters(characters);
+                setRelationships(originalRelationships);
                 throw error;
             }
         }
@@ -1125,6 +1129,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const locRels = relationships.locations[id];
         const removedCount = locRels?.scenes.length || 0;
         
+        // 🔥 SAVE ORIGINAL STATE FOR ROLLBACK
+        const originalRelationships = relationships;
+        
         setRelationships(prev => {
             const newRels = { ...prev };
             delete newRels.locations[id];
@@ -1158,8 +1165,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] ✅ Saved updated locations array to DynamoDB (embedded array method)');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save updated locations array, rolling back:', error);
-                // Rollback: restore the deleted location
+                // Rollback: restore the deleted location AND relationships
                 setLocations(locations);
+                setRelationships(originalRelationships);
                 throw error;
             }
         }
