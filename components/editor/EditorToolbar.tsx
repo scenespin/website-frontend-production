@@ -174,16 +174,21 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             setContent('');
             
             toast.success('🗑️ Complete reset', {
-                description: 'All screenplay data deleted (text, structure, characters, locations)'
+                description: 'Reloading page with clean 8-sequence structure...'
             });
             setShowClearConfirm(false);
+            
+            // 🔥 CRITICAL: Wait a moment for DynamoDB to propagate, then reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+            
         } catch (error) {
             console.error('[EditorToolbar] Clear failed:', error);
             toast.error('⚠️ Clear failed', {
                 description: 'Please try again'
             });
-        } finally {
-            setIsClearing(false);
+            setIsClearing(false); // Only reset if error
         }
     };
     

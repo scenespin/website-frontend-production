@@ -374,11 +374,11 @@ export class ScreenplayPersistenceManager {
       throw new Error('[Persistence] Cannot clear: No screenplay_id set');
     }
     
-    console.log('[Persistence] 🗑️ Clearing all data...');
+    console.log('[Persistence] 🗑️ Clearing all data for screenplay:', this.screenplayId);
     
     try {
       // Clear by setting everything to empty
-      await apiUpdateScreenplay({
+      const result = await apiUpdateScreenplay({
         screenplay_id: this.screenplayId,
         beats: [],
         characters: [],
@@ -386,7 +386,17 @@ export class ScreenplayPersistenceManager {
         content: '' // Also clear screenplay text
       }, this.getToken);
       
-      console.log('[Persistence] ✅ Cleared all data');
+      console.log('[Persistence] ✅ Cleared all data - API response:', result);
+      
+      // Verify the clear worked by checking the returned document
+      if (result && (result.beats?.length > 0 || result.characters?.length > 0 || result.locations?.length > 0)) {
+        console.error('[Persistence] ⚠️ WARNING: Clear succeeded but data still exists in response:', {
+          beats: result.beats?.length || 0,
+          characters: result.characters?.length || 0,
+          locations: result.locations?.length || 0
+        });
+        throw new Error('Clear operation did not fully clear data');
+      }
       
     } catch (error) {
       console.error('[Persistence] ❌ Failed to clear:', error);

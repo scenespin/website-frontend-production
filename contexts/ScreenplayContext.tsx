@@ -339,27 +339,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 hasAutoCreated.current = true;
                 console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure');
                 
-                // 🔥 CRITICAL FIX: Save beats to DynamoDB immediately after creation!
-                // This fixes the 404 error when trying to update beats on paste
+                // 🔥 NEW: Save beats to DynamoDB using persistence manager (embedded array approach)
                 if (screenplayId) {
-                    console.log('[ScreenplayContext] 💾 Saving default beats to DynamoDB...');
-                    Promise.all(
-                        newBeats.map(beat => 
-                            apiCreateBeat(screenplayId, beat, getToken).catch(err => {
-                                console.error('[ScreenplayContext] Failed to save default beat:', beat.title, err);
-                            })
-                        )
-                    ).then(() => {
-                        console.log('[ScreenplayContext] ✅ Saved', newBeats.length, 'default beats to DynamoDB');
-                    }).catch(err => {
+                    console.log('[ScreenplayContext] 💾 Saving default 8 beats to DynamoDB...');
+                    try {
+                        await persistenceManager.saveBeats(newBeats);
+                        console.log('[ScreenplayContext] ✅ Saved 8 default beats to DynamoDB');
+                    } catch (err) {
                         console.error('[ScreenplayContext] Failed to save default beats:', err);
-                    });
+                    }
                 }
             }
         }
         
         initializeData();
-    }, [screenplayId, getToken]); // Re-run when screenplay changes or auth ready
+    }, [screenplayId]); // Only re-run when screenplay_id changes, NOT on getToken changes
     
     // ========================================================================
     // Auto-save to localStorage when data changes
@@ -1806,13 +1800,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }
         
-        // Now clear local state
-        setBeats(prev => prev.map(beat => ({
-            ...beat,
-            scenes: [],
-            updatedAt: new Date().toISOString()
-        })));
-        
+        // Now clear local state COMPLETELY
+        setBeats([]); // 🔥 CRITICAL: Clear ALL beats, not just their scenes!
         setCharacters([]);
         setLocations([]);
         setRelationships({
@@ -1821,6 +1810,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             scenes: {},
             props: {}
         });
+        
+        // 🔥 CRITICAL: Reset auto-creation flag so default 8-sequence will be created on next load
+        hasAutoCreated.current = false;
         
         // 🔥 REMOVED: No longer using localStorage for persistence
         // localStorage is being phased out - DynamoDB is single source of truth
