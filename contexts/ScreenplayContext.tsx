@@ -265,13 +265,45 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                     
                     if (charactersData.length > 0) {
-                        setCharacters(charactersData as Character[]);
-                        console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
+                        // Transform simple API Characters to complex app Characters
+                        const transformedCharacters: Character[] = charactersData.map((apiChar: any) => ({
+                            id: apiChar.id,
+                            name: apiChar.name,
+                            type: 'supporting' as CharacterType, // Default type
+                            description: apiChar.description || '',
+                            arcStatus: 'introduced' as ArcStatus,
+                            customFields: [],
+                            images: apiChar.referenceImages?.map((url: string, idx: number) => ({
+                                id: `img-${idx}`,
+                                url,
+                                caption: '',
+                                uploadedAt: new Date().toISOString()
+                            })) || [],
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        }));
+                        setCharacters(transformedCharacters);
+                        console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters');
                     }
                     
                     if (locationsData.length > 0) {
-                        setLocations(locationsData as Location[]);
-                        console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
+                        // Transform simple API Locations to complex app Locations
+                        const transformedLocations: Location[] = locationsData.map((apiLoc: any) => ({
+                            id: apiLoc.id,
+                            name: apiLoc.name,
+                            type: 'INT' as LocationType, // Default type
+                            description: apiLoc.description || '',
+                            images: apiLoc.referenceImages?.map((url: string, idx: number) => ({
+                                id: `img-${idx}`,
+                                url,
+                                caption: '',
+                                uploadedAt: new Date().toISOString()
+                            })) || [],
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        }));
+                        setLocations(transformedLocations);
+                        console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations');
                     }
                     
                 } catch (err) {
@@ -785,7 +817,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Create in DynamoDB
         if (screenplayId) {
             try {
-                await apiCreateCharacter(screenplayId, newCharacter, getToken);
+                // Transform complex Character to simple API Character
+                const apiChar = {
+                    name: newCharacter.name,
+                    description: newCharacter.description,
+                    referenceImages: newCharacter.images?.map(img => img.url) || []
+                };
+                await apiCreateCharacter(screenplayId, apiChar, getToken);
                 console.log('[ScreenplayContext] ✅ Created character in DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create character in DynamoDB:', error);
@@ -984,7 +1022,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Create in DynamoDB
         if (screenplayId) {
             try {
-                await apiCreateLocation(screenplayId, newLocation, getToken);
+                // Transform complex Location to simple API Location
+                const apiLoc = {
+                    name: newLocation.name,
+                    description: newLocation.description,
+                    referenceImages: newLocation.images?.map(img => img.url) || []
+                };
+                await apiCreateLocation(screenplayId, apiLoc, getToken);
                 console.log('[ScreenplayContext] ✅ Created location in DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create location in DynamoDB:', error);
@@ -1415,11 +1459,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             if (screenplayId) {
                 console.log('[ScreenplayContext] Saving', newCharacters.length, 'characters to DynamoDB...');
                 await Promise.all(
-                    newCharacters.map(char => 
-                        apiCreateCharacter(screenplayId, char, getToken).catch(err => {
+                    newCharacters.map(char => {
+                        // Transform complex Character to simple API Character
+                        const apiChar = {
+                            name: char.name,
+                            description: char.description,
+                            referenceImages: char.images?.map(img => img.url) || []
+                        };
+                        return apiCreateCharacter(screenplayId, apiChar, getToken).catch(err => {
                             console.error('[ScreenplayContext] Failed to save character:', char.name, err);
-                        })
-                    )
+                        });
+                    })
                 );
                 console.log('[ScreenplayContext] ✅ Saved', newCharacters.length, 'characters to DynamoDB');
             }
@@ -1491,11 +1541,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             if (screenplayId) {
                 console.log('[ScreenplayContext] Saving', newLocations.length, 'locations to DynamoDB...');
                 await Promise.all(
-                    newLocations.map(loc => 
-                        apiCreateLocation(screenplayId, loc, getToken).catch(err => {
+                    newLocations.map(loc => {
+                        // Transform complex Location to simple API Location
+                        const apiLoc = {
+                            name: loc.name,
+                            description: loc.description,
+                            referenceImages: loc.images?.map(img => img.url) || []
+                        };
+                        return apiCreateLocation(screenplayId, apiLoc, getToken).catch(err => {
                             console.error('[ScreenplayContext] Failed to save location:', loc.name, err);
-                        })
-                    )
+                        });
+                    })
                 );
                 console.log('[ScreenplayContext] ✅ Saved', newLocations.length, 'locations to DynamoDB');
             }
