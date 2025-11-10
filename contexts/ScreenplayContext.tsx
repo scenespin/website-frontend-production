@@ -278,9 +278,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             customFields: [],
                             images: apiChar.referenceImages?.map((url: string, idx: number) => ({
                                 id: `img-${idx}`,
-                                url,
-                                caption: '',
-                                uploadedAt: new Date().toISOString()
+                                imageUrl: url,
+                                createdAt: new Date().toISOString()
                             })) || [],
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString()
@@ -298,9 +297,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             description: apiLoc.description || '',
                             images: apiLoc.referenceImages?.map((url: string, idx: number) => ({
                                 id: `img-${idx}`,
-                                url,
-                                caption: '',
-                                uploadedAt: new Date().toISOString()
+                                imageUrl: url,
+                                createdAt: new Date().toISOString()
                             })) || [],
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString()
@@ -824,7 +822,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const apiChar = {
                     name: newCharacter.name,
                     description: newCharacter.description,
-                    referenceImages: newCharacter.images?.map(img => img.url) || []
+                    referenceImages: newCharacter.images?.map(img => img.imageUrl) || []
                 };
                 await apiCreateCharacter(screenplayId, apiChar, getToken);
                 console.log('[ScreenplayContext] ✅ Created character in DynamoDB');
@@ -1029,7 +1027,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const apiLoc = {
                     name: newLocation.name,
                     description: newLocation.description,
-                    referenceImages: newLocation.images?.map(img => img.url) || []
+                    referenceImages: newLocation.images?.map(img => img.imageUrl) || []
                 };
                 await apiCreateLocation(screenplayId, apiLoc, getToken);
                 console.log('[ScreenplayContext] ✅ Created location in DynamoDB');
@@ -1467,7 +1465,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         const apiChar = {
                             name: char.name,
                             description: char.description,
-                            referenceImages: char.images?.map(img => img.url) || []
+                            referenceImages: char.images?.map(img => img.imageUrl) || []
                         };
                         return apiCreateCharacter(screenplayId, apiChar, getToken).catch(err => {
                             console.error('[ScreenplayContext] Failed to save character:', char.name, err);
@@ -1549,7 +1547,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         const apiLoc = {
                             name: loc.name,
                             description: loc.description,
-                            referenceImages: loc.images?.map(img => img.url) || []
+                            referenceImages: loc.images?.map(img => img.imageUrl) || []
                         };
                         return apiCreateLocation(screenplayId, apiLoc, getToken).catch(err => {
                             console.error('[ScreenplayContext] Failed to save location:', loc.name, err);
