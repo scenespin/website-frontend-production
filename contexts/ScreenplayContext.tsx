@@ -178,6 +178,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Track if we've auto-created the 8-Sequence Structure to prevent duplicates
     const hasAutoCreated = useRef(false);
     
+    // 🔥 NEW: Track which screenplay_id we've initialized to prevent duplicate effect executions
+    // Stores the last screenplay_id (or 'no-id') that we initialized for
+    const hasInitializedRef = useRef<string | false>(false);
+    
     // Track if initial data has been loaded from DynamoDB
     const [hasInitializedFromDynamoDB, setHasInitializedFromDynamoDB] = useState(false);
     
@@ -220,6 +224,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
+        // 🔥 CRITICAL: Guard against duplicate initialization runs
+        // This prevents the 26-beat bug caused by multiple effect executions
+        const initKey = screenplayId || 'no-id';
+        if (hasInitializedRef.current === initKey) {
+            console.log('[ScreenplayContext] ⏭️ Already initialized for:', initKey, '- skipping');
+            return;
+        }
+        
+        console.log('[ScreenplayContext] 🚀 Starting initialization for:', initKey);
+        hasInitializedRef.current = initKey;
+        
         async function initializeData() {
             // 🔥 NEW: Load from DynamoDB using persistence manager
             if (screenplayId) {
@@ -249,9 +264,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 NEW: Update state with loaded data (transformation already done by persistence manager)
                     if (beatsData.length > 0) {
                         setBeats(beatsData);
-                        console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats');
+                        console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats from DynamoDB');
                         // Prevent auto-creation of default beats since we loaded existing ones
                         hasAutoCreated.current = true;
+                    } else {
+                        // No beats in DB - need to create default structure
+                        console.log('[ScreenplayContext] 📝 No beats in DB, checking if we need to create defaults...');
                     }
                     
                     // Always update characters (even if empty)
@@ -266,7 +284,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
                     // Use beatsData (just loaded) instead of beats (stale state) to avoid race condition
                     if (beatsData.length === 0 && !hasAutoCreated.current) {
+                        console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure for screenplay:', screenplayId);
                         await createDefaultBeats(screenplayId);
+                    } else if (hasAutoCreated.current) {
+                        console.log('[ScreenplayContext] ⏭️ Skipping beat creation - already have', beatsData.length, 'beats');
                     }
                     
                 } catch (err) {
@@ -284,18 +305,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 setIsLoading(false);
                 
                 // 🔥 CRITICAL: For new screenplays (no ID yet), create default beats immediately
-                if (beats.length === 0 && !hasAutoCreated.current) {
+                // But only if we haven't already created them
+                if (!hasAutoCreated.current) {
+                    console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure (no screenplay ID yet)');
                     await createDefaultBeats(null);
+                } else {
+                    console.log('[ScreenplayContext] ⏭️ Skipping beat creation - already created');
                 }
             }
         }
         
         // Helper function to create default 8-sequence beats (DRY principle)
         async function createDefaultBeats(screenplay_id: string | null) {
+            // 🔥 DOUBLE-CHECK: Prevent any possibility of duplicate creation
             if (hasAutoCreated.current) {
-                console.log('[ScreenplayContext] Skipping default beat creation - already created');
+                console.log('[ScreenplayContext] ⛔ Blocked duplicate beat creation - already created');
                 return;
             }
+            
+            // 🔥 SET FLAG IMMEDIATELY before any async operations
+            // This prevents race conditions where multiple calls happen before flag is set
+            hasAutoCreated.current = true;
+            console.log('[ScreenplayContext] 🔒 Locked hasAutoCreated flag to prevent duplicates');
             
             const sequences = [
                 {
@@ -352,8 +383,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }));
             
             setBeats(newBeats);
-            hasAutoCreated.current = true;
-            console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure');
+            console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure:', newBeats.length, 'beats');
             
             if (screenplay_id) {
                 console.log('[ScreenplayContext] 💾 Saving default 8 beats to DynamoDB...');
@@ -362,7 +392,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] ✅ Saved 8 default beats to DynamoDB');
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to save default beats:', err);
+                    // Don't clear the flag if save failed - we still created them locally
                 }
+            } else {
+                console.log('[ScreenplayContext] ⏳ Beats created locally - will save when screenplay_id available');
             }
         }
         
@@ -884,15 +917,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        setCharacters(prev => prev.filter(c => c.id !== id));
+        // 🔥 OPTIMISTIC UPDATE: Remove from local state immediately
+        const updatedCharacters = characters.filter(c => c.id !== id);
+        setCharacters(updatedCharacters);
         
-        // Feature 0111 Phase 3: Delete from DynamoDB
+        // 🔥 CRITICAL FIX: Save entire updated array to DynamoDB (NOT individual delete!)
+        // Characters are stored as embedded array in ScreenplayDocument, not as individual records
         if (screenplayId) {
             try {
-                await apiDeleteCharacter(screenplayId, id, getToken);
-                console.log('[ScreenplayContext] ✅ Deleted character from DynamoDB');
+                console.log('[ScreenplayContext] Saving updated characters array after deletion:', {
+                    deletedId: id,
+                    remainingCount: updatedCharacters.length
+                });
+                
+                // Use persistence manager to save the entire updated array
+                await persistenceManager.saveCharacters(updatedCharacters);
+                
+                console.log('[ScreenplayContext] ✅ Saved updated characters array to DynamoDB (embedded array method)');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to delete character from DynamoDB:', error);
+                console.error('[ScreenplayContext] Failed to save updated characters array, rolling back:', error);
+                // Rollback: restore the deleted character
+                setCharacters(characters);
+                throw error;
             }
         }
         
@@ -1093,15 +1139,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        setLocations(prev => prev.filter(l => l.id !== id));
+        // 🔥 OPTIMISTIC UPDATE: Remove from local state immediately
+        const updatedLocations = locations.filter(l => l.id !== id);
+        setLocations(updatedLocations);
         
-        // Feature 0111 Phase 3: Delete from DynamoDB
+        // 🔥 CRITICAL FIX: Save entire updated array to DynamoDB (NOT individual delete!)
+        // Locations are stored as embedded array in ScreenplayDocument, not as individual records
         if (screenplayId) {
             try {
-                await apiDeleteLocation(screenplayId, id, getToken);
-                console.log('[ScreenplayContext] ✅ Deleted location from DynamoDB');
+                console.log('[ScreenplayContext] Saving updated locations array after deletion:', {
+                    deletedId: id,
+                    remainingCount: updatedLocations.length
+                });
+                
+                // Use persistence manager to save the entire updated array
+                await persistenceManager.saveLocations(updatedLocations);
+                
+                console.log('[ScreenplayContext] ✅ Saved updated locations array to DynamoDB (embedded array method)');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to delete location from DynamoDB:', error);
+                console.error('[ScreenplayContext] Failed to save updated locations array, rolling back:', error);
+                // Rollback: restore the deleted location
+                setLocations(locations);
+                throw error;
             }
         }
         
@@ -1825,13 +1884,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             props: {}
         });
         
-        // 🔥 CRITICAL: Reset auto-creation flag so default 8-sequence will be created on next load
+        // 🔥 CRITICAL FIX: Reset BOTH flags to allow re-initialization
+        // This allows the effect to run again and create fresh 8 beats
         hasAutoCreated.current = false;
+        hasInitializedRef.current = false; // Reset initialization tracking
         
         // 🔥 REMOVED: No longer using localStorage for persistence
         // localStorage is being phased out - DynamoDB is single source of truth
         
         console.log('[ScreenplayContext] ✅ ALL data cleared from DynamoDB + local state (COMPLETE RESET)');
+        console.log('[ScreenplayContext] 🔓 Reset flags - will create fresh 8-sequence structure on next initialization');
     }, [screenplayId]);
     
     // ========================================================================
