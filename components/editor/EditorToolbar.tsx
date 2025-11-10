@@ -404,6 +404,52 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </button>
                 </div>
                 
+                {/* 🔥 FORCE CLEAR DATABASE Button (Emergency cleanup for old corrupted data) */}
+                <div className="tooltip tooltip-bottom" data-tip="FORCE CLEAR old data from database (use if characters/locations won't delete)">
+                    <button
+                        onClick={async () => {
+                            if (!confirm('⚠️ FORCE CLEAR DATABASE?\n\nThis will completely wipe characters and locations from the database.\n\nUse this if old data won\'t delete normally.\n\nContinue?')) {
+                                return;
+                            }
+                            
+                            try {
+                                const screenplayId = localStorage.getItem('current_screenplay_id');
+                                if (!screenplayId) {
+                                    toast.error('No screenplay ID found');
+                                    return;
+                                }
+                                
+                                toast.info('🔄 Force clearing database...', { duration: 2000 });
+                                
+                                // Use the persistence manager
+                                const { persistenceManager } = await import('@/utils/screenplayPersistence');
+                                await persistenceManager.saveCharacters([]);
+                                await persistenceManager.saveLocations([]);
+                                
+                                toast.success('✅ Database force cleared!', {
+                                    description: 'Reloading page...'
+                                });
+                                
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                                
+                            } catch (error) {
+                                console.error('[EditorToolbar] Force clear failed:', error);
+                                toast.error('❌ Force clear failed', {
+                                    description: 'Check console for details'
+                                });
+                            }
+                        }}
+                        className="px-3 py-2 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span className="hidden sm:inline">Force Clear DB</span>
+                    </button>
+                </div>
+                
                 {                /* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
