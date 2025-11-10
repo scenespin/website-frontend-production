@@ -145,10 +145,17 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             // Save screenplay text (content)
             await saveNow();
             
-            // CRITICAL FIX: Also save structure (beats, characters, locations)
-            if (screenplay.saveAllToDynamoDB) {
-                await screenplay.saveAllToDynamoDB();
-            }
+            // ❌ REMOVED: Don't call saveAllToDynamoDB() here - it causes a race condition!
+            // Each component (characters, locations, beats) saves automatically when modified.
+            // Calling saveAllToDynamoDB() here would overwrite with stale state because
+            // React state updates are async and may not have propagated yet.
+            //
+            // The paste flow already calls:
+            // - persistenceManager.saveCharacters() after importing characters
+            // - persistenceManager.saveLocations() after importing locations  
+            // - persistenceManager.saveBeats() after importing scenes
+            //
+            // So this redundant call only causes data loss!
             
             toast.success('💾 Saved to database', {
                 description: 'Your screenplay is safe!'
