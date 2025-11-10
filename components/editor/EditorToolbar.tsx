@@ -133,6 +133,8 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
     const screenplay = useScreenplay();
     const [isSaving, setIsSaving] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
     
     // Handle immediate save to DynamoDB
     const handleSave = async () => {
@@ -151,6 +153,25 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             });
         } finally {
             setIsSaving(false);
+        }
+    };
+    
+    // Handle Clear All with double confirmation
+    const handleClearAll = async () => {
+        setIsClearing(true);
+        try {
+            await screenplay?.clearAllData();
+            toast.success('🗑️ Structure cleared', {
+                description: 'All characters, locations, and scenes removed'
+            });
+            setShowClearConfirm(false);
+        } catch (error) {
+            console.error('[EditorToolbar] Clear failed:', error);
+            toast.error('⚠️ Clear failed', {
+                description: 'Please try again'
+            });
+        } finally {
+            setIsClearing(false);
         }
     };
     
@@ -352,6 +373,20 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </div>
                 )}
                 
+                {/* Clear All Structure Button */}
+                <div className="tooltip tooltip-bottom" data-tip="Clear all characters, locations, and scenes (screenplay text stays)">
+                    <button
+                        onClick={() => setShowClearConfirm(true)}
+                        disabled={isClearing || (!screenplay?.characters.length && !screenplay?.locations.length)}
+                        className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="hidden sm:inline">Clear Structure</span>
+                    </button>
+                </div>
+                
                 {                /* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
@@ -486,6 +521,64 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full"
                             >
                                 [[NOTE]]
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Clear All Confirmation Modal */}
+            {showClearConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-base-200 rounded-lg p-6 max-w-md mx-4 shadow-2xl border-2 border-red-500/30">
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-red-500 mb-2">⚠️ Clear All Structure Data?</h3>
+                                <p className="text-sm text-base-content/90 mb-3">
+                                    This will <strong>permanently delete</strong>:
+                                </p>
+                                <ul className="list-disc list-inside text-sm text-base-content/70 space-y-1 mb-3">
+                                    <li>All characters ({screenplay?.characters.length || 0})</li>
+                                    <li>All locations ({screenplay?.locations.length || 0})</li>
+                                    <li>All scenes from story beats</li>
+                                </ul>
+                                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded p-2 mb-4">
+                                    <strong>Your screenplay text will NOT be deleted.</strong> Only the extracted structure data will be removed.
+                                </p>
+                                <p className="text-sm text-base-content/80 font-semibold">
+                                    Are you absolutely sure?
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => setShowClearConfirm(false)}
+                                disabled={isClearing}
+                                className="flex-1 px-4 py-2 bg-base-300 hover:bg-base-100 rounded font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleClearAll}
+                                disabled={isClearing}
+                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2"
+                            >
+                                {isClearing ? (
+                                    <>
+                                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Clearing...</span>
+                                    </>
+                                ) : (
+                                    <>Yes, Clear All</>
+                                )}
                             </button>
                         </div>
                     </div>

@@ -1834,8 +1834,38 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const clearAllData = useCallback(async () => {
-        console.log('[ScreenplayContext] 🗑️ Clearing all screenplay data (editor cleared)');
+        console.log('[ScreenplayContext] 🗑️ Clearing all screenplay data...');
         
+        // CRITICAL: Delete from DynamoDB first, then clear local state
+        if (screenplayId) {
+            console.log('[ScreenplayContext] Deleting all characters/locations from DynamoDB...');
+            
+            // Delete all characters from DynamoDB
+            if (characters.length > 0) {
+                await Promise.all(
+                    characters.map(char => 
+                        apiDeleteCharacter(screenplayId, char.id, getToken).catch(err => {
+                            console.warn('[ScreenplayContext] Failed to delete character:', char.name, err);
+                        })
+                    )
+                );
+                console.log('[ScreenplayContext] ✅ Deleted', characters.length, 'characters from DynamoDB');
+            }
+            
+            // Delete all locations from DynamoDB
+            if (locations.length > 0) {
+                await Promise.all(
+                    locations.map(loc => 
+                        apiDeleteLocation(screenplayId, loc.id, getToken).catch(err => {
+                            console.warn('[ScreenplayContext] Failed to delete location:', loc.name, err);
+                        })
+                    )
+                );
+                console.log('[ScreenplayContext] ✅ Deleted', locations.length, 'locations from DynamoDB');
+            }
+        }
+        
+        // Now clear local state
         // Clear all scenes from all beats
         setBeats(prev => prev.map(beat => ({
             ...beat,
@@ -1857,8 +1887,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             props: {}
         });
         
-        console.log('[ScreenplayContext] ✅ All data cleared');
-    }, []);
+        console.log('[ScreenplayContext] ✅ All data cleared from DynamoDB and local state');
+    }, [screenplayId, characters, locations, getToken]);
     
     // ========================================================================
     // Context Value
