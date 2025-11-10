@@ -240,9 +240,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 try {
                     console.log('[ScreenplayContext] Loading structure from DynamoDB for:', screenplayId);
                     
-                    // Load characters, locations from DynamoDB
-                    // Note: Beats are kept in localStorage for now (scenes are complex nested data)
-                    const [charactersData, locationsData] = await Promise.all([
+                    // Load beats, characters, locations from DynamoDB
+                    const [beatsData, charactersData, locationsData] = await Promise.all([
+                        listBeats(screenplayId, getToken).catch(err => {
+                            console.warn('[ScreenplayContext] Failed to load beats:', err);
+                            return [];
+                        }),
                         listCharacters(screenplayId, getToken).catch(err => {
                             console.warn('[ScreenplayContext] Failed to load characters:', err);
                             return [];
@@ -254,6 +257,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     ]);
                     
                     // Update state with loaded data
+                    if (beatsData.length > 0) {
+                        setBeats(beatsData as StoryBeat[]);
+                        console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats');
+                        // Prevent auto-creation of default beats since we loaded existing ones
+                        hasAutoCreated.current = true;
+                    }
+                    
                     if (charactersData.length > 0) {
                         setCharacters(charactersData as Character[]);
                         console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
