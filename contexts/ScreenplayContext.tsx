@@ -35,6 +35,10 @@ import {
 import {
     updateScriptTags
 } from '@/utils/fountainTags';
+import { 
+    persistenceManager,
+    waitForInitialization 
+} from '@/utils/screenplayPersistence';
 
 // ============================================================================
 // Context Type Definition
@@ -871,20 +875,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, getToken]);
     
     const updateCharacter = useCallback(async (id: string, updates: Partial<Character>) => {
-        let updatedCharacters: Character[] | undefined;
+        // 🔥 NEW: Optimistic UI update with rollback on error
+        const previousCharacters = characters;
         
-        setCharacters(prev => {
-            updatedCharacters = prev.map(char => {
-                if (char.id === id) {
-                    return { ...char, ...updates, updatedAt: new Date().toISOString() };
-                }
-                return char;
-            });
-            return updatedCharacters;
+        // 1. Update local state immediately (optimistic UI)
+        const updatedCharacters = characters.map(char => {
+            if (char.id === id) {
+                return { ...char, ...updates, updatedAt: new Date().toISOString() };
+            }
+            return char;
         });
+        setCharacters(updatedCharacters);
         
-        // Save entire characters array to DynamoDB using embedded array method
-        if (screenplayId && updatedCharacters) {
+        // 2. Save to DynamoDB through persistence manager
+        if (screenplayId) {
             try {
                 console.log('[ScreenplayContext] Updating character in DynamoDB:', {
                     characterId: id,
@@ -892,26 +896,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updates
                 });
                 
-                const apiCharacters = updatedCharacters.map(char => ({
-                    id: char.id,
-                    name: char.name,
-                    description: char.description,
-                    referenceImages: char.images?.map(img => img.imageUrl) || []
-                }));
+                // 🔥 NEW: Use persistence manager (handles transformation internally)
+                await persistenceManager.saveCharacters(updatedCharacters);
                 
-                console.log('[ScreenplayContext] API Characters being saved:', apiCharacters);
-                
-                await apiUpdateScreenplay({
-                    screenplay_id: screenplayId,
-                    characters: apiCharacters
-                }, getToken);
-                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB (embedded array)');
+                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to update character in DynamoDB:', error);
+                // 3. Rollback on error
+                console.error('[ScreenplayContext] Failed to update character, rolling back:', error);
+                setCharacters(previousCharacters);
                 throw error; // Re-throw so UI knows it failed
             }
         }
-    }, [screenplayId, getToken]);
+    }, [screenplayId, characters]);
     
     const deleteCharacter = useCallback(async (id: string, cascade: CascadeOption): Promise<DeletionResult> => {
         if (cascade === 'cancel') {
