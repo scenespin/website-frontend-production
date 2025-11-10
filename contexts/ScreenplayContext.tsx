@@ -29,7 +29,8 @@ import {
     createBeat as apiCreateBeat,
     updateBeat as apiUpdateBeat,
     deleteBeat as apiDeleteBeat,
-    updateRelationships as apiUpdateRelationships
+    updateRelationships as apiUpdateRelationships,
+    updateScreenplay as apiUpdateScreenplay
 } from '@/utils/screenplayStorage';
 import {
     updateScriptTags
@@ -1482,7 +1483,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     referenceImages: char.images?.map(img => img.imageUrl) || []
                 }));
                 
-                await updateScreenplayInDynamoDB(screenplayId, {
+                await apiUpdateScreenplay({
+                    screenplay_id: screenplayId,
                     characters: apiCharacters
                 }, getToken);
                 console.log('[ScreenplayContext] ✅ Saved', allCharacters.length, 'characters to DynamoDB');
@@ -1567,7 +1569,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     referenceImages: loc.images?.map(img => img.imageUrl) || []
                 }));
                 
-                await updateScreenplayInDynamoDB(screenplayId, {
+                await apiUpdateScreenplay({
+                    screenplay_id: screenplayId,
                     locations: apiLocations
                 }, getToken);
                 console.log('[ScreenplayContext] ✅ Saved', allLocations.length, 'locations to DynamoDB');
@@ -1812,7 +1815,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (screenplayId) {
             try {
                 console.log('[ScreenplayContext] Clearing ALL structural data from DynamoDB...');
-                await updateScreenplayInDynamoDB(screenplayId, {
+                await apiUpdateScreenplay({
+                    screenplay_id: screenplayId,
                     beats: [],
                     content: '',        // Clear the screenplay text
                     characters: [],     // Clear embedded characters array
