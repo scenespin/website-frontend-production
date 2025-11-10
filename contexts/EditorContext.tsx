@@ -348,10 +348,23 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const saveNow = useCallback(async () => {
         const currentState = stateRef.current;
         const contentLength = currentState.content.length;
+        const contentTrimmed = currentState.content.trim();
         
         console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
         
         try {
+            // Check if content is empty or nearly empty (depopulation logic)
+            const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
+            
+            if (isEffectivelyEmpty && screenplay) {
+                console.log('[EditorContext] 🗑️ Content is empty, clearing screenplay structure data...');
+                
+                // Clear all scenes, characters, and locations
+                await screenplay.clearAllData();
+                
+                console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
+            }
+            
             // Save to localStorage immediately
             localStorage.setItem('screenplay_draft', currentState.content);
             localStorage.setItem('screenplay_title', currentState.title);
@@ -399,7 +412,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             console.error('[EditorContext] Manual save failed:', error);
             throw error; // Let the caller handle the error
         }
-    }, [getToken]);
+    }, [getToken, screenplay]);
     
     // Utility
     const reset = useCallback(() => {
@@ -457,7 +470,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             if (localSaveCounterRef.current >= 12) {
                 try {
                     const contentLength = currentState.content.length;
+                    const contentTrimmed = currentState.content.trim();
                     console.log('[EditorContext] 🔄 Saving to DynamoDB... (content length:', contentLength, 'chars)');
+                    
+                    // Check if content is empty or nearly empty (depopulation logic)
+                    const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
+                    
+                    if (isEffectivelyEmpty && screenplay) {
+                        console.log('[EditorContext] 🗑️ Auto-save detected empty content, clearing screenplay structure data...');
+                        
+                        // Clear all scenes, characters, and locations
+                        await screenplay.clearAllData();
+                        
+                        console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
+                    }
                     
                     if (!screenplayIdRef.current) {
                         // Create new screenplay in DynamoDB
