@@ -221,119 +221,43 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
         async function initializeData() {
-            // Feature 0111 Phase 3: Load from DynamoDB if screenplay exists
+            // 🔥 NEW: Load from DynamoDB using persistence manager
             if (screenplayId) {
                 try {
-                    console.log('[ScreenplayContext] Loading structure from DynamoDB for:', screenplayId);
+                    console.log('[ScreenplayContext] 🔄 Loading structure from DynamoDB for:', screenplayId);
                     
-                    // Load beats, characters, locations from DynamoDB
+                    // 🔥 NEW: Use persistence manager to load all data
+                    // This handles all transformation logic internally
                     const [beatsData, charactersData, locationsData] = await Promise.all([
-                        listBeats(screenplayId, getToken).catch(err => {
+                        persistenceManager.loadBeats().catch(err => {
                             console.warn('[ScreenplayContext] Failed to load beats:', err);
                             return [];
                         }),
-                        listCharacters(screenplayId, getToken).catch(err => {
+                        persistenceManager.loadCharacters().catch(err => {
                             console.warn('[ScreenplayContext] Failed to load characters:', err);
                             return [];
                         }),
-                        listLocations(screenplayId, getToken).catch(err => {
+                        persistenceManager.loadLocations().catch(err => {
                             console.warn('[ScreenplayContext] Failed to load locations:', err);
                             return [];
                         })
                     ]);
                     
-                    // Update state with loaded data (ALWAYS, even if empty!)
-                    // 🔥 CRITICAL FIX: Always update state to ensure it matches DynamoDB, even if empty
+                    // 🔥 NEW: Update state with loaded data (transformation already done by persistence manager)
                     if (beatsData.length > 0) {
-                        // Transform simple API Beats to complex app StoryBeats
-                        const transformedBeats: StoryBeat[] = beatsData.map((apiBeat: any) => ({
-                            id: apiBeat.id,
-                            title: apiBeat.title,
-                            description: apiBeat.description,
-                            order: apiBeat.order,
-                            scenes: [], // Empty array - scenes will be populated separately
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        }));
-                        setBeats(transformedBeats);
-                        console.log('[ScreenplayContext] ✅ Loaded', transformedBeats.length, 'beats');
+                        setBeats(beatsData);
+                        console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats');
                         // Prevent auto-creation of default beats since we loaded existing ones
                         hasAutoCreated.current = true;
                     }
                     
-                    // 🔥 CRITICAL: ALWAYS update characters, even if empty (to match DynamoDB)
-                    if (charactersData.length > 0) {
-                        // Transform simple API Characters to complex app Characters
-                        console.log('[ScreenplayContext] Raw characters from DynamoDB:', charactersData);
-                        
-                        const transformedCharacters: Character[] = charactersData.map((apiChar: any) => ({
-                            id: apiChar.id,
-                            name: apiChar.name,
-                            type: 'supporting' as CharacterType, // Default type
-                            description: apiChar.description || '',
-                            arcStatus: 'introduced' as ArcStatus,
-                            customFields: [],
-                            images: apiChar.referenceImages?.map((url: string, idx: number) => ({
-                                id: `img-${idx}`,
-                                imageUrl: url,
-                                createdAt: new Date().toISOString()
-                            })) || [],
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        }));
-                        setCharacters(transformedCharacters);
-                        
-                        // CRITICAL: Force update localStorage with DynamoDB data (overwrites stale cache)
-                        if (typeof window !== 'undefined') {
-                            localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(transformedCharacters));
-                            console.log('[ScreenplayContext] 💾 Force-updated localStorage with DynamoDB characters');
-                        }
-                        
-                        console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters');
-                    } else {
-                        // 🔥 CRITICAL FIX: If DynamoDB has NO characters, clear local state too!
-                        console.log('[ScreenplayContext] ✅ Loaded 0 characters from DynamoDB (empty)');
-                        setCharacters([]);
-                        if (typeof window !== 'undefined') {
-                            localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
-                            console.log('[ScreenplayContext] 💾 Cleared localStorage characters (DynamoDB is empty)');
-                        }
-                    }
+                    // Always update characters (even if empty)
+                    setCharacters(charactersData);
+                    console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
                     
-                    // 🔥 CRITICAL: ALWAYS update locations, even if empty (to match DynamoDB)
-                    if (locationsData.length > 0) {
-                        // Transform simple API Locations to complex app Locations
-                        const transformedLocations: Location[] = locationsData.map((apiLoc: any) => ({
-                            id: apiLoc.id,
-                            name: apiLoc.name,
-                            type: 'INT' as LocationType, // Default type
-                            description: apiLoc.description || '',
-                            images: apiLoc.referenceImages?.map((url: string, idx: number) => ({
-                                id: `img-${idx}`,
-                                imageUrl: url,
-                                createdAt: new Date().toISOString()
-                            })) || [],
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        }));
-                        setLocations(transformedLocations);
-                        
-                        // CRITICAL: Force update localStorage with DynamoDB data (overwrites stale cache)
-                        if (typeof window !== 'undefined') {
-                            localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(transformedLocations));
-                            console.log('[ScreenplayContext] 💾 Force-updated localStorage with DynamoDB locations');
-                        }
-                        
-                        console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations');
-                    } else {
-                        // 🔥 CRITICAL FIX: If DynamoDB has NO locations, clear local state too!
-                        console.log('[ScreenplayContext] ✅ Loaded 0 locations from DynamoDB (empty)');
-                        setLocations([]);
-                        if (typeof window !== 'undefined') {
-                            localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
-                            console.log('[ScreenplayContext] 💾 Cleared localStorage locations (DynamoDB is empty)');
-                        }
-                    }
+                    // Always update locations (even if empty)
+                    setLocations(locationsData);
+                    console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
                     
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);

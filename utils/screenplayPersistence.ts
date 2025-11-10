@@ -175,6 +175,60 @@ export class ScreenplayPersistenceManager {
   }
   
   /**
+   * 🔥 NEW: Load only beats from DynamoDB
+   */
+  async loadBeats(): Promise<StoryBeat[]> {
+    if (!this.screenplayId) {
+      console.warn('[Persistence] No screenplay_id set, returning empty beats');
+      return [];
+    }
+    
+    try {
+      const beatsData = await listBeats(this.screenplayId, this.getToken);
+      return this.transformBeatsFromAPI(beatsData);
+    } catch (error) {
+      console.error('[Persistence] Failed to load beats:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * 🔥 NEW: Load only characters from DynamoDB
+   */
+  async loadCharacters(): Promise<Character[]> {
+    if (!this.screenplayId) {
+      console.warn('[Persistence] No screenplay_id set, returning empty characters');
+      return [];
+    }
+    
+    try {
+      const charactersData = await listCharacters(this.screenplayId, this.getToken);
+      return this.transformCharactersFromAPI(charactersData);
+    } catch (error) {
+      console.error('[Persistence] Failed to load characters:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * 🔥 NEW: Load only locations from DynamoDB
+   */
+  async loadLocations(): Promise<Location[]> {
+    if (!this.screenplayId) {
+      console.warn('[Persistence] No screenplay_id set, returning empty locations');
+      return [];
+    }
+    
+    try {
+      const locationsData = await listLocations(this.screenplayId, this.getToken);
+      return this.transformLocationsFromAPI(locationsData);
+    } catch (error) {
+      console.error('[Persistence] Failed to load locations:', error);
+      return [];
+    }
+  }
+  
+  /**
    * Save ALL screenplay data to DynamoDB
    * Called after bulk operations (import, clear all, etc.)
    * 
