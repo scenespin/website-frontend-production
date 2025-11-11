@@ -407,7 +407,17 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     content: currentState.content
                 }, getToken);
                 
-                console.log('[EditorContext] ✅ Updated screenplay:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
+                console.log('[EditorContext] ✅ Updated screenplay content:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
+                
+                // 🔥 CRITICAL: Also save structure data (characters/locations/beats)
+                console.log('[EditorContext] 💾 Saving structure data...');
+                try {
+                    await screenplay.saveAllToDynamoDB();
+                    console.log('[EditorContext] ✅ Saved structure data');
+                } catch (error) {
+                    console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
+                    // Don't fail the whole save if structure save fails
+                }
             }
             
             // Mark as saved
