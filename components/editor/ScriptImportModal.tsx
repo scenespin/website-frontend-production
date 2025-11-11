@@ -64,15 +64,15 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             
             // Step 2: Import characters
             if (parseResult.characters.size > 0) {
-                const characterNames = Array.from(parseResult.characters);
-                const characterDescriptions = parseResult.characterDescriptions || new Map();
+                const characterNames = Array.from(parseResult.characters) as string[];
+                const characterDescriptions = parseResult.characterDescriptions || new Map<string, string>();
                 await screenplay.bulkImportCharacters(characterNames, characterDescriptions);
                 console.log('[ScriptImportModal] ✅ Imported', characterNames.length, 'characters');
             }
             
             // Step 3: Import locations
             if (parseResult.locations.size > 0) {
-                const locationNames = Array.from(parseResult.locations);
+                const locationNames = Array.from(parseResult.locations) as string[];
                 await screenplay.bulkImportLocations(locationNames);
                 console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations');
             }
