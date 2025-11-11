@@ -682,6 +682,84 @@ export async function deleteBeat(
   }
 }
 
+/**
+ * Delete ALL beats for a screenplay
+ */
+export async function deleteAllBeats(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/beats (all)');
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete all beats');
+  }
+  
+  console.log('[screenplayStorage] ✅ Deleted all beats');
+}
+
+/**
+ * Delete ALL characters for a screenplay
+ */
+export async function deleteAllCharacters(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/characters (all)');
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete all characters');
+  }
+  
+  console.log('[screenplayStorage] ✅ Deleted all characters');
+}
+
+/**
+ * Delete ALL locations for a screenplay
+ */
+export async function deleteAllLocations(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/locations (all)');
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete all locations');
+  }
+  
+  console.log('[screenplayStorage] ✅ Deleted all locations');
+}
+
 // ============================================================================
 // RELATIONSHIPS API FUNCTIONS
 // ============================================================================

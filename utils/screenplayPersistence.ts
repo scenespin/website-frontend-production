@@ -23,6 +23,9 @@ import {
   bulkCreateBeats,
   bulkCreateCharacters,
   bulkCreateLocations,
+  deleteAllBeats,
+  deleteAllCharacters,
+  deleteAllLocations,
   updateScreenplay as apiUpdateScreenplay 
 } from './screenplayStorage';
 import type { 
@@ -309,17 +312,13 @@ export class ScreenplayPersistenceManager {
       throw new Error('[Persistence] Cannot save characters: No screenplay_id set');
     }
     
-    console.error('[Persistence] 💾 Saving', characters.length, 'characters via BULK UPDATE');
+    console.error('[Persistence] 💾 Saving', characters.length, 'characters via BULK CREATE');
     
     try {
       const apiCharacters = this.transformCharactersToAPI(characters);
       
-      // 🔥 CRITICAL: Use bulk update route to replace ALL characters at once
-      // This is more efficient than individual POST/PUT/DELETE for each character
-      const result = await apiUpdateScreenplay({
-        screenplay_id: this.screenplayId,
-        characters: apiCharacters
-      }, this.getToken);
+      // 🔥 NEW ARCHITECTURE: Use separate table endpoint for characters
+      await bulkCreateCharacters(this.screenplayId, apiCharacters, this.getToken);
       
       console.error('[Persistence] ✅ Saved', characters.length, 'characters to DynamoDB');
       
@@ -345,10 +344,8 @@ export class ScreenplayPersistenceManager {
     try {
       const apiLocations = this.transformLocationsToAPI(locations);
       
-      await apiUpdateScreenplay({
-        screenplay_id: this.screenplayId,
-        locations: apiLocations
-      }, this.getToken);
+      // 🔥 NEW ARCHITECTURE: Use separate table endpoint for locations
+      await bulkCreateLocations(this.screenplayId, apiLocations, this.getToken);
       
       console.log('[Persistence] ✅ Saved', locations.length, 'locations');
       
@@ -375,14 +372,10 @@ export class ScreenplayPersistenceManager {
     try {
       const apiBeats = this.transformBeatsToAPI(beats);
       console.log('[Persistence] 🔍 Transformed to API format:', apiBeats.length, 'beats');
-      console.log('[Persistence] 🔍 API payload:', JSON.stringify({ screenplay_id: this.screenplayId, beats: apiBeats }).substring(0, 500));
       
-      const result = await apiUpdateScreenplay({
-        screenplay_id: this.screenplayId,
-        beats: apiBeats
-      }, this.getToken);
+      // 🔥 NEW ARCHITECTURE: Use separate table endpoint for beats
+      await bulkCreateBeats(this.screenplayId, apiBeats, this.getToken);
       
-      console.log('[Persistence] 🔍 API RESPONSE:', result ? JSON.stringify(result).substring(0, 500) : 'null');
       console.log('[Persistence] ✅ Saved', beats.length, 'beats');
       
     } catch (error) {
@@ -405,26 +398,19 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 🗑️ Clearing all data for screenplay:', this.screenplayId);
     
     try {
-      // Clear by setting everything to empty
-      const result = await apiUpdateScreenplay({
-        screenplay_id: this.screenplayId,
-        beats: [],
-        characters: [],
-        locations: [],
-        content: '' // Also clear screenplay text
-      }, this.getToken);
+      // 🔥 NEW ARCHITECTURE: Use separate table endpoints to delete all data
+      await Promise.all([
+        deleteAllBeats(this.screenplayId, this.getToken),
+        deleteAllCharacters(this.screenplayId, this.getToken),
+        deleteAllLocations(this.screenplayId, this.getToken),
+        // Also clear screenplay text content
+        apiUpdateScreenplay({
+          screenplay_id: this.screenplayId,
+          content: ''
+        }, this.getToken)
+      ]);
       
-      console.log('[Persistence] ✅ Cleared all data - API response:', result);
-      
-      // Verify the clear worked by checking the returned document
-      if (result && (result.beats?.length > 0 || result.characters?.length > 0 || result.locations?.length > 0)) {
-        console.error('[Persistence] ⚠️ WARNING: Clear succeeded but data still exists in response:', {
-          beats: result.beats?.length || 0,
-          characters: result.characters?.length || 0,
-          locations: result.locations?.length || 0
-        });
-        throw new Error('Clear operation did not fully clear data');
-      }
+      console.log('[Persistence] ✅ Cleared all data');
       
     } catch (error) {
       console.error('[Persistence] ❌ Failed to clear:', error);
