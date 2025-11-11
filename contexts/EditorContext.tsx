@@ -391,7 +391,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 // 🔥 NEW: After creating screenplay, save any pending structure data (characters/locations/beats from paste import)
                 console.log('[EditorContext] 💾 Saving pending structure data to new screenplay...');
                 try {
-                    await screenplay.saveAllToDynamoDB();
+                    await screenplay.saveAllToDynamoDB(newScreenplay.screenplay_id);
                     console.log('[EditorContext] ✅ Saved pending structure data');
                 } catch (error) {
                     console.error('[EditorContext] ⚠️ Failed to save pending structure data:', error);

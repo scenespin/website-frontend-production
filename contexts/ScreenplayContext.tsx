@@ -93,7 +93,7 @@ interface ScreenplayContextType {
         endLine: number;
     }>) => Promise<Scene[]>;
     saveBeatsToDynamoDB: () => Promise<void>; // Save beats after all imports complete
-    saveAllToDynamoDB: () => Promise<void>; // Save ALL structure (beats + characters + locations)
+    saveAllToDynamoDB: (forcedScreenplayId?: string) => Promise<void>; // Save ALL structure (beats + characters + locations)
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -1693,14 +1693,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [beats, screenplayId]);
     
     // Helper: Save ALL structure to DynamoDB (for Save button)
-    const saveAllToDynamoDB = useCallback(async () => {
-        if (!screenplayId) {
+    const saveAllToDynamoDB = useCallback(async (forcedScreenplayId?: string) => {
+        const idToUse = forcedScreenplayId || screenplayId;
+        
+        if (!idToUse) {
             console.warn('[ScreenplayContext] Cannot save: no screenplay_id');
             return;
         }
         
         try {
-            console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB...');
+            console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB for:', idToUse);
+            
+            // Set the screenplay ID if provided
+            if (forcedScreenplayId && forcedScreenplayId !== screenplayId) {
+                console.log('[ScreenplayContext] Using forced screenplay_id:', forcedScreenplayId);
+                persistenceManager.setScreenplay(forcedScreenplayId, getToken);
+            }
             
             // 🔥 NEW: Use persistence manager to save everything at once
             await persistenceManager.saveAll({
@@ -1710,6 +1718,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             console.log('[ScreenplayContext] ✅ Saved ALL structure:', {
+                screenplay_id: idToUse,
                 beats: beats.length,
                 characters: characters.length,
                 locations: locations.length
@@ -1718,7 +1727,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.error('[ScreenplayContext] Failed to save all to DynamoDB:', err);
             throw err;
         }
-    }, [beats, characters, locations, screenplayId]);
+    }, [beats, characters, locations, screenplayId, getToken]);
     
     // ========================================================================
     // Scene Position Management
