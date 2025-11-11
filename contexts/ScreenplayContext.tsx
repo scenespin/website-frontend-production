@@ -100,6 +100,13 @@ interface ScreenplayContextType {
         screenplayId: string
     ) => Promise<void>; // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
     
+    // 🔥 NEW: Get current state without closure issues
+    getCurrentState: () => {
+        beats: StoryBeat[];
+        characters: Character[];
+        locations: Location[];
+    };
+    
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
     
@@ -167,6 +174,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Loading from localStorage first causes race conditions where stale data overwrites fresh edits
     const [characters, setCharacters] = useState<Character[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
+    
+    // 🔥 NEW: Refs to access current state without closure issues
+    // These are updated in sync with state and can be read in callbacks without stale closures
+    const beatsRef = useRef<StoryBeat[]>([]);
+    const charactersRef = useRef<Character[]>([]);
+    const locationsRef = useRef<Location[]>([]);
+    
+    // Keep refs in sync with state
+    useEffect(() => { beatsRef.current = beats; }, [beats]);
+    useEffect(() => { charactersRef.current = characters; }, [characters]);
+    useEffect(() => { locationsRef.current = locations; }, [locations]);
     
     // Relationships - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
@@ -1876,6 +1894,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId]);
     
     // ========================================================================
+    // Get Current State (No Closure Issues)
+    // ========================================================================
+    
+    const getCurrentState = useCallback(() => {
+        return {
+            beats: beatsRef.current,
+            characters: charactersRef.current,
+            locations: locationsRef.current
+        };
+    }, []); // No dependencies - always returns current ref values!
+    
+    // ========================================================================
     // Context Value
     // ========================================================================
     
@@ -1922,6 +1952,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportScenes,
         saveBeatsToDynamoDB, // Save beats after all imports complete
         saveAllToDynamoDBDirect, // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
+        getCurrentState, // 🔥 NEW: Get current state without closure issues
         
         // Scene Position Management
         updateScenePositions,
