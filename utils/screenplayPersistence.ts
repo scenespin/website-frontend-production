@@ -268,16 +268,24 @@ export class ScreenplayPersistenceManager {
         screenplay_id: this.screenplayId
       };
       
-      if (data.beats !== undefined) {
+      // 🔥 CRITICAL: Only include fields that have actual data
+      // Don't overwrite with empty arrays!
+      if (data.beats !== undefined && data.beats.length > 0) {
         apiData.beats = this.transformBeatsToAPI(data.beats);
       }
       
-      if (data.characters !== undefined) {
+      if (data.characters !== undefined && data.characters.length > 0) {
         apiData.characters = this.transformCharactersToAPI(data.characters);
       }
       
-      if (data.locations !== undefined) {
+      if (data.locations !== undefined && data.locations.length > 0) {
         apiData.locations = this.transformLocationsToAPI(data.locations);
+      }
+      
+      // 🔥 If there's nothing to save, skip the API call
+      if (Object.keys(apiData).length === 1) { // Only screenplay_id
+        console.log('[Persistence] ⏭️ Nothing to save (all arrays empty), skipping API call');
+        return;
       }
       
       // Save to DynamoDB
