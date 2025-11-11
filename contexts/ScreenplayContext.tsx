@@ -408,58 +408,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Removed aggressive validation logging that was causing performance issues
     
-    // Save beats to localStorage (with sanitization!)
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        if (beats.length === 0) return; // Don't save empty state
-        
-        try {
-            // 🛡️ CRITICAL: Sanitize before saving to prevent corruption
-            const sanitized = beats.map(beat => ({
-                ...beat,
-                scenes: Array.isArray(beat.scenes) ? beat.scenes : []
-            }));
-            
-            localStorage.setItem(STORAGE_KEYS.BEATS, JSON.stringify(sanitized));
-            localStorage.setItem(STORAGE_KEYS.LAST_SAVED, new Date().toISOString());
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save beats to localStorage:', error);
-        }
-    }, [beats]);
-    
-    // Save characters to localStorage
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        if (characters.length === 0) return; // Don't save empty array (prevents overwriting on clear)
-        
-        try {
-            localStorage.setItem(STORAGE_KEYS.CHARACTERS, JSON.stringify(characters));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save characters to localStorage:', error);
-        }
-    }, [characters]);
-    
-    // Save locations to localStorage
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        if (locations.length === 0) return; // Don't save empty array (prevents overwriting on clear)
-        
-        try {
-            localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save locations to localStorage:', error);
-        }
-    }, [locations]);
-    
-    // Save relationships to localStorage
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            localStorage.setItem(STORAGE_KEYS.RELATIONSHIPS, JSON.stringify(relationships));
-        } catch (error) {
-            console.error('[ScreenplayContext] Failed to save relationships to localStorage:', error);
-        }
-    }, [relationships]);
+    // ========================================================================
+    // 🔥 REMOVED: localStorage auto-save for characters/locations/beats
+    // These are now saved ONLY to DynamoDB via persistenceManager
+    // localStorage should NOT be a cache layer - DynamoDB is source of truth
+    // ========================================================================
     
     // ========================================================================
     // Feature 0111 Phase 3: GitHub Connection & Sync (REMOVED)
