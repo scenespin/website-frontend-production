@@ -270,18 +270,24 @@ export async function listCharacters(
 ): Promise<Character[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
+  console.error('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/characters');
+  
   const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
   });
 
+  console.error('[screenplayStorage] Characters response status:', response.status);
+
   if (!response.ok) {
     const error = await response.json();
+    console.error('[screenplayStorage] Characters error:', error);
     throw new Error(error.message || 'Failed to list characters');
   }
 
   const data = await response.json();
+  console.error('[screenplayStorage] Characters data:', data);
   return data.data.characters;
 }
 

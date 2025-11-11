@@ -61,7 +61,7 @@ async function forwardRequest(
     const searchParams = request.nextUrl.searchParams.toString();
     const backendUrl = `${BACKEND_API_URL}/api/${path}${searchParams ? `?${searchParams}` : ''}`;
     
-    console.log(`[API Proxy] ${method} ${path} -> ${backendUrl}`);
+    console.error(`[API Proxy] 🚀 ${method} ${path} -> ${backendUrl}`);
     
     // Get request body for POST/PUT/PATCH
     let body: string | undefined;
