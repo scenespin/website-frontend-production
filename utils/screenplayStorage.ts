@@ -288,6 +288,8 @@ export async function listCharacters(
 
   const data = await response.json();
   console.error('[screenplayStorage] Characters data:', data);
+  console.error('[screenplayStorage] Characters data.data:', data.data);
+  console.error('[screenplayStorage] Characters array:', data.data.characters);
   return data.data.characters;
 }
 
