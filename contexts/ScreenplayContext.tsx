@@ -272,25 +272,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         console.log('[ScreenplayContext] 📝 No beats in DB, checking if we need to create defaults...');
                     }
                     
-                    // 🔥 CRITICAL: Only update characters/locations if we don't already have data
-                    // This prevents wiping out freshly imported data before it's saved
-                    setCharacters(prev => {
-                        if (prev.length > 0 && charactersData.length === 0) {
-                            console.log('[ScreenplayContext] ⏭️ Keeping existing', prev.length, 'characters (not overwriting with empty DB data)');
-                            return prev;
-                        }
-                        console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
-                        return charactersData;
-                    });
+                    // 🔥 FIXED: Always load what's in DynamoDB - it's the source of truth!
+                    // If DB has empty arrays, that means data was cleared - accept it!
+                    // The defensive logic was preventing "Clear All" from working
+                    setCharacters(charactersData);
+                    console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters from DynamoDB');
                     
-                    setLocations(prev => {
-                        if (prev.length > 0 && locationsData.length === 0) {
-                            console.log('[ScreenplayContext] ⏭️ Keeping existing', prev.length, 'locations (not overwriting with empty DB data)');
-                            return prev;
-                        }
-                        console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
-                        return locationsData;
-                    });
+                    setLocations(locationsData);
+                    console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations from DynamoDB');
                     
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
