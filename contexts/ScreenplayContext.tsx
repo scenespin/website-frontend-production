@@ -272,13 +272,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         console.log('[ScreenplayContext] 📝 No beats in DB, checking if we need to create defaults...');
                     }
                     
-                    // Always update characters (even if empty)
-                    setCharacters(charactersData);
-                    console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
+                    // 🔥 CRITICAL: Only update characters/locations if we don't already have data
+                    // This prevents wiping out freshly imported data before it's saved
+                    setCharacters(prev => {
+                        if (prev.length > 0 && charactersData.length === 0) {
+                            console.log('[ScreenplayContext] ⏭️ Keeping existing', prev.length, 'characters (not overwriting with empty DB data)');
+                            return prev;
+                        }
+                        console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters');
+                        return charactersData;
+                    });
                     
-                    // Always update locations (even if empty)
-                    setLocations(locationsData);
-                    console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
+                    setLocations(prev => {
+                        if (prev.length > 0 && locationsData.length === 0) {
+                            console.log('[ScreenplayContext] ⏭️ Keeping existing', prev.length, 'locations (not overwriting with empty DB data)');
+                            return prev;
+                        }
+                        console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations');
+                        return locationsData;
+                    });
                     
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
