@@ -157,6 +157,13 @@ export async function updateScreenplay(
   
   const { screenplay_id, ...updates } = params;
   
+  console.error('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplay_id, {
+    updates_keys: Object.keys(updates),
+    beats_count: updates.beats?.length,
+    characters_count: updates.characters?.length,
+    locations_count: updates.locations?.length
+  });
+  
   const response = await fetch(`/api/screenplays/${screenplay_id}`, {
     method: 'PUT',
     headers: {
@@ -166,12 +173,16 @@ export async function updateScreenplay(
     body: JSON.stringify(updates)
   });
 
+  console.error('[screenplayStorage] Response status:', response.status, response.statusText);
+
   if (!response.ok) {
     const error = await response.json();
+    console.error('[screenplayStorage] ❌ API ERROR:', error);
     throw new Error(error.message || 'Failed to update screenplay');
   }
 
   const data = await response.json();
+  console.error('[screenplayStorage] ✅ API SUCCESS:', Object.keys(data));
   return data.data;
 }
 
