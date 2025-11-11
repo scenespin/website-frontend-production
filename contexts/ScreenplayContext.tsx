@@ -883,21 +883,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const updatedCharacters = characters.filter(c => c.id !== id);
         setCharacters(updatedCharacters);
         
-        // 🔥 CRITICAL FIX: Save entire updated array to DynamoDB (NOT individual delete!)
-        // Characters are stored as embedded array in ScreenplayDocument, not as individual records
+        // 🔥 FIX: Call individual DELETE endpoint for separate tables architecture
         if (screenplayId) {
             try {
-                console.log('[ScreenplayContext] Saving updated characters array after deletion:', {
-                    deletedId: id,
-                    remainingCount: updatedCharacters.length
-                });
+                console.log('[ScreenplayContext] Deleting character from DynamoDB:', id);
                 
-                // Use persistence manager to save the entire updated array
-                await persistenceManager.saveCharacters(updatedCharacters);
+                // Call the DELETE endpoint for this specific character
+                await apiDeleteCharacter(screenplayId, id, getToken);
                 
-                console.log('[ScreenplayContext] ✅ Saved updated characters array to DynamoDB (embedded array method)');
+                console.log('[ScreenplayContext] ✅ Deleted character from DynamoDB');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to save updated characters array, rolling back:', error);
+                console.error('[ScreenplayContext] Failed to delete character, rolling back:', error);
                 // Rollback: restore the deleted character AND relationships
                 setCharacters(characters);
                 setRelationships(originalRelationships);
@@ -1109,21 +1105,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const updatedLocations = locations.filter(l => l.id !== id);
         setLocations(updatedLocations);
         
-        // 🔥 CRITICAL FIX: Save entire updated array to DynamoDB (NOT individual delete!)
-        // Locations are stored as embedded array in ScreenplayDocument, not as individual records
+        // 🔥 FIX: Call individual DELETE endpoint for separate tables architecture
         if (screenplayId) {
             try {
-                console.log('[ScreenplayContext] Saving updated locations array after deletion:', {
-                    deletedId: id,
-                    remainingCount: updatedLocations.length
-                });
+                console.log('[ScreenplayContext] Deleting location from DynamoDB:', id);
                 
-                // Use persistence manager to save the entire updated array
-                await persistenceManager.saveLocations(updatedLocations);
+                // Call the DELETE endpoint for this specific location
+                await apiDeleteLocation(screenplayId, id, getToken);
                 
-                console.log('[ScreenplayContext] ✅ Saved updated locations array to DynamoDB (embedded array method)');
+                console.log('[ScreenplayContext] ✅ Deleted location from DynamoDB');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to save updated locations array, rolling back:', error);
+                console.error('[ScreenplayContext] Failed to delete location, rolling back:', error);
                 // Rollback: restore the deleted location AND relationships
                 setLocations(locations);
                 setRelationships(originalRelationships);
@@ -1623,7 +1615,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Add to beat
         setBeats(prev => prev.map(beat =>
             beat.id === beatId
-                ? { ...beat, scenes: [...beat.scenes, ...newScenes], updatedAt: now }
+                ? { ...beat, scenes: [...(beat.scenes || []), ...newScenes], updatedAt: now }
                 : beat
         ));
         
