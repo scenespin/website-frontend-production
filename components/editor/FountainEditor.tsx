@@ -7,7 +7,6 @@ import { stripTagsForDisplay, getVisibleLineNumber } from '@/utils/fountain';
 import { AutoSaveManager } from '@/utils/AutoSaveManager';
 
 // Custom hooks
-import { useScriptImport } from '@/hooks/useScriptImport';
 import { useEditorSelection } from '@/hooks/useEditorSelection';
 import { useEditorNavigation } from '@/hooks/useEditorNavigation';
 import { useEntityAutocomplete } from '@/hooks/useEntityAutocomplete';
@@ -20,12 +19,10 @@ import { extractEditorContext } from '@/utils/editorContext';
 // UI components
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
-import ImportNotification from './ImportNotification';
 import SelectionToolbar from './SelectionToolbar';
 import EntityAutocomplete from './EntityAutocomplete';
 import SelectionContextMenu, { RewriteSuggestion } from './SelectionContextMenu';
 import TextComparisonModal from './TextComparisonModal';
-import ImportReviewModal from './ImportReviewModal';
 
 interface FountainEditorProps {
     className?: string;
@@ -101,7 +98,6 @@ export default function FountainEditor({
     );
     
     // Custom hooks - All editor functionality extracted
-    const scriptImport = useScriptImport();
     const selection = useEditorSelection(textareaRef, displayContent, onSelectionChangeProp);
     const navigation = useEditorNavigation(textareaRef, displayContent);
     const autocomplete = useEntityAutocomplete(textareaRef);
@@ -308,7 +304,6 @@ export default function FountainEditor({
                     }}
                     value={displayContent}
                     onChange={handleChange}
-                    onPaste={scriptImport.handlePaste}
                     onKeyDown={formatting.handleKeyDown}
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}
@@ -373,25 +368,6 @@ export default function FountainEditor({
                     onKeepOriginal={onKeepOriginal}
                     onUseRewrite={onUseRewrite}
                     onClose={onKeepOriginal}
-                />
-            )}
-            
-            {/* Import Review Modal - Screenplay paste validation */}
-            {scriptImport.importReviewModal.show && scriptImport.importReviewModal.data && (
-                <ImportReviewModal
-                    importedCharacters={scriptImport.importReviewModal.data.importedCharacters}
-                    importedLocations={scriptImport.importReviewModal.data.importedLocations}
-                    importedScenes={scriptImport.importReviewModal.data.importedScenes}
-                    questionableItems={scriptImport.importReviewModal.data.questionableItems}
-                    onClose={scriptImport.importReviewModal.onClose}
-                />
-            )}
-            
-            {/* Import Notification - Success toast */}
-            {scriptImport.importNotification.show && scriptImport.importNotification.results && (
-                <ImportNotification
-                    results={scriptImport.importNotification.results}
-                    onClose={scriptImport.importNotification.onClose}
                 />
             )}
             
