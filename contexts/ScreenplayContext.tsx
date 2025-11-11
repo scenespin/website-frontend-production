@@ -1681,42 +1681,48 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [beats, screenplayId]);
     
-    // Helper: Save ALL structure to DynamoDB (for Save button)
-    const saveAllToDynamoDB = useCallback(async (forcedScreenplayId?: string) => {
-        const idToUse = forcedScreenplayId || screenplayId;
-        
-        if (!idToUse) {
-            console.warn('[ScreenplayContext] Cannot save: no screenplay_id');
+    // 🔥 FIXED: Save ALL structure to DynamoDB (NO CLOSURE ISSUES!)
+    // Accepts data as parameters instead of relying on closure/dependency array
+    const saveAllToDynamoDBDirect = useCallback(async (
+        beatsToSave: StoryBeat[],
+        charactersToSave: Character[],
+        locationsToSave: Location[],
+        screenplayIdToUse: string
+    ) => {
+        if (!screenplayIdToUse) {
+            console.warn('[ScreenplayContext] Cannot save: no screenplay_id provided');
             return;
         }
         
         try {
-            console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB for:', idToUse);
+            console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB for:', screenplayIdToUse);
+            console.log('[ScreenplayContext] 🔍 Data to save:', {
+                beats: beatsToSave.length,
+                characters: charactersToSave.length,
+                locations: locationsToSave.length
+            });
             
-            // Set the screenplay ID if provided
-            if (forcedScreenplayId && forcedScreenplayId !== screenplayId) {
-                console.log('[ScreenplayContext] Using forced screenplay_id:', forcedScreenplayId);
-                persistenceManager.setScreenplay(forcedScreenplayId, getToken);
-            }
+            // Set the screenplay ID
+            persistenceManager.setScreenplay(screenplayIdToUse, getToken);
             
-            // 🔥 NEW: Use persistence manager to save everything at once
+            // Save everything at once
             await persistenceManager.saveAll({
-                beats,
-                characters,
-                locations
+                beats: beatsToSave,
+                characters: charactersToSave,
+                locations: locationsToSave
             });
             
             console.log('[ScreenplayContext] ✅ Saved ALL structure:', {
-                screenplay_id: idToUse,
-                beats: beats.length,
-                characters: characters.length,
-                locations: locations.length
+                screenplay_id: screenplayIdToUse,
+                beats: beatsToSave.length,
+                characters: charactersToSave.length,
+                locations: locationsToSave.length
             });
         } catch (err) {
             console.error('[ScreenplayContext] Failed to save all to DynamoDB:', err);
             throw err;
         }
-    }, [beats, characters, locations, screenplayId, getToken]);
+    }, [getToken]);
     
     // ========================================================================
     // Scene Position Management
@@ -1915,7 +1921,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportLocations,
         bulkImportScenes,
         saveBeatsToDynamoDB, // Save beats after all imports complete
-        saveAllToDynamoDB, // Save ALL structure (for Save button)
+        saveAllToDynamoDBDirect, // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
         
         // Scene Position Management
         updateScenePositions,

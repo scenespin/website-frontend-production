@@ -388,14 +388,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
                 console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
                 
-                // 🔥 NEW: After creating screenplay, save any pending structure data (characters/locations/beats from paste import)
-                console.log('[EditorContext] 💾 Saving pending structure data to new screenplay...');
+                // 🔥 NEW: Save pending structure data (if any from import)
+                console.log('[EditorContext] 💾 Saving pending structure data...');
                 try {
-                    await screenplay.saveAllToDynamoDB(newScreenplay.screenplay_id);
+                    await screenplay.saveAllToDynamoDBDirect(
+                        screenplay.beats,
+                        screenplay.characters,
+                        screenplay.locations,
+                        newScreenplay.screenplay_id
+                    );
                     console.log('[EditorContext] ✅ Saved pending structure data');
                 } catch (error) {
-                    console.error('[EditorContext] ⚠️ Failed to save pending structure data:', error);
-                    // Don't fail the whole save if structure save fails
+                    console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
                 }
             } else {
                 // Update existing screenplay
@@ -412,7 +416,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 // 🔥 CRITICAL: Also save structure data (characters/locations/beats)
                 console.log('[EditorContext] 💾 Saving structure data...');
                 try {
-                    await screenplay.saveAllToDynamoDB();
+                    // 🔥 FIXED: Pass data directly (no closure issues!)
+                    await screenplay.saveAllToDynamoDBDirect(
+                        screenplay.beats,
+                        screenplay.characters,
+                        screenplay.locations,
+                        screenplayIdRef.current
+                    );
                     console.log('[EditorContext] ✅ Saved structure data');
                 } catch (error) {
                     console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
