@@ -1409,7 +1409,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const newCharacters: Character[] = [];
         
         // 🔥 NEW: Get existing characters to check for duplicates
-        // (BUT we'll replace ALL characters in DynamoDB at the end)
         const existingCharactersMap = new Map(
             characters.map(c => [c.name.toUpperCase(), c])
         );
@@ -1431,8 +1430,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const existing = existingCharactersMap.get(upperName);
             
             if (existing) {
-                console.log('[ScreenplayContext] Character already exists, keeping:', name);
-                newCharacters.push(existing);
+                console.log('[ScreenplayContext] Character already exists, skipping:', name);
+                continue; // Don't re-add existing characters
             } else {
                 // Create new character
                 const description = descriptions?.get(upperName) || `Imported from script`;
@@ -1455,8 +1454,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }
         
-        // 🔥 NEW: Update local state immediately (optimistic UI)
-        setCharacters(newCharacters);
+        // 🔥 FIX: Merge with existing characters instead of replacing
+        const allCharacters = [...characters, ...newCharacters];
+        setCharacters(allCharacters);
         
         // Update relationships for new characters
         setRelationships(prev => {
@@ -1479,8 +1479,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 NEW: Save ALL characters to DynamoDB through persistence manager
         if (screenplayId) {
             try {
-                console.log('[ScreenplayContext] Saving', newCharacters.length, 'characters to DynamoDB...');
-                await persistenceManager.saveCharacters(newCharacters);
+                console.log('[ScreenplayContext] Saving', allCharacters.length, 'characters to DynamoDB...');
+                await persistenceManager.saveCharacters(allCharacters);
                 console.log('[ScreenplayContext] ✅ Saved characters to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save characters:', error);
@@ -1490,7 +1490,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.warn('[ScreenplayContext] ⚠️ No screenplay_id yet - characters saved to local state only (will save when screenplay is created)');
         }
         
-        console.log('[ScreenplayContext] ✅ Bulk import complete:', newCharacters.length, 'characters');
+        console.log('[ScreenplayContext] ✅ Bulk import complete:', newCharacters.length, 'new characters,', allCharacters.length, 'total');
         return newCharacters;
     }, [characters, screenplayId]);
     
@@ -1523,8 +1523,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const existing = existingLocationsMap.get(upperName);
             
             if (existing) {
-                console.log('[ScreenplayContext] Location already exists, keeping:', name);
-                newLocations.push(existing);
+                console.log('[ScreenplayContext] Location already exists, skipping:', name);
+                continue; // Don't re-add existing locations
             } else {
                 // Create new location
                 const newLocation: Location = {
@@ -1542,8 +1542,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }
         
-        // 🔥 NEW: Update local state immediately (optimistic UI)
-        setLocations(newLocations);
+        // 🔥 FIX: Merge with existing locations instead of replacing
+        const allLocations = [...locations, ...newLocations];
+        setLocations(allLocations);
         
         // Update relationships for new locations
         setRelationships(prev => {
@@ -1565,16 +1566,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 NEW: Save ALL locations to DynamoDB through persistence manager
         if (screenplayId) {
             try {
-                console.log('[ScreenplayContext] Saving', newLocations.length, 'locations to DynamoDB...');
-                await persistenceManager.saveLocations(newLocations);
+                console.log('[ScreenplayContext] Saving', allLocations.length, 'locations to DynamoDB...');
+                await persistenceManager.saveLocations(allLocations);
                 console.log('[ScreenplayContext] ✅ Saved locations to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save locations:', error);
                 throw error;
             }
+        } else {
+            console.warn('[ScreenplayContext] ⚠️ No screenplay_id yet - locations saved to local state only (will save when screenplay is created)');
         }
         
-        console.log('[ScreenplayContext] ✅ Bulk import complete:', newLocations.length, 'locations');
+        console.log('[ScreenplayContext] ✅ Bulk import complete:', newLocations.length, 'new locations,', allLocations.length, 'total');
         return newLocations;
     }, [locations, screenplayId]);
     

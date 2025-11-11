@@ -331,9 +331,9 @@ export async function bulkCreateCharacters(
 ): Promise<Character[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/characters (bulk)', { count: characters.length });
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/characters/bulk', { count: characters.length });
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -348,8 +348,8 @@ export async function bulkCreateCharacters(
   }
 
   const data = await response.json();
-  console.log('[screenplayStorage] ✅ Bulk created', data.data.created, 'characters');
-  return data.data.characters;
+  console.log('[screenplayStorage] ✅ Bulk created', data.count, 'characters');
+  return data.data;
 }
 
 /**
@@ -470,9 +470,9 @@ export async function bulkCreateLocations(
 ): Promise<Location[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/locations (bulk)', { count: locations.length });
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/locations/bulk', { count: locations.length });
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -487,8 +487,8 @@ export async function bulkCreateLocations(
   }
 
   const data = await response.json();
-  console.log('[screenplayStorage] ✅ Bulk created', data.data.created, 'locations');
-  return data.data.locations;
+  console.log('[screenplayStorage] ✅ Bulk created', data.count, 'locations');
+  return data.data;
 }
 
 /**
@@ -609,9 +609,9 @@ export async function bulkCreateBeats(
 ): Promise<Beat[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/beats (bulk)', { count: beats.length });
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/beats/bulk', { count: beats.length });
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -626,8 +626,8 @@ export async function bulkCreateBeats(
   }
 
   const data = await response.json();
-  console.log('[screenplayStorage] ✅ Bulk created', data.data.created, 'beats');
-  return data.data.beats;
+  console.log('[screenplayStorage] ✅ Bulk created', data.count, 'beats');
+  return data.data;
 }
 
 /**
