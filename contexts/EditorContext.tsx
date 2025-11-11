@@ -388,19 +388,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
                 console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
                 
-                // 🔥 NEW: Save pending structure data (if any from import)
-                console.log('[EditorContext] 💾 Saving pending structure data...');
-                try {
-                    await screenplay.saveAllToDynamoDBDirect(
-                        screenplay.beats,
-                        screenplay.characters,
-                        screenplay.locations,
-                        newScreenplay.screenplay_id
-                    );
-                    console.log('[EditorContext] ✅ Saved pending structure data');
-                } catch (error) {
-                    console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
-                }
+                // 🔥 DISABLED: Structure auto-save causes stale closure bugs!
+                // Import modal will save structure data directly via bulk endpoints
+                console.log('[EditorContext] ⏭️  Skipping structure auto-save on new screenplay (import modal handles this)');
+                
+                // TODO: Re-enable once we fix the closure issue with screenplay.characters
+                // await screenplay.saveAllToDynamoDBDirect(...)
             } else {
                 // Update existing screenplay
                 console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
@@ -413,21 +406,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 
                 console.log('[EditorContext] ✅ Updated screenplay content:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
                 
-                // 🔥 CRITICAL: Also save structure data (characters/locations/beats)
-                console.log('[EditorContext] 💾 Saving structure data...');
-                try {
-                    // 🔥 FIXED: Pass data directly (no closure issues!)
-                    await screenplay.saveAllToDynamoDBDirect(
-                        screenplay.beats,
-                        screenplay.characters,
-                        screenplay.locations,
-                        screenplayIdRef.current
-                    );
-                    console.log('[EditorContext] ✅ Saved structure data');
-                } catch (error) {
-                    console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
-                    // Don't fail the whole save if structure save fails
-                }
+                // 🔥 DISABLED: Structure auto-save causes stale closure bugs!
+                // Characters/locations/beats are saved immediately on change via their own endpoints
+                // Only TEXT content should be auto-saved here
+                console.log('[EditorContext] ⏭️  Skipping structure auto-save (saves immediately on change)');
+                
+                // TODO: Re-enable once we fix the closure issue with screenplay.characters
+                // await screenplay.saveAllToDynamoDBDirect(...)
             }
             
             // Mark as saved
