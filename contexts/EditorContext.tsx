@@ -457,104 +457,46 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         reset
     };
     
-    // Feature 0111: Dual-Interval Auto-Save (like Timeline)
-    // Auto-save system:
-    // Every 5s → localStorage (crash protection)
-    // Every 60s → DynamoDB (persistent storage, changed from 30s for performance)
+    // ========================================================================
+    // 🔥 FEATURE 0111 PHASE 4: MANUAL SAVE ONLY (Auto-save disabled)
+    // ========================================================================
+    // 
+    // **Why auto-save is disabled:**
+    // 1. Race conditions - auto-save triggered before screenplay ID created
+    // 2. Data loss - structure saved with stale state
+    // 3. User confusion - unclear when data is actually saved
+    // 4. Complexity - hard to debug when things go wrong
+    //
+    // **New approach:**
+    // - User clicks Save button (EditorToolbar)
+    // - Saves content + structure in one atomic operation
+    // - Clear feedback: "Saving..." → "Saved!" or "Error"
+    //
+    // **localStorage still used for:**
+    // - Draft recovery (content only, not structure)
+    // - Screenplay ID persistence
+    //
+    // Auto-save can be re-enabled as an OPTIONAL feature later,
+    // but only after manual save works 100% reliably.
+    // ========================================================================
+    
+    // Draft recovery: Save content to localStorage periodically (crash protection only)
     useEffect(() => {
-        const interval = setInterval(async () => {
-            // Get current state from ref (doesn't restart interval)
-            const currentState = stateRef.current;
-            
-            // Always save to localStorage every 5 seconds (crash protection)
+        if (state.content.length === 0) return; // Don't save empty content
+        
+        const interval = setInterval(() => {
             try {
-                localStorage.setItem('screenplay_draft', currentState.content);
-                localStorage.setItem('screenplay_title', currentState.title);
-                localStorage.setItem('screenplay_author', currentState.author);
-                console.log('[EditorContext] ✅ Auto-saved to localStorage');
+                localStorage.setItem('screenplay_draft', state.content);
+                localStorage.setItem('screenplay_title', state.title);
+                localStorage.setItem('screenplay_author', state.author);
+                console.log('[EditorContext] 💾 Draft saved to localStorage (crash protection)');
             } catch (err) {
-                console.error('[EditorContext] localStorage save failed:', err);
+                console.error('[EditorContext] localStorage draft save failed:', err);
             }
-            
-            // Increment counter
-            localSaveCounterRef.current++;
-            
-            // Save to DynamoDB every 12th cycle (60 seconds total)
-            if (localSaveCounterRef.current >= 12) {
-                try {
-                    const contentLength = currentState.content.length;
-                    const contentTrimmed = currentState.content.trim();
-                    console.log('[EditorContext] 🔄 Saving to DynamoDB... (content length:', contentLength, 'chars)');
-                    
-                    // DISABLED: Depopulation logic was too aggressive and caused data loss
-                    // If user loads page with empty editor temporarily, entire screenplay gets wiped
-                    // Manual "Clear All" button in toolbar is the safer way to clear data
-                    // 
-                    // // Check if content is empty or nearly empty (depopulation logic)
-                    // const isEffectivelyEmpty = contentTrimmed.length === 0 || contentTrimmed.length < 50;
-                    // 
-                    // if (isEffectivelyEmpty && screenplay) {
-                    //     console.log('[EditorContext] 🗑️ Auto-save detected empty content, clearing screenplay structure data...');
-                    //     
-                    //     // Clear all scenes, characters, and locations
-                    //     await screenplay.clearAllData();
-                    //     
-                    //     console.log('[EditorContext] ✅ Screenplay structure cleared (depopulated)');
-                    // }
-                    
-                    if (!screenplayIdRef.current) {
-                        // Create new screenplay in DynamoDB
-                        console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
-                        const newScreenplay = await createScreenplay({
-                            title: currentState.title,
-                            author: currentState.author,
-                            content: currentState.content
-                        }, getToken);
-                        
-                        screenplayIdRef.current = newScreenplay.screenplay_id;
-                        localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
-                        console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
-                        
-                        // 🔥 NEW: After creating screenplay, save any pending structure data (characters/locations/beats from paste import)
-                        console.log('[EditorContext] 💾 Saving pending structure data to new screenplay...');
-                        try {
-                            await screenplay.saveAllToDynamoDB();
-                            console.log('[EditorContext] ✅ Saved pending structure data');
-                        } catch (error) {
-                            console.error('[EditorContext] ⚠️ Failed to save pending structure data:', error);
-                            // Don't fail the whole save if structure save fails
-                        }
-                    } else {
-                        // Update existing screenplay
-                        console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
-                        await updateScreenplay({
-                            screenplay_id: screenplayIdRef.current,
-                            title: currentState.title,
-                            author: currentState.author,
-                            content: currentState.content
-                        }, getToken);
-                        
-                        console.log('[EditorContext] ✅ Updated screenplay:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
-                    }
-                    
-                    // Mark as saved
-                    setState(prev => ({
-                        ...prev,
-                        lastSaved: new Date(),
-                        isDirty: false
-                    }));
-                } catch (error: any) {
-                    console.error('[EditorContext] DynamoDB save failed:', error);
-                    // Don't throw - localStorage backup is safe
-                }
-                
-                // Reset counter
-                localSaveCounterRef.current = 0;
-            }
-        }, 5000); // 5 second fixed interval
+        }, 30000); // Every 30 seconds (draft recovery only)
         
         return () => clearInterval(interval);
-    }, [getToken]); // Only depend on getToken - use stateRef for current values!
+    }, [state.content, state.title, state.author]);
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss

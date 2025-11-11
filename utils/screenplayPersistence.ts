@@ -302,21 +302,19 @@ export class ScreenplayPersistenceManager {
       throw new Error('[Persistence] Cannot save characters: No screenplay_id set');
     }
     
-    console.log('[Persistence] 💾 Saving characters...', characters.length);
-    console.log('[Persistence] 🔍 Characters to save:', characters.map(c => ({ id: c.id, name: c.name })));
+    console.error('[Persistence] 💾 Saving', characters.length, 'characters via BULK UPDATE');
     
     try {
       const apiCharacters = this.transformCharactersToAPI(characters);
-      console.log('[Persistence] 🔍 Transformed to API format:', apiCharacters.length, 'characters');
-      console.log('[Persistence] 🔍 API payload:', JSON.stringify({ screenplay_id: this.screenplayId, characters: apiCharacters }).substring(0, 500));
       
+      // 🔥 CRITICAL: Use bulk update route to replace ALL characters at once
+      // This is more efficient than individual POST/PUT/DELETE for each character
       const result = await apiUpdateScreenplay({
         screenplay_id: this.screenplayId,
         characters: apiCharacters
       }, this.getToken);
       
-      console.log('[Persistence] 🔍 API RESPONSE:', result ? JSON.stringify(result).substring(0, 500) : 'null');
-      console.log('[Persistence] ✅ Saved', characters.length, 'characters');
+      console.error('[Persistence] ✅ Saved', characters.length, 'characters to DynamoDB');
       
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save characters:', error);

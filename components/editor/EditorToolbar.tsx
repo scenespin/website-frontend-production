@@ -136,34 +136,33 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
     
+    // ========================================================================
+    // 🔥 FEATURE 0111 PHASE 4: MANUAL SAVE (Simple & Reliable)
+    // ========================================================================
     // Handle immediate save to DynamoDB
     const handleSave = async () => {
-        if (isSaving || !state.isDirty) return;
+        if (isSaving) return; // Prevent double-clicks
         
         setIsSaving(true);
         try {
-            // Save screenplay text (content)
+            console.log('[EditorToolbar] 💾 Saving screenplay...');
+            
+            // Save screenplay content (and structure if needed)
+            // saveNow() handles:
+            // 1. Creating screenplay in DynamoDB if new (gets ID)
+            // 2. Saving content (title, author, script text)
+            // 3. Saving structure data (characters, locations, beats)
             await saveNow();
             
-            // ❌ REMOVED: Don't call saveAllToDynamoDB() here - it causes a race condition!
-            // Each component (characters, locations, beats) saves automatically when modified.
-            // Calling saveAllToDynamoDB() here would overwrite with stale state because
-            // React state updates are async and may not have propagated yet.
-            //
-            // The paste flow already calls:
-            // - persistenceManager.saveCharacters() after importing characters
-            // - persistenceManager.saveLocations() after importing locations  
-            // - persistenceManager.saveBeats() after importing scenes
-            //
-            // So this redundant call only causes data loss!
+            console.log('[EditorToolbar] ✅ Save complete');
             
             toast.success('💾 Saved to database', {
                 description: 'Your screenplay is safe!'
             });
         } catch (error) {
             console.error('[EditorToolbar] Save failed:', error);
-            toast.error('⚠️ Save failed', {
-                description: 'Will retry automatically'
+            toast.error('❌ Save failed', {
+                description: 'Please try again or check your connection'
             });
         } finally {
             setIsSaving(false);
@@ -358,16 +357,14 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* Save Button */}
                 {onSave && (
-                    <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : (state.isDirty ? 'Save to database immediately' : 'All changes saved!')}>
+                    <div className="tooltip tooltip-bottom" data-tip={isSaving ? 'Saving...' : 'Save to database'}>
                         <button
                             onClick={handleSave}
-                            disabled={!state.isDirty || isSaving}
+                            disabled={isSaving}
                             className={`px-3 py-2 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-all font-medium text-sm ${
-                                state.isDirty && !isSaving
-                                    ? 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white shadow-lg shadow-[#DC143C]/20'
-                                    : isSaving
+                                isSaving
                                     ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 cursor-wait'
-                                    : 'bg-green-500/10 text-green-400 border border-green-500/30 cursor-default'
+                                    : 'bg-[#DC143C] hover:bg-[#DC143C]/90 text-white shadow-lg shadow-[#DC143C]/20'
                             }`}
                         >
                             {isSaving ? (
@@ -378,19 +375,12 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                     </svg>
                                     <span>Saving...</span>
                                 </>
-                            ) : state.isDirty ? (
+                            ) : (
                                 <>
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                                     </svg>
                                     <span>Save</span>
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    <span className="hidden sm:inline">Saved</span>
                                 </>
                             )}
                         </button>
