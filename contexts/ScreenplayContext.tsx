@@ -93,7 +93,12 @@ interface ScreenplayContextType {
         endLine: number;
     }>) => Promise<Scene[]>;
     saveBeatsToDynamoDB: () => Promise<void>; // Save beats after all imports complete
-    saveAllToDynamoDB: (forcedScreenplayId?: string) => Promise<void>; // Save ALL structure (beats + characters + locations)
+    saveAllToDynamoDBDirect: (
+        beats: StoryBeat[],
+        characters: Character[],
+        locations: Location[],
+        screenplayId: string
+    ) => Promise<void>; // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
