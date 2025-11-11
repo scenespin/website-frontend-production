@@ -478,33 +478,25 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     };
     
     // ========================================================================
-    // 🔥 FEATURE 0111 PHASE 4: MANUAL SAVE ONLY (Auto-save disabled)
+    // 🔥 FEATURE 0116: AUTO-SAVE STRATEGY
     // ========================================================================
     // 
-    // **Why auto-save is disabled:**
-    // 1. Race conditions - auto-save triggered before screenplay ID created
-    // 2. Data loss - structure saved with stale state
-    // 3. User confusion - unclear when data is actually saved
-    // 4. Complexity - hard to debug when things go wrong
+    // **Two-tier save strategy:**
+    // 1. localStorage (2-second debounce) - Crash protection, saves text only
+    // 2. DynamoDB (60-second interval) - Full persistence, saves text + structure
     //
-    // **New approach:**
-    // - User clicks Save button (EditorToolbar)
+    // **Manual Save Button:**
+    // - Always available for immediate save
     // - Saves content + structure in one atomic operation
     // - Clear feedback: "Saving..." → "Saved!" or "Error"
     //
-    // **localStorage still used for:**
-    // - Draft recovery (content only, not structure)
-    // - Screenplay ID persistence
-    //
-    // Auto-save can be re-enabled as an OPTIONAL feature later,
-    // but only after manual save works 100% reliably.
     // ========================================================================
     
-    // Draft recovery: Save content to localStorage periodically (crash protection only)
+    // Tier 1: Draft recovery - Save content to localStorage with 2-second debounce
     useEffect(() => {
         if (state.content.length === 0) return; // Don't save empty content
         
-        const interval = setInterval(() => {
+        const debounceTimer = setTimeout(() => {
             try {
                 localStorage.setItem('screenplay_draft', state.content);
                 localStorage.setItem('screenplay_title', state.title);
@@ -513,10 +505,37 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             } catch (err) {
                 console.error('[EditorContext] localStorage draft save failed:', err);
             }
-        }, 30000); // Every 30 seconds (draft recovery only)
+        }, 2000); // 2-second debounce (crash protection only)
         
-        return () => clearInterval(interval);
+        return () => clearTimeout(debounceTimer);
     }, [state.content, state.title, state.author]);
+    
+    // Tier 2: Auto-save to DynamoDB every 60 seconds
+    useEffect(() => {
+        if (!state.isDirty) return; // Only save if there are changes
+        
+        const autoSaveInterval = setInterval(async () => {
+            const currentState = stateRef.current;
+            
+            // Skip if empty or not dirty
+            if (currentState.content.trim().length === 0 || !currentState.isDirty) {
+                return;
+            }
+            
+            console.log('[EditorContext] 🤖 Auto-save triggered (60-second interval)');
+            
+            try {
+                await saveNow();
+                console.log('[EditorContext] ✅ Auto-save complete');
+            } catch (err) {
+                console.error('[EditorContext] ⚠️ Auto-save failed (will retry in 60s):', err);
+                // Don't show error toast for auto-save failures
+                // User can manually save if needed
+            }
+        }, 60000); // Every 60 seconds
+        
+        return () => clearInterval(autoSaveInterval);
+    }, [state.isDirty, saveNow]);
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss
