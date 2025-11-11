@@ -322,6 +322,37 @@ export async function createCharacter(
 }
 
 /**
+ * Bulk create characters (for imports/paste)
+ */
+export async function bulkCreateCharacters(
+  screenplayId: string,
+  characters: Array<Omit<Character, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Character[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/characters (bulk)', { count: characters.length });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ characters })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to bulk create characters');
+  }
+
+  const data = await response.json();
+  console.log('[screenplayStorage] ✅ Bulk created', data.data.created, 'characters');
+  return data.data.characters;
+}
+
+/**
  * Update a character
  */
 export async function updateCharacter(
@@ -430,6 +461,37 @@ export async function createLocation(
 }
 
 /**
+ * Bulk create locations (for imports/paste)
+ */
+export async function bulkCreateLocations(
+  screenplayId: string,
+  locations: Array<Omit<Location, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Location[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/locations (bulk)', { count: locations.length });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ locations })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to bulk create locations');
+  }
+
+  const data = await response.json();
+  console.log('[screenplayStorage] ✅ Bulk created', data.data.created, 'locations');
+  return data.data.locations;
+}
+
+/**
  * Update a location
  */
 export async function updateLocation(
@@ -535,6 +597,37 @@ export async function createBeat(
 
   const data = await response.json();
   return data.data.beat;
+}
+
+/**
+ * Bulk create beats (for imports/paste)
+ */
+export async function bulkCreateBeats(
+  screenplayId: string,
+  beats: Array<Omit<Beat, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Beat[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/beats (bulk)', { count: beats.length });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ beats })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to bulk create beats');
+  }
+
+  const data = await response.json();
+  console.log('[screenplayStorage] ✅ Bulk created', data.data.created, 'beats');
+  return data.data.beats;
 }
 
 /**

@@ -20,6 +20,9 @@ import {
   listBeats, 
   listCharacters, 
   listLocations,
+  bulkCreateBeats,
+  bulkCreateCharacters,
+  bulkCreateLocations,
   updateScreenplay as apiUpdateScreenplay 
 } from './screenplayStorage';
 import type { 
@@ -263,33 +266,29 @@ export class ScreenplayPersistenceManager {
     });
     
     try {
-      // Transform to API format
-      const apiData: any = {
-        screenplay_id: this.screenplayId
-      };
+      // 🔥 NEW ARCHITECTURE: Use separate table endpoints for beats, characters, locations
+      // This replaces the old "store as arrays in screenplay document" approach
       
-      // 🔥 CRITICAL: Only include fields that have actual data
-      // Don't overwrite with empty arrays!
-      if (data.beats !== undefined && data.beats.length > 0) {
-        apiData.beats = this.transformBeatsToAPI(data.beats);
-      }
-      
+      // Save characters to separate table
       if (data.characters !== undefined && data.characters.length > 0) {
-        apiData.characters = this.transformCharactersToAPI(data.characters);
+        console.log('[Persistence] 📦 Saving characters to separate table:', data.characters.length);
+        const apiCharacters = this.transformCharactersToAPI(data.characters);
+        await bulkCreateCharacters(this.screenplayId, apiCharacters, this.getToken);
       }
       
+      // Save locations to separate table
       if (data.locations !== undefined && data.locations.length > 0) {
-        apiData.locations = this.transformLocationsToAPI(data.locations);
+        console.log('[Persistence] 📦 Saving locations to separate table:', data.locations.length);
+        const apiLocations = this.transformLocationsToAPI(data.locations);
+        await bulkCreateLocations(this.screenplayId, apiLocations, this.getToken);
       }
       
-      // 🔥 If there's nothing to save, skip the API call
-      if (Object.keys(apiData).length === 1) { // Only screenplay_id
-        console.log('[Persistence] ⏭️ Nothing to save (all arrays empty), skipping API call');
-        return;
+      // Save beats to separate table
+      if (data.beats !== undefined && data.beats.length > 0) {
+        console.log('[Persistence] 📦 Saving beats to separate table:', data.beats.length);
+        const apiBeats = this.transformBeatsToAPI(data.beats);
+        await bulkCreateBeats(this.screenplayId, apiBeats, this.getToken);
       }
-      
-      // Save to DynamoDB
-      await apiUpdateScreenplay(apiData, this.getToken);
       
       console.log('[Persistence] ✅ Saved successfully');
       
