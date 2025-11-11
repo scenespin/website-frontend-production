@@ -178,16 +178,21 @@ export class ScreenplayPersistenceManager {
    * 🔥 NEW: Load only beats from DynamoDB
    */
   async loadBeats(): Promise<StoryBeat[]> {
+    console.error('[Persistence] 🎯 loadBeats called - screenplay_id:', this.screenplayId);
+    
     if (!this.screenplayId) {
-      console.warn('[Persistence] No screenplay_id set, returning empty beats');
+      console.error('[Persistence] ❌ No screenplay_id set, returning empty beats');
       return [];
     }
     
+    console.error('[Persistence] 📞 Calling API: /api/screenplays/' + this.screenplayId + '/beats');
+    
     try {
       const beatsData = await listBeats(this.screenplayId, this.getToken);
+      console.error('[Persistence] ✅ API returned', beatsData.length, 'beats');
       return this.transformBeatsFromAPI(beatsData);
     } catch (error) {
-      console.error('[Persistence] Failed to load beats:', error);
+      console.error('[Persistence] ❌ API FAILED:', error);
       return [];
     }
   }
@@ -196,16 +201,21 @@ export class ScreenplayPersistenceManager {
    * 🔥 NEW: Load only characters from DynamoDB
    */
   async loadCharacters(): Promise<Character[]> {
+    console.error('[Persistence] 🎯 loadCharacters called - screenplay_id:', this.screenplayId);
+    
     if (!this.screenplayId) {
-      console.warn('[Persistence] No screenplay_id set, returning empty characters');
+      console.error('[Persistence] ❌ No screenplay_id set, returning empty characters');
       return [];
     }
     
+    console.error('[Persistence] 📞 Calling API: /api/screenplays/' + this.screenplayId + '/characters');
+    
     try {
       const charactersData = await listCharacters(this.screenplayId, this.getToken);
+      console.error('[Persistence] ✅ API returned', charactersData.length, 'characters');
       return this.transformCharactersFromAPI(charactersData);
     } catch (error) {
-      console.error('[Persistence] Failed to load characters:', error);
+      console.error('[Persistence] ❌ API FAILED:', error);
       return [];
     }
   }
@@ -214,16 +224,21 @@ export class ScreenplayPersistenceManager {
    * 🔥 NEW: Load only locations from DynamoDB
    */
   async loadLocations(): Promise<Location[]> {
+    console.error('[Persistence] 🎯 loadLocations called - screenplay_id:', this.screenplayId);
+    
     if (!this.screenplayId) {
-      console.warn('[Persistence] No screenplay_id set, returning empty locations');
+      console.error('[Persistence] ❌ No screenplay_id set, returning empty locations');
       return [];
     }
     
+    console.error('[Persistence] 📞 Calling API: /api/screenplays/' + this.screenplayId + '/locations');
+    
     try {
       const locationsData = await listLocations(this.screenplayId, this.getToken);
+      console.error('[Persistence] ✅ API returned', locationsData.length, 'locations');
       return this.transformLocationsFromAPI(locationsData);
     } catch (error) {
-      console.error('[Persistence] Failed to load locations:', error);
+      console.error('[Persistence] ❌ API FAILED:', error);
       return [];
     }
   }
