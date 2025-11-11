@@ -1527,6 +1527,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.error('[ScreenplayContext] Failed to save characters:', error);
                 throw error;
             }
+        } else {
+            console.warn('[ScreenplayContext] ⚠️ No screenplay_id yet - characters saved to local state only (will save when screenplay is created)');
         }
         
         console.log('[ScreenplayContext] ✅ Bulk import complete:', newCharacters.length, 'characters');

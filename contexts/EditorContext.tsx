@@ -378,15 +378,25 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             if (!screenplayIdRef.current) {
                 // Create new screenplay in DynamoDB
                 console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
-                const screenplay = await createScreenplay({
+                const newScreenplay = await createScreenplay({
                     title: currentState.title,
                     author: currentState.author,
                     content: currentState.content
                 }, getToken);
                 
-                screenplayIdRef.current = screenplay.screenplay_id;
-                localStorage.setItem('current_screenplay_id', screenplay.screenplay_id);
-                console.log('[EditorContext] ✅ Created NEW screenplay:', screenplay.screenplay_id, '| Content:', contentLength, 'chars');
+                screenplayIdRef.current = newScreenplay.screenplay_id;
+                localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
+                console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
+                
+                // 🔥 NEW: After creating screenplay, save any pending structure data (characters/locations/beats from paste import)
+                console.log('[EditorContext] 💾 Saving pending structure data to new screenplay...');
+                try {
+                    await screenplay.saveAllToDynamoDB();
+                    console.log('[EditorContext] ✅ Saved pending structure data');
+                } catch (error) {
+                    console.error('[EditorContext] ⚠️ Failed to save pending structure data:', error);
+                    // Don't fail the whole save if structure save fails
+                }
             } else {
                 // Update existing screenplay
                 console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
@@ -495,15 +505,25 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     if (!screenplayIdRef.current) {
                         // Create new screenplay in DynamoDB
                         console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
-                        const screenplay = await createScreenplay({
+                        const newScreenplay = await createScreenplay({
                             title: currentState.title,
                             author: currentState.author,
                             content: currentState.content
                         }, getToken);
                         
-                        screenplayIdRef.current = screenplay.screenplay_id;
-                        localStorage.setItem('current_screenplay_id', screenplay.screenplay_id);
-                        console.log('[EditorContext] ✅ Created NEW screenplay:', screenplay.screenplay_id, '| Content:', contentLength, 'chars');
+                        screenplayIdRef.current = newScreenplay.screenplay_id;
+                        localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
+                        console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
+                        
+                        // 🔥 NEW: After creating screenplay, save any pending structure data (characters/locations/beats from paste import)
+                        console.log('[EditorContext] 💾 Saving pending structure data to new screenplay...');
+                        try {
+                            await screenplay.saveAllToDynamoDB();
+                            console.log('[EditorContext] ✅ Saved pending structure data');
+                        } catch (error) {
+                            console.error('[EditorContext] ⚠️ Failed to save pending structure data:', error);
+                            // Don't fail the whole save if structure save fails
+                        }
                     } else {
                         // Update existing screenplay
                         console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
