@@ -6,6 +6,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement } from '@/utils/fountain';
 import { saveToGitHub } from '@/utils/github';
 import { toast } from 'sonner';
+import ScriptImportModal from './ScriptImportModal';
 
 interface EditorToolbarProps {
     className?: string;
@@ -135,6 +136,18 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [isSaving, setIsSaving] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    
+    // ========================================================================
+    // 🔥 FEATURE 0116: SCRIPT IMPORT MODAL (Clean & Simple)
+    // ========================================================================
+    const handleOpenImport = () => {
+        setShowImportModal(true);
+    };
+    
+    const handleCloseImport = () => {
+        setShowImportModal(false);
+    };
     
     // ========================================================================
     // 🔥 FEATURE 0111 PHASE 4: MANUAL SAVE (Simple & Reliable)
@@ -354,6 +367,19 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* Divider */}
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
+                
+                {/* Import Script Button */}
+                <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
+                    <button
+                        onClick={handleOpenImport}
+                        className="px-3 py-2 bg-cinema-red/10 hover:bg-cinema-red/20 border border-cinema-red/30 text-cinema-red rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Import</span>
+                    </button>
+                </div>
                 
                 {/* Save Button */}
                 {onSave && (
@@ -645,6 +671,12 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </div>
                 </div>
             )}
+            
+            {/* Import Script Modal */}
+            <ScriptImportModal
+                isOpen={showImportModal}
+                onClose={handleCloseImport}
+            />
         </div>
     );
 }
