@@ -132,7 +132,7 @@ export class ScreenplayPersistenceManager {
         beats: [],
         characters: [],
         locations: [],
-        relationships: { scenes: {}, characters: {}, locations: {}, props: {} }
+        relationships: { beats: {}, scenes: {}, characters: {}, locations: {}, props: {} }
       };
     }
     
@@ -160,7 +160,7 @@ export class ScreenplayPersistenceManager {
         beats: this.transformBeatsFromAPI(beatsData),
         characters: this.transformCharactersFromAPI(charactersData),
         locations: this.transformLocationsFromAPI(locationsData),
-        relationships: { scenes: {}, characters: {}, locations: {}, props: {} }
+        relationships: { beats: {}, scenes: {}, characters: {}, locations: {}, props: {} }
       };
       
       this.isInitialized = true;
