@@ -228,28 +228,28 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
                   </div>
                 </div>
 
-                {/* Expand/Collapse for Scenes */}
-                {beat.scenes.length > 0 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleBeat(beat.id);
-                    }}
-                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-slate-500" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-slate-500" />
-                    )}
-                  </button>
-                )}
-              </button>
+              {/* Expand/Collapse for Scenes */}
+              {(beat.scenes?.length || 0) > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleBeat(beat.id);
+                  }}
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-500" />
+                  )}
+                </button>
+              )}
+            </button>
 
-              {/* Expanded Scenes */}
-              {isExpanded && beat.scenes.length > 0 && (
-                <div className="ml-4 mt-1 pl-4 border-l-2 border-slate-200 dark:border-slate-700 space-y-1">
-                  {beat.scenes.map((scene) => (
+            {/* Expanded Scenes */}
+            {isExpanded && (beat.scenes?.length || 0) > 0 && (
+              <div className="ml-4 mt-1 pl-4 border-l-2 border-slate-200 dark:border-slate-700 space-y-1">
+                {(beat.scenes || []).map((scene) => (
                     <div
                       key={scene.id}
                       className="text-xs p-2 rounded bg-slate-50 dark:bg-slate-800/50"
