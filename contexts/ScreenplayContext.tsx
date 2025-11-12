@@ -1736,14 +1736,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 characters: charactersToSave.length,
                 locations: locationsToSave.length
             });
-            
-            // 🔥 CRITICAL FIX: Update local React state after successful save
-            // This ensures the UI updates immediately without requiring a page refresh
-            console.log('[ScreenplayContext] 🔄 Updating local state with saved data...');
-            setBeats(beatsToSave);
-            setCharacters(charactersToSave);
-            setLocations(locationsToSave);
-            console.log('[ScreenplayContext] ✅ Local state updated - UI should now show imported data');
         } catch (err) {
             console.error('[ScreenplayContext] Failed to save all to DynamoDB:', err);
             throw err;
