@@ -223,6 +223,9 @@ export interface Prop {
  * Stored in: /structure/relationships.json
  */
 export interface Relationships {
+    beats: {
+        [beatId: string]: any; // Placeholder for beat relationships
+    };
     scenes: {
         [sceneId: string]: SceneRelationships;
     };
