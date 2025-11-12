@@ -292,20 +292,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         })
                     ]);
                     
-                    // 🔥 NEW: Update state with loaded data (transformation already done by persistence manager)
-                    if (beatsData.length > 0) {
-                        setBeats(beatsData);
-                        console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats from DynamoDB');
-                        // Prevent auto-creation of default beats since we loaded existing ones
-                        hasAutoCreated.current = true;
-                    } else {
-                        // No beats in DB - need to create default structure
-                        console.log('[ScreenplayContext] 📝 No beats in DB, checking if we need to create defaults...');
-                    }
-                    
                     // 🔥 FIXED: Always load what's in DynamoDB - it's the source of truth!
                     // If DB has empty arrays, that means data was cleared - accept it!
-                    // The defensive logic was preventing "Clear All" from working
+                    // This fixes beats not persisting on refresh
+                    setBeats(beatsData);
+                    console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats from DynamoDB');
+                    
+                    // Mark that we loaded beats from DB (even if 0) to prevent auto-creation
+                    if (beatsData.length > 0) {
+                        hasAutoCreated.current = true;
+                    }
+                    
                     setCharacters(charactersData);
                     console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters from DynamoDB');
                     
