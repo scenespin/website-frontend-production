@@ -1940,10 +1940,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 scenes: [] // Clear scenes array
             }));
             
-            // Save cleared beats back to DynamoDB
-            await persistenceManager.saveBeats(clearedBeats);
+            // 🔥 FIX: Don't save empty beats to DynamoDB here!
+            // This was causing a race condition where empty beats would overwrite
+            // beats with scenes during import. The import process will save the beats
+            // with scenes later via saveBeatsToDynamoDB().
+            // await persistenceManager.saveBeats(clearedBeats);
             
-            console.log('[ScreenplayContext] ✅ Cleared scenes from all beats (beat structure preserved)');
+            console.log('[ScreenplayContext] ✅ Cleared scenes from all beats (beat structure preserved - not saved yet)');
             
             // Update local state
             setBeats(clearedBeats);
