@@ -322,6 +322,15 @@ export class ScreenplayPersistenceManager {
       
       console.error('[Persistence] ✅ Saved', characters.length, 'characters to DynamoDB');
       
+      // 🔥 CRITICAL: Verify the save succeeded by checking DynamoDB
+      console.error('[Persistence] 🔍 Verifying characters were saved...');
+      const savedCharacters = await listCharacters(this.screenplayId, this.getToken);
+      console.error('[Persistence] 📊 Verification: Found', savedCharacters.length, 'characters in DynamoDB');
+      
+      if (savedCharacters.length !== characters.length) {
+        console.warn('[Persistence] ⚠️ Mismatch: Expected', characters.length, 'but found', savedCharacters.length);
+      }
+      
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save characters:', error);
       throw error;
@@ -348,6 +357,15 @@ export class ScreenplayPersistenceManager {
       await bulkCreateLocations(this.screenplayId, apiLocations, this.getToken);
       
       console.log('[Persistence] ✅ Saved', locations.length, 'locations');
+      
+      // 🔥 CRITICAL: Verify the save succeeded by checking DynamoDB
+      console.log('[Persistence] 🔍 Verifying locations were saved...');
+      const savedLocations = await listLocations(this.screenplayId, this.getToken);
+      console.log('[Persistence] 📊 Verification: Found', savedLocations.length, 'locations in DynamoDB');
+      
+      if (savedLocations.length !== locations.length) {
+        console.warn('[Persistence] ⚠️ Mismatch: Expected', locations.length, 'but found', savedLocations.length);
+      }
       
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save locations:', error);
@@ -378,6 +396,15 @@ export class ScreenplayPersistenceManager {
       
       console.log('[Persistence] ✅ Saved', beats.length, 'beats');
       
+      // 🔥 CRITICAL: Verify the save succeeded by checking DynamoDB
+      console.log('[Persistence] 🔍 Verifying beats were saved...');
+      const savedBeats = await listBeats(this.screenplayId, this.getToken);
+      console.log('[Persistence] 📊 Verification: Found', savedBeats.length, 'beats in DynamoDB');
+      
+      if (savedBeats.length !== beats.length) {
+        console.warn('[Persistence] ⚠️ Mismatch: Expected', beats.length, 'but found', savedBeats.length);
+      }
+      
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save beats:', error);
       throw error;
@@ -398,7 +425,7 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 🗑️ Clearing all data for screenplay:', this.screenplayId);
     
     try {
-      // 🔥 NEW ARCHITECTURE: Use separate table endpoints to delete all data
+      // 🔥 STEP 1: Send DELETE requests to DynamoDB
       await Promise.all([
         deleteAllBeats(this.screenplayId, this.getToken),
         deleteAllCharacters(this.screenplayId, this.getToken),
@@ -410,7 +437,43 @@ export class ScreenplayPersistenceManager {
         }, this.getToken)
       ]);
       
-      console.log('[Persistence] ✅ Cleared all data');
+      console.log('[Persistence] ✅ DELETE requests sent');
+      
+      // 🔥 STEP 2: VERIFY that DynamoDB is truly empty
+      // Poll with exponential backoff until all tables are empty
+      console.log('[Persistence] 🔍 Verifying DynamoDB is empty...');
+      
+      const maxAttempts = 10;
+      let attempt = 0;
+      let allEmpty = false;
+      
+      while (!allEmpty && attempt < maxAttempts) {
+        attempt++;
+        
+        // Wait before checking (exponential backoff: 100ms, 200ms, 400ms, 800ms, ...)
+        const delay = Math.min(100 * Math.pow(2, attempt - 1), 2000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        console.log(`[Persistence] 🔍 Verification attempt ${attempt}/${maxAttempts} (after ${delay}ms)...`);
+        
+        // Check if all tables are empty
+        const [beatsData, charactersData, locationsData] = await Promise.all([
+          listBeats(this.screenplayId!, this.getToken).catch(() => []),
+          listCharacters(this.screenplayId!, this.getToken).catch(() => []),
+          listLocations(this.screenplayId!, this.getToken).catch(() => [])
+        ]);
+        
+        console.log(`[Persistence] 📊 Remaining: ${beatsData.length} beats, ${charactersData.length} characters, ${locationsData.length} locations`);
+        
+        if (beatsData.length === 0 && charactersData.length === 0 && locationsData.length === 0) {
+          allEmpty = true;
+          console.log('[Persistence] ✅ VERIFIED: DynamoDB is empty');
+        }
+      }
+      
+      if (!allEmpty) {
+        console.warn('[Persistence] ⚠️ Could not verify empty state after', maxAttempts, 'attempts - proceeding anyway');
+      }
       
     } catch (error) {
       console.error('[Persistence] ❌ Failed to clear:', error);
