@@ -22,7 +22,6 @@ import {
   listLocations,
   bulkCreateBeats,
   bulkCreateCharacters,
-  bulkUpsertCharacters, // 🔥 NEW: UPSERT for idempotent imports
   bulkCreateLocations,
   deleteAllBeats,
   deleteAllCharacters,
@@ -275,9 +274,9 @@ export class ScreenplayPersistenceManager {
       
       // Save characters to separate table
       if (data.characters !== undefined && data.characters.length > 0) {
-        console.log('[Persistence] 📦 UPSERTING characters to separate table:', data.characters.length);
+        console.log('[Persistence] 📦 Saving characters to separate table:', data.characters.length);
         const apiCharacters = this.transformCharactersToAPI(data.characters);
-        await bulkUpsertCharacters(this.screenplayId, apiCharacters, this.getToken); // 🔥 UPSERT prevents duplicates
+        await bulkCreateCharacters(this.screenplayId, apiCharacters, this.getToken);
       }
       
       // Save locations to separate table
@@ -313,18 +312,18 @@ export class ScreenplayPersistenceManager {
       throw new Error('[Persistence] Cannot save characters: No screenplay_id set');
     }
     
-    console.log('[Persistence] 💾 UPSERTING', characters.length, 'characters (prevents duplicates)');
+    console.error('[Persistence] 💾 Saving', characters.length, 'characters via BULK CREATE');
     
     try {
       const apiCharacters = this.transformCharactersToAPI(characters);
       
-      // 🔥 UPSERT: Create if new, update if exists (prevents duplicates on re-import)
-      await bulkUpsertCharacters(this.screenplayId, apiCharacters, this.getToken);
+      // 🔥 NEW ARCHITECTURE: Use separate table endpoint for characters
+      await bulkCreateCharacters(this.screenplayId, apiCharacters, this.getToken);
       
-      console.log('[Persistence] ✅ UPSERTED', characters.length, 'characters to DynamoDB');
+      console.error('[Persistence] ✅ Saved', characters.length, 'characters to DynamoDB');
       
     } catch (error) {
-      console.error('[Persistence] ❌ Failed to upsert characters:', error);
+      console.error('[Persistence] ❌ Failed to save characters:', error);
       throw error;
     }
   }
