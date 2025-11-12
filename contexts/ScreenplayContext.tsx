@@ -35,6 +35,7 @@ import {
 import {
     updateScriptTags
 } from '@/utils/fountainTags';
+import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { 
     persistenceManager,
     waitForInitialization 
@@ -106,6 +107,12 @@ interface ScreenplayContextType {
         characters: Character[];
         locations: Location[];
     };
+    
+    // Clear all structure (beats, characters, locations) - for destructive import
+    clearAllStructure: () => Promise<void>;
+    
+    // Re-scan script for NEW entities only (smart merge for additive re-scan)
+    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; }>;
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -1849,6 +1856,110 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [beats]);
     
     // ========================================================================
+    // Clear All Structure (Destructive Import Support)
+    // ========================================================================
+    
+    /**
+     * Clear ALL structure data (beats, characters, locations) from DynamoDB and local state.
+     * Used for destructive import - deletes everything before importing fresh data.
+     */
+    const clearAllStructure = useCallback(async () => {
+        if (!screenplayId) {
+            console.warn('[ScreenplayContext] Cannot clear structure: no screenplay_id');
+            return;
+        }
+        
+        console.log('[ScreenplayContext] 🔥 Clearing ALL structure data for destructive import...');
+        
+        try {
+            // Clear from DynamoDB via persistence manager
+            await persistenceManager.clearAll();
+            
+            console.log('[ScreenplayContext] ✅ Cleared structure from DynamoDB');
+            
+            // Clear local state
+            setBeats([]);
+            setCharacters([]);
+            setLocations([]);
+            setRelationships({
+                characters: {},
+                locations: {},
+                beats: {},
+                scenes: {}
+            });
+            
+            console.log('[ScreenplayContext] ✅ Cleared local structure state');
+        } catch (err) {
+            console.error('[ScreenplayContext] ❌ Failed to clear structure:', err);
+            throw err;
+        }
+    }, [screenplayId]);
+    
+    // ========================================================================
+    // Re-scan Script (Additive Import Support)
+    // ========================================================================
+    
+    /**
+     * Re-scan script content for NEW entities only (smart merge).
+     * Compares parsed content against existing data and only imports what's missing.
+     * Used for additive re-scan - keeps existing data, adds only new items.
+     */
+    const rescanScript = useCallback(async (content: string) => {
+        console.log('[ScreenplayContext] 🔍 Re-scanning script for new entities...');
+        
+        try {
+            // Parse the content
+            const parseResult = parseContentForImport(content);
+            
+            console.log('[ScreenplayContext] Parsed content:', {
+                characters: parseResult.characters.size,
+                locations: parseResult.locations.size,
+                scenes: parseResult.scenes.length
+            });
+            
+            // Find NEW characters (case-insensitive comparison)
+            const existingCharNames = new Set(
+                characters.map(c => c.name.toUpperCase())
+            );
+            const newCharacterNames = Array.from(parseResult.characters)
+                .filter((name: string) => !existingCharNames.has(name.toUpperCase()));
+            
+            // Find NEW locations (case-insensitive comparison)
+            const existingLocNames = new Set(
+                locations.map(l => l.name.toUpperCase())
+            );
+            const newLocationNames = Array.from(parseResult.locations)
+                .filter((name: string) => !existingLocNames.has(name.toUpperCase()));
+            
+            console.log('[ScreenplayContext] Found new entities:', {
+                newCharacters: newCharacterNames.length,
+                newLocations: newLocationNames.length
+            });
+            
+            // Import only NEW entities
+            if (newCharacterNames.length > 0) {
+                console.log('[ScreenplayContext] Importing', newCharacterNames.length, 'new characters:', newCharacterNames);
+                await bulkImportCharacters(newCharacterNames, parseResult.characterDescriptions);
+            }
+            
+            if (newLocationNames.length > 0) {
+                console.log('[ScreenplayContext] Importing', newLocationNames.length, 'new locations:', newLocationNames);
+                await bulkImportLocations(newLocationNames);
+            }
+            
+            console.log('[ScreenplayContext] ✅ Re-scan complete');
+            
+            return {
+                newCharacters: newCharacterNames.length,
+                newLocations: newLocationNames.length
+            };
+        } catch (err) {
+            console.error('[ScreenplayContext] ❌ Re-scan failed:', err);
+            throw err;
+        }
+    }, [characters, locations, bulkImportCharacters, bulkImportLocations]);
+    
+    // ========================================================================
     // Clear All Data (Editor Source of Truth)
     // ========================================================================
     
@@ -1953,6 +2064,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         saveBeatsToDynamoDB, // Save beats after all imports complete
         saveAllToDynamoDBDirect, // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
         getCurrentState, // 🔥 NEW: Get current state without closure issues
+        
+        // Clear and Re-scan (Feature 0117: Destructive Import + Additive Re-scan)
+        clearAllStructure, // 🔥 NEW: Clear all structure for destructive import
+        rescanScript, // 🔥 NEW: Re-scan for new entities (smart merge)
         
         // Scene Position Management
         updateScenePositions,

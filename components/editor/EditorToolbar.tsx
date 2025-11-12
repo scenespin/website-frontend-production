@@ -137,6 +137,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     
     // ========================================================================
     // 🔥 FEATURE 0116: SCRIPT IMPORT MODAL (Clean & Simple)
@@ -147,6 +148,49 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     
     const handleCloseImport = () => {
         setShowImportModal(false);
+    };
+    
+    // ========================================================================
+    // 🔥 FEATURE 0117: RE-SCAN SCRIPT (Additive - Smart Merge)
+    // ========================================================================
+    const handleRescan = async () => {
+        setIsRescanning(true);
+        
+        try {
+            console.log('[EditorToolbar] 🔍 Re-scanning script...');
+            
+            // Get current editor content
+            const content = state.content;
+            
+            if (!content.trim()) {
+                toast.error('No script to scan');
+                return;
+            }
+            
+            // Call rescanScript from ScreenplayContext
+            const result = await screenplay.rescanScript(content);
+            
+            if (result.newCharacters === 0 && result.newLocations === 0) {
+                toast.info('✅ Re-scan complete', {
+                    description: 'No new entities found'
+                });
+            } else {
+                toast.success('✅ Re-scan complete', {
+                    description: `Found ${result.newCharacters} new character${result.newCharacters !== 1 ? 's' : ''}, ${result.newLocations} new location${result.newLocations !== 1 ? 's' : ''}`
+                });
+            }
+            
+            // Save the new data
+            await saveNow();
+            
+        } catch (error) {
+            console.error('[EditorToolbar] Re-scan failed:', error);
+            toast.error('❌ Re-scan failed', {
+                description: error instanceof Error ? error.message : 'Please try again'
+            });
+        } finally {
+            setIsRescanning(false);
+        }
     };
     
     // ========================================================================
@@ -378,6 +422,29 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span>Import</span>
+                    </button>
+                </div>
+                
+                {/* 🔥 FEATURE 0117: Re-Scan Script Button (Additive - Smart Merge) */}
+                <div className="tooltip tooltip-bottom" data-tip="Scan script for new characters/locations (keeps existing data)">
+                    <button
+                        onClick={handleRescan}
+                        disabled={isRescanning || !state.content.trim()}
+                        className="px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-500 rounded min-w-[40px] min-h-[40px] flex items-center justify-center gap-2 transition-colors font-medium text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        {isRescanning ? (
+                            <>
+                                <span className="loading loading-spinner loading-xs"></span>
+                                <span>Scanning...</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>Re-scan</span>
+                            </>
+                        )}
                     </button>
                 </div>
                 

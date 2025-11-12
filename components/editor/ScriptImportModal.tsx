@@ -19,6 +19,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [content, setContentLocal] = useState('');
     const [isImporting, setIsImporting] = useState(false);
     const [parseResult, setParseResult] = useState<any>(null);
+    const [showWarning, setShowWarning] = useState(false); // 🔥 NEW: Warning dialog state
     
     // Parse content whenever it changes (debounced)
     useEffect(() => {
@@ -50,19 +51,33 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             return;
         }
         
+        // 🔥 NEW: Check if user has existing data
+        const hasExistingData = screenplay.characters.length > 0 
+            || screenplay.locations.length > 0 
+            || screenplay.beats.length > 8; // More than default 8-sequence structure
+        
+        if (hasExistingData && !showWarning) {
+            // Show warning first
+            setShowWarning(true);
+            return;
+        }
+        
         setIsImporting(true);
         
         try {
-            console.log('[ScriptImportModal] Starting import...', {
-                characters: parseResult.characters.size,
-                locations: parseResult.locations.size,
-                scenes: parseResult.scenes.length
-            });
+            console.log('[ScriptImportModal] 🔥 DESTRUCTIVE IMPORT - Starting...');
             
-            // Step 1: Set content in editor
+            // 🔥 NEW: Step 1 - Clear ALL existing structure
+            if (hasExistingData) {
+                console.log('[ScriptImportModal] Clearing existing data...');
+                await screenplay.clearAllStructure();
+                console.log('[ScriptImportModal] ✅ Cleared existing data');
+            }
+            
+            // Step 2: Set content in editor
             setContent(content);
             
-            // Step 2: Import characters
+            // Step 3: Import characters
             if (parseResult.characters.size > 0) {
                 const characterNames = Array.from(parseResult.characters) as string[];
                 const characterDescriptions = parseResult.characterDescriptions || new Map<string, string>();
@@ -70,14 +85,14 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Imported', characterNames.length, 'characters');
             }
             
-            // Step 3: Import locations
+            // Step 4: Import locations
             if (parseResult.locations.size > 0) {
                 const locationNames = Array.from(parseResult.locations) as string[];
                 await screenplay.bulkImportLocations(locationNames);
                 console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations');
             }
             
-            // Step 4: Import scenes into beats
+            // Step 5: Import scenes into beats
             if (parseResult.scenes.length > 0 && screenplay.beats.length > 0) {
                 // Distribute scenes across existing beats
                 const scenesPerBeat = Math.ceil(parseResult.scenes.length / screenplay.beats.length);
@@ -96,7 +111,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes');
             }
             
-            // Step 5: Save everything to DynamoDB
+            // Step 6: Save everything to DynamoDB
             console.log('[ScriptImportModal] 💾 Saving to DynamoDB...');
             await saveNow();
             
@@ -105,7 +120,8 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 description: `${parseResult.characters.size} characters, ${parseResult.locations.size} locations, ${parseResult.scenes.length} scenes`
             });
             
-            // Close modal
+            // Close modal and reset warning
+            setShowWarning(false);
             onClose();
             
         } catch (error) {
@@ -116,7 +132,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         } finally {
             setIsImporting(false);
         }
-    }, [content, parseResult, setContent, screenplay, saveNow, onClose]);
+    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning]);
     
     if (!isOpen) return null;
     
@@ -201,6 +217,56 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                             <div className="stat-value text-cinema-red">{parseResult.scenes.length}</div>
                                         </div>
                                     </div>
+                                    
+                                    {/* 🔥 NEW: Warning about destructive import */}
+                                    {showWarning && (
+                                        <div className="alert alert-error mt-4">
+                                            <AlertTriangle className="w-6 h-6" />
+                                            <div className="flex-1">
+                                                <h3 className="font-bold text-lg">⚠️ Warning: This will replace ALL existing data</h3>
+                                                <div className="text-sm mt-1">
+                                                    You currently have:
+                                                    <ul className="list-disc list-inside mt-1">
+                                                        {screenplay.characters.length > 0 && (
+                                                            <li><strong>{screenplay.characters.length} characters</strong></li>
+                                                        )}
+                                                        {screenplay.locations.length > 0 && (
+                                                            <li><strong>{screenplay.locations.length} locations</strong></li>
+                                                        )}
+                                                        {screenplay.beats.length > 8 && (
+                                                            <li><strong>{screenplay.beats.length} story beats</strong></li>
+                                                        )}
+                                                    </ul>
+                                                    <p className="mt-2">
+                                                        Importing this screenplay will <strong>DELETE ALL</strong> of your existing data and replace it with the new screenplay.
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2 mt-3">
+                                                    <button 
+                                                        onClick={() => setShowWarning(false)} 
+                                                        className="btn btn-sm btn-ghost"
+                                                        disabled={isImporting}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button 
+                                                        onClick={handleImport} 
+                                                        className="btn btn-sm btn-error"
+                                                        disabled={isImporting}
+                                                    >
+                                                        {isImporting ? (
+                                                            <>
+                                                                <span className="loading loading-spinner loading-xs"></span>
+                                                                Importing...
+                                                            </>
+                                                        ) : (
+                                                            'Yes, Replace All Data'
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     
                                     {/* Warnings */}
                                     {hasWarnings && (
