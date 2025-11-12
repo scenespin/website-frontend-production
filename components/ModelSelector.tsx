@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, Sparkles } from 'lucide-react';
 
 // Type definitions
@@ -106,7 +106,7 @@ const AI_MODELS: AIModel[] = [
   },
 ];
 
-export function ModelSelector({ selectedModel, onModelChange, compact = false }: ModelSelectorProps): JSX.Element {
+export function ModelSelector({ selectedModel, onModelChange, compact = false }: ModelSelectorProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   
   const currentModel: AIModel = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[0];
