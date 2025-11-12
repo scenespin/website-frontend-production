@@ -1883,10 +1883,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setCharacters([]);
             setLocations([]);
             setRelationships({
+                beats: {},
                 characters: {},
                 locations: {},
-                beats: {},
-                scenes: {}
+                scenes: {},
+                props: {}
             });
             
             console.log('[ScreenplayContext] ✅ Cleared local structure state');
