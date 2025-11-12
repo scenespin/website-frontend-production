@@ -56,9 +56,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         }
         
         // 🔥 NEW: Check if user has existing data
+        // Always clear on import to prevent duplicates (even if just default 8 beats exist)
         const hasExistingData = screenplay.characters.length > 0 
             || screenplay.locations.length > 0 
-            || screenplay.beats.length > 8; // More than default 8-sequence structure
+            || screenplay.beats.length > 0; // ANY beats means we need to clear first
         
         if (hasExistingData && !showWarning) {
             // Show warning first
