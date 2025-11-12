@@ -138,9 +138,14 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes');
             }
             
-            // Step 6: Save everything to DynamoDB
-            console.log('[ScriptImportModal] 💾 Saving to DynamoDB...');
-            await saveNow();
+            // Step 6: Save ONLY beats to DynamoDB (characters/locations already saved in steps 3&4)
+            console.log('[ScriptImportModal] 💾 Saving beats to DynamoDB...');
+            await screenplay.saveBeatsToDynamoDB();
+            
+            // Step 7: Update screenplay content WITHOUT calling saveNow() to avoid duplicate saves
+            // saveNow() calls saveAllToDynamoDBDirect which would re-save characters/locations
+            console.log('[ScriptImportModal] 💾 Updating screenplay content...');
+            localStorage.setItem('screenplay_draft', content);
             
             // Success!
             toast.success('✅ Screenplay Imported', {
