@@ -419,6 +419,46 @@ export class ScreenplayPersistenceManager {
   }
   
   /**
+   * Delete ONLY characters from DynamoDB (for imports)
+   * Preserves beats, locations, and scenes
+   */
+  async deleteAllCharacters(): Promise<void> {
+    if (!this.screenplayId) {
+      throw new Error('[Persistence] Cannot delete characters: No screenplay_id set');
+    }
+    
+    console.log('[Persistence] 🗑️ Deleting all characters...');
+    
+    try {
+      await deleteAllCharacters(this.screenplayId, this.getToken);
+      console.log('[Persistence] ✅ Deleted all characters');
+    } catch (error) {
+      console.error('[Persistence] ❌ Failed to delete characters:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Delete ONLY locations from DynamoDB (for imports)
+   * Preserves beats, characters, and scenes
+   */
+  async deleteAllLocations(): Promise<void> {
+    if (!this.screenplayId) {
+      throw new Error('[Persistence] Cannot delete locations: No screenplay_id set');
+    }
+    
+    console.log('[Persistence] 🗑️ Deleting all locations...');
+    
+    try {
+      await deleteAllLocations(this.screenplayId, this.getToken);
+      console.log('[Persistence] ✅ Deleted all locations');
+    } catch (error) {
+      console.error('[Persistence] ❌ Failed to delete locations:', error);
+      throw error;
+    }
+  }
+  
+  /**
    * Check if data has been loaded from DynamoDB
    * 
    * @returns true if loadAll() has completed (success or failure)

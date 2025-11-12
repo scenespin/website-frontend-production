@@ -88,16 +88,16 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Screenplay created:', screenplay.screenplayId);
             }
             
-            // 🔥 FIX: Step 1 - Clear ALL existing structure WITH VERIFICATION
+            // 🔥 FIX: Step 1 - Clear CONTENT ONLY (preserve 8-beat structure)
             if (hasExistingData) {
-                console.log('[ScriptImportModal] Clearing existing data...');
-                await screenplay.clearAllStructure();
+                console.log('[ScriptImportModal] Clearing existing content (preserving beat structure)...');
+                await screenplay.clearContentOnly();
                 
-                // 🔥 NEW: Wait for clear to complete and verify
+                // 🔥 NEW: Wait for clear to complete
                 console.log('[ScriptImportModal] ⏳ Waiting for clear to complete...');
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Give DynamoDB time
+                await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait for consistency
                 
-                console.log('[ScriptImportModal] ✅ Cleared existing data');
+                console.log('[ScriptImportModal] ✅ Cleared existing content - 8-beat structure intact');
             }
             
             // Step 2: Set content in editor

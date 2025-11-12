@@ -110,6 +110,7 @@ interface ScreenplayContextType {
     
     // Clear all structure (beats, characters, locations) - for destructive import
     clearAllStructure: () => Promise<void>;
+    clearContentOnly: () => Promise<void>;
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
     rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; }>;
@@ -1868,7 +1869,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return;
         }
         
-        console.log('[ScreenplayContext] 🔥 Clearing ALL structure data for destructive import...');
+        console.log('[ScreenplayContext] 🔥 Clearing ALL structure data (including beats) for COMPLETE RESET...');
         
         try {
             // Clear from DynamoDB via persistence manager
@@ -1876,7 +1877,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             console.log('[ScreenplayContext] ✅ Cleared structure from DynamoDB');
             
-            // Clear local state
+            // Clear local state - INCLUDING BEATS
             setBeats([]);
             setCharacters([]);
             setLocations([]);
@@ -1888,9 +1889,74 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 props: {}
             });
             
-            console.log('[ScreenplayContext] ✅ Cleared local structure state');
+            // Reset flag to allow beat recreation
+            hasAutoCreated.current = false;
+            
+            console.log('[ScreenplayContext] ✅ Cleared local structure state (complete reset)');
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Failed to clear structure:', err);
+            throw err;
+        }
+    }, [screenplayId]);
+    
+    // ========================================================================
+    // Clear Content Only (For Imports - Preserve 8-Beat Structure)
+    // ========================================================================
+    
+    /**
+     * Clear characters, locations, and scenes FROM beats
+     * But KEEP the 8-beat structure intact
+     * 
+     * Use this for script imports where you want to:
+     * - Replace characters/locations with new ones
+     * - Clear scenes from beats and reimport them
+     * - But preserve the permanent 8-beat column structure
+     * 
+     * Use clearAllStructure() for "Clear All" button (nuclear option)
+     */
+    const clearContentOnly = useCallback(async () => {
+        if (!screenplayId) {
+            console.warn('[ScreenplayContext] Cannot clear content: no screenplay_id');
+            return;
+        }
+        
+        console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving 8-beat structure)...');
+        
+        try {
+            // Clear characters and locations from DynamoDB
+            await Promise.all([
+                persistenceManager.deleteAllCharacters(),
+                persistenceManager.deleteAllLocations()
+            ]);
+            
+            console.log('[ScreenplayContext] ✅ Cleared characters and locations from DynamoDB');
+            
+            // Clear scenes from all beats (but keep beats themselves)
+            const clearedBeats = beatsRef.current.map(beat => ({
+                ...beat,
+                scenes: [] // Clear scenes array
+            }));
+            
+            // Save cleared beats back to DynamoDB
+            await persistenceManager.saveBeats(clearedBeats);
+            
+            console.log('[ScreenplayContext] ✅ Cleared scenes from all beats (beat structure preserved)');
+            
+            // Update local state
+            setBeats(clearedBeats);
+            setCharacters([]);
+            setLocations([]);
+            setRelationships({
+                beats: {},
+                characters: {},
+                locations: {},
+                scenes: {},
+                props: {}
+            });
+            
+            console.log('[ScreenplayContext] ✅ Content cleared - 8-beat structure intact, ready for import');
+        } catch (err) {
+            console.error('[ScreenplayContext] ❌ Failed to clear content:', err);
             throw err;
         }
     }, [screenplayId]);
@@ -2067,7 +2133,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         getCurrentState, // 🔥 NEW: Get current state without closure issues
         
         // Clear and Re-scan (Feature 0117: Destructive Import + Additive Re-scan)
-        clearAllStructure, // 🔥 NEW: Clear all structure for destructive import
+        clearAllStructure, // 🔥 Clear ALL structure including beats (for "Clear All" button)
+        clearContentOnly, // 🔥 NEW: Clear content only, preserve 8-beat structure (for imports)
         rescanScript, // 🔥 NEW: Re-scan for new entities (smart merge)
         
         // Scene Position Management
