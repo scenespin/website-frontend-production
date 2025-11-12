@@ -164,10 +164,15 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 }
                 
                 console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes');
+                
+                // 🔥 FIX: Save beats with scenes to DynamoDB!
+                // bulkImportScenes() updates state but doesn't save - we must save here
+                console.log('[ScriptImportModal] 💾 Saving beats (with scenes) to DynamoDB...');
+                await screenplay.saveBeatsToDynamoDB();
+                console.log('[ScriptImportModal] ✅ Beats saved with', parseResult.scenes.length, 'scenes');
             }
             
             // Step 6: Update screenplay content to DynamoDB AND localStorage
-            // NOTE: Beats are already saved from initialization, scenes are saved via bulkImportScenes()
             console.log('[ScriptImportModal] 💾 Updating screenplay content...');
             localStorage.setItem('screenplay_draft', content);
             

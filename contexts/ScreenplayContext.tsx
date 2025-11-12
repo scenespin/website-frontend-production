@@ -1692,19 +1692,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Helper: Save all beats to DynamoDB (called after bulk imports complete)
     const saveBeatsToDynamoDB = useCallback(async () => {
-        if (!screenplayId || beats.length === 0) return;
+        // 🔥 FIX: Use ref to avoid stale closure issues
+        const currentBeats = beatsRef.current;
+        
+        if (!screenplayId || currentBeats.length === 0) return;
         
         try {
-            console.log('[ScreenplayContext] Saving', beats.length, 'beats to DynamoDB...');
+            console.log('[ScreenplayContext] Saving', currentBeats.length, 'beats to DynamoDB...');
             
             // 🔥 NEW: Use persistence manager
-            await persistenceManager.saveBeats(beats);
+            await persistenceManager.saveBeats(currentBeats);
             
-            console.log('[ScreenplayContext] ✅ Saved', beats.length, 'beats to DynamoDB');
+            console.log('[ScreenplayContext] ✅ Saved', currentBeats.length, 'beats to DynamoDB');
         } catch (err) {
             console.error('[ScreenplayContext] Failed to save beats to DynamoDB:', err);
         }
-    }, [beats, screenplayId]);
+    }, [screenplayId]); // Removed beats dependency - using ref instead
     
     // 🔥 FIXED: Save ALL structure to DynamoDB (NO CLOSURE ISSUES!)
     // Accepts data as parameters instead of relying on closure/dependency array
