@@ -71,6 +71,22 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         try {
             console.log('[ScriptImportModal] 🔥 DESTRUCTIVE IMPORT - Starting...');
             
+            // 🔥 CRITICAL: Ensure screenplay exists in DynamoDB FIRST
+            if (!screenplay.screenplayId) {
+                console.log('[ScriptImportModal] ⚠️ No screenplay_id yet - creating screenplay first...');
+                // Set content so EditorContext can save it
+                setContent(content);
+                // Trigger screenplay creation
+                await saveNow();
+                console.log('[ScriptImportModal] ⏳ Waiting for screenplay creation...');
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for ID to be set
+                
+                if (!screenplay.screenplayId) {
+                    throw new Error('Failed to create screenplay - no ID available');
+                }
+                console.log('[ScriptImportModal] ✅ Screenplay created:', screenplay.screenplayId);
+            }
+            
             // 🔥 FIX: Step 1 - Clear ALL existing structure WITH VERIFICATION
             if (hasExistingData) {
                 console.log('[ScriptImportModal] Clearing existing data...');
