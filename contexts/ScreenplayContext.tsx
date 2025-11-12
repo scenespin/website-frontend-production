@@ -196,6 +196,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Relationships - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
     const [relationships, setRelationships] = useState<Relationships>({
+        beats: {},
         scenes: {},
         characters: {},
         locations: {},
@@ -1986,6 +1987,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         setCharacters([]);
         setLocations([]);
         setRelationships({
+            beats: {},
             characters: {},
             locations: {},
             scenes: {},
