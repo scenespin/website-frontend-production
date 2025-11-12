@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
+import { updateScreenplay } from '@/utils/screenplayStorage';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import type { Character, Location } from '@/types/screenplay';
@@ -14,6 +16,7 @@ interface ScriptImportModalProps {
 }
 
 export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModalProps) {
+    const { getToken } = useAuth();
     const { setContent, saveNow } = useEditor();
     const screenplay = useScreenplay();
     
@@ -145,10 +148,18 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             console.log('[ScriptImportModal] 💾 Saving beats to DynamoDB...');
             await screenplay.saveBeatsToDynamoDB();
             
-            // Step 7: Update screenplay content WITHOUT calling saveNow() to avoid duplicate saves
-            // saveNow() calls saveAllToDynamoDBDirect which would re-save characters/locations
+            // Step 7: Update screenplay content to DynamoDB AND localStorage
             console.log('[ScriptImportModal] 💾 Updating screenplay content...');
             localStorage.setItem('screenplay_draft', content);
+            
+            // Also save content to DynamoDB so it persists on refresh
+            if (screenplay.screenplayId) {
+                await updateScreenplay({
+                    screenplay_id: screenplay.screenplayId,
+                    content: content
+                }, getToken);
+                console.log('[ScriptImportModal] ✅ Saved content to DynamoDB');
+            }
             
             // Success!
             toast.success('✅ Screenplay Imported', {
