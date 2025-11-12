@@ -6,6 +6,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import type { Character, Location } from '@/types/screenplay';
 
 interface ScriptImportModalProps {
     isOpen: boolean;
@@ -78,36 +79,38 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setContent(content);
             
             // Step 3: Import characters
+            let importedCharacters: Character[] = [];
             if (parseResult.characters.size > 0) {
                 const characterNames = Array.from(parseResult.characters) as string[];
                 const characterDescriptions = parseResult.characterDescriptions || new Map<string, string>();
-                await screenplay.bulkImportCharacters(characterNames, characterDescriptions);
+                importedCharacters = await screenplay.bulkImportCharacters(characterNames, characterDescriptions);
                 console.log('[ScriptImportModal] ✅ Imported', characterNames.length, 'characters');
             }
             
             // Step 4: Import locations
+            let importedLocations: Location[] = [];
             if (parseResult.locations.size > 0) {
                 const locationNames = Array.from(parseResult.locations) as string[];
-                await screenplay.bulkImportLocations(locationNames);
+                importedLocations = await screenplay.bulkImportLocations(locationNames);
                 console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations');
             }
             
             // Step 5: Import scenes into beats
             if (parseResult.scenes.length > 0 && screenplay.beats.length > 0) {
-                // 🔥 FIX: Map character/location NAMES to IDs before passing to bulkImportScenes
+                // 🔥 FIX: Map character/location NAMES to IDs using the RETURNED entities (not stale context state)
                 const scenesWithIds = parseResult.scenes.map(scene => {
-                    // Map character names to IDs
+                    // Map character names to IDs from imported characters
                     const characterIds = (scene.characters || [])
                         .map(charName => {
-                            const char = screenplay.characters.find(c => 
+                            const char = importedCharacters.find(c => 
                                 c.name.toUpperCase() === charName.toUpperCase()
                             );
                             return char?.id;
                         })
                         .filter(Boolean) as string[];
                     
-                    // Map location name to ID
-                    const location = screenplay.locations.find(l => 
+                    // Map location name to ID from imported locations
+                    const location = importedLocations.find(l => 
                         l.name.toUpperCase() === scene.location.toUpperCase()
                     );
                     
