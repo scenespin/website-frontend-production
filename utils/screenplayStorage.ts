@@ -353,6 +353,57 @@ export async function bulkCreateCharacters(
 }
 
 /**
+ * 🔥 NEW: Bulk UPSERT characters (create if new, update if exists)
+ * Prevents duplicates when importing the same script multiple times
+ */
+export interface CharacterUpsertInput {
+  id?: string; // If provided, will try to update
+  name: string;
+  description?: string;
+  referenceImages?: string[];
+}
+
+export interface UpsertResult {
+  created: Character[];
+  updated: Character[];
+  failed: Array<{ name: string; error: string }>;
+  summary: {
+    total: number;
+    created: number;
+    updated: number;
+    failed: number;
+  };
+}
+
+export async function bulkUpsertCharacters(
+  screenplayId: string,
+  characters: CharacterUpsertInput[],
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<UpsertResult> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplayId + '/characters/bulk (UPSERT)', { count: characters.length });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters/bulk`, {
+    method: 'PUT', // ← PUT for UPSERT, not POST
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ characters })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to bulk upsert characters');
+  }
+
+  const data = await response.json();
+  console.log('[screenplayStorage] ✅ Upsert complete:', data.summary);
+  return data.data;
+}
+
+/**
  * Update a character
  */
 export async function updateCharacter(

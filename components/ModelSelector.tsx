@@ -3,8 +3,29 @@
 import { useState } from 'react';
 import { ChevronDown, Sparkles } from 'lucide-react';
 
+// Type definitions
+interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  providerShort: string;
+  description: string;
+  cost: 'Lowest' | 'Low' | 'Medium' | 'High';
+  recommended?: boolean;
+}
+
+interface ModelSelectorProps {
+  selectedModel: string;
+  onModelChange: (modelId: string) => void;
+  compact?: boolean;
+}
+
+interface GroupedModels {
+  [provider: string]: AIModel[];
+}
+
 // Available models for screenwriting agents
-const AI_MODELS = [
+const AI_MODELS: AIModel[] = [
   // Claude (Anthropic) - Best for creative writing
   {
     id: 'claude-sonnet-4-5-20250929',
@@ -85,13 +106,13 @@ const AI_MODELS = [
   },
 ];
 
-export function ModelSelector({ selectedModel, onModelChange, compact = false }) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ModelSelector({ selectedModel, onModelChange, compact = false }: ModelSelectorProps): JSX.Element {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   
-  const currentModel = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[0];
+  const currentModel: AIModel = AI_MODELS.find(m => m.id === selectedModel) || AI_MODELS[0];
   
   // Group models by provider
-  const groupedModels = AI_MODELS.reduce((acc, model) => {
+  const groupedModels: GroupedModels = AI_MODELS.reduce<GroupedModels>((acc, model) => {
     if (!acc[model.provider]) {
       acc[model.provider] = [];
     }
@@ -99,7 +120,7 @@ export function ModelSelector({ selectedModel, onModelChange, compact = false })
     return acc;
   }, {});
   
-  const handleSelect = (modelId) => {
+  const handleSelect = (modelId: string): void => {
     onModelChange(modelId);
     setIsOpen(false);
   };

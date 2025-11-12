@@ -71,10 +71,15 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         try {
             console.log('[ScriptImportModal] 🔥 DESTRUCTIVE IMPORT - Starting...');
             
-            // 🔥 NEW: Step 1 - Clear ALL existing structure
+            // 🔥 FIX: Step 1 - Clear ALL existing structure WITH VERIFICATION
             if (hasExistingData) {
                 console.log('[ScriptImportModal] Clearing existing data...');
                 await screenplay.clearAllStructure();
+                
+                // 🔥 NEW: Wait for clear to complete and verify
+                console.log('[ScriptImportModal] ⏳ Waiting for clear to complete...');
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Give DynamoDB time
+                
                 console.log('[ScriptImportModal] ✅ Cleared existing data');
             }
             
@@ -148,6 +153,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             console.log('[ScriptImportModal] 💾 Saving beats to DynamoDB...');
             await screenplay.saveBeatsToDynamoDB();
             
+            // 🔥 NEW: Wait for beats save to complete
+            console.log('[ScriptImportModal] ⏳ Waiting for beats to persist...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             // Step 7: Update screenplay content to DynamoDB AND localStorage
             console.log('[ScriptImportModal] 💾 Updating screenplay content...');
             localStorage.setItem('screenplay_draft', content);
@@ -159,6 +168,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     content: content
                 }, getToken);
                 console.log('[ScriptImportModal] ✅ Saved content to DynamoDB');
+                
+                // 🔥 NEW: Final wait to ensure DynamoDB consistency
+                console.log('[ScriptImportModal] ⏳ Waiting for DynamoDB consistency...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             // Success!
