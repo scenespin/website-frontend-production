@@ -1655,13 +1655,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Create scene relationship
                 updatedScenes[scene.id] = {
                     type: 'scene',
-                    characters: scene.fountain.tags.characters,
+                    characters: scene.fountain.tags.characters || [],
                     location: scene.fountain.tags.location,
                     storyBeat: beatId
                 };
                 
-                // Link characters to scene
-                scene.fountain.tags.characters.forEach(charId => {
+                // Link characters to scene (defensive - ensure array exists)
+                const sceneCharacters = scene.fountain.tags.characters || [];
+                sceneCharacters.forEach(charId => {
                     if (updatedCharacters[charId]) {
                         if (!updatedCharacters[charId].appearsInScenes.includes(scene.id)) {
                             updatedCharacters[charId].appearsInScenes.push(scene.id);

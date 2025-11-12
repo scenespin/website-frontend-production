@@ -94,14 +94,41 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             
             // Step 5: Import scenes into beats
             if (parseResult.scenes.length > 0 && screenplay.beats.length > 0) {
+                // 🔥 FIX: Map character/location NAMES to IDs before passing to bulkImportScenes
+                const scenesWithIds = parseResult.scenes.map(scene => {
+                    // Map character names to IDs
+                    const characterIds = (scene.characters || [])
+                        .map(charName => {
+                            const char = screenplay.characters.find(c => 
+                                c.name.toUpperCase() === charName.toUpperCase()
+                            );
+                            return char?.id;
+                        })
+                        .filter(Boolean) as string[];
+                    
+                    // Map location name to ID
+                    const location = screenplay.locations.find(l => 
+                        l.name.toUpperCase() === scene.location.toUpperCase()
+                    );
+                    
+                    return {
+                        heading: scene.heading,
+                        location: scene.location,
+                        characterIds,
+                        locationId: location?.id,
+                        startLine: scene.startLine,
+                        endLine: scene.endLine
+                    };
+                });
+                
                 // Distribute scenes across existing beats
-                const scenesPerBeat = Math.ceil(parseResult.scenes.length / screenplay.beats.length);
+                const scenesPerBeat = Math.ceil(scenesWithIds.length / screenplay.beats.length);
                 
                 for (let i = 0; i < screenplay.beats.length; i++) {
                     const beat = screenplay.beats[i];
                     const startIdx = i * scenesPerBeat;
-                    const endIdx = Math.min(startIdx + scenesPerBeat, parseResult.scenes.length);
-                    const scenesForBeat = parseResult.scenes.slice(startIdx, endIdx);
+                    const endIdx = Math.min(startIdx + scenesPerBeat, scenesWithIds.length);
+                    const scenesForBeat = scenesWithIds.slice(startIdx, endIdx);
                     
                     if (scenesForBeat.length > 0) {
                         await screenplay.bulkImportScenes(beat.id, scenesForBeat);
