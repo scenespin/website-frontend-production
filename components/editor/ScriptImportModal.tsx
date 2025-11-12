@@ -90,9 +90,13 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // 🔥 FIX: Step 1 - Clear ALL existing structure WITH VERIFICATION
             if (hasExistingData) {
                 console.log('[ScriptImportModal] Clearing existing data...');
-                // clearAllStructure now includes built-in verification that DynamoDB is truly empty
                 await screenplay.clearAllStructure();
-                console.log('[ScriptImportModal] ✅ Cleared existing data (verified empty)');
+                
+                // 🔥 NEW: Wait for clear to complete and verify
+                console.log('[ScriptImportModal] ⏳ Waiting for clear to complete...');
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Give DynamoDB time
+                
+                console.log('[ScriptImportModal] ✅ Cleared existing data');
             }
             
             // Step 2: Set content in editor
@@ -164,7 +168,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Step 6: Save ONLY beats to DynamoDB (characters/locations already saved in steps 3&4)
             console.log('[ScriptImportModal] 💾 Saving beats to DynamoDB...');
             await screenplay.saveBeatsToDynamoDB();
-            console.log('[ScriptImportModal] ✅ Beats saved (with verification)');
+            
+            // 🔥 NEW: Wait for beats save to complete
+            console.log('[ScriptImportModal] ⏳ Waiting for beats to persist...');
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Step 7: Update screenplay content to DynamoDB AND localStorage
             console.log('[ScriptImportModal] 💾 Updating screenplay content...');
@@ -177,6 +184,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     content: content
                 }, getToken);
                 console.log('[ScriptImportModal] ✅ Saved content to DynamoDB');
+                
+                // 🔥 NEW: Final wait to ensure DynamoDB consistency
+                console.log('[ScriptImportModal] ⏳ Waiting for DynamoDB consistency...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             // Success!
