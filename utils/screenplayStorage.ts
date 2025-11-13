@@ -605,6 +605,8 @@ export async function listBeats(
   screenplayId: string,
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Beat[]> {
+  console.log('[screenplayStorage] 🔥 GET /api/screenplays/' + screenplayId + '/beats');
+  
   const token = await getToken({ template: 'wryda-backend' });
   
   const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
@@ -613,12 +615,19 @@ export async function listBeats(
     }
   });
 
+  console.log('[screenplayStorage] 🔥 Response status:', response.status);
+
   if (!response.ok) {
     const error = await response.json();
+    console.error('[screenplayStorage] 🔥 ERROR:', error);
     throw new Error(error.message || 'Failed to list beats');
   }
 
   const data = await response.json();
+  console.log('[screenplayStorage] 🔥 Response data:', data);
+  console.log('[screenplayStorage] 🔥 Beats array:', data.data?.beats);
+  console.log('[screenplayStorage] 🔥 Returning', data.data?.beats?.length || 0, 'beats');
+  
   return data.data.beats;
 }
 
