@@ -299,10 +299,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     setBeats(beatsData);
                     console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats from DynamoDB');
                     
-                    // Mark that we loaded beats from DB (even if 0) to prevent auto-creation
-                    if (beatsData.length > 0) {
-                        hasAutoCreated.current = true;
-                    }
+                    // 🔥 CRITICAL FIX: Mark that we've attempted to load from DB to prevent auto-creation
+                    // Set flag regardless of count - even 0 beats means "we checked DB already"
+                    hasAutoCreated.current = true;
+                    console.log('[ScreenplayContext] 🔒 Set hasAutoCreated=true after loading from DB (count:', beatsData.length, ')');
                     
                     setCharacters(charactersData);
                     console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters from DynamoDB');
