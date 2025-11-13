@@ -74,9 +74,10 @@ export default function TimelineView({ focusSceneId }: TimelineViewProps = {}) {
         className: 'group-header'
       })
     } else {
-      // Create groups for each story beat (act)
+      // Feature 0117: Group scenes by group_label (optional) or by beat.scenes array
       beats.forEach((beat) => {
-        const beatScenes = scenes.filter(s => s.beatId === beat.id)
+        // Scenes are already grouped in beat.scenes array (frontend-only grouping)
+        const beatScenes = beat.scenes || []
         const sceneIds = beatScenes.map(s => s.id)
         
         groups.add({
@@ -98,15 +99,8 @@ export default function TimelineView({ focusSceneId }: TimelineViewProps = {}) {
         })
       })
 
-      // Handle scenes without a beat
-      const ungroupedScenes = scenes.filter(s => !beats.find(b => b.id === s.beatId))
-      if (ungroupedScenes.length > 0) {
-        groups.add({
-          id: 'ungrouped',
-          content: 'Ungrouped Scenes',
-          className: 'group-header',
-          nestedGroups: ungroupedScenes.map(s => s.id)
-        })
+      // Feature 0117: No need to handle ungrouped - all scenes are in beats.scenes array
+      // (Frontend grouping ensures all scenes are assigned to a beat)
 
         ungroupedScenes.forEach((scene) => {
           groups.add({
