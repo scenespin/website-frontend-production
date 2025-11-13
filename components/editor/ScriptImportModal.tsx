@@ -121,7 +121,22 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             }
             
             // Step 5: Import scenes into beats
-            if (parseResult.scenes.length > 0 && screenplay.beats.length > 0) {
+            // 🔥 CRITICAL: Ensure beats exist before importing scenes
+            if (parseResult.scenes.length > 0) {
+                // Wait for beats to exist (either loaded from DB or default 8 created)
+                let attempts = 0;
+                while (screenplay.beats.length === 0 && attempts < 20) {
+                    console.log('[ScriptImportModal] ⏳ Waiting for beats to initialize... (attempt', attempts + 1, ')');
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                    attempts++;
+                }
+                
+                if (screenplay.beats.length === 0) {
+                    throw new Error('No beats available for scene import. Please refresh and try again.');
+                }
+                
+                console.log('[ScriptImportModal] ✅ Found', screenplay.beats.length, 'beats for scene import');
+                
                 // 🔥 FIX: Map character/location NAMES to IDs using the RETURNED entities (not stale context state)
                 const scenesWithIds = parseResult.scenes.map(scene => {
                     // Map character names to IDs from imported characters
