@@ -4,32 +4,31 @@
  * SINGLE SOURCE OF TRUTH for all screenplay data persistence
  * DynamoDB is the ONLY source of truth - no localStorage caching
  * 
+ * Feature 0117: Simplified Architecture - Beats are frontend-only UI templates
+ * Scenes use global ordering with optional group_label for UI organization
+ * 
  * This module provides:
- * - Centralized data loading from DynamoDB
- * - Centralized data saving to DynamoDB
+ * - Centralized data loading from DynamoDB (scenes, characters, locations only)
+ * - Centralized data saving to DynamoDB (scenes, characters, locations only)
  * - Clear initialization tracking
  * - Type-safe transformations between app types and API types
  * - Consistent error handling
  * 
  * @author AI Assistant
- * @date November 10, 2025
- * @feature 0114 - Screenplay Persistence Rewrite
+ * @date November 13, 2025
+ * @feature 0117 - Simplified Scene Architecture
  */
 
 import { 
-  listBeats, 
   listCharacters, 
   listLocations,
-  listScenes,          // Feature 0115: Separate Scenes Table
-  listScenesByBeat,    // Feature 0115: Separate Scenes Table
-  bulkCreateBeats,
+  listScenes,          // Feature 0117: Simplified Scene Architecture
   bulkCreateCharacters,
   bulkCreateLocations,
-  bulkCreateScenes,    // Feature 0115: Separate Scenes Table
-  deleteAllBeats,
+  bulkCreateScenes,    // Feature 0117: Simplified Scene Architecture
   deleteAllCharacters,
   deleteAllLocations,
-  deleteAllScenes,     // Feature 0115: Separate Scenes Table
+  deleteAllScenes,     // Feature 0117: Simplified Scene Architecture
   updateScreenplay as apiUpdateScreenplay 
 } from './screenplayStorage';
 import type { 
@@ -88,16 +87,7 @@ interface APILocation {
   referenceImages?: string[];
 }
 
-/**
- * API-compatible beat format
- */
-interface APIBeat {
-  id: string;
-  title: string;
-  description: string; // Required by API
-  order: number;
-  scenes: any[];
-}
+// Feature 0117: APIBeat interface removed - beats are frontend-only
 
 // ============================================================================
 // Persistence Manager Class
@@ -144,12 +134,8 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 📥 Loading from DynamoDB...', this.screenplayId);
     
     try {
-      // 🔥 Feature 0115: Load scenes from separate table in parallel
-      const [beatsData, charactersData, locationsData, scenesData] = await Promise.all([
-        listBeats(this.screenplayId, this.getToken).catch(err => {
-          console.warn('[Persistence] Failed to load beats:', err);
-          return [];
-        }),
+      // 🔥 Feature 0117: Load ONLY scenes, characters, locations (NO beats)
+      const [charactersData, locationsData, scenesData] = await Promise.all([
         listCharacters(this.screenplayId, this.getToken).catch(err => {
           console.warn('[Persistence] Failed to load characters:', err);
           return [];
@@ -164,13 +150,17 @@ export class ScreenplayPersistenceManager {
         })
       ]);
       
-      // 🔥 Feature 0115: Transform scenes first, then hydrate beats
+      // Transform scenes from API format
       const transformedScenes = this.transformScenesFromAPI(scenesData);
-      const transformedBeats = this.transformBeatsFromAPI(beatsData, transformedScenes);
+      
+      // 🔥 Feature 0117: Create default beats from frontend template
+      // Beats are UI-only templates, scenes are grouped by group_label or order
+      const defaultBeats = this.createDefaultBeats();
+      const beatsWithScenes = this.groupScenesIntoBeats(defaultBeats, transformedScenes);
       
       // Transform API data to app format
       const transformedData: ScreenplayData = {
-        beats: transformedBeats,
+        beats: beatsWithScenes,
         characters: this.transformCharactersFromAPI(charactersData),
         locations: this.transformLocationsFromAPI(locationsData),
         relationships: { beats: {}, scenes: {}, characters: {}, locations: {}, props: {} }
@@ -194,39 +184,7 @@ export class ScreenplayPersistenceManager {
     }
   }
   
-  /**
-   * 🔥 NEW: Load only beats from DynamoDB
-   */
-  async loadBeats(): Promise<StoryBeat[]> {
-    console.error('[Persistence] 🎯 loadBeats called - screenplay_id:', this.screenplayId);
-    
-    if (!this.screenplayId) {
-      console.error('[Persistence] ❌ No screenplay_id set, returning empty beats');
-      return [];
-    }
-    
-    console.error('[Persistence] 📞 Calling API: /api/screenplays/' + this.screenplayId + '/beats');
-    
-    try {
-      // 🔥 Feature 0115: Load scenes first to hydrate beats
-      const [beatsData, scenesData] = await Promise.all([
-        listBeats(this.screenplayId, this.getToken),
-        listScenes(this.screenplayId, this.getToken).catch(err => {
-          console.warn('[Persistence] Failed to load scenes for beats:', err);
-          return [];
-        })
-      ]);
-      
-      console.error('[Persistence] ✅ API returned', beatsData.length, 'beats and', scenesData.length, 'scenes');
-      
-      // Transform scenes first, then hydrate beats
-      const transformedScenes = this.transformScenesFromAPI(scenesData);
-      return this.transformBeatsFromAPI(beatsData, transformedScenes);
-    } catch (error) {
-      console.error('[Persistence] ❌ API FAILED:', error);
-      return [];
-    }
-  }
+  // Feature 0117: loadBeats() removed - beats are frontend-only UI templates
   
   /**
    * 🔥 NEW: Load only characters from DynamoDB
@@ -311,11 +269,14 @@ export class ScreenplayPersistenceManager {
         await bulkCreateLocations(this.screenplayId, apiLocations, this.getToken);
       }
       
-      // Save beats to separate table
+      // 🔥 Feature 0117: Save scenes extracted from beats
+      // Beats are frontend-only, so we extract scenes from beats.flatMap(b => b.scenes)
       if (data.beats !== undefined && data.beats.length > 0) {
-        console.log('[Persistence] 📦 Saving beats to separate table:', data.beats.length);
-        const apiBeats = this.transformBeatsToAPI(data.beats);
-        await bulkCreateBeats(this.screenplayId, apiBeats, this.getToken);
+        const allScenes = data.beats.flatMap(beat => beat.scenes || []);
+        if (allScenes.length > 0) {
+          console.log('[Persistence] 📦 Saving scenes extracted from beats:', allScenes.length);
+          await this.saveScenes(allScenes);
+        }
       }
       
       console.log('[Persistence] ✅ Saved successfully');
@@ -380,48 +341,8 @@ export class ScreenplayPersistenceManager {
     }
   }
   
-  /**
-   * Save ONLY beats (optimized for reordering/bulk updates)
-   * 
-   * @param beats - Array of beats to save
-   * @throws Error if screenplay_id not set or save fails
-   */
-  async saveBeats(beats: StoryBeat[]): Promise<void> {
-    if (!this.screenplayId) {
-      throw new Error('[Persistence] Cannot save beats: No screenplay_id set');
-    }
-    
-    console.log('[Persistence] 💾 Saving beats...', beats.length);
-    console.log('[Persistence] 🔍 Beats to save:', beats.map(b => ({ id: b.id, title: b.title, scenes: b.scenes?.length || 0 })));
-    
-    try {
-      const apiBeats = this.transformBeatsToAPI(beats);
-      console.log('[Persistence] 🔍 Transformed to API format:', apiBeats.length, 'beats');
-      
-      // 🔥 NEW ARCHITECTURE: Use separate table endpoint for beats
-      await bulkCreateBeats(this.screenplayId, apiBeats, this.getToken);
-      
-      console.log('[Persistence] ✅ Saved', beats.length, 'beats');
-      
-      // 🔥 FIX: Add small delay before verification to avoid reading cached/stale data
-      // DynamoDB strongly consistent reads can still hit stale replicas immediately after write
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // 🔥 VERIFICATION: Read back immediately to confirm persistence
-      console.log('[Persistence] 🔍 VERIFICATION: Reading beats back from DynamoDB...');
-      const savedBeats = await listBeats(this.screenplayId, this.getToken);
-      console.log('[Persistence] 🔍 VERIFICATION: Found', savedBeats.length, 'beats in DynamoDB');
-      if (savedBeats.length !== beats.length) {
-        console.error('[Persistence] ⚠️  MISMATCH: Saved', beats.length, 'but found', savedBeats.length);
-      } else {
-        console.log('[Persistence] ✅ VERIFICATION PASSED: All beats persisted correctly');
-      }
-      
-    } catch (error) {
-      console.error('[Persistence] ❌ Failed to save beats:', error);
-      throw error;
-    }
-  }
+  // Feature 0117: saveBeats() removed - beats are frontend-only UI templates
+  // Use saveScenes() instead to persist scene data
   
   /**
    * Clear ALL screenplay data from DynamoDB
@@ -437,10 +358,9 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 🗑️ Clearing all data for screenplay:', this.screenplayId);
     
     try {
-      // 🔥 Feature 0115: Use separate table endpoints to delete all data
+      // 🔥 Feature 0117: Delete scenes, characters, locations (NO beats - frontend-only)
       await Promise.all([
-        deleteAllBeats(this.screenplayId, this.getToken),
-        deleteAllScenes(this.screenplayId, this.getToken),      // ← NEW: Delete scenes from wryda-scenes
+        deleteAllScenes(this.screenplayId, this.getToken),
         deleteAllCharacters(this.screenplayId, this.getToken),
         deleteAllLocations(this.screenplayId, this.getToken),
         // Also clear screenplay text content
@@ -537,25 +457,7 @@ export class ScreenplayPersistenceManager {
     }
   }
   
-  /**
-   * Delete ONLY beats from DynamoDB (for imports)
-   * Preserves characters and locations
-   */
-  async deleteAllBeats(): Promise<void> {
-    if (!this.screenplayId) {
-      throw new Error('[Persistence] Cannot delete beats: No screenplay_id set');
-    }
-    
-    console.log('[Persistence] 🗑️ Deleting all beats...');
-    
-    try {
-      await deleteAllBeats(this.screenplayId, this.getToken);
-      console.log('[Persistence] ✅ Deleted all beats');
-    } catch (error) {
-      console.error('[Persistence] ❌ Failed to delete beats:', error);
-      throw error;
-    }
-  }
+  // Feature 0117: deleteAllBeats() removed - beats are frontend-only UI templates
   
   /**
    * Check if data has been loaded from DynamoDB
@@ -655,12 +557,12 @@ export class ScreenplayPersistenceManager {
       
       return {
         id: scene.id || scene.scene_id,
-        beatId: scene.beat_id,
         number: scene.number,
         heading: scene.heading || '',
         synopsis: scene.synopsis || '',
         status: scene.status || 'draft',
         order: scene.order || 0,
+        group_label: scene.group_label,
         fountain: {
           startLine: fountain.startLine || 0,
           endLine: fountain.endLine || 0,
@@ -685,12 +587,12 @@ export class ScreenplayPersistenceManager {
    */
   private transformScenesToAPI(scenes: Scene[]): any[] {
     return scenes.map(scene => ({
-      beat_id: scene.beatId,
       number: scene.number,
       heading: scene.heading,
       synopsis: scene.synopsis,
       status: scene.status,
       order: scene.order,
+      group_label: scene.group_label,
       fountain: scene.fountain,
       estimatedPageCount: scene.estimatedPageCount,
       images: scene.images,
@@ -700,64 +602,60 @@ export class ScreenplayPersistenceManager {
   }
   
   /**
-   * Transform beats from API format to app format
+   * 🔥 Feature 0117: Create default beats template (frontend-only UI structure)
+   * Returns 8-sequence template structure for UI organization
+   * Scenes are populated by matching group_label or order
    */
-  /**
-   * 🔥 Feature 0115: Transform beats from API format and hydrate with Scene objects
-   * @param apiBeats - Raw beats from DynamoDB (scenes field contains string[] of scene IDs)
-   * @param allScenes - All scenes for the screenplay (from separate wryda-scenes table)
-   * @returns Beats hydrated with full Scene objects
-   */
-  private transformBeatsFromAPI(apiBeats: any[], allScenes: Scene[]): StoryBeat[] {
-    // Build scene lookup map for O(1) access
-    const sceneMap = new Map<string, Scene>();
-    allScenes.forEach(scene => sceneMap.set(scene.id, scene));
+  private createDefaultBeats(): StoryBeat[] {
+    const defaultBeatTitles = [
+      'Setup',
+      'Inciting Incident',
+      'First Plot Point',
+      'First Pinch Point',
+      'Midpoint',
+      'Second Pinch Point',
+      'Second Plot Point',
+      'Resolution'
+    ];
     
-    return apiBeats.map(beat => {
-      // Hydrate beat with full Scene objects (not just IDs)
-      const sceneIds = beat.scenes || [];
-      const hydratedScenes = sceneIds
-        .map((sceneId: string) => sceneMap.get(sceneId))
-        .filter(Boolean) as Scene[];
-      
-      return {
-        id: beat.id || beat.beat_id,
-        title: beat.title || '',
-        description: beat.description || '',
-        order: beat.order || 0,
-        scenes: hydratedScenes,  // ← Full Scene objects, not IDs
-        createdAt: beat.created_at || new Date().toISOString(),
-        updatedAt: beat.updated_at || new Date().toISOString()
-      };
-    });
+    return defaultBeatTitles.map((title, index) => ({
+      id: `beat_${index + 1}`,
+      title,
+      description: '',
+      order: index + 1,
+      scenes: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }));
   }
   
   /**
-   * Transform beats from app format to API format
+   * 🔥 Feature 0117: Group scenes into beats based on group_label or order
+   * This is a frontend-only operation for UI organization
    */
-  private transformBeatsToAPI(beats: StoryBeat[]): APIBeat[] {
-    const apiBeats = beats.map(beat => ({
-      id: beat.id,
-      title: beat.title,
-      description: beat.description || '', // API requires description, default to empty string
-      order: beat.order,
-      // 🔥 CRITICAL FIX: Extract scene IDs only - backend expects string[], not Scene[]
-      scenes: beat.scenes?.map(s => s.id) || []
-    }));
+  private groupScenesIntoBeats(beats: StoryBeat[], scenes: Scene[]): StoryBeat[] {
+    // Sort scenes by order
+    const sortedScenes = [...scenes].sort((a, b) => a.order - b.order);
     
-    // 🔥 DEBUG: Log what we're sending to API
-    console.log('[Persistence] 🔍 transformBeatsToAPI - Input beats scenes:', beats.map(b => ({ 
-      title: b.title, 
-      scenesCount: b.scenes?.length || 0,
-      firstSceneId: b.scenes?.[0]?.id || 'none'
-    })));
-    console.log('[Persistence] 🔍 transformBeatsToAPI - Output API beats scenes:', apiBeats.map(b => ({ 
-      title: b.title, 
-      scenesCount: b.scenes?.length || 0,
-      firstSceneId: b.scenes?.[0] || 'none'
-    })));
+    // If scenes have group_label, try to match them to beats by title
+    // Otherwise, distribute evenly across beats
+    const scenesPerBeat = Math.ceil(sortedScenes.length / beats.length);
     
-    return apiBeats;
+    return beats.map((beat, beatIndex) => {
+      const startIndex = beatIndex * scenesPerBeat;
+      const endIndex = Math.min(startIndex + scenesPerBeat, sortedScenes.length);
+      const beatScenes = sortedScenes.slice(startIndex, endIndex);
+      
+      // Try to match by group_label if available
+      const matchedScenes = sortedScenes.filter(scene => 
+        scene.group_label?.toLowerCase() === beat.title.toLowerCase()
+      );
+      
+      return {
+        ...beat,
+        scenes: matchedScenes.length > 0 ? matchedScenes : beatScenes
+      };
+    });
   }
 }
 

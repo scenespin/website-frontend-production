@@ -623,177 +623,8 @@ export async function deleteLocation(
 
 // ============================================================================
 // BEAT API FUNCTIONS
+// Feature 0117: Removed - beats are now frontend-only UI templates
 // ============================================================================
-
-/**
- * List beats for a screenplay
- */
-export async function listBeats(
-  screenplayId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<Beat[]> {
-  console.log('[screenplayStorage] 🔥 GET /api/screenplays/' + screenplayId + '/beats');
-  
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  console.log('[screenplayStorage] 🔥 Response status:', response.status);
-
-  if (!response.ok) {
-    const error = await response.json();
-    console.error('[screenplayStorage] 🔥 ERROR:', error);
-    throw new Error(error.message || 'Failed to list beats');
-  }
-
-  const data = await response.json();
-  console.log('[screenplayStorage] 🔥 Response data:', data);
-  console.log('[screenplayStorage] 🔥 Beats array:', data.data?.beats);
-  console.log('[screenplayStorage] 🔥 Returning', data.data?.beats?.length || 0, 'beats');
-  
-  return data.data.beats;
-}
-
-/**
- * Create a new beat
- */
-export async function createBeat(
-  screenplayId: string,
-  beat: Omit<Beat, 'id'>,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<Beat> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(beat)
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to create beat');
-  }
-
-  const data = await response.json();
-  return data.data.beat;
-}
-
-/**
- * Bulk create beats (for imports/paste)
- */
-export async function bulkCreateBeats(
-  screenplayId: string,
-  beats: Array<Omit<Beat, 'id'>>,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<Beat[]> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/beats/bulk', { count: beats.length });
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats/bulk`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ beats })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to bulk create beats');
-  }
-
-  const data = await response.json();
-  console.log('[screenplayStorage] ✅ Bulk created', data.count, 'beats');
-  return data.data;
-}
-
-/**
- * Update a beat
- */
-export async function updateBeat(
-  screenplayId: string,
-  beatId: string,
-  updates: Partial<Omit<Beat, 'id'>>,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<Beat> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats/${beatId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(updates)
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to update beat');
-  }
-
-  const data = await response.json();
-  return data.data.beat;
-}
-
-/**
- * Delete a beat
- */
-export async function deleteBeat(
-  screenplayId: string,
-  beatId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<void> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats/${beatId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete beat');
-  }
-}
-
-/**
- * Delete ALL beats for a screenplay
- */
-export async function deleteAllBeats(
-  screenplayId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<void> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/beats (all)');
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete all beats');
-  }
-  
-  console.log('[screenplayStorage] ✅ Deleted all beats');
-}
 
 /**
  * Delete ALL characters for a screenplay
@@ -848,7 +679,7 @@ export async function deleteAllLocations(
 }
 
 // ============================================================================
-// SCENE API FUNCTIONS (Feature 0115: Separate Scenes Table)
+// SCENE API FUNCTIONS (Feature 0117: Simplified Scene Architecture)
 // ============================================================================
 
 /**
@@ -875,33 +706,6 @@ export async function listScenes(
 
   const data = await response.json();
   console.log('[screenplayStorage] ✅ Scenes response:', data.data.scenes.length, 'scenes');
-  return data.data.scenes;
-}
-
-/**
- * List scenes for a specific beat
- */
-export async function listScenesByBeat(
-  screenplayId: string,
-  beatId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
-): Promise<Scene[]> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  console.log('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/beats/' + beatId + '/scenes');
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}/beats/${beatId}/scenes`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to list scenes by beat');
-  }
-
-  const data = await response.json();
   return data.data.scenes;
 }
 

@@ -150,12 +150,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     // Create full Scene object
                     return {
                         id: `scene-${Date.now()}-${globalIndex}-${Math.random().toString(36).substr(2, 9)}`,
-                        beatId: '', // Will be set when distributing to beats
+                        // Feature 0117: beatId removed - scenes use global order
                         number: globalIndex + 1,
                         heading: scene.heading,
                         synopsis: `Imported from script`,
                         status: 'draft' as const,
-                        order: 0, // Will be set when distributing to beats
+                        order: 0, // Will be set to global order (1, 2, 3...)
                         fountain: {
                             startLine: scene.startLine,
                             endLine: scene.endLine,
@@ -171,68 +171,31 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 console.log('[ScriptImportModal] ✅ Built', allScenes.length, 'complete Scene objects');
                 
-                // 🔥 Feature 0115: Distribute scenes to beats and assign beat_id + order
-                // 🔥 CRITICAL: Use freshBeats (from clearContentOnly return value) instead of screenplay.beats (stale React state)
-                const scenesPerBeat = Math.ceil(allScenes.length / freshBeats.length);
-                const beatSceneDistribution: { beatId: string; beatTitle: string; beatDescription: string; order: number; scenes: Scene[] }[] = [];
-                
-                // Distribute scenes to beats
-                freshBeats.forEach((beat, beatIndex) => {
-                    const startIdx = beatIndex * scenesPerBeat;
-                    const endIdx = Math.min(startIdx + scenesPerBeat, allScenes.length);
-                    const scenesForThisBeat = allScenes.slice(startIdx, endIdx).map((scene, localIndex) => ({
-                        ...scene,
-                        beatId: beat.id,
-                        order: localIndex
-                    }));
+                // 🔥 Feature 0117: Simplified - assign global order (1, 2, 3, 4...)
+                // Optionally assign group_label based on scene count or beat template
+                const scenesWithOrder = allScenes.map((scene, index) => {
+                    // Optionally assign group_label based on scene position
+                    // For 8-beat template, divide scenes into 8 groups
+                    const beatTitles = ['Setup', 'Inciting Incident', 'First Plot Point', 'First Pinch Point', 
+                                      'Midpoint', 'Second Pinch Point', 'Second Plot Point', 'Resolution'];
+                    const scenesPerGroup = Math.ceil(allScenes.length / 8);
+                    const groupIndex = Math.floor(index / scenesPerGroup);
+                    const group_label = groupIndex < beatTitles.length ? beatTitles[groupIndex] : undefined;
                     
-                    beatSceneDistribution.push({
-                        beatId: beat.id,
-                        beatTitle: beat.title,
-                        beatDescription: beat.description,
-                        order: beat.order,
-                        scenes: scenesForThisBeat
-                    });
+                    return {
+                        ...scene,
+                        order: index + 1, // Global order (1, 2, 3, 4...)
+                        group_label // Optional grouping for UI organization
+                    };
                 });
                 
-                console.log('[ScriptImportModal] ✅ Distributed scenes across beats:', beatSceneDistribution.map(d => ({
-                    beatId: d.beatId,
-                    scenesCount: d.scenes.length
-                })));
+                console.log('[ScriptImportModal] ✅ Assigned global order to', scenesWithOrder.length, 'scenes');
                 
-                // 🔥 Feature 0115: CRITICAL - Save scenes to wryda-scenes table FIRST
+                // 🔥 Feature 0117: Save scenes to wryda-scenes table (NO beat references)
                 console.log('[ScriptImportModal] 💾 Saving scenes to wryda-scenes table...');
                 if (screenplay.screenplayId) {
-                    const flatScenes = beatSceneDistribution.flatMap(d => d.scenes);
-                    await screenplay.saveScenes(flatScenes);  // ← Saves to wryda-scenes
-                    console.log('[ScriptImportModal] ✅ Saved', flatScenes.length, 'scenes to wryda-scenes table');
-                    
-                    // 🔥 Feature 0115: THEN update beats with scene IDs (NOT full objects)
-                    // 🔥 CRITICAL FIX: Build beats from beatSceneDistribution directly, NOT from stale React state!
-                    // The screenplay.beats in state were just cleared by clearContentOnly() - they have empty scenes arrays!
-                    console.log('[ScriptImportModal] 💾 Building beats directly from distribution (NOT from stale state)...');
-                    const beatsWithSceneIds = beatSceneDistribution.map(distribution => ({
-                        id: distribution.beatId,
-                        title: distribution.beatTitle,
-                        description: distribution.beatDescription,
-                        order: distribution.order,
-                        scenes: distribution.scenes,  // Full Scene objects for local state
-                        createdAt: now,
-                        updatedAt: now
-                    }));
-                    
-                    // 🔥 CRITICAL FIX: Only save beats, NOT characters/locations!
-                    // Characters and locations were already saved by bulkImportCharacters/bulkImportLocations above
-                    // Saving them again would create duplicates in DynamoDB
-                    console.log('[ScriptImportModal] 💾 Saving beats only (characters/locations already saved)...');
-                    await screenplay.saveAllToDynamoDBDirect(
-                        beatsWithSceneIds,
-                        [], // Empty - already saved by bulkImportCharacters
-                        [], // Empty - already saved by bulkImportLocations
-                        screenplay.screenplayId
-                    );
-                    
-                    console.log('[ScriptImportModal] ✅ Updated beats with scene IDs');
+                    await screenplay.saveScenes(scenesWithOrder);
+                    console.log('[ScriptImportModal] ✅ Saved', scenesWithOrder.length, 'scenes to wryda-scenes table');
                 } else {
                     throw new Error('No screenplay_id available for saving');
                 }

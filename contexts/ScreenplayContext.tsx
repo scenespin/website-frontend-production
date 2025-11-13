@@ -26,10 +26,7 @@ import {
     createLocation as apiCreateLocation,
     updateLocation as apiUpdateLocation,
     deleteLocation as apiDeleteLocation,
-    listBeats,
-    createBeat as apiCreateBeat,
-    updateBeat as apiUpdateBeat,
-    deleteBeat as apiDeleteBeat,
+    // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
     updateScreenplay as apiUpdateScreenplay
 } from '@/utils/screenplayStorage';
@@ -59,10 +56,7 @@ interface ScreenplayContextType {
     // Feature 0111 Phase 3: DynamoDB screenplay tracking
     screenplayId: string | null;
     
-    // CRUD - Story Beats
-    createBeat: (beat: CreateInput<StoryBeat>) => Promise<StoryBeat>;
-    updateBeat: (id: string, updates: Partial<StoryBeat>) => Promise<void>;
-    deleteBeat: (id: string) => Promise<void>;
+    // Feature 0117: Beat CRUD removed - beats are frontend-only UI templates
     
     // CRUD - Scenes
     createScene: (beatId: string, scene: CreateInput<Scene>) => Promise<Scene>;
@@ -94,14 +88,8 @@ interface ScreenplayContextType {
         startLine: number;
         endLine: number;
     }>) => Promise<Scene[]>;
-    saveBeatsToDynamoDB: () => Promise<void>; // Save beats after all imports complete
-    saveScenes: (scenes: Scene[]) => Promise<void>; // 🔥 Feature 0115: Save scenes to separate table
-    saveAllToDynamoDBDirect: (
-        beats: StoryBeat[],
-        characters: Character[],
-        locations: Location[],
-        screenplayId: string
-    ) => Promise<void>; // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
+    // Feature 0117: saveBeatsToDynamoDB removed - beats are frontend-only
+    saveScenes: (scenes: Scene[]) => Promise<void>; // 🔥 Feature 0117: Save scenes to separate table
     
     // 🔥 NEW: Get current state without closure issues
     getCurrentState: () => {
@@ -110,13 +98,11 @@ interface ScreenplayContextType {
         locations: Location[];
     };
     
-    // Clear all structure (beats, characters, locations) - for destructive import
-    clearAllStructure: () => Promise<void>;
-    clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 RETURNS fresh beats to avoid state timing issues!
+    // Feature 0117: clearAllStructure, saveAllToDynamoDBDirect, repairOrphanedScenes removed
+    clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 Returns fresh beats (frontend template only)
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
     rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; }>;
-    repairOrphanedScenes: () => Promise<void>; // 🔥 NEW: Repair orphaned scenes
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -465,85 +451,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // CRUD - Story Beats
     // ========================================================================
     
-    const createBeat = useCallback(async (beat: CreateInput<StoryBeat>): Promise<StoryBeat> => {
-        const now = new Date().toISOString();
-        const newBeat: StoryBeat = {
-            ...beat,
-            // SAFETY: Ensure scenes is always an array, never undefined or corrupted
-            scenes: Array.isArray(beat.scenes) ? beat.scenes : [],
-            id: `beat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            createdAt: now,
-            updatedAt: now
-        };
-        
-        setBeats(prev => [...prev, newBeat]);
-        
-        // Feature 0111 Phase 3: Create in DynamoDB
-        if (screenplayId) {
-            try {
-                // Transform: Extract scene IDs for backend (backend expects string[], not Scene[])
-                const beatForBackend = {
-                    ...newBeat,
-                    scenes: newBeat.scenes.map(s => s.id)
-                };
-                await apiCreateBeat(screenplayId, beatForBackend as any, getToken);
-                console.log('[ScreenplayContext] ✅ Created beat in DynamoDB');
-            } catch (error) {
-                console.error('[ScreenplayContext] Failed to create beat in DynamoDB:', error);
-            }
-        }
-        
-        return newBeat;
-    }, [screenplayId, getToken]);
-    
-    const updateBeat = useCallback(async (id: string, updates: Partial<StoryBeat>) => {
-        setBeats(prev => prev.map(beat => {
-            if (beat.id !== id) return beat;
-            
-            const updatedBeat = { ...beat, ...updates, updatedAt: new Date().toISOString() };
-            
-            // SAFETY: If scenes is being updated, ensure it's always an array
-            if ('scenes' in updates) {
-                updatedBeat.scenes = Array.isArray(updates.scenes) ? updates.scenes : [];
-            }
-            
-            return updatedBeat;
-        }));
-        
-        // Feature 0111 Phase 3: Update in DynamoDB
-        if (screenplayId) {
-            try {
-                // Transform: Extract scene IDs if scenes are being updated
-                const updatesForBackend: any = {};
-                if (updates.title !== undefined) updatesForBackend.title = updates.title;
-                if (updates.description !== undefined) updatesForBackend.description = updates.description;
-                if (updates.order !== undefined) updatesForBackend.order = updates.order;
-                if (updates.scenes !== undefined) {
-                    updatesForBackend.scenes = updates.scenes.map(s => s.id);
-                }
-                
-                await apiUpdateBeat(screenplayId, id, updatesForBackend, getToken);
-                console.log('[ScreenplayContext] ✅ Updated beat in DynamoDB');
-            } catch (error) {
-                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
-            }
-        }
-    }, [screenplayId, getToken]);
-    
-    const deleteBeat = useCallback(async (id: string) => {
-        const beat = beats.find(b => b.id === id);
-        setBeats(prev => prev.filter(b => b.id !== id));
-        
-        // Feature 0111 Phase 3: Delete from DynamoDB
-        if (screenplayId && beat) {
-            try {
-                await apiDeleteBeat(screenplayId, id, getToken);
-                console.log('[ScreenplayContext] ✅ Deleted beat from DynamoDB');
-            } catch (error) {
-                console.error('[ScreenplayContext] Failed to delete beat from DynamoDB:', error);
-            }
-        }
-    }, [beats, screenplayId, getToken]);
+    // Feature 0117: Beat CRUD functions removed - beats are frontend-only UI templates
     
     // ========================================================================
     // CRUD - Scenes
@@ -1740,48 +1648,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [screenplayId]);
     
-    // 🔥 FIXED: Save ALL structure to DynamoDB (NO CLOSURE ISSUES!)
-    // Accepts data as parameters instead of relying on closure/dependency array
-    const saveAllToDynamoDBDirect = useCallback(async (
-        beatsToSave: StoryBeat[],
-        charactersToSave: Character[],
-        locationsToSave: Location[],
-        screenplayIdToUse: string
-    ) => {
-        if (!screenplayIdToUse) {
-            console.warn('[ScreenplayContext] Cannot save: no screenplay_id provided');
-            return;
-        }
-        
-        try {
-            console.log('[ScreenplayContext] 💾 Saving ALL structure to DynamoDB for:', screenplayIdToUse);
-            console.log('[ScreenplayContext] 🔍 Data to save:', {
-                beats: beatsToSave.length,
-                characters: charactersToSave.length,
-                locations: locationsToSave.length
-            });
-            
-            // Set the screenplay ID
-            persistenceManager.setScreenplay(screenplayIdToUse, getToken);
-            
-            // Save everything at once
-            await persistenceManager.saveAll({
-                beats: beatsToSave,
-                characters: charactersToSave,
-                locations: locationsToSave
-            });
-            
-            console.log('[ScreenplayContext] ✅ Saved ALL structure:', {
-                screenplay_id: screenplayIdToUse,
-                beats: beatsToSave.length,
-                characters: charactersToSave.length,
-                locations: locationsToSave.length
-            });
-        } catch (err) {
-            console.error('[ScreenplayContext] Failed to save all to DynamoDB:', err);
-            throw err;
-        }
-    }, [getToken]);
+    // Feature 0117: saveAllToDynamoDBDirect removed - use saveScenes() instead
     
     // ========================================================================
     // Scene Position Management
@@ -1893,45 +1760,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Clear All Structure (Destructive Import Support)
     // ========================================================================
     
-    /**
-     * Clear ALL structure data (beats, characters, locations) from DynamoDB and local state.
-     * Used for destructive import - deletes everything before importing fresh data.
-     */
-    const clearAllStructure = useCallback(async () => {
-        if (!screenplayId) {
-            console.warn('[ScreenplayContext] Cannot clear structure: no screenplay_id');
-            return;
-        }
-        
-        console.log('[ScreenplayContext] 🔥 Clearing ALL structure data (including beats) for COMPLETE RESET...');
-        
-        try {
-            // Clear from DynamoDB via persistence manager
-            await persistenceManager.clearAll();
-            
-            console.log('[ScreenplayContext] ✅ Cleared structure from DynamoDB');
-            
-            // Clear local state - INCLUDING BEATS
-            setBeats([]);
-            setCharacters([]);
-            setLocations([]);
-            setRelationships({
-                beats: {},
-                characters: {},
-                locations: {},
-                scenes: {},
-                props: {}
-            });
-            
-            // Reset flag to allow beat recreation
-            hasAutoCreated.current = false;
-            
-            console.log('[ScreenplayContext] ✅ Cleared local structure state (complete reset)');
-        } catch (err) {
-            console.error('[ScreenplayContext] ❌ Failed to clear structure:', err);
-            throw err;
-        }
-    }, [screenplayId]);
+    // Feature 0117: clearAllStructure removed - use clearContentOnly() or persistenceManager.clearAll() directly
     
     // ========================================================================
     // Clear Content Only (For Imports - Preserve 8-Beat Structure)
@@ -1948,198 +1777,51 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
      * 
      * Use clearAllStructure() for "Clear All" button (nuclear option)
      */
+    // Feature 0117: Simplified clearContentOnly - just reset local state to defaults
+    // Beats are frontend-only templates, no DynamoDB operations needed
     const clearContentOnly = useCallback(async (): Promise<StoryBeat[]> => {
-        console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving 8-beat structure)...');
-        console.log('[ScreenplayContext] 🔍 Current screenplay_id:', screenplayId || 'NONE (first import)');
+        console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving beat template structure)...');
         
-        try {
-            // 🔥 FIX: Only delete from DynamoDB if screenplay_id exists
-            // On first import, there's nothing to delete yet
-            if (screenplayId) {
-                console.log('[ScreenplayContext] 🗑️ Deleting old data from DynamoDB...');
-                await persistenceManager.deleteAllBeats();
-                
-                // 🔥 Feature 0115: Clear scenes, characters, and locations from DynamoDB
-                await Promise.all([
-                    persistenceManager.deleteAllScenes(),      // ← NEW: Delete scenes from wryda-scenes
-                    persistenceManager.deleteAllCharacters(),
-                    persistenceManager.deleteAllLocations()
-                ]);
-                
-                console.log('[ScreenplayContext] ✅ Cleared old data from DynamoDB');
-            } else {
-                console.log('[ScreenplayContext] ⏭️ No screenplay_id yet - skipping DynamoDB delete (first import)');
-            }
-            
-            // 🔥 CRITICAL: ALWAYS create fresh 8-beat structure (even without screenplay_id)
-            // These will be saved to DynamoDB AFTER scenes are added during import
-            const sequences = [
-                {
-                    title: 'Sequence 1: Status Quo',
-                    description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
-                    order: 0
-                },
-                {
-                    title: 'Sequence 2: Predicament',
-                    description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
-                    order: 1
-                },
-                {
-                    title: 'Sequence 3: Lock In',
-                    description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
-                    order: 2
-                },
-                {
-                    title: 'Sequence 4: First Culmination',
-                    description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
-                    order: 3
-                },
-                {
-                    title: 'Sequence 5: Midpoint Shift',
-                    description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
-                    order: 4
-                },
-                {
-                    title: 'Sequence 6: Complications',
-                    description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
-                    order: 5
-                },
-                {
-                    title: 'Sequence 7: All Is Lost',
-                    description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
-                    order: 6
-                },
-                {
-                    title: 'Sequence 8: Resolution',
-                    description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
-                    order: 7
-                }
-            ];
-            
-            const now = new Date().toISOString();
-            const freshBeats = sequences.map((seq, index) => ({
-                id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-                title: seq.title,
-                description: seq.description,
-                order: seq.order,
-                scenes: [],
-                createdAt: now,
-                updatedAt: now
-            }));
-            
-            // Update local state with fresh beats
-            setBeats(freshBeats);
-            setCharacters([]);
-            setLocations([]);
-            setRelationships({
-                beats: {},
-                characters: {},
-                locations: {},
-                scenes: {},
-                props: {}
-            });
-            
-            console.log('[ScreenplayContext] ✅ Created fresh 8-beat structure:', freshBeats.length, 'beats');
-            console.log('[ScreenplayContext] 🔍 First beat ID:', freshBeats[0]?.id);
-            console.log('[ScreenplayContext] 🔍 Returning beats for immediate use (no state dependency)');
-            
-            // 🔥 CRITICAL FIX: Return freshBeats so caller can use them immediately
-            // Don't rely on React state updates which are asynchronous!
-            return freshBeats;
-        } catch (err) {
-            console.error('[ScreenplayContext] ❌ Failed to clear content:', err);
-            throw err;
-        }
-    }, [screenplayId]);
+        // Create default 8-beat template (frontend-only)
+        const sequences = [
+            { title: 'Setup', description: '', order: 0 },
+            { title: 'Inciting Incident', description: '', order: 1 },
+            { title: 'First Plot Point', description: '', order: 2 },
+            { title: 'First Pinch Point', description: '', order: 3 },
+            { title: 'Midpoint', description: '', order: 4 },
+            { title: 'Second Pinch Point', description: '', order: 5 },
+            { title: 'Second Plot Point', description: '', order: 6 },
+            { title: 'Resolution', description: '', order: 7 }
+        ];
+        
+        const now = new Date().toISOString();
+        const freshBeats = sequences.map((seq, index) => ({
+            id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+            title: seq.title,
+            description: seq.description,
+            order: seq.order,
+            scenes: [],
+            createdAt: now,
+            updatedAt: now
+        }));
+        
+        // Reset local state
+        setBeats(freshBeats);
+        setCharacters([]);
+        setLocations([]);
+        setRelationships({
+            beats: {},
+            characters: {},
+            locations: {},
+            scenes: {},
+            props: {}
+        });
+        
+        console.log('[ScreenplayContext] ✅ Reset to default beat template');
+        return freshBeats;
+    }, []);
     
-    // ========================================================================
-    // 🔥 NEW: Repair Orphaned Scenes
-    // ========================================================================
-    
-    /**
-     * Repair function: Loads scenes from wryda-scenes and redistributes them across beats
-     * Use this to fix screenplays where scenes were saved but beats don't have scene IDs
-     */
-    const repairOrphanedScenes = useCallback(async (): Promise<void> => {
-        if (!screenplayId) {
-            console.error('[ScreenplayContext] Cannot repair: no screenplay_id');
-            toast.error('No screenplay ID available');
-            return;
-        }
-        
-        console.log('[ScreenplayContext] 🔧 REPAIR: Loading all scenes from wryda-scenes...');
-        
-        try {
-            // Load all scenes directly from wryda-scenes table
-            const allScenes = await persistenceManager.loadScenes();
-            console.log('[ScreenplayContext] 🔍 Found', allScenes.length, 'scenes in wryda-scenes');
-            
-            if (allScenes.length === 0) {
-                toast.info('No scenes found to repair');
-                return;
-            }
-            
-            // Use current beats (should be 8)
-            if (beats.length === 0) {
-                throw new Error('No beats available - please refresh the page');
-            }
-            
-            console.log('[ScreenplayContext] 🔧 REPAIR: Redistributing', allScenes.length, 'scenes across', beats.length, 'beats...');
-            
-            // Distribute scenes evenly across beats
-            const scenesPerBeat = Math.ceil(allScenes.length / beats.length);
-            const updatedBeats = beats.map((beat, beatIndex) => {
-                const startIdx = beatIndex * scenesPerBeat;
-                const endIdx = Math.min(startIdx + scenesPerBeat, allScenes.length);
-                const scenesForThisBeat = allScenes.slice(startIdx, endIdx).map((scene, localIndex) => ({
-                    ...scene,
-                    beatId: beat.id,
-                    order: localIndex
-                }));
-                
-                return {
-                    ...beat,
-                    scenes: scenesForThisBeat,
-                    updatedAt: new Date().toISOString()
-                };
-            });
-            
-            console.log('[ScreenplayContext] 🔧 REPAIR: Distribution:', updatedBeats.map(b => ({
-                title: b.title,
-                scenesCount: b.scenes.length
-            })));
-            
-            // Update scenes with correct beat_id and order
-            const flatScenes = updatedBeats.flatMap(b => b.scenes);
-            await persistenceManager.saveScenes(flatScenes);
-            console.log('[ScreenplayContext] ✅ REPAIR: Updated', flatScenes.length, 'scenes in wryda-scenes');
-            
-            // Save beats with scene IDs
-            await persistenceManager.saveAll({
-                beats: updatedBeats,
-                characters: characters,
-                locations: locations
-            });
-            console.log('[ScreenplayContext] ✅ REPAIR: Updated beats in DynamoDB');
-            
-            // Update local state
-            setBeats(updatedBeats);
-            
-            toast.success('✅ Repaired! Found ' + allScenes.length + ' scenes and distributed across ' + beats.length + ' beats');
-            
-            console.log('[ScreenplayContext] 🎉 REPAIR COMPLETE! Refresh page to see changes.');
-            
-            // Auto-refresh after 2 seconds
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-            
-        } catch (err) {
-            console.error('[ScreenplayContext] ❌ REPAIR FAILED:', err);
-            toast.error('Repair failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
-            throw err;
-        }
-    }, [screenplayId, beats, characters, locations]);
+    // Feature 0117: repairOrphanedScenes removed - no orphaned scenes possible with simplified architecture
     
     // ========================================================================
     // Re-scan Script (Additive Import Support)
@@ -2280,10 +1962,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: DynamoDB screenplay tracking
         screenplayId,
         
-        // Story Beats
-        createBeat,
-        updateBeat,
-        deleteBeat,
+        // Feature 0117: Beat CRUD removed - beats are frontend-only UI templates
         
         // Scenes
         createScene,
@@ -2308,16 +1987,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportCharacters,
         bulkImportLocations,
         bulkImportScenes,
-        saveBeatsToDynamoDB, // Save beats after all imports complete
-        saveScenes,          // 🔥 Feature 0115: Save scenes to separate table
-        saveAllToDynamoDBDirect, // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
+        // Feature 0117: saveBeatsToDynamoDB removed - beats are frontend-only
+        saveScenes,          // 🔥 Feature 0117: Save scenes to separate table
+        // Feature 0117: saveAllToDynamoDBDirect removed
         getCurrentState, // 🔥 NEW: Get current state without closure issues
         
         // Clear and Re-scan (Feature 0117: Destructive Import + Additive Re-scan)
-        clearAllStructure, // 🔥 Clear ALL structure including beats (for "Clear All" button)
-        clearContentOnly, // 🔥 NEW: Clear content only, preserve 8-beat structure (for imports)
+        // Feature 0117: clearAllStructure removed
+        clearContentOnly, // 🔥 Clear content only, preserve beat template (for imports)
         rescanScript, // 🔥 NEW: Re-scan for new entities (smart merge)
-        repairOrphanedScenes, // 🔥 NEW: Repair orphaned scenes
+        // Feature 0117: repairOrphanedScenes removed
         
         // Scene Position Management
         updateScenePositions,

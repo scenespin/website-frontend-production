@@ -56,7 +56,8 @@ export interface ImageAsset {
 
 /**
  * Story Beat (Act/Sequence)
- * Stored in: /structure/beats.json
+ * Feature 0117: Frontend-only template - NOT persisted to DynamoDB
+ * Used purely for UI organization. Scenes are grouped by group_label or order.
  */
 export interface StoryBeat {
     id: string;
@@ -82,7 +83,8 @@ export interface StoryBeat {
 }
 
 /**
- * Scene within a story beat
+ * Scene within a screenplay
+ * Feature 0117: Simplified architecture - scenes use global ordering
  * References characters and locations
  */
 export interface Scene {
@@ -90,9 +92,9 @@ export interface Scene {
     number: number;
     heading: string; // "INT. COFFEE SHOP - DAY"
     synopsis: string;
-    beatId: string; // Parent story beat
     status: SceneStatus;
-    order: number; // Order within beat
+    order: number; // Global order in screenplay (1, 2, 3, 4...)
+    group_label?: string; // Optional grouping label (e.g., "Act 1", "Setup", "Sequence 1")
     fountain: {
         startLine: number;
         endLine: number;
