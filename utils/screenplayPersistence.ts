@@ -378,6 +378,16 @@ export class ScreenplayPersistenceManager {
       
       console.log('[Persistence] ✅ Saved', beats.length, 'beats');
       
+      // 🔥 VERIFICATION: Read back immediately to confirm persistence
+      console.log('[Persistence] 🔍 VERIFICATION: Reading beats back from DynamoDB...');
+      const savedBeats = await listBeats(this.screenplayId, this.getToken);
+      console.log('[Persistence] 🔍 VERIFICATION: Found', savedBeats.length, 'beats in DynamoDB');
+      if (savedBeats.length !== beats.length) {
+        console.error('[Persistence] ⚠️  MISMATCH: Saved', beats.length, 'but found', savedBeats.length);
+      } else {
+        console.log('[Persistence] ✅ VERIFICATION PASSED: All beats persisted correctly');
+      }
+      
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save beats:', error);
       throw error;
