@@ -33,6 +33,33 @@ export interface Location {
   referenceImages?: string[];
 }
 
+export interface Scene {
+  id: string;
+  beat_id: string;
+  number: number;
+  heading: string;
+  synopsis: string;
+  status: 'draft' | 'review' | 'final';
+  order: number;
+  fountain: {
+    startLine: number;
+    endLine: number;
+    tags: {
+      location?: string;
+      characters: string[];
+      props?: string[];
+    };
+  };
+  estimatedPageCount?: number;
+  images?: any[];
+  videoAssets?: any;
+  timing?: {
+    startMinute: number;
+    durationMinutes: number;
+    pageNumber?: number;
+  };
+}
+
 export interface Relationships {
   [key: string]: any;
 }
@@ -818,6 +845,201 @@ export async function deleteAllLocations(
   }
   
   console.log('[screenplayStorage] ✅ Deleted all locations');
+}
+
+// ============================================================================
+// SCENE API FUNCTIONS (Feature 0115: Separate Scenes Table)
+// ============================================================================
+
+/**
+ * List scenes for a screenplay
+ */
+export async function listScenes(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Scene[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/scenes');
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to list scenes');
+  }
+
+  const data = await response.json();
+  console.log('[screenplayStorage] ✅ Scenes response:', data.data.scenes.length, 'scenes');
+  return data.data.scenes;
+}
+
+/**
+ * List scenes for a specific beat
+ */
+export async function listScenesByBeat(
+  screenplayId: string,
+  beatId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Scene[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/beats/' + beatId + '/scenes');
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/beats/${beatId}/scenes`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to list scenes by beat');
+  }
+
+  const data = await response.json();
+  return data.data.scenes;
+}
+
+/**
+ * Create a new scene
+ */
+export async function createScene(
+  screenplayId: string,
+  scene: Omit<Scene, 'id'>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Scene> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(scene)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create scene');
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+/**
+ * Bulk create scenes (for imports/paste)
+ */
+export async function bulkCreateScenes(
+  screenplayId: string,
+  scenes: Array<Omit<Scene, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Scene[]> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 POST /api/screenplays/' + screenplayId + '/scenes/bulk', { count: scenes.length });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/bulk`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ scenes })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to bulk create scenes');
+  }
+
+  const data = await response.json();
+  console.log('[screenplayStorage] ✅ Bulk created', data.count, 'scenes');
+  return data.data;
+}
+
+/**
+ * Update a scene
+ */
+export async function updateScene(
+  screenplayId: string,
+  sceneId: string,
+  updates: Partial<Omit<Scene, 'id'>>,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Scene> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/${sceneId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update scene');
+  }
+
+  const data = await response.json();
+  return data.data;
+}
+
+/**
+ * Delete a scene
+ */
+export async function deleteScene(
+  screenplayId: string,
+  sceneId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes/${sceneId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete scene');
+  }
+}
+
+/**
+ * Delete all scenes for a screenplay (for Clear All)
+ */
+export async function deleteAllScenes(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<void> {
+  const token = await getToken({ template: 'wryda-backend' });
+  
+  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/scenes (all)');
+  
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete all scenes');
+  }
+  
+  console.log('[screenplayStorage] ✅ Deleted all scenes');
 }
 
 // ============================================================================

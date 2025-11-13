@@ -20,16 +20,21 @@ import {
   listBeats, 
   listCharacters, 
   listLocations,
+  listScenes,          // Feature 0115: Separate Scenes Table
+  listScenesByBeat,    // Feature 0115: Separate Scenes Table
   bulkCreateBeats,
   bulkCreateCharacters,
   bulkCreateLocations,
+  bulkCreateScenes,    // Feature 0115: Separate Scenes Table
   deleteAllBeats,
   deleteAllCharacters,
   deleteAllLocations,
+  deleteAllScenes,     // Feature 0115: Separate Scenes Table
   updateScreenplay as apiUpdateScreenplay 
 } from './screenplayStorage';
 import type { 
-  StoryBeat, 
+  StoryBeat,
+  Scene,                // Feature 0115: Separate Scenes Table
   Character, 
   Location, 
   Relationships,
@@ -139,8 +144,8 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 📥 Loading from DynamoDB...', this.screenplayId);
     
     try {
-      // Load all data in parallel
-      const [beatsData, charactersData, locationsData] = await Promise.all([
+      // 🔥 Feature 0115: Load scenes from separate table in parallel
+      const [beatsData, charactersData, locationsData, scenesData] = await Promise.all([
         listBeats(this.screenplayId, this.getToken).catch(err => {
           console.warn('[Persistence] Failed to load beats:', err);
           return [];
@@ -152,12 +157,20 @@ export class ScreenplayPersistenceManager {
         listLocations(this.screenplayId, this.getToken).catch(err => {
           console.warn('[Persistence] Failed to load locations:', err);
           return [];
+        }),
+        listScenes(this.screenplayId, this.getToken).catch(err => {
+          console.warn('[Persistence] Failed to load scenes:', err);
+          return [];
         })
       ]);
       
+      // 🔥 Feature 0115: Transform scenes first, then hydrate beats
+      const transformedScenes = this.transformScenesFromAPI(scenesData);
+      const transformedBeats = this.transformBeatsFromAPI(beatsData, transformedScenes);
+      
       // Transform API data to app format
       const transformedData: ScreenplayData = {
-        beats: this.transformBeatsFromAPI(beatsData),
+        beats: transformedBeats,
         characters: this.transformCharactersFromAPI(charactersData),
         locations: this.transformLocationsFromAPI(locationsData),
         relationships: { beats: {}, scenes: {}, characters: {}, locations: {}, props: {} }
@@ -168,7 +181,8 @@ export class ScreenplayPersistenceManager {
       console.log('[Persistence] ✅ Loaded:', {
         beats: transformedData.beats.length,
         characters: transformedData.characters.length,
-        locations: transformedData.locations.length
+        locations: transformedData.locations.length,
+        scenes: transformedScenes.length
       });
       
       return transformedData;
@@ -412,9 +426,10 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 🗑️ Clearing all data for screenplay:', this.screenplayId);
     
     try {
-      // 🔥 NEW ARCHITECTURE: Use separate table endpoints to delete all data
+      // 🔥 Feature 0115: Use separate table endpoints to delete all data
       await Promise.all([
         deleteAllBeats(this.screenplayId, this.getToken),
+        deleteAllScenes(this.screenplayId, this.getToken),      // ← NEW: Delete scenes from wryda-scenes
         deleteAllCharacters(this.screenplayId, this.getToken),
         deleteAllLocations(this.screenplayId, this.getToken),
         // Also clear screenplay text content
@@ -468,6 +483,45 @@ export class ScreenplayPersistenceManager {
       console.log('[Persistence] ✅ Deleted all locations');
     } catch (error) {
       console.error('[Persistence] ❌ Failed to delete locations:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 🔥 Feature 0115: Save scenes to separate wryda-scenes table
+   */
+  async saveScenes(scenes: Scene[]): Promise<void> {
+    if (!this.screenplayId) {
+      throw new Error('[Persistence] Cannot save scenes: No screenplay_id set');
+    }
+    
+    console.log('[Persistence] 💾 Saving scenes...', scenes.length);
+    
+    try {
+      const apiScenes = this.transformScenesToAPI(scenes);
+      await bulkCreateScenes(this.screenplayId, apiScenes, this.getToken);
+      console.log('[Persistence] ✅ Saved', scenes.length, 'scenes');
+    } catch (error) {
+      console.error('[Persistence] ❌ Failed to save scenes:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 🔥 Feature 0115: Delete all scenes from wryda-scenes table
+   */
+  async deleteAllScenes(): Promise<void> {
+    if (!this.screenplayId) {
+      throw new Error('[Persistence] Cannot delete scenes: No screenplay_id set');
+    }
+    
+    console.log('[Persistence] 🗑️ Deleting all scenes...');
+    
+    try {
+      await deleteAllScenes(this.screenplayId, this.getToken);
+      console.log('[Persistence] ✅ Deleted all scenes');
+    } catch (error) {
+      console.error('[Persistence] ❌ Failed to delete scenes:', error);
       throw error;
     }
   }
@@ -580,18 +634,77 @@ export class ScreenplayPersistenceManager {
   }
   
   /**
+   * 🔥 Feature 0115: Transform scenes from API format to app format
+   */
+  private transformScenesFromAPI(apiScenes: any[]): Scene[] {
+    return apiScenes.map(scene => ({
+      id: scene.id || scene.scene_id,
+      beatId: scene.beat_id,
+      number: scene.number,
+      heading: scene.heading || '',
+      synopsis: scene.synopsis || '',
+      status: scene.status || 'draft',
+      order: scene.order || 0,
+      fountain: scene.fountain || { startLine: 0, endLine: 0, tags: { characters: [] } },
+      estimatedPageCount: scene.estimatedPageCount,
+      images: scene.images,
+      videoAssets: scene.videoAssets,
+      timing: scene.timing,
+      createdAt: scene.created_at || new Date().toISOString(),
+      updatedAt: scene.updated_at || new Date().toISOString()
+    }));
+  }
+  
+  /**
+   * 🔥 Feature 0115: Transform scenes from app format to API format
+   */
+  private transformScenesToAPI(scenes: Scene[]): any[] {
+    return scenes.map(scene => ({
+      beat_id: scene.beatId,
+      number: scene.number,
+      heading: scene.heading,
+      synopsis: scene.synopsis,
+      status: scene.status,
+      order: scene.order,
+      fountain: scene.fountain,
+      estimatedPageCount: scene.estimatedPageCount,
+      images: scene.images,
+      videoAssets: scene.videoAssets,
+      timing: scene.timing
+    }));
+  }
+  
+  /**
    * Transform beats from API format to app format
    */
-  private transformBeatsFromAPI(apiBeats: any[]): StoryBeat[] {
-    return apiBeats.map(beat => ({
-      id: beat.id || beat.beat_id,
-      title: beat.title || '',
-      description: beat.description || '',
-      order: beat.order || 0,
-      scenes: beat.scenes || [],
-      createdAt: beat.created_at || new Date().toISOString(),
-      updatedAt: beat.updated_at || new Date().toISOString()
-    }));
+  /**
+   * 🔥 Feature 0115: Transform beats from API format and hydrate with Scene objects
+   * @param apiBeats - Raw beats from DynamoDB (scenes field contains string[] of scene IDs)
+   * @param allScenes - All scenes for the screenplay (from separate wryda-scenes table)
+   * @returns Beats hydrated with full Scene objects
+   */
+  private transformBeatsFromAPI(apiBeats: any[], allScenes: Scene[]): StoryBeat[] {
+    // Build scene lookup map for O(1) access
+    const sceneMap = new Map<string, Scene>();
+    allScenes.forEach(scene => sceneMap.set(scene.id, scene));
+    
+    return apiBeats.map(beat => {
+      // Hydrate beat with full Scene objects (not just IDs)
+      const sceneIds = beat.scenes || [];
+      const hydratedScenes = sceneIds
+        .map((sceneId: string) => sceneMap.get(sceneId))
+        .filter(Boolean) as Scene[];
+      
+      return {
+        id: beat.id || beat.beat_id,
+        title: beat.title || '',
+        description: beat.description || '',
+        order: beat.order || 0,
+        scenes: hydratedScenes,  // ← Full Scene objects, not IDs
+        createdAt: beat.created_at || new Date().toISOString(),
+        updatedAt: beat.updated_at || new Date().toISOString()
+      };
+    });
   }
   
   /**

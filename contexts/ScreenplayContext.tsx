@@ -94,6 +94,7 @@ interface ScreenplayContextType {
         endLine: number;
     }>) => Promise<Scene[]>;
     saveBeatsToDynamoDB: () => Promise<void>; // Save beats after all imports complete
+    saveScenes: (scenes: Scene[]) => Promise<void>; // 🔥 Feature 0115: Save scenes to separate table
     saveAllToDynamoDBDirect: (
         beats: StoryBeat[],
         characters: Character[],
@@ -1716,6 +1717,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [screenplayId]); // Removed beats dependency - using ref instead
     
+    /**
+     * 🔥 Feature 0115: Save scenes to separate wryda-scenes table
+     * Extracts all scenes from all beats and saves them to DynamoDB
+     */
+    const saveScenes = useCallback(async (scenes: Scene[]): Promise<void> => {
+        if (!screenplayId) {
+            console.warn('[ScreenplayContext] Cannot save scenes: no screenplay_id');
+            return;
+        }
+        
+        console.log('[ScreenplayContext] 💾 Saving', scenes.length, 'scenes to wryda-scenes table...');
+        
+        try {
+            await persistenceManager.saveScenes(scenes);
+            console.log('[ScreenplayContext] ✅ Saved', scenes.length, 'scenes');
+        } catch (err) {
+            console.error('[ScreenplayContext] ❌ Failed to save scenes:', err);
+            throw err;
+        }
+    }, [screenplayId]);
+    
     // 🔥 FIXED: Save ALL structure to DynamoDB (NO CLOSURE ISSUES!)
     // Accepts data as parameters instead of relying on closure/dependency array
     const saveAllToDynamoDBDirect = useCallback(async (
@@ -1938,13 +1960,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.log('[ScreenplayContext] 🗑️ Deleting old beats from DynamoDB...');
             await persistenceManager.deleteAllBeats();
             
-            // Clear characters and locations from DynamoDB
+            // 🔥 Feature 0115: Clear scenes, characters, and locations from DynamoDB
             await Promise.all([
+                persistenceManager.deleteAllScenes(),      // ← NEW: Delete scenes from wryda-scenes
                 persistenceManager.deleteAllCharacters(),
                 persistenceManager.deleteAllLocations()
             ]);
             
-            console.log('[ScreenplayContext] ✅ Cleared old beats, characters, and locations from DynamoDB');
+            console.log('[ScreenplayContext] ✅ Cleared old beats, scenes, characters, and locations from DynamoDB');
             
             // 🔥 NEW: Create fresh 8-beat structure in local state
             // These will be saved to DynamoDB AFTER scenes are added during import
@@ -2189,6 +2212,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         bulkImportLocations,
         bulkImportScenes,
         saveBeatsToDynamoDB, // Save beats after all imports complete
+        saveScenes,          // 🔥 Feature 0115: Save scenes to separate table
         saveAllToDynamoDBDirect, // 🔥 NEW: Save ALL structure (NO CLOSURE ISSUES!)
         getCurrentState, // 🔥 NEW: Get current state without closure issues
         

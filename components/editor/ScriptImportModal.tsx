@@ -179,9 +179,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 console.log('[ScriptImportModal] ✅ Built', allScenes.length, 'complete Scene objects');
                 
-                // 🔥 PROPER FIX: Distribute scenes to beats (build complete beat objects)
+                // 🔥 Feature 0115: Distribute scenes to beats and assign beat_id + order
                 const scenesPerBeat = Math.ceil(allScenes.length / screenplay.beats.length);
-                const beatsWithScenes = screenplay.beats.map((beat, beatIndex) => {
+                const beatSceneDistribution: { beatId: string; scenes: Scene[] }[] = [];
+                
+                // Distribute scenes to beats
+                screenplay.beats.forEach((beat, beatIndex) => {
                     const startIdx = beatIndex * scenesPerBeat;
                     const endIdx = Math.min(startIdx + scenesPerBeat, allScenes.length);
                     const scenesForThisBeat = allScenes.slice(startIdx, endIdx).map((scene, localIndex) => ({
@@ -190,30 +193,46 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         order: localIndex
                     }));
                     
-                    return {
-                        ...beat,
-                        scenes: scenesForThisBeat,
-                        updatedAt: now
-                    };
+                    beatSceneDistribution.push({
+                        beatId: beat.id,
+                        scenes: scenesForThisBeat
+                    });
                 });
                 
-                console.log('[ScriptImportModal] ✅ Distributed scenes across beats:', beatsWithScenes.map(b => ({ 
-                    title: b.title, 
-                    scenesCount: b.scenes.length 
+                console.log('[ScriptImportModal] ✅ Distributed scenes across beats:', beatSceneDistribution.map(d => ({
+                    beatId: d.beatId,
+                    scenesCount: d.scenes.length
                 })));
                 
-                // 🔥 PROPER FIX: Save complete data structure in ONE operation (deterministic!)
-                console.log('[ScriptImportModal] 💾 Saving complete structure to DynamoDB...');
+                // 🔥 Feature 0115: CRITICAL - Save scenes to wryda-scenes table FIRST
+                console.log('[ScriptImportModal] 💾 Saving scenes to wryda-scenes table...');
                 if (screenplay.screenplayId) {
+                    const flatScenes = beatSceneDistribution.flatMap(d => d.scenes);
+                    await screenplay.saveScenes(flatScenes);  // ← Saves to wryda-scenes
+                    console.log('[ScriptImportModal] ✅ Saved', flatScenes.length, 'scenes to wryda-scenes table');
+                    
+                    // 🔥 Feature 0115: THEN update beats with scene IDs (NOT full objects)
+                    console.log('[ScriptImportModal] 💾 Updating beats with scene IDs...');
+                    const beatsWithSceneIds = screenplay.beats.map(beat => {
+                        const distribution = beatSceneDistribution.find(d => d.beatId === beat.id);
+                        return {
+                            ...beat,
+                            scenes: distribution?.scenes || [],  // Full objects for local state
+                            updatedAt: now
+                        };
+                    });
+                    
+                    // Save beats with scene IDs (transformBeatsToAPI will extract IDs)
                     await screenplay.saveAllToDynamoDBDirect(
-                        beatsWithScenes,
+                        beatsWithSceneIds,
                         importedCharacters,
                         importedLocations,
                         screenplay.screenplayId
                     );
-                    console.log('[ScriptImportModal] ✅ Saved', beatsWithScenes.length, 'beats with', allScenes.length, 'scenes to DynamoDB');
+                    
+                    console.log('[ScriptImportModal] ✅ Updated beats with scene IDs');
                 } else {
-                    throw new Error('No screenplay_id available for saving beats');
+                    throw new Error('No screenplay_id available for saving');
                 }
                 
                 // 🔥 PROPER FIX: Update local state AFTER successful save (state is now cache, not source of truth)
