@@ -87,7 +87,14 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
         return location?.name || null;
     };
 
+    // 🔥 DEBUG: Log beats state
+    console.log('[SceneNavigator] 🔍 Beats:', screenplay?.beats?.length || 0, 'beats');
+    if (screenplay?.beats && screenplay.beats.length > 0) {
+        console.log('[SceneNavigator] 🔍 First beat:', screenplay.beats[0]);
+    }
+    
     if (!screenplay?.beats || screenplay.beats.length === 0) {
+        console.log('[SceneNavigator] ⚠️ No beats found - showing empty state');
         return (
             <div className={cn("w-full rounded-lg border border-base-300 bg-base-100 p-4", className)}>
                 <p className="text-sm font-medium text-base-content/70 mb-2">
@@ -99,6 +106,8 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
             </div>
         );
     }
+    
+    console.log('[SceneNavigator] ✅ Rendering', screenplay.beats.length, 'beats');
 
     const renderBeat = (beat: (typeof screenplay.beats)[0], isLast: boolean) => {
         const isOpen = openBeats[beat.id];
