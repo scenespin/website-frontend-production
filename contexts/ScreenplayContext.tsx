@@ -298,6 +298,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // This fixes beats not persisting on refresh
                     setBeats(beatsData);
                     console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats from DynamoDB');
+                    console.log('[ScreenplayContext] 🔍 Beat details:', beatsData.map(b => ({ 
+                        id: b.id, 
+                        title: b.title, 
+                        scenesCount: b.scenes?.length || 0,
+                        hasScenes: Array.isArray(b.scenes) && b.scenes.length > 0 
+                    })));
                     
                     // Mark that we loaded beats from DB (even if 0) to prevent auto-creation
                     // But only if we actually got beats, or if we've already created defaults
