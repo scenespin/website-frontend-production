@@ -208,9 +208,20 @@ export class ScreenplayPersistenceManager {
     console.error('[Persistence] 📞 Calling API: /api/screenplays/' + this.screenplayId + '/beats');
     
     try {
-      const beatsData = await listBeats(this.screenplayId, this.getToken);
-      console.error('[Persistence] ✅ API returned', beatsData.length, 'beats');
-      return this.transformBeatsFromAPI(beatsData);
+      // 🔥 Feature 0115: Load scenes first to hydrate beats
+      const [beatsData, scenesData] = await Promise.all([
+        listBeats(this.screenplayId, this.getToken),
+        listScenes(this.screenplayId, this.getToken).catch(err => {
+          console.warn('[Persistence] Failed to load scenes for beats:', err);
+          return [];
+        })
+      ]);
+      
+      console.error('[Persistence] ✅ API returned', beatsData.length, 'beats and', scenesData.length, 'scenes');
+      
+      // Transform scenes first, then hydrate beats
+      const transformedScenes = this.transformScenesFromAPI(scenesData);
+      return this.transformBeatsFromAPI(beatsData, transformedScenes);
     } catch (error) {
       console.error('[Persistence] ❌ API FAILED:', error);
       return [];
