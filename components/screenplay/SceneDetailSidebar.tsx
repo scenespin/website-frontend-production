@@ -86,7 +86,7 @@ export default function SceneDetailSidebar({
   }
 
   const toggleCharacter = (charId: string) => {
-    const currentChars = formData.fountain.tags.characters || []
+    const currentChars = formData.fountain?.tags?.characters || []
     const newChars = currentChars.includes(charId)
       ? currentChars.filter((id: string) => id !== charId)
       : [...currentChars, charId]
@@ -96,7 +96,7 @@ export default function SceneDetailSidebar({
       fountain: {
         ...formData.fountain,
         tags: {
-          ...formData.fountain.tags,
+          ...(formData.fountain?.tags || {}),
           characters: newChars
         }
       }
@@ -200,13 +200,13 @@ export default function SceneDetailSidebar({
             Location
           </label>
           <select
-            value={formData.fountain.tags.location || ''}
+            value={formData.fountain?.tags?.location || ''}
             onChange={(e) => setFormData({
               ...formData,
               fountain: {
                 ...formData.fountain,
                 tags: {
-                  ...formData.fountain.tags,
+                  ...(formData.fountain?.tags || {}),
                   location: e.target.value || undefined
                 }
               }
@@ -230,7 +230,7 @@ export default function SceneDetailSidebar({
           </label>
           <div className="space-y-2">
             {characters.map(char => {
-              const isSelected = (formData.fountain.tags.characters || []).includes(char.id)
+              const isSelected = (formData.fountain?.tags?.characters || []).includes(char.id)
               return (
                 <button
                   key={char.id}

@@ -637,22 +637,36 @@ export class ScreenplayPersistenceManager {
    * 🔥 Feature 0115: Transform scenes from API format to app format
    */
   private transformScenesFromAPI(apiScenes: any[]): Scene[] {
-    return apiScenes.map(scene => ({
-      id: scene.id || scene.scene_id,
-      beatId: scene.beat_id,
-      number: scene.number,
-      heading: scene.heading || '',
-      synopsis: scene.synopsis || '',
-      status: scene.status || 'draft',
-      order: scene.order || 0,
-      fountain: scene.fountain || { startLine: 0, endLine: 0, tags: { characters: [] } },
-      estimatedPageCount: scene.estimatedPageCount,
-      images: scene.images,
-      videoAssets: scene.videoAssets,
-      timing: scene.timing,
-      createdAt: scene.created_at || new Date().toISOString(),
-      updatedAt: scene.updated_at || new Date().toISOString()
-    }));
+    return apiScenes.map(scene => {
+      // 🔥 CRITICAL: Ensure fountain.tags always exists with all required fields
+      const fountain = scene.fountain || {};
+      const tags = fountain.tags || {};
+      
+      return {
+        id: scene.id || scene.scene_id,
+        beatId: scene.beat_id,
+        number: scene.number,
+        heading: scene.heading || '',
+        synopsis: scene.synopsis || '',
+        status: scene.status || 'draft',
+        order: scene.order || 0,
+        fountain: {
+          startLine: fountain.startLine || 0,
+          endLine: fountain.endLine || 0,
+          tags: {
+            characters: tags.characters || [],
+            location: tags.location || undefined,
+            props: tags.props || undefined
+          }
+        },
+        estimatedPageCount: scene.estimatedPageCount,
+        images: scene.images,
+        videoAssets: scene.videoAssets,
+        timing: scene.timing,
+        createdAt: scene.created_at || new Date().toISOString(),
+        updatedAt: scene.updated_at || new Date().toISOString()
+      };
+    });
   }
   
   /**

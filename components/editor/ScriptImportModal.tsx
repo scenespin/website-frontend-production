@@ -234,10 +234,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 } else {
                     throw new Error('No screenplay_id available for saving');
                 }
-                
-                // 🔥 PROPER FIX: Update local state AFTER successful save (state is now cache, not source of truth)
-                console.log('[ScriptImportModal] 📝 Updating local state with imported structure...');
-                // The ScreenplayContext will reload from DynamoDB on next mount, so we don't need to force state updates here
             }
             
             // Step 6: Update screenplay content to DynamoDB AND localStorage
@@ -251,20 +247,18 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     content: content
                 }, getToken);
                 console.log('[ScriptImportModal] ✅ Saved content to DynamoDB');
-                
-                // 🔥 NEW: Final wait to ensure DynamoDB consistency
-                console.log('[ScriptImportModal] ⏳ Waiting for DynamoDB consistency...');
-                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
-            // Success!
+            // Success toast
             toast.success('✅ Screenplay Imported', {
                 description: `${parseResult.characters.size} characters, ${parseResult.locations.size} locations, ${parseResult.scenes.length} scenes`
             });
             
-            // Close modal and reset warning
-            setShowWarning(false);
-            onClose();
+            // 🔥 CRITICAL: Reload page to fetch fresh data from DynamoDB
+            // This ensures scenes are properly hydrated and visible immediately
+            console.log('[ScriptImportModal] 🔄 Reloading page to fetch fresh data...');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Show toast briefly before reload
+            window.location.reload();
             
         } catch (error) {
             console.error('[ScriptImportModal] Import failed:', error);

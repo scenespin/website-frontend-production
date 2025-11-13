@@ -38,12 +38,12 @@ export default function CharacterRelationshipMap({ onClose }: CharacterRelations
     const characterNodes: CharacterNode[] = characters.map((char: Character, index: number) => {
       // Find which other characters this character shares scenes with
       const sharedScenes = scenes.filter((scene: Scene) =>
-        scene.fountain.tags.characters.includes(char.id)
+        (scene.fountain?.tags?.characters || []).includes(char.id)
       );
 
       const connections = new Set<string>();
       sharedScenes.forEach((scene: Scene) => {
-        scene.fountain.tags.characters.forEach((charId: string) => {
+        (scene.fountain?.tags?.characters || []).forEach((charId: string) => {
           if (charId !== char.id) {
             connections.add(charId);
           }

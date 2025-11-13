@@ -139,12 +139,12 @@ export default function TimelineView({ focusSceneId }: TimelineViewProps = {}) {
       const duration = scene.timing?.durationMinutes ?? defaultSceneDuration
       endDate.setMinutes(endDate.getMinutes() + duration)
 
-      // Get characters and location for this scene
-      const sceneCharacters = scene.fountain.tags.characters
+      // Get characters and location for this scene (with defensive null checks)
+      const sceneCharacters = (scene.fountain?.tags?.characters || [])
         .map(charId => characters.find(c => c.id === charId))
         .filter(Boolean) as Character[]
       
-      const sceneLocation = scene.fountain.tags.location
+      const sceneLocation = scene.fountain?.tags?.location
         ? locations.find(l => l.id === scene.fountain.tags.location)
         : null
 

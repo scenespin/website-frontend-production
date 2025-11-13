@@ -254,3 +254,23 @@ export default function EditorPage() {
     </>
   );
 }
+[33mf539739[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m debug: Add logging to show scene count in loaded beats
+[33m54a1c24[m fix: Wait for beats to initialize before importing scenes - prevents empty beat structure
+[33m529e030[m revert: Restore original hasAutoCreated logic - beats need to be created before import
+[33m3910375[m fix: Set hasAutoCreated flag after loading beats regardless of count - prevents race condition
+[33m301008b[m feat: Add save verification logging for beats to diagnose persistence issue
+[33m13c84e3[m fix: Remove race condition - don't save empty beats during clearContentOnly
+[33m88bdbf4[m fix: Save beats with scenes after import - beats not persisting on refresh
+[33m97dbf3f[m fix: Separate beat structure from content - clearContentOnly()
+[33m032900a[m fix: Always load beats from DynamoDB, matching character/location behavior
+[33m7b537e8[m fix: Always clear beats on import to prevent duplicates - change condition from >8 to >0
+[33m6fd3b0f[m fix: Remove duplicate beat saves on import - beats are already saved during initialization
+[33m1dce215[m revert: Remove verification logic - root cause is backend IAM permissions
+[33m1d8d208[m fix: Add retry logic to save verifications for DynamoDB eventual consistency
+[33m240d268[m fix(persistence): Add DynamoDB verification to prevent data loss
+[33me207172[m fix: Ensure screenplay exists in DynamoDB before import
+[33m6eec50c[m revert: Remove UPSERT integration - broke import functionality
+[33mb93072a[m fix: Add React import to ModelSelector.tsx for JSX namespace
+[33me1106f1[m feat: Integrate UPSERT for characters - prevents duplicates on re-import
+[33mf86cfe0[m fix: Add wait times for DynamoDB consistency in import flow + UPSERT endpoint integration
+[33mb28af06[m fix: save screenplay content to DynamoDB after import (was only saving to localStorage)
