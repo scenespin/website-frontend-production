@@ -442,16 +442,16 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
         // All clips done - mark beat as completed
         console.log('[ProductionPage] All clips completed!');
         
+        // Feature 0117: updateBeat removed (beats are frontend-only, don't persist)
+        // TODO: If production status tracking is needed, store it separately or in local state
         if (selectedBeat) {
-          await screenplay.updateBeat(selectedBeat.id, {
-            production: {
-              ...selectedBeat.production,
-              status: 'ready',
-              clipCount: clipAssignments.length,
-              creditsUsed: clipAssignments.reduce((sum, c) => sum + c.creditsUsed, 0),
-              lastGeneratedAt: new Date().toISOString()
-            }
+          console.log('[ProductionPage] Beat production complete:', {
+            beatId: selectedBeat.id,
+            clipCount: clipAssignments.length,
+            creditsUsed: clipAssignments.reduce((sum, c) => sum + c.creditsUsed, 0)
           });
+          // Previously: await screenplay.updateBeat(selectedBeat.id, { production: {...} })
+          // Now: Beats don't persist, so production status is lost on reload
         }
         
         setIsGenerating(false);
