@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { toast } from 'sonner';
 import type {
     StoryBeat,
     Scene,
