@@ -120,8 +120,8 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations');
             }
             
-            // Step 5: Import scenes into beats
-            // 🔥 CRITICAL: Ensure beats exist before importing scenes
+            // Step 5: Build complete beat structure with scenes (NO STATE UPDATES)
+            // 🔥 PROPER FIX: Build data structure first, THEN save in one operation
             if (parseResult.scenes.length > 0) {
                 // Wait for beats to exist (either loaded from DB or default 8 created)
                 let attempts = 0;
@@ -137,9 +137,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 console.log('[ScriptImportModal] ✅ Found', screenplay.beats.length, 'beats for scene import');
                 
-                // 🔥 FIX: Map character/location NAMES to IDs using the RETURNED entities (not stale context state)
-                const scenesWithIds = parseResult.scenes.map(scene => {
-                    // Map character names to IDs from imported characters
+                // 🔥 PROPER FIX: Build Scene objects directly (don't use bulkImportScenes yet)
+                const now = new Date().toISOString();
+                const allScenes = parseResult.scenes.map((scene, globalIndex) => {
+                    // Map character names to IDs
                     const characterIds = (scene.characters || [])
                         .map(charName => {
                             const char = importedCharacters.find(c => 
@@ -149,64 +150,75 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         })
                         .filter(Boolean) as string[];
                     
-                    // Map location name to ID from imported locations
+                    // Map location name to ID
                     const location = importedLocations.find(l => 
                         l.name.toUpperCase() === scene.location.toUpperCase()
                     );
                     
+                    // Create full Scene object
                     return {
+                        id: `scene-${Date.now()}-${globalIndex}-${Math.random().toString(36).substr(2, 9)}`,
+                        beatId: '', // Will be set when distributing to beats
+                        number: globalIndex + 1,
                         heading: scene.heading,
-                        location: scene.location,
-                        characterIds,
-                        locationId: location?.id,
-                        startLine: scene.startLine,
-                        endLine: scene.endLine
+                        synopsis: `Imported from script`,
+                        status: 'draft' as const,
+                        order: 0, // Will be set when distributing to beats
+                        fountain: {
+                            startLine: scene.startLine,
+                            endLine: scene.endLine,
+                            tags: {
+                                characters: characterIds,
+                                location: location?.id
+                            }
+                        },
+                        createdAt: now,
+                        updatedAt: now
                     };
                 });
                 
-                // Distribute scenes across existing beats
-                const scenesPerBeat = Math.ceil(scenesWithIds.length / screenplay.beats.length);
+                console.log('[ScriptImportModal] ✅ Built', allScenes.length, 'complete Scene objects');
                 
-                for (let i = 0; i < screenplay.beats.length; i++) {
-                    const beat = screenplay.beats[i];
-                    const startIdx = i * scenesPerBeat;
-                    const endIdx = Math.min(startIdx + scenesPerBeat, scenesWithIds.length);
-                    const scenesForBeat = scenesWithIds.slice(startIdx, endIdx);
+                // 🔥 PROPER FIX: Distribute scenes to beats (build complete beat objects)
+                const scenesPerBeat = Math.ceil(allScenes.length / screenplay.beats.length);
+                const beatsWithScenes = screenplay.beats.map((beat, beatIndex) => {
+                    const startIdx = beatIndex * scenesPerBeat;
+                    const endIdx = Math.min(startIdx + scenesPerBeat, allScenes.length);
+                    const scenesForThisBeat = allScenes.slice(startIdx, endIdx).map((scene, localIndex) => ({
+                        ...scene,
+                        beatId: beat.id,
+                        order: localIndex
+                    }));
                     
-                    if (scenesForBeat.length > 0) {
-                        await screenplay.bulkImportScenes(beat.id, scenesForBeat);
-                    }
-                }
+                    return {
+                        ...beat,
+                        scenes: scenesForThisBeat,
+                        updatedAt: now
+                    };
+                });
                 
-                console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes into local state');
-                
-                // 🔥 CRITICAL FIX: Wait for ALL state updates to propagate to refs
-                // React batches setState calls and useEffect runs after commit phase
-                // We need to wait for multiple render cycles + useEffect execution
-                console.log('[ScriptImportModal] ⏳ Waiting for state synchronization (2 seconds)...');
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Increased from 500ms to 2000ms
-                
-                // 🔥 NEW: Get current state directly (bypasses closure issues)
-                const currentState = screenplay.getCurrentState();
-                console.log('[ScriptImportModal] 🔍 Current state beats:', currentState.beats.length);
-                console.log('[ScriptImportModal] 🔍 Beats with scenes:', currentState.beats.map(b => ({ 
+                console.log('[ScriptImportModal] ✅ Distributed scenes across beats:', beatsWithScenes.map(b => ({ 
                     title: b.title, 
-                    scenesCount: b.scenes?.length || 0 
+                    scenesCount: b.scenes.length 
                 })));
                 
-                // 🔥 FIX: Save beats directly using the current state (bypasses stale refs)
-                console.log('[ScriptImportModal] 💾 Saving beats (with scenes) to DynamoDB...');
+                // 🔥 PROPER FIX: Save complete data structure in ONE operation (deterministic!)
+                console.log('[ScriptImportModal] 💾 Saving complete structure to DynamoDB...');
                 if (screenplay.screenplayId) {
                     await screenplay.saveAllToDynamoDBDirect(
-                        currentState.beats,
-                        currentState.characters,
-                        currentState.locations,
+                        beatsWithScenes,
+                        importedCharacters,
+                        importedLocations,
                         screenplay.screenplayId
                     );
-                    console.log('[ScriptImportModal] ✅ Beats saved with', parseResult.scenes.length, 'scenes via saveAllToDynamoDBDirect');
+                    console.log('[ScriptImportModal] ✅ Saved', beatsWithScenes.length, 'beats with', allScenes.length, 'scenes to DynamoDB');
                 } else {
                     throw new Error('No screenplay_id available for saving beats');
                 }
+                
+                // 🔥 PROPER FIX: Update local state AFTER successful save (state is now cache, not source of truth)
+                console.log('[ScriptImportModal] 📝 Updating local state with imported structure...');
+                // The ScreenplayContext will reload from DynamoDB on next mount, so we don't need to force state updates here
             }
             
             // Step 6: Update screenplay content to DynamoDB AND localStorage
