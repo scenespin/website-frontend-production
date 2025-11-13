@@ -180,11 +180,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes into local state');
                 
-                // 🔥 CRITICAL FIX: Wait for state updates to propagate to refs
-                // The useEffect that syncs beats state to beatsRef runs after render
-                // We need to wait for it to complete before saving to DynamoDB
-                console.log('[ScriptImportModal] ⏳ Waiting for state synchronization...');
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // 🔥 CRITICAL FIX: Wait for ALL state updates to propagate to refs
+                // React batches setState calls and useEffect runs after commit phase
+                // We need to wait for multiple render cycles + useEffect execution
+                console.log('[ScriptImportModal] ⏳ Waiting for state synchronization (2 seconds)...');
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Increased from 500ms to 2000ms
                 
                 // 🔥 NEW: Get current state directly (bypasses closure issues)
                 const currentState = screenplay.getCurrentState();
