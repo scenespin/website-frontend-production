@@ -411,7 +411,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                             color={beatColors[0]}
                             sceneCharacters={getSceneCharacters(activeScene.id)}
                             location={activeScene.fountain?.tags?.location 
-                                ? locations.find(l => l.id === activeScene.fountain.tags.location!)
+                                ? locations.find(l => l.id === activeScene.fountain?.tags?.location!)
                                 : undefined}
                             getStatusColor={getStatusColor}
                             isDragging
@@ -486,7 +486,7 @@ function BeatColumn({
                 {scenes.map((scene, index) => {
                     const sceneCharacters = getSceneCharacters(scene.id);
                     const location = scene.fountain?.tags?.location
-                        ? locations.find(l => l.id === scene.fountain.tags.location!)
+                        ? locations.find(l => l.id === scene.fountain?.tags?.location!)
                         : undefined;
                     const isSceneHighlighted = highlightedSceneId === scene.id;
 

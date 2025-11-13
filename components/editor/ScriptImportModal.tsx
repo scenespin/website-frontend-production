@@ -222,11 +222,14 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         };
                     });
                     
-                    // Save beats with scene IDs (transformBeatsToAPI will extract IDs)
+                    // 🔥 CRITICAL FIX: Only save beats, NOT characters/locations!
+                    // Characters and locations were already saved by bulkImportCharacters/bulkImportLocations above
+                    // Saving them again would create duplicates in DynamoDB
+                    console.log('[ScriptImportModal] 💾 Saving beats only (characters/locations already saved)...');
                     await screenplay.saveAllToDynamoDBDirect(
                         beatsWithSceneIds,
-                        importedCharacters,
-                        importedLocations,
+                        [], // Empty - already saved by bulkImportCharacters
+                        [], // Empty - already saved by bulkImportLocations
                         screenplay.screenplayId
                     );
                     
