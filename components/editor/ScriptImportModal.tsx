@@ -8,7 +8,7 @@ import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
-import type { Character, Location } from '@/types/screenplay';
+import type { Character, Location, Scene } from '@/types/screenplay';
 
 interface ScriptImportModalProps {
     isOpen: boolean;
