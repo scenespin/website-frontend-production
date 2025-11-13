@@ -1933,30 +1933,77 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving 8-beat structure)...');
         
         try {
+            // 🔥 CRITICAL FIX: Delete ALL old beats from DynamoDB first!
+            // This prevents accumulation of stale beats across multiple imports
+            console.log('[ScreenplayContext] 🗑️ Deleting old beats from DynamoDB...');
+            await persistenceManager.deleteAllBeats();
+            
             // Clear characters and locations from DynamoDB
             await Promise.all([
                 persistenceManager.deleteAllCharacters(),
                 persistenceManager.deleteAllLocations()
             ]);
             
-            console.log('[ScreenplayContext] ✅ Cleared characters and locations from DynamoDB');
+            console.log('[ScreenplayContext] ✅ Cleared old beats, characters, and locations from DynamoDB');
             
-            // Clear scenes from all beats (but keep beats themselves)
-            const clearedBeats = beatsRef.current.map(beat => ({
-                ...beat,
-                scenes: [] // Clear scenes array
+            // 🔥 NEW: Create fresh 8-beat structure in local state
+            // These will be saved to DynamoDB AFTER scenes are added during import
+            const sequences = [
+                {
+                    title: 'Sequence 1: Status Quo',
+                    description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
+                    order: 0
+                },
+                {
+                    title: 'Sequence 2: Predicament',
+                    description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
+                    order: 1
+                },
+                {
+                    title: 'Sequence 3: Lock In',
+                    description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
+                    order: 2
+                },
+                {
+                    title: 'Sequence 4: First Culmination',
+                    description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
+                    order: 3
+                },
+                {
+                    title: 'Sequence 5: Midpoint Shift',
+                    description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
+                    order: 4
+                },
+                {
+                    title: 'Sequence 6: Complications',
+                    description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
+                    order: 5
+                },
+                {
+                    title: 'Sequence 7: All Is Lost',
+                    description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
+                    order: 6
+                },
+                {
+                    title: 'Sequence 8: Resolution',
+                    description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
+                    order: 7
+                }
+            ];
+            
+            const now = new Date().toISOString();
+            const freshBeats = sequences.map((seq, index) => ({
+                id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                title: seq.title,
+                description: seq.description,
+                order: seq.order,
+                scenes: [],
+                createdAt: now,
+                updatedAt: now
             }));
             
-            // 🔥 FIX: Don't save empty beats to DynamoDB here!
-            // This was causing a race condition where empty beats would overwrite
-            // beats with scenes during import. The import process will save the beats
-            // with scenes later via saveBeatsToDynamoDB().
-            // await persistenceManager.saveBeats(clearedBeats);
-            
-            console.log('[ScreenplayContext] ✅ Cleared scenes from all beats (beat structure preserved - not saved yet)');
-            
-            // Update local state
-            setBeats(clearedBeats);
+            // Update local state with fresh beats
+            setBeats(freshBeats);
             setCharacters([]);
             setLocations([]);
             setRelationships({
@@ -1967,7 +2014,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 props: {}
             });
             
-            console.log('[ScreenplayContext] ✅ Content cleared - 8-beat structure intact, ready for import');
+            console.log('[ScreenplayContext] ✅ Content cleared - Fresh 8-beat structure in local state, will be saved after scenes are added during import');
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Failed to clear content:', err);
             throw err;

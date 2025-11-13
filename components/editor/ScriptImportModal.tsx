@@ -178,13 +178,35 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     }
                 }
                 
-                console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes');
+                console.log('[ScriptImportModal] ✅ Imported', parseResult.scenes.length, 'scenes into local state');
                 
-                // 🔥 FIX: Save beats with scenes to DynamoDB!
-                // bulkImportScenes() updates state but doesn't save - we must save here
+                // 🔥 CRITICAL FIX: Wait for state updates to propagate to refs
+                // The useEffect that syncs beats state to beatsRef runs after render
+                // We need to wait for it to complete before saving to DynamoDB
+                console.log('[ScriptImportModal] ⏳ Waiting for state synchronization...');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 🔥 NEW: Get current state directly (bypasses closure issues)
+                const currentState = screenplay.getCurrentState();
+                console.log('[ScriptImportModal] 🔍 Current state beats:', currentState.beats.length);
+                console.log('[ScriptImportModal] 🔍 Beats with scenes:', currentState.beats.map(b => ({ 
+                    title: b.title, 
+                    scenesCount: b.scenes?.length || 0 
+                })));
+                
+                // 🔥 FIX: Save beats directly using the current state (bypasses stale refs)
                 console.log('[ScriptImportModal] 💾 Saving beats (with scenes) to DynamoDB...');
-                await screenplay.saveBeatsToDynamoDB();
-                console.log('[ScriptImportModal] ✅ Beats saved with', parseResult.scenes.length, 'scenes');
+                if (screenplay.screenplayId) {
+                    await screenplay.saveAllToDynamoDBDirect(
+                        currentState.beats,
+                        currentState.characters,
+                        currentState.locations,
+                        screenplay.screenplayId
+                    );
+                    console.log('[ScriptImportModal] ✅ Beats saved with', parseResult.scenes.length, 'scenes via saveAllToDynamoDBDirect');
+                } else {
+                    throw new Error('No screenplay_id available for saving beats');
+                }
             }
             
             // Step 6: Update screenplay content to DynamoDB AND localStorage

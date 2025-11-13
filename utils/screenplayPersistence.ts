@@ -473,6 +473,26 @@ export class ScreenplayPersistenceManager {
   }
   
   /**
+   * Delete ONLY beats from DynamoDB (for imports)
+   * Preserves characters and locations
+   */
+  async deleteAllBeats(): Promise<void> {
+    if (!this.screenplayId) {
+      throw new Error('[Persistence] Cannot delete beats: No screenplay_id set');
+    }
+    
+    console.log('[Persistence] 🗑️ Deleting all beats...');
+    
+    try {
+      await deleteAllBeats(this.screenplayId, this.getToken);
+      console.log('[Persistence] ✅ Deleted all beats');
+    } catch (error) {
+      console.error('[Persistence] ❌ Failed to delete beats:', error);
+      throw error;
+    }
+  }
+  
+  /**
    * Check if data has been loaded from DynamoDB
    * 
    * @returns true if loadAll() has completed (success or failure)
