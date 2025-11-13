@@ -1947,29 +1947,29 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
      * Use clearAllStructure() for "Clear All" button (nuclear option)
      */
     const clearContentOnly = useCallback(async (): Promise<StoryBeat[]> => {
-        if (!screenplayId) {
-            console.warn('[ScreenplayContext] Cannot clear content: no screenplay_id');
-            return [];
-        }
-        
         console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving 8-beat structure)...');
+        console.log('[ScreenplayContext] 🔍 Current screenplay_id:', screenplayId || 'NONE (first import)');
         
         try {
-            // 🔥 CRITICAL FIX: Delete ALL old beats from DynamoDB first!
-            // This prevents accumulation of stale beats across multiple imports
-            console.log('[ScreenplayContext] 🗑️ Deleting old beats from DynamoDB...');
-            await persistenceManager.deleteAllBeats();
+            // 🔥 FIX: Only delete from DynamoDB if screenplay_id exists
+            // On first import, there's nothing to delete yet
+            if (screenplayId) {
+                console.log('[ScreenplayContext] 🗑️ Deleting old data from DynamoDB...');
+                await persistenceManager.deleteAllBeats();
+                
+                // 🔥 Feature 0115: Clear scenes, characters, and locations from DynamoDB
+                await Promise.all([
+                    persistenceManager.deleteAllScenes(),      // ← NEW: Delete scenes from wryda-scenes
+                    persistenceManager.deleteAllCharacters(),
+                    persistenceManager.deleteAllLocations()
+                ]);
+                
+                console.log('[ScreenplayContext] ✅ Cleared old data from DynamoDB');
+            } else {
+                console.log('[ScreenplayContext] ⏭️ No screenplay_id yet - skipping DynamoDB delete (first import)');
+            }
             
-            // 🔥 Feature 0115: Clear scenes, characters, and locations from DynamoDB
-            await Promise.all([
-                persistenceManager.deleteAllScenes(),      // ← NEW: Delete scenes from wryda-scenes
-                persistenceManager.deleteAllCharacters(),
-                persistenceManager.deleteAllLocations()
-            ]);
-            
-            console.log('[ScreenplayContext] ✅ Cleared old beats, scenes, characters, and locations from DynamoDB');
-            
-            // 🔥 NEW: Create fresh 8-beat structure in local state
+            // 🔥 CRITICAL: ALWAYS create fresh 8-beat structure (even without screenplay_id)
             // These will be saved to DynamoDB AFTER scenes are added during import
             const sequences = [
                 {
@@ -2037,7 +2037,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 props: {}
             });
             
-            console.log('[ScreenplayContext] ✅ Content cleared - Fresh 8-beat structure in local state, will be saved after scenes are added during import');
+            console.log('[ScreenplayContext] ✅ Created fresh 8-beat structure:', freshBeats.length, 'beats');
+            console.log('[ScreenplayContext] 🔍 First beat ID:', freshBeats[0]?.id);
+            console.log('[ScreenplayContext] 🔍 Returning beats for immediate use (no state dependency)');
             
             // 🔥 CRITICAL FIX: Return freshBeats so caller can use them immediately
             // Don't rely on React state updates which are asynchronous!

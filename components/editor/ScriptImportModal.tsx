@@ -88,18 +88,14 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Screenplay created:', screenplay.screenplayId);
             }
             
-            // 🔥 FIX: Step 1 - Clear CONTENT ONLY (preserve 8-beat structure)
             // 🔥 CRITICAL: ALWAYS call clearContentOnly() to get fresh beats!
-            // Even on first import, we need the 8-beat structure created
-            let freshBeats: StoryBeat[] = [];
-            if (hasExistingData) {
-                console.log('[ScriptImportModal] Clearing existing content (preserving beat structure)...');
-                freshBeats = await screenplay.clearContentOnly();
-                console.log('[ScriptImportModal] ✅ Cleared content, received', freshBeats.length, 'fresh beats');
-            } else {
-                console.log('[ScriptImportModal] ⚠️ No existing data - calling clearContentOnly() to create 8-beat structure...');
-                freshBeats = await screenplay.clearContentOnly();
-                console.log('[ScriptImportModal] ✅ Created fresh 8-beat structure:', freshBeats.length, 'beats');
+            // This works on first import (no ID yet) AND on re-imports (with ID)
+            console.log('[ScriptImportModal] 🧹 Calling clearContentOnly() to get fresh 8-beat structure...');
+            const freshBeats = await screenplay.clearContentOnly();
+            console.log('[ScriptImportModal] ✅ Have', freshBeats.length, 'beats for scene distribution');
+            
+            if (freshBeats.length === 0) {
+                throw new Error('clearContentOnly() returned empty array - this should never happen!');
             }
             
             // Step 2: Set content in editor
