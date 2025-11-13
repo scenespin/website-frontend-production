@@ -713,12 +713,21 @@ export class ScreenplayPersistenceManager {
     const sceneMap = new Map<string, Scene>();
     allScenes.forEach(scene => sceneMap.set(scene.id, scene));
     
+    console.error('[Persistence] 🔍 transformBeatsFromAPI DIAGNOSTIC:');
+    console.error('  - allScenes.length:', allScenes.length);
+    console.error('  - apiBeats.length:', apiBeats.length);
+    console.error('  - First beat from API:', apiBeats[0]);
+    console.error('  - First beat scenes field:', apiBeats[0]?.scenes);
+    console.error('  - First scene ID:', allScenes[0]?.id);
+    
     return apiBeats.map(beat => {
       // Hydrate beat with full Scene objects (not just IDs)
       const sceneIds = beat.scenes || [];
       const hydratedScenes = sceneIds
         .map((sceneId: string) => sceneMap.get(sceneId))
         .filter(Boolean) as Scene[];
+      
+      console.error(`[Persistence] 🔍 Beat "${beat.title}": ${sceneIds.length} IDs → ${hydratedScenes.length} hydrated scenes`);
       
       return {
         id: beat.id || beat.beat_id,
