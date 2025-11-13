@@ -378,6 +378,10 @@ export class ScreenplayPersistenceManager {
       
       console.log('[Persistence] ✅ Saved', beats.length, 'beats');
       
+      // 🔥 FIX: Add small delay before verification to avoid reading cached/stale data
+      // DynamoDB strongly consistent reads can still hit stale replicas immediately after write
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
       // 🔥 VERIFICATION: Read back immediately to confirm persistence
       console.log('[Persistence] 🔍 VERIFICATION: Reading beats back from DynamoDB...');
       const savedBeats = await listBeats(this.screenplayId, this.getToken);
@@ -579,7 +583,8 @@ export class ScreenplayPersistenceManager {
       title: beat.title,
       description: beat.description || '', // API requires description, default to empty string
       order: beat.order,
-      scenes: beat.scenes || []
+      // 🔥 CRITICAL FIX: Extract scene IDs only - backend expects string[], not Scene[]
+      scenes: beat.scenes?.map(s => s.id) || []
     }));
     
     // 🔥 DEBUG: Log what we're sending to API
@@ -591,7 +596,7 @@ export class ScreenplayPersistenceManager {
     console.log('[Persistence] 🔍 transformBeatsToAPI - Output API beats scenes:', apiBeats.map(b => ({ 
       title: b.title, 
       scenesCount: b.scenes?.length || 0,
-      firstSceneId: b.scenes?.[0]?.id || 'none'
+      firstSceneId: b.scenes?.[0] || 'none'
     })));
     
     return apiBeats;
