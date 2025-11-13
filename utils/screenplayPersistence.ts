@@ -574,13 +574,27 @@ export class ScreenplayPersistenceManager {
    * Transform beats from app format to API format
    */
   private transformBeatsToAPI(beats: StoryBeat[]): APIBeat[] {
-    return beats.map(beat => ({
+    const apiBeats = beats.map(beat => ({
       id: beat.id,
       title: beat.title,
       description: beat.description || '', // API requires description, default to empty string
       order: beat.order,
       scenes: beat.scenes || []
     }));
+    
+    // 🔥 DEBUG: Log what we're sending to API
+    console.log('[Persistence] 🔍 transformBeatsToAPI - Input beats scenes:', beats.map(b => ({ 
+      title: b.title, 
+      scenesCount: b.scenes?.length || 0,
+      firstSceneId: b.scenes?.[0]?.id || 'none'
+    })));
+    console.log('[Persistence] 🔍 transformBeatsToAPI - Output API beats scenes:', apiBeats.map(b => ({ 
+      title: b.title, 
+      scenesCount: b.scenes?.length || 0,
+      firstSceneId: b.scenes?.[0]?.id || 'none'
+    })));
+    
+    return apiBeats;
   }
 }
 
