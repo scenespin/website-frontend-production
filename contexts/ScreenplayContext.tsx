@@ -1704,6 +1704,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Update scenes by matching them to the scenes in order
         // Collect all scenes from all beats in order
+        // Feature 0117: beatId is for tracking which beat the scene belongs to (frontend grouping)
         const allScenesFlat: Array<{ scene: Scene; beatId: string }> = [];
         beats.forEach(beat => {
             beat.scenes.forEach(scene => {
@@ -1726,7 +1727,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (item.scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
                     console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine}`);
                     updates.set(item.scene.id, {
-                        beatId: item.beatId,
+                        beatId: item.beatId,  // Track which beat this scene belongs to
                         updates: {
                             fountain: {
                                 ...item.scene.fountain,
@@ -1746,7 +1747,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             ...beat,
             scenes: beat.scenes.map(scene => {
                 const update = updates.get(scene.id);
-                if (update && update.beatId === beat.id) {
+                if (update && update.beatId === beat.id) {  // Ensure scene belongs to this beat
                     return { ...scene, ...update.updates };
                 }
                 return scene;

@@ -111,9 +111,9 @@ export function canDeleteScene(
         return { safe: false, reason: 'Scene not found' };
     }
     
-    // Scenes can generally be deleted safely
-    // But we should warn if it's the only scene in a beat
-    const beat = beats.find(b => b.id === scene.beatId);
+    // Feature 0117: Scenes can generally be deleted safely
+    // Check if it's the only scene in its beat (frontend grouping)
+    const beat = beats.find(b => b.scenes.some(s => s.id === sceneId));
     if (beat && beat.scenes.length === 1) {
         return {
             safe: true,

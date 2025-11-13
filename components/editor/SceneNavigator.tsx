@@ -60,7 +60,13 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
 
         if (foundScene) {
             setCurrentSceneId(foundScene.id);
-            setOpenBeats(prev => ({ ...prev, [foundScene.beatId]: true }));
+            // Feature 0117: Find beat containing this scene (scenes don't have beatId)
+            const beat = (screenplay?.beats || []).find(b => 
+                b.scenes.some(s => s.id === foundScene.id)
+            );
+            if (beat) {
+                setOpenBeats(prev => ({ ...prev, [beat.id]: true }));
+            }
         }
     }, [currentLine, context.currentSceneId, screenplay?.beats]);
 
