@@ -115,6 +115,7 @@ interface ScreenplayContextType {
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
     rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; }>;
+    repairOrphanedScenes: () => Promise<void>; // 🔥 NEW: Repair orphaned scenes
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -2051,6 +2052,95 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId]);
     
     // ========================================================================
+    // 🔥 NEW: Repair Orphaned Scenes
+    // ========================================================================
+    
+    /**
+     * Repair function: Loads scenes from wryda-scenes and redistributes them across beats
+     * Use this to fix screenplays where scenes were saved but beats don't have scene IDs
+     */
+    const repairOrphanedScenes = useCallback(async (): Promise<void> => {
+        if (!screenplayId) {
+            console.error('[ScreenplayContext] Cannot repair: no screenplay_id');
+            toast.error('No screenplay ID available');
+            return;
+        }
+        
+        console.log('[ScreenplayContext] 🔧 REPAIR: Loading all scenes from wryda-scenes...');
+        
+        try {
+            // Load all scenes directly from wryda-scenes table
+            const allScenes = await persistenceManager.loadScenes();
+            console.log('[ScreenplayContext] 🔍 Found', allScenes.length, 'scenes in wryda-scenes');
+            
+            if (allScenes.length === 0) {
+                toast.info('No scenes found to repair');
+                return;
+            }
+            
+            // Use current beats (should be 8)
+            if (beats.length === 0) {
+                throw new Error('No beats available - please refresh the page');
+            }
+            
+            console.log('[ScreenplayContext] 🔧 REPAIR: Redistributing', allScenes.length, 'scenes across', beats.length, 'beats...');
+            
+            // Distribute scenes evenly across beats
+            const scenesPerBeat = Math.ceil(allScenes.length / beats.length);
+            const updatedBeats = beats.map((beat, beatIndex) => {
+                const startIdx = beatIndex * scenesPerBeat;
+                const endIdx = Math.min(startIdx + scenesPerBeat, allScenes.length);
+                const scenesForThisBeat = allScenes.slice(startIdx, endIdx).map((scene, localIndex) => ({
+                    ...scene,
+                    beatId: beat.id,
+                    order: localIndex
+                }));
+                
+                return {
+                    ...beat,
+                    scenes: scenesForThisBeat,
+                    updatedAt: new Date().toISOString()
+                };
+            });
+            
+            console.log('[ScreenplayContext] 🔧 REPAIR: Distribution:', updatedBeats.map(b => ({
+                title: b.title,
+                scenesCount: b.scenes.length
+            })));
+            
+            // Update scenes with correct beat_id and order
+            const flatScenes = updatedBeats.flatMap(b => b.scenes);
+            await persistenceManager.saveScenes(flatScenes);
+            console.log('[ScreenplayContext] ✅ REPAIR: Updated', flatScenes.length, 'scenes in wryda-scenes');
+            
+            // Save beats with scene IDs
+            await persistenceManager.saveAll({
+                beats: updatedBeats,
+                characters: characters,
+                locations: locations
+            });
+            console.log('[ScreenplayContext] ✅ REPAIR: Updated beats in DynamoDB');
+            
+            // Update local state
+            setBeats(updatedBeats);
+            
+            toast.success('✅ Repaired! Found ' + allScenes.length + ' scenes and distributed across ' + beats.length + ' beats');
+            
+            console.log('[ScreenplayContext] 🎉 REPAIR COMPLETE! Refresh page to see changes.');
+            
+            // Auto-refresh after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+            
+        } catch (err) {
+            console.error('[ScreenplayContext] ❌ REPAIR FAILED:', err);
+            toast.error('Repair failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+            throw err;
+        }
+    }, [screenplayId, beats, characters, locations]);
+    
+    // ========================================================================
     // Re-scan Script (Additive Import Support)
     // ========================================================================
     
@@ -2226,6 +2316,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         clearAllStructure, // 🔥 Clear ALL structure including beats (for "Clear All" button)
         clearContentOnly, // 🔥 NEW: Clear content only, preserve 8-beat structure (for imports)
         rescanScript, // 🔥 NEW: Re-scan for new entities (smart merge)
+        repairOrphanedScenes, // 🔥 NEW: Repair orphaned scenes
         
         // Scene Position Management
         updateScenePositions,
