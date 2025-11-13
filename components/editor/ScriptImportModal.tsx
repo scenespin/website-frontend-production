@@ -89,15 +89,15 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             }
             
             // 🔥 FIX: Step 1 - Clear CONTENT ONLY (preserve 8-beat structure)
+            // 🔥 CRITICAL: Get fresh beats directly from return value, NOT from React state!
+            let freshBeats: StoryBeat[] = [];
             if (hasExistingData) {
                 console.log('[ScriptImportModal] Clearing existing content (preserving beat structure)...');
-                await screenplay.clearContentOnly();
-                
-                // 🔥 NEW: Wait for clear to complete
-                console.log('[ScriptImportModal] ⏳ Waiting for clear to complete...');
-                await new Promise(resolve => setTimeout(resolve, 500)); // Brief wait for consistency
-                
-                console.log('[ScriptImportModal] ✅ Cleared existing content - 8-beat structure intact');
+                freshBeats = await screenplay.clearContentOnly();
+                console.log('[ScriptImportModal] ✅ Cleared content, received', freshBeats.length, 'fresh beats');
+            } else {
+                console.log('[ScriptImportModal] ⏭️ No existing data to clear, using current beats from state');
+                freshBeats = screenplay.beats;
             }
             
             // Step 2: Set content in editor
@@ -123,19 +123,13 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Step 5: Build complete beat structure with scenes (NO STATE UPDATES)
             // 🔥 PROPER FIX: Build data structure first, THEN save in one operation
             if (parseResult.scenes.length > 0) {
-                // Wait for beats to exist (either loaded from DB or default 8 created)
-                let attempts = 0;
-                while (screenplay.beats.length === 0 && attempts < 20) {
-                    console.log('[ScriptImportModal] ⏳ Waiting for beats to initialize... (attempt', attempts + 1, ')');
-                    await new Promise(resolve => setTimeout(resolve, 250));
-                    attempts++;
-                }
-                
-                if (screenplay.beats.length === 0) {
+                // 🔥 CRITICAL: Use freshBeats which we got directly from clearContentOnly()
+                // No more waiting for React state! We have the data synchronously!
+                if (freshBeats.length === 0) {
                     throw new Error('No beats available for scene import. Please refresh and try again.');
                 }
                 
-                console.log('[ScriptImportModal] ✅ Found', screenplay.beats.length, 'beats for scene import');
+                console.log('[ScriptImportModal] ✅ Using', freshBeats.length, 'fresh beats for scene import (no state timing issues!)');
                 
                 // 🔥 PROPER FIX: Build Scene objects directly (don't use bulkImportScenes yet)
                 const now = new Date().toISOString();
@@ -180,11 +174,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Built', allScenes.length, 'complete Scene objects');
                 
                 // 🔥 Feature 0115: Distribute scenes to beats and assign beat_id + order
-                const scenesPerBeat = Math.ceil(allScenes.length / screenplay.beats.length);
-                const beatSceneDistribution: { beatId: string; scenes: Scene[] }[] = [];
+                // 🔥 CRITICAL: Use freshBeats (from clearContentOnly return value) instead of screenplay.beats (stale React state)
+                const scenesPerBeat = Math.ceil(allScenes.length / freshBeats.length);
+                const beatSceneDistribution: { beatId: string; beatTitle: string; beatDescription: string; order: number; scenes: Scene[] }[] = [];
                 
                 // Distribute scenes to beats
-                screenplay.beats.forEach((beat, beatIndex) => {
+                freshBeats.forEach((beat, beatIndex) => {
                     const startIdx = beatIndex * scenesPerBeat;
                     const endIdx = Math.min(startIdx + scenesPerBeat, allScenes.length);
                     const scenesForThisBeat = allScenes.slice(startIdx, endIdx).map((scene, localIndex) => ({
@@ -195,6 +190,9 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     
                     beatSceneDistribution.push({
                         beatId: beat.id,
+                        beatTitle: beat.title,
+                        beatDescription: beat.description,
+                        order: beat.order,
                         scenes: scenesForThisBeat
                     });
                 });
@@ -212,15 +210,18 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     console.log('[ScriptImportModal] ✅ Saved', flatScenes.length, 'scenes to wryda-scenes table');
                     
                     // 🔥 Feature 0115: THEN update beats with scene IDs (NOT full objects)
-                    console.log('[ScriptImportModal] 💾 Updating beats with scene IDs...');
-                    const beatsWithSceneIds = screenplay.beats.map(beat => {
-                        const distribution = beatSceneDistribution.find(d => d.beatId === beat.id);
-                        return {
-                            ...beat,
-                            scenes: distribution?.scenes || [],  // Full objects for local state
-                            updatedAt: now
-                        };
-                    });
+                    // 🔥 CRITICAL FIX: Build beats from beatSceneDistribution directly, NOT from stale React state!
+                    // The screenplay.beats in state were just cleared by clearContentOnly() - they have empty scenes arrays!
+                    console.log('[ScriptImportModal] 💾 Building beats directly from distribution (NOT from stale state)...');
+                    const beatsWithSceneIds = beatSceneDistribution.map(distribution => ({
+                        id: distribution.beatId,
+                        title: distribution.beatTitle,
+                        description: distribution.beatDescription,
+                        order: distribution.order,
+                        scenes: distribution.scenes,  // Full Scene objects for local state
+                        createdAt: now,
+                        updatedAt: now
+                    }));
                     
                     // 🔥 CRITICAL FIX: Only save beats, NOT characters/locations!
                     // Characters and locations were already saved by bulkImportCharacters/bulkImportLocations above

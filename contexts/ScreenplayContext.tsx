@@ -111,7 +111,7 @@ interface ScreenplayContextType {
     
     // Clear all structure (beats, characters, locations) - for destructive import
     clearAllStructure: () => Promise<void>;
-    clearContentOnly: () => Promise<void>;
+    clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 RETURNS fresh beats to avoid state timing issues!
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
     rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; }>;
@@ -1946,10 +1946,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
      * 
      * Use clearAllStructure() for "Clear All" button (nuclear option)
      */
-    const clearContentOnly = useCallback(async () => {
+    const clearContentOnly = useCallback(async (): Promise<StoryBeat[]> => {
         if (!screenplayId) {
             console.warn('[ScreenplayContext] Cannot clear content: no screenplay_id');
-            return;
+            return [];
         }
         
         console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving 8-beat structure)...');
@@ -2038,6 +2038,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             console.log('[ScreenplayContext] ✅ Content cleared - Fresh 8-beat structure in local state, will be saved after scenes are added during import');
+            
+            // 🔥 CRITICAL FIX: Return freshBeats so caller can use them immediately
+            // Don't rely on React state updates which are asynchronous!
+            return freshBeats;
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Failed to clear content:', err);
             throw err;
