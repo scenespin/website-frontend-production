@@ -340,15 +340,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Helper to create default 8-sequence beats (frontend-only UI template)
     const createDefaultBeats = useCallback((): StoryBeat[] => {
+        // 🔥 FIX: Use consistent 8-Sequence Structure template
         const beatTemplates = [
-            { title: 'Opening Image', description: 'Set the tone and world' },
-            { title: 'Setup', description: 'Introduce characters and status quo' },
-            { title: 'Catalyst', description: 'Inciting incident' },
-            { title: 'Debate', description: 'Should they go on this journey?' },
-            { title: 'Break into Two', description: 'Commit to the journey' },
-            { title: 'Fun and Games', description: 'Promise of the premise' },
-            { title: 'Midpoint', description: 'Raise the stakes' },
-            { title: 'All Is Lost', description: 'Lowest point' }
+            { title: 'Setup', description: '' },
+            { title: 'Inciting Incident', description: '' },
+            { title: 'First Plot Point', description: '' },
+            { title: 'First Pinch Point', description: '' },
+            { title: 'Midpoint', description: '' },
+            { title: 'Second Pinch Point', description: '' },
+            { title: 'Second Plot Point', description: '' },
+            { title: 'Resolution', description: '' }
         ];
         
         return beatTemplates.map((template, index) => ({
