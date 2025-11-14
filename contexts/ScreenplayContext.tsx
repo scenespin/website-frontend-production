@@ -36,7 +36,8 @@ import {
     deleteAllScenes,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
-    updateScreenplay as apiUpdateScreenplay
+    updateScreenplay as apiUpdateScreenplay,
+    updateLocation as apiUpdateLocation
 } from '@/utils/screenplayStorage';
 import {
     updateScriptTags
@@ -931,18 +932,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
         setCharacters(updatedCharacters);
         
-        // 2. Save to DynamoDB through persistence manager
+        // 2. Save to DynamoDB using proper update API
         if (screenplayId) {
             try {
                 console.log('[ScreenplayContext] Updating character in DynamoDB:', {
                     characterId: id,
-                    totalCharacters: updatedCharacters.length,
                     updates
                 });
                 
-                // Feature 0117: Save characters directly to wryda-characters table
-                const apiCharacters = transformCharactersToAPI(updatedCharacters);
-                await bulkCreateCharacters(screenplayId, apiCharacters, getToken);
+                // 🔥 FIX: Use proper updateCharacter API instead of bulkCreateCharacters
+                // Transform updates to API format (include arcStatus and referenceImages)
+                const apiUpdates: any = {};
+                
+                // Only include fields that are actually being updated
+                if (updates.name !== undefined) apiUpdates.name = updates.name;
+                if (updates.description !== undefined) apiUpdates.description = updates.description;
+                if (updates.arcStatus !== undefined) apiUpdates.arcStatus = updates.arcStatus; // 🔥 CRITICAL: Include arcStatus
+                if (updates.images !== undefined) {
+                    apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
+                }
+                
+                await apiUpdateCharacter(screenplayId, id, apiUpdates, getToken);
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
             } catch (error) {
@@ -1154,18 +1164,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
         setLocations(updatedLocations);
         
-        // 2. Save to DynamoDB through persistence manager
+        // 2. Save to DynamoDB using proper update API
         if (screenplayId) {
             try {
                 console.log('[ScreenplayContext] Updating location in DynamoDB:', {
                     locationId: id,
-                    totalLocations: updatedLocations.length,
                     updates
                 });
                 
-                // Feature 0117: Save locations directly to wryda-locations table
-                const apiLocations = transformLocationsToAPI(updatedLocations);
-                await bulkCreateLocations(screenplayId, apiLocations, getToken);
+                // 🔥 FIX: Use proper updateLocation API instead of bulkCreateLocations
+                // Transform updates to API format (include type field)
+                const apiUpdates: any = {};
+                
+                // Only include fields that are actually being updated
+                if (updates.name !== undefined) apiUpdates.name = updates.name;
+                if (updates.description !== undefined) apiUpdates.description = updates.description;
+                if (updates.type !== undefined) apiUpdates.type = updates.type; // 🔥 CRITICAL: Include type field (INT/EXT/INT-EXT)
+                if (updates.images !== undefined) {
+                    apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
+                }
+                
+                await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
             } catch (error) {
