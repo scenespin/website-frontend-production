@@ -127,6 +127,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             
             // Step 5: Build complete beat structure with scenes (NO STATE UPDATES)
             // 🔥 PROPER FIX: Build data structure first, THEN save in one operation
+            let scenesWithOrder: Scene[] = []; // Declare outside if block for optimistic UI
             if (parseResult.scenes.length > 0) {
                 // 🔥 CRITICAL: Use freshBeats which we got directly from clearContentOnly()
                 // No more waiting for React state! We have the data synchronously!
@@ -180,7 +181,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 // 🔥 Feature 0117: Simplified - assign global order (1, 2, 3, 4...)
                 // Optionally assign group_label based on scene count or beat template
-                const scenesWithOrder = allScenes.map((scene, index) => {
+                scenesWithOrder = allScenes.map((scene, index) => {
                     // Optionally assign group_label based on scene position
                     // For 8-beat template, divide scenes into 8 groups
                     const beatTitles = ['Setup', 'Inciting Incident', 'First Plot Point', 'First Pinch Point', 
