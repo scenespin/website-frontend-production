@@ -91,8 +91,11 @@ export default function CharacterDetailSidebar({
   }
 
   const handleDelete = () => {
-    if (character && confirm(`Delete "${character.name}"?`)) {
-      onDelete(character.id)
+    // 🔥 FIX: Remove browser confirm() - let DeleteCharacterDialog handle confirmation
+    // Close sidebar first, then trigger delete dialog
+    if (character) {
+      onClose(); // Close sidebar
+      onDelete(character.id); // This will open DeleteCharacterDialog with dependency check
     }
   }
 

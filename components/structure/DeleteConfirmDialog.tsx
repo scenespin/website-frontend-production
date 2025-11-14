@@ -48,12 +48,24 @@ export function DeleteCharacterDialog({
     };
     
     return (
-        <AlertDialog open={!!character} onOpenChange={(open) => !open && onCancel()}>
-            <AlertDialogContent className="max-w-2xl">
+        <AlertDialog open={!!character} onOpenChange={(open) => {
+            // 🔥 FIX: Properly handle mobile closing - ensure state is cleared
+            if (!open) {
+                onCancel();
+            }
+        }}>
+            <AlertDialogContent 
+                className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]" 
+                onPointerDownOutside={(e) => {
+                    // 🔥 FIX: Prevent closing on mobile when clicking outside accidentally
+                    // Only allow closing via Cancel button or explicit close
+                    e.preventDefault();
+                }}
+            >
                 <AlertDialogHeader>
                     <div className="flex items-center space-x-2">
                         <AlertTriangle className="h-6 w-6 text-red-600" />
-                        <AlertDialogTitle>Delete Character: {character.name}</AlertDialogTitle>
+                        <AlertDialogTitle className="text-[#E5E7EB]">Delete Character: {character.name}</AlertDialogTitle>
                     </div>
                     <AlertDialogDescription asChild>
                         <div className="space-y-4">
@@ -140,12 +152,24 @@ export function DeleteLocationDialog({
     };
     
     return (
-        <AlertDialog open={!!location} onOpenChange={(open) => !open && onCancel()}>
-            <AlertDialogContent className="max-w-2xl">
+        <AlertDialog open={!!location} onOpenChange={(open) => {
+            // 🔥 FIX: Properly handle mobile closing - ensure state is cleared
+            if (!open) {
+                onCancel();
+            }
+        }}>
+            <AlertDialogContent 
+                className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]" 
+                onPointerDownOutside={(e) => {
+                    // 🔥 FIX: Prevent closing on mobile when clicking outside accidentally
+                    // Only allow closing via Cancel button or explicit close
+                    e.preventDefault();
+                }}
+            >
                 <AlertDialogHeader>
                     <div className="flex items-center space-x-2">
                         <AlertTriangle className="h-6 w-6 text-red-600" />
-                        <AlertDialogTitle>Delete Location: {location.name}</AlertDialogTitle>
+                        <AlertDialogTitle className="text-[#E5E7EB]">Delete Location: {location.name}</AlertDialogTitle>
                     </div>
                     <AlertDialogDescription asChild>
                         <div className="space-y-4">

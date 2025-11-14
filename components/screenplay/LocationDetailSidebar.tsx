@@ -65,8 +65,11 @@ export default function LocationDetailSidebar({
   }
 
   const handleDelete = () => {
-    if (location && confirm(`Delete "${location.name}"?`)) {
-      onDelete(location.id)
+    // 🔥 FIX: Remove browser confirm() - let DeleteLocationDialog handle confirmation
+    // Close sidebar first, then trigger delete dialog
+    if (location) {
+      onClose(); // Close sidebar
+      onDelete(location.id); // This will open DeleteLocationDialog with dependency check
     }
   }
 
