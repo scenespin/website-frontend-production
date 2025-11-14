@@ -302,7 +302,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             name: char.name || '',
             description: char.description || '',
             type: 'primary' as CharacterType,
-            arcStatus: 'unassigned' as ArcStatus,
+            arcStatus: 'introduced' as ArcStatus, // ✅ FIX: Default to 'introduced' so they appear in CharacterBoard
             images: (char.referenceImages || []).map((url: string) => ({
                 imageUrl: url,
                 description: ''
@@ -327,7 +327,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             id: loc.id || loc.location_id,
             name: loc.name || '',
             description: loc.description || '',
-            type: 'interior' as LocationType,
+            type: 'INT' as LocationType, // ✅ FIX: Default to 'INT' so they appear in LocationBoard
             images: (loc.referenceImages || []).map((url: string) => ({
                 imageUrl: url,
                 description: ''
