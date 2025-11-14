@@ -95,8 +95,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 throw new Error('No screenplay ID available');
             }
             
-            // 🔥 CRITICAL: ALWAYS call clearContentOnly() to get fresh beats!
-            // This works on first import (no ID yet) AND on re-imports (with ID)
+            // 🔥 STEP 1: Delete old data from DynamoDB FIRST
+            console.log('[ScriptImportModal] 🗑️  Clearing all data from DynamoDB...');
+            await screenplay.clearAllData();
+            console.log('[ScriptImportModal] ✅ DynamoDB cleared');
+            
+            // 🔥 STEP 2: Reset frontend state to get fresh 8-beat structure
             console.log('[ScriptImportModal] 🧹 Calling clearContentOnly() to get fresh 8-beat structure...');
             const freshBeats = await screenplay.clearContentOnly();
             console.log('[ScriptImportModal] ✅ Have', freshBeats.length, 'beats for scene distribution');
