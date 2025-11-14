@@ -88,6 +88,9 @@ export default function CharacterDetailSidebar({
     } else {
       onUpdate(formData)
     }
+    
+    // Close the modal after successful save
+    onClose()
   }
 
   const handleDelete = () => {

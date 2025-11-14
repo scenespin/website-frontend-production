@@ -456,7 +456,7 @@ export async function updateCharacter(
   }
 
   const data = await response.json();
-  return data.data.character;
+  return data.data; // 🔥 FIX: Backend returns { success: true, data: character }, not { success: true, data: { character } }
 }
 
 /**
@@ -595,7 +595,7 @@ export async function updateLocation(
   }
 
   const data = await response.json();
-  return data.data.location;
+  return data.data; // 🔥 FIX: Backend returns { success: true, data: location }, not { success: true, data: { location } }
 }
 
 /**
