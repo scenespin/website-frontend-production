@@ -199,7 +199,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     useEffect(() => { 
         charactersRef.current = characters; 
         console.log('[ScreenplayContext] 🔄 Characters state updated:', characters.length);
-        console.trace('[ScreenplayContext] 🔍 Stack trace for characters update');
         if (typeof window !== 'undefined') {
             (window as any).__debug_characters = characters;
         }
@@ -207,7 +206,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     useEffect(() => { 
         locationsRef.current = locations; 
         console.log('[ScreenplayContext] 🔄 Locations state updated:', locations.length);
-        console.trace('[ScreenplayContext] 🔍 Stack trace for locations update');
         if (typeof window !== 'undefined') {
             (window as any).__debug_locations = locations;
         }
@@ -1878,10 +1876,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             updatedAt: now
         }));
         
-        // Reset local state
+        // 🔥 FIX: DON'T clear characters/locations here!
+        // clearAllData() already cleared them from DynamoDB
+        // Clearing them here causes race condition where import sets them, then this clears them again
+        // We ONLY need to reset beats and relationships
         setBeats(freshBeats);
-        setCharacters([]);
-        setLocations([]);
+        // setCharacters([]);  // ❌ REMOVED: Causes race condition!
+        // setLocations([]);    // ❌ REMOVED: Causes race condition!
         setRelationships({
             beats: {},
             characters: {},
@@ -1890,7 +1891,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             props: {}
         });
         
-        console.log('[ScreenplayContext] ✅ Reset to default beat template');
+        console.log('[ScreenplayContext] ✅ Reset beats to default template (characters/locations will be set by import)');
         return freshBeats;
     }, []);
     
