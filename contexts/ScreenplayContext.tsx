@@ -179,8 +179,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount!
     // DynamoDB is the source of truth - localStorage is just a write cache for performance
     // Loading from localStorage first causes race conditions where stale data overwrites fresh edits
-    const [characters, setCharacters] = useState<Character[]>([]);
-    const [locations, setLocations] = useState<Location[]>([]);
+    const [characters, setCharacters] = useState<Character[]>(() => {
+        console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty characters array');
+        return [];
+    });
+    const [locations, setLocations] = useState<Location[]>(() => {
+        console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty locations array');
+        return [];
+    });
     
     // 🔥 NEW: Refs to access current state without closure issues
     // These are updated in sync with state and can be read in callbacks without stale closures
@@ -193,6 +199,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     useEffect(() => { 
         charactersRef.current = characters; 
         console.log('[ScreenplayContext] 🔄 Characters state updated:', characters.length);
+        console.trace('[ScreenplayContext] 🔍 Stack trace for characters update');
         if (typeof window !== 'undefined') {
             (window as any).__debug_characters = characters;
         }
@@ -200,6 +207,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     useEffect(() => { 
         locationsRef.current = locations; 
         console.log('[ScreenplayContext] 🔄 Locations state updated:', locations.length);
+        console.trace('[ScreenplayContext] 🔍 Stack trace for locations update');
         if (typeof window !== 'undefined') {
             (window as any).__debug_locations = locations;
         }
@@ -429,6 +437,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
+        console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current);
+        
         // 🔥 CRITICAL: Guard against duplicate initialization runs
         // This prevents the 26-beat bug caused by multiple effect executions
         const initKey = screenplayId || 'no-id';
