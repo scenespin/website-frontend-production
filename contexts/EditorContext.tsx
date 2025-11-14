@@ -386,7 +386,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 
                 screenplayIdRef.current = newScreenplay.screenplay_id;
                 localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
+                
+                // Trigger storage event manually for ScreenplayContext to pick it up
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'current_screenplay_id',
+                    newValue: newScreenplay.screenplay_id,
+                    oldValue: null,
+                    storageArea: localStorage,
+                    url: window.location.href
+                }));
+                
                 console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
+                
+                // 🔥 CRITICAL: Wait a moment for ScreenplayContext to pick up the localStorage change
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
                 // 🔥 NEW: Get CURRENT state from refs (no closure issues!)
                 const currentStructure = screenplay.getCurrentState();
