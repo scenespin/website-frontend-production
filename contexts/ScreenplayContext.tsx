@@ -22,10 +22,18 @@ import {
     createCharacter as apiCreateCharacter,
     updateCharacter as apiUpdateCharacter,
     deleteCharacter as apiDeleteCharacter,
+    bulkCreateCharacters,
+    deleteAllCharacters,
     listLocations,
     createLocation as apiCreateLocation,
     updateLocation as apiUpdateLocation,
     deleteLocation as apiDeleteLocation,
+    bulkCreateLocations,
+    deleteAllLocations,
+    listScenes,
+    bulkCreateScenes,
+    deleteScene as apiDeleteScene,
+    deleteAllScenes,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
     updateScreenplay as apiUpdateScreenplay
@@ -34,10 +42,6 @@ import {
     updateScriptTags
 } from '@/utils/fountainTags';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
-import { 
-    persistenceManager,
-    waitForInitialization 
-} from '@/utils/screenplayPersistence';
 
 // ============================================================================
 // Context Type Definition
@@ -78,8 +82,8 @@ interface ScreenplayContextType {
     setSceneLocation: (sceneId: string, locationId: string) => Promise<void>;
     
     // Bulk Import
-    bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>) => Promise<Character[]>;
-    bulkImportLocations: (locationNames: string[]) => Promise<Location[]>;
+    bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>, explicitScreenplayId?: string) => Promise<Character[]>;
+    bulkImportLocations: (locationNames: string[], explicitScreenplayId?: string) => Promise<Location[]>;
     bulkImportScenes: (beatId: string, scenes: Array<{
         heading: string;
         location: string;
@@ -89,7 +93,7 @@ interface ScreenplayContextType {
         endLine: number;
     }>) => Promise<Scene[]>;
     // Feature 0117: saveBeatsToDynamoDB removed - beats are frontend-only
-    saveScenes: (scenes: Scene[]) => Promise<void>; // 🔥 Feature 0117: Save scenes to separate table
+    saveScenes: (scenes: Scene[], explicitScreenplayId?: string) => Promise<void>; // Feature 0117: Save scenes to separate table
     
     // 🔥 NEW: Get current state without closure issues
     getCurrentState: () => {
@@ -207,6 +211,168 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [hasInitializedFromDynamoDB, setHasInitializedFromDynamoDB] = useState(false);
     
     // ========================================================================
+    // Feature 0117: Data Transformation Helpers
+    // Simple transformations between frontend and API formats
+    // ========================================================================
+    
+    const transformScenesToAPI = useCallback((scenes: Scene[]): any[] => {
+        return scenes.map(scene => ({
+            number: scene.number,
+            heading: scene.heading,
+            synopsis: scene.synopsis,
+            status: scene.status,
+            order: scene.order,
+            group_label: scene.group_label,
+            fountain: scene.fountain,
+            estimatedPageCount: scene.estimatedPageCount,
+            images: scene.images,
+            videoAssets: scene.videoAssets,
+            timing: scene.timing
+        }));
+    }, []);
+    
+    const transformScenesFromAPI = useCallback((apiScenes: any[]): Scene[] => {
+        return apiScenes.map(scene => {
+            const fountain = scene.fountain || {};
+            const tags = fountain.tags || {};
+            
+            return {
+                id: scene.id || scene.scene_id,
+                number: scene.number,
+                heading: scene.heading || '',
+                synopsis: scene.synopsis || '',
+                status: scene.status || 'draft',
+                order: scene.order || 0,
+                group_label: scene.group_label,
+                fountain: {
+                    startLine: fountain.startLine || 0,
+                    endLine: fountain.endLine || 0,
+                    tags: {
+                        characters: tags.characters || [],
+                        location: tags.location || undefined,
+                        props: tags.props || undefined
+                    }
+                },
+                estimatedPageCount: scene.estimatedPageCount,
+                images: scene.images || [],
+                videoAssets: scene.videoAssets || [],
+                timing: scene.timing,
+                createdAt: scene.created_at || new Date().toISOString(),
+                updatedAt: scene.updated_at || new Date().toISOString()
+            };
+        });
+    }, []);
+    
+    const transformCharactersToAPI = useCallback((characters: Character[]): any[] => {
+        return characters.map(char => ({
+            id: char.id,
+            name: char.name,
+            description: char.description,
+            referenceImages: char.images?.map(img => img.imageUrl) || []
+        }));
+    }, []);
+    
+    const transformCharactersFromAPI = useCallback((apiCharacters: any[]): Character[] => {
+        return apiCharacters.map(char => ({
+            id: char.id || char.character_id,
+            name: char.name || '',
+            description: char.description || '',
+            type: 'primary' as CharacterType,
+            arcStatus: 'unassigned' as ArcStatus,
+            images: (char.referenceImages || []).map((url: string) => ({
+                imageUrl: url,
+                description: ''
+            })),
+            customFields: [],
+            createdAt: char.created_at || new Date().toISOString(),
+            updatedAt: char.updated_at || new Date().toISOString()
+        }));
+    }, []);
+    
+    const transformLocationsToAPI = useCallback((locations: Location[]): any[] => {
+        return locations.map(loc => ({
+            id: loc.id,
+            name: loc.name,
+            description: loc.description,
+            referenceImages: loc.images?.map(img => img.imageUrl) || []
+        }));
+    }, []);
+    
+    const transformLocationsFromAPI = useCallback((apiLocations: any[]): Location[] => {
+        return apiLocations.map(loc => ({
+            id: loc.id || loc.location_id,
+            name: loc.name || '',
+            description: loc.description || '',
+            type: 'interior' as LocationType,
+            images: (loc.referenceImages || []).map((url: string) => ({
+                imageUrl: url,
+                description: ''
+            })),
+            customFields: [],
+            createdAt: loc.created_at || new Date().toISOString(),
+            updatedAt: loc.updated_at || new Date().toISOString()
+        }));
+    }, []);
+    
+    // Helper to create default 8-sequence beats (frontend-only UI template)
+    const createDefaultBeats = useCallback((): StoryBeat[] => {
+        const beatTemplates = [
+            { title: 'Opening Image', description: 'Set the tone and world' },
+            { title: 'Setup', description: 'Introduce characters and status quo' },
+            { title: 'Catalyst', description: 'Inciting incident' },
+            { title: 'Debate', description: 'Should they go on this journey?' },
+            { title: 'Break into Two', description: 'Commit to the journey' },
+            { title: 'Fun and Games', description: 'Promise of the premise' },
+            { title: 'Midpoint', description: 'Raise the stakes' },
+            { title: 'All Is Lost', description: 'Lowest point' }
+        ];
+        
+        return beatTemplates.map((template, index) => ({
+            id: `beat-${Date.now()}-${index}`,
+            title: template.title,
+            description: template.description,
+            order: index,
+            scenes: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }));
+    }, []);
+    
+    // Helper to group scenes into beats based on group_label or order
+    const groupScenesIntoBeats = useCallback((scenes: Scene[], beats: StoryBeat[]): StoryBeat[] => {
+        const beatMap = new Map(beats.map(b => [b.title.toUpperCase(), b]));
+        const updatedBeats = beats.map(b => ({ ...b, scenes: [] as Scene[] }));
+        const orphanedScenes: Scene[] = [];
+        
+        scenes.forEach(scene => {
+            if (scene.group_label) {
+                const beat = beatMap.get(scene.group_label.toUpperCase());
+                if (beat) {
+                    const index = beats.findIndex(b => b.id === beat.id);
+                    if (index !== -1) {
+                        updatedBeats[index].scenes.push(scene);
+                        return;
+                    }
+                }
+            }
+            orphanedScenes.push(scene);
+        });
+        
+        // Distribute orphaned scenes evenly across beats
+        if (orphanedScenes.length > 0) {
+            const scenesPerBeat = Math.ceil(orphanedScenes.length / updatedBeats.length);
+            orphanedScenes.forEach((scene, index) => {
+                const beatIndex = Math.floor(index / scenesPerBeat);
+                if (beatIndex < updatedBeats.length) {
+                    updatedBeats[beatIndex].scenes.push(scene);
+                }
+            });
+        }
+        
+        return updatedBeats;
+    }, []);
+    
+    // ========================================================================
     // Feature 0111 Phase 3: DynamoDB Integration & Clerk Auth
     // ========================================================================
     const { getToken } = useAuth();
@@ -257,48 +423,60 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         hasInitializedRef.current = initKey;
         
         async function initializeData() {
-            // 🔥 NEW: Load from DynamoDB using persistence manager
+            // Feature 0117: Load directly from DynamoDB API functions
             if (screenplayId) {
                 try {
                     console.log('[ScreenplayContext] 🔄 Loading structure from DynamoDB for:', screenplayId);
                     
-                    // 🔥 CRITICAL: Initialize persistence manager with screenplay_id and getToken
-                    persistenceManager.setScreenplay(screenplayId, getToken);
+                    // Load scenes, characters, and locations in parallel
+                    const [scenesData, charactersData, locationsData] = await Promise.all([
+                        listScenes(screenplayId, getToken),
+                        listCharacters(screenplayId, getToken),
+                        listLocations(screenplayId, getToken)
+                    ]);
                     
-                    // Feature 0117: Use loadAll() which generates beats from scenes on the frontend
-                    const data = await persistenceManager.loadAll();
+                    console.log('[ScreenplayContext] 📦 Raw API response:', {
+                        scenes: scenesData.length,
+                        characters: charactersData.length,
+                        locations: locationsData.length
+                    });
                     
-                    // 🔥 FIXED: Always load what's in DynamoDB - it's the source of truth!
-                    // Feature 0117: Beats are generated from scenes (frontend grouping)
-                    setBeats(data.beats);
-                    console.log('[ScreenplayContext] ✅ Loaded', data.beats.length, 'beats (frontend-generated from scenes)');
-                    console.log('[ScreenplayContext] 🔍 Beat details:', data.beats.map(b => ({ 
+                    // Transform API data to frontend format
+                    const transformedScenes = transformScenesFromAPI(scenesData);
+                    
+                    // Feature 0117: Generate beats from scenes (frontend-only grouping)
+                    const defaultBeats = createDefaultBeats();
+                    const beatsWithScenes = groupScenesIntoBeats(transformedScenes, defaultBeats);
+                    
+                    setBeats(beatsWithScenes);
+                    console.log('[ScreenplayContext] ✅ Generated', beatsWithScenes.length, 'beats with', transformedScenes.length, 'total scenes');
+                    console.log('[ScreenplayContext] 🔍 Beat details:', beatsWithScenes.map(b => ({ 
                         id: b.id, 
                         title: b.title, 
-                        scenesCount: b.scenes?.length || 0,
-                        hasScenes: Array.isArray(b.scenes) && b.scenes.length > 0 
+                        scenesCount: b.scenes?.length || 0
                     })));
                     
                     // Mark that we loaded beats from DB (even if 0) to prevent auto-creation
-                    // But only if we actually got beats, or if we've already created defaults
-                    if (data.beats.length > 0) {
+                    if (beatsWithScenes.length > 0) {
                         hasAutoCreated.current = true;
                     }
                     
-                    setCharacters(data.characters);
-                    console.log('[ScreenplayContext] ✅ Loaded', data.characters.length, 'characters from DynamoDB');
+                    // Transform and set characters
+                    const transformedCharacters = transformCharactersFromAPI(charactersData);
+                    setCharacters(transformedCharacters);
+                    console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
                     
-                    setLocations(data.locations);
-                    console.log('[ScreenplayContext] ✅ Loaded', data.locations.length, 'locations from DynamoDB');
-                    
+                    // Transform and set locations
+                    const transformedLocations = transformLocationsFromAPI(locationsData);
+                    setLocations(transformedLocations);
+                    console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
-                    // Feature 0117: Beats are frontend-generated, so check data.beats
-                    if (data.beats.length === 0 && !hasAutoCreated.current) {
+                    if (beatsWithScenes.length === 0 && !hasAutoCreated.current) {
                         console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure for screenplay:', screenplayId);
-                        await createDefaultBeats(screenplayId);
-                    } else if (hasAutoCreated.current) {
-                        console.log('[ScreenplayContext] ⏭️ Skipping beat creation - already have', data.beats.length, 'beats');
+                        const freshBeats = createDefaultBeats();
+                        setBeats(freshBeats);
+                        hasAutoCreated.current = true;
                     }
                     
                 } catch (err) {
@@ -315,93 +493,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 setHasInitializedFromDynamoDB(true);
                 setIsLoading(false);
                 
-                // 🔥 CRITICAL: For new screenplays (no ID yet), create default beats immediately
-                // But only if we haven't already created them
+                // Feature 0117: For new screenplays (no ID yet), create default beats immediately
                 if (!hasAutoCreated.current) {
                     console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure (no screenplay ID yet)');
-                    await createDefaultBeats(null);
+                    const freshBeats = createDefaultBeats();
+                    setBeats(freshBeats);
+                    hasAutoCreated.current = true;
                 } else {
                     console.log('[ScreenplayContext] ⏭️ Skipping beat creation - already created');
                 }
             }
         }
         
-        // Helper function to create default 8-sequence beats (DRY principle)
-        async function createDefaultBeats(screenplay_id: string | null) {
-            // 🔥 DOUBLE-CHECK: Prevent any possibility of duplicate creation
-            if (hasAutoCreated.current) {
-                console.log('[ScreenplayContext] ⛔ Blocked duplicate beat creation - already created');
-                return;
-            }
-            
-            // 🔥 SET FLAG IMMEDIATELY before any async operations
-            // This prevents race conditions where multiple calls happen before flag is set
-            hasAutoCreated.current = true;
-            console.log('[ScreenplayContext] 🔒 Locked hasAutoCreated flag to prevent duplicates');
-            
-            const sequences = [
-                {
-                    title: 'Sequence 1: Status Quo',
-                    description: 'Opening image. Introduce protagonist, world, ordinary life. What they want vs. what they need. (Pages 1-12, Act I)',
-                    order: 0
-                },
-                {
-                    title: 'Sequence 2: Predicament',
-                    description: 'Inciting incident. Call to adventure. Protagonist thrust into new situation. (Pages 13-25, Act I)',
-                    order: 1
-                },
-                {
-                    title: 'Sequence 3: Lock In',
-                    description: 'Protagonist commits to the journey. First major obstacle. Point of no return. (Pages 26-37, Act II-A)',
-                    order: 2
-                },
-                {
-                    title: 'Sequence 4: First Culmination',
-                    description: 'Complications arise. Stakes raised. Rising tension toward midpoint. (Pages 38-55, Act II-A)',
-                    order: 3
-                },
-                {
-                    title: 'Sequence 5: Midpoint Shift',
-                    description: 'Major revelation or turning point. False victory or false defeat. Everything changes. (Pages 56-67, Act II-B)',
-                    order: 4
-                },
-                {
-                    title: 'Sequence 6: Complications',
-                    description: 'Plan falls apart. Obstacles multiply. Protagonist losing ground. (Pages 68-85, Act II-B)',
-                    order: 5
-                },
-                {
-                    title: 'Sequence 7: All Is Lost',
-                    description: 'Darkest moment. Protagonist\'s lowest point. Appears all is lost. (Pages 86-95, Act III)',
-                    order: 6
-                },
-                {
-                    title: 'Sequence 8: Resolution',
-                    description: 'Final push. Climax and resolution. New equilibrium established. (Pages 96-110, Act III)',
-                    order: 7
-                }
-            ];
-            
-            const now = new Date().toISOString();
-            const newBeats = sequences.map((seq, index) => ({
-                id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-                title: seq.title,
-                description: seq.description,
-                order: seq.order,
-                scenes: [],
-                createdAt: now,
-                updatedAt: now
-            }));
-            
-            setBeats(newBeats);
-            console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure:', newBeats.length, 'beats');
-            
-            // Feature 0117: Beats are frontend-only UI templates, no need to save to DynamoDB
-            console.log('[ScreenplayContext] ℹ️ Beats are frontend-only templates (no persistence)');
-        }
-        
         initializeData();
-    }, [screenplayId]); // Only re-run when screenplay_id changes, NOT on getToken changes
+    }, [screenplayId, transformScenesFromAPI, transformCharactersFromAPI, transformLocationsFromAPI, createDefaultBeats, groupScenesIntoBeats, getToken]);
     
     // ========================================================================
     // Auto-save to localStorage when data changes
@@ -470,8 +575,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Find the updated beat
                 const updatedBeat = beats.find(b => b.id === beatId);
                 if (updatedBeat) {
-                    // Save the new scene to wryda-scenes table using persistence manager
-                    await persistenceManager.saveScenes([newScene]);
+                    // Feature 0117: Save the new scene to wryda-scenes table directly
+                    const apiScene = transformScenesToAPI([newScene]);
+                    await bulkCreateScenes(screenplayId, apiScene, getToken);
                     console.log('[ScreenplayContext] ✅ Saved new scene to DynamoDB');
                 }
             } catch (error) {
@@ -514,7 +620,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     if (updatedScene) {
                         const sceneWithUpdates = { ...updatedScene, ...updates, updatedAt: now };
                         // Feature 0117: Save updated scene directly (beats don't persist)
-                        await persistenceManager.saveScenes([sceneWithUpdates]);
+                        const apiScene = transformScenesToAPI([sceneWithUpdates]);
+                        await bulkCreateScenes(screenplayId, apiScene, getToken);
                         console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
                     }
                 }
@@ -620,7 +727,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             if (screenplayId && movedScene) {
                 try {
                     // Save the moved scene with updated order if needed
-                    await persistenceManager.saveScenes([movedScene]);
+                    const apiScene = transformScenesToAPI([movedScene]);
+                    await bulkCreateScenes(screenplayId, apiScene, getToken);
                     console.log('[ScreenplayContext] ✅ Saved moved scene to DynamoDB');
                 } catch (error) {
                     console.error('[ScreenplayContext] Failed to save moved scene:', error);
@@ -698,8 +806,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updates
                 });
                 
-                // 🔥 NEW: Use persistence manager (handles transformation internally)
-                await persistenceManager.saveCharacters(updatedCharacters);
+                // Feature 0117: Save characters directly to wryda-characters table
+                const apiCharacters = transformCharactersToAPI(updatedCharacters);
+                await bulkCreateCharacters(screenplayId, apiCharacters, getToken);
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
             } catch (error) {
@@ -920,8 +1029,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updates
                 });
                 
-                // 🔥 NEW: Use persistence manager (handles transformation internally)
-                await persistenceManager.saveLocations(updatedLocations);
+                // Feature 0117: Save locations directly to wryda-locations table
+                const apiLocations = transformLocationsToAPI(updatedLocations);
+                await bulkCreateLocations(screenplayId, apiLocations, getToken);
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
             } catch (error) {
@@ -1268,7 +1378,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     const bulkImportCharacters = useCallback(async (
         characterNames: string[],
-        descriptions?: Map<string, string>
+        descriptions?: Map<string, string>,
+        explicitScreenplayId?: string
     ): Promise<Character[]> => {
         console.log('[ScreenplayContext] 🔄 Starting bulk character import...', characterNames.length, 'characters');
         
@@ -1344,10 +1455,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
         
         // 🔥 NEW: Save ALL characters to DynamoDB through persistence manager
-        if (screenplayId) {
+        // Feature 0117: Accept explicit screenplay ID to avoid race conditions
+        const idToUse = explicitScreenplayId || screenplayId;
+        if (idToUse) {
             try {
                 console.log('[ScreenplayContext] Saving', allCharacters.length, 'characters to DynamoDB...');
-                await persistenceManager.saveCharacters(allCharacters);
+                const apiCharacters = transformCharactersToAPI(allCharacters);
+                await bulkCreateCharacters(idToUse, apiCharacters, getToken);
                 console.log('[ScreenplayContext] ✅ Saved characters to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save characters:', error);
@@ -1361,7 +1475,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return newCharacters;
     }, [characters, screenplayId]);
     
-    const bulkImportLocations = useCallback(async (locationNames: string[]): Promise<Location[]> => {
+    const bulkImportLocations = useCallback(async (locationNames: string[], explicitScreenplayId?: string): Promise<Location[]> => {
         console.log('[ScreenplayContext] 🔄 Starting bulk location import...', locationNames.length, 'locations');
         
         const now = new Date().toISOString();
@@ -1431,10 +1545,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
         
         // 🔥 NEW: Save ALL locations to DynamoDB through persistence manager
-        if (screenplayId) {
+        // Feature 0117: Accept explicit screenplay ID to avoid race conditions
+        const idToUse = explicitScreenplayId || screenplayId;
+        if (idToUse) {
             try {
                 console.log('[ScreenplayContext] Saving', allLocations.length, 'locations to DynamoDB...');
-                await persistenceManager.saveLocations(allLocations);
+                const apiLocations = transformLocationsToAPI(allLocations);
+                await bulkCreateLocations(idToUse, apiLocations, getToken);
                 console.log('[ScreenplayContext] ✅ Saved locations to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save locations:', error);
@@ -1549,11 +1666,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, []);
     
     /**
-     * 🔥 Feature 0115: Save scenes to separate wryda-scenes table
+     * Feature 0117: Save scenes to separate wryda-scenes table
      * Extracts all scenes from all beats and saves them to DynamoDB
+     * @param scenes - Array of scenes to save
+     * @param explicitScreenplayId - Optional screenplay ID to use (for race condition fixes)
      */
-    const saveScenes = useCallback(async (scenes: Scene[]): Promise<void> => {
-        if (!screenplayId) {
+    const saveScenes = useCallback(async (scenes: Scene[], explicitScreenplayId?: string): Promise<void> => {
+        const idToUse = explicitScreenplayId || screenplayId;
+        if (!idToUse) {
             console.warn('[ScreenplayContext] Cannot save scenes: no screenplay_id');
             return;
         }
@@ -1561,13 +1681,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 💾 Saving', scenes.length, 'scenes to wryda-scenes table...');
         
         try {
-            await persistenceManager.saveScenes(scenes);
+            const apiScenes = transformScenesToAPI(scenes);
+            await bulkCreateScenes(idToUse, apiScenes, getToken);
             console.log('[ScreenplayContext] ✅ Saved', scenes.length, 'scenes');
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Failed to save scenes:', err);
             throw err;
         }
-    }, [screenplayId]);
+    }, [screenplayId, transformScenesToAPI, getToken]);
     
     // Feature 0117: saveAllToDynamoDBDirect removed - use saveScenes() instead
     
@@ -1682,7 +1803,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Clear All Structure (Destructive Import Support)
     // ========================================================================
     
-    // Feature 0117: clearAllStructure removed - use clearContentOnly() or persistenceManager.clearAll() directly
+    // Feature 0117: clearAllStructure removed - direct API calls only
     
     // ========================================================================
     // Clear Content Only (For Imports - Preserve 8-Beat Structure)
@@ -1821,10 +1942,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             try {
                 console.log('[ScreenplayContext] Clearing ALL structural data from DynamoDB...');
                 
-                // Use persistence manager's clearAll method
-                await persistenceManager.clearAll();
+                // Feature 0117: Clear all data directly from API
+                await Promise.all([
+                    deleteAllScenes(screenplayId, getToken),
+                    deleteAllCharacters(screenplayId, getToken),
+                    deleteAllLocations(screenplayId, getToken)
+                ]);
                 
-                console.log('[ScreenplayContext] ✅ Cleared EVERYTHING from DynamoDB (text, beats, characters, locations)');
+                console.log('[ScreenplayContext] ✅ Cleared EVERYTHING from DynamoDB (scenes, characters, locations)');
             } catch (err) {
                 console.error('[ScreenplayContext] Failed to clear from DynamoDB:', err);
                 throw err; // Re-throw so toolbar shows error

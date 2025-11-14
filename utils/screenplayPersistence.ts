@@ -293,20 +293,21 @@ export class ScreenplayPersistenceManager {
    * @param characters - Array of characters to save
    * @throws Error if screenplay_id not set or save fails
    */
-  async saveCharacters(characters: Character[]): Promise<void> {
-    if (!this.screenplayId) {
+  async saveCharacters(characters: Character[], explicitScreenplayId?: string): Promise<void> {
+    const idToUse = explicitScreenplayId || this.screenplayId;
+    if (!idToUse) {
       throw new Error('[Persistence] Cannot save characters: No screenplay_id set');
     }
     
-    console.error('[Persistence] 💾 Saving', characters.length, 'characters via BULK CREATE');
+    console.log('[Persistence] 💾 Saving', characters.length, 'characters via BULK CREATE, screenplay_id:', idToUse);
     
     try {
       const apiCharacters = this.transformCharactersToAPI(characters);
       
       // 🔥 NEW ARCHITECTURE: Use separate table endpoint for characters
-      await bulkCreateCharacters(this.screenplayId, apiCharacters, this.getToken);
+      await bulkCreateCharacters(idToUse, apiCharacters, this.getToken);
       
-      console.error('[Persistence] ✅ Saved', characters.length, 'characters to DynamoDB');
+      console.log('[Persistence] ✅ Saved', characters.length, 'characters to DynamoDB');
       
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save characters:', error);
@@ -320,18 +321,19 @@ export class ScreenplayPersistenceManager {
    * @param locations - Array of locations to save
    * @throws Error if screenplay_id not set or save fails
    */
-  async saveLocations(locations: Location[]): Promise<void> {
-    if (!this.screenplayId) {
+  async saveLocations(locations: Location[], explicitScreenplayId?: string): Promise<void> {
+    const idToUse = explicitScreenplayId || this.screenplayId;
+    if (!idToUse) {
       throw new Error('[Persistence] Cannot save locations: No screenplay_id set');
     }
     
-    console.log('[Persistence] 💾 Saving locations...', locations.length);
+    console.log('[Persistence] 💾 Saving locations...', locations.length, 'screenplay_id:', idToUse);
     
     try {
       const apiLocations = this.transformLocationsToAPI(locations);
       
       // 🔥 NEW ARCHITECTURE: Use separate table endpoint for locations
-      await bulkCreateLocations(this.screenplayId, apiLocations, this.getToken);
+      await bulkCreateLocations(idToUse, apiLocations, this.getToken);
       
       console.log('[Persistence] ✅ Saved', locations.length, 'locations');
       
@@ -421,16 +423,17 @@ export class ScreenplayPersistenceManager {
   /**
    * 🔥 Feature 0115: Save scenes to separate wryda-scenes table
    */
-  async saveScenes(scenes: Scene[]): Promise<void> {
-    if (!this.screenplayId) {
+  async saveScenes(scenes: Scene[], explicitScreenplayId?: string): Promise<void> {
+    const idToUse = explicitScreenplayId || this.screenplayId;
+    if (!idToUse) {
       throw new Error('[Persistence] Cannot save scenes: No screenplay_id set');
     }
     
-    console.log('[Persistence] 💾 Saving scenes...', scenes.length);
+    console.log('[Persistence] 💾 Saving scenes...', scenes.length, 'screenplay_id:', idToUse);
     
     try {
       const apiScenes = this.transformScenesToAPI(scenes);
-      await bulkCreateScenes(this.screenplayId, apiScenes, this.getToken);
+      await bulkCreateScenes(idToUse, apiScenes, this.getToken);
       console.log('[Persistence] ✅ Saved', scenes.length, 'scenes');
     } catch (error) {
       console.error('[Persistence] ❌ Failed to save scenes:', error);

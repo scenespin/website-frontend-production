@@ -398,27 +398,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 
                 console.log('[EditorContext] ✅ Created NEW screenplay:', newScreenplay.screenplay_id, '| Content:', contentLength, 'chars');
                 
-                // 🔥 CRITICAL: Wait a moment for ScreenplayContext to pick up the localStorage change
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // 🔥 NEW: Get CURRENT state from refs (no closure issues!)
-                const currentStructure = screenplay.getCurrentState();
-                
-                console.log('[EditorContext] 💾 Saving structure data (from refs - no closure!)...');
-                console.log('[EditorContext] 🔍 Current structure:', {
-                    beats: currentStructure.beats.length,
-                    characters: currentStructure.characters.length,
-                    locations: currentStructure.locations.length
-                });
-                
-                try {
-                    // Feature 0117: Extract scenes from beats and save separately
-                    const allScenes = currentStructure.beats.flatMap(beat => beat.scenes);
-                    await screenplay.saveScenes(allScenes);
-                    console.log('[EditorContext] ✅ Saved structure data (via refs - always current!)');
-                } catch (error) {
-                    console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
-                }
+                // Feature 0117: No setTimeout or structure save needed - caller will handle it with explicit ID
             } else {
                 // Update existing screenplay
                 console.log('[EditorContext] Updating EXISTING screenplay:', screenplayIdRef.current, '| Content:', contentLength, 'chars');
@@ -431,25 +411,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 
                 console.log('[EditorContext] ✅ Updated screenplay content:', screenplayIdRef.current, '| Saved', contentLength, 'chars');
                 
-                // 🔥 FIXED: Get CURRENT state from refs (no closure issues!)
-                const currentStructure = screenplay.getCurrentState();
-                
-                console.log('[EditorContext] 💾 Saving structure data (from refs - no closure!)...');
-                console.log('[EditorContext] 🔍 Current structure:', {
-                    beats: currentStructure.beats.length,
-                    characters: currentStructure.characters.length,
-                    locations: currentStructure.locations.length
-                });
-                
-                try {
-                    // Feature 0117: Extract scenes from beats and save separately
-                    const allScenes = currentStructure.beats.flatMap(beat => beat.scenes);
-                    await screenplay.saveScenes(allScenes);
-                    console.log('[EditorContext] ✅ Saved structure data (via refs - always current!)');
-                } catch (error) {
-                    console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
-                    // Don't fail the whole save if structure save fails
-                }
+                // Feature 0117: No structure save needed here - handled separately by callers
             }
             
             // Mark as saved

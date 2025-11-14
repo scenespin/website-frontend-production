@@ -79,13 +79,20 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 setContent(content);
                 // Trigger screenplay creation
                 await saveNow();
-                console.log('[ScriptImportModal] ⏳ Waiting for screenplay creation...');
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for ID to be set
+                console.log('[ScriptImportModal] ✅ Screenplay saved');
                 
-                if (!screenplay.screenplayId) {
-                    throw new Error('Failed to create screenplay - no ID available');
+                // Feature 0117: Get screenplay ID immediately from localStorage (no waiting for state)
+                const screenplayId = localStorage.getItem('current_screenplay_id');
+                if (!screenplayId) {
+                    throw new Error('Failed to get screenplay ID from localStorage after save');
                 }
-                console.log('[ScriptImportModal] ✅ Screenplay created:', screenplay.screenplayId);
+                console.log('[ScriptImportModal] ✅ Got screenplay ID:', screenplayId);
+            }
+            
+            // Feature 0117: Get screenplay ID from localStorage (always fresh)
+            const screenplayId = localStorage.getItem('current_screenplay_id');
+            if (!screenplayId) {
+                throw new Error('No screenplay ID available');
             }
             
             // 🔥 CRITICAL: ALWAYS call clearContentOnly() to get fresh beats!
@@ -101,20 +108,20 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // Step 2: Set content in editor
             setContent(content);
             
-            // Step 3: Import characters
+            // Step 3: Import characters (with explicit screenplay ID)
             let importedCharacters: Character[] = [];
             if (parseResult.characters.size > 0) {
                 const characterNames = Array.from(parseResult.characters) as string[];
                 const characterDescriptions = parseResult.characterDescriptions || new Map<string, string>();
-                importedCharacters = await screenplay.bulkImportCharacters(characterNames, characterDescriptions);
+                importedCharacters = await screenplay.bulkImportCharacters(characterNames, characterDescriptions, screenplayId);
                 console.log('[ScriptImportModal] ✅ Imported', characterNames.length, 'characters');
             }
             
-            // Step 4: Import locations
+            // Step 4: Import locations (with explicit screenplay ID)
             let importedLocations: Location[] = [];
             if (parseResult.locations.size > 0) {
                 const locationNames = Array.from(parseResult.locations) as string[];
-                importedLocations = await screenplay.bulkImportLocations(locationNames);
+                importedLocations = await screenplay.bulkImportLocations(locationNames, screenplayId);
                 console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations');
             }
             
@@ -191,14 +198,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 console.log('[ScriptImportModal] ✅ Assigned global order to', scenesWithOrder.length, 'scenes');
                 
-                // 🔥 Feature 0117: Save scenes to wryda-scenes table (NO beat references)
+                // Feature 0117: Save scenes to wryda-scenes table (with explicit screenplay ID)
                 console.log('[ScriptImportModal] 💾 Saving scenes to wryda-scenes table...');
-                if (screenplay.screenplayId) {
-                    await screenplay.saveScenes(scenesWithOrder);
-                    console.log('[ScriptImportModal] ✅ Saved', scenesWithOrder.length, 'scenes to wryda-scenes table');
-                } else {
-                    throw new Error('No screenplay_id available for saving');
-                }
+                await screenplay.saveScenes(scenesWithOrder, screenplayId);
+                console.log('[ScriptImportModal] ✅ Saved', scenesWithOrder.length, 'scenes to wryda-scenes table');
             }
             
             // Step 6: Update screenplay content to DynamoDB AND localStorage
