@@ -36,8 +36,7 @@ import {
     deleteAllScenes,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
-    updateScreenplay as apiUpdateScreenplay,
-    updateLocation as apiUpdateLocation
+    updateScreenplay as apiUpdateScreenplay
 } from '@/utils/screenplayStorage';
 import {
     updateScriptTags
