@@ -47,6 +47,9 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
 
     // Initialize columns based on screenplay characters
     useEffect(() => {
+        console.log('[CharacterBoard] 🔄 Characters changed:', characters.length, 'total');
+        console.log('[CharacterBoard] 🔍 Character names:', characters.map(c => c.name));
+        
         const introduced = characters.filter(c => c.arcStatus === 'introduced');
         const developing = characters.filter(c => c.arcStatus === 'developing');
         const resolved = characters.filter(c => c.arcStatus === 'resolved');

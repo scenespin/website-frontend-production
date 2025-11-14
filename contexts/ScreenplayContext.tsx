@@ -190,8 +190,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Keep refs in sync with state
     useEffect(() => { beatsRef.current = beats; }, [beats]);
-    useEffect(() => { charactersRef.current = characters; }, [characters]);
-    useEffect(() => { locationsRef.current = locations; }, [locations]);
+    useEffect(() => { 
+        charactersRef.current = characters; 
+        console.log('[ScreenplayContext] 🔄 Characters state updated:', characters.length);
+        if (typeof window !== 'undefined') {
+            (window as any).__debug_characters = characters;
+        }
+    }, [characters]);
+    useEffect(() => { 
+        locationsRef.current = locations; 
+        console.log('[ScreenplayContext] 🔄 Locations state updated:', locations.length);
+        if (typeof window !== 'undefined') {
+            (window as any).__debug_locations = locations;
+        }
+    }, [locations]);
     
     // Relationships - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
@@ -471,11 +483,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const transformedCharacters = transformCharactersFromAPI(charactersData);
                     setCharacters(transformedCharacters);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
+                    console.log('[ScreenplayContext] 🔍 Character names:', transformedCharacters.map(c => c.name));
                     
                     // Transform and set locations
                     const transformedLocations = transformLocationsFromAPI(locationsData);
                     setLocations(transformedLocations);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
+                    console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
                     if (beatsWithScenes.length === 0 && !hasAutoCreated.current) {
