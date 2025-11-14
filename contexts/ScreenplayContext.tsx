@@ -407,6 +407,83 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return updatedBeats;
     }, []);
     
+    // 🔥 NEW: Helper to build relationships from scenes
+    // This ensures character/location scene counts are accurate
+    const buildRelationshipsFromScenes = useCallback((scenes: Scene[], beats: StoryBeat[]) => {
+        console.log('[ScreenplayContext] 🔗 Building relationships from', scenes.length, 'scenes...');
+        
+        setRelationships(prev => {
+            const newRels = {
+                beats: { ...prev.beats },
+                scenes: { ...prev.scenes },
+                characters: { ...prev.characters },
+                locations: { ...prev.locations },
+                props: { ...prev.props }
+            };
+            
+            // Build beat map for scene-to-beat lookup
+            const beatMap = new Map<string, string>();
+            beats.forEach(beat => {
+                beat.scenes.forEach(scene => {
+                    beatMap.set(scene.id, beat.id);
+                });
+            });
+            
+            // Process each scene
+            scenes.forEach(scene => {
+                const beatId = beatMap.get(scene.id) || '';
+                
+                // Scene relationships
+                newRels.scenes[scene.id] = {
+                    type: 'scene',
+                    characters: scene.fountain?.tags?.characters || [],
+                    location: scene.fountain?.tags?.location,
+                    storyBeat: beatId
+                };
+                
+                // Link characters to scene
+                const characterIds = scene.fountain?.tags?.characters || [];
+                characterIds.forEach(charId => {
+                    if (!newRels.characters[charId]) {
+                        newRels.characters[charId] = {
+                            type: 'character',
+                            appearsInScenes: [],
+                            relatedBeats: []
+                        };
+                    }
+                    if (!newRels.characters[charId].appearsInScenes.includes(scene.id)) {
+                        newRels.characters[charId].appearsInScenes.push(scene.id);
+                    }
+                    if (beatId && !newRels.characters[charId].relatedBeats.includes(beatId)) {
+                        newRels.characters[charId].relatedBeats.push(beatId);
+                    }
+                });
+                
+                // Link location to scene
+                const locationId = scene.fountain?.tags?.location;
+                if (locationId) {
+                    if (!newRels.locations[locationId]) {
+                        newRels.locations[locationId] = {
+                            type: 'location',
+                            scenes: []
+                        };
+                    }
+                    if (!newRels.locations[locationId].scenes.includes(scene.id)) {
+                        newRels.locations[locationId].scenes.push(scene.id);
+                    }
+                }
+            });
+            
+            console.log('[ScreenplayContext] ✅ Built relationships:', {
+                scenes: Object.keys(newRels.scenes).length,
+                characters: Object.keys(newRels.characters).length,
+                locations: Object.keys(newRels.locations).length
+            });
+            
+            return newRels;
+        });
+    }, []);
+    
     // ========================================================================
     // Feature 0111 Phase 3: DynamoDB Integration & Clerk Auth
     // ========================================================================
@@ -510,6 +587,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
+                    // 🔥 NEW: Build relationships from scenes so scene counts work
+                    buildRelationshipsFromScenes(transformedScenes, beatsWithScenes);
+                    
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
                     if (beatsWithScenes.length === 0 && !hasAutoCreated.current) {
                         console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure for screenplay:', screenplayId);
@@ -545,7 +625,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
         
         initializeData();
-    }, [screenplayId, transformScenesFromAPI, transformCharactersFromAPI, transformLocationsFromAPI, createDefaultBeats, groupScenesIntoBeats, getToken]);
+    }, [screenplayId, transformScenesFromAPI, transformCharactersFromAPI, transformLocationsFromAPI, createDefaultBeats, groupScenesIntoBeats, buildRelationshipsFromScenes, getToken]);
+    
+    // 🔥 NEW: Auto-build relationships when beats/scenes change
+    // This ensures scene counts are always accurate
+    useEffect(() => {
+        if (beats.length === 0) return;
+        
+        // Extract all scenes from beats
+        const allScenes = beats.flatMap(beat => beat.scenes);
+        if (allScenes.length === 0) return;
+        
+        // Only build if we have characters/locations loaded (to avoid empty relationships)
+        if (characters.length > 0 || locations.length > 0) {
+            buildRelationshipsFromScenes(allScenes, beats);
+        }
+    }, [beats, characters.length, locations.length, buildRelationshipsFromScenes]);
     
     // ========================================================================
     // Auto-save to localStorage when data changes
