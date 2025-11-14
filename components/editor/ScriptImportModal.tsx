@@ -225,7 +225,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // 🔥 CRITICAL: Reload page to fetch fresh data from DynamoDB
             // This ensures scenes are properly hydrated and visible immediately
             console.log('[ScriptImportModal] 🔄 Reloading page to fetch fresh data...');
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Show toast briefly before reload
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s for DynamoDB writes to complete
             window.location.reload();
             
         } catch (error) {
