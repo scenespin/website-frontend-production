@@ -271,7 +271,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     const transformCharactersToAPI = useCallback((characters: Character[]): any[] => {
         return characters.map(char => ({
-            id: char.id,
+            id: char.id,  // Frontend uses 'id', backend will map to 'character_id'
             name: char.name,
             description: char.description,
             referenceImages: char.images?.map(img => img.imageUrl) || []
