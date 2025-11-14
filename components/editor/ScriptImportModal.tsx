@@ -222,21 +222,16 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             // This makes data appear instantly while DynamoDB saves in background
             console.log('[ScriptImportModal] ⚡ Applying optimistic UI updates...');
             
-            // Update characters state
-            // parseResult.characters is Set<string>, so map character names to imported Character objects
-            const charactersArray = Array.from(parseResult.characters).map((charName: string) => 
-                importedCharacters.find(c => c.name === charName)
-            ).filter(Boolean) as Character[];
-            screenplay.setCharacters?.(charactersArray);
-            console.log('[ScriptImportModal] ✅ Updated characters state:', charactersArray.length);
+            // Get the current state after bulk imports (which updated internal state)
+            const currentState = screenplay.getCurrentState();
             
-            // Update locations state
-            // parseResult.locations is Set<string>, so map location names to imported Location objects
-            const locationsArray = Array.from(parseResult.locations).map((locName: string) =>
-                importedLocations.find(l => l.name === locName)
-            ).filter(Boolean) as Location[];
-            screenplay.setLocations?.(locationsArray);
-            console.log('[ScriptImportModal] ✅ Updated locations state:', locationsArray.length);
+            // Update characters state with ALL characters (existing + newly imported)
+            screenplay.setCharacters?.(currentState.characters);
+            console.log('[ScriptImportModal] ✅ Updated characters state:', currentState.characters.length);
+            
+            // Update locations state with ALL locations (existing + newly imported)
+            screenplay.setLocations?.(currentState.locations);
+            console.log('[ScriptImportModal] ✅ Updated locations state:', currentState.locations.length);
             
             // Update scenes state by grouping them into beats
             const currentBeats = screenplay.getCurrentState().beats;
