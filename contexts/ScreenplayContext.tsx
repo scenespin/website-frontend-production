@@ -297,7 +297,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, []);
     
     const transformCharactersFromAPI = useCallback((apiCharacters: any[]): Character[] => {
-        return apiCharacters.map(char => ({
+        console.log('[ScreenplayContext] 🔄 transformCharactersFromAPI - Input:', apiCharacters.length, 'characters');
+        const transformed = apiCharacters.map(char => ({
             id: char.id || char.character_id,
             name: char.name || '',
             description: char.description || '',
@@ -311,6 +312,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: char.created_at || new Date().toISOString(),
             updatedAt: char.updated_at || new Date().toISOString()
         }));
+        console.log('[ScreenplayContext] ✅ transformCharactersFromAPI - Output sample:', 
+            transformed.length > 0 ? { 
+                name: transformed[0].name, 
+                arcStatus: transformed[0].arcStatus,
+                type: typeof transformed[0].arcStatus 
+            } : 'no characters'
+        );
+        return transformed;
     }, []);
     
     const transformLocationsToAPI = useCallback((locations: Location[]): any[] => {

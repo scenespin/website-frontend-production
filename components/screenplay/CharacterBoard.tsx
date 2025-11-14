@@ -49,11 +49,18 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     useEffect(() => {
         console.log('[CharacterBoard] 🔄 Characters changed:', characters.length, 'total');
         console.log('[CharacterBoard] 🔍 Character names:', characters.map(c => c.name));
+        console.log('[CharacterBoard] 🔍 Character arcStatus values:', characters.map(c => ({ name: c.name, arcStatus: c.arcStatus, type: typeof c.arcStatus })));
         console.log('[CharacterBoard] 📊 Loading state:', { isLoading, hasInitializedFromDynamoDB });
         
         const introduced = characters.filter(c => c.arcStatus === 'introduced');
         const developing = characters.filter(c => c.arcStatus === 'developing');
         const resolved = characters.filter(c => c.arcStatus === 'resolved');
+        
+        console.log('[CharacterBoard] 📊 Filtered counts:', { 
+            introduced: introduced.length, 
+            developing: developing.length, 
+            resolved: resolved.length 
+        });
 
         const newColumns: CharacterColumn[] = [
             {
