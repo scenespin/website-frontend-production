@@ -55,12 +55,7 @@ export function DeleteCharacterDialog({
             }
         }}>
             <AlertDialogContent 
-                className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]" 
-                onPointerDownOutside={(e) => {
-                    // 🔥 FIX: Prevent closing on mobile when clicking outside accidentally
-                    // Only allow closing via Cancel button or explicit close
-                    e.preventDefault();
-                }}
+                className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]"
             >
                 <AlertDialogHeader>
                     <div className="flex items-center space-x-2">
@@ -159,12 +154,7 @@ export function DeleteLocationDialog({
             }
         }}>
             <AlertDialogContent 
-                className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]" 
-                onPointerDownOutside={(e) => {
-                    // 🔥 FIX: Prevent closing on mobile when clicking outside accidentally
-                    // Only allow closing via Cancel button or explicit close
-                    e.preventDefault();
-                }}
+                className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]"
             >
                 <AlertDialogHeader>
                     <div className="flex items-center space-x-2">
