@@ -222,15 +222,17 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             console.log('[ScriptImportModal] ⚡ Applying optimistic UI updates...');
             
             // Update characters state
-            const charactersArray = Array.from(parseResult.characters.values()).map(char => 
-                importedCharacters.find(c => c.name === char.name)
+            // parseResult.characters is Set<string>, so map character names to imported Character objects
+            const charactersArray = Array.from(parseResult.characters).map((charName: string) => 
+                importedCharacters.find(c => c.name === charName)
             ).filter(Boolean) as Character[];
             screenplay.setCharacters?.(charactersArray);
             console.log('[ScriptImportModal] ✅ Updated characters state:', charactersArray.length);
             
             // Update locations state
-            const locationsArray = Array.from(parseResult.locations.values()).map(loc =>
-                importedLocations.find(l => l.name === loc.name)
+            // parseResult.locations is Set<string>, so map location names to imported Location objects
+            const locationsArray = Array.from(parseResult.locations).map((locName: string) =>
+                importedLocations.find(l => l.name === locName)
             ).filter(Boolean) as Location[];
             screenplay.setLocations?.(locationsArray);
             console.log('[ScriptImportModal] ✅ Updated locations state:', locationsArray.length);
