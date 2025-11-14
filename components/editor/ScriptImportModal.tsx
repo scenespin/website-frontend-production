@@ -217,16 +217,38 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Saved content to DynamoDB');
             }
             
+            // 🔥 OPTIMISTIC UI: Update React state immediately instead of reloading page
+            // This makes data appear instantly while DynamoDB saves in background
+            console.log('[ScriptImportModal] ⚡ Applying optimistic UI updates...');
+            
+            // Update characters state
+            const charactersArray = Array.from(parseResult.characters.values()).map(char => 
+                importedCharacters.find(c => c.name === char.name)
+            ).filter(Boolean) as Character[];
+            screenplay.setCharacters?.(charactersArray);
+            console.log('[ScriptImportModal] ✅ Updated characters state:', charactersArray.length);
+            
+            // Update locations state
+            const locationsArray = Array.from(parseResult.locations.values()).map(loc =>
+                importedLocations.find(l => l.name === loc.name)
+            ).filter(Boolean) as Location[];
+            screenplay.setLocations?.(locationsArray);
+            console.log('[ScriptImportModal] ✅ Updated locations state:', locationsArray.length);
+            
+            // Update scenes state by grouping them into beats
+            const currentBeats = screenplay.getCurrentState().beats;
+            const updatedBeats = screenplay.groupScenesIntoBeats?.(scenesWithOrder, currentBeats) || currentBeats;
+            screenplay.setBeats?.(updatedBeats);
+            console.log('[ScriptImportModal] ✅ Updated beats with scenes:', scenesWithOrder.length);
+            
             // Success toast
             toast.success('✅ Screenplay Imported', {
                 description: `${parseResult.characters.size} characters, ${parseResult.locations.size} locations, ${parseResult.scenes.length} scenes`
             });
             
-            // 🔥 CRITICAL: Reload page to fetch fresh data from DynamoDB
-            // This ensures scenes are properly hydrated and visible immediately
-            console.log('[ScriptImportModal] 🔄 Reloading page to fetch fresh data...');
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s for DynamoDB writes to complete
-            window.location.reload();
+            // Close modal - data appears instantly!
+            console.log('[ScriptImportModal] ⚡ Import complete - data visible immediately!');
+            onClose();
             
         } catch (error) {
             console.error('[ScriptImportModal] Import failed:', error);

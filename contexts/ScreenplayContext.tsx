@@ -102,6 +102,12 @@ interface ScreenplayContextType {
         locations: Location[];
     };
     
+    // 🔥 NEW: Direct state setters for optimistic UI updates
+    setBeats?: (beats: StoryBeat[]) => void;
+    setCharacters?: (characters: Character[]) => void;
+    setLocations?: (locations: Location[]) => void;
+    groupScenesIntoBeats?: (scenes: Scene[], beats: StoryBeat[]) => StoryBeat[];
+    
     // Feature 0117: clearAllStructure, saveAllToDynamoDBDirect, repairOrphanedScenes removed
     clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 Returns fresh beats (frontend template only)
     
@@ -2038,6 +2044,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         saveScenes,          // 🔥 Feature 0117: Save scenes to separate table
         // Feature 0117: saveAllToDynamoDBDirect removed
         getCurrentState, // 🔥 NEW: Get current state without closure issues
+        
+        // 🔥 NEW: Direct state setters for optimistic UI updates
+        setBeats,
+        setCharacters,
+        setLocations,
+        groupScenesIntoBeats,
         
         // Clear and Re-scan (Feature 0117: Destructive Import + Additive Re-scan)
         // Feature 0117: clearAllStructure removed
