@@ -25,7 +25,7 @@ interface CharacterBoardProps {
 }
 
 export default function CharacterBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: CharacterBoardProps) {
-    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships } = useScreenplay();
+    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
     const [columns, setColumns] = useState<CharacterColumn[]>([]);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -49,6 +49,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     useEffect(() => {
         console.log('[CharacterBoard] 🔄 Characters changed:', characters.length, 'total');
         console.log('[CharacterBoard] 🔍 Character names:', characters.map(c => c.name));
+        console.log('[CharacterBoard] 📊 Loading state:', { isLoading, hasInitializedFromDynamoDB });
         
         const introduced = characters.filter(c => c.arcStatus === 'introduced');
         const developing = characters.filter(c => c.arcStatus === 'developing');
@@ -79,7 +80,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         ];
 
         setColumns(newColumns);
-    }, [characters]);
+    }, [characters, isLoading, hasInitializedFromDynamoDB]);
 
     const handleDelete = async (characterId: string, characterName: string) => {
         const character = characters.find(c => c.id === characterId);
@@ -120,32 +121,45 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
 
     return (
         <div className="flex flex-col h-full">
-            {/* Header - Simplified, matches LocationBoard */}
-            {showHeader && (
-                <div className="mb-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
-                                Character Board
-                            </h2>
-                            <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
-                                Track character arcs throughout your screenplay
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setIsCreating(true)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
-                            style={{
-                                backgroundColor: '#DC143C',
-                                color: 'white',
-                            }}
-                        >
-                            <Plus size={18} />
-                            Add Character
-                        </button>
+            {/* Loading State */}
+            {isLoading && (
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto mb-4"></div>
+                        <p className="text-slate-400">Loading characters...</p>
                     </div>
                 </div>
             )}
+            
+            {/* Character Board Content */}
+            {!isLoading && (
+                <>
+                    {/* Header - Simplified, matches LocationBoard */}
+                    {showHeader && (
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                        Character Board
+                                    </h2>
+                                    <p className="text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                        Track character arcs throughout your screenplay
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setIsCreating(true)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                                    style={{
+                                        backgroundColor: '#DC143C',
+                                        color: 'white',
+                                    }}
+                                >
+                                    <Plus size={18} />
+                                    Add Character
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
             {/* Character Columns - Matches LocationBoard style */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
@@ -267,6 +281,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                 />
             )}
             </AnimatePresence>
+                </>
+            )}
             
             {/* Delete Confirmation Dialog */}
             <DeleteCharacterDialog

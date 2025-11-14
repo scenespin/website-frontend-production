@@ -25,7 +25,7 @@ interface LocationBoardProps {
 }
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
-    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships } = useScreenplay();
+    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
     const [columns, setColumns] = useState<LocationColumn[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -56,6 +56,10 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
 
     // Initialize columns based on location types
     useEffect(() => {
+        console.log('[LocationBoard] 🔄 Locations changed:', locations.length, 'total');
+        console.log('[LocationBoard] 🔍 Location names:', locations.map(l => l.name));
+        console.log('[LocationBoard] 📊 Loading state:', { isLoading, hasInitializedFromDynamoDB });
+        
         const interiors = locations.filter(l => l.type === 'INT');
         const exteriors = locations.filter(l => l.type === 'EXT');
         const both = locations.filter(l => l.type === 'INT/EXT');
@@ -85,7 +89,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         ];
 
         setColumns(newColumns);
-    }, [locations]);
+    }, [locations, isLoading, hasInitializedFromDynamoDB]);
 
     const handleDelete = async (locationId: string, locationName: string) => {
         const location = locations.find(l => l.id === locationId);
@@ -135,10 +139,23 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
 
     return (
         <div className="flex flex-col h-full" style={{ backgroundColor: '#1C1C1E' }}>
-            {/* Header - Optional */}
-            {showHeader && (
-                <div className="p-4 pl-16 sm:pl-4 border-b flex items-center justify-between" style={{ borderColor: '#2C2C2E' }}>
-                    <div>
+            {/* Loading State */}
+            {isLoading && (
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto mb-4"></div>
+                        <p className="text-slate-400">Loading locations...</p>
+                    </div>
+                </div>
+            )}
+            
+            {/* Location Board Content */}
+            {!isLoading && (
+                <>
+                    {/* Header - Optional */}
+                    {showHeader && (
+                        <div className="p-4 pl-16 sm:pl-4 border-b flex items-center justify-between" style={{ borderColor: '#2C2C2E' }}>
+                            <div>
                         <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#E5E7EB' }}>
                             Location Board
                         </h2>
@@ -300,6 +317,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                 </>
             )}
             </AnimatePresence>
+                </>
+            )}
             
             {/* Delete Confirmation Dialog */}
             <DeleteLocationDialog
