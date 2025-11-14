@@ -265,29 +265,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 CRITICAL: Initialize persistence manager with screenplay_id and getToken
                     persistenceManager.setScreenplay(screenplayId, getToken);
                     
-                    // 🔥 NEW: Use persistence manager to load all data
-                    // This handles all transformation logic internally
-                    const [beatsData, charactersData, locationsData] = await Promise.all([
-                        persistenceManager.loadBeats().catch(err => {
-                            console.warn('[ScreenplayContext] Failed to load beats:', err);
-                            return [];
-                        }),
-                        persistenceManager.loadCharacters().catch(err => {
-                            console.warn('[ScreenplayContext] Failed to load characters:', err);
-                            return [];
-                        }),
-                        persistenceManager.loadLocations().catch(err => {
-                            console.warn('[ScreenplayContext] Failed to load locations:', err);
-                            return [];
-                        })
-                    ]);
+                    // Feature 0117: Use loadAll() which generates beats from scenes on the frontend
+                    const data = await persistenceManager.loadAll();
                     
                     // 🔥 FIXED: Always load what's in DynamoDB - it's the source of truth!
-                    // If DB has empty arrays, that means data was cleared - accept it!
-                    // This fixes beats not persisting on refresh
-                    setBeats(beatsData);
-                    console.log('[ScreenplayContext] ✅ Loaded', beatsData.length, 'beats from DynamoDB');
-                    console.log('[ScreenplayContext] 🔍 Beat details:', beatsData.map(b => ({ 
+                    // Feature 0117: Beats are generated from scenes (frontend grouping)
+                    setBeats(data.beats);
+                    console.log('[ScreenplayContext] ✅ Loaded', data.beats.length, 'beats (frontend-generated from scenes)');
+                    console.log('[ScreenplayContext] 🔍 Beat details:', data.beats.map(b => ({ 
                         id: b.id, 
                         title: b.title, 
                         scenesCount: b.scenes?.length || 0,
@@ -296,24 +281,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                     // Mark that we loaded beats from DB (even if 0) to prevent auto-creation
                     // But only if we actually got beats, or if we've already created defaults
-                    if (beatsData.length > 0) {
+                    if (data.beats.length > 0) {
                         hasAutoCreated.current = true;
                     }
                     
-                    setCharacters(charactersData);
-                    console.log('[ScreenplayContext] ✅ Loaded', charactersData.length, 'characters from DynamoDB');
+                    setCharacters(data.characters);
+                    console.log('[ScreenplayContext] ✅ Loaded', data.characters.length, 'characters from DynamoDB');
                     
-                    setLocations(locationsData);
-                    console.log('[ScreenplayContext] ✅ Loaded', locationsData.length, 'locations from DynamoDB');
+                    setLocations(data.locations);
+                    console.log('[ScreenplayContext] ✅ Loaded', data.locations.length, 'locations from DynamoDB');
                     
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
-                    // Use beatsData (just loaded) instead of beats (stale state) to avoid race condition
-                    if (beatsData.length === 0 && !hasAutoCreated.current) {
+                    // Feature 0117: Beats are frontend-generated, so check data.beats
+                    if (data.beats.length === 0 && !hasAutoCreated.current) {
                         console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure for screenplay:', screenplayId);
                         await createDefaultBeats(screenplayId);
                     } else if (hasAutoCreated.current) {
-                        console.log('[ScreenplayContext] ⏭️ Skipping beat creation - already have', beatsData.length, 'beats');
+                        console.log('[ScreenplayContext] ⏭️ Skipping beat creation - already have', data.beats.length, 'beats');
                     }
                     
                 } catch (err) {
@@ -411,18 +396,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setBeats(newBeats);
             console.log('[ScreenplayContext] ✅ Created default 8-Sequence Structure:', newBeats.length, 'beats');
             
-            if (screenplay_id) {
-                console.log('[ScreenplayContext] 💾 Saving default 8 beats to DynamoDB...');
-                try {
-                    await persistenceManager.saveBeats(newBeats);
-                    console.log('[ScreenplayContext] ✅ Saved 8 default beats to DynamoDB');
-                } catch (err) {
-                    console.error('[ScreenplayContext] Failed to save default beats:', err);
-                    // Don't clear the flag if save failed - we still created them locally
-                }
-            } else {
-                console.log('[ScreenplayContext] ⏳ Beats created locally - will save when screenplay_id available');
-            }
+            // Feature 0117: Beats are frontend-only UI templates, no need to save to DynamoDB
+            console.log('[ScreenplayContext] ℹ️ Beats are frontend-only templates (no persistence)');
         }
         
         initializeData();
@@ -459,15 +434,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     const createScene = useCallback(async (beatId: string, scene: CreateInput<Scene>): Promise<Scene> => {
         const now = new Date().toISOString();
+        // Feature 0117: Removed beatId from Scene object - scenes are standalone entities
         const newScene: Scene = {
             ...scene,
-            beatId,
             id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             createdAt: now,
             updatedAt: now
         };
         
-        // Add to beat
+        // Add to beat (frontend grouping only)
         setBeats(prev => prev.map(beat =>
             beat.id === beatId
                 ? { ...beat, scenes: [...beat.scenes, newScene], updatedAt: now }
@@ -489,29 +464,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }));
         
         // Feature 0111 Phase 3: Update beat in DynamoDB (scenes are nested)
+        // Feature 0117: Save scene directly to DynamoDB (beats don't persist)
         if (screenplayId) {
             try {
                 // Find the updated beat
                 const updatedBeat = beats.find(b => b.id === beatId);
                 if (updatedBeat) {
-                    // Transform: Extract scene IDs (backend expects string[], not Scene[])
-                    await apiUpdateBeat(
-                        screenplayId,
-                        beatId,
-                        {
-                            scenes: [...updatedBeat.scenes.map(s => s.id), newScene.id]
-                        },
-                        getToken
-                    );
-                    console.log('[ScreenplayContext] ✅ Updated beat (added scene) in DynamoDB');
+                    // Save the new scene to wryda-scenes table using persistence manager
+                    await persistenceManager.saveScenes([newScene]);
+                    console.log('[ScreenplayContext] ✅ Saved new scene to DynamoDB');
                 }
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+                console.error('[ScreenplayContext] Failed to save scene to DynamoDB:', error);
             }
         }
         
         return newScene;
-    }, [beats, screenplayId, getToken]);
+    }, [beats, screenplayId]);
     
     const updateScene = useCallback(async (id: string, updates: Partial<Scene>) => {
         const now = new Date().toISOString();
@@ -541,24 +510,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Find which beat contains this scene
                 const parentBeat = beats.find(beat => beat.scenes.some(s => s.id === id));
                 if (parentBeat) {
-                    const updatedScenes = parentBeat.scenes.map(scene =>
-                        scene.id === id ? { ...scene, ...updates, updatedAt: now } : scene
-                    );
-                    
-                    // Transform: Extract scene IDs (backend expects string[], not Scene[])
-                    await apiUpdateBeat(
-                        screenplayId,
-                        parentBeat.id,
-                        { scenes: updatedScenes.map(s => s.id) },
-                        getToken
-                    );
-                    console.log('[ScreenplayContext] ✅ Updated beat (modified scene) in DynamoDB');
+                    const updatedScene = parentBeat.scenes.find(s => s.id === id);
+                    if (updatedScene) {
+                        const sceneWithUpdates = { ...updatedScene, ...updates, updatedAt: now };
+                        // Feature 0117: Save updated scene directly (beats don't persist)
+                        await persistenceManager.saveScenes([sceneWithUpdates]);
+                        console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
+                    }
                 }
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+                console.error('[ScreenplayContext] Failed to update scene in DynamoDB:', error);
             }
         }
-    }, [beats, screenplayId, getToken]);
+    }, [beats, screenplayId]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
     const recalculateBeatPageRanges = (beats: StoryBeat[]): StoryBeat[] => {
@@ -609,24 +573,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return newRels;
         });
         
-        // Feature 0111 Phase 3: Update beat in DynamoDB (scene deleted)
+        // Feature 0117: Delete scene from DynamoDB
         if (screenplayId && deletedScene) {
             try {
-                const parentBeat = beats.find(beat => beat.scenes.some(s => s.id === id));
-                if (parentBeat) {
-                    const updatedScenes = parentBeat.scenes.filter(s => s.id !== id);
-                    
-                    // Transform: Extract scene IDs (backend expects string[], not Scene[])
-                    await apiUpdateBeat(
-                        screenplayId,
-                        parentBeat.id,
-                        { scenes: updatedScenes.map(s => s.id) },
-                        getToken
-                    );
-                    console.log('[ScreenplayContext] ✅ Updated beat (deleted scene) in DynamoDB');
-                }
+                // Delete the scene directly from wryda-scenes table
+                const { deleteScene: apiDeleteScene } = await import('@/utils/screenplayStorage');
+                await apiDeleteScene(screenplayId, id, getToken);
+                console.log('[ScreenplayContext] ✅ Deleted scene from DynamoDB');
             } catch (error) {
-                console.error('[ScreenplayContext] Failed to update beat in DynamoDB:', error);
+                console.error('[ScreenplayContext] Failed to delete scene from DynamoDB:', error);
             }
         }
     }, [beats, screenplayId, getToken]);
@@ -652,49 +607,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setBeats(prev => prev.map(beat => {
                 if (beat.id === targetBeatId) {
                     const scenes = [...beat.scenes];
-                    scenes.splice(newOrder, 0, { ...movedScene!, beatId: targetBeatId });
+                    // Feature 0117: No beatId on Scene object
+                    scenes.splice(newOrder, 0, { ...movedScene! });
                     return { ...beat, scenes };
                 }
                 return beat;
             }));
             
             // Feature 0111 Phase 3: Update both beats in DynamoDB (scene moved)
-            if (screenplayId) {
+            // Feature 0117: No need to update beats in DynamoDB (frontend grouping only)
+            // Scenes are standalone entities, just update the moved scene if needed
+            if (screenplayId && movedScene) {
                 try {
-                    // Update source beat (scene removed)
-                    const sourceBeat = beats.find(beat => beat.scenes.some(s => s.id === sceneId));
-                    if (sourceBeat) {
-                        // Transform: Extract scene IDs (backend expects string[], not Scene[])
-                        await apiUpdateBeat(
-                            screenplayId,
-                            sourceBeat.id,
-                            { scenes: sourceBeat.scenes.filter(s => s.id !== sceneId).map(s => s.id) },
-                            getToken
-                        );
-                    }
-                    
-                    // Update target beat (scene added)
-                    const targetBeat = beats.find(b => b.id === targetBeatId);
-                    if (targetBeat) {
-                        const scenes = [...targetBeat.scenes];
-                        scenes.splice(newOrder, 0, { ...movedScene, beatId: targetBeatId });
-                        
-                        // Transform: Extract scene IDs (backend expects string[], not Scene[])
-                        await apiUpdateBeat(
-                            screenplayId,
-                            targetBeatId,
-                            { scenes: scenes.map(s => s.id) },
-                            getToken
-                        );
-                    }
-                    
-                    console.log('[ScreenplayContext] ✅ Updated beats (moved scene) in DynamoDB');
+                    // Save the moved scene with updated order if needed
+                    await persistenceManager.saveScenes([movedScene]);
+                    console.log('[ScreenplayContext] ✅ Saved moved scene to DynamoDB');
                 } catch (error) {
-                    console.error('[ScreenplayContext] Failed to update beats in DynamoDB:', error);
+                    console.error('[ScreenplayContext] Failed to save moved scene:', error);
                 }
             }
         }
-    }, [beats, screenplayId, getToken]);
+    }, [beats, screenplayId]);
     
     // ========================================================================
     // CRUD - Characters
@@ -1531,9 +1464,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Create scenes
         scenes.forEach((sceneData, index) => {
+            // Feature 0117: Removed beatId from Scene object
             const newScene: Scene = {
                 id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                beatId,
                 number: index + 1,
                 heading: sceneData.heading,
                 synopsis: `Imported from script`,
@@ -1608,24 +1541,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return newScenes;
     }, [beats, screenplayId, getToken]);
     
-    // Helper: Save all beats to DynamoDB (called after bulk imports complete)
+    // Feature 0117: saveBeatsToDynamoDB removed - beats are frontend-only UI templates
+    // Kept for backward compatibility but does nothing
     const saveBeatsToDynamoDB = useCallback(async () => {
-        // 🔥 FIX: Use ref to avoid stale closure issues
-        const currentBeats = beatsRef.current;
-        
-        if (!screenplayId || currentBeats.length === 0) return;
-        
-        try {
-            console.log('[ScreenplayContext] Saving', currentBeats.length, 'beats to DynamoDB...');
-            
-            // 🔥 NEW: Use persistence manager
-            await persistenceManager.saveBeats(currentBeats);
-            
-            console.log('[ScreenplayContext] ✅ Saved', currentBeats.length, 'beats to DynamoDB');
-        } catch (err) {
-            console.error('[ScreenplayContext] Failed to save beats to DynamoDB:', err);
-        }
-    }, [screenplayId]); // Removed beats dependency - using ref instead
+        console.log('[ScreenplayContext] ℹ️ saveBeatsToDynamoDB called but beats are frontend-only (no persistence)');
+        // No-op: beats don't persist to DynamoDB anymore
+    }, []);
     
     /**
      * 🔥 Feature 0115: Save scenes to separate wryda-scenes table

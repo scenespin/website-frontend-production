@@ -399,12 +399,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 });
                 
                 try {
-                    await screenplay.saveAllToDynamoDBDirect(
-                        currentStructure.beats,
-                        currentStructure.characters,
-                        currentStructure.locations,
-                        newScreenplay.screenplay_id
-                    );
+                    // Feature 0117: Extract scenes from beats and save separately
+                    const allScenes = currentStructure.beats.flatMap(beat => beat.scenes);
+                    await screenplay.saveScenes(allScenes);
                     console.log('[EditorContext] ✅ Saved structure data (via refs - always current!)');
                 } catch (error) {
                     console.error('[EditorContext] ⚠️ Failed to save structure data:', error);
@@ -432,12 +429,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 });
                 
                 try {
-                    await screenplay.saveAllToDynamoDBDirect(
-                        currentStructure.beats,
-                        currentStructure.characters,
-                        currentStructure.locations,
-                        screenplayIdRef.current
-                    );
+                    // Feature 0117: Extract scenes from beats and save separately
+                    const allScenes = currentStructure.beats.flatMap(beat => beat.scenes);
+                    await screenplay.saveScenes(allScenes);
                     console.log('[EditorContext] ✅ Saved structure data (via refs - always current!)');
                 } catch (error) {
                     console.error('[EditorContext] ⚠️ Failed to save structure data:', error);

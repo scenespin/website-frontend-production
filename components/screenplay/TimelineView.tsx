@@ -101,16 +101,6 @@ export default function TimelineView({ focusSceneId }: TimelineViewProps = {}) {
 
       // Feature 0117: No need to handle ungrouped - all scenes are in beats.scenes array
       // (Frontend grouping ensures all scenes are assigned to a beat)
-
-        ungroupedScenes.forEach((scene) => {
-          groups.add({
-            id: scene.id,
-            content: `Scene ${scene.number}`,
-            title: scene.heading,
-            className: 'sub-group'
-          })
-        })
-      }
     }
 
     // Create timeline items for each scene
