@@ -121,12 +121,13 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Imported', characterNames.length, 'characters');
             }
             
-            // Step 4: Import locations (with explicit screenplay ID)
+            // Step 4: Import locations (with explicit screenplay ID and types)
             let importedLocations: Location[] = [];
             if (parseResult.locations.size > 0) {
                 const locationNames = Array.from(parseResult.locations) as string[];
-                importedLocations = await screenplay.bulkImportLocations(locationNames, screenplayId);
-                console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations');
+                const locationTypes = parseResult.locationTypes; // 🔥 NEW: Get location types map
+                importedLocations = await screenplay.bulkImportLocations(locationNames, locationTypes, screenplayId);
+                console.log('[ScriptImportModal] ✅ Imported', locationNames.length, 'locations with types');
             }
             
             // Step 5: Build complete beat structure with scenes (NO STATE UPDATES)

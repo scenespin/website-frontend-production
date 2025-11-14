@@ -83,7 +83,7 @@ interface ScreenplayContextType {
     
     // Bulk Import
     bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>, explicitScreenplayId?: string) => Promise<Character[]>;
-    bulkImportLocations: (locationNames: string[], explicitScreenplayId?: string) => Promise<Location[]>;
+    bulkImportLocations: (locationNames: string[], locationTypes?: Map<string, 'INT' | 'EXT' | 'INT/EXT'>, explicitScreenplayId?: string) => Promise<Location[]>;
     bulkImportScenes: (beatId: string, scenes: Array<{
         heading: string;
         location: string;
@@ -318,6 +318,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             id: loc.id,
             name: loc.name,
             description: loc.description,
+            type: loc.type, // 🔥 NEW: Include location type in API payload
             referenceImages: loc.images?.map(img => img.imageUrl) || []
         }));
     }, []);
@@ -327,7 +328,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             id: loc.id || loc.location_id,
             name: loc.name || '',
             description: loc.description || '',
-            type: 'INT' as LocationType, // ✅ FIX: Default to 'INT' so they appear in LocationBoard
+            type: (loc.type as 'INT' | 'EXT' | 'INT/EXT') || 'INT', // 🔥 FIXED: Preserve type from DynamoDB, default to 'INT'
             images: (loc.referenceImages || []).map((url: string) => ({
                 imageUrl: url,
                 description: ''
@@ -1504,7 +1505,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return newCharacters;
     }, [characters, screenplayId]);
     
-    const bulkImportLocations = useCallback(async (locationNames: string[], explicitScreenplayId?: string): Promise<Location[]> => {
+    const bulkImportLocations = useCallback(async (
+        locationNames: string[], 
+        locationTypes?: Map<string, 'INT' | 'EXT' | 'INT/EXT'>, // 🔥 NEW: Optional location types map
+        explicitScreenplayId?: string
+    ): Promise<Location[]> => {
         console.log('[ScreenplayContext] 🔄 Starting bulk location import...', locationNames.length, 'locations');
         
         const now = new Date().toISOString();
@@ -1536,18 +1541,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] Location already exists, skipping:', name);
                 continue; // Don't re-add existing locations
             } else {
+                // 🔥 NEW: Get location type from map, default to 'INT' if not found
+                const locationType = locationTypes?.get(name) || 'INT';
+                
                 // Create new location
                 const newLocation: Location = {
                     id: `loc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     name,
                     description: `Imported from script`,
-                    type: 'INT',
+                    type: locationType, // 🔥 FIXED: Use parsed type instead of hardcoded 'INT'
                     createdAt: now,
                     updatedAt: now,
                     images: []
                 };
                 
-                console.log('[ScreenplayContext] Creating new location:', name);
+                console.log('[ScreenplayContext] Creating new location:', locationType, name);
                 newLocations.push(newLocation);
             }
         }

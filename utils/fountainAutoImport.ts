@@ -20,9 +20,11 @@ export interface AutoImportResult {
     locations: Set<string>;
     characters: Set<string>;
     characterDescriptions: Map<string, string>;
+    locationTypes: Map<string, 'INT' | 'EXT' | 'INT/EXT'>; // 🔥 NEW: Track location types from scene headings
     scenes: Array<{
         heading: string;
         location: string;
+        locationType: 'INT' | 'EXT' | 'INT/EXT'; // 🔥 NEW: Store type for each scene
         characters: string[];
         startLine: number;
         endLine: number;
@@ -42,6 +44,7 @@ export function parseContentForImport(content: string): AutoImportResult {
     const locations = new Set<string>();
     const characters = new Set<string>();
     const characterDescriptions = new Map<string, string>();
+    const locationTypes = new Map<string, 'INT' | 'EXT' | 'INT/EXT'>(); // 🔥 NEW: Track location types
     const scenes: AutoImportResult['scenes'] = [];
     const questionableItems: QuestionableItem[] = [];
     
@@ -109,17 +112,34 @@ export function parseContentForImport(content: string): AutoImportResult {
                 scenes.push(currentScene);
             }
             
-            const locationMatch = trimmed.match(/^(?:INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i);
+            // 🔥 ENHANCED: Capture location type (INT/EXT/INT-EXT)
+            const locationMatch = trimmed.match(/^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]+(.+?)\s*-\s*(.+)$/i);
             if (locationMatch) {
-                const location = locationMatch[1].trim();
-            locations.add(location);
-                console.log('[AutoImport] ✓ Scene:', location);
+                const typePrefix = locationMatch[1].trim().toUpperCase();
+                const location = locationMatch[2].trim();
+                
+                // Normalize type to standard values
+                let locationType: 'INT' | 'EXT' | 'INT/EXT';
+                if (typePrefix === 'INT' || typePrefix === 'INT.') {
+                    locationType = 'INT';
+                } else if (typePrefix === 'EXT' || typePrefix === 'EXT.') {
+                    locationType = 'EXT';
+                } else if (typePrefix === 'INT/EXT' || typePrefix === 'INT./EXT' || typePrefix === 'I/E') {
+                    locationType = 'INT/EXT';
+                } else {
+                    locationType = 'INT'; // Default fallback
+                }
+                
+                locations.add(location);
+                locationTypes.set(location, locationType); // 🔥 Store the type
+                console.log('[AutoImport] ✓ Scene:', locationType, location);
             
-            currentScene = {
-                heading: trimmed,
-                location: location,
-                characters: [],
-                startLine: lineIndex,
+                currentScene = {
+                    heading: trimmed,
+                    location: location,
+                    locationType: locationType, // 🔥 NEW: Include type in scene data
+                    characters: [],
+                    startLine: lineIndex,
                     endLine: lineIndex
                 };
             } else {
@@ -216,6 +236,7 @@ export function parseContentForImport(content: string): AutoImportResult {
     console.log('[AutoImport] Complete:', {
         characters: Array.from(characters),
         locations: Array.from(locations),
+        locationTypes: Array.from(locationTypes.entries()),
         scenes: scenes.length,
         questionable: questionableItems.length
     });
@@ -224,6 +245,7 @@ export function parseContentForImport(content: string): AutoImportResult {
         locations,
         characters,
         characterDescriptions,
+        locationTypes, // 🔥 NEW: Return location types map
         scenes,
         questionableItems
     };
