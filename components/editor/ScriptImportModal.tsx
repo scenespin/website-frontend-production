@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
+import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
 import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import type { Character, Location, Scene, StoryBeat } from '@/types/screenplay';
@@ -17,6 +18,7 @@ interface ScriptImportModalProps {
 
 export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModalProps) {
     const { getToken } = useAuth();
+    const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const { setContent, saveNow } = useEditor();
     const screenplay = useScreenplay();
     
@@ -81,16 +83,16 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 await saveNow();
                 console.log('[ScriptImportModal] ✅ Screenplay saved');
                 
-                // Feature 0117: Get screenplay ID immediately from localStorage (no waiting for state)
-                const screenplayId = localStorage.getItem('current_screenplay_id');
+                // Feature 0119: Get screenplay ID from Clerk metadata (falls back to localStorage)
+                const screenplayId = getCurrentScreenplayId(user);
                 if (!screenplayId) {
-                    throw new Error('Failed to get screenplay ID from localStorage after save');
+                    throw new Error('Failed to get screenplay ID after save');
                 }
                 console.log('[ScriptImportModal] ✅ Got screenplay ID:', screenplayId);
             }
             
-            // Feature 0117: Get screenplay ID from localStorage (always fresh)
-            const screenplayId = localStorage.getItem('current_screenplay_id');
+            // Feature 0119: Get screenplay ID from Clerk metadata (falls back to localStorage)
+            const screenplayId = getCurrentScreenplayId(user);
             if (!screenplayId) {
                 throw new Error('No screenplay ID available');
             }

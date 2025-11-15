@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
 import type {
     StoryBeat,
@@ -509,52 +510,47 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // ========================================================================
     // Feature 0111 Phase 3: DynamoDB Integration & Clerk Auth
+    // Feature 0119: Use Clerk metadata instead of localStorage
     // ========================================================================
     const { getToken } = useAuth();
+    const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     
-    // Track current screenplay_id (from EditorContext via localStorage)
-    const [screenplayId, setScreenplayId] = useState<string | null>(() => {
-        if (typeof window === 'undefined') return null;
-        return localStorage.getItem('current_screenplay_id');
-    });
+    // Track current screenplay_id (from Clerk metadata, falls back to localStorage)
+    // Initialize to null - useEffect will set it from Clerk metadata
+    const [screenplayId, setScreenplayId] = useState<string | null>(null);
     
-    // Update screenplay_id when localStorage changes (EditorContext saves it)
+    // Feature 0119: Update screenplay_id when Clerk metadata changes
+    // Also listen to localStorage for backward compatibility (EditorContext still triggers storage events)
     useEffect(() => {
+        // Update from Clerk metadata (primary source)
+        const idFromMetadata = getCurrentScreenplayId(user);
+        setScreenplayId(prev => {
+            if (prev !== idFromMetadata) {
+                console.log('[ScreenplayContext] Screenplay ID updated from Clerk metadata:', idFromMetadata, '(was:', prev, ')');
+                return idFromMetadata;
+            }
+            return prev;
+        });
+        
+        // Also listen to localStorage changes for backward compatibility
+        // (EditorContext still triggers storage events when updating metadata)
         const handleStorageChange = () => {
             const id = localStorage.getItem('current_screenplay_id');
-            // CRITICAL FIX: Only update if ID actually changed (prevents infinite reload loop)
             setScreenplayId(prev => {
                 if (prev !== id) {
-                    console.log('[ScreenplayContext] Screenplay ID updated:', id, '(was:', prev, ')');
+                    console.log('[ScreenplayContext] Screenplay ID updated from localStorage:', id, '(was:', prev, ')');
                     return id;
                 }
-                return prev; // No change, don't trigger re-render
+                return prev;
             });
         };
         
-        // Listen for changes from other tabs/windows
         window.addEventListener('storage', handleStorageChange);
-        
-        // 🔥 FIX: Check more frequently on initial load (first 30 seconds), then less frequently
-        // This ensures we catch the screenplayId when EditorContext sets it after login
-        let checkCount = 0;
-        let slowInterval: NodeJS.Timeout | null = null;
-        const interval = setInterval(() => {
-            handleStorageChange();
-            checkCount++;
-            // After 30 seconds (30 checks at 1s intervals), slow down to every 10 seconds
-            if (checkCount === 30) {
-                clearInterval(interval);
-                slowInterval = setInterval(handleStorageChange, 10000);
-            }
-        }, 1000); // Check every 1 second initially
         
         return () => {
             window.removeEventListener('storage', handleStorageChange);
-            clearInterval(interval);
-            if (slowInterval) clearInterval(slowInterval);
         };
-    }, []);
+    }, [user]); // Re-run when user object changes (e.g., after metadata update)
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {

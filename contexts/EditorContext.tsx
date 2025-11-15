@@ -4,8 +4,9 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { saveToGitHub } from '@/utils/github';
-import { useAuth } from '@clerk/nextjs';
-import { createScreenplay, updateScreenplay, getScreenplay, listScreenplays } from '@/utils/screenplayStorage';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
+import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
 
 interface EditorState {
     // Current document content
@@ -115,6 +116,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     
     // Feature 0111: DynamoDB Storage
     const { getToken } = useAuth();
+    const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
     
@@ -385,7 +387,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 }, getToken);
                 
                 screenplayIdRef.current = newScreenplay.screenplay_id;
-                localStorage.setItem('current_screenplay_id', newScreenplay.screenplay_id);
+                
+                // Feature 0119: Save to Clerk metadata (also saves to localStorage for backward compatibility)
+                try {
+                    await setCurrentScreenplayId(user, newScreenplay.screenplay_id);
+                } catch (error) {
+                    console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata, using localStorage fallback:', error);
+                    // setCurrentScreenplayId already saved to localStorage as fallback
+                }
                 
                 // Trigger storage event manually for ScreenplayContext to pick it up
                 window.dispatchEvent(new StorageEvent('storage', {
@@ -570,28 +579,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         
         async function loadContent() {
             try {
-                // Priority 1: Load from DynamoDB using saved screenplay ID
-                let savedScreenplayId = localStorage.getItem('current_screenplay_id');
+                // Feature 0119: Priority 1 - Load from Clerk metadata (persists across sessions)
+                // Falls back to localStorage for backward compatibility
+                let savedScreenplayId = getCurrentScreenplayId(user);
                 
-                // If no screenplay ID in localStorage, try to fetch user's most recent screenplay
-                if (!savedScreenplayId) {
+                // Feature 0119: One-time migration from localStorage to Clerk metadata
+                if (user && savedScreenplayId && !user.publicMetadata?.current_screenplay_id) {
                     try {
-                        console.log('[EditorContext] No screenplay ID in localStorage, fetching user screenplays...');
-                        const screenplays = await listScreenplays(getToken, 'active', 1);
-                        
-                        if (screenplays && screenplays.length > 0) {
-                            savedScreenplayId = screenplays[0].screenplay_id;
-                            localStorage.setItem('current_screenplay_id', savedScreenplayId);
-                            console.log('[EditorContext] ✅ Found most recent screenplay:', savedScreenplayId);
-                        } else {
-                            console.log('[EditorContext] No screenplays found for user');
-                        }
-                    } catch (err: any) {
-                        // 🔥 FIX: Don't let API failure prevent app from working
-                        console.error('[EditorContext] Failed to fetch user screenplays:', err);
-                        console.warn('[EditorContext] ⚠️ API endpoint /api/screenplays/list returned 404 - this may indicate a backend deployment issue');
-                        console.warn('[EditorContext] ⚠️ App will continue with empty state - user can import/create new screenplay');
-                        // Continue without screenplay ID - user can still create/import
+                        await migrateFromLocalStorage(user);
+                    } catch (error) {
+                        console.error('[EditorContext] Migration failed (non-critical):', error);
                     }
                 }
                 
