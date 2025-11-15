@@ -104,7 +104,7 @@ const defaultState: EditorState = {
     highlightRange: null,
 };
 
-const EditorContext = createContext<EditorContextType | undefined>(undefined);
+export const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
 export function EditorProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<EditorState>(defaultState);

@@ -1,0 +1,29 @@
+[33mcommit ab722e96807fef47dbe46fb72c27bab503c6dcc7[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: GardenSC <jeffrey.posner@gmail.com>
+Date:   Sat Nov 15 09:00:33 2025 -0500
+
+    Feature 0118: Enhanced Rescan + Script Reordering
+    
+    Phase 1: Enhanced Rescan
+    - Added scene detection to rescanScript (detects new scenes)
+    - Added position updates for existing scenes via updateScenePositions
+    - Fixed locationTypes parameter in bulkImportLocations
+    - Updated EditorToolbar toast to show scene counts
+    
+    Phase 2: Script Reordering
+    - Created reorderScriptContent helper function
+    - Integrated script reordering into moveScene
+    - Script text now updates immediately when scenes are moved on beat board
+    - Editor marked as dirty for 60-second auto-save
+    
+    Phase 3: Hybrid Scene Matching
+    - Created matchScene helper (ID first, heading+position fallback)
+    - Integrated hybrid matching into rescanScript and updateScenePositions
+    - Robust matching handles edge cases (duplicate headings, missing IDs)
+    
+    All changes are frontend-only, no backend changes required.
+
+ components/editor/EditorToolbar.tsx |  15 [32m+[m[31m-[m
+ components/structure/BeatBoard.tsx  |  16 [32m+[m[31m-[m
+ contexts/ScreenplayContext.tsx      | 334 [32m+++++++++++++++++++++++++++++++++[m[31m---[m
+ 3 files changed, 340 insertions(+), 25 deletions(-)

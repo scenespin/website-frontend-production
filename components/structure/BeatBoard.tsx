@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import {
     DndContext,
     DragEndEvent,
@@ -17,7 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Plus, MoreVertical, Users, MapPin, Film, BookOpen, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useEditor } from '@/contexts/EditorContext';
+import { EditorContext } from '@/contexts/EditorContext';
 import { useContextStore } from '@/lib/contextStore';
 import type { StoryBeat, Scene } from '@/types/screenplay';
 import { toast } from 'sonner';
@@ -43,8 +43,13 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         moveScene,
     } = useScreenplay();
     
-    // Get editor context for script reordering
-    const { state: editorState, setContent: setEditorContent } = useEditor();
+    // Get editor context for script reordering (optional - only available on /write page)
+    // Use useContext directly - it will return undefined if EditorProvider isn't available
+    const editorContext = useContext(EditorContext);
+    
+    // Extract editor state and setContent if available
+    const editorState = editorContext?.state || null;
+    const setEditorContent = editorContext?.setContent || null;
     
     // Trust the data from ScreenplayContext (it's already sanitized on load)
     const beats = useMemo(() => rawBeats, [rawBeats]);
@@ -221,16 +226,16 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
             }
             
             // Move scene using ScreenplayContext
-            // Pass editor content and callback for script reordering
+            // Pass editor content and callback for script reordering (if editor is available)
             await moveScene(
                 scene.id, 
                 targetBeat.id, 
                 newOrder,
-                editorState.content, // Current editor content
-                (reorderedContent: string) => {
+                editorState?.content, // Current editor content (if available)
+                editorState && setEditorContent ? (reorderedContent: string) => {
                     // Update editor with reordered content (marks as dirty for auto-save)
                     setEditorContent(reorderedContent, true);
-                }
+                } : undefined // Only provide callback if editor is available
             );
             
             const message = sourceBeat.id === targetBeat.id
