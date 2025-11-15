@@ -1384,12 +1384,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB and synced local state');
                 
-                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
-                // This ensures that on refresh, we'll have the correct data
-                forceReloadRef.current = true;
-                hasInitializedRef.current = false;
-                // Trigger re-initialization by incrementing reload trigger
-                setReloadTrigger(prev => prev + 1);
+                // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
+                // The force reload was causing the address to disappear because it was happening
+                // before DynamoDB had fully written the item, or the address wasn't in the list response
+                // Instead, we rely on the state sync above which uses the actual API response
+                // The data will be correct on the next page refresh when initializeData runs
+                // forceReloadRef.current = true;
+                // hasInitializedRef.current = false;
+                // setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 // 3. Rollback on error
                 console.error('[ScreenplayContext] Failed to update location, rolling back:', error);
