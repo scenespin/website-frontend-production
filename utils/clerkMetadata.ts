@@ -58,7 +58,8 @@ export async function setCurrentScreenplayId(
 
   try {
     // Update Clerk metadata
-    await user.update({
+    // Type assertion needed because TypeScript doesn't recognize publicMetadata in update method
+    await (user.update as any)({
       publicMetadata: {
         ...user.publicMetadata,
         current_screenplay_id: screenplayId
