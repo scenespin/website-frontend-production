@@ -65,6 +65,13 @@ async function forwardRequest(
     const searchParams = request.nextUrl.searchParams.toString();
     const backendUrl = `${BACKEND_API_URL}/api/${path}${searchParams ? `?${searchParams}` : ''}`;
     
+    // Special handling for /api/screenplays/list to debug routing
+    if (path === 'screenplays/list') {
+      console.error(`[API Proxy] 🔍 SPECIAL HANDLING for screenplays/list`);
+      console.error(`[API Proxy] Path segments:`, pathSegments);
+      console.error(`[API Proxy] Full path:`, path);
+    }
+    
     console.error(`[API Proxy] 🚀 ${method} ${path} -> ${backendUrl}`);
     
     // Get request body for POST/PUT/PATCH
