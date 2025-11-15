@@ -301,8 +301,11 @@ export async function listCharacters(
   
   const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache'
+    },
+    cache: 'no-store' // 🔥 FIX: Prevent browser caching of API responses
   });
 
   console.error('[screenplayStorage] Characters response status:', response.status);
@@ -497,8 +500,11 @@ export async function listLocations(
   
   const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache'
+    },
+    cache: 'no-store' // 🔥 FIX: Prevent browser caching of API responses
   });
 
   if (!response.ok) {
