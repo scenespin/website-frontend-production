@@ -66,7 +66,7 @@ interface ScreenplayContextType {
     createScene: (beatId: string, scene: CreateInput<Scene>) => Promise<Scene>;
     updateScene: (id: string, updates: Partial<Scene>) => Promise<void>;
     deleteScene: (id: string) => Promise<void>;
-    moveScene: (sceneId: string, targetBeatId: string, newOrder: number) => Promise<void>;
+    moveScene: (sceneId: string, targetBeatId: string, newOrder: number, editorContent?: string, onScriptReorder?: (reorderedContent: string) => void) => Promise<void>;
     
     // CRUD - Characters
     createCharacter: (character: CreateInput<Character>) => Promise<Character>;
@@ -112,7 +112,7 @@ interface ScreenplayContextType {
     clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 Returns fresh beats (frontend template only)
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
-    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; }>;
+    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; newScenes: number; }>;
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<void>;
@@ -853,8 +853,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [beats, screenplayId, getToken]);
     
-    const moveScene = useCallback(async (sceneId: string, targetBeatId: string, newOrder: number) => {
+    const moveScene = useCallback(async (
+        sceneId: string, 
+        targetBeatId: string, 
+        newOrder: number,
+        editorContent?: string,
+        onScriptReorder?: (reorderedContent: string) => void
+    ) => {
         let movedScene: Scene | undefined;
+        let oldBeatsState: StoryBeat[] = [];
+        
+        // Store old state for script reordering
+        setBeats(prev => {
+            oldBeatsState = JSON.parse(JSON.stringify(prev)); // Deep copy
+            return prev;
+        });
         
         // Remove from current beat
         setBeats(prev => {
@@ -870,16 +883,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         });
         
         // Add to target beat
+        let newBeatsState: StoryBeat[] = [];
         if (movedScene) {
-            setBeats(prev => prev.map(beat => {
-                if (beat.id === targetBeatId) {
-                    const scenes = [...beat.scenes];
-                    // Feature 0117: No beatId on Scene object
-                    scenes.splice(newOrder, 0, { ...movedScene! });
-                    return { ...beat, scenes };
-                }
-                return beat;
-            }));
+            setBeats(prev => {
+                const updated = prev.map(beat => {
+                    if (beat.id === targetBeatId) {
+                        const scenes = [...beat.scenes];
+                        // Feature 0117: No beatId on Scene object
+                        scenes.splice(newOrder, 0, { ...movedScene! });
+                        return { ...beat, scenes };
+                    }
+                    return beat;
+                });
+                newBeatsState = updated;
+                return updated;
+            });
             
             // Feature 0111 Phase 3: Update both beats in DynamoDB (scene moved)
             // Feature 0117: No need to update beats in DynamoDB (frontend grouping only)
@@ -894,8 +912,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.error('[ScreenplayContext] Failed to save moved scene:', error);
                 }
             }
+            
+            // Reorder script content if editor content and callback are provided
+            if (editorContent && onScriptReorder) {
+                try {
+                    // Collect all scenes in old order (flat list)
+                    const oldSceneOrder: Scene[] = [];
+                    oldBeatsState.forEach(beat => {
+                        beat.scenes.forEach(scene => {
+                            oldSceneOrder.push(scene);
+                        });
+                    });
+                    
+                    // Collect all scenes in new order (flat list)
+                    const newSceneOrder: Scene[] = [];
+                    newBeatsState.forEach(beat => {
+                        beat.scenes.forEach(scene => {
+                            newSceneOrder.push(scene);
+                        });
+                    });
+                    
+                    // Reorder script content
+                    const reorderedContent = reorderScriptContent(editorContent, newSceneOrder, oldSceneOrder);
+                    
+                    // Update editor via callback
+                    onScriptReorder(reorderedContent);
+                    console.log('[ScreenplayContext] ✅ Script content reordered');
+                } catch (error) {
+                    console.error('[ScreenplayContext] Failed to reorder script content:', error);
+                    // Don't throw - scene move succeeded, script reordering is optional
+                }
+            }
         }
-    }, [beats, screenplayId]);
+    }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken]);
     
     // ========================================================================
     // CRUD - Characters
@@ -2023,6 +2072,165 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Feature 0117: saveAllToDynamoDBDirect removed - use saveScenes() instead
     
     // ========================================================================
+    // Script Reordering Helper
+    // ========================================================================
+    
+    /**
+     * Reorder script content based on new scene order.
+     * Extracts scene blocks from script and reorders them according to the new scene order.
+     * 
+     * @param content - Current script content
+     * @param newSceneOrder - Scenes in their new order (from updated beats state)
+     * @param oldSceneOrder - Scenes in their original order (for matching)
+     * @returns Reordered script content
+     */
+    const reorderScriptContent = useCallback((
+        content: string,
+        newSceneOrder: Scene[],
+        oldSceneOrder: Scene[]
+    ): string => {
+        console.log('[ScreenplayContext] Reordering script content:', {
+            newOrder: newSceneOrder.length,
+            oldOrder: oldSceneOrder.length
+        });
+        
+        // Import stripTagsForDisplay to ensure we use the same content the editor displays
+        // For reordering, we need the raw content with tags preserved
+        const lines = content.split('\n');
+        
+        // Build a map of scene ID to scene block (lines)
+        const sceneBlocks = new Map<string, string[]>();
+        const sceneBlockMetadata = new Map<string, { startLine: number; endLine: number }>();
+        
+        // Extract scene blocks from old order
+        oldSceneOrder.forEach(scene => {
+            const startLine = scene.fountain?.startLine ?? 0;
+            const endLine = scene.fountain?.endLine ?? lines.length - 1;
+            
+            // Validate boundaries
+            if (startLine < 0 || endLine >= lines.length || startLine > endLine) {
+                console.warn(`[ScreenplayContext] Invalid scene boundaries for scene ${scene.id}: lines ${startLine}-${endLine} (total lines: ${lines.length})`);
+                return;
+            }
+            
+            // Extract scene block (inclusive of both start and end lines)
+            const sceneBlock = lines.slice(startLine, endLine + 1);
+            sceneBlocks.set(scene.id, sceneBlock);
+            sceneBlockMetadata.set(scene.id, { startLine, endLine });
+            
+            console.log(`[ScreenplayContext] Extracted scene block for "${scene.heading}": lines ${startLine}-${endLine} (${sceneBlock.length} lines)`);
+        });
+        
+        // Find content before first scene (title page, etc.)
+        const firstScene = oldSceneOrder
+            .map(s => ({ scene: s, startLine: s.fountain?.startLine ?? Infinity }))
+            .sort((a, b) => a.startLine - b.startLine)[0];
+        
+        const contentBeforeFirstScene = firstScene
+            ? lines.slice(0, firstScene.scene.fountain?.startLine ?? 0)
+            : [];
+        
+        // Find content after last scene
+        const lastScene = oldSceneOrder
+            .map(s => ({ scene: s, endLine: s.fountain?.endLine ?? -1 }))
+            .sort((a, b) => b.endLine - a.endLine)[0];
+        
+        const contentAfterLastScene = lastScene
+            ? lines.slice((lastScene.scene.fountain?.endLine ?? lines.length - 1) + 1)
+            : [];
+        
+        // Reorder scene blocks according to new order
+        const reorderedSceneBlocks: string[] = [];
+        const missingScenes: string[] = [];
+        
+        newSceneOrder.forEach((scene, index) => {
+            const sceneBlock = sceneBlocks.get(scene.id);
+            if (sceneBlock) {
+                reorderedSceneBlocks.push(...sceneBlock);
+                console.log(`[ScreenplayContext] Added scene "${scene.heading}" at position ${index + 1}`);
+            } else {
+                missingScenes.push(scene.id);
+                console.warn(`[ScreenplayContext] Scene block not found for scene ${scene.id} ("${scene.heading}") - skipping`);
+            }
+        });
+        
+        if (missingScenes.length > 0) {
+            console.warn(`[ScreenplayContext] ⚠️ ${missingScenes.length} scene(s) could not be reordered (missing scene blocks):`, missingScenes);
+        }
+        
+        // Reconstruct script: content before + reordered scenes + content after
+        const reorderedLines = [
+            ...contentBeforeFirstScene,
+            ...reorderedSceneBlocks,
+            ...contentAfterLastScene
+        ];
+        
+        const reorderedContent = reorderedLines.join('\n');
+        
+        console.log('[ScreenplayContext] ✅ Script reordered:', {
+            totalLines: reorderedLines.length,
+            scenesReordered: reorderedSceneBlocks.length > 0 ? newSceneOrder.length : 0,
+            missingScenes: missingScenes.length
+        });
+        
+        return reorderedContent;
+    }, []);
+    
+    // ========================================================================
+    // Scene Matching Helper (Hybrid: ID first, heading+position fallback)
+    // ========================================================================
+    
+    /**
+     * Match a parsed scene to an existing scene using hybrid matching:
+     * 1. Try ID match (most reliable)
+     * 2. Fallback to heading + position proximity
+     * 3. Return null if no match found (treat as new scene)
+     */
+    const matchScene = useCallback((
+        parsedScene: { heading: string; startLine: number; endLine: number; id?: string },
+        existingScenes: Scene[]
+    ): Scene | null => {
+        // Step 1: Try ID match (most reliable)
+        if (parsedScene.id) {
+            const idMatch = existingScenes.find(s => 
+                s.id === parsedScene.id || 
+                (s as any).scene_id === parsedScene.id
+            );
+            if (idMatch) {
+                console.log('[ScreenplayContext] Matched scene by ID:', parsedScene.id, '->', idMatch.heading);
+                return idMatch;
+            }
+        }
+        
+        // Step 2: Try heading + position match
+        const normalizedHeading = parsedScene.heading.toUpperCase().trim();
+        const candidates = existingScenes.filter(s => 
+            s.heading.toUpperCase().trim() === normalizedHeading
+        );
+        
+        if (candidates.length === 0) {
+            // No match found
+            return null;
+        }
+        
+        if (candidates.length === 1) {
+            // Single match - use it
+            console.log('[ScreenplayContext] Matched scene by heading:', parsedScene.heading, '->', candidates[0].id);
+            return candidates[0];
+        }
+        
+        // Multiple scenes with same heading - use position proximity
+        const bestMatch = candidates.reduce((best, current) => {
+            const currentDistance = Math.abs((current.fountain?.startLine || 0) - parsedScene.startLine);
+            const bestDistance = Math.abs((best.fountain?.startLine || 0) - parsedScene.startLine);
+            return currentDistance < bestDistance ? current : best;
+        });
+        
+        console.log('[ScreenplayContext] Matched scene by heading+position:', parsedScene.heading, '->', bestMatch.id, `(distance: ${Math.abs((bestMatch.fountain?.startLine || 0) - parsedScene.startLine)} lines)`);
+        return bestMatch;
+    }, []);
+    
+    // ========================================================================
     // Scene Position Management
     // ========================================================================
     
@@ -2089,14 +2297,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         console.log('[ScreenplayContext] Matching', allScenesFlat.length, 'database scenes to', scenesInOrder.length, 'content scenes');
         
-        // Match scenes by order and heading similarity
+        // Match scenes using hybrid matching (ID first, heading+position fallback)
         const updates = new Map<string, { beatId: string; updates: Partial<Scene> }>();
         
         allScenesFlat.forEach((item, index) => {
             if (index < scenesInOrder.length) {
                 const contentScene = scenesInOrder[index];
-                // Check if headings match (approximately)
-                if (item.scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
+                
+                // Use hybrid matching to find the best match
+                const matchedScene = matchScene(
+                    { heading: contentScene.heading, startLine: contentScene.startLine, endLine: contentScene.endLine, id: item.scene.id },
+                    [item.scene] // Pass single scene for matching (we already know it's the right one by order)
+                );
+                
+                if (matchedScene && matchedScene.id === item.scene.id) {
+                    // Match confirmed - update position
                     console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine}`);
                     updates.set(item.scene.id, {
                         beatId: item.beatId,  // Track which beat this scene belongs to
@@ -2109,7 +2324,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                     });
                 } else {
-                    console.warn(`[ScreenplayContext] Heading mismatch at position ${index}: DB="${item.scene.heading}" vs Content="${contentScene.heading}"`);
+                    // Try matching by heading only (fallback for order-based matching)
+                    if (item.scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
+                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (heading match)`);
+                        updates.set(item.scene.id, {
+                            beatId: item.beatId,
+                            updates: {
+                                fountain: {
+                                    ...item.scene.fountain,
+                                    startLine: contentScene.startLine,
+                                    endLine: contentScene.endLine
+                                }
+                            }
+                        });
+                    } else {
+                        console.warn(`[ScreenplayContext] Heading mismatch at position ${index}: DB="${item.scene.heading}" vs Content="${contentScene.heading}"`);
+                    }
                 }
             }
         });
@@ -2127,7 +2357,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         })));
         
         console.log('[ScreenplayContext] Scene positions updated -', updates.size, 'scenes updated');
-    }, [beats]);
+    }, [beats, matchScene]);
     
     // ========================================================================
     // Clear All Structure (Destructive Import Support)
@@ -2235,9 +2465,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const newLocationNames = Array.from(parseResult.locations)
                 .filter((name: string) => !existingLocNames.has(name.toUpperCase()));
             
+            // Find NEW scenes using hybrid matching
+            // Collect all existing scenes from all beats
+            const allExistingScenes: Scene[] = [];
+            beats.forEach(beat => {
+                beat.scenes.forEach(scene => {
+                    allExistingScenes.push(scene);
+                });
+            });
+            
+            const newScenes: typeof parseResult.scenes = [];
+            const existingScenesToUpdate: typeof parseResult.scenes = [];
+            
+            parseResult.scenes.forEach(parsedScene => {
+                const matched = matchScene(
+                    { heading: parsedScene.heading, startLine: parsedScene.startLine, endLine: parsedScene.endLine },
+                    allExistingScenes
+                );
+                
+                if (!matched) {
+                    // No match found - it's a new scene
+                    newScenes.push(parsedScene);
+                    console.log('[ScreenplayContext] New scene detected:', parsedScene.heading);
+                } else {
+                    // Match found - mark for position update
+                    existingScenesToUpdate.push(parsedScene);
+                }
+            });
+            
             console.log('[ScreenplayContext] Found new entities:', {
                 newCharacters: newCharacterNames.length,
-                newLocations: newLocationNames.length
+                newLocations: newLocationNames.length,
+                newScenes: newScenes.length,
+                existingScenesToUpdate: existingScenesToUpdate.length
             });
             
             // Import only NEW entities
@@ -2248,20 +2508,50 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             if (newLocationNames.length > 0) {
                 console.log('[ScreenplayContext] Importing', newLocationNames.length, 'new locations:', newLocationNames);
-                await bulkImportLocations(newLocationNames);
+                // 🔥 FIX: Pass locationTypes to bulkImportLocations
+                await bulkImportLocations(newLocationNames, parseResult.locationTypes);
+            }
+            
+            // Import new scenes
+            if (newScenes.length > 0) {
+                console.log('[ScreenplayContext] Importing', newScenes.length, 'new scenes');
+                // Find the first beat to assign new scenes to (or create a default beat)
+                const firstBeat = beats[0];
+                if (firstBeat) {
+                    await bulkImportScenes(firstBeat.id, newScenes.map(scene => ({
+                        heading: scene.heading,
+                        location: scene.location,
+                        characterIds: scene.characters.map(charName => {
+                            // Find character ID by name
+                            const char = characters.find(c => c.name.toUpperCase() === charName.toUpperCase());
+                            return char?.id || '';
+                        }).filter(id => id !== ''),
+                        startLine: scene.startLine,
+                        endLine: scene.endLine
+                    })));
+                } else {
+                    console.warn('[ScreenplayContext] No beats available to assign new scenes to');
+                }
+            }
+            
+            // Update positions for existing scenes
+            if (existingScenesToUpdate.length > 0) {
+                console.log('[ScreenplayContext] Updating positions for', existingScenesToUpdate.length, 'existing scenes');
+                await updateScenePositions(content);
             }
             
             console.log('[ScreenplayContext] ✅ Re-scan complete');
             
             return {
                 newCharacters: newCharacterNames.length,
-                newLocations: newLocationNames.length
+                newLocations: newLocationNames.length,
+                newScenes: newScenes.length
             };
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Re-scan failed:', err);
             throw err;
         }
-    }, [characters, locations, bulkImportCharacters, bulkImportLocations]);
+    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, bulkImportScenes, matchScene, updateScenePositions]);
     
     // ========================================================================
     // Clear All Data (Editor Source of Truth)

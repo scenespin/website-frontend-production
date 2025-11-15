@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Plus, MoreVertical, Users, MapPin, Film, BookOpen, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 import { useContextStore } from '@/lib/contextStore';
 import type { StoryBeat, Scene } from '@/types/screenplay';
 import { toast } from 'sonner';
@@ -41,6 +42,9 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
         createScene,
         moveScene,
     } = useScreenplay();
+    
+    // Get editor context for script reordering
+    const { state: editorState, setContent: setEditorContent } = useEditor();
     
     // Trust the data from ScreenplayContext (it's already sanitized on load)
     const beats = useMemo(() => rawBeats, [rawBeats]);
@@ -217,7 +221,17 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
             }
             
             // Move scene using ScreenplayContext
-            await moveScene(scene.id, targetBeat.id, newOrder);
+            // Pass editor content and callback for script reordering
+            await moveScene(
+                scene.id, 
+                targetBeat.id, 
+                newOrder,
+                editorState.content, // Current editor content
+                (reorderedContent: string) => {
+                    // Update editor with reordered content (marks as dirty for auto-save)
+                    setEditorContent(reorderedContent, true);
+                }
+            );
             
             const message = sourceBeat.id === targetBeat.id
                 ? `Reordered scene "${scene.heading}" within ${targetBeat.title}`
