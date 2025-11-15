@@ -955,7 +955,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const updatedCharacter = await apiUpdateCharacter(screenplayId, id, apiUpdates, getToken);
                 console.log('[ScreenplayContext] 📥 Received updated character from API:', { characterId: id, arcStatus: (updatedCharacter as any)?.arcStatus });
                 
-                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
+                // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
+                // Transform the API response to frontend format and update state
+                const transformedCharacter = transformCharactersFromAPI([updatedCharacter as any])[0];
+                setCharacters(prev => prev.map(char => char.id === id ? transformedCharacter : char));
+                
+                console.log('[ScreenplayContext] ✅ Updated character in DynamoDB and synced local state');
             } catch (error) {
                 // 3. Rollback on error
                 console.error('[ScreenplayContext] Failed to update character, rolling back:', error);
@@ -1189,7 +1194,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const updatedLocation = await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
                 console.log('[ScreenplayContext] 📥 Received updated location from API:', { locationId: id, type: (updatedLocation as any)?.type });
                 
-                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
+                // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
+                // Transform the API response to frontend format and update state
+                const transformedLocation = transformLocationsFromAPI([updatedLocation as any])[0];
+                setLocations(prev => prev.map(loc => loc.id === id ? transformedLocation : loc));
+                
+                console.log('[ScreenplayContext] ✅ Updated location in DynamoDB and synced local state');
             } catch (error) {
                 // 3. Rollback on error
                 console.error('[ScreenplayContext] Failed to update location, rolling back:', error);
