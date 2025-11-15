@@ -393,6 +393,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const updatedBeats = beats.map(b => ({ ...b, scenes: [] as Scene[] }));
         const orphanedScenes: Scene[] = [];
         
+        // First pass: Assign scenes with group_label to matching beats
         scenes.forEach(scene => {
             if (scene.group_label) {
                 const beat = beatMap.get(scene.group_label.toUpperCase());
@@ -407,16 +408,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             orphanedScenes.push(scene);
         });
         
-        // Distribute orphaned scenes evenly across beats
-        if (orphanedScenes.length > 0) {
-            const scenesPerBeat = Math.ceil(orphanedScenes.length / updatedBeats.length);
+        // 🔥 FIX: Distribute orphaned scenes evenly across ALL beats (not just first one)
+        if (orphanedScenes.length > 0 && updatedBeats.length > 0) {
+            // Sort scenes by their order/number to maintain sequence
+            orphanedScenes.sort((a, b) => (a.number || 0) - (b.number || 0));
+            
+            // Distribute evenly across all beats
             orphanedScenes.forEach((scene, index) => {
-                const beatIndex = Math.floor(index / scenesPerBeat);
-                if (beatIndex < updatedBeats.length) {
-                    updatedBeats[beatIndex].scenes.push(scene);
-                }
+                const beatIndex = index % updatedBeats.length; // Round-robin distribution
+                updatedBeats[beatIndex].scenes.push(scene);
             });
+            
+            console.log('[ScreenplayContext] 📊 Distributed', orphanedScenes.length, 'orphaned scenes across', updatedBeats.length, 'beats');
         }
+        
+        // Sort scenes within each beat by their order/number
+        updatedBeats.forEach(beat => {
+            beat.scenes.sort((a, b) => (a.number || 0) - (b.number || 0));
+        });
         
         return updatedBeats;
     }, []);
@@ -516,7 +525,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // CRITICAL FIX: Only update if ID actually changed (prevents infinite reload loop)
             setScreenplayId(prev => {
                 if (prev !== id) {
-                    console.log('[ScreenplayContext] Screenplay ID updated:', id);
+                    console.log('[ScreenplayContext] Screenplay ID updated:', id, '(was:', prev, ')');
                     return id;
                 }
                 return prev; // No change, don't trigger re-render
@@ -526,12 +535,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Listen for changes from other tabs/windows
         window.addEventListener('storage', handleStorageChange);
         
-        // Also check periodically in case same-tab updates don't fire storage event
-        const interval = setInterval(handleStorageChange, 5000);
+        // 🔥 FIX: Check more frequently on initial load (first 30 seconds), then less frequently
+        // This ensures we catch the screenplayId when EditorContext sets it after login
+        let checkCount = 0;
+        let slowInterval: NodeJS.Timeout | null = null;
+        const interval = setInterval(() => {
+            handleStorageChange();
+            checkCount++;
+            // After 30 seconds (30 checks at 1s intervals), slow down to every 10 seconds
+            if (checkCount === 30) {
+                clearInterval(interval);
+                slowInterval = setInterval(handleStorageChange, 10000);
+            }
+        }, 1000); // Check every 1 second initially
         
         return () => {
             window.removeEventListener('storage', handleStorageChange);
             clearInterval(interval);
+            if (slowInterval) clearInterval(slowInterval);
         };
     }, []);
 
@@ -542,6 +563,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 CRITICAL: Guard against duplicate initialization runs
         // This prevents the 26-beat bug caused by multiple effect executions
         const initKey = screenplayId || 'no-id';
+        
+        // 🔥 FIX: If we previously initialized with 'no-id' but now have a real ID, reset the guard
+        if (hasInitializedRef.current === 'no-id' && screenplayId) {
+            console.log('[ScreenplayContext] 🔄 Screenplay ID became available - resetting initialization guard');
+            hasInitializedRef.current = false; // Reset to allow initialization
+        }
+        
         if (hasInitializedRef.current === initKey && !forceReloadRef.current) {
             console.log('[ScreenplayContext] ⏭️ Already initialized for:', initKey, '- skipping');
             return;
@@ -2008,53 +2036,43 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         const newLocations: Location[] = [];
         
-        // 🔥 NEW: Get existing locations to check for duplicates
-        // (BUT we'll replace ALL locations in DynamoDB at the end)
-        const existingLocationsMap = new Map(
-            locations.map(l => [l.name.toUpperCase(), l])
-        );
-        
-        // Create new locations (skipping duplicates within the import batch)
+        // 🔥 FIX: During import, we should create ALL locations (import is destructive)
+        // Only skip duplicates WITHIN the import batch itself
         const seenNames = new Set<string>();
         
         for (const name of locationNames) {
             const upperName = name.toUpperCase();
             
-            // Skip if we already processed this name in this import
+            // Skip if we already processed this name in this import batch
             if (seenNames.has(upperName)) {
                 console.log('[ScreenplayContext] Skipping duplicate in batch:', name);
                 continue;
             }
             seenNames.add(upperName);
             
-            // Check if location already exists
-            const existing = existingLocationsMap.get(upperName);
+            // 🔥 FIX: Always create new locations during import (don't check existing)
+            // The clearAllData() call before import ensures we're starting fresh
+            // 🔥 NEW: Get location type from map, default to 'INT' if not found
+            const locationType = locationTypes?.get(name) || 'INT';
             
-            if (existing) {
-                console.log('[ScreenplayContext] Location already exists, skipping:', name);
-                continue; // Don't re-add existing locations
-            } else {
-                // 🔥 NEW: Get location type from map, default to 'INT' if not found
-                const locationType = locationTypes?.get(name) || 'INT';
-                
-                // Create new location
-                const newLocation: Location = {
-                    id: `loc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    name,
-                    description: `Imported from script`,
-                    type: locationType, // 🔥 FIXED: Use parsed type instead of hardcoded 'INT'
-                    createdAt: now,
-                    updatedAt: now,
-                    images: []
-                };
-                
-                console.log('[ScreenplayContext] Creating new location:', locationType, name);
-                newLocations.push(newLocation);
-            }
+            // Create new location
+            const newLocation: Location = {
+                id: `loc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name,
+                description: `Imported from script`,
+                type: locationType, // 🔥 FIXED: Use parsed type instead of hardcoded 'INT'
+                createdAt: now,
+                updatedAt: now,
+                images: []
+            };
+            
+            console.log('[ScreenplayContext] Creating new location:', locationType, name);
+            newLocations.push(newLocation);
         }
         
-        // 🔥 FIX: Merge with existing locations instead of replacing
-        const allLocations = [...locations, ...newLocations];
+        // 🔥 FIX: During import, replace all locations (import is destructive)
+        // For rescan, we merge with existing
+        const allLocations = explicitScreenplayId ? newLocations : [...locations, ...newLocations];
         setLocations(allLocations);
         
         // Update relationships for new locations
@@ -2530,15 +2548,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             // Find NEW characters (case-insensitive comparison)
+            // 🔥 FIX: Use current state from refs to avoid stale closures
+            const currentCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
             const existingCharNames = new Set(
-                characters.map(c => c.name.toUpperCase())
+                currentCharacters.map(c => c.name.toUpperCase())
             );
             const newCharacterNames = Array.from(parseResult.characters)
                 .filter((name: string) => !existingCharNames.has(name.toUpperCase()));
             
             // Find NEW locations (case-insensitive comparison)
+            // 🔥 FIX: Use current state from refs to avoid stale closures
+            const currentLocations = locationsRef.current.length > 0 ? locationsRef.current : locations;
             const existingLocNames = new Set(
-                locations.map(l => l.name.toUpperCase())
+                currentLocations.map(l => l.name.toUpperCase())
             );
             const newLocationNames = Array.from(parseResult.locations)
                 .filter((name: string) => !existingLocNames.has(name.toUpperCase()));

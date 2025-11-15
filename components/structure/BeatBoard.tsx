@@ -373,8 +373,8 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                                         key={column.id}
                                         ref={(el) => { beatRefs.current[column.id] = el; }}
                                         data-beat-id={column.beat.id}
-                                        className="flex flex-col min-w-0"
-                                        style={{ minWidth: beats.length > 3 ? '320px' : undefined }}
+                                        className="flex flex-col min-w-0 h-full"
+                                        style={{ minWidth: beats.length > 3 ? '320px' : undefined, maxHeight: '100%' }}
                                     >
                                         {/* Column Header - Story Beat Info */}
                                         <div 
@@ -493,14 +493,15 @@ function BeatColumn({
     return (
         <div
             ref={setNodeRef}
-            className="flex flex-col rounded-xl min-h-[400px] max-h-full transition-all duration-200"
+            className="flex flex-col rounded-xl min-h-[400px] h-full transition-all duration-200"
             style={{
                 backgroundColor: isOver ? color + '15' : '#0A0A0B',
                 border: isOver ? `2px dashed ${color}` : '2px solid #1C1C1E',
+                maxHeight: 'calc(100vh - 300px)' // Ensure it doesn't exceed viewport
             }}
         >
             {/* Scene Cards Container - Scrollable */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3" style={{ scrollbarWidth: 'thin' }}>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 min-h-0" style={{ scrollbarWidth: 'thin' }}>
                 {/* Empty State */}
                 {scenes.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full py-12 px-4">
