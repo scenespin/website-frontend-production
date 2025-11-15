@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, Trash2, Plus, Image as ImageIcon } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Location } from '@/types/screenplay'
@@ -34,7 +34,7 @@ export default function LocationDetailSidebar({
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
       name: initialData.name || '',
-      type: initialData.type || 'INT',
+      type: initialData.type || 'INT', // 🔥 FIX: Use initialData.type directly
       description: initialData.description || '',
       address: initialData.address || '',
       atmosphereNotes: initialData.atmosphereNotes || '',
@@ -50,6 +50,36 @@ export default function LocationDetailSidebar({
       productionNotes: ''
     })
   )
+
+  // 🔥 FIX: Update formData when initialData changes (for column type selection)
+  useEffect(() => {
+    if (isCreating && !location) {
+      // If initialData is provided, use it (especially for column type)
+      if (initialData) {
+        console.log('[LocationDetailSidebar] 🔄 Updating formData from initialData:', initialData);
+        setFormData({
+          name: initialData.name || '',
+          type: initialData.type || 'INT', // 🔥 FIX: Use initialData.type (from column selection)
+          description: initialData.description || '',
+          address: initialData.address || '',
+          atmosphereNotes: initialData.atmosphereNotes || '',
+          setRequirements: initialData.setRequirements || '',
+          productionNotes: initialData.productionNotes || ''
+        });
+      } else {
+        // Reset to defaults if no initialData
+        setFormData({
+          name: '',
+          type: 'INT',
+          description: '',
+          address: '',
+          atmosphereNotes: '',
+          setRequirements: '',
+          productionNotes: ''
+        });
+      }
+    }
+  }, [isCreating, initialData, location])
 
   const handleSave = () => {
     if (!formData.name.trim()) return

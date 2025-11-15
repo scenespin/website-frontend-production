@@ -304,6 +304,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                     />
                     
                     <LocationDetailSidebar
+                        key={isCreating ? `create-${selectedColumnType || 'default'}` : `edit-${selectedLocation?.id || 'none'}`} // 🔥 FIX: Force remount when column type changes
                         location={isEditing || (!isCreating && selectedLocation) ? selectedLocation : null}
                         isCreating={isCreating}
                         initialData={isCreating ? {

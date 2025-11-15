@@ -335,6 +335,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             description: loc.description,
             type: loc.type, // 🔥 NEW: Include location type in API payload
             referenceImages: loc.images?.map(img => img.imageUrl) || [],
+            address: loc.address, // 🔥 NEW: Include address
             atmosphereNotes: loc.atmosphereNotes, // 🔥 NEW: Include atmosphere notes
             setRequirements: loc.setRequirements, // 🔥 NEW: Include set requirements
             productionNotes: loc.productionNotes // 🔥 NEW: Include production notes
@@ -351,6 +352,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 imageUrl: url,
                 description: ''
             })),
+            address: loc.address || '', // 🔥 NEW: Include address
             atmosphereNotes: loc.atmosphereNotes || '', // 🔥 NEW: Include atmosphere notes
             setRequirements: loc.setRequirements || '', // 🔥 NEW: Include set requirements
             productionNotes: loc.productionNotes || '', // 🔥 NEW: Include production notes
@@ -1252,6 +1254,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.images !== undefined) {
                     apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
                 }
+                if (updates.address !== undefined) apiUpdates.address = updates.address; // 🔥 NEW: Include address
                 if (updates.atmosphereNotes !== undefined) apiUpdates.atmosphereNotes = updates.atmosphereNotes; // 🔥 NEW: Include atmosphere notes
                 if (updates.setRequirements !== undefined) apiUpdates.setRequirements = updates.setRequirements; // 🔥 NEW: Include set requirements
                 if (updates.productionNotes !== undefined) apiUpdates.productionNotes = updates.productionNotes; // 🔥 NEW: Include production notes
