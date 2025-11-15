@@ -1207,15 +1207,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const createLocation = useCallback(async (location: CreateInput<Location>): Promise<Location> => {
-        console.log('[ScreenplayContext] 📥 Received location data for creation:', {
-            name: location.name,
-            type: location.type,
-            address: location.address,
-            hasAddress: !!location.address,
-            addressType: typeof location.address,
-            fullLocation: location
-        });
-        
         const now = new Date().toISOString();
         const newLocation: Location = {
             ...location,
@@ -1223,14 +1214,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: now,
             updatedAt: now
         };
-        
-        console.log('[ScreenplayContext] 📦 Created newLocation object:', {
-            name: newLocation.name,
-            type: newLocation.type,
-            address: newLocation.address,
-            hasAddress: !!newLocation.address,
-            addressType: typeof newLocation.address
-        });
         
         setLocations(prev => [...prev, newLocation]);
         
@@ -1262,26 +1245,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (newLocation.atmosphereNotes !== undefined) apiLoc.atmosphereNotes = newLocation.atmosphereNotes;
                 if (newLocation.setRequirements !== undefined) apiLoc.setRequirements = newLocation.setRequirements;
                 if (newLocation.productionNotes !== undefined) apiLoc.productionNotes = newLocation.productionNotes;
-                console.log('[ScreenplayContext] 📤 Creating location:', { 
-                    type: apiLoc.type, 
-                    address: apiLoc.address,
-                    hasAddress: !!apiLoc.address,
-                    fullApiLoc: apiLoc 
-                });
                 const createdLocation = await apiCreateLocation(screenplayId, apiLoc, getToken);
-                console.log('[ScreenplayContext] 📥 Received created location from API:', { 
-                    locationId: createdLocation.id || (createdLocation as any).location_id,
-                    address: (createdLocation as any).address,
-                    hasAddress: !!(createdLocation as any).address
-                });
                 
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 const transformedLocation = transformLocationsFromAPI([createdLocation as any])[0];
-                console.log('[ScreenplayContext] 🔄 Syncing created location state:', { 
-                    transformedId: transformedLocation.id,
-                    address: transformedLocation.address,
-                    hasAddress: !!transformedLocation.address
-                });
                 setLocations(prev => {
                     // Replace the optimistic location with the real one from DynamoDB
                     const updated = prev.map(loc => {
@@ -1350,33 +1317,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.setRequirements !== undefined) apiUpdates.setRequirements = updates.setRequirements; // 🔥 NEW: Include set requirements
                 if (updates.productionNotes !== undefined) apiUpdates.productionNotes = updates.productionNotes; // 🔥 NEW: Include production notes
                 
-                console.log('[ScreenplayContext] 📤 Sending location update to API:', { 
-                    locationId: id, 
-                    apiUpdates,
-                    address: apiUpdates.address,
-                    hasAddress: !!apiUpdates.address,
-                    addressType: typeof apiUpdates.address,
-                    allFields: Object.keys(apiUpdates)
-                });
                 const updatedLocation = await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
-                console.log('[ScreenplayContext] 📥 Received updated location from API:', { 
-                    locationId: id, 
-                    type: (updatedLocation as any)?.type,
-                    address: (updatedLocation as any)?.address,
-                    hasAddress: !!(updatedLocation as any)?.address,
-                    fullResponse: updatedLocation
-                });
                 
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
                 const transformedLocation = transformLocationsFromAPI([updatedLocation as any])[0];
-                console.log('[ScreenplayContext] 🔄 Syncing location state:', { 
-                    updateId: id, 
-                    transformedId: transformedLocation.id,
-                    type: transformedLocation.type,
-                    address: transformedLocation.address,
-                    hasAddress: !!transformedLocation.address
-                });
                 setLocations(prev => {
                     const updated = prev.map(loc => {
                         // Match by either the frontend id or the location_id from API

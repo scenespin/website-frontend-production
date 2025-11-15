@@ -84,15 +84,6 @@ export default function LocationDetailSidebar({
   const handleSave = () => {
     if (!formData.name.trim()) return
     
-    console.log('[LocationDetailSidebar] 💾 Saving location:', {
-      isCreating,
-      name: formData.name,
-      address: formData.address,
-      hasAddress: !!formData.address,
-      addressType: typeof formData.address,
-      allFormData: formData
-    });
-    
     if (isCreating) {
       onCreate(formData)
     } else {
