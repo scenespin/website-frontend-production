@@ -1053,17 +1053,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     return updatedWithNumbers;
                 });
             
-            // Feature 0111 Phase 3: Update both beats in DynamoDB (scene moved)
-            // Feature 0117: No need to update beats in DynamoDB (frontend grouping only)
-            // Scenes are standalone entities, just update the moved scene if needed
-            if (screenplayId && movedScene) {
+            // Feature 0117: Save ALL scenes with updated order to DynamoDB
+            // After reordering, all scenes have new order numbers - save them all
+            if (screenplayId && newBeatsState.length > 0) {
                 try {
-                    // Save the moved scene with updated order if needed
-                    const apiScene = transformScenesToAPI([movedScene]);
-                    await bulkCreateScenes(screenplayId, apiScene, getToken);
-                    console.log('[ScreenplayContext] ✅ Saved moved scene to DynamoDB');
+                    // Collect all scenes from all beats with their updated order
+                    const allScenesToSave: Scene[] = [];
+                    newBeatsState.forEach(beat => {
+                        beat.scenes.forEach(scene => {
+                            allScenesToSave.push(scene);
+                        });
+                    });
+                    
+                    if (allScenesToSave.length > 0) {
+                        const apiScenes = transformScenesToAPI(allScenesToSave);
+                        await bulkCreateScenes(screenplayId, apiScenes, getToken);
+                        console.log('[ScreenplayContext] ✅ Saved', allScenesToSave.length, 'scenes with updated order to DynamoDB');
+                    }
                 } catch (error) {
-                    console.error('[ScreenplayContext] Failed to save moved scene:', error);
+                    console.error('[ScreenplayContext] ❌ Failed to save scene order to DynamoDB:', error);
+                    // Don't throw - scene move succeeded in UI, persistence failure is logged
                 }
             }
             
@@ -1108,6 +1117,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Update editor via callback
                     onScriptReorder(reorderedContent);
                     console.log('[ScreenplayContext] ✅ Script content reordered');
+                    
+                    // 🔥 FIX: Recalculate scene line positions after reordering
+                    // This ensures Scene Navigator shows correct line numbers
+                    try {
+                        // Wait a bit for editor state to update, then recalculate positions
+                        setTimeout(async () => {
+                            try {
+                                // Get updated content from editor (may have changed slightly)
+                                const updatedContent = editorContent || '';
+                                if (updatedContent) {
+                                    await updateScenePositions(reorderedContent);
+                                    console.log('[ScreenplayContext] ✅ Scene line positions recalculated after reordering');
+                                }
+                            } catch (posError) {
+                                console.error('[ScreenplayContext] ⚠️ Failed to recalculate scene positions:', posError);
+                                // Non-critical - scene move succeeded
+                            }
+                        }, 500); // Small delay to ensure editor state is updated
+                    } catch (posError) {
+                        console.error('[ScreenplayContext] ⚠️ Failed to schedule position recalculation:', posError);
+                    }
                 } catch (error) {
                     console.error('[ScreenplayContext] ❌ Failed to reorder script content:', error);
                     // Don't throw - scene move succeeded, script reordering is optional
@@ -1119,7 +1149,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 });
             }
         }
-    }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken]);
+    }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken, updateScenePositions]);
     
     // ========================================================================
     // CRUD - Characters

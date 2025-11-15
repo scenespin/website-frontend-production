@@ -35,9 +35,9 @@ interface UserResourceWithUpdate extends UserResource {
  * @returns screenplay_id or null if not found
  */
 export function getCurrentScreenplayId(user: UserResource | null | undefined): string | null {
-  // Priority 1: Read from Clerk metadata
-  if (user?.publicMetadata?.current_screenplay_id) {
-    const screenplayId = user.publicMetadata.current_screenplay_id as string;
+  // Priority 1: Read from Clerk unsafeMetadata (frontend-writable)
+  if (user?.unsafeMetadata?.current_screenplay_id) {
+    const screenplayId = user.unsafeMetadata.current_screenplay_id as string;
     if (typeof screenplayId === 'string' && screenplayId.length > 0) {
       return screenplayId;
     }
@@ -56,6 +56,7 @@ export function getCurrentScreenplayId(user: UserResource | null | undefined): s
 
 /**
  * Set current screenplay ID in Clerk metadata
+ * Uses unsafeMetadata (frontend-writable) per Clerk best practices
  * Also updates localStorage for backward compatibility
  * 
  * @param user - Clerk user object (from useUser() hook)
@@ -76,17 +77,17 @@ export async function setCurrentScreenplayId(
   }
 
   try {
-    // Update Clerk metadata
-    // Use proper type assertion to UserResourceWithUpdate for type safety
+    // Use unsafeMetadata (frontend-writable) per Clerk documentation
+    // publicMetadata is backend-only, unsafeMetadata is for user preferences
     const userWithUpdate = user as unknown as UserResourceWithUpdate;
     await userWithUpdate.update({
-      publicMetadata: {
-        ...user.publicMetadata,
+      unsafeMetadata: {
+        ...user.unsafeMetadata,
         current_screenplay_id: screenplayId
       }
     });
 
-    console.log('[ClerkMetadata] ✅ Updated current_screenplay_id in Clerk metadata:', screenplayId);
+    console.log('[ClerkMetadata] ✅ Updated current_screenplay_id in Clerk unsafeMetadata:', screenplayId);
 
     // Also update localStorage for backward compatibility
     if (typeof window !== 'undefined') {
@@ -95,14 +96,14 @@ export async function setCurrentScreenplayId(
   } catch (error: any) {
     console.error('[ClerkMetadata] ❌ Failed to update Clerk metadata:', error);
     
-    // Fallback: Save to localStorage only
+    // Fallback: Save to localStorage only (non-critical - app still works)
     if (typeof window !== 'undefined') {
       localStorage.setItem('current_screenplay_id', screenplayId);
       console.warn('[ClerkMetadata] ⚠️ Saved to localStorage as fallback');
     }
     
-    // Re-throw error so caller can handle it
-    throw error;
+    // Don't re-throw - metadata update failure shouldn't break the app
+    // The screenplay_id is still saved in localStorage
   }
 }
 
@@ -118,7 +119,7 @@ export async function migrateFromLocalStorage(user: UserResource | null | undefi
   }
 
   // If metadata already exists, no migration needed
-  if (user.publicMetadata?.current_screenplay_id) {
+  if (user.unsafeMetadata?.current_screenplay_id) {
     return;
   }
 
@@ -128,7 +129,7 @@ export async function migrateFromLocalStorage(user: UserResource | null | undefi
     if (stored && stored.length > 0) {
       try {
         await setCurrentScreenplayId(user, stored);
-        console.log('[ClerkMetadata] ✅ Migrated screenplay_id from localStorage to Clerk metadata');
+        console.log('[ClerkMetadata] ✅ Migrated screenplay_id from localStorage to Clerk unsafeMetadata');
       } catch (error) {
         console.error('[ClerkMetadata] ❌ Migration failed:', error);
         // Don't throw - migration failure shouldn't break the app

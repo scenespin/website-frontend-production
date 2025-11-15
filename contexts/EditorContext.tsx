@@ -584,7 +584,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 let savedScreenplayId = getCurrentScreenplayId(user);
                 
                 // Feature 0119: One-time migration from localStorage to Clerk metadata
-                if (user && savedScreenplayId && !user.publicMetadata?.current_screenplay_id) {
+                if (user && savedScreenplayId && !user.unsafeMetadata?.current_screenplay_id) {
                     try {
                         await migrateFromLocalStorage(user);
                     } catch (error) {
