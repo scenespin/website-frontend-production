@@ -6,10 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering and prevent all caching
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
+  // CRITICAL: Log immediately to verify route is being called
+  console.log('[Screenplays List] ✅ ROUTE HANDLER CALLED');
+  
   try {
     // Get the token from the Authorization header that the client sent
     const authHeader = request.headers.get('authorization');
