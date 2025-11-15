@@ -958,7 +958,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
                 const transformedCharacter = transformCharactersFromAPI([updatedCharacter as any])[0];
-                setCharacters(prev => prev.map(char => char.id === id ? transformedCharacter : char));
+                console.log('[ScreenplayContext] 🔄 Syncing character state:', { 
+                    updateId: id, 
+                    transformedId: transformedCharacter.id,
+                    arcStatus: transformedCharacter.arcStatus 
+                });
+                setCharacters(prev => {
+                    const updated = prev.map(char => {
+                        // Match by either the frontend id or the character_id from API
+                        const matches = char.id === id || char.id === transformedCharacter.id || 
+                                      (updatedCharacter as any)?.character_id === char.id ||
+                                      (updatedCharacter as any)?.id === char.id;
+                        if (matches) {
+                            console.log('[ScreenplayContext] ✅ Matched character for update:', { 
+                                oldId: char.id, 
+                                newId: transformedCharacter.id,
+                                oldArcStatus: char.arcStatus,
+                                newArcStatus: transformedCharacter.arcStatus
+                            });
+                            return transformedCharacter;
+                        }
+                        return char;
+                    });
+                    return updated;
+                });
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB and synced local state');
             } catch (error) {
@@ -1197,7 +1220,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
                 const transformedLocation = transformLocationsFromAPI([updatedLocation as any])[0];
-                setLocations(prev => prev.map(loc => loc.id === id ? transformedLocation : loc));
+                console.log('[ScreenplayContext] 🔄 Syncing location state:', { 
+                    updateId: id, 
+                    transformedId: transformedLocation.id,
+                    type: transformedLocation.type 
+                });
+                setLocations(prev => {
+                    const updated = prev.map(loc => {
+                        // Match by either the frontend id or the location_id from API
+                        const matches = loc.id === id || loc.id === transformedLocation.id || 
+                                      (updatedLocation as any)?.location_id === loc.id ||
+                                      (updatedLocation as any)?.id === loc.id;
+                        if (matches) {
+                            console.log('[ScreenplayContext] ✅ Matched location for update:', { 
+                                oldId: loc.id, 
+                                newId: transformedLocation.id,
+                                oldType: loc.type,
+                                newType: transformedLocation.type
+                            });
+                            return transformedLocation;
+                        }
+                        return loc;
+                    });
+                    return updated;
+                });
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB and synced local state');
             } catch (error) {
