@@ -231,6 +231,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Stores the last screenplay_id (or 'no-id') that we initialized for
     const hasInitializedRef = useRef<string | false>(false);
     
+    // 🔥 NEW: Force reload flag - when set, will force re-initialization even if already initialized
+    const forceReloadRef = useRef(false);
+    
+    // 🔥 NEW: Reload trigger - incrementing this will force a reload from DynamoDB
+    const [reloadTrigger, setReloadTrigger] = useState(0);
+    
     // Track if initial data has been loaded from DynamoDB
     const [hasInitializedFromDynamoDB, setHasInitializedFromDynamoDB] = useState(false);
     
@@ -528,9 +534,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 CRITICAL: Guard against duplicate initialization runs
         // This prevents the 26-beat bug caused by multiple effect executions
         const initKey = screenplayId || 'no-id';
-        if (hasInitializedRef.current === initKey) {
+        if (hasInitializedRef.current === initKey && !forceReloadRef.current) {
             console.log('[ScreenplayContext] ⏭️ Already initialized for:', initKey, '- skipping');
             return;
+        }
+        
+        // Reset force reload flag if it was set
+        if (forceReloadRef.current) {
+            console.log('[ScreenplayContext] 🔄 Force reload requested - re-initializing');
+            forceReloadRef.current = false;
         }
         
         console.log('[ScreenplayContext] 🚀 Starting initialization for:', initKey);
@@ -625,7 +637,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
         
         initializeData();
-    }, [screenplayId, transformScenesFromAPI, transformCharactersFromAPI, transformLocationsFromAPI, createDefaultBeats, groupScenesIntoBeats, buildRelationshipsFromScenes, getToken]);
+    }, [screenplayId, reloadTrigger, transformScenesFromAPI, transformCharactersFromAPI, transformLocationsFromAPI, createDefaultBeats, groupScenesIntoBeats, buildRelationshipsFromScenes, getToken]);
     
     // 🔥 NEW: Auto-build relationships when beats/scenes change
     // This ensures scene counts are always accurate
@@ -910,6 +922,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 };
                 await apiCreateCharacter(screenplayId, apiChar, getToken);
                 console.log('[ScreenplayContext] ✅ Created character in DynamoDB');
+                
+                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+                forceReloadRef.current = true;
+                hasInitializedRef.current = false;
+                setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create character in DynamoDB:', error);
             }
@@ -984,6 +1001,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 });
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB and synced local state');
+                
+                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+                // This ensures that on refresh, we'll have the correct data
+                forceReloadRef.current = true;
+                hasInitializedRef.current = false;
+                // Trigger re-initialization by incrementing reload trigger
+                setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 // 3. Rollback on error
                 console.error('[ScreenplayContext] Failed to update character, rolling back:', error);
@@ -1049,6 +1073,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 await apiDeleteCharacter(screenplayId, id, getToken);
                 
                 console.log('[ScreenplayContext] ✅ Deleted character from DynamoDB');
+                
+                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+                forceReloadRef.current = true;
+                hasInitializedRef.current = false;
+                setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to delete character, rolling back:', error);
                 // Rollback: restore the deleted character AND relationships
@@ -1172,6 +1201,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 };
                 await apiCreateLocation(screenplayId, apiLoc, getToken);
                 console.log('[ScreenplayContext] ✅ Created location in DynamoDB');
+                
+                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+                forceReloadRef.current = true;
+                hasInitializedRef.current = false;
+                setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create location in DynamoDB:', error);
             }
@@ -1246,6 +1280,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 });
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB and synced local state');
+                
+                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+                // This ensures that on refresh, we'll have the correct data
+                forceReloadRef.current = true;
+                hasInitializedRef.current = false;
+                // Trigger re-initialization by incrementing reload trigger
+                setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 // 3. Rollback on error
                 console.error('[ScreenplayContext] Failed to update location, rolling back:', error);
@@ -1311,6 +1352,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 await apiDeleteLocation(screenplayId, id, getToken);
                 
                 console.log('[ScreenplayContext] ✅ Deleted location from DynamoDB');
+                
+                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+                forceReloadRef.current = true;
+                hasInitializedRef.current = false;
+                setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to delete location, rolling back:', error);
                 // Rollback: restore the deleted location AND relationships
