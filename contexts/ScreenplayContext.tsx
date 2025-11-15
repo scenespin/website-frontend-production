@@ -953,7 +953,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 console.log('[ScreenplayContext] 📤 Sending character update to API:', { characterId: id, apiUpdates });
                 const updatedCharacter = await apiUpdateCharacter(screenplayId, id, apiUpdates, getToken);
-                console.log('[ScreenplayContext] 📥 Received updated character from API:', { characterId: id, arcStatus: updatedCharacter?.arcStatus });
+                console.log('[ScreenplayContext] 📥 Received updated character from API:', { characterId: id, arcStatus: (updatedCharacter as any)?.arcStatus });
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB');
             } catch (error) {
@@ -1187,7 +1187,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 console.log('[ScreenplayContext] 📤 Sending location update to API:', { locationId: id, apiUpdates });
                 const updatedLocation = await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
-                console.log('[ScreenplayContext] 📥 Received updated location from API:', { locationId: id, type: updatedLocation?.type, arcStatus: updatedLocation?.arcStatus });
+                console.log('[ScreenplayContext] 📥 Received updated location from API:', { locationId: id, type: (updatedLocation as any)?.type });
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB');
             } catch (error) {
