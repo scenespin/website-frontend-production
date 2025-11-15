@@ -603,6 +603,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                     // Transform and set locations
                     const transformedLocations = transformLocationsFromAPI(locationsData);
+                    // 🔥 DEBUG: Log address fields to track persistence
+                    console.log('[ScreenplayContext] 🔍 Location addresses after reload:', transformedLocations.map(l => ({ 
+                        name: l.name, 
+                        address: l.address, 
+                        hasAddress: !!l.address 
+                    })));
                     setLocations(transformedLocations);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
@@ -1292,10 +1298,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     return updated;
                 });
                 
-                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
-                forceReloadRef.current = true;
-                hasInitializedRef.current = false;
-                setReloadTrigger(prev => prev + 1);
+                // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
+                // The force reload was causing the address to disappear because it was happening
+                // before DynamoDB had fully written the item, or the address wasn't in the list response
+                // Instead, we rely on the state sync above which uses the actual API response
+                // forceReloadRef.current = true;
+                // hasInitializedRef.current = false;
+                // setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create location in DynamoDB:', error);
             }

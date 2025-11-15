@@ -95,17 +95,29 @@ export default function CharacterDetailSidebar({
   }
 
   return (
-    <motion.div 
-      initial={{ x: 400, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 400, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed inset-y-0 right-0 w-full sm:w-[480px] flex flex-col shadow-2xl border-l-2 border-border z-[9999]"
-      style={{ 
-        backgroundColor: '#1e2229',
-        boxShadow: '-10px 0 40px rgba(0,0,0,0.5)' 
-      }}
-    >
+    <>
+      {/* Backdrop - Click outside to close */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 z-[9998]"
+      />
+      
+      {/* Sidebar */}
+      <motion.div 
+        initial={{ x: 400, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 400, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed inset-y-0 right-0 w-full sm:w-[480px] flex flex-col shadow-2xl border-l-2 border-border z-[9999]"
+        style={{ 
+          backgroundColor: '#1e2229',
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.5)' 
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
       {/* Header - Full width on mobile */}
       <div className="flex items-center justify-between p-4 sm:p-6 border-b" style={{ borderColor: '#2C2C2E' }}>
         <h2 className="text-base sm:text-lg font-semibold truncate pr-2" style={{ color: '#E5E7EB' }}>
@@ -399,6 +411,7 @@ export default function CharacterDetailSidebar({
           }}
         />
       )}
-    </motion.div>
+      </motion.div>
+    </>
   )
 }
