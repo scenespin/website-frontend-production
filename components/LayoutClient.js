@@ -10,6 +10,7 @@ import { Tooltip } from "react-tooltip";
 import config from "@/config";
 import { setAuthTokenGetter } from "@/lib/api";
 import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
+import { EditorProvider } from "@/contexts/EditorContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
@@ -96,14 +97,16 @@ const DataMigration = () => {
 // 5. Tooltip: Show tooltips if any JSX elements has these 2 attributes: data-tooltip-id="tooltip" data-tooltip-content=""
 // 6. CrispChat: Set Crisp customer chat support (see above)
 // 7. ScreenplayProvider: Provides screenplay context for beats, characters, and locations
-// 8. DrawerProvider: Provides drawer context for AI chat drawer
-// 9. ChatProvider: Provides chat context for AI workflows
+// 8. EditorProvider: Provides editor context for script content (shared across all pages)
+// 9. DrawerProvider: Provides drawer context for AI chat drawer
+// 10. ChatProvider: Provides chat context for AI workflows
 // Note: No SessionProvider needed - Clerk handles auth via ClerkProvider in layout.js
 const ClientLayout = ({ children }) => {
   return (
     <ScreenplayProvider>
-      <DrawerProvider>
-        <ChatProvider>
+      <EditorProvider>
+        <DrawerProvider>
+          <ChatProvider>
           {/* Run data migration FIRST to fix corrupted beats */}
           <DataMigration />
           
@@ -131,8 +134,9 @@ const ClientLayout = ({ children }) => {
 
           {/* Set Crisp customer chat support */}
           <CrispChat />
-        </ChatProvider>
-      </DrawerProvider>
+          </ChatProvider>
+        </DrawerProvider>
+      </EditorProvider>
     </ScreenplayProvider>
   );
 };

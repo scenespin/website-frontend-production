@@ -4,10 +4,6 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import { DrawerProvider } from "@/contexts/DrawerContext";
-import { ChatProvider } from "@/contexts/ChatContext";
-import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
-import { EditorProvider } from "@/contexts/EditorContext";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
 
@@ -38,18 +34,16 @@ export default function WriteLayout({ children }) {
     return null;
   }
 
-  // Note: ScreenplayProvider is already provided by LayoutClient.js (root layout)
-  // DO NOT wrap with another ScreenplayProvider here as it creates duplicate contexts
+  // Note: ScreenplayProvider and EditorProvider are already provided by LayoutClient.js (root layout)
+  // DO NOT wrap with duplicate providers here as it creates duplicate contexts
   return (
-    <EditorProvider>
-      <div className="min-h-screen bg-base-100">
-        <Navigation />
-        {children}
-        <AgentDrawer>
-          <UnifiedChatPanel />
-        </AgentDrawer>
-      </div>
-    </EditorProvider>
+    <div className="min-h-screen bg-base-100">
+      <Navigation />
+      {children}
+      <AgentDrawer>
+        <UnifiedChatPanel />
+      </AgentDrawer>
+    </div>
   );
 }
 
