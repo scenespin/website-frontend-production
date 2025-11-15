@@ -6,7 +6,7 @@
  * to Clerk's user metadata, which persists across sessions and devices.
  */
 
-import { User } from '@clerk/nextjs/server';
+import type { UserResource } from '@clerk/types';
 
 /**
  * Get current screenplay ID from Clerk metadata
@@ -15,7 +15,7 @@ import { User } from '@clerk/nextjs/server';
  * @param user - Clerk user object (from useUser() hook)
  * @returns screenplay_id or null if not found
  */
-export function getCurrentScreenplayId(user: User | null | undefined): string | null {
+export function getCurrentScreenplayId(user: UserResource | null | undefined): string | null {
   // Priority 1: Read from Clerk metadata
   if (user?.publicMetadata?.current_screenplay_id) {
     const screenplayId = user.publicMetadata.current_screenplay_id as string;
@@ -44,7 +44,7 @@ export function getCurrentScreenplayId(user: User | null | undefined): string | 
  * @returns Promise that resolves when update is complete
  */
 export async function setCurrentScreenplayId(
-  user: User | null | undefined,
+  user: UserResource | null | undefined,
   screenplayId: string
 ): Promise<void> {
   if (!user) {
@@ -91,7 +91,7 @@ export async function setCurrentScreenplayId(
  * 
  * @param user - Clerk user object (from useUser() hook)
  */
-export async function migrateFromLocalStorage(user: User | null | undefined): Promise<void> {
+export async function migrateFromLocalStorage(user: UserResource | null | undefined): Promise<void> {
   if (!user) {
     return;
   }
