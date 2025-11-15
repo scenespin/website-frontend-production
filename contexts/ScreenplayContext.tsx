@@ -303,7 +303,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             name: char.name || '',
             description: char.description || '',
             type: 'primary' as CharacterType,
-            arcStatus: 'introduced' as ArcStatus, // ✅ FIX: Default to 'introduced' so they appear in CharacterBoard
+            arcStatus: (char.arcStatus as ArcStatus) || 'introduced' as ArcStatus, // 🔥 FIX: Read arcStatus from API, default to 'introduced' if missing
             images: (char.referenceImages || []).map((url: string) => ({
                 imageUrl: url,
                 description: ''
