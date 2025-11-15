@@ -30,6 +30,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [selectedColumnType, setSelectedColumnType] = useState<LocationType | null>(null); // 🔥 NEW: Track which column type was selected
     const [formData, setFormData] = useState({
         name: '',
         type: 'INT' as 'INT' | 'EXT' | 'INT/EXT',
@@ -164,7 +165,10 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                         </p>
                     </div>
                     <button
-                        onClick={() => setIsCreating(true)}
+                        onClick={() => {
+                            setSelectedColumnType(null); // No specific column selected
+                            setIsCreating(true);
+                        }}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
                         style={{
                             backgroundColor: '#8B5CF6',
@@ -232,9 +236,26 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                         <p className="text-sm text-center" style={{ color: '#6B7280' }}>
                                             No locations yet
                                         </p>
-                                        <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
+                                        <p className="text-xs text-center mt-1 mb-4" style={{ color: '#4B5563' }}>
                                             Locations appear based on your screenplay
                                         </p>
+                                        {/* 🔥 NEW: Add button in empty state */}
+                                        <button
+                                            onClick={() => {
+                                                setSelectedColumnType(column.locationType); // Set the column type
+                                                setIsCreating(true);
+                                                setIsEditing(false);
+                                                setSelectedLocation(null);
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                                            style={{
+                                                backgroundColor: column.color,
+                                                color: 'white'
+                                            }}
+                                        >
+                                            <Plus size={14} />
+                                            Add {column.title}
+                                        </button>
                                     </div>
                                 )}
 
@@ -285,11 +306,15 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                     <LocationDetailSidebar
                         location={isEditing || (!isCreating && selectedLocation) ? selectedLocation : null}
                         isCreating={isCreating}
-                        initialData={isCreating ? initialData : undefined}
+                        initialData={isCreating ? {
+                            ...initialData,
+                            type: selectedColumnType || initialData?.type || 'INT' // 🔥 FIX: Use selected column type
+                        } : undefined}
                         onClose={() => {
                             setIsCreating(false);
                             setIsEditing(false);
                             setSelectedLocation(null);
+                            setSelectedColumnType(null); // 🔥 NEW: Clear selected column type
                         }}
                         onCreate={async (data) => {
                             try {

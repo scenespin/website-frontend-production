@@ -334,7 +334,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             name: loc.name,
             description: loc.description,
             type: loc.type, // 🔥 NEW: Include location type in API payload
-            referenceImages: loc.images?.map(img => img.imageUrl) || []
+            referenceImages: loc.images?.map(img => img.imageUrl) || [],
+            atmosphereNotes: loc.atmosphereNotes, // 🔥 NEW: Include atmosphere notes
+            setRequirements: loc.setRequirements, // 🔥 NEW: Include set requirements
+            productionNotes: loc.productionNotes // 🔥 NEW: Include production notes
         }));
     }, []);
     
@@ -348,6 +351,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 imageUrl: url,
                 description: ''
             })),
+            atmosphereNotes: loc.atmosphereNotes || '', // 🔥 NEW: Include atmosphere notes
+            setRequirements: loc.setRequirements || '', // 🔥 NEW: Include set requirements
+            productionNotes: loc.productionNotes || '', // 🔥 NEW: Include production notes
             customFields: [],
             createdAt: loc.created_at || new Date().toISOString(),
             updatedAt: loc.updated_at || new Date().toISOString()
@@ -1246,6 +1252,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.images !== undefined) {
                     apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
                 }
+                if (updates.atmosphereNotes !== undefined) apiUpdates.atmosphereNotes = updates.atmosphereNotes; // 🔥 NEW: Include atmosphere notes
+                if (updates.setRequirements !== undefined) apiUpdates.setRequirements = updates.setRequirements; // 🔥 NEW: Include set requirements
+                if (updates.productionNotes !== undefined) apiUpdates.productionNotes = updates.productionNotes; // 🔥 NEW: Include production notes
                 
                 console.log('[ScreenplayContext] 📤 Sending location update to API:', { locationId: id, apiUpdates });
                 const updatedLocation = await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
