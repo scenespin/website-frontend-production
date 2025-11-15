@@ -853,6 +853,111 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
     }, [beats, screenplayId, getToken]);
     
+    // ========================================================================
+    // Script Reordering Helper
+    // ========================================================================
+    
+    /**
+     * Reorder script content based on new scene order.
+     * Extracts scene blocks from script and reorders them according to the new scene order.
+     * 
+     * @param content - Current script content
+     * @param newSceneOrder - Scenes in their new order (from updated beats state)
+     * @param oldSceneOrder - Scenes in their original order (for matching)
+     * @returns Reordered script content
+     */
+    const reorderScriptContent = useCallback((
+        content: string,
+        newSceneOrder: Scene[],
+        oldSceneOrder: Scene[]
+    ): string => {
+        console.log('[ScreenplayContext] Reordering script content:', {
+            newOrder: newSceneOrder.length,
+            oldOrder: oldSceneOrder.length
+        });
+        
+        // Import stripTagsForDisplay to ensure we use the same content the editor displays
+        // For reordering, we need the raw content with tags preserved
+        const lines = content.split('\n');
+        
+        // Build a map of scene ID to scene block (lines)
+        const sceneBlocks = new Map<string, string[]>();
+        const sceneBlockMetadata = new Map<string, { startLine: number; endLine: number }>();
+        
+        // Extract scene blocks from old order
+        oldSceneOrder.forEach(scene => {
+            const startLine = scene.fountain?.startLine ?? 0;
+            const endLine = scene.fountain?.endLine ?? lines.length - 1;
+            
+            // Validate boundaries
+            if (startLine < 0 || endLine >= lines.length || startLine > endLine) {
+                console.warn(`[ScreenplayContext] Invalid scene boundaries for scene ${scene.id}: lines ${startLine}-${endLine} (total lines: ${lines.length})`);
+                return;
+            }
+            
+            // Extract scene block (inclusive of both start and end lines)
+            const sceneBlock = lines.slice(startLine, endLine + 1);
+            sceneBlocks.set(scene.id, sceneBlock);
+            sceneBlockMetadata.set(scene.id, { startLine, endLine });
+            
+            console.log(`[ScreenplayContext] Extracted scene block for "${scene.heading}": lines ${startLine}-${endLine} (${sceneBlock.length} lines)`);
+        });
+        
+        // Find content before first scene (title page, etc.)
+        const firstScene = oldSceneOrder
+            .map(s => ({ scene: s, startLine: s.fountain?.startLine ?? Infinity }))
+            .sort((a, b) => a.startLine - b.startLine)[0];
+        
+        const contentBeforeFirstScene = firstScene
+            ? lines.slice(0, firstScene.scene.fountain?.startLine ?? 0)
+            : [];
+        
+        // Find content after last scene
+        const lastScene = oldSceneOrder
+            .map(s => ({ scene: s, endLine: s.fountain?.endLine ?? -1 }))
+            .sort((a, b) => b.endLine - a.endLine)[0];
+        
+        const contentAfterLastScene = lastScene
+            ? lines.slice((lastScene.scene.fountain?.endLine ?? lines.length - 1) + 1)
+            : [];
+        
+        // Reorder scene blocks according to new order
+        const reorderedSceneBlocks: string[] = [];
+        const missingScenes: string[] = [];
+        
+        newSceneOrder.forEach((scene, index) => {
+            const sceneBlock = sceneBlocks.get(scene.id);
+            if (sceneBlock) {
+                reorderedSceneBlocks.push(...sceneBlock);
+                console.log(`[ScreenplayContext] Added scene "${scene.heading}" at position ${index + 1}`);
+            } else {
+                missingScenes.push(scene.id);
+                console.warn(`[ScreenplayContext] Scene block not found for scene ${scene.id} ("${scene.heading}") - skipping`);
+            }
+        });
+        
+        if (missingScenes.length > 0) {
+            console.warn(`[ScreenplayContext] ⚠️ ${missingScenes.length} scene(s) could not be reordered (missing scene blocks):`, missingScenes);
+        }
+        
+        // Reconstruct script: content before + reordered scenes + content after
+        const reorderedLines = [
+            ...contentBeforeFirstScene,
+            ...reorderedSceneBlocks,
+            ...contentAfterLastScene
+        ];
+        
+        const reorderedContent = reorderedLines.join('\n');
+        
+        console.log('[ScreenplayContext] ✅ Script reordered:', {
+            totalLines: reorderedLines.length,
+            scenesReordered: reorderedSceneBlocks.length > 0 ? newSceneOrder.length : 0,
+            missingScenes: missingScenes.length
+        });
+        
+        return reorderedContent;
+    }, []);
+    
     const moveScene = useCallback(async (
         sceneId: string, 
         targetBeatId: string, 
@@ -2070,111 +2175,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, transformScenesToAPI, getToken]);
     
     // Feature 0117: saveAllToDynamoDBDirect removed - use saveScenes() instead
-    
-    // ========================================================================
-    // Script Reordering Helper
-    // ========================================================================
-    
-    /**
-     * Reorder script content based on new scene order.
-     * Extracts scene blocks from script and reorders them according to the new scene order.
-     * 
-     * @param content - Current script content
-     * @param newSceneOrder - Scenes in their new order (from updated beats state)
-     * @param oldSceneOrder - Scenes in their original order (for matching)
-     * @returns Reordered script content
-     */
-    const reorderScriptContent = useCallback((
-        content: string,
-        newSceneOrder: Scene[],
-        oldSceneOrder: Scene[]
-    ): string => {
-        console.log('[ScreenplayContext] Reordering script content:', {
-            newOrder: newSceneOrder.length,
-            oldOrder: oldSceneOrder.length
-        });
-        
-        // Import stripTagsForDisplay to ensure we use the same content the editor displays
-        // For reordering, we need the raw content with tags preserved
-        const lines = content.split('\n');
-        
-        // Build a map of scene ID to scene block (lines)
-        const sceneBlocks = new Map<string, string[]>();
-        const sceneBlockMetadata = new Map<string, { startLine: number; endLine: number }>();
-        
-        // Extract scene blocks from old order
-        oldSceneOrder.forEach(scene => {
-            const startLine = scene.fountain?.startLine ?? 0;
-            const endLine = scene.fountain?.endLine ?? lines.length - 1;
-            
-            // Validate boundaries
-            if (startLine < 0 || endLine >= lines.length || startLine > endLine) {
-                console.warn(`[ScreenplayContext] Invalid scene boundaries for scene ${scene.id}: lines ${startLine}-${endLine} (total lines: ${lines.length})`);
-                return;
-            }
-            
-            // Extract scene block (inclusive of both start and end lines)
-            const sceneBlock = lines.slice(startLine, endLine + 1);
-            sceneBlocks.set(scene.id, sceneBlock);
-            sceneBlockMetadata.set(scene.id, { startLine, endLine });
-            
-            console.log(`[ScreenplayContext] Extracted scene block for "${scene.heading}": lines ${startLine}-${endLine} (${sceneBlock.length} lines)`);
-        });
-        
-        // Find content before first scene (title page, etc.)
-        const firstScene = oldSceneOrder
-            .map(s => ({ scene: s, startLine: s.fountain?.startLine ?? Infinity }))
-            .sort((a, b) => a.startLine - b.startLine)[0];
-        
-        const contentBeforeFirstScene = firstScene
-            ? lines.slice(0, firstScene.scene.fountain?.startLine ?? 0)
-            : [];
-        
-        // Find content after last scene
-        const lastScene = oldSceneOrder
-            .map(s => ({ scene: s, endLine: s.fountain?.endLine ?? -1 }))
-            .sort((a, b) => b.endLine - a.endLine)[0];
-        
-        const contentAfterLastScene = lastScene
-            ? lines.slice((lastScene.scene.fountain?.endLine ?? lines.length - 1) + 1)
-            : [];
-        
-        // Reorder scene blocks according to new order
-        const reorderedSceneBlocks: string[] = [];
-        const missingScenes: string[] = [];
-        
-        newSceneOrder.forEach((scene, index) => {
-            const sceneBlock = sceneBlocks.get(scene.id);
-            if (sceneBlock) {
-                reorderedSceneBlocks.push(...sceneBlock);
-                console.log(`[ScreenplayContext] Added scene "${scene.heading}" at position ${index + 1}`);
-            } else {
-                missingScenes.push(scene.id);
-                console.warn(`[ScreenplayContext] Scene block not found for scene ${scene.id} ("${scene.heading}") - skipping`);
-            }
-        });
-        
-        if (missingScenes.length > 0) {
-            console.warn(`[ScreenplayContext] ⚠️ ${missingScenes.length} scene(s) could not be reordered (missing scene blocks):`, missingScenes);
-        }
-        
-        // Reconstruct script: content before + reordered scenes + content after
-        const reorderedLines = [
-            ...contentBeforeFirstScene,
-            ...reorderedSceneBlocks,
-            ...contentAfterLastScene
-        ];
-        
-        const reorderedContent = reorderedLines.join('\n');
-        
-        console.log('[ScreenplayContext] ✅ Script reordered:', {
-            totalLines: reorderedLines.length,
-            scenesReordered: reorderedSceneBlocks.length > 0 ? newSceneOrder.length : 0,
-            missingScenes: missingScenes.length
-        });
-        
-        return reorderedContent;
-    }, []);
     
     // ========================================================================
     // Scene Matching Helper (Hybrid: ID first, heading+position fallback)
