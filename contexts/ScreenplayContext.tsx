@@ -1350,9 +1350,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.setRequirements !== undefined) apiUpdates.setRequirements = updates.setRequirements; // 🔥 NEW: Include set requirements
                 if (updates.productionNotes !== undefined) apiUpdates.productionNotes = updates.productionNotes; // 🔥 NEW: Include production notes
                 
-                console.log('[ScreenplayContext] 📤 Sending location update to API:', { locationId: id, apiUpdates });
+                console.log('[ScreenplayContext] 📤 Sending location update to API:', { 
+                    locationId: id, 
+                    apiUpdates,
+                    address: apiUpdates.address,
+                    hasAddress: !!apiUpdates.address,
+                    addressType: typeof apiUpdates.address,
+                    allFields: Object.keys(apiUpdates)
+                });
                 const updatedLocation = await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
-                console.log('[ScreenplayContext] 📥 Received updated location from API:', { locationId: id, type: (updatedLocation as any)?.type });
+                console.log('[ScreenplayContext] 📥 Received updated location from API:', { 
+                    locationId: id, 
+                    type: (updatedLocation as any)?.type,
+                    address: (updatedLocation as any)?.address,
+                    hasAddress: !!(updatedLocation as any)?.address,
+                    fullResponse: updatedLocation
+                });
                 
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
@@ -1360,7 +1373,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] 🔄 Syncing location state:', { 
                     updateId: id, 
                     transformedId: transformedLocation.id,
-                    type: transformedLocation.type 
+                    type: transformedLocation.type,
+                    address: transformedLocation.address,
+                    hasAddress: !!transformedLocation.address
                 });
                 setLocations(prev => {
                     const updated = prev.map(loc => {
