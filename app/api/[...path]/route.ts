@@ -98,18 +98,32 @@ async function forwardRequest(
       data = await response.text();
     }
     
-    // Return response
+    // Return response with cache-busting headers
     if (!response.ok) {
       console.error(`[API Proxy] Error ${response.status}:`, data);
     }
     
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { 
+      status: response.status,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
     
   } catch (error: any) {
     console.error('[API Proxy] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Proxy error' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
     );
   }
 }
