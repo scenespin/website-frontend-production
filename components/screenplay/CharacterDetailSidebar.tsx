@@ -4,14 +4,6 @@ import { useState, useEffect } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Character } from '@/types/screenplay'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
@@ -119,196 +111,194 @@ export default function CharacterDetailSidebar({
         <h2 className="text-base sm:text-lg font-semibold truncate pr-2" style={{ color: '#E5E7EB' }}>
           {isCreating ? 'New Character' : formData.name}
         </h2>
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={onClose}
-          className="h-8 w-8 shrink-0"
+          className="p-2 rounded-lg hover:bg-base-content/20/50 transition-colors shrink-0"
           style={{ color: '#9CA3AF' }}
         >
           <X className="h-5 w-5" />
-        </Button>
+        </button>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
         {/* Name */}
-        <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
+        <div>
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+            Name
+          </label>
+          <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
             placeholder="Character name"
             autoFocus={isCreating}
           />
         </div>
 
         {/* Type */}
-        <div className="space-y-2">
-          <Label htmlFor="type">Type</Label>
-          <Select
+        <div>
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+            Type
+          </label>
+          <select
             value={formData.type}
-            onValueChange={(value) => {
-              console.log('[CharacterModal] Type changed to:', value);
-              setFormData({ ...formData, type: value as 'lead' | 'supporting' | 'minor' });
-            }}
-            onOpenChange={(open) => console.log('[CharacterModal] Type dropdown open:', open)}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as 'lead' | 'supporting' | 'minor' })}
+            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
           >
-            <SelectTrigger id="type" onClick={() => console.log('[CharacterModal] Type trigger clicked')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" sideOffset={4} className="z-[10000]">
-              <SelectItem value="lead">Lead</SelectItem>
-              <SelectItem value="supporting">Supporting</SelectItem>
-              <SelectItem value="minor">Minor</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="lead">Lead</option>
+            <option value="supporting">Supporting</option>
+            <option value="minor">Minor</option>
+          </select>
         </div>
 
         {/* Arc Status */}
-        <div className="space-y-2">
-          <Label htmlFor="arc-status">Arc Status</Label>
-          <Select
+        <div>
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+            Arc Status
+          </label>
+          <select
             value={formData.arcStatus}
-            onValueChange={(value) => setFormData({ ...formData, arcStatus: value as 'introduced' | 'developing' | 'resolved' })}
+            onChange={(e) => setFormData({ ...formData, arcStatus: e.target.value as 'introduced' | 'developing' | 'resolved' })}
+            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
           >
-            <SelectTrigger id="arc-status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper" sideOffset={4} className="z-[10000]">
-              <SelectItem value="introduced">Introduced</SelectItem>
-              <SelectItem value="developing">Developing</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="introduced">Introduced</option>
+            <option value="developing">Developing</option>
+            <option value="resolved">Resolved</option>
+          </select>
         </div>
 
-        <Separator />
-
         {/* Description */}
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
+        <div>
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+            Description
+          </label>
+          <textarea
             value={formData.description || ''}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+            style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
             rows={3}
             placeholder="Brief character description"
-            className="resize-none"
           />
         </div>
 
         {/* Arc Notes */}
-        <div className="space-y-2">
-          <Label htmlFor="arc-notes">Arc Notes</Label>
-          <Textarea
-            id="arc-notes"
+        <div>
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+            Arc Notes
+          </label>
+          <textarea
             value={formData.arcNotes || ''}
             onChange={(e) => setFormData({ ...formData, arcNotes: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+            style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
             rows={3}
             placeholder="Character arc development notes"
-            className="resize-none"
           />
         </div>
 
         {/* Character Bank Integration - NEW! */}
         {!isCreating && character && (
-          <>
-            <Separator />
+          <div>
+            <div className="h-px my-4" style={{ backgroundColor: '#2C2C2E' }}></div>
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label style={{ fontWeight: 600 }}>
+                <label className="text-xs font-medium" style={{ color: '#9CA3AF', fontWeight: 600 }}>
                   Reference Library
-                </Label>
+                </label>
                 {character.referenceLibrary?.hasReferences && (
-                  <Badge variant="secondary" className="text-xs">
+                  <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: '#2C2C2E', color: '#9CA3AF' }}>
                     {character.referenceLibrary.referenceCount} references
-                  </Badge>
+                  </span>
                 )}
               </div>
               
               {character.referenceLibrary?.hasReferences ? (
-                <div className="p-4 rounded-lg border space-y-3">
+                <div className="p-4 rounded-lg border space-y-3" style={{ borderColor: '#2C2C2E', backgroundColor: '#0A0A0B' }}>
                   <div className="flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-green-500" />
-                    <span className="text-sm font-medium">
+                    <Camera className="w-4 h-4" style={{ color: '#10B981' }} />
+                    <span className="text-sm font-medium" style={{ color: '#E5E7EB' }}>
                       Character Consistency Enabled
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs" style={{ color: '#9CA3AF' }}>
                     This character has {character.referenceLibrary.referenceCount} reference images 
                     for consistent video generation
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => {
                       if (onOpenCharacterBank) {
                         onOpenCharacterBank(character.id);
                       }
                     }}
-                    className="w-full"
+                    className="w-full px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1"
+                    style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB', border: '1px solid #3F3F46' }}
                   >
-                    <Camera className="w-3 h-3 mr-1" />
+                    <Camera className="w-3 h-3" />
                     Manage References
-                  </Button>
+                  </button>
                 </div>
               ) : (
-                <div className="p-4 rounded-lg border space-y-3">
+                <div className="p-4 rounded-lg border space-y-3" style={{ borderColor: '#2C2C2E', backgroundColor: '#0A0A0B' }}>
                   <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-purple-500/10 shrink-0">
-                      <Sparkles className="w-4 h-4 text-purple-500" />
+                    <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
+                      <Sparkles className="w-4 h-4" style={{ color: '#8B5CF6' }} />
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-sm font-medium mb-1">
+                      <h4 className="text-sm font-medium mb-1" style={{ color: '#E5E7EB' }}>
                         Generate Reference Sheet
                       </h4>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs" style={{ color: '#9CA3AF' }}>
                         Create 6-8 reference images (angles, expressions) for perfect character 
                         consistency across all video generations
                       </p>
                     </div>
                   </div>
-                  <Button
+                  <button
                     onClick={() => {
                       if (onOpenCharacterBank) {
                         onOpenCharacterBank(character.id);
                       }
                     }}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    size="sm"
+                    className="w-full px-4 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
+                      color: 'white' 
+                    }}
                   >
-                    <Sparkles className="w-3 h-3 mr-2" />
+                    <Sparkles className="w-3 h-3" />
                     Create Reference Library
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground">
+                  </button>
+                  <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
                     ~30 credits • Maintains consistency in body shots, back shots & more
                   </p>
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
-
-        <Separator />
 
         {/* Images Section - Only show for existing characters */}
         {!isCreating && character && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Character Images</Label>
-              <Button
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                Character Images
+              </label>
+              <button
                 onClick={() => setShowImageDialog(true)}
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                style={{ backgroundColor: '#8B5CF6', color: 'white' }}
               >
-                <Plus className="h-3 w-3" />
+                <Plus size={12} />
                 Add Image
-              </Button>
+              </button>
             </div>
             {(() => {
               const images = getEntityImages('character', character.id)
@@ -344,10 +334,10 @@ export default function CharacterDetailSidebar({
       </div>
 
       {/* Footer Actions */}
-      <div className="p-4 sm:p-6 space-y-3 border-t" style={{ borderColor: '#2C2C2E' }}>
+      <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
         {/* AI Generate Button - Only show when creating */}
         {isCreating && (
-          <Button
+          <button
             onClick={() => {
               if (onSwitchToChatImageMode) {
                 onSwitchToChatImageMode(undefined, {
@@ -359,35 +349,37 @@ export default function CharacterDetailSidebar({
               }
               onClose();
             }}
-            className="w-full gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-base-content shadow-lg"
-            size="lg"
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
+            style={{ 
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              color: 'white' 
+            }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             ✨ Create with AI Interview
-          </Button>
+          </button>
         )}
         
-        <Button
+        <button
           onClick={handleSave}
           disabled={!formData.name.trim()}
-          className="w-full"
-          size="lg"
+          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+          style={{ backgroundColor: '#8B5CF6', color: 'white' }}
         >
           {isCreating ? 'Create Character' : 'Save Changes'}
-        </Button>
+        </button>
         
         {!isCreating && (
-          <Button
+          <button
             onClick={handleDelete}
-            variant="destructive"
-            className="w-full gap-2"
-            size="lg"
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ backgroundColor: '#DC2626', color: 'white' }}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4 inline mr-2" />
             Delete Character
-          </Button>
+          </button>
         )}
       </div>
 
