@@ -586,8 +586,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         } else {
                             console.log('[EditorContext] No screenplays found for user');
                         }
-                    } catch (err) {
+                    } catch (err: any) {
+                        // 🔥 FIX: Don't let API failure prevent app from working
                         console.error('[EditorContext] Failed to fetch user screenplays:', err);
+                        console.warn('[EditorContext] ⚠️ API endpoint /api/screenplays/list returned 404 - this may indicate a backend deployment issue');
+                        console.warn('[EditorContext] ⚠️ App will continue with empty state - user can import/create new screenplay');
+                        // Continue without screenplay ID - user can still create/import
                     }
                 }
                 

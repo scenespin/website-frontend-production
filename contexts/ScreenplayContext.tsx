@@ -2665,6 +2665,41 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 await bulkImportLocations(newLocationNames, parseResult.locationTypes);
             }
             
+            // 🔥 NEW: Update existing characters/locations with new descriptions from script
+            // This handles cases where descriptions are updated in the script
+            const existingCharacterNames = Array.from(parseResult.characters)
+                .filter((name: string) => existingCharNames.has(name.toUpperCase()));
+            
+            if (existingCharacterNames.length > 0) {
+                console.log('[ScreenplayContext] Updating', existingCharacterNames.length, 'existing characters with new descriptions...');
+                for (const charName of existingCharacterNames) {
+                    const existingChar = currentCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
+                    const newDescription = parseResult.characterDescriptions?.get(charName.toUpperCase());
+                    
+                    if (existingChar && newDescription && newDescription.length > (existingChar.description?.length || 0)) {
+                        console.log(`[ScreenplayContext] Updating character "${charName}" description (${existingChar.description?.length || 0} → ${newDescription.length} chars)`);
+                        await updateCharacter(existingChar.id, { description: newDescription });
+                    }
+                }
+            }
+            
+            // Update existing locations with new types (if location type changed in script)
+            const existingLocationNames = Array.from(parseResult.locations)
+                .filter((name: string) => existingLocNames.has(name.toUpperCase()));
+            
+            if (existingLocationNames.length > 0) {
+                console.log('[ScreenplayContext] Updating', existingLocationNames.length, 'existing locations with new types...');
+                for (const locName of existingLocationNames) {
+                    const existingLoc = currentLocations.find(l => l.name.toUpperCase() === locName.toUpperCase());
+                    const newType = parseResult.locationTypes?.get(locName);
+                    
+                    if (existingLoc && newType && existingLoc.type !== newType) {
+                        console.log(`[ScreenplayContext] Updating location "${locName}" type (${existingLoc.type} → ${newType})`);
+                        await updateLocation(existingLoc.id, { type: newType });
+                    }
+                }
+            }
+            
             // Import new scenes
             if (newScenes.length > 0) {
                 console.log('[ScreenplayContext] Importing', newScenes.length, 'new scenes');
@@ -2695,6 +2730,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] Actually updated', updatedScenesCount, 'scene positions');
             }
             
+            // 🔥 FIX: Rebuild relationships after rescan to ensure scene counts are updated
+            await updateRelationships();
+            console.log('[ScreenplayContext] ✅ Rebuilt relationships after rescan');
+            
             console.log('[ScreenplayContext] ✅ Re-scan complete:', {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
@@ -2712,7 +2751,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.error('[ScreenplayContext] ❌ Re-scan failed:', err);
             throw err;
         }
-    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, bulkImportScenes, matchScene, updateScenePositions]);
+    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, bulkImportScenes, matchScene, updateScenePositions, updateCharacter, updateLocation, updateRelationships]);
     
     // ========================================================================
     // Clear All Data (Editor Source of Truth)

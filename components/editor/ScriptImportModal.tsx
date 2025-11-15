@@ -244,6 +244,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             screenplay.setBeats?.(updatedBeats);
             console.log('[ScriptImportModal] ✅ Updated beats with scenes:', scenesWithOrder.length);
             
+            // 🔥 FIX: Explicitly rebuild relationships after import to ensure scene counts are correct
+            // The useEffect might not trigger immediately, so we call it explicitly
+            await screenplay.updateRelationships?.();
+            console.log('[ScriptImportModal] ✅ Rebuilt relationships for scene counts');
+            
             // Success toast
             toast.success('✅ Screenplay Imported', {
                 description: `${parseResult.characters.size} characters, ${parseResult.locations.size} locations, ${parseResult.scenes.length} scenes`
