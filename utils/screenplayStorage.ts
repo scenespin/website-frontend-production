@@ -541,7 +541,7 @@ export async function createLocation(
   }
 
   const data = await response.json();
-  return data.data.location;
+  return data.data; // 🔥 FIX: Backend returns { success: true, data: location }, not { success: true, data: { location } }
 }
 
 /**

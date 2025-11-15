@@ -1237,8 +1237,35 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     hasAddress: !!apiLoc.address,
                     fullApiLoc: apiLoc 
                 });
-                await apiCreateLocation(screenplayId, apiLoc, getToken);
-                console.log('[ScreenplayContext] ✅ Created location in DynamoDB');
+                const createdLocation = await apiCreateLocation(screenplayId, apiLoc, getToken);
+                console.log('[ScreenplayContext] 📥 Received created location from API:', { 
+                    locationId: createdLocation.id || (createdLocation as any).location_id,
+                    address: (createdLocation as any).address,
+                    hasAddress: !!(createdLocation as any).address
+                });
+                
+                // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
+                const transformedLocation = transformLocationsFromAPI([createdLocation as any])[0];
+                console.log('[ScreenplayContext] 🔄 Syncing created location state:', { 
+                    transformedId: transformedLocation.id,
+                    address: transformedLocation.address,
+                    hasAddress: !!transformedLocation.address
+                });
+                setLocations(prev => {
+                    // Replace the optimistic location with the real one from DynamoDB
+                    const updated = prev.map(loc => {
+                        // Match by name or ID
+                        if (loc.id === newLocation.id || loc.name === newLocation.name) {
+                            return transformedLocation;
+                        }
+                        return loc;
+                    });
+                    // If not found, add it
+                    if (!updated.find(loc => loc.id === transformedLocation.id)) {
+                        return [...updated, transformedLocation];
+                    }
+                    return updated;
+                });
                 
                 // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
                 forceReloadRef.current = true;
