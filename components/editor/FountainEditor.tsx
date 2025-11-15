@@ -77,6 +77,18 @@ export default function FountainEditor({
         [state.content]
     );
     
+    // 🔥 FIX: Log when content changes to debug editor updates
+    useEffect(() => {
+        if (textareaRef.current) {
+            console.log('[FountainEditor] Content changed:', {
+                stateContentLength: state.content.length,
+                displayContentLength: displayContent.length,
+                textareaValueLength: textareaRef.current.value.length,
+                valuesMatch: textareaRef.current.value === displayContent
+            });
+        }
+    }, [state.content, displayContent]);
+    
     // Memoized duration calculation
     const duration = useMemo(() => {
         const lines = displayContent.split('\n').filter(l => l.trim().length > 0);

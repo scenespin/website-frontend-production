@@ -233,8 +233,86 @@ export function parseContentForImport(content: string): AutoImportResult {
         scenes.push(currentScene);
     }
     
+    // 🔥 NEW: Deduplicate character names using fuzzy matching
+    // Merge similar names (e.g., "SARAH" + "SARAH CHEN" → keep "SARAH CHEN")
+    const deduplicatedCharacters = new Set<string>();
+    const characterNameMap = new Map<string, string>(); // Maps variations to canonical name
+    
+    const areNamesSimilar = (name1: string, name2: string): boolean => {
+        const upper1 = name1.toUpperCase().trim();
+        const upper2 = name2.toUpperCase().trim();
+        
+        if (upper1 === upper2) return true;
+        
+        // One contains the other as a whole word
+        if (upper1.includes(upper2) || upper2.includes(upper1)) {
+            const shorter = upper1.length < upper2.length ? upper1 : upper2;
+            const longer = upper1.length >= upper2.length ? upper1 : upper2;
+            
+            if (shorter.length >= 3) {
+                // Check if shorter is a whole word in longer
+                const wordBoundaryRegex = new RegExp(`(^|\\s)${shorter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`, 'i');
+                if (wordBoundaryRegex.test(longer)) return true;
+                // Or at start/end
+                if (longer.startsWith(shorter + ' ') || longer.endsWith(' ' + shorter)) return true;
+            }
+        }
+        
+        return false;
+    };
+    
+    // Sort characters by length (longer names first) to prefer more specific names
+    const sortedCharacters = Array.from(characters).sort((a, b) => b.length - a.length);
+    
+    for (const charName of sortedCharacters) {
+        let isDuplicate = false;
+        let canonicalName = charName;
+        
+        // Check if this name is similar to any already deduplicated name
+        for (const existingName of deduplicatedCharacters) {
+            if (areNamesSimilar(charName, existingName)) {
+                // Prefer the longer/more specific name
+                canonicalName = charName.length > existingName.length ? charName : existingName;
+                characterNameMap.set(charName, canonicalName);
+                characterNameMap.set(existingName, canonicalName);
+                isDuplicate = true;
+                console.log(`[AutoImport] 🔗 Merged character names: "${charName}" → "${canonicalName}"`);
+                break;
+            }
+        }
+        
+        if (!isDuplicate) {
+            deduplicatedCharacters.add(charName);
+            characterNameMap.set(charName, charName);
+        }
+    }
+    
+    // Update character descriptions map to use canonical names
+    const deduplicatedDescriptions = new Map<string, string>();
+    for (const [originalName, description] of characterDescriptions.entries()) {
+        const canonicalName = characterNameMap.get(originalName) || originalName;
+        const existingDesc = deduplicatedDescriptions.get(canonicalName) || '';
+        // Keep the longer description
+        if (description.length > existingDesc.length) {
+            deduplicatedDescriptions.set(canonicalName, description);
+        } else if (!existingDesc) {
+            deduplicatedDescriptions.set(canonicalName, description);
+        }
+    }
+    
+    // Update scene character arrays to use canonical names
+    scenes.forEach(scene => {
+        scene.characters = scene.characters.map(charName => 
+            characterNameMap.get(charName) || charName
+        );
+        // Remove duplicates within scene
+        scene.characters = Array.from(new Set(scene.characters));
+    });
+    
     console.log('[AutoImport] Complete:', {
-        characters: Array.from(characters),
+        characters: Array.from(deduplicatedCharacters),
+        originalCount: characters.size,
+        deduplicatedCount: deduplicatedCharacters.size,
         locations: Array.from(locations),
         locationTypes: Array.from(locationTypes.entries()),
         scenes: scenes.length,
@@ -243,8 +321,8 @@ export function parseContentForImport(content: string): AutoImportResult {
     
     return {
         locations,
-        characters,
-        characterDescriptions,
+        characters: deduplicatedCharacters, // 🔥 Return deduplicated set
+        characterDescriptions: deduplicatedDescriptions, // 🔥 Return deduplicated descriptions
         locationTypes, // 🔥 NEW: Return location types map
         scenes,
         questionableItems

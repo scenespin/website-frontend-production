@@ -1927,6 +1927,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Bulk Import
     // ========================================================================
     
+    // 🔥 NEW: Helper to check if two character names are variations of each other
+    // Examples: "SARAH" vs "SARAH CHEN", "RIVERA" vs "DETECTIVE RIVERA"
+    const areCharacterNamesSimilar = useCallback((name1: string, name2: string): boolean => {
+        const upper1 = name1.toUpperCase().trim();
+        const upper2 = name2.toUpperCase().trim();
+        
+        // Exact match
+        if (upper1 === upper2) return true;
+        
+        // One name contains the other (e.g., "DETECTIVE RIVERA" contains "RIVERA")
+        if (upper1.includes(upper2) || upper2.includes(upper1)) {
+            // But exclude very short matches (e.g., "A" matching "SARAH")
+            const shorter = upper1.length < upper2.length ? upper1 : upper2;
+            const longer = upper1.length >= upper2.length ? upper1 : upper2;
+            
+            // Only consider it a match if the shorter name is at least 3 characters
+            // and the longer name contains it as a whole word or at the start
+            if (shorter.length >= 3) {
+                // Check if shorter is a whole word in longer, or at the start/end
+                const wordBoundaryRegex = new RegExp(`(^|\\s)${shorter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`, 'i');
+                if (wordBoundaryRegex.test(longer)) {
+                    return true;
+                }
+                // Also check if shorter is at the start or end of longer
+                if (longer.startsWith(shorter + ' ') || longer.endsWith(' ' + shorter)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }, []);
+    
     const bulkImportCharacters = useCallback(async (
         characterNames: string[],
         descriptions?: Map<string, string>,
@@ -1937,7 +1970,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         const newCharacters: Character[] = [];
         
-        // 🔥 NEW: Get existing characters to check for duplicates
+        // 🔥 NEW: Get existing characters to check for duplicates (exact and fuzzy)
         const existingCharactersMap = new Map(
             characters.map(c => [c.name.toUpperCase(), c])
         );
@@ -1955,12 +1988,32 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
             seenNames.add(upperName);
             
-            // Check if character already exists
-            const existing = existingCharactersMap.get(upperName);
+            // Check for exact match
+            const exactMatch = existingCharactersMap.get(upperName);
+            if (exactMatch) {
+                console.log('[ScreenplayContext] Character already exists (exact match), skipping:', name);
+                continue;
+            }
             
-            if (existing) {
-                console.log('[ScreenplayContext] Character already exists, skipping:', name);
-                continue; // Don't re-add existing characters
+            // 🔥 NEW: Check for fuzzy match (variations like "SARAH" vs "SARAH CHEN")
+            let fuzzyMatch: Character | undefined;
+            for (const [existingUpper, existingChar] of existingCharactersMap.entries()) {
+                if (areCharacterNamesSimilar(upperName, existingUpper)) {
+                    fuzzyMatch = existingChar;
+                    console.log(`[ScreenplayContext] Character fuzzy match found: "${name}" matches "${existingChar.name}" - using existing`);
+                    break;
+                }
+            }
+            
+            if (fuzzyMatch) {
+                // Use the existing character (prefer longer/more specific name)
+                // Update description if the new one is more detailed
+                const newDescription = descriptions?.get(upperName);
+                if (newDescription && newDescription.length > (fuzzyMatch.description?.length || 0)) {
+                    console.log(`[ScreenplayContext] Updating description for "${fuzzyMatch.name}" with more detailed description`);
+                    // Note: We don't update here, just log - actual update would be in a separate function
+                }
+                continue; // Don't create duplicate
             } else {
                 // Create new character
                 const description = descriptions?.get(upperName) || `Imported from script`;
