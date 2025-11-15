@@ -9,6 +9,25 @@
 import type { UserResource } from '@clerk/types';
 
 /**
+ * Type definition for UserResource.update() method
+ * Clerk's types don't include publicMetadata in the update signature, but it works at runtime
+ */
+interface UserUpdateParams {
+  publicMetadata?: Record<string, unknown>;
+  unsafeMetadata?: Record<string, unknown>;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  primaryEmailAddressId?: string;
+  primaryPhoneNumberId?: string;
+  primaryWeb3WalletId?: string;
+}
+
+interface UserResourceWithUpdate extends UserResource {
+  update(params: UserUpdateParams): Promise<UserResource>;
+}
+
+/**
  * Get current screenplay ID from Clerk metadata
  * Falls back to localStorage for backward compatibility
  * 
@@ -58,8 +77,9 @@ export async function setCurrentScreenplayId(
 
   try {
     // Update Clerk metadata
-    // Type assertion needed because TypeScript doesn't recognize publicMetadata in update method
-    await (user.update as any)({
+    // Use proper type assertion to UserResourceWithUpdate for type safety
+    const userWithUpdate = user as unknown as UserResourceWithUpdate;
+    await userWithUpdate.update({
       publicMetadata: {
         ...user.publicMetadata,
         current_screenplay_id: screenplayId
