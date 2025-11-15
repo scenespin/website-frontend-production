@@ -1176,6 +1176,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const createLocation = useCallback(async (location: CreateInput<Location>): Promise<Location> => {
+        console.log('[ScreenplayContext] 📥 Received location data for creation:', {
+            name: location.name,
+            type: location.type,
+            address: location.address,
+            hasAddress: !!location.address,
+            addressType: typeof location.address,
+            fullLocation: location
+        });
+        
         const now = new Date().toISOString();
         const newLocation: Location = {
             ...location,
@@ -1183,6 +1192,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: now,
             updatedAt: now
         };
+        
+        console.log('[ScreenplayContext] 📦 Created newLocation object:', {
+            name: newLocation.name,
+            type: newLocation.type,
+            address: newLocation.address,
+            hasAddress: !!newLocation.address,
+            addressType: typeof newLocation.address
+        });
         
         setLocations(prev => [...prev, newLocation]);
         
@@ -1209,11 +1226,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     referenceImages: newLocation.images?.map(img => img.imageUrl) || []
                 };
                 
-                // 🔥 FIX: Only include custom fields if they have values (avoid sending empty strings)
-                if (newLocation.address) apiLoc.address = newLocation.address;
-                if (newLocation.atmosphereNotes) apiLoc.atmosphereNotes = newLocation.atmosphereNotes;
-                if (newLocation.setRequirements) apiLoc.setRequirements = newLocation.setRequirements;
-                if (newLocation.productionNotes) apiLoc.productionNotes = newLocation.productionNotes;
+                // 🔥 FIX: Include custom fields if they exist (even if empty string, but not if undefined)
+                if (newLocation.address !== undefined) apiLoc.address = newLocation.address;
+                if (newLocation.atmosphereNotes !== undefined) apiLoc.atmosphereNotes = newLocation.atmosphereNotes;
+                if (newLocation.setRequirements !== undefined) apiLoc.setRequirements = newLocation.setRequirements;
+                if (newLocation.productionNotes !== undefined) apiLoc.productionNotes = newLocation.productionNotes;
                 console.log('[ScreenplayContext] 📤 Creating location:', { 
                     type: apiLoc.type, 
                     address: apiLoc.address,
