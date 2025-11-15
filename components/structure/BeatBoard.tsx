@@ -227,12 +227,25 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
             
             // Move scene using ScreenplayContext
             // Pass editor content and callback for script reordering (if editor is available)
+            console.log('[BeatBoard] 🎬 Moving scene:', {
+                sceneId: scene.id,
+                sceneHeading: scene.heading,
+                targetBeat: targetBeat.title,
+                newOrder,
+                hasEditorContent: !!editorState?.content,
+                editorContentLength: editorState?.content?.length || 0,
+                hasSetContent: !!setEditorContent
+            });
+            
             await moveScene(
                 scene.id, 
                 targetBeat.id, 
                 newOrder,
                 editorState?.content, // Current editor content (if available)
                 editorState && setEditorContent ? (reorderedContent: string) => {
+                    console.log('[BeatBoard] ✅ Received reordered content, updating editor...', {
+                        newContentLength: reorderedContent.length
+                    });
                     // Update editor with reordered content (marks as dirty for auto-save)
                     setEditorContent(reorderedContent, true);
                 } : undefined // Only provide callback if editor is available
@@ -322,7 +335,7 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                 )}
                 
                 {/* Kanban Board */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                <div className="flex-1 overflow-hidden">
                     {/* Empty State */}
                     {beats.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full p-12">
@@ -340,11 +353,12 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                         </div>
                     ) : (
                         <div 
-                            className={`min-h-full p-4 md:p-6 ${
+                            className={`h-full p-4 md:p-6 ${
                                 beats.length <= 3 
-                                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6' 
-                                    : 'flex gap-4 md:gap-6 overflow-x-auto'
+                                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-y-auto' 
+                                    : 'flex gap-4 md:gap-6 overflow-x-auto overflow-y-hidden'
                             }`}
+                            style={{ scrollbarWidth: 'thin' }}
                         >
                             {columns.map(column => {
                                 const scenes = column.beat.scenes;

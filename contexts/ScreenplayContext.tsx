@@ -987,22 +987,47 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }));
         });
         
-        // Add to target beat
-        let newBeatsState: StoryBeat[] = [];
-        if (movedScene) {
-            setBeats(prev => {
-                const updated = prev.map(beat => {
-                    if (beat.id === targetBeatId) {
-                        const scenes = [...beat.scenes];
-                        // Feature 0117: No beatId on Scene object
-                        scenes.splice(newOrder, 0, { ...movedScene! });
-                        return { ...beat, scenes };
-                    }
-                    return beat;
+            // Add to target beat
+            let newBeatsState: StoryBeat[] = [];
+            if (movedScene) {
+                setBeats(prev => {
+                    const updated = prev.map(beat => {
+                        if (beat.id === targetBeatId) {
+                            const scenes = [...beat.scenes];
+                            // Feature 0117: No beatId on Scene object
+                            scenes.splice(newOrder, 0, { ...movedScene! });
+                            return { ...beat, scenes };
+                        }
+                        return beat;
+                    });
+                    newBeatsState = updated;
+                    
+                    // Update scene numbers to reflect new global order (after state update)
+                    // Collect all scenes in new order
+                    const allScenesInOrder: Scene[] = [];
+                    updated.forEach(beat => {
+                        beat.scenes.forEach(scene => {
+                            allScenesInOrder.push(scene);
+                        });
+                    });
+                    
+                    // Update scene numbers based on global order
+                    const updatedWithNumbers = updated.map(beat => ({
+                        ...beat,
+                        scenes: beat.scenes.map(scene => {
+                            const globalIndex = allScenesInOrder.findIndex(s => s.id === scene.id);
+                            return {
+                                ...scene,
+                                number: globalIndex >= 0 ? globalIndex + 1 : scene.number
+                            };
+                        })
+                    }));
+                    
+                    // Update newBeatsState with the scene numbers
+                    newBeatsState = updatedWithNumbers;
+                    
+                    return updatedWithNumbers;
                 });
-                newBeatsState = updated;
-                return updated;
-            });
             
             // Feature 0111 Phase 3: Update both beats in DynamoDB (scene moved)
             // Feature 0117: No need to update beats in DynamoDB (frontend grouping only)
@@ -1021,6 +1046,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Reorder script content if editor content and callback are provided
             if (editorContent && onScriptReorder) {
                 try {
+                    console.log('[ScreenplayContext] 🔄 Starting script reordering...', {
+                        editorContentLength: editorContent.length,
+                        hasCallback: !!onScriptReorder
+                    });
+                    
                     // Collect all scenes in old order (flat list)
                     const oldSceneOrder: Scene[] = [];
                     oldBeatsState.forEach(beat => {
@@ -1037,16 +1067,32 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         });
                     });
                     
+                    // Use scene numbers from newBeatsState (already updated in setBeats)
+                    // The scene numbers are already correct in newBeatsState
+                    const updatedNewSceneOrder = newSceneOrder;
+                    
+                    console.log('[ScreenplayContext] 📊 Scene order:', {
+                        oldCount: oldSceneOrder.length,
+                        newCount: updatedNewSceneOrder.length,
+                        firstScene: updatedNewSceneOrder[0]?.heading,
+                        lastScene: updatedNewSceneOrder[updatedNewSceneOrder.length - 1]?.heading
+                    });
+                    
                     // Reorder script content
-                    const reorderedContent = reorderScriptContent(editorContent, newSceneOrder, oldSceneOrder);
+                    const reorderedContent = reorderScriptContent(editorContent, updatedNewSceneOrder, oldSceneOrder);
                     
                     // Update editor via callback
                     onScriptReorder(reorderedContent);
                     console.log('[ScreenplayContext] ✅ Script content reordered');
                 } catch (error) {
-                    console.error('[ScreenplayContext] Failed to reorder script content:', error);
+                    console.error('[ScreenplayContext] ❌ Failed to reorder script content:', error);
                     // Don't throw - scene move succeeded, script reordering is optional
                 }
+            } else {
+                console.log('[ScreenplayContext] ⚠️ Script reordering skipped:', {
+                    hasEditorContent: !!editorContent,
+                    hasCallback: !!onScriptReorder
+                });
             }
         }
     }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken]);
