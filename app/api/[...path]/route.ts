@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
+// 🔥 FIX: Force dynamic rendering to prevent Vercel from caching 404s
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * Catch-all API proxy route
  * Forwards all /api/[...path] requests to the backend
