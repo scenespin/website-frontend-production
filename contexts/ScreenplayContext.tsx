@@ -194,6 +194,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const beatsRef = useRef<StoryBeat[]>([]);
     const charactersRef = useRef<Character[]>([]);
     const locationsRef = useRef<Location[]>([]);
+    const updateScenePositionsRef = useRef<((content: string) => Promise<number>) | null>(null);
     
     // Keep refs in sync with state
     useEffect(() => { beatsRef.current = beats; }, [beats]);
@@ -1124,10 +1125,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         // Wait a bit for editor state to update, then recalculate positions
                         setTimeout(async () => {
                             try {
-                                // Get updated content from editor (may have changed slightly)
-                                const updatedContent = editorContent || '';
-                                if (updatedContent) {
-                                    await updateScenePositions(reorderedContent);
+                                // Use ref to access updateScenePositions (defined later in component)
+                                if (updateScenePositionsRef.current) {
+                                    await updateScenePositionsRef.current(reorderedContent);
                                     console.log('[ScreenplayContext] ✅ Scene line positions recalculated after reordering');
                                 }
                             } catch (posError) {
@@ -1149,7 +1149,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 });
             }
         }
-    }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken, updateScenePositions]);
+    }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken]);
     
     // ========================================================================
     // CRUD - Characters
@@ -2533,6 +2533,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         return updates.size; // Return count of scenes that were actually updated
     }, [beats, matchScene, screenplayId, transformScenesToAPI, getToken]);
+    
+    // Store function in ref for access in other callbacks (like moveScene)
+    useEffect(() => {
+        updateScenePositionsRef.current = updateScenePositions;
+    }, [updateScenePositions]);
     
     // ========================================================================
     // Clear All Structure (Destructive Import Support)
