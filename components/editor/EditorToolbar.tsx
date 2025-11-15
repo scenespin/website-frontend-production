@@ -170,24 +170,27 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             // Call rescanScript from ScreenplayContext
             const result = await screenplay.rescanScript(content);
             
-            if (result.newCharacters === 0 && result.newLocations === 0 && result.newScenes === 0) {
+            const parts: string[] = [];
+            if (result.newCharacters > 0) {
+                parts.push(`${result.newCharacters} new character${result.newCharacters !== 1 ? 's' : ''}`);
+            }
+            if (result.newLocations > 0) {
+                parts.push(`${result.newLocations} new location${result.newLocations !== 1 ? 's' : ''}`);
+            }
+            if (result.newScenes > 0) {
+                parts.push(`${result.newScenes} new scene${result.newScenes !== 1 ? 's' : ''}`);
+            }
+            if (result.updatedScenes > 0) {
+                parts.push(`${result.updatedScenes} scene position${result.updatedScenes !== 1 ? 's' : ''} updated`);
+            }
+            
+            if (parts.length === 0) {
                 toast.info('✅ Re-scan complete', {
-                    description: 'No new entities found'
+                    description: 'No changes found'
                 });
             } else {
-                const parts: string[] = [];
-                if (result.newCharacters > 0) {
-                    parts.push(`${result.newCharacters} new character${result.newCharacters !== 1 ? 's' : ''}`);
-                }
-                if (result.newLocations > 0) {
-                    parts.push(`${result.newLocations} new location${result.newLocations !== 1 ? 's' : ''}`);
-                }
-                if (result.newScenes > 0) {
-                    parts.push(`${result.newScenes} new scene${result.newScenes !== 1 ? 's' : ''}`);
-                }
-                
                 toast.success('✅ Re-scan complete', {
-                    description: `Found ${parts.join(', ')}`
+                    description: parts.join(', ')
                 });
             }
             

@@ -112,10 +112,10 @@ interface ScreenplayContextType {
     clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 Returns fresh beats (frontend template only)
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
-    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; newScenes: number; }>;
+    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; newScenes: number; updatedScenes: number; }>;
     
     // Scene Position Management
-    updateScenePositions: (content: string) => Promise<void>;
+    updateScenePositions: (content: string) => Promise<number>; // Returns count of scenes updated
     
     // Relationships
     updateRelationships: () => Promise<void>;
@@ -987,18 +987,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }));
         });
         
-            // Add to target beat
+        // Add to target beat
             let newBeatsState: StoryBeat[] = [];
-            if (movedScene) {
+        if (movedScene) {
                 setBeats(prev => {
                     const updated = prev.map(beat => {
-                        if (beat.id === targetBeatId) {
-                            const scenes = [...beat.scenes];
+                if (beat.id === targetBeatId) {
+                    const scenes = [...beat.scenes];
                             // Feature 0117: No beatId on Scene object
                             scenes.splice(newOrder, 0, { ...movedScene! });
-                            return { ...beat, scenes };
-                        }
-                        return beat;
+                    return { ...beat, scenes };
+                }
+                return beat;
                     });
                     newBeatsState = updated;
                     
@@ -2280,7 +2280,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Scene Position Management
     // ========================================================================
     
-    const updateScenePositions = useCallback(async (content: string): Promise<void> => {
+    const updateScenePositions = useCallback(async (content: string): Promise<number> => {
         console.log('[ScreenplayContext] Updating scene positions from content');
         
         // Import stripTagsForDisplay to ensure we use the same content the editor displays
@@ -2349,6 +2349,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         allScenesFlat.forEach((item, index) => {
             if (index < scenesInOrder.length) {
                 const contentScene = scenesInOrder[index];
+                const currentStartLine = item.scene.fountain?.startLine ?? -1;
+                const currentEndLine = item.scene.fountain?.endLine ?? -1;
+                
+                // Check if position actually changed
+                const positionChanged = currentStartLine !== contentScene.startLine || currentEndLine !== contentScene.endLine;
                 
                 // Use hybrid matching to find the best match
                 const matchedScene = matchScene(
@@ -2357,24 +2362,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 );
                 
                 if (matchedScene && matchedScene.id === item.scene.id) {
-                    // Match confirmed - update position
-                    console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine}`);
-                    updates.set(item.scene.id, {
-                        beatId: item.beatId,  // Track which beat this scene belongs to
-                        updates: {
-                            fountain: {
-                                ...item.scene.fountain,
-                                startLine: contentScene.startLine,
-                                endLine: contentScene.endLine
-                            }
-                        }
-                    });
-                } else {
-                    // Try matching by heading only (fallback for order-based matching)
-                    if (item.scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
-                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (heading match)`);
+                    // Match confirmed - update position only if it changed
+                    if (positionChanged) {
+                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (was ${currentStartLine}-${currentEndLine})`);
                         updates.set(item.scene.id, {
-                            beatId: item.beatId,
+                            beatId: item.beatId,  // Track which beat this scene belongs to
                             updates: {
                                 fountain: {
                                     ...item.scene.fountain,
@@ -2384,26 +2376,66 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             }
                         });
                     } else {
+                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> position unchanged (${contentScene.startLine}-${contentScene.endLine})`);
+                    }
+                } else {
+                    // Try matching by heading only (fallback for order-based matching)
+                    if (item.scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
+                        if (positionChanged) {
+                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (heading match, was ${currentStartLine}-${currentEndLine})`);
+                            updates.set(item.scene.id, {
+                                beatId: item.beatId,
+                                updates: {
+                                    fountain: {
+                                        ...item.scene.fountain,
+                                        startLine: contentScene.startLine,
+                                        endLine: contentScene.endLine
+                                    }
+                                }
+                            });
+                        } else {
+                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> position unchanged (heading match)`);
+                        }
+                    } else {
                         console.warn(`[ScreenplayContext] Heading mismatch at position ${index}: DB="${item.scene.heading}" vs Content="${contentScene.heading}"`);
                     }
                 }
             }
         });
         
-        // Apply updates
-        setBeats(prev => prev.map(beat => ({
+        // Apply updates and collect updated scenes for saving
+        const updatedScenes: Scene[] = [];
+        setBeats(prev => {
+            const updatedBeats = prev.map(beat => ({
             ...beat,
             scenes: beat.scenes.map(scene => {
                 const update = updates.get(scene.id);
-                if (update && update.beatId === beat.id) {  // Ensure scene belongs to this beat
-                    return { ...scene, ...update.updates };
+                    if (update && update.beatId === beat.id) {  // Ensure scene belongs to this beat
+                        const updatedScene = { ...scene, ...update.updates };
+                        updatedScenes.push(updatedScene);
+                        return updatedScene;
                 }
                 return scene;
             })
-        })));
+            }));
+            return updatedBeats;
+        });
         
         console.log('[ScreenplayContext] Scene positions updated -', updates.size, 'scenes updated');
-    }, [beats, matchScene]);
+        
+        // Save updated scenes to DynamoDB
+        if (screenplayId && updatedScenes.length > 0) {
+            try {
+                const apiScenes = transformScenesToAPI(updatedScenes);
+                await bulkCreateScenes(screenplayId, apiScenes, getToken);
+                console.log('[ScreenplayContext] ✅ Saved', updatedScenes.length, 'updated scene positions to DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] ❌ Failed to save updated scene positions:', error);
+            }
+        }
+        
+        return updates.size; // Return count of scenes that were actually updated
+    }, [beats, matchScene, screenplayId, transformScenesToAPI, getToken]);
     
     // ========================================================================
     // Clear All Structure (Destructive Import Support)
@@ -2432,7 +2464,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🧹 Clearing content ONLY (preserving beat template structure)...');
         
         // Create default 8-beat template (frontend-only)
-        const sequences = [
+            const sequences = [
             { title: 'Setup', description: '', order: 0 },
             { title: 'Inciting Incident', description: '', order: 1 },
             { title: 'First Plot Point', description: '', order: 2 },
@@ -2441,36 +2473,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             { title: 'Second Pinch Point', description: '', order: 5 },
             { title: 'Second Plot Point', description: '', order: 6 },
             { title: 'Resolution', description: '', order: 7 }
-        ];
-        
-        const now = new Date().toISOString();
-        const freshBeats = sequences.map((seq, index) => ({
-            id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
-            title: seq.title,
-            description: seq.description,
-            order: seq.order,
-            scenes: [],
-            createdAt: now,
-            updatedAt: now
-        }));
-        
+            ];
+            
+            const now = new Date().toISOString();
+            const freshBeats = sequences.map((seq, index) => ({
+                id: `beat-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                title: seq.title,
+                description: seq.description,
+                order: seq.order,
+                scenes: [],
+                createdAt: now,
+                updatedAt: now
+            }));
+            
         // 🔥 FIX: DON'T clear characters/locations here!
         // clearAllData() already cleared them from DynamoDB
         // Clearing them here causes race condition where import sets them, then this clears them again
         // We ONLY need to reset beats and relationships
-        setBeats(freshBeats);
+            setBeats(freshBeats);
         // setCharacters([]);  // ❌ REMOVED: Causes race condition!
         // setLocations([]);    // ❌ REMOVED: Causes race condition!
-        setRelationships({
-            beats: {},
-            characters: {},
-            locations: {},
-            scenes: {},
-            props: {}
-        });
-        
+            setRelationships({
+                beats: {},
+                characters: {},
+                locations: {},
+                scenes: {},
+                props: {}
+            });
+            
         console.log('[ScreenplayContext] ✅ Reset beats to default template (characters/locations will be set by import)');
-        return freshBeats;
+            return freshBeats;
     }, []);
     
     // Feature 0117: repairOrphanedScenes removed - no orphaned scenes possible with simplified architecture
@@ -2581,17 +2613,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
             
             // Update positions for existing scenes
+            let updatedScenesCount = 0;
             if (existingScenesToUpdate.length > 0) {
                 console.log('[ScreenplayContext] Updating positions for', existingScenesToUpdate.length, 'existing scenes');
-                await updateScenePositions(content);
+                updatedScenesCount = await updateScenePositions(content);
+                console.log('[ScreenplayContext] Actually updated', updatedScenesCount, 'scene positions');
             }
             
-            console.log('[ScreenplayContext] ✅ Re-scan complete');
+            console.log('[ScreenplayContext] ✅ Re-scan complete:', {
+                newCharacters: newCharacterNames.length,
+                newLocations: newLocationNames.length,
+                newScenes: newScenes.length,
+                updatedScenes: updatedScenesCount
+            });
             
             return {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
-                newScenes: newScenes.length
+                newScenes: newScenes.length,
+                updatedScenes: updatedScenesCount
             };
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Re-scan failed:', err);
