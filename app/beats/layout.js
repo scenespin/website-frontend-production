@@ -1,12 +1,15 @@
 'use client';
 
 import Navigation from "@/components/Navigation";
+import { EditorProvider } from "@/contexts/EditorContext";
 
 export default function BeatsLayout({ children }) {
   return (
-    <div className="min-h-screen bg-base-100">
-      <Navigation />
-      {children}
-    </div>
+    <EditorProvider>
+      <div className="min-h-screen bg-base-100">
+        <Navigation />
+        {children}
+      </div>
+    </EditorProvider>
   );
 }
