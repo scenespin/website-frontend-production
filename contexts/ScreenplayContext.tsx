@@ -928,8 +928,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     description: newCharacter.description,
                     referenceImages: newCharacter.images?.map(img => img.imageUrl) || []
                 };
-                await apiCreateCharacter(screenplayId, apiChar, getToken);
-                console.log('[ScreenplayContext] ✅ Created character in DynamoDB');
+                const createdCharacter = await apiCreateCharacter(screenplayId, apiChar, getToken);
+                console.log('[ScreenplayContext] 📥 Received created character from API:', { 
+                    characterId: createdCharacter.id || (createdCharacter as any).character_id,
+                    name: createdCharacter.name
+                });
+                
+                // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
+                const transformedCharacter = transformCharactersFromAPI([createdCharacter as any])[0];
+                console.log('[ScreenplayContext] 🔄 Syncing created character state:', { 
+                    transformedId: transformedCharacter.id,
+                    name: transformedCharacter.name
+                });
+                setCharacters(prev => {
+                    // Replace the optimistic character with the real one from DynamoDB
+                    const updated = prev.map(char => {
+                        // Match by name or ID
+                        if (char.id === newCharacter.id || char.name === newCharacter.name) {
+                            return transformedCharacter;
+                        }
+                        return char;
+                    });
+                    // If not found, add it
+                    if (!updated.find(char => char.id === transformedCharacter.id)) {
+                        return [...updated, transformedCharacter];
+                    }
+                    return updated;
+                });
                 
                 // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
                 forceReloadRef.current = true;

@@ -348,7 +348,7 @@ export async function createCharacter(
   }
 
   const data = await response.json();
-  return data.data.character;
+  return data.data; // 🔥 FIX: Backend returns { success: true, data: character }, not { success: true, data: { character } }
 }
 
 /**
