@@ -1204,9 +1204,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Transform complex Location to simple API Location
                 const apiLoc = {
                     name: newLocation.name,
-                    description: newLocation.description,
-                    referenceImages: newLocation.images?.map(img => img.imageUrl) || []
+                    description: newLocation.description || '',
+                    type: newLocation.type || 'INT', // 🔥 FIX: Include type field (INT/EXT/INT-EXT)
+                    referenceImages: newLocation.images?.map(img => img.imageUrl) || [],
+                    address: newLocation.address || '', // 🔥 NEW: Include address
+                    atmosphereNotes: newLocation.atmosphereNotes || '', // 🔥 NEW: Include atmosphere notes
+                    setRequirements: newLocation.setRequirements || '', // 🔥 NEW: Include set requirements
+                    productionNotes: newLocation.productionNotes || '' // 🔥 NEW: Include production notes
                 };
+                console.log('[ScreenplayContext] 📤 Creating location with type:', apiLoc.type);
                 await apiCreateLocation(screenplayId, apiLoc, getToken);
                 console.log('[ScreenplayContext] ✅ Created location in DynamoDB');
                 
