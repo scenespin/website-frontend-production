@@ -255,8 +255,12 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                 ? `Reordered scene "${scene.heading}" within ${targetBeat.title}`
                 : `Moved scene "${scene.heading}" to ${targetBeat.title}`;
             
+            // Note: Script content is updated in editor context and will auto-save
+            // If editor is on a different page (/write), it will load the updated content on next navigation/refresh
             toast.success(message, {
-                description: 'GitHub synced automatically'
+                description: editorState && setEditorContent 
+                    ? 'Script reordered and saved' 
+                    : 'Scene moved (script will update on /write page)'
             });
         } catch (error) {
             console.error('Failed to move scene:', error);
@@ -489,33 +493,35 @@ function BeatColumn({
     return (
         <div
             ref={setNodeRef}
-            className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200"
+            className="flex flex-col rounded-xl min-h-[400px] max-h-full transition-all duration-200"
             style={{
                 backgroundColor: isOver ? color + '15' : '#0A0A0B',
                 border: isOver ? `2px dashed ${color}` : '2px solid #1C1C1E',
             }}
         >
-            {/* Empty State */}
-            {scenes.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full py-12 px-4">
-                    <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                        style={{
-                            backgroundColor: color + '15',
-                            border: `2px dashed ${color}40`,
-                        }}
-                    >
-                        <Film size={28} style={{ color: color + '80' }} />
+            {/* Scene Cards Container - Scrollable */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3" style={{ scrollbarWidth: 'thin' }}>
+                {/* Empty State */}
+                {scenes.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full py-12 px-4">
+                        <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                            style={{
+                                backgroundColor: color + '15',
+                                border: `2px dashed ${color}40`,
+                            }}
+                        >
+                            <Film size={28} style={{ color: color + '80' }} />
+                        </div>
+                        <p className="text-sm text-center text-slate-500">No scenes yet</p>
+                        <p className="text-xs text-center mt-1 text-slate-600">
+                            Drag scenes here or create new ones
+                        </p>
                     </div>
-                    <p className="text-sm text-center text-slate-500">No scenes yet</p>
-                    <p className="text-xs text-center mt-1 text-slate-600">
-                        Drag scenes here or create new ones
-                    </p>
-                </div>
-            )}
+                )}
 
-            {/* Scene Cards */}
-            <SortableContext items={scenes.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                {/* Scene Cards */}
+                <SortableContext items={scenes.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 {scenes.map((scene, index) => {
                     const sceneCharacters = getSceneCharacters(scene.id);
                     const location = scene.fountain?.tags?.location
@@ -538,7 +544,8 @@ function BeatColumn({
                         />
                     );
                 })}
-            </SortableContext>
+                </SortableContext>
+            </div>
         </div>
     );
 }
