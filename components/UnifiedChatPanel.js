@@ -921,7 +921,7 @@ function UnifiedChatPanelInner({
       )}
 
       {/* Bottom Controls - Mode & Model Selector */}
-        <div className="max-w-3xl mx-auto px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
+      <div className="max-w-3xl mx-auto px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
           <ModeSelector />
           {/* Only show LLM selector for AI Agents */}
           {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
