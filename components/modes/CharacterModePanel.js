@@ -541,6 +541,9 @@ REQUIRED OUTPUT FORMAT:
           </div>
         )}
         
+        {/* Auto-scroll anchor */}
+        <div ref={messagesEndRef} />
+        
         {/* Loading indicator while waiting for response (if not streaming) */}
         {isSending && !state.isStreaming && (
           <div className="px-4 py-3 bg-base-100">
