@@ -57,6 +57,12 @@ export interface EntityContext {
     id: string;
     name: string;
     workflow?: string;
+    existingData?: {
+        name?: string;
+        description?: string;
+        type?: string;
+        arcStatus?: string; // For characters only
+    };
 }
 
 /**

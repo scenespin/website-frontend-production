@@ -17,7 +17,7 @@ interface CharacterDetailSidebarProps {
   onCreate: (data: any) => void
   onUpdate: (character: Character) => void
   onDelete: (characterId: string) => void
-  onSwitchToChatImageMode?: (modelId?: string, entityContext?: { type: string; id: string; name: string; workflow?: string }) => void
+  onSwitchToChatImageMode?: (modelId?: string, entityContext?: { type: string; id: string; name: string; workflow?: string; existingData?: { name?: string; description?: string; type?: string; arcStatus?: string } }) => void
   onOpenCharacterBank?: (characterId: string) => void // NEW: Open Character Bank Manager
 }
 

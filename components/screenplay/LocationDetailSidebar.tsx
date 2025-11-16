@@ -17,7 +17,7 @@ interface LocationDetailSidebarProps {
   onCreate: (data: any) => void
   onUpdate: (location: Location) => void
   onDelete: (locationId: string) => void
-  onSwitchToChatImageMode?: (modelId?: string, entityContext?: { type: string; id: string; name: string; workflow?: string }) => void
+  onSwitchToChatImageMode?: (modelId?: string, entityContext?: { type: string; id: string; name: string; workflow?: string; existingData?: { name?: string; description?: string; type?: string } }) => void
 }
 
 export default function LocationDetailSidebar({
