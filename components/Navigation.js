@@ -117,7 +117,6 @@ export default function Navigation() {
       // Mobile-only sub-items (for accordion)
       subItems: [
         { name: 'Write', href: '/write', icon: FileText, description: 'Screenplay editor' },
-        { name: 'Story Beats', href: '/beats', icon: BookOpen, description: 'Narrative structure' },
         { name: 'Characters', href: '/characters', icon: Users, description: 'Cast management' },
         { name: 'Locations', href: '/locations', icon: MapPin, description: 'Scene settings' },
       ]

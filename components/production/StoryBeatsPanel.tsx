@@ -12,14 +12,13 @@
  * 
  * Now with Contextual Navigation:
  * - Auto-selects beat from editor context
- * - Can navigate to BeatBoard for reorganization
  * - Updates context when beat is selected
  */
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { StoryBeat } from '@/types/screenplay';
-import { ChevronRight, ChevronDown, Film, CheckCircle2, Loader2, PlayCircle, LayoutGrid } from 'lucide-react';
+import { ChevronRight, ChevronDown, Film, CheckCircle2, Loader2, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useContextStore } from '@/lib/contextStore';
 
@@ -67,10 +66,6 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
     setCurrentBeat(beat.id, beat.title);
   }
   
-  function navigateToBeatBoard() {
-    const projectId = context.projectId || 'default';
-    router.push(`/beats?projectId=${projectId}`);
-  }
 
   function getStatusColor(status: string | undefined): string {
     switch (status) {
@@ -145,13 +140,6 @@ export function StoryBeatsPanel({ beats, selectedBeatId, onBeatSelect }: StoryBe
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
             Story Beats
           </h2>
-          <button
-            onClick={navigateToBeatBoard}
-            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors group"
-            title="Open Beat Board (Drag & Drop)"
-          >
-            <LayoutGrid className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-[#DC143C]" />
-          </button>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Select a beat to begin production

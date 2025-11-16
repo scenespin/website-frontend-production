@@ -6,7 +6,6 @@
  * Horizontal tab bar for Editor section (Desktop)
  * Dropdown menu for Editor section (Mobile)
  * - Write (Screenplay Editor)
- * - Story Beats
  * - Characters
  * - Locations
  */
@@ -14,10 +13,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { FileText, BookOpen, Users, MapPin, ChevronDown } from 'lucide-react';
+import { FileText, Users, MapPin, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type EditorTab = 'write' | 'beats' | 'characters' | 'locations';
+export type EditorTab = 'write' | 'characters' | 'locations';
 
 interface EditorSubNavProps {
   activeTab?: EditorTab;
@@ -34,15 +33,6 @@ const TABS = [
     description: 'Screenplay editor',
     color: 'text-blue-500',
     activeColor: 'text-blue-600 dark:text-blue-400'
-  },
-  {
-    id: 'beats' as EditorTab,
-    label: 'Story Beats',
-    href: '/beats',
-    icon: BookOpen,
-    description: 'Narrative structure',
-    color: 'text-purple-500',
-    activeColor: 'text-purple-600 dark:text-purple-400'
   },
   {
     id: 'characters' as EditorTab,
@@ -72,7 +62,6 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
   // Auto-determine active tab from pathname if not provided
   const determineActiveTab = (): EditorTab => {
     if (activeTab) return activeTab;
-    if (pathname?.includes('/beats')) return 'beats';
     if (pathname?.includes('/characters')) return 'characters';
     if (pathname?.includes('/locations')) return 'locations';
     return 'write';

@@ -67,7 +67,6 @@ interface ScreenplayContextType {
     createScene: (beatId: string, scene: CreateInput<Scene>) => Promise<Scene>;
     updateScene: (id: string, updates: Partial<Scene>) => Promise<void>;
     deleteScene: (id: string) => Promise<void>;
-    moveScene: (sceneId: string, targetBeatId: string, newOrder: number) => Promise<void>;
     
     // CRUD - Characters
     createCharacter: (character: CreateInput<Character>) => Promise<Character>;
@@ -1119,104 +1118,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return reorderedContent;
     }, []);
     
-    const moveScene = useCallback(async (
-        sceneId: string, 
-        targetBeatId: string, 
-        newOrder: number
-    ) => {
-        let movedScene: Scene | undefined;
-        
-        // Remove from current beat
-        setBeats(prev => {
-            const currentBeat = prev.find(beat => beat.scenes.some(s => s.id === sceneId));
-            if (currentBeat) {
-                movedScene = currentBeat.scenes.find(s => s.id === sceneId);
-            }
-            
-            return prev.map(beat => ({
-                ...beat,
-                scenes: beat.scenes.filter(s => s.id !== sceneId)
-            }));
-        });
-        
-        // Add to target beat
-            let newBeatsState: StoryBeat[] = [];
-        if (movedScene) {
-                setBeats(prev => {
-                    const updated = prev.map(beat => {
-                if (beat.id === targetBeatId) {
-                    const scenes = [...beat.scenes];
-                            // Feature 0117: No beatId on Scene object
-                            scenes.splice(newOrder, 0, { ...movedScene! });
-                    return { ...beat, scenes };
-                }
-                return beat;
-                    });
-                    newBeatsState = updated;
-                    
-                    // Update scene numbers to reflect new global order (after state update)
-                    // Collect all scenes in new order
-                    const allScenesInOrder: Scene[] = [];
-                    updated.forEach(beat => {
-                        beat.scenes.forEach(scene => {
-                            allScenesInOrder.push(scene);
-                        });
-                    });
-                    
-                    // Update scene numbers based on global order
-                    const updatedWithNumbers = updated.map(beat => ({
-                        ...beat,
-                        scenes: beat.scenes.map(scene => {
-                            const globalIndex = allScenesInOrder.findIndex(s => s.id === scene.id);
-                            return {
-                                ...scene,
-                                number: globalIndex >= 0 ? globalIndex + 1 : scene.number
-                            };
-                        })
-                    }));
-                    
-                    // Update newBeatsState with the scene numbers
-                    newBeatsState = updatedWithNumbers;
-                    
-                    return updatedWithNumbers;
-                });
-            
-            // Feature 0117: Save ALL scenes with updated order to DynamoDB
-            // After reordering, all scenes have new order numbers - save them all
-            if (screenplayId && newBeatsState.length > 0) {
-                try {
-                    // Collect all scenes from all beats with their updated order
-                    const allScenesToSave: Scene[] = [];
-                    let globalOrder = 1; // Global order counter (1, 2, 3, 4...)
-                    
-                    newBeatsState.forEach(beat => {
-                        beat.scenes.forEach(scene => {
-                            // Ensure order field is set to global order
-                            allScenesToSave.push({
-                                ...scene,
-                                order: globalOrder, // Set global order
-                                number: globalOrder // Also update number for consistency
-                            });
-                            globalOrder++;
-                        });
-                    });
-                    
-                    console.log('[ScreenplayContext] 📦 Preparing to save scenes with order:', 
-                        allScenesToSave.map(s => ({ id: s.id, heading: s.heading, order: s.order, number: s.number }))
-                    );
-                    
-                    if (allScenesToSave.length > 0) {
-                        const apiScenes = transformScenesToAPI(allScenesToSave);
-                        await bulkCreateScenes(screenplayId, apiScenes, getToken);
-                        console.log('[ScreenplayContext] ✅ Saved', allScenesToSave.length, 'scenes with updated order to DynamoDB');
-                    }
-                } catch (error) {
-                    console.error('[ScreenplayContext] ❌ Failed to save scene order to DynamoDB:', error);
-                    // Don't throw - scene move succeeded in UI, persistence failure is logged
-                }
-            }
-        }
-    }, [beats, screenplayId, transformScenesToAPI, getToken]);
     
     // ========================================================================
     // CRUD - Characters
@@ -2613,7 +2514,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return updates.size; // Return count of scenes that were actually updated
     }, [beats, matchScene, screenplayId, transformScenesToAPI, getToken]);
     
-    // Store function in ref for access in other callbacks (like moveScene)
     useEffect(() => {
         updateScenePositionsRef.current = updateScenePositions;
     }, [updateScenePositions]);
@@ -2954,7 +2854,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         createScene,
         updateScene,
         deleteScene,
-        moveScene,
         
         // Characters
         createCharacter,
