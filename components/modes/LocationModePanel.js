@@ -57,6 +57,14 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   
   // Auto-start workflow on mount if not already active
   useEffect(() => {
+    // Ensure mode is set to 'location' when this panel is active
+    if (state.activeMode !== 'location') {
+      setMode('location');
+      // Wait for mode to update before starting workflow
+      return;
+    }
+    
+    // Only start workflow if mode is 'location' and no workflow is active
     if (!activeWorkflow && state.activeMode === 'location') {
       const workflowMessages = state.messages.filter(m => m.mode === 'location');
       if (workflowMessages.length === 0) {
@@ -71,7 +79,7 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
         startWorkflow('location');
       }
     }
-  }, [activeWorkflow, state.activeMode, state.messages, state.entityContextBanner, startWorkflow]);
+  }, [activeWorkflow, state.activeMode, state.messages, state.entityContextBanner, startWorkflow, setMode]);
   
   // Handle sending messages during interview (WIZARD MODE - no AI until final step)
   const handleSend = async (prompt) => {
