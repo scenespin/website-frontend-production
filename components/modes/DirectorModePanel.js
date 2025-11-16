@@ -3,19 +3,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
-import { Film, Camera, Clapperboard, FileText, User, Bot, Copy, Check } from 'lucide-react';
-import { ModelSelector } from '../ModelSelector';
+import { Film, Camera, Clapperboard, FileText, User, Bot, Copy, Check, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import toast from 'react-hot-toast';
 
 export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
-  const { state, addMessage, setInput, setStreaming } = useChatContext();
+  const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
   const { isScreenplayContent } = useChatMode();
   
-  // Model selection for Director agent
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
+  // Use model from ChatContext (set by UnifiedChatPanel's LLMModelSelector)
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const [isSending, setIsSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
@@ -58,6 +57,16 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
     try {
       // ALWAYS detect current scene for context (re-detect on each message)
       const sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      
+      // Update global scene context state (for banner display)
+      if (sceneContext) {
+        setSceneContext({
+          heading: sceneContext.heading,
+          act: sceneContext.act,
+          characters: sceneContext.characters,
+          pageNumber: sceneContext.pageNumber
+        });
+      }
       
       // Build system prompt with scene context
       let systemPrompt = `You are a professional film director assistant helping a screenwriter with shot planning, camera work, blocking, and dialogue direction.`;
@@ -154,9 +163,21 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
-        <div className="flex items-center gap-2">
-          <Clapperboard className="w-5 h-5 text-cinema-red" />
-          <h3 className="font-bold text-base-content">Director Agent</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clapperboard className="w-5 h-5 text-cinema-red" />
+            <h3 className="font-bold text-base-content">Director Agent</h3>
+          </div>
+          {state.messages.filter(m => m.mode === 'director').length > 0 && (
+            <button
+              onClick={() => clearMessagesForMode('director')}
+              className="btn btn-xs btn-ghost gap-1.5 text-base-content/60 hover:text-base-content"
+              title="Start new chat"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="text-xs">New Chat</span>
+            </button>
+          )}
         </div>
       </div>
       

@@ -71,6 +71,12 @@ function chatReducer(state, action) {
         messages: []
       };
       
+    case 'CLEAR_MESSAGES_FOR_MODE':
+      return {
+        ...state,
+        messages: state.messages.filter(m => m.mode !== action.payload)
+      };
+      
     case 'SET_STREAMING':
       return {
         ...state,
@@ -238,6 +244,10 @@ export function ChatProvider({ children, initialContext = null }) {
     dispatch({ type: 'CLEAR_MESSAGES' });
   }, []);
   
+  const clearMessagesForMode = useCallback((mode) => {
+    dispatch({ type: 'CLEAR_MESSAGES_FOR_MODE', payload: mode });
+  }, []);
+  
   // Streaming actions
   const setStreaming = useCallback((isStreaming, streamingText) => {
     dispatch({ type: 'SET_STREAMING', payload: { isStreaming, streamingText } });
@@ -334,6 +344,7 @@ export function ChatProvider({ children, initialContext = null }) {
     addMessage,
     setMessages,
     clearMessages,
+    clearMessagesForMode,
     setStreaming,
     setMode,
     setModel,

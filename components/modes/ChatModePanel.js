@@ -3,15 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
-import { FileText, Sparkles, User, Bot, Copy, Check } from 'lucide-react';
-import { ModelSelector } from '../ModelSelector';
+import { FileText, Sparkles, User, Bot, Copy, Check, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import toast from 'react-hot-toast';
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
-  const { state, addMessage, setInput, setStreaming } = useChatContext();
+  const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
   const {
     activeWorkflow,
     workflowCompletionData,
@@ -52,6 +51,16 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     try {
       // ALWAYS detect current scene for context (re-detect on each message)
       const sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      
+      // Update global scene context state (for banner display)
+      if (sceneContext) {
+        setSceneContext({
+          heading: sceneContext.heading,
+          act: sceneContext.act,
+          characters: sceneContext.characters,
+          pageNumber: sceneContext.pageNumber
+        });
+      }
       
       // Build system prompt with scene context
       let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
@@ -160,9 +169,21 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
-        <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-cinema-red" />
-          <h3 className="font-bold text-base-content">General Screenwriting</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-cinema-red" />
+            <h3 className="font-bold text-base-content">General Screenwriting</h3>
+          </div>
+          {state.messages.filter(m => m.mode === 'chat').length > 0 && (
+            <button
+              onClick={() => clearMessagesForMode('chat')}
+              className="btn btn-xs btn-ghost gap-1.5 text-base-content/60 hover:text-base-content"
+              title="Start new chat"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="text-xs">New Chat</span>
+            </button>
+          )}
         </div>
       </div>
       
