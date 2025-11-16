@@ -8,7 +8,7 @@ import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
 import { getLocationDependencies, generateLocationReport } from '@/utils/dependencyChecker';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface LocationColumn {
     id: string;
@@ -384,9 +384,7 @@ function LocationCardContent({
         const fountainText = `${locationTypePrefix}. ${location.name.toUpperCase()} - DAY\n\n`;
         
         navigator.clipboard.writeText(fountainText).then(() => {
-            toast.success('Copied to clipboard!', {
-                description: 'Paste in editor to insert scene heading'
-            });
+            toast.success('Copied to clipboard! Paste in editor to insert scene heading');
         }).catch((err) => {
             console.error('Failed to copy:', err);
             toast.error('Failed to copy');

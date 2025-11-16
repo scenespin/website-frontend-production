@@ -336,9 +336,7 @@ function CharacterCardContent({
         }
         
         navigator.clipboard.writeText(fountainText).then(() => {
-            toast.success('Copied to clipboard!', {
-                description: 'Paste in editor to insert character dialogue block with description'
-            });
+            toast.success('Copied to clipboard! Paste in editor to insert character dialogue block with description');
         }).catch((err) => {
             console.error('Failed to copy:', err);
             toast.error('Failed to copy');
