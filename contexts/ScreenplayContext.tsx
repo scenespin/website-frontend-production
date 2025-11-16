@@ -142,6 +142,10 @@ interface ScreenplayContextType {
     
     // Clear all data (when editor is cleared)
     clearAllData: () => Promise<void>;
+    
+    // Phase 2: Reference-only manual creation
+    // Check if a character or location appears in the script content
+    isEntityInScript: (scriptContent: string, entityName: string, entityType: 'character' | 'location') => boolean;
 }
 
 const ScreenplayContext = createContext<ScreenplayContextType | undefined>(undefined);
@@ -2884,6 +2888,65 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, []); // No dependencies - always returns current ref values!
     
     // ========================================================================
+    // Phase 2: Check if Entity Appears in Script
+    // ========================================================================
+    
+    /**
+     * Check if a character or location name appears in the script content.
+     * Used to determine if an entity is "active" (in script) or "reference-only" (not in script).
+     */
+    const isEntityInScript = useCallback((scriptContent: string, entityName: string, entityType: 'character' | 'location'): boolean => {
+        if (!scriptContent || !entityName) {
+            return false;
+        }
+        
+        const normalizedName = entityName.toUpperCase().trim();
+        if (!normalizedName) {
+            return false;
+        }
+        
+        const lines = scriptContent.split('\n');
+        
+        if (entityType === 'character') {
+            // Check for character name in dialogue (all caps, standalone line)
+            // Also check for @CHARACTER notation
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const upperLine = line.toUpperCase();
+                
+                // Check for @CHARACTER notation
+                if (line.startsWith('@') && upperLine.substring(1).trim() === normalizedName) {
+                    return true;
+                }
+                
+                // Check for character name as dialogue (all caps, standalone)
+                // Character names in dialogue are typically all caps and on their own line
+                if (upperLine === normalizedName && line.length > 0) {
+                    // Make sure it's not part of a scene heading or action
+                    const prevLine = i > 0 ? lines[i - 1].trim() : '';
+                    const nextLine = i < lines.length - 1 ? lines[i + 1].trim() : '';
+                    
+                    // If next line is empty or dialogue, this is likely a character name
+                    if (!nextLine || nextLine.length === 0 || (!nextLine.startsWith('INT.') && !nextLine.startsWith('EXT.') && !nextLine.startsWith('INT/EXT.'))) {
+                        return true;
+                    }
+                }
+            }
+        } else if (entityType === 'location') {
+            // Check for location name in scene headings (INT./EXT./INT/EXT. LOCATION NAME)
+            const locationPattern = new RegExp(`(?:INT|EXT|INT/EXT)\\.\\s+${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s|$|-)`, 'i');
+            
+            for (const line of lines) {
+                if (locationPattern.test(line)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }, []);
+    
+    // ========================================================================
     // Context Value
     // ========================================================================
     
@@ -2956,7 +3019,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         getEntityImages,
         
         // Clear all data
-        clearAllData
+        clearAllData,
+        
+        // Phase 2: Reference-only manual creation
+        isEntityInScript
     };
     
     return (

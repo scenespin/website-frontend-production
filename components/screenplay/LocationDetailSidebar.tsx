@@ -5,6 +5,7 @@ import { X, Trash2, Plus, Image as ImageIcon } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Location } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
+import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
 
@@ -29,7 +30,11 @@ export default function LocationDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: LocationDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript } = useScreenplay()
+  const { state: editorState } = useEditor()
+  
+  // Check if location is in script (if editing existing location)
+  const isInScript = location ? isEntityInScript(editorState.content, location.name, 'location') : false
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
@@ -135,16 +140,27 @@ export default function LocationDetailSidebar({
         <div>
           <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
             Name
+            {isInScript && (
+              <span className="ml-2 text-xs" style={{ color: '#6B7280' }}>
+                (locked - appears in script)
+              </span>
+            )}
           </label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            disabled={isInScript}
+            className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
             placeholder="Location name"
             autoFocus={isCreating}
           />
+          {isInScript && (
+            <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+              Name cannot be changed because this location appears in your script. Edit the script directly to change the name.
+            </p>
+          )}
         </div>
 
         {/* Type */}

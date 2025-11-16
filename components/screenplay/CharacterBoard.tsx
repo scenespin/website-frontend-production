@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, MoreVertical, User, Users, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 import type { Character, ArcStatus } from '@/types/screenplay';
 import CharacterDetailSidebar from './CharacterDetailSidebar';
 import { DeleteCharacterDialog } from '../structure/DeleteConfirmDialog';
@@ -26,7 +27,8 @@ interface CharacterBoardProps {
 }
 
 export default function CharacterBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: CharacterBoardProps) {
-    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
+    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript } = useScreenplay();
+    const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<CharacterColumn[]>([]);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -238,6 +240,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                             character={character}
                                             color={column.color}
                                             sceneCount={getCharacterScenes(character.id).length}
+                                            isInScript={isEntityInScript(editorState.content, character.name, 'character')}
                                             onClick={() => setSelectedCharacter(character)}
                                             onEdit={() => openEditForm(character)}
                                         />
@@ -312,6 +315,7 @@ interface CharacterCardContentProps {
     character: Character;
     color: string;
     sceneCount: number;
+    isInScript: boolean;
     onClick: () => void;
     onEdit: () => void;
 }
@@ -320,6 +324,7 @@ function CharacterCardContent({
     character,
     color,
     sceneCount,
+    isInScript,
     onClick,
     onEdit,
 }: CharacterCardContentProps) {
@@ -364,9 +369,23 @@ function CharacterCardContent({
                     <User size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate text-sm" style={{ color: '#E5E7EB' }}>
-                        {character.name}
-                    </h4>
+                    <div className="flex items-center gap-2">
+                        <h4 className="font-medium truncate text-sm" style={{ color: '#E5E7EB' }}>
+                            {character.name}
+                        </h4>
+                        {!isInScript && (
+                            <span
+                                className="px-1.5 py-0.5 rounded text-xs font-medium"
+                                style={{
+                                    backgroundColor: '#6B7280',
+                                    color: '#E5E7EB',
+                                }}
+                                title="This character hasn't appeared in the script yet"
+                            >
+                                Not in script
+                            </span>
+                        )}
+                    </div>
                     <p className="text-xs truncate capitalize" style={{ color: '#9CA3AF' }}>
                         {character.type}
                     </p>

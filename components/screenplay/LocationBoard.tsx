@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, MapPin, Film, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
@@ -26,7 +27,8 @@ interface LocationBoardProps {
 }
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
-    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
+    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript } = useScreenplay();
+    const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<LocationColumn[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -274,6 +276,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                 location={location}
                                                 color={column.color}
                                                 sceneCount={getLocationScenes(location.id).length}
+                                                isInScript={isEntityInScript(editorState.content, location.name, 'location')}
                                                 openEditForm={openEditForm}
                                             />
                                         </motion.div>
@@ -367,6 +370,7 @@ interface LocationCardContentProps {
     location: Location;
     color: string;
     sceneCount: number;
+    isInScript: boolean;
     openEditForm?: (location: Location) => void;
 }
 
@@ -374,6 +378,7 @@ function LocationCardContent({
     location,
     color,
     sceneCount,
+    isInScript,
     openEditForm,
 }: LocationCardContentProps) {
     const handleCopy = (e: React.MouseEvent) => {
@@ -411,9 +416,23 @@ function LocationCardContent({
                     <MapPin size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate" style={{ color: '#E5E7EB' }}>
-                        {location.name}
-                    </h4>
+                    <div className="flex items-center gap-2">
+                        <h4 className="font-medium truncate" style={{ color: '#E5E7EB' }}>
+                            {location.name}
+                        </h4>
+                        {!isInScript && (
+                            <span
+                                className="px-1.5 py-0.5 rounded text-xs font-medium"
+                                style={{
+                                    backgroundColor: '#6B7280',
+                                    color: '#E5E7EB',
+                                }}
+                                title="This location hasn't appeared in the script yet"
+                            >
+                                Not in script
+                            </span>
+                        )}
+                    </div>
                     <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>
                         {location.type}
                     </p>
