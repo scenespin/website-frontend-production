@@ -34,7 +34,11 @@ export default function AccountPage() {
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       
       const response = await api.user.getCredits();
-      setCredits(response.data.balance || 0);
+      // FIX: API response is response.data.data.balance (not response.data.balance)
+      // Backend returns: { success: true, data: { balance: number } }
+      // Axios wraps it: response.data = { success: true, data: { balance: number } }
+      const creditsData = response.data.data;
+      setCredits(creditsData?.balance || 0);
     } catch (error) {
       console.error('Failed to fetch credits:', error);
       setCredits(0);

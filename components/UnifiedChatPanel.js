@@ -8,13 +8,15 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { ChatModePanel } from './modes/ChatModePanel';
 import { DirectorModePanel } from './modes/DirectorModePanel';
+import { CharacterModePanel } from './modes/CharacterModePanel';
+import { LocationModePanel } from './modes/LocationModePanel';
 import { ImageModePanel } from './modes/ImageModePanel';
 import { VideoModePanel } from './modes/VideoModePanel';
 import { SceneVisualizerModePanel } from './modes/SceneVisualizerModePanel';
 import { TryOnModePanel } from './modes/TryOnModePanel';
 import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
-import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip } from 'lucide-react';
+import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip, User, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { api } from '@/lib/api';
@@ -27,6 +29,8 @@ const MODE_CONFIG = {
   // AI AGENTS (use LLMs)
   chat: { icon: MessageSquare, label: 'Screenwriter', color: 'text-purple-500', description: 'AI interviews & brainstorming', isAgent: true },
   director: { icon: Clapperboard, label: 'Director', color: 'text-pink-500', description: 'Shot planning, dialogue & blocking', isAgent: true },
+  character: { icon: User, label: 'Character', color: 'text-cyan-500', description: 'Create characters with AI interview', isAgent: true },
+  location: { icon: Building2, label: 'Location', color: 'text-amber-500', description: 'Create locations with AI interview', isAgent: true },
   audio: { icon: Music, label: 'Audio', color: 'text-green-500', description: 'Music, sound effects & dialogue', isAgent: true },
   workflows: { icon: Zap, label: 'Workflows', color: 'text-orange-500', description: '58 pre-built AI workflows', isAgent: true },
   'try-on': { icon: Users, label: 'Try-On', color: 'text-teal-500', description: 'Virtual character try-on', isAgent: true },
@@ -37,7 +41,7 @@ const MODE_CONFIG = {
 };
 
 // Mode order: Agents first, then generation features
-const MODE_ORDER = ['chat', 'director', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
+const MODE_ORDER = ['chat', 'director', 'character', 'location', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
 
 // ============================================================================
 // PAGE-BASED AGENT FILTERING
@@ -54,12 +58,12 @@ function getAvailableModesForPage(pathname) {
   
   // /write page - Writing agents ONLY
   if (pathname.includes('/write') || pathname.includes('/editor')) {
-    return ['chat', 'director'];
+    return ['chat', 'director', 'character', 'location'];
   }
   
   // /production page - Production agents ONLY (workflows first as default)
   if (pathname.includes('/production')) {
-    return ['workflows', 'image', 'quick-video', 'audio', 'try-on'];
+    return ['workflows', 'image', 'quick-video', 'audio', 'try-on', 'character', 'location'];
   }
   
   // /composition and /timeline pages - Audio agent ONLY
@@ -541,6 +545,12 @@ function UnifiedChatPanelInner({
 
       case 'director':
         return <DirectorModePanel {...commonProps} />;
+
+      case 'character':
+        return <CharacterModePanel {...commonProps} />;
+
+      case 'location':
+        return <LocationModePanel {...commonProps} />;
 
       case 'workflows':
         return (
