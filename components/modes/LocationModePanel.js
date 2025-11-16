@@ -170,21 +170,21 @@ REQUIRED OUTPUT FORMAT:
         
         setStreaming(false, '');
         
-        // Add final profile
+        // Parse the final AI response FIRST
+        const parsedData = parseAIResponse(finalResponse, 'location');
+        
+        // Store completion data BEFORE adding message (so UI updates immediately)
+        setWorkflowCompletion({
+          type: 'location',
+          parsedData: parsedData || { name: 'Location', description: finalResponse, type: 'INT' },
+          aiResponse: finalResponse
+        });
+        
+        // Add final profile message
         addMessage({
           role: 'assistant',
           content: finalResponse,
           mode: 'location'
-        });
-        
-        // Parse the final AI response
-        const parsedData = parseAIResponse(finalResponse, 'location');
-        
-        // Store completion data
-        setWorkflowCompletion({
-          type: 'location',
-          parsedData,
-          aiResponse
         });
         setWorkflow(null);
         setPlaceholder('Type your message...');
