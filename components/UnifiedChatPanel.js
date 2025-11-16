@@ -203,35 +203,35 @@ function LLMModelSelector() {
         <span className="text-xs font-medium">{currentModel.name}</span>
         <ChevronDown className="w-3.5 h-3.5" />
       </label>
-      <ul tabIndex={0} className="dropdown-content menu p-2 shadow-lg bg-base-200 rounded-box w-64 mb-2 border border-base-300 max-h-96 overflow-y-auto flex flex-col gap-1">
+      <ul tabIndex={0} className="dropdown-content menu p-1 shadow-lg bg-base-200 rounded-box w-56 mb-2 border border-base-300 max-h-80 overflow-y-auto overflow-x-hidden">
         {/* Group by provider - Users choose their preferred AI style */}
         {['Anthropic', 'OpenAI', 'Google'].map(provider => {
           const providerModels = LLM_MODELS.filter(m => m.provider === provider);
           return (
-            <div key={provider} className="w-full">
-              <div className="menu-title px-3 py-1">
-                <span className="text-xs font-bold text-base-content/70">{provider}</span>
+            <li key={provider} className="w-full">
+              <div className="px-2 py-1">
+                <span className="text-[10px] font-semibold text-base-content/60 uppercase tracking-wide">{provider}</span>
               </div>
-              <div className="flex flex-col w-full">
-                {providerModels.map(model => (
-                  <button
-                    key={model.id}
-                    onClick={() => handleModelChange(model.id)}
-                    className={`flex flex-col items-start gap-0.5 py-2 px-3 w-full hover:bg-base-300 rounded ${
-                      selectedModel === model.id ? 'bg-cinema-red/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <span className="font-medium text-xs">{model.name}</span>
-                      {model.recommended && (
-                        <span className="badge badge-xs badge-primary">✨</span>
-                      )}
-                    </div>
-                    <span className="text-[10px] opacity-60 text-left">{model.description}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+              {providerModels.map(model => (
+                <button
+                  key={model.id}
+                  onClick={() => handleModelChange(model.id)}
+                  className={`flex items-center justify-between gap-1.5 py-1 px-2 w-full hover:bg-base-300 rounded text-left ${
+                    selectedModel === model.id ? 'bg-cinema-red/10' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span className="text-[11px] font-medium truncate">{model.name}</span>
+                    {model.recommended && (
+                      <span className="text-[10px]">✨</span>
+                    )}
+                  </div>
+                  {model.description && (
+                    <span className="text-[9px] opacity-50 truncate max-w-[120px]">{model.description}</span>
+                  )}
+                </button>
+              ))}
+            </li>
           );
         })}
       </ul>

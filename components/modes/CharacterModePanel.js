@@ -180,6 +180,14 @@ REQUIRED OUTPUT FORMAT:
 **Type:** [lead/supporting/minor]
 **Arc Status:** [introduced/developing/resolved]`;
 
+        // Build conversation history from messages
+        const conversationHistory = state.messages
+          .filter(m => m.mode === 'character')
+          .map(m => ({
+            role: m.role,
+            content: m.content
+          }));
+        
         // Call AI to generate final profile
         setStreaming(true, '');
         let finalResponse = '';

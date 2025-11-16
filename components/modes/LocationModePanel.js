@@ -160,6 +160,14 @@ REQUIRED OUTPUT FORMAT:
 **Atmosphere Notes:** [Optional - mood and feel]
 **Set Requirements:** [Optional - production notes]`;
 
+        // Build conversation history from messages
+        const conversationHistory = state.messages
+          .filter(m => m.mode === 'location')
+          .map(m => ({
+            role: m.role,
+            content: m.content
+          }));
+        
         // Call AI to generate final profile
         setStreaming(true, '');
         let finalResponse = '';
