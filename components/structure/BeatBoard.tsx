@@ -237,46 +237,18 @@ export default function BeatBoard({ projectId }: BeatBoardProps) {
                 hasSetContent: !!setEditorContent
             });
             
-            // 🔥 FIX: Get editor content from context or localStorage fallback
-            let editorContent = editorState?.content;
-            if (!editorContent && typeof window !== 'undefined') {
-                // Fallback: Try to get from localStorage (EditorContext might not have loaded yet)
-                const savedContent = localStorage.getItem('screenplay_draft');
-                if (savedContent) {
-                    editorContent = savedContent;
-                    console.log('[BeatBoard] Using editor content from localStorage fallback');
-                }
-            }
-            
             await moveScene(
                 scene.id, 
                 targetBeat.id, 
-                newOrder,
-                editorContent, // Current editor content (from context or localStorage)
-                editorContent && setEditorContent ? (reorderedContent: string) => {
-                    console.log('[BeatBoard] ✅ Received reordered content, updating editor...', {
-                        newContentLength: reorderedContent.length,
-                        hasSetContent: !!setEditorContent
-                    });
-                    // Update editor with reordered content (marks as dirty for auto-save)
-                    setEditorContent(reorderedContent, true);
-                    // Also update localStorage as backup
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem('screenplay_draft', reorderedContent);
-                    }
-                } : undefined // Only provide callback if we have content and setContent function
+                newOrder
             );
             
             const message = sourceBeat.id === targetBeat.id
                 ? `Reordered scene "${scene.heading}" within ${targetBeat.title}`
                 : `Moved scene "${scene.heading}" to ${targetBeat.title}`;
             
-            // Note: Script content is updated in editor context and will auto-save
-            // If editor is on a different page (/write), it will load the updated content on next navigation/refresh
             toast.success(message, {
-                description: editorState && setEditorContent 
-                    ? 'Script reordered and saved' 
-                    : 'Scene moved (script will update on /write page)'
+                description: 'Scene order saved. Use "Re-scan Script" to update script content if needed.'
             });
         } catch (error) {
             console.error('Failed to move scene:', error);

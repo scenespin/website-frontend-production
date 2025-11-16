@@ -67,7 +67,7 @@ interface ScreenplayContextType {
     createScene: (beatId: string, scene: CreateInput<Scene>) => Promise<Scene>;
     updateScene: (id: string, updates: Partial<Scene>) => Promise<void>;
     deleteScene: (id: string) => Promise<void>;
-    moveScene: (sceneId: string, targetBeatId: string, newOrder: number, editorContent?: string, onScriptReorder?: (reorderedContent: string) => void) => Promise<void>;
+    moveScene: (sceneId: string, targetBeatId: string, newOrder: number) => Promise<void>;
     
     // CRUD - Characters
     createCharacter: (character: CreateInput<Character>) => Promise<Character>;
@@ -1109,18 +1109,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const moveScene = useCallback(async (
         sceneId: string, 
         targetBeatId: string, 
-        newOrder: number,
-        editorContent?: string,
-        onScriptReorder?: (reorderedContent: string) => void
+        newOrder: number
     ) => {
         let movedScene: Scene | undefined;
-        let oldBeatsState: StoryBeat[] = [];
-        
-        // Store old state for script reordering
-        setBeats(prev => {
-            oldBeatsState = JSON.parse(JSON.stringify(prev)); // Deep copy
-            return prev;
-        });
         
         // Remove from current beat
         setBeats(prev => {
@@ -1211,93 +1202,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Don't throw - scene move succeeded in UI, persistence failure is logged
                 }
             }
-            
-            // Reorder script content if editor content and callback are provided
-            if (editorContent && onScriptReorder) {
-                try {
-                    console.log('[ScreenplayContext] 🔄 Starting script reordering...', {
-                        editorContentLength: editorContent.length,
-                        hasCallback: !!onScriptReorder
-                    });
-                    
-                    // Collect all scenes in old order (flat list)
-                    const oldSceneOrder: Scene[] = [];
-                    oldBeatsState.forEach(beat => {
-                        beat.scenes.forEach(scene => {
-                            oldSceneOrder.push(scene);
-                        });
-                    });
-                    
-                    // Collect all scenes in new order (flat list)
-                    const newSceneOrder: Scene[] = [];
-                    newBeatsState.forEach(beat => {
-                        beat.scenes.forEach(scene => {
-                            newSceneOrder.push(scene);
-                        });
-                    });
-                    
-                    // Use scene numbers from newBeatsState (already updated in setBeats)
-                    // The scene numbers are already correct in newBeatsState
-                    const updatedNewSceneOrder = newSceneOrder;
-                    
-                    console.log('[ScreenplayContext] 📊 Scene order:', {
-                        oldCount: oldSceneOrder.length,
-                        newCount: updatedNewSceneOrder.length,
-                        firstScene: updatedNewSceneOrder[0]?.heading,
-                        lastScene: updatedNewSceneOrder[updatedNewSceneOrder.length - 1]?.heading
-                    });
-                    
-                    // Reorder script content with error handling
-                    let reorderedContent: string;
-                    try {
-                        reorderedContent = reorderScriptContent(editorContent, updatedNewSceneOrder, oldSceneOrder);
-                        
-                        // Validate reordered content before applying
-                        if (!reorderedContent || reorderedContent.trim().length === 0) {
-                            throw new Error('Reordered content is empty');
-                        }
-                        
-                        // Update editor via callback
-                        onScriptReorder(reorderedContent);
-                        console.log('[ScreenplayContext] ✅ Script content reordered');
-                    } catch (reorderError) {
-                        console.error('[ScreenplayContext] ❌ Script reordering failed:', reorderError);
-                        // Don't update editor if reordering failed - keep original content
-                        // Scene move still succeeded, just script reordering failed
-                        throw reorderError; // Re-throw to be caught by outer catch
-                    }
-                    
-                    // 🔥 FIX: Recalculate scene line positions after reordering
-                    // This ensures Scene Navigator shows correct line numbers
-                    try {
-                        // Wait a bit for editor state to update, then recalculate positions
-                        setTimeout(async () => {
-                            try {
-                                // Use ref to access updateScenePositions (defined later in component)
-                                if (updateScenePositionsRef.current) {
-                                    await updateScenePositionsRef.current(reorderedContent);
-                                    console.log('[ScreenplayContext] ✅ Scene line positions recalculated after reordering');
-                                }
-                            } catch (posError) {
-                                console.error('[ScreenplayContext] ⚠️ Failed to recalculate scene positions:', posError);
-                                // Non-critical - scene move succeeded
-                            }
-                        }, 500); // Small delay to ensure editor state is updated
-                    } catch (posError) {
-                        console.error('[ScreenplayContext] ⚠️ Failed to schedule position recalculation:', posError);
-                    }
-                } catch (error) {
-                    console.error('[ScreenplayContext] ❌ Failed to reorder script content:', error);
-                    // Don't throw - scene move succeeded, script reordering is optional
-                }
-            } else {
-                console.log('[ScreenplayContext] ⚠️ Script reordering skipped:', {
-                    hasEditorContent: !!editorContent,
-                    hasCallback: !!onScriptReorder
-                });
-            }
         }
-    }, [beats, screenplayId, reorderScriptContent, transformScenesToAPI, getToken]);
+    }, [beats, screenplayId, transformScenesToAPI, getToken]);
     
     // ========================================================================
     // CRUD - Characters
