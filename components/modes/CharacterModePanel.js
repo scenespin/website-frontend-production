@@ -78,113 +78,19 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
         mode: 'character'
       });
       
-      // Build conversation history (last 10 messages)
-      const chatMessages = state.messages.filter(m => m.mode === 'character').slice(-10);
+      // Build conversation history for final profile generation (if last question)
+      const chatMessages = state.messages.filter(m => m.mode === 'character').slice(-20);
       const conversationHistory = chatMessages.map(m => ({
         role: m.role,
         content: m.content
       }));
       
-      // Get system prompt from workflow
-      let systemPrompt = workflow.systemPrompt;
-      
-      // If this is the first question and we have existing data from the modal, include it
-      if (currentQuestionIndex === 0 && state.entityContextBanner?.existingData) {
-        const existing = state.entityContextBanner.existingData;
-        const existingInfo = [];
-        if (existing.name) existingInfo.push(`Name: ${existing.name}`);
-        if (existing.description) existingInfo.push(`Description: ${existing.description}`);
-        if (existing.type) existingInfo.push(`Type: ${existing.type}`);
-        if (existing.arcStatus) existingInfo.push(`Arc Status: ${existing.arcStatus}`);
-        
-        if (existingInfo.length > 0) {
-          systemPrompt += `\n\n📝 EXISTING CHARACTER INFORMATION (user has already entered this):\n${existingInfo.join('\n')}\n\nNote: The user has already provided this information. You can reference it naturally in your questions, but still ask all questions to get a complete profile.`;
-        }
-      }
-      
-      // Build enhanced system prompt - AI should ONLY acknowledge briefly, we'll add next question manually
-      const enhancedSystemPrompt = `${systemPrompt}
-
-⚠️ CONTEXT REMINDER: This is SCREENPLAY CHARACTER CREATION. The user is creating a FICTIONAL CHARACTER for a MOVIE/SCREENPLAY, NOT describing a real person.
-
-CRITICAL INSTRUCTIONS FOR THIS RESPONSE (Question ${currentQuestionIndex + 1} of ${totalQuestions}):
-- The user just answered a question about their SCREENPLAY CHARACTER
-- Your ONLY job: Acknowledge their answer in 3-5 words maximum (e.g., "Got it.", "Understood.", "Noted.")
-- DO NOT write sentences, paragraphs, or explanations
-- DO NOT ask any questions - the next question will be added automatically by the system
-- DO NOT generate follow-up questions or conversation
-- DO NOT generate health assessments, medical advice, or real-world information
-- Keep it SHORT - just acknowledge and stop
-
-GOOD responses (3-5 words max):
-- "Got it."
-- "Understood."
-- "Noted."
-- "Okay."
-
-BAD responses (TOO LONG):
-- "Got it. Sarah is 36, recently married, and stressed about money." (TOO LONG - just say "Got it.")
-- "That's interesting! Can you tell me more about..." (NO - don't ask questions)
-- "Here's a health assessment..." (NO - this is SCREENPLAY CHARACTER creation, not health advice)`;
-      
-      // Call streaming AI API
-      let aiResponse = '';
-      let streamingComplete = false;
-      let accumulatedStreamingText = '';
-      
-      // Start streaming
-      setStreaming(true, '');
-      
-      await api.chat.generateStream(
-        {
-          userPrompt: prompt,
-          systemPrompt: enhancedSystemPrompt,
-          desiredModelId: selectedModel,
-          conversationHistory,
-          sceneContext: null
-        },
-        // onChunk - update streaming text in real-time
-        (chunk) => {
-          accumulatedStreamingText += chunk;
-          setStreaming(true, accumulatedStreamingText);
-        },
-        // onComplete - process the full response
-        (fullContent) => {
-          aiResponse = fullContent;
-          streamingComplete = true;
-          setStreaming(false, ''); // Stop streaming
-        },
-        // onError - handle error
-        (error) => {
-          console.error('Error in streaming:', error);
-          toast.error(error.message || 'Failed to get AI response');
-          setStreaming(false, '');
-          setIsSending(false);
-          streamingComplete = true; // Break the wait loop
-        }
-      );
-      
-      // Wait for streaming to complete (with timeout)
-      let waitCount = 0;
-      while (!streamingComplete && waitCount < 300) { // 30 second timeout
-        await new Promise(resolve => setTimeout(resolve, 100));
-        waitCount++;
-      }
-      
-      // Use accumulated streaming text or fallback
-      if (!aiResponse) {
-        aiResponse = accumulatedStreamingText || 'Sorry, I couldn\'t generate a response.';
-      }
-      
-      // Ensure streaming is stopped
-      setStreaming(false, '');
-      
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {
-        // More questions - SKIP AI acknowledgment entirely, just advance immediately
-        // The 50-token limit ensures AI gives short responses, but we don't need to show them
+        // More questions - SKIP AI CALL ENTIRELY, just advance immediately
+        // No need to call AI for acknowledgments - just show next question
         
-        // Progress to next question immediately (no AI acknowledgment shown)
+        // Progress to next question immediately (no AI call, no acknowledgment)
         const nextIndex = currentQuestionIndex + 1;
         const nextQuestion = workflow.questions[nextIndex];
         
@@ -195,23 +101,101 @@ BAD responses (TOO LONG):
         });
         setPlaceholder(nextQuestion.placeholder);
         
-        // Add next question immediately (no delay, no AI acknowledgment)
+        // Add next question immediately (no delay, no AI call)
         addMessage({
           role: 'assistant',
           content: nextQuestion.question,
           mode: 'character'
         });
         
+        setIsSending(false);
+        return; // Exit early - no AI call needed
+        
       } else {
-        // Last question answered - workflow complete
+        // Last question answered - NOW call AI to generate final profile
+        // Build system prompt for final profile generation
+        let finalSystemPrompt = workflow.systemPrompt;
+        
+        // If we have existing data from the modal, include it
+        if (state.entityContextBanner?.existingData) {
+          const existing = state.entityContextBanner.existingData;
+          const existingInfo = [];
+          if (existing.name) existingInfo.push(`Name: ${existing.name}`);
+          if (existing.description) existingInfo.push(`Description: ${existing.description}`);
+          if (existing.type) existingInfo.push(`Type: ${existing.type}`);
+          if (existing.arcStatus) existingInfo.push(`Arc Status: ${existing.arcStatus}`);
+          
+          if (existingInfo.length > 0) {
+            finalSystemPrompt += `\n\n📝 EXISTING CHARACTER INFORMATION (user has already entered this):\n${existingInfo.join('\n')}\n\nNote: The user has already provided this information. Incorporate it into the final profile.`;
+          }
+        }
+        
+        finalSystemPrompt += `
+
+CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
+- The user has completed all interview questions
+- Generate a comprehensive character profile based on their answers
+- Use the conversation history to extract all their answers
+- Format the profile ready for screenplay use
+- DO NOT ask any more questions
+- DO NOT acknowledge - just generate the profile
+- This is a FICTIONAL CHARACTER for a SCREENPLAY, NOT a real person
+- DO NOT generate health assessments or medical information`;
+
+        // Call AI to generate final profile
+        setStreaming(true, '');
+        let finalResponse = '';
+        let finalStreamingComplete = false;
+        let finalAccumulatedText = '';
+        
+        await api.chat.generateStream(
+          {
+            userPrompt: 'Generate the character profile based on all the answers provided.',
+            systemPrompt: finalSystemPrompt,
+            desiredModelId: selectedModel,
+            conversationHistory,
+            sceneContext: null
+          },
+          (chunk) => {
+            finalAccumulatedText += chunk;
+            setStreaming(true, finalAccumulatedText);
+          },
+          (fullContent) => {
+            finalResponse = fullContent;
+            finalStreamingComplete = true;
+            setStreaming(false, '');
+          },
+          (error) => {
+            console.error('Error generating final profile:', error);
+            toast.error(error.message || 'Failed to generate profile');
+            setStreaming(false, '');
+            setIsSending(false);
+            finalStreamingComplete = true;
+          }
+        );
+        
+        // Wait for final response
+        let waitCount = 0;
+        while (!finalStreamingComplete && waitCount < 300) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          waitCount++;
+        }
+        
+        if (!finalResponse) {
+          finalResponse = finalAccumulatedText || 'Sorry, I couldn\'t generate a response.';
+        }
+        
+        setStreaming(false, '');
+        
+        // Add final profile
         addMessage({
           role: 'assistant',
-          content: aiResponse,
+          content: finalResponse,
           mode: 'character'
         });
         
         // Parse the final AI response
-        const parsedData = parseAIResponse(aiResponse, 'character');
+        const parsedData = parseAIResponse(finalResponse, 'character');
         
         // Store completion data
         setWorkflowCompletion({
