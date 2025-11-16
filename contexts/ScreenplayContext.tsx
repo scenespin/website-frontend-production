@@ -235,6 +235,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // 🔥 NEW: Force reload flag - when set, will force re-initialization even if already initialized
     const forceReloadRef = useRef(false);
     
+    // 🔥 NEW: Flag to prevent concurrent initialization runs
+    const isInitializingRef = useRef(false);
+    
     // 🔥 NEW: Reload trigger - incrementing this will force a reload from DynamoDB
     const [reloadTrigger, setReloadTrigger] = useState(0);
     
@@ -613,11 +616,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
-        console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current);
+        console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current, 'isInitializing:', isInitializingRef.current);
         
         // 🔥 CRITICAL: Guard against duplicate initialization runs
         // This prevents the 26-beat bug caused by multiple effect executions
         const initKey = screenplayId || 'no-id';
+        
+        // 🔥 FIX: Prevent concurrent initialization runs
+        if (isInitializingRef.current) {
+            console.log('[ScreenplayContext] ⏸️ Initialization already in progress - skipping');
+            return;
+        }
         
         // 🔥 FIX: If we previously initialized with 'no-id' but now have a real ID, reset the guard
         if (hasInitializedRef.current === 'no-id' && screenplayId) {
@@ -625,6 +634,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             hasInitializedRef.current = false; // Reset to allow initialization
         }
         
+        // 🔥 FIX: Check guard BEFORE any async operations to prevent infinite loops
         if (hasInitializedRef.current === initKey && !forceReloadRef.current) {
             console.log('[ScreenplayContext] ⏭️ Already initialized for:', initKey, '- skipping');
             return;
@@ -636,8 +646,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             forceReloadRef.current = false;
         }
         
+        // 🔥 CRITICAL: Set guards IMMEDIATELY to prevent re-entry during async operations
         console.log('[ScreenplayContext] 🚀 Starting initialization for:', initKey);
         hasInitializedRef.current = initKey;
+        isInitializingRef.current = true;
         
         async function initializeData() {
             // Feature 0117: Load directly from DynamoDB API functions
@@ -714,6 +726,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Mark as initialized and stop loading (even if there was an error)
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
+                    isInitializingRef.current = false; // 🔥 FIX: Reset initialization flag
                     console.log('[ScreenplayContext] ✅ Initialization complete - ready for imports');
                 }
             } else {
@@ -721,6 +734,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Still mark as initialized so imports can work (for new screenplays)
                 setHasInitializedFromDynamoDB(true);
                 setIsLoading(false);
+                isInitializingRef.current = false; // 🔥 FIX: Reset initialization flag
                 
                 // Feature 0117: For new screenplays (no ID yet), create default beats immediately
                 if (!hasAutoCreated.current) {
@@ -735,7 +749,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
         
         initializeData();
-    }, [screenplayId, reloadTrigger, transformScenesFromAPI, transformCharactersFromAPI, transformLocationsFromAPI, createDefaultBeats, groupScenesIntoBeats, buildRelationshipsFromScenes, getToken]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // Note: transform functions and helpers are stable useCallbacks, so we don't need them in deps
+        // Only screenplayId, reloadTrigger, and getToken can actually change
+    }, [screenplayId, reloadTrigger, getToken]);
     
     // 🔥 NEW: Auto-build relationships when beats/scenes change
     // This ensures scene counts are always accurate
