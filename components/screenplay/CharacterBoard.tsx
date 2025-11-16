@@ -326,12 +326,18 @@ function CharacterCardContent({
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
         
-        // Copy Fountain-formatted character dialogue block
-        const fountainText = `${character.name.toUpperCase()}\n\n`;
+        // Copy Fountain-formatted character dialogue block with description
+        // Format: Character name (for dialogue) + description (as action line)
+        let fountainText = `${character.name.toUpperCase()}\n\n`;
+        
+        // Add description as action line if it exists
+        if (character.description && character.description.trim()) {
+            fountainText += `${character.description}\n\n`;
+        }
         
         navigator.clipboard.writeText(fountainText).then(() => {
             toast.success('Copied to clipboard!', {
-                description: 'Paste in editor to insert character dialogue block'
+                description: 'Paste in editor to insert character dialogue block with description'
             });
         }).catch((err) => {
             console.error('Failed to copy:', err);

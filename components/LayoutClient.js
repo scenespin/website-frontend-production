@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { Crisp } from "crisp-sdk-web";
 import NextTopLoader from "nextjs-toploader";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { Tooltip } from "react-tooltip";
 import config from "@/config";
 import { setAuthTokenGetter } from "@/lib/api";

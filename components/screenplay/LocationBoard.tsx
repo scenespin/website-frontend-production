@@ -8,7 +8,7 @@ import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
 import { getLocationDependencies, generateLocationReport } from '@/utils/dependencyChecker';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 interface LocationColumn {
     id: string;
