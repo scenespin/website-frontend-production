@@ -90,24 +90,20 @@ Format the final character profile ready for screenplay, and structure it so the
   
   questions: [
     {
-      question: "What's your character's name and rough age?",
-      placeholder: "e.g., Sarah, mid-30s"
+      question: "What's your character's name and age?",
+      placeholder: "e.g., Sarah, 35"
     },
     {
-      question: "What role do they play - protagonist, antagonist, or supporting?",
-      placeholder: "e.g., Protagonist"
+      question: "What do they do? (their job or role)",
+      placeholder: "e.g., Investigative journalist"
     },
     {
-      question: "Describe their physical appearance in 2-3 sentences.",
-      placeholder: "e.g., Tall, wears a faded leather jacket, has a scar on her cheek"
+      question: "What's their main goal in the story?",
+      placeholder: "e.g., Expose corporate corruption"
     },
     {
-      question: "What do they want? What's driving them?",
-      placeholder: "e.g., To find her missing sister"
-    },
-    {
-      question: "What's their biggest flaw or internal conflict?",
-      placeholder: "e.g., Trusts no one, pushes people away"
+      question: "Describe them in 2-3 sentences (appearance, personality, key trait).",
+      placeholder: "e.g., Sharp eyes, determined, too trusting"
     }
   ]
 };
