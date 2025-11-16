@@ -93,14 +93,6 @@ YOUR JOB:
 
 Location profile should include:
 
-1. "What's the name of this location? Is it interior (INT) or exterior (EXT)?"
-2. "Describe what this place looks like in 2-3 sentences."
-3. "What's the atmosphere or mood? How should it feel?"
-4. "What can characters DO here? Any unique features?"
-5. "Why is THIS location important to your story?"
-
-After the final question is answered, generate comprehensive location details:
-
 **The Look (Visual Description)**
 - Use straightforward, vivid adjectives
 - Active voice: "The room IS..." not "The room was..."
