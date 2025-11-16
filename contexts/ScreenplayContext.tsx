@@ -50,7 +50,8 @@ import { parseContentForImport } from '@/utils/fountainAutoImport';
 
 interface ScreenplayContextType {
     // State
-    beats: StoryBeat[];
+    beats: StoryBeat[]; // Frontend-only UI templates (not persisted)
+    scenes: Scene[]; // Direct scene storage (beats removed)
     characters: Character[];
     locations: Location[];
     relationships: Relationships;
@@ -98,6 +99,7 @@ interface ScreenplayContextType {
     // 🔥 NEW: Get current state without closure issues
     getCurrentState: () => {
         beats: StoryBeat[];
+        scenes: Scene[];
         characters: Character[];
         locations: Location[];
     };
@@ -177,7 +179,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Loading from localStorage first causes race conditions where stale data overwrites fresh edits
     // localStorage is ONLY used as a write cache for performance
     // ========================================================================
-    const [beats, setBeats] = useState<StoryBeat[]>([]);
+    const [beats, setBeats] = useState<StoryBeat[]>([]); // Frontend-only UI templates
+    const [scenes, setScenes] = useState<Scene[]>([]); // Direct scene storage (beats removed)
     
     // Characters, locations - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount!
@@ -195,12 +198,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // 🔥 NEW: Refs to access current state without closure issues
     // These are updated in sync with state and can be read in callbacks without stale closures
     const beatsRef = useRef<StoryBeat[]>([]);
+    const scenesRef = useRef<Scene[]>([]);
     const charactersRef = useRef<Character[]>([]);
     const locationsRef = useRef<Location[]>([]);
     const updateScenePositionsRef = useRef<((content: string) => Promise<number>) | null>(null);
     
     // Keep refs in sync with state
     useEffect(() => { beatsRef.current = beats; }, [beats]);
+    useEffect(() => { scenesRef.current = scenes; }, [scenes]);
     useEffect(() => { 
         charactersRef.current = characters; 
         console.log('[ScreenplayContext] 🔄 Characters state updated:', characters.length);
@@ -397,16 +402,42 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Helper to group scenes into beats based on group_label or order
     const groupScenesIntoBeats = useCallback((scenes: Scene[], beats: StoryBeat[]): StoryBeat[] => {
-        // 🔥 FIX: Deduplicate scenes by ID first (prevent duplicates from rescan/import)
-        const sceneMap = new Map<string, Scene>();
+        // 🔥 FIX: Deduplicate scenes by ID AND content (heading + startLine)
+        // This handles cases where same scene has different IDs (from multiple imports)
+        const sceneMapById = new Map<string, Scene>();
+        const sceneMapByContent = new Map<string, Scene>(); // key: "heading|startLine"
+        
         scenes.forEach(scene => {
-            if (scene.id && !sceneMap.has(scene.id)) {
-                sceneMap.set(scene.id, scene);
+            if (!scene) return; // Skip null/undefined scenes
+            
+            // Track by ID if available
+            if (scene.id && !sceneMapById.has(scene.id)) {
+                sceneMapById.set(scene.id, scene);
+            }
+            
+            // Always track by content (heading + startLine) to catch duplicates with different IDs or no IDs
+            const contentKey = `${(scene.heading || '').toUpperCase().trim()}|${scene.fountain?.startLine || 0}`;
+            if (contentKey !== '|0' && !sceneMapByContent.has(contentKey)) {
+                sceneMapByContent.set(contentKey, scene);
+            } else if (contentKey !== '|0' && sceneMapByContent.has(contentKey)) {
+                // Duplicate content found - keep the one with the earlier order/number
+                const existing = sceneMapByContent.get(contentKey)!;
+                const existingOrder = existing.order ?? existing.number ?? 0;
+                const newOrder = scene.order ?? scene.number ?? 0;
+                if (newOrder < existingOrder) {
+                    sceneMapByContent.set(contentKey, scene);
+                    // Remove old one from ID map if it exists
+                    if (existing.id && sceneMapById.has(existing.id)) {
+                        sceneMapById.delete(existing.id);
+                    }
+                }
             }
         });
-        const uniqueScenes = Array.from(sceneMap.values());
         
-        console.log('[ScreenplayContext] 🔍 Deduplicated scenes:', scenes.length, '->', uniqueScenes.length);
+        // Use content-based deduplication as final source of truth
+        const uniqueScenes = Array.from(sceneMapByContent.values());
+        
+        console.log('[ScreenplayContext] 🔍 Deduplicated scenes:', scenes.length, '->', uniqueScenes.length, '(by ID and content)');
         
         // 🔥 FIX: Sort scenes by order field first (primary) or number (fallback) to maintain correct sequence
         const sortedScenes = uniqueScenes.sort((a, b) => {
@@ -422,14 +453,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const updatedBeats = beats.map(b => ({ ...b, scenes: [] as Scene[] }));
         const orphanedScenes: Scene[] = [];
         
-        // First pass: Assign scenes with group_label to matching beats
+        // First pass: Assign scenes with group_label to matching beats (deduplicate within beat)
         sortedScenes.forEach(scene => {
             if (scene.group_label) {
                 const beat = beatMap.get(scene.group_label.toUpperCase());
                 if (beat) {
                     const index = beats.findIndex(b => b.id === beat.id);
                     if (index !== -1) {
-                        updatedBeats[index].scenes.push(scene);
+                        // Check if scene already exists in this beat (by ID or content)
+                        const contentKey = `${scene.heading.toUpperCase().trim()}|${scene.fountain.startLine}`;
+                        const alreadyExists = updatedBeats[index].scenes.some(s => 
+                            s.id === scene.id || 
+                            `${s.heading.toUpperCase().trim()}|${s.fountain.startLine}` === contentKey
+                        );
+                        if (!alreadyExists) {
+                            updatedBeats[index].scenes.push(scene);
+                        }
                         return;
                     }
                 }
@@ -440,10 +479,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX: Distribute orphaned scenes evenly across ALL beats (not just first one)
         if (orphanedScenes.length > 0 && updatedBeats.length > 0) {
             // Scenes are already sorted by order/number above
-            // Distribute evenly across all beats
+            // Distribute evenly across all beats (deduplicate within beat)
             orphanedScenes.forEach((scene, index) => {
                 const beatIndex = index % updatedBeats.length; // Round-robin distribution
-                updatedBeats[beatIndex].scenes.push(scene);
+                // Check if scene already exists in this beat (by ID or content)
+                const contentKey = `${scene.heading.toUpperCase().trim()}|${scene.fountain.startLine}`;
+                const alreadyExists = updatedBeats[beatIndex].scenes.some(s => 
+                    s.id === scene.id || 
+                    `${s.heading.toUpperCase().trim()}|${s.fountain.startLine}` === contentKey
+                );
+                if (!alreadyExists) {
+                    updatedBeats[beatIndex].scenes.push(scene);
+                }
             });
             
             console.log('[ScreenplayContext] 📊 Distributed', orphanedScenes.length, 'orphaned scenes across', updatedBeats.length, 'beats');
@@ -688,20 +735,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Transform API data to frontend format
                     const transformedScenes = transformScenesFromAPI(scenesData);
                     
-                    // Feature 0117: Generate beats from scenes (frontend-only grouping)
+                    // 🔥 Beats removed - store scenes directly
+                    setScenes(transformedScenes);
+                    console.log('[ScreenplayContext] ✅ Loaded', transformedScenes.length, 'scenes directly (beats removed)');
+                    
+                    // Keep beats as empty UI templates (if needed for backward compatibility)
                     const defaultBeats = createDefaultBeats();
-                    const beatsWithScenes = groupScenesIntoBeats(transformedScenes, defaultBeats);
+                    setBeats(defaultBeats);
                     
-                    setBeats(beatsWithScenes);
-                    console.log('[ScreenplayContext] ✅ Generated', beatsWithScenes.length, 'beats with', transformedScenes.length, 'total scenes');
-                    console.log('[ScreenplayContext] 🔍 Beat details:', beatsWithScenes.map(b => ({ 
-                        id: b.id, 
-                        title: b.title, 
-                        scenesCount: b.scenes?.length || 0
-                    })));
-                    
-                    // Mark that we loaded beats from DB (even if 0) to prevent auto-creation
-                    if (beatsWithScenes.length > 0) {
+                    // Mark that we loaded scenes from DB to prevent auto-creation
+                    if (transformedScenes.length > 0) {
                         hasAutoCreated.current = true;
                     }
                     
@@ -724,11 +767,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
-                    // Pass characters and locations for validation
-                    buildRelationshipsFromScenes(transformedScenes, beatsWithScenes, transformedCharacters, transformedLocations);
+                    // Pass characters and locations for validation (beats are empty templates now)
+                    buildRelationshipsFromScenes(transformedScenes, defaultBeats, transformedCharacters, transformedLocations);
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
-                    if (beatsWithScenes.length === 0 && !hasAutoCreated.current) {
+                    if (transformedScenes.length === 0 && !hasAutoCreated.current) {
                         console.log('[ScreenplayContext] 🏗️ Creating default 8-sequence structure for screenplay:', screenplayId);
                         const freshBeats = createDefaultBeats();
                         setBeats(freshBeats);
@@ -772,17 +815,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // 🔥 NEW: Auto-build relationships when beats/scenes change
     // This ensures scene counts are always accurate
     useEffect(() => {
-        if (beats.length === 0) return;
-        
-        // Extract all scenes from beats
-        const allScenes = beats.flatMap(beat => beat.scenes);
-        if (allScenes.length === 0) return;
+        if (scenes.length === 0) return;
         
         // Only build if we have characters/locations loaded (to avoid empty relationships)
         if (characters.length > 0 || locations.length > 0) {
-            buildRelationshipsFromScenes(allScenes, beats, characters, locations);
+            buildRelationshipsFromScenes(scenes, beats, characters, locations);
         }
-    }, [beats, characters.length, locations.length, buildRelationshipsFromScenes]);
+    }, [scenes, characters.length, locations.length, buildRelationshipsFromScenes, beats]);
     
     // ========================================================================
     // Auto-save to localStorage when data changes
@@ -823,12 +862,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             updatedAt: now
         };
         
-        // Add to beat (frontend grouping only)
-        setBeats(prev => prev.map(beat =>
-            beat.id === beatId
-                ? { ...beat, scenes: [...beat.scenes, newScene], updatedAt: now }
-                : beat
-        ));
+        // 🔥 Beats removed - add directly to scenes state
+        setScenes(prev => [...prev, newScene]);
         
         // Add to relationships
         setRelationships(prev => ({
@@ -844,68 +879,45 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }));
         
-        // Feature 0111 Phase 3: Update beat in DynamoDB (scenes are nested)
         // Feature 0117: Save scene directly to DynamoDB (beats don't persist)
         if (screenplayId) {
             try {
-                // Find the updated beat
-                const updatedBeat = beats.find(b => b.id === beatId);
-                if (updatedBeat) {
-                    // Feature 0117: Save the new scene to wryda-scenes table directly
-                    const apiScene = transformScenesToAPI([newScene]);
-                    await bulkCreateScenes(screenplayId, apiScene, getToken);
-                    console.log('[ScreenplayContext] ✅ Saved new scene to DynamoDB');
-                }
+                const apiScene = transformScenesToAPI([newScene]);
+                await bulkCreateScenes(screenplayId, apiScene, getToken);
+                console.log('[ScreenplayContext] ✅ Saved new scene to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save scene to DynamoDB:', error);
             }
         }
         
         return newScene;
-    }, [beats, screenplayId]);
+    }, [screenplayId, getToken]);
     
     const updateScene = useCallback(async (id: string, updates: Partial<Scene>) => {
         const now = new Date().toISOString();
         
-        setBeats(prev => {
-            // Update the scene
-            const updatedBeats = prev.map(beat => ({
-                ...beat,
-                scenes: beat.scenes.map(scene =>
-                    scene.id === id
-                        ? { ...scene, ...updates, updatedAt: now }
-                        : scene
-                )
-            }));
-            
-            // Recalculate beat page ranges if timing data changed
-            if (updates.timing) {
-                return recalculateBeatPageRanges(updatedBeats);
-            }
-            
-            return updatedBeats;
-        });
+        // 🔥 Beats removed - update directly in scenes state
+        setScenes(prev => prev.map(scene =>
+            scene.id === id
+                ? { ...scene, ...updates, updatedAt: now }
+                : scene
+        ));
         
-        // Feature 0111 Phase 3: Update all beats in DynamoDB (since scene updated)
+        // Feature 0117: Save updated scene directly to DynamoDB
         if (screenplayId) {
             try {
-                // Find which beat contains this scene
-                const parentBeat = beats.find(beat => beat.scenes.some(s => s.id === id));
-                if (parentBeat) {
-                    const updatedScene = parentBeat.scenes.find(s => s.id === id);
-                    if (updatedScene) {
-                        const sceneWithUpdates = { ...updatedScene, ...updates, updatedAt: now };
-                        // Feature 0117: Save updated scene directly (beats don't persist)
-                        const apiScene = transformScenesToAPI([sceneWithUpdates]);
-                        await bulkCreateScenes(screenplayId, apiScene, getToken);
-                        console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
-                    }
+                const currentScene = scenes.find(s => s.id === id);
+                if (currentScene) {
+                    const sceneWithUpdates = { ...currentScene, ...updates, updatedAt: now };
+                    const apiScene = transformScenesToAPI([sceneWithUpdates]);
+                    await bulkCreateScenes(screenplayId, apiScene, getToken);
+                    console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
                 }
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update scene in DynamoDB:', error);
             }
         }
-    }, [beats, screenplayId]);
+    }, [scenes, screenplayId, getToken]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
     const recalculateBeatPageRanges = (beats: StoryBeat[]): StoryBeat[] => {
@@ -937,17 +949,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     };
     
     const deleteScene = useCallback(async (id: string) => {
-        let deletedScene: Scene | undefined;
+        // 🔥 Beats removed - find and remove from scenes state
+        const deletedScene = scenes.find(s => s.id === id);
         
-        setBeats(prev => prev.map(beat => {
-            const scene = beat.scenes.find(s => s.id === id);
-            if (scene) deletedScene = scene;
-            
-            return {
-                ...beat,
-                scenes: beat.scenes.filter(s => s.id !== id)
-            };
-        }));
+        setScenes(prev => prev.filter(s => s.id !== id));
         
         // Remove from relationships
         setRelationships(prev => {
@@ -1766,21 +1771,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const charRels = relationships.characters[characterId];
         if (!charRels) return [];
         
-        const allScenes = beats.flatMap(beat => beat.scenes);
         return charRels.appearsInScenes
-            .map(sceneId => allScenes.find(s => s.id === sceneId))
+            .map(sceneId => scenes.find(s => s.id === sceneId))
             .filter((s): s is Scene => s !== undefined);
-    }, [relationships, beats]);
+    }, [relationships, scenes]);
     
     const getLocationScenes = useCallback((locationId: string): Scene[] => {
         const locRels = relationships.locations[locationId];
         if (!locRels) return [];
         
-        const allScenes = beats.flatMap(beat => beat.scenes);
         return locRels.scenes
-            .map(sceneId => allScenes.find(s => s.id === sceneId))
+            .map(sceneId => scenes.find(s => s.id === sceneId))
             .filter((s): s is Scene => s !== undefined);
-    }, [relationships, beats]);
+    }, [relationships, scenes]);
     
     // ========================================================================
     // Image Management
@@ -2240,7 +2243,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [locations, screenplayId]);
     
     const bulkImportScenes = useCallback(async (
-        beatId: string, 
+        beatId: string, // 🔥 Kept for backward compatibility but not used (beats removed)
         scenes: Array<{
             heading: string;
             location: string;
@@ -2255,7 +2258,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Create scenes
         scenes.forEach((sceneData, index) => {
-            // Feature 0117: Removed beatId from Scene object
+            // Feature 0117: Removed beatId from Scene object - scenes are standalone
             const newScene: Scene = {
                 id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 number: index + 1,
@@ -2278,24 +2281,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             newScenes.push(newScene);
         });
         
-        // Add scenes to beat (ensuring beat.scenes is initialized and deduplicated)
-        setBeats(prev => prev.map(beat => {
-            if (beat.id !== beatId) return beat;
+        // 🔥 Beats removed - add directly to scenes state with deduplication
+        setScenes(prev => {
+            const existingSceneIds = new Set(prev.map(s => s.id));
+            const existingContentKeys = new Set(
+                prev.map(s => `${(s.heading || '').toUpperCase().trim()}|${s.fountain?.startLine || 0}`)
+            );
             
-            // Deduplicate: only add scenes that don't already exist in the beat
-            const existingSceneIds = new Set((beat.scenes || []).map(s => s.id));
-            const trulyNewScenes = newScenes.filter(scene => !existingSceneIds.has(scene.id));
+            const trulyNewScenes = newScenes.filter(scene => {
+                // Check by ID
+                if (existingSceneIds.has(scene.id)) return false;
+                
+                // Check by content (heading + startLine)
+                const contentKey = `${(scene.heading || '').toUpperCase().trim()}|${scene.fountain?.startLine || 0}`;
+                if (existingContentKeys.has(contentKey)) return false;
+                
+                return true;
+            });
             
             if (trulyNewScenes.length < newScenes.length) {
-                console.log(`[ScreenplayContext] 🔍 Deduplicated ${newScenes.length - trulyNewScenes.length} duplicate scenes in beat ${beatId}`);
+                console.log(`[ScreenplayContext] 🔍 Deduplicated ${newScenes.length - trulyNewScenes.length} duplicate scenes`);
             }
             
-            return { 
-                ...beat, 
-                scenes: [...(beat.scenes || []), ...trulyNewScenes], 
-                updatedAt: now 
-            };
-        }));
+            return [...prev, ...trulyNewScenes];
+        });
         
         // Add to relationships
         setRelationships(prev => {
@@ -2304,12 +2313,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const updatedLocations = { ...prev.locations };
             
             newScenes.forEach(scene => {
-                // Create scene relationship
+                // Create scene relationship (beats removed - no storyBeat)
                 updatedScenes[scene.id] = {
                     type: 'scene',
                     characters: scene.fountain.tags.characters || [],
-                    location: scene.fountain.tags.location,
-                    storyBeat: beatId
+                    location: scene.fountain.tags.location
                 };
                 
                 // Link characters to scene (defensive - ensure array exists)
@@ -2338,11 +2346,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             };
         });
         
-        // Note: Beats will be saved to DynamoDB in bulk after all imports complete
-        // Each bulkImportScenes call updates local state, but we save once at the end
+        // Feature 0117: Save scenes directly to DynamoDB (beats don't persist)
+        if (screenplayId && newScenes.length > 0) {
+            try {
+                const apiScenes = transformScenesToAPI(newScenes);
+                await bulkCreateScenes(screenplayId, apiScenes, getToken);
+                console.log('[ScreenplayContext] ✅ Saved', newScenes.length, 'imported scenes to DynamoDB');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to save imported scenes to DynamoDB:', error);
+            }
+        }
         
         return newScenes;
-    }, [beats, screenplayId, getToken]);
+    }, [screenplayId, getToken]);
     
     // Feature 0117: saveBeatsToDynamoDB removed - beats are frontend-only UI templates
     // Kept for backward compatibility but does nothing
@@ -2709,12 +2725,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             // Find NEW scenes using hybrid matching
             // Collect all existing scenes from all beats
-            const allExistingScenes: Scene[] = [];
-            beats.forEach(beat => {
-                beat.scenes.forEach(scene => {
-                    allExistingScenes.push(scene);
-                });
-            });
+            // 🔥 Beats removed - get all existing scenes directly
+            const currentScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
+            const allExistingScenes = currentScenes;
             
             const newScenes: typeof parseResult.scenes = [];
             const existingScenesToUpdate: typeof parseResult.scenes = [];
@@ -2789,32 +2802,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             }
             
-            // Import new scenes
+            // Import new scenes (beats removed - scenes are standalone)
             if (newScenes.length > 0) {
                 console.log('[ScreenplayContext] Importing', newScenes.length, 'new scenes');
-                // Find the first beat to assign new scenes to (or create a default beat)
-                const firstBeat = beats[0];
-                if (firstBeat) {
-                    // 🔥 FIX: Use currentCharacters (from refs) to avoid stale state
-                    await bulkImportScenes(firstBeat.id, newScenes.map(scene => ({
-                        heading: scene.heading,
-                        location: scene.location,
-                        characterIds: scene.characters.map(charName => {
-                            // Find character ID by name (use currentCharacters from refs)
-                            const char = currentCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
-                            return char?.id || '';
-                        }).filter(id => id !== ''),
-                        locationId: (() => {
-                            // Find location ID by name (use currentLocations from refs)
-                            const loc = currentLocations.find(l => l.name.toUpperCase() === scene.location.toUpperCase());
-                            return loc?.id;
-                        })(),
-                        startLine: scene.startLine,
-                        endLine: scene.endLine
-                    })));
-                } else {
-                    console.warn('[ScreenplayContext] No beats available to assign new scenes to');
-                }
+                // 🔥 FIX: Use currentCharacters (from refs) to avoid stale state
+                await bulkImportScenes('', newScenes.map(scene => ({ // beatId not used anymore
+                    heading: scene.heading,
+                    location: scene.location,
+                    characterIds: scene.characters.map(charName => {
+                        // Find character ID by name (use currentCharacters from refs)
+                        const char = currentCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
+                        return char?.id || '';
+                    }).filter(id => id !== ''),
+                    locationId: (() => {
+                        // Find location ID by name (use currentLocations from refs)
+                        const loc = currentLocations.find(l => l.name.toUpperCase() === scene.location.toUpperCase());
+                        return loc?.id;
+                    })(),
+                    startLine: scene.startLine,
+                    endLine: scene.endLine
+                })));
             }
             
             // Update positions for existing scenes
@@ -2905,6 +2912,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const getCurrentState = useCallback(() => {
         return {
             beats: beatsRef.current,
+            scenes: scenesRef.current,
             characters: charactersRef.current,
             locations: locationsRef.current
         };
@@ -2976,6 +2984,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const value: ScreenplayContextType = {
         // State
         beats,
+        scenes,
         characters,
         locations,
         relationships,

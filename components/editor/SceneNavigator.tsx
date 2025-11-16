@@ -24,20 +24,37 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const setCurrentScene = useContextStore((state) => state.setCurrentScene);
     const [currentSceneId, setCurrentSceneId] = useState<string | null>(null);
 
-    // 🔥 SIMPLIFIED: Get all scenes in order (no beat grouping)
-    // Extract all scenes from beats, deduplicate by ID, and sort by order/number
-    const allScenesRaw = (screenplay?.beats || []).flatMap(beat => beat.scenes);
+    // 🔥 Get all scenes directly (beats removed - scenes are standalone)
+    const allScenesRaw = screenplay?.scenes || [];
     
-    // Deduplicate by ID (safety measure in case duplicates get through)
-    const sceneMap = new Map<string, Scene>();
+    // Deduplicate by content (heading + startLine) - this is the source of truth
+    // Multiple scenes with same heading+startLine are duplicates
+    const sceneMapByContent = new Map<string, Scene>(); // key: "heading|startLine"
+    
     allScenesRaw.forEach(scene => {
-        if (scene.id && !sceneMap.has(scene.id)) {
-            sceneMap.set(scene.id, scene);
+        if (!scene) return; // Skip null/undefined scenes
+        
+        // Use content (heading + startLine) as unique key
+        const contentKey = `${(scene.heading || '').toUpperCase().trim()}|${scene.fountain?.startLine || 0}`;
+        
+        // Skip invalid scenes (no heading or startLine)
+        if (contentKey === '|0' || !scene.heading) return;
+        
+        if (!sceneMapByContent.has(contentKey)) {
+            sceneMapByContent.set(contentKey, scene);
+        } else {
+            // Duplicate content found - keep the one with the earlier order/number
+            const existing = sceneMapByContent.get(contentKey)!;
+            const existingOrder = existing.order ?? existing.number ?? 0;
+            const newOrder = scene.order ?? scene.number ?? 0;
+            if (newOrder < existingOrder) {
+                sceneMapByContent.set(contentKey, scene);
+            }
         }
     });
     
-    const allScenes = Array.from(sceneMap.values()).sort((a, b) => {
-        // Sort by order field (primary) or number (fallback)
+    // Sort by order field (primary) or number (fallback)
+    const allScenes = Array.from(sceneMapByContent.values()).sort((a, b) => {
         if (a.order !== undefined && b.order !== undefined) {
             return a.order - b.order;
         }
@@ -46,6 +63,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     
     if (allScenesRaw.length !== allScenes.length) {
         console.warn(`[SceneNavigator] 🔍 Deduplicated ${allScenesRaw.length - allScenes.length} duplicate scenes`);
+        console.log(`[SceneNavigator] Raw scenes: ${allScenesRaw.length}, Unique: ${allScenes.length}`);
     }
 
     // Sync with contextStore AND currentLine for double reliability

@@ -250,7 +250,7 @@ export interface SceneRelationships {
     characters: string[]; // Character IDs
     location?: string; // Location ID
     props?: string[]; // Prop IDs
-    storyBeat: string; // Story beat ID
+    storyBeat?: string; // Story beat ID (optional - beats removed, kept for backward compatibility)
 }
 
 /**
