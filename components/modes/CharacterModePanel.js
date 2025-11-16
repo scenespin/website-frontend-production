@@ -35,6 +35,20 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
   const [isSending, setIsSending] = useState(false);
   const [showPostInsertPrompt, setShowPostInsertPrompt] = useState(false);
   const [insertedCharacterName, setInsertedCharacterName] = useState(null);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  
+  // Copy message to clipboard
+  const handleCopy = async (content, index) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy');
+    }
+  };
   
   // Auto-start workflow on mount if not already active
   useEffect(() => {
