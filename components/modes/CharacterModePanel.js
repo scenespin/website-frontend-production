@@ -8,13 +8,14 @@ import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { User, Sparkles, Bot, MessageSquare, Loader2, Send } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { getWorkflow } from '@/utils/aiWorkflows';
 import { parseAIResponse } from '@/utils/aiResponseParser';
 import toast from 'react-hot-toast';
 
 export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) {
-  const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder } = useChatContext();
+  const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder, setStreaming } = useChatContext();
   const { state: editorState, insertText } = useEditor();
   const { createCharacter } = useScreenplay();
   const pathname = usePathname();
@@ -75,17 +76,72 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       // Get system prompt from workflow
       const systemPrompt = workflow.systemPrompt;
       
-      // Call AI API
-      const response = await api.chat.generate({
-        userPrompt: prompt,
-        systemPrompt: systemPrompt,
-        desiredModelId: selectedModel,
-        conversationHistory,
-        sceneContext: null
-      });
+      // Build enhanced system prompt - AI should ONLY acknowledge, we'll add next question manually
+      const enhancedSystemPrompt = `${systemPrompt}
+
+IMPORTANT INSTRUCTIONS FOR THIS RESPONSE:
+- The user just answered question ${currentQuestionIndex + 1} of ${totalQuestions}
+- Your job is to acknowledge their answer briefly (1 sentence maximum)
+- DO NOT ask any questions - the next question will be added automatically
+- DO NOT generate follow-up questions
+- Just acknowledge what they said and move on
+
+Example good response: "Got it. Sarah is 36, recently married, and stressed about money."
+Example bad response: "That's interesting! Can you tell me more about..." (NO - don't ask questions)`;
       
-      const aiResponse = response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.';
+      // Call streaming AI API
+      let aiResponse = '';
+      let streamingComplete = false;
+      let accumulatedStreamingText = '';
       
+      // Start streaming
+      setStreaming(true, '');
+      
+      await api.chat.generateStream(
+        {
+          userPrompt: prompt,
+          systemPrompt: enhancedSystemPrompt,
+          desiredModelId: selectedModel,
+          conversationHistory,
+          sceneContext: null
+        },
+        // onChunk - update streaming text in real-time
+        (chunk) => {
+          accumulatedStreamingText += chunk;
+          setStreaming(true, accumulatedStreamingText);
+        },
+        // onComplete - process the full response
+        (fullContent) => {
+          aiResponse = fullContent;
+          streamingComplete = true;
+          setStreaming(false, ''); // Stop streaming
+        },
+        // onError - handle error
+        (error) => {
+          console.error('Error in streaming:', error);
+          toast.error(error.message || 'Failed to get AI response');
+          setStreaming(false, '');
+          setIsSending(false);
+          streamingComplete = true; // Break the wait loop
+        }
+      );
+      
+      // Wait for streaming to complete (with timeout)
+      let waitCount = 0;
+      while (!streamingComplete && waitCount < 300) { // 30 second timeout
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+      }
+      
+      // Use accumulated streaming text or fallback
+      if (!aiResponse) {
+        aiResponse = accumulatedStreamingText || 'Sorry, I couldn\'t generate a response.';
+      }
+      
+      // Ensure streaming is stopped
+      setStreaming(false, '');
+      
+      // Add the final AI response message (streaming text was shown via streamingText state)
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {
         // More questions - add AI response and ask next question
@@ -387,7 +443,12 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       )}
       
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={(el) => {
+        if (el) {
+          // Auto-scroll to bottom when new messages arrive
+          setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), 100);
+        }
+      }}>
         {state.messages
           .filter(m => m.mode === 'character')
           .map((message, index) => {
@@ -403,15 +464,52 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
                       <User className="w-4 h-4 text-cyan-500" />
                     </div>
                   )}
-                  <div className="flex-1">
-                    <p className="text-sm text-base-content whitespace-pre-wrap">
-                      {message.content}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    {isUser ? (
+                      <p className="text-sm text-base-content whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                    ) : (
+                      <div className="text-sm text-base-content">
+                        <MarkdownRenderer content={message.content} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
+        
+        {/* Streaming text display */}
+        {state.isStreaming && state.streamingText && (
+          <div className="px-4 py-3 bg-base-100">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-cyan-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-base-content">
+                  <MarkdownRenderer content={state.streamingText} />
+                </div>
+                <span className="inline-block w-0.5 h-4 ml-1 bg-cyan-500 animate-pulse"></span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Loading indicator while waiting for response (if not streaming) */}
+        {isSending && !state.isStreaming && (
+          <div className="px-4 py-3 bg-base-100">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+                <Loader2 className="w-4 h-4 text-cyan-500 animate-spin" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-base-content/60">Thinking...</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Input Area */}

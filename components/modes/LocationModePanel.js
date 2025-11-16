@@ -8,6 +8,7 @@ import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { Building2, Sparkles, Bot, MessageSquare } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { getWorkflow } from '@/utils/aiWorkflows';
 import { parseAIResponse } from '@/utils/aiResponseParser';
@@ -15,7 +16,7 @@ import toast from 'react-hot-toast';
 import { Loader2, Send } from 'lucide-react';
 
 export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
-  const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder } = useChatContext();
+  const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder, setStreaming } = useChatContext();
   const { state: editorState, insertText } = useEditor();
   const { createLocation } = useScreenplay();
   const pathname = usePathname();
@@ -74,16 +75,70 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
       // Get system prompt from workflow
       const systemPrompt = workflow.systemPrompt;
       
-      // Call AI API
-      const response = await api.chat.generate({
-        userPrompt: prompt,
-        systemPrompt: systemPrompt,
-        desiredModelId: selectedModel,
-        conversationHistory,
-        sceneContext: null
-      });
+      // Build enhanced system prompt - AI should ONLY acknowledge, we'll add next question manually
+      const enhancedSystemPrompt = `${systemPrompt}
+
+IMPORTANT INSTRUCTIONS FOR THIS RESPONSE:
+- The user just answered question ${currentQuestionIndex + 1} of ${totalQuestions}
+- Your job is to acknowledge their answer briefly (1 sentence maximum)
+- DO NOT ask any questions - the next question will be added automatically
+- DO NOT generate follow-up questions
+- Just acknowledge what they said and move on
+
+Example good response: "Got it. The warehouse is abandoned and dangerous."
+Example bad response: "That's interesting! Can you tell me more about..." (NO - don't ask questions)`;
       
-      const aiResponse = response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.';
+      // Call streaming AI API
+      let aiResponse = '';
+      let streamingComplete = false;
+      let accumulatedStreamingText = '';
+      
+      // Start streaming
+      setStreaming(true, '');
+      
+      await api.chat.generateStream(
+        {
+          userPrompt: prompt,
+          systemPrompt: enhancedSystemPrompt,
+          desiredModelId: selectedModel,
+          conversationHistory,
+          sceneContext: null
+        },
+        // onChunk - update streaming text in real-time
+        (chunk) => {
+          accumulatedStreamingText += chunk;
+          setStreaming(true, accumulatedStreamingText);
+        },
+        // onComplete - process the full response
+        (fullContent) => {
+          aiResponse = fullContent;
+          streamingComplete = true;
+          setStreaming(false, ''); // Stop streaming
+        },
+        // onError - handle error
+        (error) => {
+          console.error('Error in streaming:', error);
+          toast.error(error.message || 'Failed to get AI response');
+          setStreaming(false, '');
+          setIsSending(false);
+          streamingComplete = true; // Break the wait loop
+        }
+      );
+      
+      // Wait for streaming to complete (with timeout)
+      let waitCount = 0;
+      while (!streamingComplete && waitCount < 300) { // 30 second timeout
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+      }
+      
+      // Use accumulated streaming text or fallback
+      if (!aiResponse) {
+        aiResponse = accumulatedStreamingText || 'Sorry, I couldn\'t generate a response.';
+      }
+      
+      // Ensure streaming is stopped
+      setStreaming(false, '');
       
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {
@@ -353,15 +408,52 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
                       <Building2 className="w-4 h-4 text-amber-500" />
                     </div>
                   )}
-                  <div className="flex-1">
-                    <p className="text-sm text-base-content whitespace-pre-wrap">
-                      {message.content}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    {isUser ? (
+                      <p className="text-sm text-base-content whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                    ) : (
+                      <div className="text-sm text-base-content">
+                        <MarkdownRenderer content={message.content} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
+        
+        {/* Streaming text display */}
+        {state.isStreaming && state.streamingText && (
+          <div className="px-4 py-3 bg-base-100">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <Building2 className="w-4 h-4 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-base-content">
+                  <MarkdownRenderer content={state.streamingText} />
+                </div>
+                <span className="inline-block w-0.5 h-4 ml-1 bg-amber-500 animate-pulse"></span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Loading indicator while waiting for response (if not streaming) */}
+        {isSending && !state.isStreaming && (
+          <div className="px-4 py-3 bg-base-100">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-base-content/60">Thinking...</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Input Area */}

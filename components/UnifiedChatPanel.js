@@ -709,6 +709,7 @@ function UnifiedChatPanelInner({
     if (MODE_CONFIG[state.activeMode]?.isAgent) {
       // AI Agents use chat API with streaming
       setStreaming(true, '');
+      let accumulatedText = '';
       
       try {
         // Build conversation history (last 10 messages for this mode)
@@ -726,33 +727,53 @@ function UnifiedChatPanelInner({
           pageNumber: state.sceneContext.pageNumber
         } : null;
         
-        // Call chat API
-        const response = await api.chat.generate({
-          userPrompt: message,
-          desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
-          conversationHistory,
-          sceneContext: contextData,
-          attachments: attachedFiles.length > 0 ? attachedFiles : undefined
-        });
-        
-        // Add AI response
-        addMessage({
-          role: 'assistant',
-          content: response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.',
-          mode: state.activeMode
-        });
+        // Call streaming chat API
+        await api.chat.generateStream(
+          {
+            userPrompt: message,
+            desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
+            conversationHistory,
+            sceneContext: contextData,
+            attachments: attachedFiles.length > 0 ? attachedFiles : undefined
+          },
+          // onChunk - update streaming text
+          (chunk) => {
+            accumulatedText += chunk;
+            setStreaming(true, accumulatedText);
+          },
+          // onComplete - add final message
+          (fullContent) => {
+            setStreaming(false, '');
+            addMessage({
+              role: 'assistant',
+              content: fullContent,
+              mode: state.activeMode
+            });
+          },
+          // onError - handle error
+          (error) => {
+            console.error('Chat streaming error:', error);
+            setStreaming(false, '');
+            toast.error(error.message || 'Failed to get AI response');
+            
+            addMessage({
+              role: 'assistant',
+              content: '❌ Sorry, I encountered an error. Please try again.',
+              mode: state.activeMode
+            });
+          }
+        );
         
       } catch (error) {
         console.error('Chat error:', error);
-        toast.error(error.response?.data?.message || 'Failed to get AI response');
+        setStreaming(false, '');
+        toast.error(error.response?.data?.message || error.message || 'Failed to get AI response');
         
         addMessage({
           role: 'assistant',
           content: '❌ Sorry, I encountered an error. Please try again.',
           mode: state.activeMode
         });
-      } finally {
-        setStreaming(false, '');
       }
     } else {
       // Generation features should be handled by their own panels
