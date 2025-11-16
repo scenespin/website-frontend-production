@@ -839,6 +839,8 @@ function UnifiedChatPanelInner({
       <div ref={messagesEndRef} />
 
       {/* Chat Input - Modern AI Chat Style */}
+      {/* Hide input if mode panel has its own input (workflow modes) */}
+      {!(state.activeWorkflow && (state.activeMode === 'character' || state.activeMode === 'location')) && (
       <div className="flex-shrink-0 border-t border-base-300/50 bg-base-100">
         {/* Attached Files Display */}
         {attachedFiles.length > 0 && (
@@ -916,8 +918,9 @@ function UnifiedChatPanelInner({
             </div>
           </div>
         </div>
+      )}
 
-        {/* Bottom Controls - Mode & Model Selector */}
+      {/* Bottom Controls - Mode & Model Selector */}
         <div className="max-w-3xl mx-auto px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
           <ModeSelector />
           {/* Only show LLM selector for AI Agents */}
