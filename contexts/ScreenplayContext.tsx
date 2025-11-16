@@ -1797,10 +1797,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // ========================================================================
     
     const updateRelationships = useCallback(async () => {
-        // This would rebuild relationships from scratch based on current data
-        // Implementation would scan all scenes and rebuild the relationships object
-        console.log('[ScreenplayContext] Updating relationships...');
-    }, []);
+        // 🔥 FIX: Actually rebuild relationships from current scenes, characters, and locations
+        console.log('[ScreenplayContext] 🔄 Rebuilding relationships from current state...');
+        
+        // Extract all scenes from all beats
+        const allScenes: Scene[] = [];
+        beats.forEach(beat => {
+            beat.scenes.forEach(scene => {
+                allScenes.push(scene);
+            });
+        });
+        
+        // Rebuild relationships using the same function used during initialization
+        buildRelationshipsFromScenes(allScenes, beats, characters, locations);
+        
+        console.log('[ScreenplayContext] ✅ Relationships rebuilt');
+    }, [beats, characters, locations, buildRelationshipsFromScenes]);
     
     const getSceneCharacters = useCallback((sceneId: string): Character[] => {
         const sceneRels = relationships.scenes[sceneId];
