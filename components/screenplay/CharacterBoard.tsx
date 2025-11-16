@@ -344,11 +344,15 @@ function CharacterCardContent({
         // Copy Fountain-formatted character with @ notation and description
         // Format: @CHARACTER NAME (Fountain forced character notation)
         //         Description (as action line)
-        let fountainText = `@${character.name.toUpperCase()}\n\n`;
+        // Matches script format: @CHARACTER\nDescription\n\n
+        let fountainText = `@${character.name.toUpperCase()}\n`;
         
         // Add description as action line if it exists
         if (character.description && character.description.trim()) {
             fountainText += `${character.description}\n\n`;
+        } else {
+            // If no description, still add blank line for separation
+            fountainText += `\n`;
         }
         
         navigator.clipboard.writeText(fountainText).then(() => {
