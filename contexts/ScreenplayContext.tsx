@@ -543,12 +543,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             });
             
+            // 🔥 DEBUG: Log sample scene to see if it has character tags
+            const sampleScene = scenes[0];
+            if (sampleScene) {
+                console.log('[ScreenplayContext] 🔍 Sample scene tags:', {
+                    sceneId: sampleScene.id,
+                    heading: sampleScene.heading,
+                    characterIds: sampleScene.fountain?.tags?.characters || [],
+                    locationId: sampleScene.fountain?.tags?.location
+                });
+            }
+            
             console.log('[ScreenplayContext] ✅ Built relationships:', {
                 scenes: Object.keys(newRels.scenes).length,
                 characters: Object.keys(newRels.characters).length,
                 locations: Object.keys(newRels.locations).length,
                 validCharacterLinks,
-                invalidCharacterLinks: invalidCharacterLinks > 0 ? invalidCharacterLinks : undefined
+                invalidCharacterLinks: invalidCharacterLinks > 0 ? invalidCharacterLinks : undefined,
+                scenesWithCharacters: scenes.filter(s => (s.fountain?.tags?.characters || []).length > 0).length,
+                totalScenes: scenes.length
             });
             
             return newRels;
@@ -2791,14 +2804,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Find the first beat to assign new scenes to (or create a default beat)
                 const firstBeat = beats[0];
                 if (firstBeat) {
+                    // 🔥 FIX: Use currentCharacters (from refs) to avoid stale state
                     await bulkImportScenes(firstBeat.id, newScenes.map(scene => ({
                         heading: scene.heading,
                         location: scene.location,
                         characterIds: scene.characters.map(charName => {
-                            // Find character ID by name
-                            const char = characters.find(c => c.name.toUpperCase() === charName.toUpperCase());
+                            // Find character ID by name (use currentCharacters from refs)
+                            const char = currentCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
                             return char?.id || '';
                         }).filter(id => id !== ''),
+                        locationId: (() => {
+                            // Find location ID by name (use currentLocations from refs)
+                            const loc = currentLocations.find(l => l.name.toUpperCase() === scene.location.toUpperCase());
+                            return loc?.id;
+                        })(),
                         startLine: scene.startLine,
                         endLine: scene.endLine
                     })));
