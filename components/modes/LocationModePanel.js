@@ -6,6 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useDrawer } from '@/contexts/DrawerContext';
 import { Building2, Sparkles, Bot, MessageSquare, Copy, Check } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -16,8 +17,9 @@ import { Loader2, Send } from 'lucide-react';
 
 export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder, setStreaming } = useChatContext();
-  const { state: editorState, insertText } = useEditor();
+  const { state: editorState, insertText, saveNow } = useEditor();
   const { createLocation } = useScreenplay();
+  const { closeDrawer } = useDrawer();
   const pathname = usePathname();
   const isEditorPage = pathname?.includes('/write') || pathname?.includes('/editor');
   
@@ -287,8 +289,22 @@ REQUIRED OUTPUT FORMAT:
       
       await createLocation(locationData);
       
+      // Auto-save screenplay after insertion
+      if (isEditorPage && saveNow) {
+        try {
+          await saveNow();
+          console.log('[LocationModePanel] ✅ Auto-saved screenplay after location insertion');
+        } catch (saveError) {
+          console.error('[LocationModePanel] Auto-save failed:', saveError);
+          // Don't block the flow if save fails
+        }
+      }
+      
       // Clear completion data
       clearWorkflowCompletion();
+      
+      // Close drawer after successful insertion
+      closeDrawer();
       
       // Add success message
       addMessage({
@@ -332,6 +348,9 @@ REQUIRED OUTPUT FORMAT:
       
       // Clear completion data
       clearWorkflowCompletion();
+      
+      // Close drawer after creation
+      closeDrawer();
       
       // Add success message
       addMessage({

@@ -34,37 +34,67 @@ export function parseCharacterProfile(aiResponse: string): Partial<ParsedCharact
   try {
     const parsed: Partial<ParsedCharacter> = {};
     
-    // Extract name (look for patterns like "Name: X" or first line with a name)
-    const nameMatch = aiResponse.match(/(?:Name|Character|^)[\s:]*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/im);
+    // Extract name - look for markdown format **Name:** value or Name: value
+    let nameMatch = aiResponse.match(/\*\*Name:\*\*\s*([^\n]+)/i);
+    if (!nameMatch) {
+      nameMatch = aiResponse.match(/^Name:\s*([^\n]+)/im);
+    }
+    if (!nameMatch) {
+      // Fallback: look for "**Name:**" or "Name:" followed by text
+      nameMatch = aiResponse.match(/(?:Name|Character)[\s:]+([A-Z][a-zA-Z\s]+)/i);
+    }
     if (nameMatch && nameMatch[1]) {
       parsed.name = nameMatch[1].trim();
     }
     
-    // Extract type (lead/protagonist, supporting, minor)
-    if (/protagonist|lead|main\s+character|hero|heroine/i.test(aiResponse)) {
-      parsed.type = 'lead';
-    } else if (/supporting|secondary/i.test(aiResponse)) {
-      parsed.type = 'supporting';
-    } else if (/minor|background/i.test(aiResponse)) {
-      parsed.type = 'minor';
+    // Extract type - look for **Type:** value (markdown format)
+    let typeMatch = aiResponse.match(/\*\*Type:\*\*\s*([^\n]+)/i);
+    if (!typeMatch) {
+      typeMatch = aiResponse.match(/^Type:\s*([^\n]+)/im);
+    }
+    if (typeMatch && typeMatch[1]) {
+      const typeValue = typeMatch[1].trim().toLowerCase();
+      if (typeValue.includes('lead') || typeValue.includes('protagonist') || typeValue.includes('main')) {
+        parsed.type = 'lead';
+      } else if (typeValue.includes('supporting') || typeValue.includes('secondary')) {
+        parsed.type = 'supporting';
+      } else if (typeValue.includes('minor') || typeValue.includes('background')) {
+        parsed.type = 'minor';
+      }
+    } else {
+      // Fallback: search in text
+      if (/protagonist|lead|main\s+character|hero|heroine/i.test(aiResponse)) {
+        parsed.type = 'lead';
+      } else if (/supporting|secondary/i.test(aiResponse)) {
+        parsed.type = 'supporting';
+      } else if (/minor|background/i.test(aiResponse)) {
+        parsed.type = 'minor';
+      }
     }
     
-    // Extract description - look for Physical Introduction, Description, or screenplay format
-    // Try multiple patterns to catch different AI response formats
-    let descriptionMatch = aiResponse.match(/(?:Physical Introduction|Description|Appearance)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
-    
-    // Also look for screenplay format: "CHARACTER (age) description..."
+    // Extract description - look for **Description:** value (markdown format)
+    let descriptionMatch = aiResponse.match(/\*\*Description:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
     if (!descriptionMatch) {
+      // Try without markdown
+      descriptionMatch = aiResponse.match(/Description:\s*([^\n]+(?:\n(?!\*\*|Name:|Type:|Arc)[^\n]+)*)/i);
+    }
+    if (!descriptionMatch) {
+      // Look for Physical Introduction as fallback
+      descriptionMatch = aiResponse.match(/\*\*Physical Introduction:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
+    }
+    if (!descriptionMatch) {
+      // Look for screenplay format: "CHARACTER (age) description..."
       descriptionMatch = aiResponse.match(/([A-Z][A-Z\s]+)\s*\([^)]+\)[^\n]+(?:\n[^\n]+)*/);
     }
     
-    // Also look for markdown bold sections
-    if (!descriptionMatch) {
-      descriptionMatch = aiResponse.match(/\*\*[^*]+\*\*[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
-    }
-    
     if (descriptionMatch && descriptionMatch[1]) {
-      parsed.description = descriptionMatch[1].trim();
+      // Clean up markdown formatting and extra whitespace
+      let desc = descriptionMatch[1].trim();
+      // Remove any remaining markdown bold markers
+      desc = desc.replace(/\*\*/g, '');
+      // Remove "**Description:**" if it somehow got included
+      desc = desc.replace(/^\*\*?Description:\*\*?\s*/i, '');
+      parsed.description = desc.trim();
     } else {
       // Fallback: get the first substantial paragraph (skip name/header lines)
       const lines = aiResponse.split('\n').filter(line => {
@@ -100,8 +130,26 @@ export function parseCharacterProfile(aiResponse: string): Partial<ParsedCharact
       }
     }
     
-    // Default arc status
-    parsed.arcStatus = 'introduced';
+    // Extract arc status - look for **Arc Status:** value (markdown format)
+    let arcStatusMatch = aiResponse.match(/\*\*Arc Status:\*\*\s*([^\n]+)/i);
+    if (!arcStatusMatch) {
+      arcStatusMatch = aiResponse.match(/Arc Status:\s*([^\n]+)/i);
+    }
+    if (arcStatusMatch && arcStatusMatch[1]) {
+      const arcValue = arcStatusMatch[1].trim().toLowerCase();
+      if (arcValue.includes('introduced')) {
+        parsed.arcStatus = 'introduced';
+      } else if (arcValue.includes('developing')) {
+        parsed.arcStatus = 'developing';
+      } else if (arcValue.includes('resolved')) {
+        parsed.arcStatus = 'resolved';
+      } else {
+        parsed.arcStatus = 'introduced'; // Default
+      }
+    } else {
+      // Default arc status
+      parsed.arcStatus = 'introduced';
+    }
     
     return Object.keys(parsed).length > 0 ? parsed : null;
   } catch (error) {
@@ -117,40 +165,75 @@ export function parseLocationProfile(aiResponse: string): Partial<ParsedLocation
   try {
     const parsed: Partial<ParsedLocation> = {};
     
-    // Extract name and type (INT/EXT)
-    const nameMatch = aiResponse.match(/(?:INT\.|EXT\.|INT\/EXT\.?)\s+([A-Z\s]+)/i);
-    if (nameMatch) {
-      parsed.name = nameMatch[1].trim();
-      if (/INT\s*\/\s*EXT/i.test(aiResponse)) {
-        parsed.type = 'INT/EXT';
-      } else if (/INT/i.test(aiResponse)) {
-        parsed.type = 'INT';
-      } else if (/EXT/i.test(aiResponse)) {
-        parsed.type = 'EXT';
+    // Extract name - look for **Name:** value (markdown format) first
+    let nameMatch = aiResponse.match(/\*\*Name:\*\*\s*([^\n]+)/i);
+    if (!nameMatch) {
+      nameMatch = aiResponse.match(/^Name:\s*([^\n]+)/im);
+    }
+    if (!nameMatch) {
+      // Fallback: look for scene heading format INT./EXT. LOCATION
+      nameMatch = aiResponse.match(/(?:INT\.|EXT\.|INT\/EXT\.?)\s+([A-Z\s]+)/i);
+      if (nameMatch) {
+        parsed.name = nameMatch[1].trim();
+        // Extract type from scene heading
+        if (/INT\s*\/\s*EXT/i.test(aiResponse)) {
+          parsed.type = 'INT/EXT';
+        } else if (/INT/i.test(aiResponse)) {
+          parsed.type = 'INT';
+        } else if (/EXT/i.test(aiResponse)) {
+          parsed.type = 'EXT';
+        }
       }
     } else {
-      // Fallback: look for location name
-      const locationMatch = aiResponse.match(/(?:Location|Name)[\s:]*([A-Z][a-zA-Z\s]+)/);
-      if (locationMatch) {
-        parsed.name = locationMatch[1].trim();
-      }
+      parsed.name = nameMatch[1].trim();
     }
     
-    // Determine INT/EXT if not already set
+    // Extract type if not already set - look for **Type:** value
     if (!parsed.type) {
-      if (/interior|inside|indoor/i.test(aiResponse)) {
-        parsed.type = 'INT';
-      } else if (/exterior|outside|outdoor/i.test(aiResponse)) {
-        parsed.type = 'EXT';
+      let typeMatch = aiResponse.match(/\*\*Type:\*\*\s*([^\n]+)/i);
+      if (!typeMatch) {
+        typeMatch = aiResponse.match(/^Type:\s*([^\n]+)/im);
+      }
+      if (typeMatch && typeMatch[1]) {
+        const typeValue = typeMatch[1].trim().toUpperCase();
+        if (typeValue.includes('INT/EXT') || typeValue.includes('INT/EXT')) {
+          parsed.type = 'INT/EXT';
+        } else if (typeValue.includes('INT')) {
+          parsed.type = 'INT';
+        } else if (typeValue.includes('EXT')) {
+          parsed.type = 'EXT';
+        }
       } else {
-        parsed.type = 'INT'; // Default
+        // Fallback: determine from text
+        if (/interior|inside|indoor/i.test(aiResponse)) {
+          parsed.type = 'INT';
+        } else if (/exterior|outside|outdoor/i.test(aiResponse)) {
+          parsed.type = 'EXT';
+        } else {
+          parsed.type = 'INT'; // Default
+        }
       }
     }
     
-    // Extract visual description (The Look section)
-    const lookMatch = aiResponse.match(/(?:The Look|Visual Description|Description)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
-    if (lookMatch && lookMatch[1]) {
-      parsed.description = lookMatch[1].trim();
+    // Extract description - look for **Description:** value (markdown format)
+    let descriptionMatch = aiResponse.match(/\*\*Description:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
+    if (!descriptionMatch) {
+      // Try without markdown
+      descriptionMatch = aiResponse.match(/Description:\s*([^\n]+(?:\n(?!\*\*|Name:|Type:)[^\n]+)*)/i);
+    }
+    if (!descriptionMatch) {
+      // Look for "The Look" section
+      descriptionMatch = aiResponse.match(/(?:The Look|Visual Description)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    }
+    
+    if (descriptionMatch && descriptionMatch[1]) {
+      // Clean up markdown formatting
+      let desc = descriptionMatch[1].trim();
+      // Remove any remaining markdown bold markers
+      desc = desc.replace(/\*\*/g, '');
+      // Remove "**Description:**" if it somehow got included
+      desc = desc.replace(/^\*\*?Description:\*\*?\s*/i, '');
+      parsed.description = desc.trim();
     } else {
       // Fallback: first substantial paragraph
       const paragraphs = aiResponse.split('\n\n').filter(p => p.trim().length > 50);

@@ -6,6 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useDrawer } from '@/contexts/DrawerContext';
 import { User, Sparkles, Bot, MessageSquare, Loader2, Send, Copy, Check } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -15,8 +16,9 @@ import toast from 'react-hot-toast';
 
 export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) {
   const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder, setStreaming } = useChatContext();
-  const { state: editorState, insertText } = useEditor();
+  const { state: editorState, insertText, saveNow } = useEditor();
   const { createCharacter } = useScreenplay();
+  const { closeDrawer } = useDrawer();
   const pathname = usePathname();
   const isEditorPage = pathname?.includes('/write') || pathname?.includes('/editor');
   
@@ -304,8 +306,23 @@ REQUIRED OUTPUT FORMAT:
       
       await createCharacter(characterData);
       
+      // Auto-save screenplay after insertion
+      if (isEditorPage && saveNow) {
+        try {
+          await saveNow();
+          console.log('[CharacterModePanel] ✅ Auto-saved screenplay after character insertion');
+        } catch (saveError) {
+          console.error('[CharacterModePanel] Auto-save failed:', saveError);
+          // Don't block the flow if save fails
+        }
+      }
+      
       // Clear completion data
       clearWorkflowCompletion();
+      
+      // Close drawer after successful insertion (user can continue via post-insert prompt if needed)
+      // But for now, let's close it and they can reopen if needed
+      // Actually, let's show the post-insert prompt first, then close on Done
       setInsertedCharacterName(characterName);
       setShowPostInsertPrompt(true);
       
@@ -349,6 +366,9 @@ REQUIRED OUTPUT FORMAT:
       
       // Clear completion data
       clearWorkflowCompletion();
+      
+      // Close drawer after creation
+      closeDrawer();
       
       // Add success message
       addMessage({
@@ -483,7 +503,10 @@ REQUIRED OUTPUT FORMAT:
                 Create Another Character
               </button>
               <button
-                onClick={() => setShowPostInsertPrompt(false)}
+                onClick={() => {
+                  setShowPostInsertPrompt(false);
+                  closeDrawer();
+                }}
                 className="btn btn-sm btn-ghost"
               >
                 Done
