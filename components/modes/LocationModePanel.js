@@ -125,7 +125,7 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
         const finalSystemPrompt = `${workflow.systemPrompt}
 
 CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
-- The user has completed all 5 interview questions
+- The user has completed all 4 interview questions
 - Generate a comprehensive location profile based on their answers
 - Use the conversation history to extract all their answers
 - Format the profile ready for screenplay use

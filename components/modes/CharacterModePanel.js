@@ -147,7 +147,7 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
         finalSystemPrompt += `
 
 CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
-- The user has completed all 5 interview questions
+- The user has completed all 4 interview questions
 - Generate a comprehensive character profile based on their answers
 - Use the conversation history to extract all their answers
 - Format the profile ready for screenplay use

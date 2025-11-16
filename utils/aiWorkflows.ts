@@ -29,10 +29,10 @@ CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY:
 1. You will be given EXACTLY ONE question to ask. Ask ONLY that question - NOTHING ELSE.
 2. When the user answers, DO NOT acknowledge - just immediately ask the NEXT question you are given.
 3. DO NOT ask follow-up questions, clarifying questions, or generate ANY additional questions.
-4. DO NOT have a conversation - this is a structured interview with ONLY 5 predefined questions.
+4. DO NOT have a conversation - this is a structured interview with ONLY 4 predefined questions.
 5. DO NOT treat answers as if they are about a real person - they are about a FICTIONAL CHARACTER IN A MOVIE.
 6. DO NOT generate health assessments, medical information, or real-world advice.
-7. After the 5th question is answered, IMMEDIATELY generate the character profile - DO NOT ask any more questions.
+7. After the 4th question is answered, IMMEDIATELY generate the character profile - DO NOT ask any more questions.
 
 EXAMPLE OF CORRECT BEHAVIOR:
 - User: "jon 23"
@@ -122,8 +122,8 @@ CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY:
 1. You will be given EXACTLY ONE question to ask. Ask ONLY that question - NOTHING ELSE.
 2. When the user answers, DO NOT acknowledge - just immediately ask the NEXT question you are given.
 3. DO NOT ask follow-up questions, clarifying questions, or generate ANY additional questions.
-4. DO NOT have a conversation - this is a structured interview with ONLY 5 predefined questions.
-5. After the 5th question is answered, IMMEDIATELY generate the location profile - DO NOT ask any more questions.
+4. DO NOT have a conversation - this is a structured interview with ONLY 4 predefined questions.
+5. After the 4th question is answered, IMMEDIATELY generate the location profile - DO NOT ask any more questions.
 
 EXAMPLE OF CORRECT BEHAVIOR:
 - User: "warehouse at night dark wet"
@@ -180,24 +180,20 @@ Format the location description ready for screenplay, structured so the user can
   
   questions: [
     {
-      question: "What's the name of this location? Is it interior (INT) or exterior (EXT)?",
-      placeholder: "e.g., INT. ABANDONED WAREHOUSE or EXT. CITY ROOFTOP"
+      question: "What's the location name? Is it INT (interior) or EXT (exterior)?",
+      placeholder: "e.g., Roller rink, INT"
     },
     {
-      question: "Describe what this place looks like in 2-3 sentences.",
-      placeholder: "e.g., Concrete floors, broken windows, rusted machinery"
+      question: "What does it look like? (2-3 sentences)",
+      placeholder: "e.g., Neon lights, scuffed floors, vintage arcade games"
     },
     {
-      question: "What's the atmosphere or mood? How should it feel?",
-      placeholder: "e.g., Tense, abandoned, dangerous"
+      question: "What's the mood or atmosphere?",
+      placeholder: "e.g., Nostalgic, tense, fun"
     },
     {
-      question: "What can characters DO here? Any unique features?",
-      placeholder: "e.g., Hide behind machinery, climb stairs, discover hidden room"
-    },
-    {
-      question: "Why is THIS location important to your story?",
-      placeholder: "e.g., Where the final confrontation happens"
+      question: "Why is this location important to your story?",
+      placeholder: "e.g., Where the protagonist confronts the antagonist"
     }
   ]
 };
