@@ -594,24 +594,37 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 
                 if (savedScreenplayId) {
                     try {
-                        console.log('[EditorContext] Loading screenplay from DynamoDB...');
+                        console.log('[EditorContext] Loading screenplay from DynamoDB...', savedScreenplayId);
                         const savedScreenplay = await getScreenplay(savedScreenplayId, getToken);
                         
                         if (savedScreenplay) {
-                            console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB');
+                            console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB:', {
+                                screenplayId: savedScreenplay.screenplay_id,
+                                title: savedScreenplay.title,
+                                contentLength: savedScreenplay.content?.length || 0,
+                                hasContent: !!savedScreenplay.content
+                            });
+                            
+                            if (!savedScreenplay.content || savedScreenplay.content.trim().length === 0) {
+                                console.warn('[EditorContext] ⚠️ Screenplay loaded but content is empty!');
+                            }
+                            
                             screenplayIdRef.current = savedScreenplayId;
                             setState(prev => ({
                                 ...prev,
-                                content: savedScreenplay.content,
-                                title: savedScreenplay.title,
-                                author: savedScreenplay.author,
+                                content: savedScreenplay.content || '',
+                                title: savedScreenplay.title || prev.title,
+                                author: savedScreenplay.author || prev.author,
                                 isDirty: false
                             }));
                             isInitialLoadRef.current = false;
                             return; // Success!
+                        } else {
+                            console.warn('[EditorContext] ⚠️ getScreenplay returned null for:', savedScreenplayId);
                         }
                     } catch (err) {
-                        console.error('[EditorContext] Error loading from DynamoDB:', err);
+                        console.error('[EditorContext] ❌ Error loading from DynamoDB:', err);
+                        // Don't throw - fall through to localStorage fallback
                     }
                 }
                 

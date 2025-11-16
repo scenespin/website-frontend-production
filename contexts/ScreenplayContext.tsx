@@ -974,10 +974,29 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         const reorderedContent = reorderedLines.join('\n');
         
+        // 🔥 VALIDATION: Ensure reordered content is valid
+        if (!reorderedContent || reorderedContent.trim().length === 0) {
+            console.error('[ScreenplayContext] ❌ Reordered content is empty! Returning original content.');
+            return content; // Return original content if reordering failed
+        }
+        
+        // Validate that we didn't lose too much content (safety check)
+        const originalLength = content.length;
+        const reorderedLength = reorderedContent.length;
+        const lengthDiff = Math.abs(originalLength - reorderedLength);
+        const lengthDiffPercent = (lengthDiff / originalLength) * 100;
+        
+        if (lengthDiffPercent > 50) {
+            console.warn(`[ScreenplayContext] ⚠️ Reordered content length differs significantly: ${lengthDiffPercent.toFixed(1)}% (original: ${originalLength}, reordered: ${reorderedLength})`);
+        }
+        
         console.log('[ScreenplayContext] ✅ Script reordered:', {
             totalLines: reorderedLines.length,
             scenesReordered: reorderedSceneBlocks.length > 0 ? newSceneOrder.length : 0,
-            missingScenes: missingScenes.length
+            missingScenes: missingScenes.length,
+            originalLength,
+            reorderedLength,
+            lengthDiffPercent: lengthDiffPercent.toFixed(1) + '%'
         });
         
         return reorderedContent;
@@ -1060,11 +1079,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 try {
                     // Collect all scenes from all beats with their updated order
                     const allScenesToSave: Scene[] = [];
+                    let globalOrder = 1; // Global order counter (1, 2, 3, 4...)
+                    
                     newBeatsState.forEach(beat => {
                         beat.scenes.forEach(scene => {
-                            allScenesToSave.push(scene);
+                            // Ensure order field is set to global order
+                            allScenesToSave.push({
+                                ...scene,
+                                order: globalOrder, // Set global order
+                                number: globalOrder // Also update number for consistency
+                            });
+                            globalOrder++;
                         });
                     });
+                    
+                    console.log('[ScreenplayContext] 📦 Preparing to save scenes with order:', 
+                        allScenesToSave.map(s => ({ id: s.id, heading: s.heading, order: s.order, number: s.number }))
+                    );
                     
                     if (allScenesToSave.length > 0) {
                         const apiScenes = transformScenesToAPI(allScenesToSave);
@@ -1112,12 +1143,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         lastScene: updatedNewSceneOrder[updatedNewSceneOrder.length - 1]?.heading
                     });
                     
-                    // Reorder script content
-                    const reorderedContent = reorderScriptContent(editorContent, updatedNewSceneOrder, oldSceneOrder);
-                    
-                    // Update editor via callback
-                    onScriptReorder(reorderedContent);
-                    console.log('[ScreenplayContext] ✅ Script content reordered');
+                    // Reorder script content with error handling
+                    let reorderedContent: string;
+                    try {
+                        reorderedContent = reorderScriptContent(editorContent, updatedNewSceneOrder, oldSceneOrder);
+                        
+                        // Validate reordered content before applying
+                        if (!reorderedContent || reorderedContent.trim().length === 0) {
+                            throw new Error('Reordered content is empty');
+                        }
+                        
+                        // Update editor via callback
+                        onScriptReorder(reorderedContent);
+                        console.log('[ScreenplayContext] ✅ Script content reordered');
+                    } catch (reorderError) {
+                        console.error('[ScreenplayContext] ❌ Script reordering failed:', reorderError);
+                        // Don't update editor if reordering failed - keep original content
+                        // Scene move still succeeded, just script reordering failed
+                        throw reorderError; // Re-throw to be caught by outer catch
+                    }
                     
                     // 🔥 FIX: Recalculate scene line positions after reordering
                     // This ensures Scene Navigator shows correct line numbers
