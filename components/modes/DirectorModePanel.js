@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
-import { Film, Camera, Clapperboard, FileText, User, Bot } from 'lucide-react';
+import { Film, Camera, Clapperboard, FileText, User, Bot, Copy, Check } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -17,6 +17,20 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   // Model selection for Director agent
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  
+  // Copy message to clipboard
+  const handleCopy = async (content, index) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy');
+    }
+  };
   
   const quickActions = [
     // Cinematic Direction
@@ -141,7 +155,7 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       </div>
       
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 chat-scroll-container px-4 py-4 space-y-4">
         {state.messages
           .filter(m => m.mode === 'director')
           .map((message, index) => {
@@ -160,17 +174,17 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
             return (
               <div
                 key={index}
-                className={`flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
+                className={`group flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}
               >
                 {/* Message Bubble */}
-                <div className={`max-w-[85%] rounded-lg px-4 py-3 ${
+                <div className={`max-w-[85%] rounded-lg px-4 py-3 relative ${
                   isUser 
                     ? 'bg-cinema-red text-base-content' 
                     : 'bg-base-200 text-base-content'
                 }`}>
                   <div className="flex items-start gap-2">
                     {!isUser && <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0 chat-message-content">
                       {isUser ? (
                         <div className="whitespace-pre-wrap break-words">
                           {message.content}
@@ -181,6 +195,19 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
                     </div>
                     {isUser && <User className="w-5 h-5 mt-0.5 flex-shrink-0" />}
                   </div>
+                  
+                  {/* Copy Button - appears on hover */}
+                  <button
+                    onClick={() => handleCopy(message.content, index)}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-base-300/50 text-base-content/60 hover:text-base-content"
+                    title="Copy message"
+                  >
+                    {copiedIndex === index ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
                 
                 {/* Insert Button */}
@@ -203,7 +230,7 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
             <div className="max-w-[85%] rounded-lg px-4 py-3 bg-base-200 text-base-content">
               <div className="flex items-start gap-2">
                 <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0 chat-message-content">
                   <MarkdownRenderer content={state.streamingText} />
                   <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
                 </div>

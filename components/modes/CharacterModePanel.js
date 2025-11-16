@@ -465,7 +465,7 @@ REQUIRED OUTPUT FORMAT:
       )}
       
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto" ref={(el) => {
+      <div className="flex-1 chat-scroll-container" ref={(el) => {
         if (el) {
           // Auto-scroll to bottom when new messages arrive
           setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), 100);
@@ -478,7 +478,7 @@ REQUIRED OUTPUT FORMAT:
             return (
               <div
                 key={index}
-                className={`px-4 py-3 ${isUser ? 'bg-base-200' : 'bg-base-100'}`}
+                className={`group px-4 py-3 ${isUser ? 'bg-base-200' : 'bg-base-100'} hover:bg-base-200/50 transition-colors relative`}
               >
                 <div className="flex items-start gap-3">
                   {!isUser && (
@@ -486,7 +486,7 @@ REQUIRED OUTPUT FORMAT:
                       <User className="w-4 h-4 text-cyan-500" />
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 chat-message-content">
                     {isUser ? (
                       <p className="text-sm text-base-content whitespace-pre-wrap break-words">
                         {message.content}
@@ -497,6 +497,19 @@ REQUIRED OUTPUT FORMAT:
                       </div>
                     )}
                   </div>
+                  
+                  {/* Copy Button - appears on hover */}
+                  <button
+                    onClick={() => handleCopy(message.content, index)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-base-300/50 text-base-content/60 hover:text-base-content shrink-0"
+                    title="Copy message"
+                  >
+                    {copiedIndex === index ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
             );
@@ -509,7 +522,7 @@ REQUIRED OUTPUT FORMAT:
               <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
                 <User className="w-4 h-4 text-cyan-500" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 chat-message-content">
                 <div className="text-sm text-base-content">
                   <MarkdownRenderer content={state.streamingText} />
                 </div>

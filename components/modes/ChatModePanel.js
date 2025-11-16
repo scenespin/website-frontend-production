@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
-import { FileText, Sparkles, User, Bot } from 'lucide-react';
+import { FileText, Sparkles, User, Bot, Copy, Check } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -22,6 +22,20 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   // Model selection for AI chat
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  
+  // Copy message to clipboard
+  const handleCopy = async (content, index) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy');
+    }
+  };
   
   // Handle sending messages to AI
   const handleSend = async (prompt) => {
@@ -175,7 +189,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       )}
       
       {/* Chat Messages Area - ChatGPT/Claude Style */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 chat-scroll-container">
         {state.messages
           .filter(m => m.mode === 'chat')
           .map((message, index) => {
@@ -195,9 +209,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             return (
               <div
                 key={index}
-                className={`group w-full ${isUser ? 'bg-transparent' : 'bg-base-200/30'}`}
+                className={`group w-full ${isUser ? 'bg-transparent' : 'bg-base-200/30'} hover:bg-base-200/50 transition-colors`}
               >
-                <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
+                <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8 relative">
                   <div className="flex gap-4 md:gap-6">
                     {/* Avatar */}
                     <div className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center ${
@@ -210,7 +224,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     
                     {/* Message Content */}
                     <div className="flex-1 min-w-0 space-y-3">
-                      <div className="prose prose-sm md:prose-base max-w-none">
+                      <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
                         {isUser ? (
                           <div className="whitespace-pre-wrap break-words text-base-content">
                             {message.content}
@@ -220,16 +234,38 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                         )}
                       </div>
                       
-                      {/* Insert Button */}
-                      {showInsertButton && onInsert && (
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Copy Button */}
                         <button
-                          onClick={() => onInsert(message.content)}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
+                          onClick={() => handleCopy(message.content, index)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs text-base-content/60 hover:text-base-content hover:bg-base-300"
+                          title="Copy message"
                         >
-                          <FileText className="h-3.5 w-3.5" />
-                          Insert into script
+                          {copiedIndex === index ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy</span>
+                            </>
+                          )}
                         </button>
-                      )}
+                        
+                        {/* Insert Button */}
+                        {showInsertButton && onInsert && (
+                          <button
+                            onClick={() => onInsert(message.content)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            Insert into script
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -249,7 +285,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 
                 {/* Streaming Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="prose prose-sm md:prose-base max-w-none">
+                  <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
                     <MarkdownRenderer content={state.streamingText} />
                     <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
                   </div>

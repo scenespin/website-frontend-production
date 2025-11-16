@@ -6,7 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { Building2, Sparkles, Bot, MessageSquare } from 'lucide-react';
+import { Building2, Sparkles, Bot, MessageSquare, Copy, Check } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -34,6 +34,20 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   // Model selection for AI chat
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  
+  // Copy message to clipboard
+  const handleCopy = async (content, index) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy');
+    }
+  };
   
   // Auto-start workflow on mount if not already active
   useEffect(() => {
@@ -392,7 +406,7 @@ REQUIRED OUTPUT FORMAT:
       )}
       
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 chat-scroll-container">
         {state.messages
           .filter(m => m.mode === 'location')
           .map((message, index) => {
@@ -400,7 +414,7 @@ REQUIRED OUTPUT FORMAT:
             return (
               <div
                 key={index}
-                className={`px-4 py-3 ${isUser ? 'bg-base-200' : 'bg-base-100'}`}
+                className={`group px-4 py-3 ${isUser ? 'bg-base-200' : 'bg-base-100'} hover:bg-base-200/50 transition-colors relative`}
               >
                 <div className="flex items-start gap-3">
                   {!isUser && (
@@ -408,7 +422,7 @@ REQUIRED OUTPUT FORMAT:
                       <Building2 className="w-4 h-4 text-amber-500" />
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 chat-message-content">
                     {isUser ? (
                       <p className="text-sm text-base-content whitespace-pre-wrap break-words">
                         {message.content}
@@ -419,6 +433,19 @@ REQUIRED OUTPUT FORMAT:
                       </div>
                     )}
                   </div>
+                  
+                  {/* Copy Button - appears on hover */}
+                  <button
+                    onClick={() => handleCopy(message.content, index)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-base-300/50 text-base-content/60 hover:text-base-content shrink-0"
+                    title="Copy message"
+                  >
+                    {copiedIndex === index ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
               </div>
             );
@@ -431,7 +458,7 @@ REQUIRED OUTPUT FORMAT:
               <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
                 <Building2 className="w-4 h-4 text-amber-500" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 chat-message-content">
                 <div className="text-sm text-base-content">
                   <MarkdownRenderer content={state.streamingText} />
                 </div>
