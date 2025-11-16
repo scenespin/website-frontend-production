@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, MapPin, Film, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -48,6 +48,16 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
     const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
     const [deleteDependencyReport, setDeleteDependencyReport] = useState('');
     const [deleteSceneCount, setDeleteSceneCount] = useState(0);
+    
+    // Memoize isInScript checks to prevent render loops
+    const scriptContent = editorState.content;
+    const isInScriptMap = useMemo(() => {
+        const map = new Map<string, boolean>();
+        locations.forEach(loc => {
+            map.set(loc.id, isEntityInScript(scriptContent, loc.name, 'location'));
+        });
+        return map;
+    }, [locations, scriptContent, isEntityInScript]);
     
     // Listen for external trigger to add location
     useEffect(() => {
@@ -276,7 +286,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                 location={location}
                                                 color={column.color}
                                                 sceneCount={getLocationScenes(location.id).length}
-                                                isInScript={isEntityInScript(editorState.content, location.name, 'location')}
+                                                isInScript={isInScriptMap.get(location.id) || false}
                                                 openEditForm={openEditForm}
                                             />
                                         </motion.div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { X, Trash2, Plus, Image as ImageIcon } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Location } from '@/types/screenplay'
@@ -33,8 +33,10 @@ export default function LocationDetailSidebar({
   const { getEntityImages, removeImageFromEntity, isEntityInScript } = useScreenplay()
   const { state: editorState } = useEditor()
   
-  // Check if location is in script (if editing existing location)
-  const isInScript = location ? isEntityInScript(editorState.content, location.name, 'location') : false
+  // Check if location is in script (if editing existing location) - memoized to prevent render loops
+  const isInScript = useMemo(() => {
+    return location ? isEntityInScript(editorState.content, location.name, 'location') : false;
+  }, [location, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {

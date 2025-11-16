@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Character } from '@/types/screenplay'
@@ -35,8 +35,10 @@ export default function CharacterDetailSidebar({
   const { getEntityImages, removeImageFromEntity, isEntityInScript } = useScreenplay()
   const { state: editorState } = useEditor()
   
-  // Check if character is in script (if editing existing character)
-  const isInScript = character ? isEntityInScript(editorState.content, character.name, 'character') : false
+  // Check if character is in script (if editing existing character) - memoized to prevent render loops
+  const isInScript = useMemo(() => {
+    return character ? isEntityInScript(editorState.content, character.name, 'character') : false;
+  }, [character, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [formData, setFormData] = useState<any>(
     character ? { ...character } : (initialData ? {

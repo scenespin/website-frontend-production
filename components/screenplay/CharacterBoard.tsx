@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, MoreVertical, User, Users, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -38,6 +38,16 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
     const [characterToDelete, setCharacterToDelete] = useState<Character | null>(null);
     const [deleteDependencyReport, setDeleteDependencyReport] = useState('');
     const [deleteSceneCount, setDeleteSceneCount] = useState(0);
+    
+    // Memoize isInScript checks to prevent render loops
+    const scriptContent = editorState.content;
+    const isInScriptMap = useMemo(() => {
+        const map = new Map<string, boolean>();
+        characters.forEach(char => {
+            map.set(char.id, isEntityInScript(scriptContent, char.name, 'character'));
+        });
+        return map;
+    }, [characters, scriptContent, isEntityInScript]);
     
     // Listen for external trigger to add character
     useEffect(() => {
@@ -240,7 +250,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                             character={character}
                                             color={column.color}
                                             sceneCount={getCharacterScenes(character.id).length}
-                                            isInScript={isEntityInScript(editorState.content, character.name, 'character')}
+                                            isInScript={isInScriptMap.get(character.id) || false}
                                             onClick={() => setSelectedCharacter(character)}
                                             onEdit={() => openEditForm(character)}
                                         />
