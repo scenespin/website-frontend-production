@@ -428,13 +428,15 @@ REQUIRED OUTPUT FORMAT:
       
       {/* Chat Messages Area */}
       <div className="flex-1 chat-scroll-container">
-        {state.messages
-          .filter(m => m.mode === 'location')
-          .map((message, index) => {
+        {useMemo(() => {
+          const locationMessages = state.messages.filter(m => m.mode === 'location');
+          return locationMessages.map((message, index) => {
             const isUser = message.role === 'user';
+            // Use content + index as key to prevent duplicates
+            const messageKey = `${message.role}-${message.content.substring(0, 20)}-${index}`;
             return (
               <div
-                key={index}
+                key={messageKey}
                 className={`group px-4 py-3 ${isUser ? 'bg-base-200' : 'bg-base-100'} hover:bg-base-200/50 transition-colors relative`}
               >
                 <div className="flex items-start gap-3">
