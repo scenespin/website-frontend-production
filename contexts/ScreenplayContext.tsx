@@ -397,8 +397,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Helper to group scenes into beats based on group_label or order
     const groupScenesIntoBeats = useCallback((scenes: Scene[], beats: StoryBeat[]): StoryBeat[] => {
+        // 🔥 FIX: Deduplicate scenes by ID first (prevent duplicates from rescan/import)
+        const sceneMap = new Map<string, Scene>();
+        scenes.forEach(scene => {
+            if (scene.id && !sceneMap.has(scene.id)) {
+                sceneMap.set(scene.id, scene);
+            }
+        });
+        const uniqueScenes = Array.from(sceneMap.values());
+        
+        console.log('[ScreenplayContext] 🔍 Deduplicated scenes:', scenes.length, '->', uniqueScenes.length);
+        
         // 🔥 FIX: Sort scenes by order field first (primary) or number (fallback) to maintain correct sequence
-        const sortedScenes = [...scenes].sort((a, b) => {
+        const sortedScenes = uniqueScenes.sort((a, b) => {
             // Use order field if available (more reliable for persistence)
             if (a.order !== undefined && b.order !== undefined) {
                 return a.order - b.order;
@@ -2267,12 +2278,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             newScenes.push(newScene);
         });
         
-        // Add scenes to beat (ensuring beat.scenes is initialized)
-        setBeats(prev => prev.map(beat =>
-            beat.id === beatId
-                ? { ...beat, scenes: [...(beat.scenes || []), ...newScenes], updatedAt: now }
-                : beat
-        ));
+        // Add scenes to beat (ensuring beat.scenes is initialized and deduplicated)
+        setBeats(prev => prev.map(beat => {
+            if (beat.id !== beatId) return beat;
+            
+            // Deduplicate: only add scenes that don't already exist in the beat
+            const existingSceneIds = new Set((beat.scenes || []).map(s => s.id));
+            const trulyNewScenes = newScenes.filter(scene => !existingSceneIds.has(scene.id));
+            
+            if (trulyNewScenes.length < newScenes.length) {
+                console.log(`[ScreenplayContext] 🔍 Deduplicated ${newScenes.length - trulyNewScenes.length} duplicate scenes in beat ${beatId}`);
+            }
+            
+            return { 
+                ...beat, 
+                scenes: [...(beat.scenes || []), ...trulyNewScenes], 
+                updatedAt: now 
+            };
+        }));
         
         // Add to relationships
         setRelationships(prev => {

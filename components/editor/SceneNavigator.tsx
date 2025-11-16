@@ -25,16 +25,28 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const [currentSceneId, setCurrentSceneId] = useState<string | null>(null);
 
     // 🔥 SIMPLIFIED: Get all scenes in order (no beat grouping)
-    // Extract all scenes from beats and sort by order/number
-    const allScenes = (screenplay?.beats || [])
-        .flatMap(beat => beat.scenes)
-        .sort((a, b) => {
-            // Sort by order field (primary) or number (fallback)
-            if (a.order !== undefined && b.order !== undefined) {
-                return a.order - b.order;
-            }
-            return (a.number || 0) - (b.number || 0);
-        });
+    // Extract all scenes from beats, deduplicate by ID, and sort by order/number
+    const allScenesRaw = (screenplay?.beats || []).flatMap(beat => beat.scenes);
+    
+    // Deduplicate by ID (safety measure in case duplicates get through)
+    const sceneMap = new Map<string, Scene>();
+    allScenesRaw.forEach(scene => {
+        if (scene.id && !sceneMap.has(scene.id)) {
+            sceneMap.set(scene.id, scene);
+        }
+    });
+    
+    const allScenes = Array.from(sceneMap.values()).sort((a, b) => {
+        // Sort by order field (primary) or number (fallback)
+        if (a.order !== undefined && b.order !== undefined) {
+            return a.order - b.order;
+        }
+        return (a.number || 0) - (b.number || 0);
+    });
+    
+    if (allScenesRaw.length !== allScenes.length) {
+        console.warn(`[SceneNavigator] 🔍 Deduplicated ${allScenesRaw.length - allScenes.length} duplicate scenes`);
+    }
 
     // Sync with contextStore AND currentLine for double reliability
     useEffect(() => {
