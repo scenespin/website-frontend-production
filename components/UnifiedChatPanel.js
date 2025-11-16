@@ -687,6 +687,12 @@ function UnifiedChatPanelInner({
   const handleSend = async (message) => {
     if (!message.trim() || state.isStreaming) return;
 
+    // Skip AI call if there's an active workflow for location/character (let the mode panel handle it)
+    if (state.activeWorkflow && (state.activeMode === 'location' || state.activeMode === 'character')) {
+      console.log('[UnifiedChatPanel] Active workflow detected, skipping AI call - mode panel will handle it');
+      return; // Let LocationModePanel or CharacterModePanel handle the message
+    }
+
     // Add user message
     addMessage({
       role: 'user',
