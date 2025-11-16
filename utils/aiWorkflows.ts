@@ -136,13 +136,10 @@ EXAMPLE OF WRONG BEHAVIOR:
 LOCATION CREATION INTERVIEW QUESTIONS (ask these in order when given):
 
 1. "What's the name of this location? Is it interior (INT) or exterior (EXT)?"
-2. "Can you describe what this place looks like? Paint me a visual picture in 2-3 sentences."
-3. "What's the atmosphere or mood of this space? How should it feel?"
-4. "What can characters DO in this location? Any unique features or obstacles?"
-5. "What time of day is typical for scenes here? How's the lighting?"
-6. "Are there any important sounds or ambient noise?"
-7. "Why is THIS location important to your story? What purpose does it serve?"
-8. "Any production notes - set requirements, practical considerations?"
+2. "Describe what this place looks like in 2-3 sentences."
+3. "What's the atmosphere or mood? How should it feel?"
+4. "What can characters DO here? Any unique features?"
+5. "Why is THIS location important to your story?"
 
 After the final question is answered, generate comprehensive location details:
 
@@ -192,15 +189,15 @@ Format the location description ready for screenplay, structured so the user can
     },
     {
       question: "What's the atmosphere or mood? How should it feel?",
-      placeholder: "e.g., Tense, claustrophobic, dangerous"
+      placeholder: "e.g., Tense, abandoned, dangerous"
     },
     {
       question: "What can characters DO here? Any unique features?",
-      placeholder: "e.g., Hide behind machinery, climb to upper catwalks"
+      placeholder: "e.g., Hide behind machinery, climb stairs, discover hidden room"
     },
     {
       question: "Why is THIS location important to your story?",
-      placeholder: "e.g., Final confrontation location"
+      placeholder: "e.g., Where the final confrontation happens"
     }
   ]
 };

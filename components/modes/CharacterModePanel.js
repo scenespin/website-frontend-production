@@ -6,7 +6,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { User, Sparkles, Bot, MessageSquare, Loader2, Send } from 'lucide-react';
+import { User, Sparkles, Bot, MessageSquare, Loader2, Send, Copy, Check } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
