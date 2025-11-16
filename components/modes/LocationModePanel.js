@@ -67,10 +67,13 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
     }
   }, [activeWorkflow, state.activeMode, state.messages, state.entityContextBanner, startWorkflow]);
   
-  // Handle sending messages to AI during interview
+  // Handle sending messages during interview (WIZARD MODE - no AI until final step)
   const handleSend = async (prompt) => {
     if (!prompt || !prompt.trim() || isSending) return;
-    if (!activeWorkflow) return;
+    if (!activeWorkflow) {
+      console.warn('[LocationModePanel] handleSend called but no active workflow');
+      return;
+    }
     
     setIsSending(true);
     
@@ -86,30 +89,19 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
         mode: 'location'
       });
       
-      // Build conversation history for final profile generation (if last question)
-      const chatMessages = state.messages.filter(m => m.mode === 'location').slice(-20);
-      const conversationHistory = chatMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-      
-      // Check if this is the last question
+      // WIZARD MODE: For questions 1-3, just show next question (NO AI CALL)
       if (currentQuestionIndex < totalQuestions - 1) {
-        // More questions - SKIP AI CALL ENTIRELY, just advance immediately
-        // No need to call AI for acknowledgments - just show next question
-        
-        // Progress to next question immediately (no AI call, no acknowledgment)
         const nextIndex = currentQuestionIndex + 1;
         const nextQuestion = workflow.questions[nextIndex];
         
-        // Update workflow state via ChatContext
+        // Update workflow state
         setWorkflow({
           type: 'location',
           questionIndex: nextIndex
         });
         setPlaceholder(nextQuestion.placeholder);
         
-        // Add next question immediately (no delay, no AI call)
+        // Show next question immediately (pure wizard, no AI)
         addMessage({
           role: 'assistant',
           content: nextQuestion.question,
@@ -117,9 +109,11 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
         });
         
         setIsSending(false);
-        return; // Exit early - no AI call needed
+        setInput(''); // Clear input
+        return; // Exit - no AI call for intermediate questions
         
       } else {
+        // FINAL STEP: Question 4 answered - NOW call AI to generate profile
         // Last question answered - NOW call AI to generate final profile
         // Build system prompt for final profile generation
         const finalSystemPrompt = `${workflow.systemPrompt}

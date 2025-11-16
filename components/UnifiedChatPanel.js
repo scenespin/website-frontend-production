@@ -687,10 +687,11 @@ function UnifiedChatPanelInner({
   const handleSend = async (message) => {
     if (!message.trim() || state.isStreaming) return;
 
-    // Skip AI call if there's an active workflow for location/character (let the mode panel handle it)
+    // WIZARD MODE: Completely skip AI calls during character/location workflows
+    // The mode panels handle all workflow logic - we never call AI here during workflows
     if (state.activeWorkflow && (state.activeMode === 'location' || state.activeMode === 'character')) {
-      console.log('[UnifiedChatPanel] Active workflow detected, skipping AI call - mode panel will handle it');
-      return; // Let LocationModePanel or CharacterModePanel handle the message
+      console.log('[UnifiedChatPanel] ⚠️ Active workflow detected - skipping entirely. Mode panel will handle this message.');
+      return; // Mode panel handles everything - don't add message, don't call AI, nothing
     }
 
     // Add user message
