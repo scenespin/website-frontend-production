@@ -1709,8 +1709,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
         });
         
+        // 🔥 FIX: Use refs to get latest state (avoid stale closures)
+        const currentCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
+        const currentLocations = locationsRef.current.length > 0 ? locationsRef.current : locations;
+        
         // Rebuild relationships using the same function used during initialization
-        buildRelationshipsFromScenes(allScenes, beats, characters, locations);
+        buildRelationshipsFromScenes(allScenes, beats, currentCharacters, currentLocations);
         
         console.log('[ScreenplayContext] ✅ Relationships rebuilt');
     }, [beats, characters, locations, buildRelationshipsFromScenes]);
@@ -1976,9 +1980,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         const newCharacters: Character[] = [];
         
-        // 🔥 NEW: Get existing characters to check for duplicates (exact and fuzzy)
+        // 🔥 FIX: Get existing characters to check for duplicates (exact and fuzzy)
+        // Use refs if available (for rescan), otherwise use state
+        const currentCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
         const existingCharactersMap = new Map(
-            characters.map(c => [c.name.toUpperCase(), c])
+            currentCharacters.map(c => [c.name.toUpperCase(), c])
         );
         
         // Create new characters (skipping duplicates within the import batch)
@@ -1994,56 +2000,62 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
             seenNames.add(upperName);
             
-            // Check for exact match
-            const exactMatch = existingCharactersMap.get(upperName);
-            if (exactMatch) {
-                console.log('[ScreenplayContext] Character already exists (exact match), skipping:', name);
-                continue;
-            }
-            
-            // 🔥 NEW: Check for fuzzy match (variations like "SARAH" vs "SARAH CHEN")
-            let fuzzyMatch: Character | undefined;
-            for (const [existingUpper, existingChar] of existingCharactersMap.entries()) {
-                if (areCharacterNamesSimilar(upperName, existingUpper)) {
-                    fuzzyMatch = existingChar;
-                    console.log(`[ScreenplayContext] Character fuzzy match found: "${name}" matches "${existingChar.name}" - using existing`);
-                    break;
+            // 🔥 FIX: Check for existing character (for rescan/additive import)
+            // If explicitScreenplayId is provided, it's a destructive import (clearAllData was called)
+            // Otherwise, it's a rescan/additive import - check for existing
+            if (!explicitScreenplayId) {
+                // Check for exact match
+                const exactMatch = existingCharactersMap.get(upperName);
+                if (exactMatch) {
+                    console.log('[ScreenplayContext] Character already exists (exact match), skipping:', name);
+                    continue;
+                }
+                
+                // 🔥 NEW: Check for fuzzy match (variations like "SARAH" vs "SARAH CHEN")
+                let fuzzyMatch: Character | undefined;
+                for (const [existingUpper, existingChar] of existingCharactersMap.entries()) {
+                    if (areCharacterNamesSimilar(upperName, existingUpper)) {
+                        fuzzyMatch = existingChar;
+                        console.log(`[ScreenplayContext] Character fuzzy match found: "${name}" matches "${existingChar.name}" - using existing`);
+                        break;
+                    }
+                }
+                
+                if (fuzzyMatch) {
+                    // Use the existing character (prefer longer/more specific name)
+                    // Update description if the new one is more detailed
+                    const newDescription = descriptions?.get(upperName);
+                    if (newDescription && newDescription.length > (fuzzyMatch.description?.length || 0)) {
+                        console.log(`[ScreenplayContext] Updating description for "${fuzzyMatch.name}" with more detailed description`);
+                        // Note: We don't update here, just log - actual update would be in a separate function
+                    }
+                    continue; // Don't create duplicate
                 }
             }
             
-            if (fuzzyMatch) {
-                // Use the existing character (prefer longer/more specific name)
-                // Update description if the new one is more detailed
-                const newDescription = descriptions?.get(upperName);
-                if (newDescription && newDescription.length > (fuzzyMatch.description?.length || 0)) {
-                    console.log(`[ScreenplayContext] Updating description for "${fuzzyMatch.name}" with more detailed description`);
-                    // Note: We don't update here, just log - actual update would be in a separate function
-                }
-                continue; // Don't create duplicate
-            } else {
-                // Create new character
-                const description = descriptions?.get(upperName) || `Imported from script`;
-                
-                const newCharacter: Character = {
-                    id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    name,
-                    type: 'supporting',
-                    description,
-                    firstAppearance: undefined,
-                    arcStatus: 'introduced',
-                    customFields: [],
-                    createdAt: now,
-                    updatedAt: now,
-                    images: []
-                };
-                
-                console.log('[ScreenplayContext] Creating new character:', name);
-                newCharacters.push(newCharacter);
-            }
+            // Create new character (either because it's a destructive import or it's truly new)
+            const description = descriptions?.get(upperName) || `Imported from script`;
+            
+            const newCharacter: Character = {
+                id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name,
+                type: 'supporting',
+                description,
+                firstAppearance: undefined,
+                arcStatus: 'introduced',
+                customFields: [],
+                createdAt: now,
+                updatedAt: now,
+                images: []
+            };
+            
+            console.log('[ScreenplayContext] Creating new character:', name);
+            newCharacters.push(newCharacter);
         }
         
-        // 🔥 FIX: Merge with existing characters instead of replacing
-        const allCharacters = [...characters, ...newCharacters];
+        // 🔥 FIX: During import (explicitScreenplayId), replace all characters (import is destructive)
+        // For rescan (!explicitScreenplayId), we merge with existing
+        const allCharacters = explicitScreenplayId ? newCharacters : [...currentCharacters, ...newCharacters];
         setCharacters(allCharacters);
         
         // Update relationships for new characters
@@ -2064,19 +2076,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             };
         });
         
-        // 🔥 NEW: Save ALL characters to DynamoDB through persistence manager
+        // 🔥 NEW: Save NEW characters to DynamoDB through persistence manager
         // Feature 0117: Accept explicit screenplay ID to avoid race conditions
+        // 🔥 FIX: Only save NEW characters, not all characters (prevents duplicates in DB)
         const idToUse = explicitScreenplayId || screenplayId;
-        if (idToUse) {
+        if (idToUse && newCharacters.length > 0) {
             try {
-                console.log('[ScreenplayContext] Saving', allCharacters.length, 'characters to DynamoDB...');
-                const apiCharacters = transformCharactersToAPI(allCharacters);
+                console.log('[ScreenplayContext] Saving', newCharacters.length, 'new characters to DynamoDB...');
+                const apiCharacters = transformCharactersToAPI(newCharacters);
                 await bulkCreateCharacters(idToUse, apiCharacters, getToken);
-                console.log('[ScreenplayContext] ✅ Saved characters to DynamoDB');
+                console.log('[ScreenplayContext] ✅ Saved new characters to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save characters:', error);
                 throw error;
             }
+        } else if (idToUse && newCharacters.length === 0) {
+            console.log('[ScreenplayContext] No new characters to save (all already exist)');
         } else {
             console.warn('[ScreenplayContext] ⚠️ No screenplay_id yet - characters saved to local state only (will save when screenplay is created)');
         }
@@ -2095,7 +2110,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         const newLocations: Location[] = [];
         
-        // 🔥 FIX: During import, we should create ALL locations (import is destructive)
+        // 🔥 FIX: Get existing locations to check for duplicates
+        // Use refs if available (for rescan), otherwise use state
+        const currentLocations = locationsRef.current.length > 0 ? locationsRef.current : locations;
+        const existingLocationsMap = new Map(
+            currentLocations.map(l => [l.name.toUpperCase(), l])
+        );
+        
         // Only skip duplicates WITHIN the import batch itself
         const seenNames = new Set<string>();
         
@@ -2109,8 +2130,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
             seenNames.add(upperName);
             
-            // 🔥 FIX: Always create new locations during import (don't check existing)
-            // The clearAllData() call before import ensures we're starting fresh
+            // 🔥 FIX: Check for existing location (for rescan/additive import)
+            // If explicitScreenplayId is provided, it's a destructive import (clearAllData was called)
+            // Otherwise, it's a rescan/additive import - check for existing
+            if (!explicitScreenplayId) {
+                const existingLoc = existingLocationsMap.get(upperName);
+                if (existingLoc) {
+                    console.log('[ScreenplayContext] Location already exists, skipping:', name);
+                    continue; // Don't create duplicate
+                }
+            }
+            
             // 🔥 NEW: Get location type from map, default to 'INT' if not found
             const locationType = locationTypes?.get(name) || 'INT';
             
@@ -2129,9 +2159,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             newLocations.push(newLocation);
         }
         
-        // 🔥 FIX: During import, replace all locations (import is destructive)
-        // For rescan, we merge with existing
-        const allLocations = explicitScreenplayId ? newLocations : [...locations, ...newLocations];
+        // 🔥 FIX: During import (explicitScreenplayId), replace all locations (import is destructive)
+        // For rescan (!explicitScreenplayId), we merge with existing
+        const allLocations = explicitScreenplayId ? newLocations : [...currentLocations, ...newLocations];
         setLocations(allLocations);
         
         // Update relationships for new locations
@@ -2151,19 +2181,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             };
         });
         
-        // 🔥 NEW: Save ALL locations to DynamoDB through persistence manager
+        // 🔥 NEW: Save NEW locations to DynamoDB through persistence manager
         // Feature 0117: Accept explicit screenplay ID to avoid race conditions
+        // 🔥 FIX: Only save NEW locations, not all locations (prevents duplicates in DB)
         const idToUse = explicitScreenplayId || screenplayId;
-        if (idToUse) {
+        if (idToUse && newLocations.length > 0) {
             try {
-                console.log('[ScreenplayContext] Saving', allLocations.length, 'locations to DynamoDB...');
-                const apiLocations = transformLocationsToAPI(allLocations);
+                console.log('[ScreenplayContext] Saving', newLocations.length, 'new locations to DynamoDB...');
+                const apiLocations = transformLocationsToAPI(newLocations);
                 await bulkCreateLocations(idToUse, apiLocations, getToken);
-                console.log('[ScreenplayContext] ✅ Saved locations to DynamoDB');
+                console.log('[ScreenplayContext] ✅ Saved new locations to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save locations:', error);
                 throw error;
             }
+        } else if (idToUse && newLocations.length === 0) {
+            console.log('[ScreenplayContext] No new locations to save (all already exist)');
         } else {
             console.warn('[ScreenplayContext] ⚠️ No screenplay_id yet - locations saved to local state only (will save when screenplay is created)');
         }
