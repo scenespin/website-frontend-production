@@ -111,12 +111,19 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
         const finalSystemPrompt = `${workflow.systemPrompt}
 
 CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
-- The user has completed all interview questions
+- The user has completed all 5 interview questions
 - Generate a comprehensive location profile based on their answers
 - Use the conversation history to extract all their answers
 - Format the profile ready for screenplay use
 - DO NOT ask any more questions
-- DO NOT acknowledge - just generate the profile`;
+- DO NOT acknowledge - just generate the profile
+
+REQUIRED OUTPUT FORMAT:
+**Name:** [Location Name]
+**Type:** [INT/EXT/INT/EXT]
+**Description:** [Full location description - this will fill the modal form - 2-3 sentences about what it looks like, atmosphere, mood]
+**Atmosphere Notes:** [Optional - mood and feel]
+**Set Requirements:** [Optional - production notes]`;
 
         // Call AI to generate final profile
         setStreaming(true, '');

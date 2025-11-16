@@ -25,14 +25,22 @@ export const characterWorkflow: WorkflowConfig = {
 - This is NOT a health assessment, NOT a real person profile, NOT a medical consultation
 - This is CREATIVE WRITING for a SCREENPLAY
 
-CRITICAL RULES:
-1. You will be given a specific question to ask. Ask ONLY that question - nothing else.
-2. When the user answers, acknowledge their answer briefly (1 sentence max), then ask the NEXT question you are given.
-3. DO NOT ask follow-up questions or generate additional questions.
-4. DO NOT have a conversation - this is a structured interview with predefined questions.
+CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY:
+1. You will be given EXACTLY ONE question to ask. Ask ONLY that question - NOTHING ELSE.
+2. When the user answers, DO NOT acknowledge - just immediately ask the NEXT question you are given.
+3. DO NOT ask follow-up questions, clarifying questions, or generate ANY additional questions.
+4. DO NOT have a conversation - this is a structured interview with ONLY 5 predefined questions.
 5. DO NOT treat answers as if they are about a real person - they are about a FICTIONAL CHARACTER IN A MOVIE.
 6. DO NOT generate health assessments, medical information, or real-world advice.
-7. After the final question is answered, generate the character profile in SCREENPLAY FORMAT.
+7. After the 5th question is answered, IMMEDIATELY generate the character profile - DO NOT ask any more questions.
+
+EXAMPLE OF CORRECT BEHAVIOR:
+- User: "jon 23"
+- You: "What role do they play - protagonist, antagonist, or supporting?" (ONLY this question, nothing else)
+
+EXAMPLE OF WRONG BEHAVIOR:
+- User: "jon 23"
+- You: "Great! Jon, 23. Now what's his occupation?" (WRONG - you asked a follow-up question that wasn't in the list)
 
 REMEMBER: 
 - The user is creating a CHARACTER for a SCREENPLAY/MOVIE
@@ -86,32 +94,20 @@ Format the final character profile ready for screenplay, and structure it so the
       placeholder: "e.g., Sarah, mid-30s"
     },
     {
-      question: "What role do they play in the story - protagonist, antagonist, or supporting character?",
-      placeholder: "e.g., Protagonist - the detective solving the case"
+      question: "What role do they play - protagonist, antagonist, or supporting?",
+      placeholder: "e.g., Protagonist"
     },
     {
-      question: "Can you describe their physical appearance in 2-3 sentences? What's one memorable detail about them?",
+      question: "Describe their physical appearance in 2-3 sentences.",
       placeholder: "e.g., Tall, wears a faded leather jacket, has a scar on her cheek"
     },
     {
-      question: "What's their core personality trait or behavioral pattern? Show me through action, not adjectives.",
-      placeholder: "e.g., Always checks exits when entering a room"
-    },
-    {
       question: "What do they want? What's driving them?",
-      placeholder: "e.g., To find her missing sister and bring her home"
+      placeholder: "e.g., To find her missing sister"
     },
     {
       question: "What's their biggest flaw or internal conflict?",
       placeholder: "e.g., Trusts no one, pushes people away"
-    },
-    {
-      question: "Is there any background that's crucial to their story?",
-      placeholder: "e.g., Former FBI agent, left after a case went wrong"
-    },
-    {
-      question: "How do they interact with other characters? Any key relationships?",
-      placeholder: "e.g., Protective of her partner, distant with family"
     }
   ]
 };
@@ -122,12 +118,20 @@ Format the final character profile ready for screenplay, and structure it so the
 export const locationWorkflow: WorkflowConfig = {
   systemPrompt: `You are conducting a structured location creation interview. You MUST follow these rules:
 
-CRITICAL RULES:
-1. You will be given a specific question to ask. Ask ONLY that question - nothing else.
-2. When the user answers, acknowledge their answer briefly (1 sentence max), then ask the NEXT question you are given.
-3. DO NOT ask follow-up questions or generate additional questions.
-4. DO NOT have a conversation - this is a structured interview with predefined questions.
-5. After the final question is answered, generate the location profile.
+CRITICAL RULES - YOU MUST FOLLOW THESE EXACTLY:
+1. You will be given EXACTLY ONE question to ask. Ask ONLY that question - NOTHING ELSE.
+2. When the user answers, DO NOT acknowledge - just immediately ask the NEXT question you are given.
+3. DO NOT ask follow-up questions, clarifying questions, or generate ANY additional questions.
+4. DO NOT have a conversation - this is a structured interview with ONLY 5 predefined questions.
+5. After the 5th question is answered, IMMEDIATELY generate the location profile - DO NOT ask any more questions.
+
+EXAMPLE OF CORRECT BEHAVIOR:
+- User: "warehouse at night dark wet"
+- You: "Describe what this place looks like in 2-3 sentences." (ONLY this question, nothing else)
+
+EXAMPLE OF WRONG BEHAVIOR:
+- User: "warehouse at night dark wet"
+- You: "Based on your description, here's a properly formatted scene heading..." (WRONG - you're explaining instead of asking the next question)
 
 LOCATION CREATION INTERVIEW QUESTIONS (ask these in order when given):
 
@@ -183,32 +187,20 @@ Format the location description ready for screenplay, structured so the user can
       placeholder: "e.g., INT. ABANDONED WAREHOUSE or EXT. CITY ROOFTOP"
     },
     {
-      question: "Can you describe what this place looks like? Paint me a visual picture in 2-3 sentences.",
+      question: "Describe what this place looks like in 2-3 sentences.",
       placeholder: "e.g., Concrete floors, broken windows, rusted machinery"
     },
     {
-      question: "What's the atmosphere or mood of this space? How should it feel?",
+      question: "What's the atmosphere or mood? How should it feel?",
       placeholder: "e.g., Tense, claustrophobic, dangerous"
     },
     {
-      question: "What can characters DO in this location? Any unique features or obstacles?",
+      question: "What can characters DO here? Any unique features?",
       placeholder: "e.g., Hide behind machinery, climb to upper catwalks"
     },
     {
-      question: "What time of day is typical for scenes here? How's the lighting?",
-      placeholder: "e.g., Night, dim light from street lamps through windows"
-    },
-    {
-      question: "Are there any important sounds or ambient noise?",
-      placeholder: "e.g., Dripping water, distant traffic, metal creaking"
-    },
-    {
-      question: "Why is THIS location important to your story? What purpose does it serve?",
-      placeholder: "e.g., Final confrontation location, isolated from help"
-    },
-    {
-      question: "Any production notes - set requirements, practical considerations?",
-      placeholder: "e.g., Needs practical fire effects, sound reverb"
+      question: "Why is THIS location important to your story?",
+      placeholder: "e.g., Final confrontation location"
     }
   ]
 };

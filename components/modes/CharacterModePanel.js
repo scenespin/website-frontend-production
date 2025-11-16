@@ -133,14 +133,21 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
         finalSystemPrompt += `
 
 CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
-- The user has completed all interview questions
+- The user has completed all 5 interview questions
 - Generate a comprehensive character profile based on their answers
 - Use the conversation history to extract all their answers
 - Format the profile ready for screenplay use
 - DO NOT ask any more questions
 - DO NOT acknowledge - just generate the profile
 - This is a FICTIONAL CHARACTER for a SCREENPLAY, NOT a real person
-- DO NOT generate health assessments or medical information`;
+- DO NOT generate health assessments or medical information
+
+REQUIRED OUTPUT FORMAT:
+**Name:** [Character Name]
+**Physical Introduction:** [2-3 sentences in screenplay format, e.g., "JON (23) is a college student with..." - what the camera sees]
+**Description:** [Full character description including personality, goals, flaws - this will fill the modal form]
+**Type:** [lead/supporting/minor]
+**Arc Status:** [introduced/developing/resolved]`;
 
         // Call AI to generate final profile
         setStreaming(true, '');
@@ -187,21 +194,21 @@ CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
         
         setStreaming(false, '');
         
-        // Add final profile
+        // Parse the final AI response FIRST
+        const parsedData = parseAIResponse(finalResponse, 'character');
+        
+        // Store completion data BEFORE adding message (so UI updates immediately)
+        setWorkflowCompletion({
+          type: 'character',
+          parsedData: parsedData || { name: 'Character', description: finalResponse },
+          aiResponse: finalResponse
+        });
+        
+        // Add final profile message
         addMessage({
           role: 'assistant',
           content: finalResponse,
           mode: 'character'
-        });
-        
-        // Parse the final AI response
-        const parsedData = parseAIResponse(finalResponse, 'character');
-        
-        // Store completion data
-        setWorkflowCompletion({
-          type: 'character',
-          parsedData,
-          aiResponse
         });
         setWorkflow(null);
         setPlaceholder('Type your message...');

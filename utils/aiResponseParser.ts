@@ -49,15 +49,34 @@ export function parseCharacterProfile(aiResponse: string): Partial<ParsedCharact
       parsed.type = 'minor';
     }
     
-    // Extract description (look for Physical Introduction or Description sections)
-    const descriptionMatch = aiResponse.match(/(?:Physical Introduction|Description|Appearance)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    // Extract description - look for Physical Introduction, Description, or screenplay format
+    // Try multiple patterns to catch different AI response formats
+    let descriptionMatch = aiResponse.match(/(?:Physical Introduction|Description|Appearance)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    
+    // Also look for screenplay format: "CHARACTER (age) description..."
+    if (!descriptionMatch) {
+      descriptionMatch = aiResponse.match(/([A-Z][A-Z\s]+)\s*\([^)]+\)[^\n]+(?:\n[^\n]+)*/);
+    }
+    
+    // Also look for markdown bold sections
+    if (!descriptionMatch) {
+      descriptionMatch = aiResponse.match(/\*\*[^*]+\*\*[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    }
+    
     if (descriptionMatch && descriptionMatch[1]) {
       parsed.description = descriptionMatch[1].trim();
     } else {
-      // Fallback: get the first substantial paragraph
-      const paragraphs = aiResponse.split('\n\n').filter(p => p.trim().length > 50);
-      if (paragraphs.length > 0) {
-        parsed.description = paragraphs[0].trim();
+      // Fallback: get the first substantial paragraph (skip name/header lines)
+      const lines = aiResponse.split('\n').filter(line => {
+        const trimmed = line.trim();
+        // Skip headers, names, empty lines, and very short lines
+        return trimmed.length > 50 && 
+               !trimmed.match(/^(Name|Character|Age|Role|Type|Profile|CHARACTER PROFILE)/i) &&
+               !trimmed.match(/^[A-Z\s]+$/); // Skip all-caps headers
+      });
+      if (lines.length > 0) {
+        // Take first 2-3 lines as description
+        parsed.description = lines.slice(0, 3).join(' ').trim();
       }
     }
     
