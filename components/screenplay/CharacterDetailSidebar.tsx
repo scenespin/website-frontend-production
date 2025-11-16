@@ -370,11 +370,18 @@ export default function CharacterDetailSidebar({
           <button
             onClick={() => {
               if (onSwitchToChatImageMode) {
+                // Pass existing form data to AI interview (if user has entered anything)
                 onSwitchToChatImageMode(undefined, {
                   type: 'character',
                   id: 'new',
                   name: formData.name || 'New Character',
-                  workflow: 'interview'
+                  workflow: 'interview',
+                  existingData: {
+                    name: formData.name || '',
+                    description: formData.description || '',
+                    type: formData.type || '',
+                    arcStatus: formData.arcStatus || ''
+                  }
                 });
               }
               onClose();

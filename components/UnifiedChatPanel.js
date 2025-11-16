@@ -354,7 +354,9 @@ function UnifiedChatPanelInner({
         // Handle AI interview workflow
         if (imageEntityContext.workflow === 'interview') {
           console.log('[UnifiedChatPanel] Starting AI interview for:', imageEntityContext.type);
-          setMode('chat'); // AI interviews happen in chat mode
+          
+          // Set mode to the workflow type (character/location/scene) so drawer shows correct title
+          setMode(imageEntityContext.type);
 
           // Start the workflow!
           startWorkflow(imageEntityContext.type);

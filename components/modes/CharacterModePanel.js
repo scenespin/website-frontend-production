@@ -47,10 +47,17 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       const workflowMessages = state.messages.filter(m => m.mode === 'character');
       if (workflowMessages.length === 0) {
         console.log('[CharacterModePanel] Auto-starting character interview');
+        
+        // Check if there's existing data from the modal
+        const existingData = state.entityContextBanner?.existingData;
+        if (existingData && (existingData.name || existingData.description)) {
+          console.log('[CharacterModePanel] Found existing form data:', existingData);
+        }
+        
         startWorkflow('character');
       }
     }
-  }, [activeWorkflow, state.activeMode, state.messages, startWorkflow, setMode]);
+  }, [activeWorkflow, state.activeMode, state.messages, state.entityContextBanner, startWorkflow, setMode]);
   
   // Handle sending messages to AI during interview
   const handleSend = async (prompt) => {
@@ -79,7 +86,21 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       }));
       
       // Get system prompt from workflow
-      const systemPrompt = workflow.systemPrompt;
+      let systemPrompt = workflow.systemPrompt;
+      
+      // If this is the first question and we have existing data from the modal, include it
+      if (currentQuestionIndex === 0 && state.entityContextBanner?.existingData) {
+        const existing = state.entityContextBanner.existingData;
+        const existingInfo = [];
+        if (existing.name) existingInfo.push(`Name: ${existing.name}`);
+        if (existing.description) existingInfo.push(`Description: ${existing.description}`);
+        if (existing.type) existingInfo.push(`Type: ${existing.type}`);
+        if (existing.arcStatus) existingInfo.push(`Arc Status: ${existing.arcStatus}`);
+        
+        if (existingInfo.length > 0) {
+          systemPrompt += `\n\n📝 EXISTING CHARACTER INFORMATION (user has already entered this):\n${existingInfo.join('\n')}\n\nNote: The user has already provided this information. You can reference it naturally in your questions, but still ask all questions to get a complete profile.`;
+        }
+      }
       
       // Build enhanced system prompt - AI should ONLY acknowledge briefly, we'll add next question manually
       const enhancedSystemPrompt = `${systemPrompt}
@@ -158,20 +179,12 @@ BAD responses (TOO LONG):
       // Ensure streaming is stopped
       setStreaming(false, '');
       
-      // Add the final AI response message (streaming text was shown via streamingText state)
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {
-        // More questions - skip AI acknowledgment (keep it short), just ask next question
-        // Only add AI response if it's more than just "Got it" or similar (in case AI didn't follow instructions)
-        if (aiResponse && aiResponse.trim().length > 10) {
-          addMessage({
-            role: 'assistant',
-            content: aiResponse,
-            mode: 'character'
-          });
-        }
+        // More questions - SKIP AI acknowledgment entirely, just advance immediately
+        // The 50-token limit ensures AI gives short responses, but we don't need to show them
         
-        // Progress to next question immediately
+        // Progress to next question immediately (no AI acknowledgment shown)
         const nextIndex = currentQuestionIndex + 1;
         const nextQuestion = workflow.questions[nextIndex];
         
@@ -182,7 +195,7 @@ BAD responses (TOO LONG):
         });
         setPlaceholder(nextQuestion.placeholder);
         
-        // Add next question immediately (no delay)
+        // Add next question immediately (no delay, no AI acknowledgment)
         addMessage({
           role: 'assistant',
           content: nextQuestion.question,

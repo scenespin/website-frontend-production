@@ -313,11 +313,17 @@ export default function LocationDetailSidebar({
           <button
             onClick={() => {
               if (onSwitchToChatImageMode) {
+                // Pass existing form data to AI interview (if user has entered anything)
                 onSwitchToChatImageMode(undefined, {
                   type: 'location',
                   id: 'new',
                   name: formData.name || 'New Location',
-                  workflow: 'interview'
+                  workflow: 'interview',
+                  existingData: {
+                    name: formData.name || '',
+                    description: formData.description || '',
+                    type: formData.type || ''
+                  }
                 });
               }
               onClose();
