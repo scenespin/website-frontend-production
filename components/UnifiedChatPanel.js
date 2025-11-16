@@ -953,7 +953,6 @@ function UnifiedChatPanelInner({
             }
           }}
         />
-      </div>
     </div>
   );
 }
