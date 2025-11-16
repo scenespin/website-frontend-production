@@ -391,12 +391,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // Helper to group scenes into beats based on group_label or order
     const groupScenesIntoBeats = useCallback((scenes: Scene[], beats: StoryBeat[]): StoryBeat[] => {
+        // 🔥 FIX: Sort scenes by order field first (primary) or number (fallback) to maintain correct sequence
+        const sortedScenes = [...scenes].sort((a, b) => {
+            // Use order field if available (more reliable for persistence)
+            if (a.order !== undefined && b.order !== undefined) {
+                return a.order - b.order;
+            }
+            // Fallback to number if order is not set
+            return (a.number || 0) - (b.number || 0);
+        });
+        
         const beatMap = new Map(beats.map(b => [b.title.toUpperCase(), b]));
         const updatedBeats = beats.map(b => ({ ...b, scenes: [] as Scene[] }));
         const orphanedScenes: Scene[] = [];
         
         // First pass: Assign scenes with group_label to matching beats
-        scenes.forEach(scene => {
+        sortedScenes.forEach(scene => {
             if (scene.group_label) {
                 const beat = beatMap.get(scene.group_label.toUpperCase());
                 if (beat) {
@@ -412,9 +422,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // 🔥 FIX: Distribute orphaned scenes evenly across ALL beats (not just first one)
         if (orphanedScenes.length > 0 && updatedBeats.length > 0) {
-            // Sort scenes by their order/number to maintain sequence
-            orphanedScenes.sort((a, b) => (a.number || 0) - (b.number || 0));
-            
+            // Scenes are already sorted by order/number above
             // Distribute evenly across all beats
             orphanedScenes.forEach((scene, index) => {
                 const beatIndex = index % updatedBeats.length; // Round-robin distribution
@@ -424,9 +432,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.log('[ScreenplayContext] 📊 Distributed', orphanedScenes.length, 'orphaned scenes across', updatedBeats.length, 'beats');
         }
         
-        // Sort scenes within each beat by their order/number
+        // Sort scenes within each beat by their order (primary) or number (fallback)
         updatedBeats.forEach(beat => {
-            beat.scenes.sort((a, b) => (a.number || 0) - (b.number || 0));
+            beat.scenes.sort((a, b) => {
+                if (a.order !== undefined && b.order !== undefined) {
+                    return a.order - b.order;
+                }
+                return (a.number || 0) - (b.number || 0);
+            });
         });
         
         return updatedBeats;
@@ -434,8 +447,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // 🔥 NEW: Helper to build relationships from scenes
     // This ensures character/location scene counts are accurate
-    const buildRelationshipsFromScenes = useCallback((scenes: Scene[], beats: StoryBeat[]) => {
+    const buildRelationshipsFromScenes = useCallback((scenes: Scene[], beats: StoryBeat[], charactersList: Character[], locationsList: Location[]) => {
         console.log('[ScreenplayContext] 🔗 Building relationships from', scenes.length, 'scenes...');
+        console.log('[ScreenplayContext] 🔍 Available characters:', charactersList.map(c => ({ id: c.id, name: c.name })));
+        console.log('[ScreenplayContext] 🔍 Available locations:', locationsList.map(l => ({ id: l.id, name: l.name })));
         
         setRelationships(prev => {
             const newRels = {
@@ -446,6 +461,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 props: { ...prev.props }
             };
             
+            // Build character and location maps for validation
+            const characterMap = new Map<string, Character>();
+            charactersList.forEach(char => {
+                characterMap.set(char.id, char);
+            });
+            
+            const locationMap = new Map<string, Location>();
+            locationsList.forEach(loc => {
+                locationMap.set(loc.id, loc);
+            });
+            
             // Build beat map for scene-to-beat lookup
             const beatMap = new Map<string, string>();
             beats.forEach(beat => {
@@ -455,20 +481,34 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             // Process each scene
+            let validCharacterLinks = 0;
+            let invalidCharacterLinks = 0;
             scenes.forEach(scene => {
                 const beatId = beatMap.get(scene.id) || '';
                 
                 // Scene relationships
+                const characterIds = scene.fountain?.tags?.characters || [];
+                // 🔥 FIX: Filter out invalid character IDs (characters that don't exist)
+                const validCharacterIds = characterIds.filter(charId => {
+                    const isValid = characterMap.has(charId);
+                    if (!isValid) {
+                        invalidCharacterLinks++;
+                        console.warn(`[ScreenplayContext] ⚠️ Scene "${scene.heading}" references invalid character ID: ${charId}`);
+                    } else {
+                        validCharacterLinks++;
+                    }
+                    return isValid;
+                });
+                
                 newRels.scenes[scene.id] = {
                     type: 'scene',
-                    characters: scene.fountain?.tags?.characters || [],
+                    characters: validCharacterIds,
                     location: scene.fountain?.tags?.location,
                     storyBeat: beatId
                 };
                 
-                // Link characters to scene
-                const characterIds = scene.fountain?.tags?.characters || [];
-                characterIds.forEach(charId => {
+                // Link characters to scene (only valid IDs)
+                validCharacterIds.forEach(charId => {
                     if (!newRels.characters[charId]) {
                         newRels.characters[charId] = {
                             type: 'character',
@@ -484,17 +524,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                 });
                 
-                // Link location to scene
+                // Link location to scene (validate location ID)
                 const locationId = scene.fountain?.tags?.location;
                 if (locationId) {
-                    if (!newRels.locations[locationId]) {
-                        newRels.locations[locationId] = {
-                            type: 'location',
-                            scenes: []
-                        };
-                    }
-                    if (!newRels.locations[locationId].scenes.includes(scene.id)) {
-                        newRels.locations[locationId].scenes.push(scene.id);
+                    if (locationMap.has(locationId)) {
+                        if (!newRels.locations[locationId]) {
+                            newRels.locations[locationId] = {
+                                type: 'location',
+                                scenes: []
+                            };
+                        }
+                        if (!newRels.locations[locationId].scenes.includes(scene.id)) {
+                            newRels.locations[locationId].scenes.push(scene.id);
+                        }
+                    } else {
+                        console.warn(`[ScreenplayContext] ⚠️ Scene "${scene.heading}" references invalid location ID: ${locationId}`);
                     }
                 }
             });
@@ -502,7 +546,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.log('[ScreenplayContext] ✅ Built relationships:', {
                 scenes: Object.keys(newRels.scenes).length,
                 characters: Object.keys(newRels.characters).length,
-                locations: Object.keys(newRels.locations).length
+                locations: Object.keys(newRels.locations).length,
+                validCharacterLinks,
+                invalidCharacterLinks: invalidCharacterLinks > 0 ? invalidCharacterLinks : undefined
             });
             
             return newRels;
@@ -639,7 +685,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
-                    buildRelationshipsFromScenes(transformedScenes, beatsWithScenes);
+                    // Pass characters and locations for validation
+                    buildRelationshipsFromScenes(transformedScenes, beatsWithScenes, transformedCharacters, transformedLocations);
                     
                     // 🔥 CRITICAL: Check if we need to create default beats AFTER loading
                     if (beatsWithScenes.length === 0 && !hasAutoCreated.current) {
@@ -689,7 +736,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Only build if we have characters/locations loaded (to avoid empty relationships)
         if (characters.length > 0 || locations.length > 0) {
-            buildRelationshipsFromScenes(allScenes, beats);
+            buildRelationshipsFromScenes(allScenes, beats, characters, locations);
         }
     }, [beats, characters.length, locations.length, buildRelationshipsFromScenes]);
     
@@ -898,43 +945,89 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     ): string => {
         console.log('[ScreenplayContext] Reordering script content:', {
             newOrder: newSceneOrder.length,
-            oldOrder: oldSceneOrder.length
+            oldOrder: oldSceneOrder.length,
+            contentLength: content.length
         });
         
-        // Import stripTagsForDisplay to ensure we use the same content the editor displays
-        // For reordering, we need the raw content with tags preserved
+        // 🔥 FIX: Use scene headings to find scenes instead of relying on stale line numbers
+        // This is more robust when line numbers are outdated
         const lines = content.split('\n');
         
-        // Build a map of scene ID to scene block (lines)
-        const sceneBlocks = new Map<string, string[]>();
-        const sceneBlockMetadata = new Map<string, { startLine: number; endLine: number }>();
+        // Build a map of scene heading to scene block (using headings as keys for reliability)
+        const sceneBlocksByHeading = new Map<string, { block: string[]; scene: Scene }>();
+        const sceneBlocksById = new Map<string, string[]>();
         
-        // Extract scene blocks from old order
+        // First, try to extract using line numbers (if valid)
+        let validLineNumbers = 0;
+        let invalidLineNumbers = 0;
+        
         oldSceneOrder.forEach(scene => {
-            const startLine = scene.fountain?.startLine ?? 0;
-            const endLine = scene.fountain?.endLine ?? lines.length - 1;
+            const startLine = scene.fountain?.startLine ?? -1;
+            const endLine = scene.fountain?.endLine ?? -1;
             
             // Validate boundaries
-            if (startLine < 0 || endLine >= lines.length || startLine > endLine) {
-                console.warn(`[ScreenplayContext] Invalid scene boundaries for scene ${scene.id}: lines ${startLine}-${endLine} (total lines: ${lines.length})`);
-                return;
+            if (startLine >= 0 && endLine >= startLine && endLine < lines.length) {
+                const sceneBlock = lines.slice(startLine, endLine + 1);
+                sceneBlocksById.set(scene.id, sceneBlock);
+                sceneBlocksByHeading.set(scene.heading.toUpperCase().trim(), { block: sceneBlock, scene });
+                validLineNumbers++;
+                console.log(`[ScreenplayContext] Extracted scene "${scene.heading}" using line numbers: ${startLine}-${endLine}`);
+            } else {
+                invalidLineNumbers++;
+                console.warn(`[ScreenplayContext] Invalid line numbers for scene "${scene.heading}": ${startLine}-${endLine}, will use heading-based extraction`);
+            }
+        });
+        
+        // If too many scenes have invalid line numbers, use heading-based extraction
+        if (invalidLineNumbers > validLineNumbers && invalidLineNumbers > 0) {
+            console.log('[ScreenplayContext] 🔄 Too many invalid line numbers, using heading-based extraction...');
+            sceneBlocksById.clear();
+            sceneBlocksByHeading.clear();
+            
+            // Find scenes by their headings in the content
+            let currentScene: { heading: string; startLine: number; scene: Scene } | null = null;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const isSceneHeading = /^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]/i.test(line);
+                
+                if (isSceneHeading) {
+                    // Save previous scene
+                    if (currentScene) {
+                        const sceneBlock = lines.slice(currentScene.startLine, i);
+                        sceneBlocksById.set(currentScene.scene.id, sceneBlock);
+                        sceneBlocksByHeading.set(currentScene.heading.toUpperCase().trim(), { block: sceneBlock, scene: currentScene.scene });
+                    }
+                    
+                    // Find matching scene from oldSceneOrder
+                    const normalizedHeading = line.toUpperCase().trim();
+                    const matchingScene = oldSceneOrder.find(s => 
+                        s.heading.toUpperCase().trim() === normalizedHeading
+                    );
+                    
+                    if (matchingScene) {
+                        currentScene = { heading: normalizedHeading, startLine: i, scene: matchingScene };
+                    } else {
+                        currentScene = null; // Scene not in old order, skip
+                    }
+                }
             }
             
-            // Extract scene block (inclusive of both start and end lines)
-            const sceneBlock = lines.slice(startLine, endLine + 1);
-            sceneBlocks.set(scene.id, sceneBlock);
-            sceneBlockMetadata.set(scene.id, { startLine, endLine });
-            
-            console.log(`[ScreenplayContext] Extracted scene block for "${scene.heading}": lines ${startLine}-${endLine} (${sceneBlock.length} lines)`);
-        });
+            // Save last scene
+            if (currentScene) {
+                const sceneBlock = lines.slice(currentScene.startLine);
+                sceneBlocksById.set(currentScene.scene.id, sceneBlock);
+                sceneBlocksByHeading.set(currentScene.heading, { block: sceneBlock, scene: currentScene.scene });
+            }
+        }
         
         // Find content before first scene (title page, etc.)
         const firstScene = oldSceneOrder
             .map(s => ({ scene: s, startLine: s.fountain?.startLine ?? Infinity }))
             .sort((a, b) => a.startLine - b.startLine)[0];
         
-        const contentBeforeFirstScene = firstScene
-            ? lines.slice(0, firstScene.scene.fountain?.startLine ?? 0)
+        const contentBeforeFirstScene = firstScene && firstScene.scene.fountain?.startLine !== undefined && firstScene.scene.fountain.startLine >= 0
+            ? lines.slice(0, firstScene.scene.fountain.startLine)
             : [];
         
         // Find content after last scene
@@ -942,8 +1035,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             .map(s => ({ scene: s, endLine: s.fountain?.endLine ?? -1 }))
             .sort((a, b) => b.endLine - a.endLine)[0];
         
-        const contentAfterLastScene = lastScene
-            ? lines.slice((lastScene.scene.fountain?.endLine ?? lines.length - 1) + 1)
+        const contentAfterLastScene = lastScene && lastScene.scene.fountain?.endLine !== undefined && lastScene.scene.fountain.endLine >= 0
+            ? lines.slice(lastScene.scene.fountain.endLine + 1)
             : [];
         
         // Reorder scene blocks according to new order
@@ -951,10 +1044,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const missingScenes: string[] = [];
         
         newSceneOrder.forEach((scene, index) => {
-            const sceneBlock = sceneBlocks.get(scene.id);
-            if (sceneBlock) {
+            // Try ID first, then heading
+            let sceneBlock = sceneBlocksById.get(scene.id);
+            if (!sceneBlock) {
+                const headingMatch = sceneBlocksByHeading.get(scene.heading.toUpperCase().trim());
+                if (headingMatch) {
+                    sceneBlock = headingMatch.block;
+                    console.log(`[ScreenplayContext] Found scene "${scene.heading}" by heading match`);
+                }
+            }
+            
+            if (sceneBlock && sceneBlock.length > 0) {
                 reorderedSceneBlocks.push(...sceneBlock);
-                console.log(`[ScreenplayContext] Added scene "${scene.heading}" at position ${index + 1}`);
+                console.log(`[ScreenplayContext] Added scene "${scene.heading}" at position ${index + 1} (${sceneBlock.length} lines)`);
             } else {
                 missingScenes.push(scene.id);
                 console.warn(`[ScreenplayContext] Scene block not found for scene ${scene.id} ("${scene.heading}") - skipping`);
@@ -986,8 +1088,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const lengthDiff = Math.abs(originalLength - reorderedLength);
         const lengthDiffPercent = (lengthDiff / originalLength) * 100;
         
+        // 🔥 FIX: Return original content if length difference is too large (prevents truncation)
         if (lengthDiffPercent > 50) {
-            console.warn(`[ScreenplayContext] ⚠️ Reordered content length differs significantly: ${lengthDiffPercent.toFixed(1)}% (original: ${originalLength}, reordered: ${reorderedLength})`);
+            console.error(`[ScreenplayContext] ❌ Reordered content length differs significantly: ${lengthDiffPercent.toFixed(1)}% (original: ${originalLength}, reordered: ${reorderedLength}). Returning original content to prevent data loss.`);
+            return content; // Return original content to prevent truncation
         }
         
         console.log('[ScreenplayContext] ✅ Script reordered:', {

@@ -570,12 +570,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             return;
         }
         
-        hasRunAutoImportRef.current = true; // Mark as run
-        
-        // Wait for screenplay context to be ready
-        if (!screenplay) {
+        // Wait for screenplay context and user to be ready
+        if (!screenplay || !user) {
             return;
         }
+        
+        hasRunAutoImportRef.current = true; // Mark as run
         
         async function loadContent() {
             try {
@@ -660,7 +660,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
         
         loadContent();
-    }, [screenplay, getToken]); // Depend on screenplay and getToken
+    }, [screenplay, getToken, user]); // Depend on screenplay, getToken, and user
     
     return (
         <EditorContext.Provider value={value}>
