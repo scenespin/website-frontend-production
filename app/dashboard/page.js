@@ -103,17 +103,21 @@ export default function Dashboard() {
         console.log('[Dashboard] Credits API response:', creditsRes.value);
         console.log('[Dashboard] Credits data:', creditsRes.value.data);
         console.log('[Dashboard] Credits balance:', creditsRes.value.data?.data);
+        console.log('[Dashboard] Current user ID:', user?.id);
         // creditsRes.value is axios response, .data is API response, .data.data is actual data
         const creditsData = creditsRes.value.data.data;
+        console.log('[Dashboard] Credits data balance value:', creditsData?.balance);
         setCredits(creditsData);
         
         // If balance is 0, try refreshing cache (might be stale)
         if (creditsData?.balance === 0) {
           console.log('[Dashboard] Balance is 0, refreshing cache...');
+          console.log('[Dashboard] User ID for refresh:', user?.id);
           try {
             const refreshRes = await apiClient.get('/api/credits/balance?refresh=true');
             const refreshedData = refreshRes.data.data;
             console.log('[Dashboard] Refreshed balance:', refreshedData);
+            console.log('[Dashboard] Refreshed balance value:', refreshedData?.balance);
             if (refreshedData?.balance > 0) {
               setCredits(refreshedData);
             }
