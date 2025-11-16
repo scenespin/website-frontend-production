@@ -38,6 +38,11 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
   
   // Auto-start workflow on mount if not already active
   useEffect(() => {
+    // Ensure mode is set to 'character' when this panel is active
+    if (state.activeMode !== 'character') {
+      setMode('character');
+    }
+    
     if (!activeWorkflow && state.activeMode === 'character') {
       const workflowMessages = state.messages.filter(m => m.mode === 'character');
       if (workflowMessages.length === 0) {
@@ -45,7 +50,7 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
         startWorkflow('character');
       }
     }
-  }, [activeWorkflow, state.activeMode, state.messages, startWorkflow]);
+  }, [activeWorkflow, state.activeMode, state.messages, startWorkflow, setMode]);
   
   // Handle sending messages to AI during interview
   const handleSend = async (prompt) => {
@@ -76,18 +81,30 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       // Get system prompt from workflow
       const systemPrompt = workflow.systemPrompt;
       
-      // Build enhanced system prompt - AI should ONLY acknowledge, we'll add next question manually
+      // Build enhanced system prompt - AI should ONLY acknowledge briefly, we'll add next question manually
       const enhancedSystemPrompt = `${systemPrompt}
 
-IMPORTANT INSTRUCTIONS FOR THIS RESPONSE:
-- The user just answered question ${currentQuestionIndex + 1} of ${totalQuestions}
-- Your job is to acknowledge their answer briefly (1 sentence maximum)
-- DO NOT ask any questions - the next question will be added automatically
-- DO NOT generate follow-up questions
-- Just acknowledge what they said and move on
+⚠️ CONTEXT REMINDER: This is SCREENPLAY CHARACTER CREATION. The user is creating a FICTIONAL CHARACTER for a MOVIE/SCREENPLAY, NOT describing a real person.
 
-Example good response: "Got it. Sarah is 36, recently married, and stressed about money."
-Example bad response: "That's interesting! Can you tell me more about..." (NO - don't ask questions)`;
+CRITICAL INSTRUCTIONS FOR THIS RESPONSE (Question ${currentQuestionIndex + 1} of ${totalQuestions}):
+- The user just answered a question about their SCREENPLAY CHARACTER
+- Your ONLY job: Acknowledge their answer in 3-5 words maximum (e.g., "Got it.", "Understood.", "Noted.")
+- DO NOT write sentences, paragraphs, or explanations
+- DO NOT ask any questions - the next question will be added automatically by the system
+- DO NOT generate follow-up questions or conversation
+- DO NOT generate health assessments, medical advice, or real-world information
+- Keep it SHORT - just acknowledge and stop
+
+GOOD responses (3-5 words max):
+- "Got it."
+- "Understood."
+- "Noted."
+- "Okay."
+
+BAD responses (TOO LONG):
+- "Got it. Sarah is 36, recently married, and stressed about money." (TOO LONG - just say "Got it.")
+- "That's interesting! Can you tell me more about..." (NO - don't ask questions)
+- "Here's a health assessment..." (NO - this is SCREENPLAY CHARACTER creation, not health advice)`;
       
       // Call streaming AI API
       let aiResponse = '';
@@ -144,14 +161,17 @@ Example bad response: "That's interesting! Can you tell me more about..." (NO - 
       // Add the final AI response message (streaming text was shown via streamingText state)
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {
-        // More questions - add AI response and ask next question
-        addMessage({
-          role: 'assistant',
-          content: aiResponse,
-          mode: 'character'
-        });
+        // More questions - skip AI acknowledgment (keep it short), just ask next question
+        // Only add AI response if it's more than just "Got it" or similar (in case AI didn't follow instructions)
+        if (aiResponse && aiResponse.trim().length > 10) {
+          addMessage({
+            role: 'assistant',
+            content: aiResponse,
+            mode: 'character'
+          });
+        }
         
-        // Progress to next question
+        // Progress to next question immediately
         const nextIndex = currentQuestionIndex + 1;
         const nextQuestion = workflow.questions[nextIndex];
         
@@ -162,14 +182,12 @@ Example bad response: "That's interesting! Can you tell me more about..." (NO - 
         });
         setPlaceholder(nextQuestion.placeholder);
         
-        // Add next question
-        setTimeout(() => {
-          addMessage({
-            role: 'assistant',
-            content: nextQuestion.question,
-            mode: 'character'
-          });
-        }, 500);
+        // Add next question immediately (no delay)
+        addMessage({
+          role: 'assistant',
+          content: nextQuestion.question,
+          mode: 'character'
+        });
         
       } else {
         // Last question answered - workflow complete

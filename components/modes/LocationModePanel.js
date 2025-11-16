@@ -75,18 +75,26 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
       // Get system prompt from workflow
       const systemPrompt = workflow.systemPrompt;
       
-      // Build enhanced system prompt - AI should ONLY acknowledge, we'll add next question manually
+      // Build enhanced system prompt - AI should ONLY acknowledge briefly, we'll add next question manually
       const enhancedSystemPrompt = `${systemPrompt}
 
-IMPORTANT INSTRUCTIONS FOR THIS RESPONSE:
-- The user just answered question ${currentQuestionIndex + 1} of ${totalQuestions}
-- Your job is to acknowledge their answer briefly (1 sentence maximum)
-- DO NOT ask any questions - the next question will be added automatically
-- DO NOT generate follow-up questions
-- Just acknowledge what they said and move on
+CRITICAL INSTRUCTIONS FOR THIS RESPONSE (Question ${currentQuestionIndex + 1} of ${totalQuestions}):
+- The user just answered a question about their SCREENPLAY LOCATION
+- Your ONLY job: Acknowledge their answer in 3-5 words maximum (e.g., "Got it.", "Understood.", "Noted.")
+- DO NOT write sentences, paragraphs, or explanations
+- DO NOT ask any questions - the next question will be added automatically by the system
+- DO NOT generate follow-up questions or conversation
+- Keep it SHORT - just acknowledge and stop
 
-Example good response: "Got it. The warehouse is abandoned and dangerous."
-Example bad response: "That's interesting! Can you tell me more about..." (NO - don't ask questions)`;
+GOOD responses (3-5 words max):
+- "Got it."
+- "Understood."
+- "Noted."
+- "Okay."
+
+BAD responses (TOO LONG):
+- "Got it. The warehouse is abandoned and dangerous." (TOO LONG - just say "Got it.")
+- "That's interesting! Can you tell me more about..." (NO - don't ask questions)`;
       
       // Call streaming AI API
       let aiResponse = '';
@@ -142,14 +150,17 @@ Example bad response: "That's interesting! Can you tell me more about..." (NO - 
       
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {
-        // More questions - add AI response and ask next question
-        addMessage({
-          role: 'assistant',
-          content: aiResponse,
-          mode: 'location'
-        });
+        // More questions - skip AI acknowledgment (keep it short), just ask next question
+        // Only add AI response if it's more than just "Got it" or similar (in case AI didn't follow instructions)
+        if (aiResponse && aiResponse.trim().length > 10) {
+          addMessage({
+            role: 'assistant',
+            content: aiResponse,
+            mode: 'location'
+          });
+        }
         
-        // Progress to next question
+        // Progress to next question immediately
         const nextIndex = currentQuestionIndex + 1;
         const nextQuestion = workflow.questions[nextIndex];
         
@@ -160,14 +171,12 @@ Example bad response: "That's interesting! Can you tell me more about..." (NO - 
         });
         setPlaceholder(nextQuestion.placeholder);
         
-        // Add next question
-        setTimeout(() => {
-          addMessage({
-            role: 'assistant',
-            content: nextQuestion.question,
-            mode: 'location'
-          });
-        }, 500);
+        // Add next question immediately (no delay)
+        addMessage({
+          role: 'assistant',
+          content: nextQuestion.question,
+          mode: 'location'
+        });
         
       } else {
         // Last question answered - workflow complete

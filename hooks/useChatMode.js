@@ -35,7 +35,7 @@ export function useChatMode() {
       chatContext.addMessage({
         role: 'assistant',
         content: firstQuestion.question,
-        mode: 'chat'
+        mode: type // Use the workflow type (character/location/scene) as the mode
       });
       
       // Set placeholder to example answer
@@ -50,8 +50,8 @@ export function useChatMode() {
       setActiveWorkflow(workflowState);
       chatContext.setWorkflow(workflowState);
       
-      // Switch to chat mode
-      chatContext.setMode('chat');
+      // Switch to the workflow type mode (character/location/scene), not 'chat'
+      chatContext.setMode(type);
       
       console.log('[useChatMode] Workflow started successfully');
     } catch (error) {
