@@ -106,6 +106,7 @@ interface ScreenplayContextType {
     
     // 🔥 NEW: Direct state setters for optimistic UI updates
     setBeats?: (beats: StoryBeat[]) => void;
+    setScenes?: (scenes: Scene[]) => void;
     setCharacters?: (characters: Character[]) => void;
     setLocations?: (locations: Location[]) => void;
     groupScenesIntoBeats?: (scenes: Scene[], beats: StoryBeat[]) => StoryBeat[];
@@ -3026,6 +3027,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // 🔥 NEW: Direct state setters for optimistic UI updates
         setBeats,
+        setScenes,
         setCharacters,
         setLocations,
         groupScenesIntoBeats,

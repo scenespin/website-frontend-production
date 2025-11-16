@@ -240,11 +240,14 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             screenplay.setLocations?.(currentState.locations);
             console.log('[ScriptImportModal] ✅ Updated locations state:', currentState.locations.length);
             
-            // Update scenes state by grouping them into beats
+            // 🔥 Beats removed - update scenes state directly
+            screenplay.setScenes?.(scenesWithOrder);
+            console.log('[ScriptImportModal] ✅ Updated scenes state:', scenesWithOrder.length);
+            
+            // Keep beats as empty UI templates (for backward compatibility if needed)
             const currentBeats = screenplay.getCurrentState().beats;
             const updatedBeats = screenplay.groupScenesIntoBeats?.(scenesWithOrder, currentBeats) || currentBeats;
             screenplay.setBeats?.(updatedBeats);
-            console.log('[ScriptImportModal] ✅ Updated beats with scenes:', scenesWithOrder.length);
             
             // 🔥 FIX: Explicitly rebuild relationships after import to ensure scene counts are correct
             // The useEffect might not trigger immediately, so we call it explicitly
