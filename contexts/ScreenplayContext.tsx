@@ -1151,9 +1151,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (screenplayId) {
             try {
                 // Transform complex Character to simple API Character
+                // 🔥 FIX: Include arcStatus in API call
                 const apiChar = {
                     name: newCharacter.name,
                     description: newCharacter.description,
+                    arcStatus: newCharacter.arcStatus || 'introduced', // 🔥 FIX: Include arcStatus
                     referenceImages: newCharacter.images?.map(img => img.imageUrl) || []
                 };
                 const createdCharacter = await apiCreateCharacter(screenplayId, apiChar, getToken);

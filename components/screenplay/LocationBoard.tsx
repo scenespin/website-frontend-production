@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, MapPin, Film, MoreVertical } from 'lucide-react';
+import { Plus, MapPin, Film, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
 import { getLocationDependencies, generateLocationReport } from '@/utils/dependencyChecker';
+import { toast } from 'sonner';
 
 interface LocationColumn {
     id: string;
@@ -375,6 +376,23 @@ function LocationCardContent({
     sceneCount,
     openEditForm,
 }: LocationCardContentProps) {
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        
+        // Copy Fountain-formatted scene heading based on location type
+        const locationTypePrefix = location.type === 'EXT' ? 'EXT' : location.type === 'INT/EXT' ? 'INT/EXT' : 'INT';
+        const fountainText = `${locationTypePrefix}. ${location.name.toUpperCase()} - DAY\n\n`;
+        
+        navigator.clipboard.writeText(fountainText).then(() => {
+            toast.success('Copied to clipboard!', {
+                description: 'Paste in editor to insert scene heading'
+            });
+        }).catch((err) => {
+            console.error('Failed to copy:', err);
+            toast.error('Failed to copy');
+        });
+    };
+
     return (
         <div
             className="mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
@@ -403,17 +421,27 @@ function LocationCardContent({
                     </p>
                 </div>
                 {openEditForm && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            openEditForm(location);
-                        }}
-                        className="p-1 rounded hover:bg-base-content/20 transition-colors"
-                        style={{ color: '#9CA3AF' }}
-                        title="Edit location"
-                    >
-                        <MoreVertical size={14} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={handleCopy}
+                            className="p-1 rounded hover:bg-base-content/20 transition-colors"
+                            style={{ color: '#9CA3AF' }}
+                            title="Copy Fountain format to clipboard"
+                        >
+                            <Copy size={14} />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openEditForm(location);
+                            }}
+                            className="p-1 rounded hover:bg-base-content/20 transition-colors"
+                            style={{ color: '#9CA3AF' }}
+                            title="Edit location"
+                        >
+                            <MoreVertical size={14} />
+                        </button>
+                    </div>
                 )}
             </div>
 

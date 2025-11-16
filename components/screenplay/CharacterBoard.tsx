@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, MoreVertical, User, Users } from 'lucide-react';
+import { Plus, MoreVertical, User, Users, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import type { Character, ArcStatus } from '@/types/screenplay';
 import CharacterDetailSidebar from './CharacterDetailSidebar';
 import { DeleteCharacterDialog } from '../structure/DeleteConfirmDialog';
 import { getCharacterDependencies, generateCharacterReport } from '@/utils/dependencyChecker';
+import { toast } from 'sonner';
 
 interface CharacterColumn {
     id: string;
@@ -322,6 +323,22 @@ function CharacterCardContent({
     onClick,
     onEdit,
 }: CharacterCardContentProps) {
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        
+        // Copy Fountain-formatted character dialogue block
+        const fountainText = `${character.name.toUpperCase()}\n\n`;
+        
+        navigator.clipboard.writeText(fountainText).then(() => {
+            toast.success('Copied to clipboard!', {
+                description: 'Paste in editor to insert character dialogue block'
+            });
+        }).catch((err) => {
+            console.error('Failed to copy:', err);
+            toast.error('Failed to copy');
+        });
+    };
+
     return (
         <div
             className="p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]"
@@ -350,16 +367,25 @@ function CharacterCardContent({
                         {character.type}
                     </p>
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit();
-                    }}
-                    className="p-1 rounded hover:bg-gray-700/50 transition-colors"
-                    title="Edit character"
-                >
-                    <MoreVertical size={14} style={{ color: '#9CA3AF' }} />
-                </button>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 rounded hover:bg-gray-700/50 transition-colors"
+                        title="Copy Fountain format to clipboard"
+                    >
+                        <Copy size={14} style={{ color: '#9CA3AF' }} />
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit();
+                        }}
+                        className="p-1 rounded hover:bg-gray-700/50 transition-colors"
+                        title="Edit character"
+                    >
+                        <MoreVertical size={14} style={{ color: '#9CA3AF' }} />
+                    </button>
+                </div>
             </div>
 
             {/* Description - Compact */}
