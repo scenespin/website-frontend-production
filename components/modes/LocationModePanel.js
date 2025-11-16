@@ -30,8 +30,8 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
     isScreenplayContent
   } = useChatMode();
   
-  // Model selection for AI chat
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
+  // Use model from ChatContext (set by UnifiedChatPanel's LLMModelSelector)
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const [isSending, setIsSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
