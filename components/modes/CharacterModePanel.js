@@ -61,8 +61,11 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
     // Ensure mode is set to 'character' when this panel is active
     if (state.activeMode !== 'character') {
       setMode('character');
+      // Wait for mode to update before starting workflow
+      return;
     }
     
+    // Only start workflow if mode is 'character' and no workflow is active
     if (!activeWorkflow && state.activeMode === 'character') {
       const workflowMessages = state.messages.filter(m => m.mode === 'character');
       if (workflowMessages.length === 0) {
@@ -506,17 +509,25 @@ REQUIRED OUTPUT FORMAT:
                       </div>
                     )}
                   </div>
-                  
-                  {/* Copy Button - appears on hover */}
+                </div>
+                
+                {/* Copy Button - appears on hover at bottom of message */}
+                <div className="flex justify-end mt-2">
                   <button
                     onClick={() => handleCopy(message.content, index)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-base-300/50 text-base-content/60 hover:text-base-content shrink-0"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs text-base-content/60 hover:text-base-content hover:bg-base-300"
                     title="Copy message"
                   >
                     {copiedIndex === index ? (
-                      <Check className="w-4 h-4" />
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Copied!</span>
+                      </>
                     ) : (
-                      <Copy className="w-4 h-4" />
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
                     )}
                   </button>
                 </div>

@@ -689,8 +689,10 @@ function UnifiedChatPanelInner({
 
     // WIZARD MODE: Completely skip AI calls during character/location workflows
     // The mode panels handle all workflow logic - we never call AI here during workflows
-    if (state.activeWorkflow && (state.activeMode === 'location' || state.activeMode === 'character')) {
-      console.log('[UnifiedChatPanel] ⚠️ Active workflow detected - skipping entirely. Mode panel will handle this message.');
+    // Also skip if we're in character/location mode (even if workflow not set yet - mode panel will handle it)
+    if ((state.activeWorkflow && (state.activeMode === 'location' || state.activeMode === 'character')) ||
+        (state.activeMode === 'character' || state.activeMode === 'location')) {
+      console.log('[UnifiedChatPanel] ⚠️ Character/Location mode detected - skipping. Mode panel will handle this message.');
       return; // Mode panel handles everything - don't add message, don't call AI, nothing
     }
 

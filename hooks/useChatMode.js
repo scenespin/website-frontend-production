@@ -219,10 +219,10 @@ export function useChatMode() {
     }
   }, [activeWorkflow, inputPlaceholder, chatContext]);
   
-  // Clear workflow when mode changes
+  // Clear workflow when mode changes AWAY from workflow type (not when setting TO workflow type)
   useEffect(() => {
-    if (state.activeMode !== 'chat' && activeWorkflow) {
-      console.log('[useChatMode] Clearing workflow (mode changed)');
+    if (activeWorkflow && state.activeMode !== activeWorkflow.type) {
+      console.log('[useChatMode] Clearing workflow (mode changed away from workflow type)');
       setActiveWorkflow(null);
       chatContext.setWorkflow(null);
       setInputPlaceholder('Type your message...');
