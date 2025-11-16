@@ -77,19 +77,31 @@ export default function Navigation() {
           const { api, setAuthTokenGetter } = await import('@/lib/api');
           setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
           
+          console.log('[Navigation] Fetching credits, user ID:', user?.id);
+          
           // Now make the API call
           const response = await api.user.getCredits();
+          
+          console.log('[Navigation] Credits API response:', response);
+          console.log('[Navigation] Credits response.data:', response.data);
+          console.log('[Navigation] Credits response.data.data:', response.data?.data);
           
           // FIX: API response is response.data.data.balance (not response.data.balance)
           const creditsData = response.data.data;
           
+          console.log('[Navigation] Parsed creditsData:', creditsData);
+          console.log('[Navigation] Credits balance value:', creditsData?.balance);
+          
           if (creditsData && typeof creditsData.balance === 'number') {
             setCredits(creditsData.balance);
+            console.log('[Navigation] ✅ Set credits to:', creditsData.balance);
           } else {
+            console.log('[Navigation] ⚠️ Invalid credits data, setting to 0');
             setCredits(0);
           }
         } catch (error) {
           console.error('[Navigation] Failed to fetch credits:', error);
+          console.error('[Navigation] Error details:', error?.response?.data);
           
           // If it's a 401 error, don't retry - just set to 0
           if (error?.response?.status === 401) {
