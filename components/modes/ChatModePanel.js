@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
-import { FileText, Sparkles, User, Bot, Copy, Check, RotateCcw } from 'lucide-react';
+import { FileText, Sparkles, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
@@ -21,26 +21,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   // Model selection for AI chat
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
   
   // Auto-scroll to bottom when messages or streaming text changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
-  
-  // Copy message to clipboard
-  const handleCopy = async (content, index) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedIndex(index);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      toast.error('Failed to copy');
-    }
-  };
   
   // Handle sending messages to AI
   const handleSend = async (prompt) => {
@@ -331,7 +317,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         {activeWorkflow ? (
           <span>Answer the question to continue the interview...</span>
         ) : (
-          <span>Ask me anything about your screenplay or request AI workflows</span>
+          <span>Ask me anything about your screenplay</span>
         )}
       </div>
     </div>

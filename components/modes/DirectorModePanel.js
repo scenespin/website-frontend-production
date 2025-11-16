@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
-import { Film, Camera, Clapperboard, FileText, User, Bot, Copy, Check, RotateCcw } from 'lucide-react';
+import { Film, Camera, Clapperboard, FileText, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
@@ -16,26 +16,12 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   // Use model from ChatContext (set by UnifiedChatPanel's LLMModelSelector)
   const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const [isSending, setIsSending] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
   
   // Auto-scroll to bottom when messages or streaming text changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'director'), state.streamingText, state.isStreaming]);
-  
-  // Copy message to clipboard
-  const handleCopy = async (content, index) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedIndex(index);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      toast.error('Failed to copy');
-    }
-  };
   
   const quickActions = [
     // Cinematic Direction
@@ -223,26 +209,6 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
                     {isUser && <User className="w-5 h-5 mt-0.5 flex-shrink-0" />}
                   </div>
                   
-                  {/* Copy Button - appears on hover at bottom of message */}
-                  <div className="flex justify-end mt-2">
-                    <button
-                      onClick={() => handleCopy(message.content, index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs text-base-content/60 hover:text-base-content hover:bg-base-300/50"
-                      title="Copy message"
-                    >
-                      {copiedIndex === index ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
                 </div>
                 
                 {/* Insert Button */}

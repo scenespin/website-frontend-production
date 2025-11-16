@@ -7,7 +7,7 @@ import { useChatMode } from '@/hooks/useChatMode';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
-import { User, Sparkles, Bot, MessageSquare, Loader2, Send, Copy, Check } from 'lucide-react';
+import { User, Sparkles, Bot, MessageSquare, Loader2, Send } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { getWorkflow } from '@/utils/aiWorkflows';
@@ -37,26 +37,12 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
   const [isSending, setIsSending] = useState(false);
   const [showPostInsertPrompt, setShowPostInsertPrompt] = useState(false);
   const [insertedCharacterName, setInsertedCharacterName] = useState(null);
-  const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
   
   // Auto-scroll to bottom when messages or streaming text changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'character'), state.streamingText, state.isStreaming]);
-  
-  // Copy message to clipboard
-  const handleCopy = async (content, index) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedIndex(index);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      toast.error('Failed to copy');
-    }
-  };
   
   // Auto-start workflow on mount if not already active (with guard to prevent duplicates)
   const hasStartedWorkflowRef = useRef(false);
@@ -558,30 +544,10 @@ REQUIRED OUTPUT FORMAT:
                   </div>
                 </div>
                 
-                {/* Copy Button - appears on hover at bottom of message */}
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={() => handleCopy(message.content, index)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs text-base-content/60 hover:text-base-content hover:bg-base-300"
-                    title="Copy message"
-                  >
-                    {copiedIndex === index ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             );
           });
-        }, [state.messages.filter(m => m.mode === 'character'), copiedIndex])}
+        }, [state.messages.filter(m => m.mode === 'character')])}
         
         {/* Streaming text display */}
         {state.isStreaming && state.streamingText && (
