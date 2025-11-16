@@ -183,12 +183,16 @@ function ModeSelector() {
 // ============================================================================
 
 function LLMModelSelector() {
-  const [selectedModel, setSelectedModel] = React.useState('claude-sonnet-4-5-20250929');
+  const chatContext = useChatContext();
+  const { state, setModel } = chatContext;
   
+  // Use context state, fallback to default if not set
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const currentModel = LLM_MODELS.find(m => m.id === selectedModel) || LLM_MODELS[0];
   
   const handleModelChange = (modelId) => {
-    setSelectedModel(modelId);
+    // Update both local state (for UI) and context (for API calls)
+    setModel(modelId);
     // Auto-close dropdown after selection
     document.activeElement?.blur();
   };

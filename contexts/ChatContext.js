@@ -20,7 +20,7 @@ const initialState = {
   
   // Mode
   activeMode: 'chat',
-  selectedModel: 'claude-sonnet-4',
+  selectedModel: 'claude-sonnet-4-5-20250929',
   
   // Input
   input: '',
