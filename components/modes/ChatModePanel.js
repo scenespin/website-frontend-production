@@ -7,6 +7,7 @@ import { FileText, Sparkles, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
+import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest } from '@/utils/promptBuilders';
 import toast from 'react-hot-toast';
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
@@ -48,6 +49,14 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         });
       }
       
+      // Detect if this is content generation vs advice request
+      const isContentRequest = detectContentRequest(prompt);
+      
+      // Build appropriate prompt using prompt builders
+      const builtPrompt = isContentRequest 
+        ? buildChatContentPrompt(prompt, sceneContext)
+        : buildChatAdvicePrompt(prompt, sceneContext);
+      
       // Build system prompt with scene context
       let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
       
@@ -63,7 +72,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
       }
       
-      // Add user message
+      // Add user message (show original prompt, not built prompt)
       addMessage({
         role: 'user',
         content: prompt,
@@ -83,7 +92,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       
       await api.chat.generateStream(
         {
-          userPrompt: prompt,
+          userPrompt: builtPrompt, // Use built prompt instead of raw prompt
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
           conversationHistory,
@@ -248,28 +257,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                       </div>
                       
                       {/* Action Buttons */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Copy Button */}
-                        <button
-                          onClick={() => handleCopy(message.content, index)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs text-base-content/60 hover:text-base-content hover:bg-base-300"
-                          title="Copy message"
-                        >
-                          {copiedIndex === index ? (
-                            <>
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                        
-                        {/* Insert Button */}
-                        {showInsertButton && onInsert && (
+                      {showInsertButton && onInsert && (
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => onInsert(message.content)}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
@@ -277,8 +266,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                             <FileText className="h-3.5 w-3.5" />
                             Insert into script
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

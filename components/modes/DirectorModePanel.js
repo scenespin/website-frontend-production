@@ -7,6 +7,7 @@ import { Film, Camera, Clapperboard, FileText, User, Bot, RotateCcw } from 'luci
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
+import { buildDirectorPrompt } from '@/utils/promptBuilders';
 import toast from 'react-hot-toast';
 
 export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
@@ -54,8 +55,17 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         });
       }
       
-      // Build system prompt with scene context
-      let systemPrompt = `You are a professional film director assistant helping a screenwriter with shot planning, camera work, blocking, and dialogue direction.`;
+      // Build Director prompt using prompt builder (includes context and full scene instructions)
+      const builtPrompt = buildDirectorPrompt(prompt, sceneContext);
+      
+      // Build system prompt with Director Mode instructions
+      let systemPrompt = `You are a professional film director assistant helping a screenwriter with shot planning, camera work, blocking, and dialogue direction.
+
+DIRECTOR MODE - SCENE DEVELOPMENT:
+- Generate FULL SCENES (5-15+ lines)
+- Expand ideas into complete cinematic moments
+- Include: action lines, dialogue, parentheticals, atmosphere
+- Context-aware: Use current scene, characters, and story context`;
       
       if (sceneContext) {
         systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
@@ -69,7 +79,7 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual direction. Reference the scene, characters, and content when appropriate.`;
       }
       
-      // Add user message
+      // Add user message (show original prompt, not built prompt)
       addMessage({
         role: 'user',
         content: prompt,
@@ -89,7 +99,7 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       
       await api.chat.generateStream(
         {
-          userPrompt: prompt,
+          userPrompt: builtPrompt, // Use built prompt instead of raw prompt
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
           conversationHistory,

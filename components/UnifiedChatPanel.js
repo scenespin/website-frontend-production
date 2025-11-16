@@ -18,7 +18,8 @@ import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
 import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip, User, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { detectCurrentScene } from '@/utils/sceneDetection';
+import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
+import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
 
@@ -740,16 +741,38 @@ function UnifiedChatPanelInner({
           }
         }
         
-        // Build system prompt with scene context and selected text (if rewrite mode)
+        // Build prompt - use rewrite prompt builder if selected text exists
+        let finalUserPrompt = message;
         let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
         
-        // Add selected text context if in rewrite mode
-        if (state.selectedTextContext && state.selectionRange) {
-          systemPrompt += `\n\n[SELECTED TEXT CONTEXT - User wants to rewrite this section]\n`;
-          systemPrompt += `Selected text: "${state.selectedTextContext}"\n`;
-          systemPrompt += `\nIMPORTANT: The user has selected this text and wants to rewrite or improve it. Provide suggestions or rewrites that fit seamlessly into the screenplay.`;
+        // If rewrite mode (selected text exists), build comprehensive rewrite prompt
+        if (state.selectedTextContext && state.selectionRange && editorContent) {
+          // Extract surrounding text for seamless integration
+          const selectionContext = extractSelectionContext(
+            editorContent,
+            state.selectionRange.start,
+            state.selectionRange.end
+          );
+          
+          if (selectionContext) {
+            // Build rewrite prompt with surrounding text
+            finalUserPrompt = buildRewritePrompt(
+              message,
+              state.selectedTextContext,
+              currentSceneContext,
+              {
+                before: selectionContext.beforeContext,
+                after: selectionContext.afterContext
+              }
+            );
+            
+            // System prompt for rewrite mode
+            systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
+            systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+          }
         }
         
+        // Add scene context to system prompt
         if (currentSceneContext) {
           systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
           systemPrompt += `Current Scene: ${currentSceneContext.heading}\n`;
@@ -773,7 +796,7 @@ function UnifiedChatPanelInner({
         // Call streaming chat API
         await api.chat.generateStream(
           {
-            userPrompt: message,
+            userPrompt: finalUserPrompt, // Use built prompt (rewrite or original)
             systemPrompt: systemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
             conversationHistory,
