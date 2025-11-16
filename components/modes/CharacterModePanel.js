@@ -84,7 +84,7 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
         sceneContext: null
       });
       
-      const aiResponse = response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.';
+      const aiResponse = response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.';
       
       // Check if this is the last question
       if (currentQuestionIndex < totalQuestions - 1) {

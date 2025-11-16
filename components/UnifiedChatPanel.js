@@ -734,7 +734,7 @@ function UnifiedChatPanelInner({
         // Add AI response
         addMessage({
           role: 'assistant',
-          content: response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.',
+          content: response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.',
           mode: state.activeMode
         });
         
