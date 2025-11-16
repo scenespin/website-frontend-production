@@ -245,6 +245,9 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
           </div>
         )}
         
+        {/* Auto-scroll anchor */}
+        <div ref={messagesEndRef} />
+        
         {/* Empty state */}
         {state.messages.filter(m => m.mode === 'director').length === 0 && (
           <div className="text-center text-base-content/60 py-10">

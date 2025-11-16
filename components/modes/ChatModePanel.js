@@ -300,6 +300,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             </div>
           </div>
         )}
+        
+        {/* Auto-scroll anchor */}
+        <div ref={messagesEndRef} />
       </div>
       
       {/* Placeholder Info */}
