@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
@@ -35,6 +35,12 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const messagesEndRef = useRef(null);
+  
+  // Auto-scroll to bottom when messages or streaming text changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [state.messages.filter(m => m.mode === 'location'), state.streamingText, state.isStreaming]);
   
   // Copy message to clipboard
   const handleCopy = async (content, index) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { Film, Camera, Clapperboard, FileText, User, Bot, Copy, Check } from 'lucide-react';
@@ -18,6 +18,12 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
   const [isSending, setIsSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const messagesEndRef = useRef(null);
+  
+  // Auto-scroll to bottom when messages or streaming text changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [state.messages.filter(m => m.mode === 'director'), state.streamingText, state.isStreaming]);
   
   // Copy message to clipboard
   const handleCopy = async (content, index) => {
