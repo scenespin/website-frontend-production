@@ -721,18 +721,51 @@ function UnifiedChatPanelInner({
           content: m.content
         }));
         
-        // Build context prompt if scene context exists
-        const contextData = state.sceneContext ? {
-          heading: state.sceneContext.heading,
-          act: state.sceneContext.act,
-          characters: state.sceneContext.characters,
-          pageNumber: state.sceneContext.pageNumber
+        // Re-detect scene context on each message (cursor might have moved)
+        let currentSceneContext = state.sceneContext;
+        if (editorContent && cursorPosition !== undefined) {
+          const detectedContext = detectCurrentScene(editorContent, cursorPosition);
+          if (detectedContext) {
+            currentSceneContext = detectedContext;
+            setSceneContext(detectedContext); // Update state
+          }
+        }
+        
+        // Build system prompt with scene context and selected text (if rewrite mode)
+        let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+        
+        // Add selected text context if in rewrite mode
+        if (state.selectedTextContext && state.selectionRange) {
+          systemPrompt += `\n\n[SELECTED TEXT CONTEXT - User wants to rewrite this section]\n`;
+          systemPrompt += `Selected text: "${state.selectedTextContext}"\n`;
+          systemPrompt += `\nIMPORTANT: The user has selected this text and wants to rewrite or improve it. Provide suggestions or rewrites that fit seamlessly into the screenplay.`;
+        }
+        
+        if (currentSceneContext) {
+          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+          systemPrompt += `Current Scene: ${currentSceneContext.heading}\n`;
+          systemPrompt += `Act: ${currentSceneContext.act}\n`;
+          systemPrompt += `Page: ${currentSceneContext.pageNumber} of ${currentSceneContext.totalPages}\n`;
+          if (currentSceneContext.characters && currentSceneContext.characters.length > 0) {
+            systemPrompt += `Characters in scene: ${currentSceneContext.characters.join(', ')}\n`;
+          }
+          systemPrompt += `\nScene Content:\n${currentSceneContext.content.substring(0, 1000)}${currentSceneContext.content.length > 1000 ? '...' : ''}\n`;
+          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+        }
+        
+        // Build context data for API
+        const contextData = currentSceneContext ? {
+          heading: currentSceneContext.heading,
+          act: currentSceneContext.act,
+          characters: currentSceneContext.characters,
+          pageNumber: currentSceneContext.pageNumber
         } : null;
         
         // Call streaming chat API
         await api.chat.generateStream(
           {
             userPrompt: message,
+            systemPrompt: systemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
             conversationHistory,
             sceneContext: contextData,
@@ -846,12 +879,21 @@ function UnifiedChatPanelInner({
 
       {/* Entity Context Banner - Shows what entity you're creating for */}
       {state.entityContextBanner && (
-        <div className="px-4 py-2 bg-cinema-gold/10 border-b border-cinema-gold/20 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-cinema-gold flex-shrink-0" />
-          <span className="text-sm text-base-content">
-            {state.entityContextBanner.workflow === 'interview' ? 'AI Interview: ' : 'Creating for: '}
-            <strong>{state.entityContextBanner.name}</strong> ({state.entityContextBanner.type})
-          </span>
+        <div className="px-4 py-2 bg-cinema-gold/10 border-b border-cinema-gold/20 flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Sparkles className="w-4 h-4 text-cinema-gold flex-shrink-0" />
+            <span className="text-sm text-base-content">
+              {state.entityContextBanner.workflow === 'interview' ? 'AI Interview: ' : 'Creating for: '}
+              <strong>{state.entityContextBanner.name}</strong> ({state.entityContextBanner.type})
+            </span>
+          </div>
+          <button
+            onClick={() => setEntityContextBanner(null)}
+            className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0"
+            title="Clear entity context"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
       

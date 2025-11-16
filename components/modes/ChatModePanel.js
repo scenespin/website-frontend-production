@@ -5,12 +5,13 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { FileText, Sparkles, User, Bot } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import toast from 'react-hot-toast';
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
-  const { state, addMessage, setInput } = useChatContext();
+  const { state, addMessage, setInput, setStreaming } = useChatContext();
   const {
     activeWorkflow,
     workflowCompletionData,
@@ -29,9 +30,23 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     setIsSending(true);
     
     try {
-      // Detect current scene for context
+      // ALWAYS detect current scene for context (re-detect on each message)
       const sceneContext = detectCurrentScene(editorContent, cursorPosition);
-      const contextPrompt = sceneContext ? buildContextPrompt(sceneContext) : '';
+      
+      // Build system prompt with scene context
+      let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+      
+      if (sceneContext) {
+        systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+        systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
+        systemPrompt += `Act: ${sceneContext.act}\n`;
+        systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+        if (sceneContext.characters && sceneContext.characters.length > 0) {
+          systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+        }
+        systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
+        systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+      }
       
       // Add user message
       addMessage({
@@ -47,32 +62,57 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         content: m.content
       }));
       
-      // Call AI API
-      const response = await api.chat.generate({
-        userPrompt: prompt + contextPrompt,
-        desiredModelId: selectedModel,
-        conversationHistory,
-        sceneContext: sceneContext ? {
-          heading: sceneContext.heading,
-          act: sceneContext.act,
-          characters: sceneContext.characters,
-          pageNumber: sceneContext.pageNumber
-        } : null
-      });
+      // Call streaming AI API
+      setStreaming(true, '');
+      let accumulatedText = '';
       
-      // Add AI response
-      addMessage({
-        role: 'assistant',
-        content: response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.',
-        mode: 'chat'
-      });
+      await api.chat.generateStream(
+        {
+          userPrompt: prompt,
+          systemPrompt: systemPrompt,
+          desiredModelId: selectedModel,
+          conversationHistory,
+          sceneContext: sceneContext ? {
+            heading: sceneContext.heading,
+            act: sceneContext.act,
+            characters: sceneContext.characters,
+            pageNumber: sceneContext.pageNumber
+          } : null
+        },
+        // onChunk
+        (chunk) => {
+          accumulatedText += chunk;
+          setStreaming(true, accumulatedText);
+        },
+        // onComplete
+        (fullContent) => {
+          setStreaming(false, '');
+          addMessage({
+            role: 'assistant',
+            content: fullContent,
+            mode: 'chat'
+          });
+        },
+        // onError
+        (error) => {
+          console.error('Error in streaming:', error);
+          setStreaming(false, '');
+          toast.error(error.message || 'Failed to get AI response');
+          addMessage({
+            role: 'assistant',
+            content: '❌ Sorry, I encountered an error. Please try again.',
+            mode: 'chat'
+          });
+        }
+      );
       
       // Clear input
       setInput('');
       
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error(error.response?.data?.message || 'Failed to get AI response');
+      setStreaming(false, '');
+      toast.error(error.response?.data?.message || error.message || 'Failed to get AI response');
       
       addMessage({
         role: 'assistant',
@@ -171,11 +211,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     {/* Message Content */}
                     <div className="flex-1 min-w-0 space-y-3">
                       <div className="prose prose-sm md:prose-base max-w-none">
-                        <div className={`whitespace-pre-wrap break-words ${
-                          isUser ? 'text-base-content' : 'text-base-content/90'
-                        }`}>
-                          {message.content}
-                        </div>
+                        {isUser ? (
+                          <div className="whitespace-pre-wrap break-words text-base-content">
+                            {message.content}
+                          </div>
+                        ) : (
+                          <MarkdownRenderer content={message.content} />
+                        )}
                       </div>
                       
                       {/* Insert Button */}
@@ -208,10 +250,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 {/* Streaming Content */}
                 <div className="flex-1 min-w-0">
                   <div className="prose prose-sm md:prose-base max-w-none">
-                    <div className="whitespace-pre-wrap break-words text-base-content/90">
-                      {state.streamingText}
-                      <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
-                    </div>
+                    <MarkdownRenderer content={state.streamingText} />
+                    <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
                   </div>
                 </div>
               </div>

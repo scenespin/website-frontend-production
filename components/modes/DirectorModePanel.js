@@ -5,12 +5,13 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { Film, Camera, Clapperboard, FileText, User, Bot } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector';
+import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import toast from 'react-hot-toast';
 
 export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
-  const { state, addMessage, setInput } = useChatContext();
+  const { state, addMessage, setInput, setStreaming } = useChatContext();
   const { isScreenplayContent } = useChatMode();
   
   // Model selection for Director agent
@@ -35,9 +36,23 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
     setIsSending(true);
     
     try {
-      // Detect current scene for context
+      // ALWAYS detect current scene for context (re-detect on each message)
       const sceneContext = detectCurrentScene(editorContent, cursorPosition);
-      const contextPrompt = sceneContext ? buildContextPrompt(sceneContext) : '';
+      
+      // Build system prompt with scene context
+      let systemPrompt = `You are a professional film director assistant helping a screenwriter with shot planning, camera work, blocking, and dialogue direction.`;
+      
+      if (sceneContext) {
+        systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+        systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
+        systemPrompt += `Act: ${sceneContext.act}\n`;
+        systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+        if (sceneContext.characters && sceneContext.characters.length > 0) {
+          systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+        }
+        systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
+        systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual direction. Reference the scene, characters, and content when appropriate.`;
+      }
       
       // Add user message
       addMessage({
@@ -53,32 +68,57 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         content: m.content
       }));
       
-      // Call AI API
-      const response = await api.chat.generate({
-        userPrompt: prompt + contextPrompt,
-        desiredModelId: selectedModel,
-        conversationHistory,
-        sceneContext: sceneContext ? {
-          heading: sceneContext.heading,
-          act: sceneContext.act,
-          characters: sceneContext.characters,
-          pageNumber: sceneContext.pageNumber
-        } : null
-      });
+      // Call streaming AI API
+      setStreaming(true, '');
+      let accumulatedText = '';
       
-      // Add AI response
-      addMessage({
-        role: 'assistant',
-        content: response.data.content || response.data.response || response.data.text || 'Sorry, I couldn\'t generate a response.',
-        mode: 'director'
-      });
+      await api.chat.generateStream(
+        {
+          userPrompt: prompt,
+          systemPrompt: systemPrompt,
+          desiredModelId: selectedModel,
+          conversationHistory,
+          sceneContext: sceneContext ? {
+            heading: sceneContext.heading,
+            act: sceneContext.act,
+            characters: sceneContext.characters,
+            pageNumber: sceneContext.pageNumber
+          } : null
+        },
+        // onChunk
+        (chunk) => {
+          accumulatedText += chunk;
+          setStreaming(true, accumulatedText);
+        },
+        // onComplete
+        (fullContent) => {
+          setStreaming(false, '');
+          addMessage({
+            role: 'assistant',
+            content: fullContent,
+            mode: 'director'
+          });
+        },
+        // onError
+        (error) => {
+          console.error('Error in streaming:', error);
+          setStreaming(false, '');
+          toast.error(error.message || 'Failed to get AI response');
+          addMessage({
+            role: 'assistant',
+            content: '❌ Sorry, I encountered an error. Please try again.',
+            mode: 'director'
+          });
+        }
+      );
       
       // Clear input
       setInput('');
       
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error(error.response?.data?.message || 'Failed to get AI response');
+      setStreaming(false, '');
+      toast.error(error.response?.data?.message || error.message || 'Failed to get AI response');
       
       addMessage({
         role: 'assistant',
@@ -130,8 +170,14 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
                 }`}>
                   <div className="flex items-start gap-2">
                     {!isUser && <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />}
-                    <div className="whitespace-pre-wrap break-words flex-1">
-                      {message.content}
+                    <div className="flex-1">
+                      {isUser ? (
+                        <div className="whitespace-pre-wrap break-words">
+                          {message.content}
+                        </div>
+                      ) : (
+                        <MarkdownRenderer content={message.content} />
+                      )}
                     </div>
                     {isUser && <User className="w-5 h-5 mt-0.5 flex-shrink-0" />}
                   </div>
@@ -157,9 +203,9 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
             <div className="max-w-[85%] rounded-lg px-4 py-3 bg-base-200 text-base-content">
               <div className="flex items-start gap-2">
                 <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                <div className="whitespace-pre-wrap break-words flex-1">
-                  {state.streamingText}
-                  <span className="animate-pulse">▊</span>
+                <div className="flex-1">
+                  <MarkdownRenderer content={state.streamingText} />
+                  <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
                 </div>
               </div>
             </div>
