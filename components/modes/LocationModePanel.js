@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
@@ -55,12 +55,18 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
     }
   };
   
-  // Auto-start workflow on mount if not already active
+  // Auto-start workflow on mount if not already active (with guard to prevent duplicates)
+  const hasStartedWorkflowRef = useRef(false);
   useEffect(() => {
     // Ensure mode is set to 'location' when this panel is active
     if (state.activeMode !== 'location') {
       setMode('location');
-      // Wait for mode to update before starting workflow
+      hasStartedWorkflowRef.current = false; // Reset when mode changes
+      return;
+    }
+    
+    // Only start workflow once - guard against React StrictMode double-rendering
+    if (hasStartedWorkflowRef.current) {
       return;
     }
     
@@ -69,6 +75,7 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
       const workflowMessages = state.messages.filter(m => m.mode === 'location');
       if (workflowMessages.length === 0) {
         console.log('[LocationModePanel] Auto-starting location interview');
+        hasStartedWorkflowRef.current = true; // Mark as started
         
         // Check if there's existing data from the modal
         const existingData = state.entityContextBanner?.existingData;
@@ -80,6 +87,13 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
       }
     }
   }, [activeWorkflow, state.activeMode, state.messages, state.entityContextBanner, startWorkflow, setMode]);
+  
+  // Reset guard when workflow completes
+  useEffect(() => {
+    if (!activeWorkflow && hasStartedWorkflowRef.current) {
+      hasStartedWorkflowRef.current = false;
+    }
+  }, [activeWorkflow]);
   
   // Handle sending messages during interview (WIZARD MODE - no AI until final step)
   const handleSend = async (prompt) => {
@@ -465,7 +479,8 @@ REQUIRED OUTPUT FORMAT:
                 </div>
               </div>
             );
-          })}
+          });
+        }, [state.messages.filter(m => m.mode === 'location'), copiedIndex])}
         
         {/* Streaming text display */}
         {state.isStreaming && state.streamingText && (

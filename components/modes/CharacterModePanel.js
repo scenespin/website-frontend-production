@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
@@ -56,12 +56,18 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
     }
   };
   
-  // Auto-start workflow on mount if not already active
+  // Auto-start workflow on mount if not already active (with guard to prevent duplicates)
+  const hasStartedWorkflowRef = useRef(false);
   useEffect(() => {
     // Ensure mode is set to 'character' when this panel is active
     if (state.activeMode !== 'character') {
       setMode('character');
-      // Wait for mode to update before starting workflow
+      hasStartedWorkflowRef.current = false; // Reset when mode changes
+      return;
+    }
+    
+    // Only start workflow once - guard against React StrictMode double-rendering
+    if (hasStartedWorkflowRef.current) {
       return;
     }
     
@@ -70,6 +76,7 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       const workflowMessages = state.messages.filter(m => m.mode === 'character');
       if (workflowMessages.length === 0) {
         console.log('[CharacterModePanel] Auto-starting character interview');
+        hasStartedWorkflowRef.current = true; // Mark as started
         
         // Check if there's existing data from the modal
         const existingData = state.entityContextBanner?.existingData;
@@ -81,6 +88,13 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
       }
     }
   }, [activeWorkflow, state.activeMode, state.messages, state.entityContextBanner, startWorkflow, setMode]);
+  
+  // Reset guard when workflow completes
+  useEffect(() => {
+    if (!activeWorkflow && hasStartedWorkflowRef.current) {
+      hasStartedWorkflowRef.current = false;
+    }
+  }, [activeWorkflow]);
   
   // Handle sending messages during interview (WIZARD MODE - no AI until final step)
   const handleSend = async (prompt) => {
@@ -483,13 +497,15 @@ REQUIRED OUTPUT FORMAT:
       
       {/* Chat Messages Area */}
       <div className="flex-1 chat-scroll-container">
-        {state.messages
-          .filter(m => m.mode === 'character')
-          .map((message, index) => {
+        {useMemo(() => {
+          const characterMessages = state.messages.filter(m => m.mode === 'character');
+          return characterMessages.map((message, index) => {
             const isUser = message.role === 'user';
+            // Use content + index as key to prevent duplicates
+            const messageKey = `${message.role}-${message.content.substring(0, 20)}-${index}`;
             return (
               <div
-                key={index}
+                key={messageKey}
                 className={`group px-4 py-3 ${isUser ? 'bg-base-200' : 'bg-base-100'} hover:bg-base-200/50 transition-colors relative`}
               >
                 <div className="flex items-start gap-3">
@@ -533,7 +549,8 @@ REQUIRED OUTPUT FORMAT:
                 </div>
               </div>
             );
-          })}
+          });
+        }, [state.messages.filter(m => m.mode === 'character'), copiedIndex])}
         
         {/* Streaming text display */}
         {state.isStreaming && state.streamingText && (
