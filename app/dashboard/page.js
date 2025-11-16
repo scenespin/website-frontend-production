@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
+import apiClient from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal';
@@ -103,7 +104,23 @@ export default function Dashboard() {
         console.log('[Dashboard] Credits data:', creditsRes.value.data);
         console.log('[Dashboard] Credits balance:', creditsRes.value.data?.data);
         // creditsRes.value is axios response, .data is API response, .data.data is actual data
-        setCredits(creditsRes.value.data.data);
+        const creditsData = creditsRes.value.data.data;
+        setCredits(creditsData);
+        
+        // If balance is 0, try refreshing cache (might be stale)
+        if (creditsData?.balance === 0) {
+          console.log('[Dashboard] Balance is 0, refreshing cache...');
+          try {
+            const refreshRes = await apiClient.get('/api/credits/balance?refresh=true');
+            const refreshedData = refreshRes.data.data;
+            console.log('[Dashboard] Refreshed balance:', refreshedData);
+            if (refreshedData?.balance > 0) {
+              setCredits(refreshedData);
+            }
+          } catch (refreshError) {
+            console.error('[Dashboard] Error refreshing credits:', refreshError);
+          }
+        }
       } else {
         console.error('Error fetching credits:', creditsRes.reason);
         setCredits({ balance: 0 }); // Fallback
