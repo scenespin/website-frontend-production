@@ -7,7 +7,6 @@ import { useChatMode } from '@/hooks/useChatMode';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { Building2, Sparkles, Bot, MessageSquare, Copy, Check } from 'lucide-react';
-import { ModelSelector } from '../ModelSelector';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { getWorkflow } from '@/utils/aiWorkflows';
@@ -548,21 +547,6 @@ REQUIRED OUTPUT FORMAT:
                 <Send className="w-4 h-4" />
               )}
             </button>
-          </div>
-          
-          {/* Model Selector */}
-          <div className="mt-2 flex justify-end">
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              models={[
-                { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic' },
-                { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' },
-                { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
-                { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI' },
-                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
-              ]}
-            />
           </div>
         </div>
       )}
