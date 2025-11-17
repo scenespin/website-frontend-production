@@ -24,6 +24,21 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'director'), state.streamingText, state.isStreaming]);
   
+  // Detect scene context when drawer opens or editor content/cursor changes
+  useEffect(() => {
+    if (editorContent && cursorPosition !== undefined) {
+      const sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      if (sceneContext) {
+        setSceneContext({
+          heading: sceneContext.heading,
+          act: sceneContext.act,
+          characters: sceneContext.characters,
+          pageNumber: sceneContext.pageNumber
+        });
+      }
+    }
+  }, [editorContent, cursorPosition, setSceneContext]);
+  
   const quickActions = [
     // Cinematic Direction
     { label: 'Shot List', prompt: 'Create a detailed shot list for this scene with camera angles, movements, and framing', category: 'direction' },

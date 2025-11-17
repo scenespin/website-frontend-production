@@ -29,6 +29,21 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
   
+  // Detect scene context when drawer opens or editor content/cursor changes
+  useEffect(() => {
+    if (editorContent && cursorPosition !== undefined) {
+      const sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      if (sceneContext) {
+        setSceneContext({
+          heading: sceneContext.heading,
+          act: sceneContext.act,
+          characters: sceneContext.characters,
+          pageNumber: sceneContext.pageNumber
+        });
+      }
+    }
+  }, [editorContent, cursorPosition, setSceneContext]);
+  
   // Handle sending messages to AI
   const handleSend = async (prompt) => {
     if (!prompt || !prompt.trim() || isSending) return;

@@ -863,8 +863,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             updatedAt: now
         };
         
-        // 🔥 Beats removed - add directly to scenes state
-        setScenes(prev => [...prev, newScene]);
+        // 🔥 Beats removed - add directly to scenes state with deduplication
+        setScenes(prev => {
+            // Check for duplicates by ID
+            if (prev.some(s => s.id === newScene.id)) {
+                console.log('[ScreenplayContext] ⚠️ Scene with same ID already exists, skipping:', newScene.id);
+                return prev;
+            }
+            
+            // Check for duplicates by content (heading + startLine)
+            const contentKey = `${(newScene.heading || '').toUpperCase().trim()}|${newScene.fountain?.startLine || 0}`;
+            const existingContentKeys = new Set(
+                prev.map(s => `${(s.heading || '').toUpperCase().trim()}|${s.fountain?.startLine || 0}`)
+            );
+            
+            if (existingContentKeys.has(contentKey)) {
+                console.log('[ScreenplayContext] ⚠️ Scene with same content already exists, skipping:', contentKey);
+                return prev;
+            }
+            
+            return [...prev, newScene];
+        });
         
         // Add to relationships
         setRelationships(prev => ({
