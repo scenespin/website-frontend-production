@@ -69,12 +69,12 @@ export function useS3Upload() {
             }
             
             // Step 2: Upload file directly to S3 using presigned URL
+            // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
+            // The ContentType in PutObjectCommand will be used by S3 automatically
             const uploadResponse = await fetch(uploadUrlResponse.uploadUrl, {
                 method: 'PUT',
                 body: file,
-                headers: {
-                    'Content-Type': file.type
-                }
+                // NO headers - ContentType from PutObjectCommand is used by S3
             });
             
             if (!uploadResponse.ok) {

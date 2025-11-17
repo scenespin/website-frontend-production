@@ -252,12 +252,12 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         toast.info(`Uploading ${file.name} to S3...`, { id: uploadToastId.toString() });
         
         // Step 2: Upload directly to S3 (bypasses Next.js entirely!)
+        // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
+        // The ContentType in PutObjectCommand will be used by S3 automatically
         const s3Response = await fetch(uploadUrl, {
           method: 'PUT',
           body: file,
-          headers: {
-            'Content-Type': file.type
-          }
+          // NO headers - ContentType from PutObjectCommand is used by S3
         });
         
         if (!s3Response.ok) {

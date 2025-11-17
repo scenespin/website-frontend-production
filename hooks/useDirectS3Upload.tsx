@@ -209,8 +209,10 @@ function uploadToS3WithProgress(
     });
 
     // Start upload
+    // CRITICAL: Do NOT set Content-Type header - it's not in signed headers
+    // The ContentType in PutObjectCommand will be used by S3 automatically
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.type);
+    // NO headers - ContentType from PutObjectCommand is used by S3
     xhr.send(file);
   });
 }

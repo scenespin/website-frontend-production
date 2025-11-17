@@ -559,12 +559,12 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       toast.info('Uploading to S3...');
       
       // Step 2: Upload directly to S3 (bypasses Next.js!)
+      // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
+      // The ContentType in PutObjectCommand will be used by S3 automatically
       const s3Response = await fetch(uploadUrl, {
         method: 'PUT',
         body: clip.uploadedFile,
-        headers: {
-          'Content-Type': clip.uploadedFile.type
-        }
+        // NO headers - ContentType from PutObjectCommand is used by S3
       });
       
       if (!s3Response.ok) {
