@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
+import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
+import { toast } from 'sonner';
 // ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js
 import { 
   Film, 
@@ -17,7 +19,9 @@ import {
   Clock, 
   Plus,
   Zap,
-  TrendingUp
+  TrendingUp,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -30,11 +34,17 @@ export default function Dashboard() {
   const [recentVideos, setRecentVideos] = useState([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
+  const [deletingProjectId, setDeletingProjectId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   useEffect(() => {
     // Auth guaranteed by wrapper, fetch data immediately
     if (user) {
       fetchDashboardData();
+      // Get current screenplay ID
+      const screenplayId = getCurrentScreenplayId(user);
+      setCurrentScreenplayId(screenplayId);
     }
   }, [user]);
 
@@ -157,6 +167,47 @@ export default function Dashboard() {
     setProjects([project, ...projects]);
     // Navigate to the editor with the new project
     router.push(`/write?project=${project.project_id}`);
+  };
+
+  const handleDeleteProject = async (projectId, projectName) => {
+    if (!showDeleteConfirm || showDeleteConfirm !== projectId) {
+      // First click - show confirmation
+      setShowDeleteConfirm(projectId);
+      return;
+    }
+
+    // Second click - actually delete
+    setDeletingProjectId(projectId);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete project');
+      }
+
+      // Remove from list
+      setProjects(projects.filter(p => p.project_id !== projectId));
+      setShowDeleteConfirm(null);
+      toast.success('Project deleted successfully');
+      
+      // If this was the current screenplay, clear it
+      if (currentScreenplayId === projectId) {
+        setCurrentScreenplayId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast.error(error.message || 'Failed to delete project');
+    } finally {
+      setDeletingProjectId(null);
+    }
   };
 
   if (loading) {
@@ -296,41 +347,111 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Projects */}
-        {projects.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-base-content mb-4">Recent Projects</h2>
-            <div className="space-y-3">
-              {projects.slice(0, 5).map((project) => (
-                <Link
-                  key={project.project_id}
-                  href={`/write?project=${project.project_id}`}
-                  className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-cinema-red/10 rounded-lg group-hover:bg-cinema-red/20 transition-colors">
-                      <FileText className="w-5 h-5 text-cinema-red" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-base text-base-content group-hover:text-cinema-red transition-colors">
-                        {project.project_name || 'Untitled Project'}
-                      </h3>
-                      <p className="text-sm text-base-content/60">
-                        {new Date(project.updated_at || project.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="badge badge-sm badge-ghost">{project.is_archived ? 'archived' : 'active'}</span>
-                    <svg className="w-5 h-5 text-base-content/30 group-hover:text-cinema-red group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </Link>
-              ))}
-            </div>
+        {/* Projects Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-base-content">My Projects</h2>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              New Project
+            </button>
           </div>
-        )}
+          
+          {projects.length > 0 ? (
+            <div className="space-y-3">
+              {projects.map((project) => {
+                // Check if this project's screenplay_id matches the current screenplay
+                // Projects have a screenplay_id field that links to the screenplay
+                const projectScreenplayId = project.screenplay_id || project.project_id;
+                const isCurrent = currentScreenplayId === projectScreenplayId || 
+                                 (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
+                const isDeleting = deletingProjectId === project.project_id;
+                const showConfirm = showDeleteConfirm === project.project_id;
+                
+                return (
+                  <div
+                    key={project.project_id}
+                    className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
+                  >
+                    <Link
+                      href={`/write?project=${project.project_id}`}
+                      className="flex items-center gap-4 flex-1 min-w-0"
+                    >
+                      <div className="p-3 bg-cinema-red/10 rounded-lg group-hover:bg-cinema-red/20 transition-colors flex-shrink-0">
+                        <FileText className="w-5 h-5 text-cinema-red" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-base text-base-content group-hover:text-cinema-red transition-colors truncate">
+                            {project.project_name || 'Untitled Project'}
+                          </h3>
+                          {isCurrent && (
+                            <span className="badge badge-sm badge-primary">Current</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-base-content/60">
+                          {new Date(project.updated_at || project.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {!showConfirm ? (
+                        <>
+                          <span className="badge badge-sm badge-ghost">{project.is_archived ? 'archived' : 'active'}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProject(project.project_id, project.project_name);
+                            }}
+                            disabled={isDeleting}
+                            className="p-2 rounded-lg hover:bg-red-500/20 text-base-content/60 hover:text-red-500 transition-colors disabled:opacity-50"
+                            title="Delete project"
+                          >
+                            {isDeleting ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-red-500">Delete?</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProject(project.project_id, project.project_name);
+                            }}
+                            disabled={isDeleting}
+                            className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowDeleteConfirm(null);
+                            }}
+                            className="px-3 py-1 text-xs bg-base-300 hover:bg-base-100 rounded transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-base-content/60">
+              <p className="mb-4">No projects yet. Create your first project to get started.</p>
+            </div>
+          )}
+        </div>
 
         {/* Recent Videos */}
         {recentVideos.length > 0 && (

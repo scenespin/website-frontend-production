@@ -1357,13 +1357,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 });
                 
                 // 🔥 FIX: Use proper updateCharacter API instead of bulkCreateCharacters
-                // Transform updates to API format (include arcStatus and referenceImages)
+                // Transform updates to API format (include arcStatus, type, arcNotes, and referenceImages)
                 const apiUpdates: any = {};
                 
                 // Only include fields that are actually being updated
                 if (updates.name !== undefined) apiUpdates.name = updates.name;
                 if (updates.description !== undefined) apiUpdates.description = updates.description;
+                if (updates.type !== undefined) apiUpdates.type = updates.type; // 🔥 FIX: Include type field
                 if (updates.arcStatus !== undefined) apiUpdates.arcStatus = updates.arcStatus; // 🔥 CRITICAL: Include arcStatus
+                if (updates.arcNotes !== undefined) apiUpdates.arcNotes = updates.arcNotes; // 🔥 FIX: Include arcNotes field
                 if (updates.images !== undefined) {
                     apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
                 }
