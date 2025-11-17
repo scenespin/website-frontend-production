@@ -330,17 +330,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       }
       
       // Step 2: Upload directly to S3 (bypasses Next.js!)
-      // PROFESSIONAL BEST PRACTICE (2025): Use ContentType from pre-signed URL response
-      // This ensures exact matching between pre-signed URL generation and upload request
-      // The backend returns the ContentType that was used in PutObjectCommand
-      // This is the most reliable way to ensure signature validation passes
-      const contentTypeToUse = presignedContentType || fileType; // Use backend's ContentType if available
+      // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
+      // The ContentType in PutObjectCommand will be used by S3 automatically
+      // Sending an unsigned Content-Type header causes 403 Forbidden
+      // AWS SDK v3 getSignedUrl does NOT include ContentType in signed headers by default
       const s3Response = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
-        headers: {
-          'Content-Type': contentTypeToUse, // Must match exactly what was used in PutObjectCommand
-        },
+        // NO headers - ContentType from PutObjectCommand is used by S3
       });
       
       if (!s3Response.ok) {
