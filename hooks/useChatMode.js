@@ -165,7 +165,7 @@ export function useChatMode() {
   
   /**
    * Detect if content is screenplay (not advice)
-   * INVERTED LOGIC: Assume screenplay UNLESS clearly advice
+   * IMPROVED: Check for screenplay content indicators first, even if mixed with advice
    */
   const isScreenplayContent = useCallback((content) => {
     const trimmed = content.trim();
@@ -173,16 +173,35 @@ export function useChatMode() {
     // Empty or very short
     if (trimmed.length < 20) return false;
     
-    // Check for advice indicators
+    // FIRST: Check for screenplay content indicators (even if mixed with advice)
+    // Character name in ALL CAPS followed by dialogue (most reliable indicator)
+    const hasCharacterDialogue = /^[A-Z][A-Z\s]+$/m.test(trimmed.split('\n').find(line => line.trim().length > 0)) || 
+                                  /^[A-Z][A-Z\s]+\n/m.test(trimmed);
+    
+    // Action lines (descriptive text, often with ALL CAPS for emphasis)
+    const hasActionLines = /\b([A-Z]{2,})\b.*\n/m.test(trimmed) || // ALL CAPS words in action
+                           /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)/im.test(trimmed) || // Scene headings
+                           /\([^)]+\)/m.test(trimmed); // Parentheticals
+    
+    // Screenplay formatting patterns
+    const hasScreenplayFormat = /^[A-Z][A-Z\s]+\n.*\n/m.test(trimmed) || // Character name + dialogue pattern
+                                 /^\s*[A-Z][A-Z\s]+\s*$/m.test(trimmed.split('\n')[0]); // First line is character name
+    
+    // If screenplay content is present, it's screenplay (even if mixed with advice)
+    if (hasCharacterDialogue || hasActionLines || hasScreenplayFormat) {
+      return true;
+    }
+    
+    // SECOND: Check for pure advice indicators (only if NO screenplay content)
     const hasQuestions = /\?/g.test(trimmed) && (trimmed.match(/\?/g) || []).length >= 2;
     const startsWithQuestion = /^(How|What|Where|When|Why|Should|Would|Could|Can|Do you|Are you|Is this)/i.test(trimmed);
-    const hasAdviceLanguage = /\b(you should|you could|you might|try to|consider|think about|let me know|if you want|would you like|feel free|here to help|happy to help)\b/i.test(trimmed);
+    const hasAdviceLanguage = /\b(you should|you could|you might|try to|consider|think about|let me know|if you want|would you like|feel free|here to help|happy to help|SCREENWRITING NOTE|STORYTELLING OPTIONS|NEXT BEAT OPTIONS)\b/i.test(trimmed);
     const hasNumberedList = /^\d+\./m.test(trimmed);
     const hasBulletPoints = /^[-•*]\s/m.test(trimmed);
     const hasExplanationIntro = /^(To |Here's |This |If you|Sure,|Okay,|Alright,|Let me|I can|I'll|I've|I think|I would)/i.test(trimmed);
-    const hasMetaCommentary = /\b(this could|this would|this might|the scene could|the character should|you can have|to make this|to add|for this scene)\b/i.test(trimmed);
+    const hasMetaCommentary = /\b(this could|this would|this might|the scene could|the character should|you can have|to make this|to add|for this scene|Which direction interests you)\b/i.test(trimmed);
     
-    // If ANY advice indicator, it's NOT screenplay
+    // If ONLY advice indicators (no screenplay content), it's NOT screenplay
     if (hasQuestions || startsWithQuestion || hasAdviceLanguage || hasNumberedList || hasBulletPoints || hasExplanationIntro || hasMetaCommentary) {
       return false;
     }

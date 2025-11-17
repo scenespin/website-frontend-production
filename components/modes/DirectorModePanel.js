@@ -173,12 +173,17 @@ DIRECTOR MODE - SCENE GENERATION:
         },
         // onComplete
         (fullContent) => {
-          setStreaming(false, '');
+          // Keep streamingText visible briefly so insert button doesn't disappear
+          // The message will be added and streamingText will be cleared by the message render
           addMessage({
             role: 'assistant',
             content: fullContent,
             mode: 'director'
           });
+          // Clear streaming after a brief delay to allow message to render
+          setTimeout(() => {
+            setStreaming(false, '');
+          }, 100);
         },
         // onError
         (error) => {
@@ -224,11 +229,11 @@ DIRECTOR MODE - SCENE GENERATION:
               !isUser && 
               index === directorMessages.length - 1;
             
-            // Show insert button for screenplay content (dialogue, directions, etc.)
+            // Director always generates screenplay content, so always show insert button for last assistant message
             const showInsertButton = 
               !isUser && 
               isLastAssistantMessage && 
-              isScreenplayContent(message.content);
+              message.content.trim().length > 0;
             
             return (
               <div
@@ -271,15 +276,17 @@ DIRECTOR MODE - SCENE GENERATION:
             );
           })}
         
-        {/* Streaming text */}
-        {state.isStreaming && state.streamingText && (
+        {/* Streaming text - show insert button while streaming AND after streaming completes */}
+        {state.streamingText && state.streamingText.trim().length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="max-w-[85%] rounded-lg px-4 py-3 bg-base-200 text-base-content">
               <div className="flex items-start gap-2">
                 <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0 chat-message-content">
                   <MarkdownRenderer content={state.streamingText} />
-                  <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                  {state.isStreaming && (
+                    <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                  )}
                 </div>
               </div>
             </div>

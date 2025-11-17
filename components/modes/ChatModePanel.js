@@ -172,12 +172,17 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         },
         // onComplete
         (fullContent) => {
-          setStreaming(false, '');
+          // Keep streamingText visible briefly so insert button doesn't disappear
+          // The message will be added and streamingText will be cleared by the message render
           addMessage({
             role: 'assistant',
             content: fullContent,
             mode: 'chat'
           });
+          // Clear streaming after a brief delay to allow message to render
+          setTimeout(() => {
+            setStreaming(false, '');
+          }, 100);
         },
         // onError
         (error) => {
@@ -263,12 +268,20 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               index === state.messages.filter(m => m.mode === 'chat').length - 1;
             
             // Show insert button for screenplay content
+            // Also check if user's previous message was a content request (not a question)
+            const previousUserMessage = state.messages
+              .filter(m => m.mode === 'chat')
+              .slice(0, index + 1)
+              .reverse()
+              .find(m => m.role === 'user');
+            const wasContentRequest = previousUserMessage ? detectContentRequest(previousUserMessage.content) : false;
+            
             const showInsertButton = 
               !isUser && 
               isLastAssistantMessage && 
               !activeWorkflow && 
               !workflowCompletionData &&
-              isScreenplayContent(message.content);
+              (isScreenplayContent(message.content) || (wasContentRequest && message.content.trim().length > 50));
             
             return (
               <div
@@ -317,8 +330,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             );
           })}
         
-        {/* Streaming text */}
-        {state.isStreaming && state.streamingText && (
+        {/* Streaming text - show insert button while streaming AND after streaming completes if it's screenplay content */}
+        {state.streamingText && state.streamingText.trim().length > 0 && (
           <div className="group w-full bg-base-200/30">
             <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
               <div className="flex gap-4 md:gap-6">
@@ -331,7 +344,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 <div className="flex-1 min-w-0 space-y-3">
                   <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
                     <MarkdownRenderer content={state.streamingText} />
-                    <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                    {state.isStreaming && (
+                      <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                    )}
                   </div>
                   
                   {/* Insert button for streaming text (when it's screenplay content) */}
