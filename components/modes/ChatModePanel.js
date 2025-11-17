@@ -38,8 +38,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           heading: sceneContext.heading,
           act: sceneContext.act,
           characters: sceneContext.characters,
-          pageNumber: sceneContext.pageNumber
+          pageNumber: sceneContext.pageNumber,
+          totalPages: sceneContext.totalPages
         });
+        console.log('[ChatModePanel] Scene context detected on mount:', sceneContext.heading);
       }
     }
   }, [editorContent, cursorPosition, setSceneContext]);
@@ -52,7 +54,21 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     
     try {
       // ALWAYS detect current scene for context (re-detect on each message)
-      const sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      let sceneContext = detectCurrentScene(editorContent, cursorPosition);
+      
+      // Fallback to state scene context if detection fails
+      if (!sceneContext && state.sceneContext) {
+        console.log('[ChatModePanel] Using state scene context as fallback');
+        // Reconstruct full scene context from state (we need content for the prompt)
+        sceneContext = {
+          heading: state.sceneContext.heading,
+          act: state.sceneContext.act,
+          characters: state.sceneContext.characters || [],
+          pageNumber: state.sceneContext.pageNumber,
+          totalPages: state.sceneContext.totalPages || 100,
+          content: editorContent ? editorContent.substring(0, 1000) : ''
+        };
+      }
       
       // Update global scene context state (for banner display)
       if (sceneContext) {
@@ -60,8 +76,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           heading: sceneContext.heading,
           act: sceneContext.act,
           characters: sceneContext.characters,
-          pageNumber: sceneContext.pageNumber
+          pageNumber: sceneContext.pageNumber,
+          totalPages: sceneContext.totalPages
         });
+        console.log('[ChatModePanel] Scene context:', sceneContext.heading, 'Act:', sceneContext.act, 'Characters:', sceneContext.characters?.length || 0);
+      } else {
+        console.warn('[ChatModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
       }
       
       // Detect if this is content generation vs advice request
