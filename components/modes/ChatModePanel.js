@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
+import { useDrawer } from '@/contexts/DrawerContext';
 import { FileText, Sparkles, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
+  const { closeDrawer } = useDrawer();
   const {
     activeWorkflow,
     workflowCompletionData,
@@ -339,7 +341,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                       {showInsertButton && onInsert && (
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
-                            onClick={() => onInsert(message.content)}
+                            onClick={() => {
+                              onInsert(message.content);
+                              closeDrawer();
+                            }}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
                           >
                             <FileText className="h-3.5 w-3.5" />
@@ -377,7 +382,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                   {onInsert && isScreenplayContent(state.streamingText) && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
-                        onClick={() => onInsert(state.streamingText)}
+                        onClick={() => {
+                          onInsert(state.streamingText);
+                          closeDrawer();
+                        }}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
                       >
                         <FileText className="h-3.5 w-3.5" />

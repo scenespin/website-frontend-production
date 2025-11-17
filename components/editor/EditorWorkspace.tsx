@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { useChatContext } from '@/contexts/ChatContext';
 import FountainEditor from './FountainEditor';
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
@@ -25,7 +26,8 @@ export default function EditorWorkspace() {
     const router = useRouter();
     const { state, setContent, setCurrentLine } = useEditor();
     const screenplay = useScreenplay();
-    const { isDrawerOpen } = useDrawer();
+    const { isDrawerOpen, openDrawer } = useDrawer();
+    const { setSelectedTextContext, setInput } = useChatContext();
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
@@ -125,6 +127,28 @@ export default function EditorWorkspace() {
         }
     };
     
+    // Handle opening chat drawer with rewrite context
+    const handleOpenChatWithContext = (
+        selectedText: string, 
+        initialPrompt?: string, 
+        selectionRange?: { start: number; end: number }
+    ) => {
+        // Set selected text context in ChatContext
+        setSelectedTextContext(selectedText, selectionRange || null);
+        
+        // Set initial prompt if provided
+        if (initialPrompt) {
+            setInput(initialPrompt);
+        }
+        
+        // Open drawer in chat mode (rewrite mode is automatically detected by UnifiedChatPanel)
+        openDrawer('chat', { 
+            mode: 'chat',
+            selectedText,
+            initialPrompt 
+        });
+    };
+    
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -203,7 +227,9 @@ Tip:
 - Press Tab to format as CHARACTER
 - Press Shift+Tab to format as SCENE HEADING
 - Press Enter for smart line breaks
-- Type @ to mention characters or locations"
+- Type @ to mention characters or locations
+- Select text and right-click for 'Rewrite with AI'"
+                            onOpenChatWithContext={handleOpenChatWithContext}
                         />
                     </div>
                 </div>

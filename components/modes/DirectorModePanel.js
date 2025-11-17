@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
+import { useDrawer } from '@/contexts/DrawerContext';
 import { Film, Camera, Clapperboard, FileText, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -31,6 +32,7 @@ function stripMarkdown(text) {
 export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
   const { isScreenplayContent } = useChatMode();
+  const { closeDrawer } = useDrawer();
   
   // Use model from ChatContext (set by UnifiedChatPanel's LLMModelSelector)
   const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
@@ -287,7 +289,10 @@ DIRECTOR MODE - SCENE GENERATION:
                 {/* Insert Button */}
                 {showInsertButton && onInsert && (
                   <button
-                    onClick={() => onInsert(stripMarkdown(message.content))}
+                    onClick={() => {
+                      onInsert(stripMarkdown(message.content));
+                      closeDrawer();
+                    }}
                     className="btn btn-xs btn-outline gap-2"
                   >
                     <FileText className="h-4 w-4" />
@@ -316,7 +321,10 @@ DIRECTOR MODE - SCENE GENERATION:
             {/* Insert button for streaming text (Director always generates screenplay content) */}
             {onInsert && (
               <button
-                onClick={() => onInsert(stripMarkdown(state.streamingText))}
+                onClick={() => {
+                  onInsert(stripMarkdown(state.streamingText));
+                  closeDrawer();
+                }}
                 className="btn btn-xs btn-outline gap-2 self-start"
               >
                 <FileText className="h-4 w-4" />
