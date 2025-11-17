@@ -87,13 +87,21 @@ export async function GET(request: Request) {
       expiresIn: 3600 // 1 hour
     });
     
+    // Log the signed URL to verify Content-Type is in signed headers (for debugging)
+    // Check if 'content-type' appears in X-Amz-SignedHeaders parameter
+    const signedHeadersMatch = uploadUrl.match(/X-Amz-SignedHeaders=([^&]+)/);
+    const signedHeaders = signedHeadersMatch ? decodeURIComponent(signedHeadersMatch[1]) : 'unknown';
     console.log(`[VideoUpload] Generated pre-signed URL for user ${clerkUserId}: ${s3Key}`);
+    console.log(`[VideoUpload] Signed headers in URL: ${signedHeaders}`);
+    console.log(`[VideoUpload] ContentType specified: ${fileType}`);
     
     // Return pre-signed URL and metadata
+    // IMPORTANT: Return the ContentType so frontend can match it exactly
     return NextResponse.json({
       success: true,
       uploadUrl,
       s3Key,
+      contentType: fileType, // Return ContentType so frontend can match exactly
       expiresIn: 3600,
       message: 'Pre-signed URL generated successfully'
     });
