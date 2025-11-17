@@ -296,18 +296,36 @@ export default function MediaLibrary({
       }
 
       // Step 2: Upload directly to S3 (bypasses Next.js!)
-      // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
-      // The ContentType in PutObjectCommand will be used by S3 automatically
-      // Sending an unsigned Content-Type header causes 403 Forbidden
-      const s3Response = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        // NO headers - ContentType from PutObjectCommand is used by S3
+      // Use XMLHttpRequest instead of fetch to prevent browser from auto-adding Content-Type header
+      // Browsers automatically add Content-Type when using fetch with File objects, which causes 403
+      // XMLHttpRequest gives us full control over headers
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 50); // 0-50% for upload
+            setUploadProgress(25 + percentComplete); // 25-75% total
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('S3 upload failed: Network error'));
+        });
+        
+        xhr.open('PUT', uploadUrl);
+        // CRITICAL: Do NOT set Content-Type header - it's not in signed headers
+        // The ContentType in PutObjectCommand will be used by S3 automatically
+        xhr.send(file);
       });
-
-      if (!s3Response.ok) {
-        throw new Error(`S3 upload failed: ${s3Response.status}`);
-      }
 
       setUploadProgress(75);
 
