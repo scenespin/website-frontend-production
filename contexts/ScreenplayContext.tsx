@@ -3197,9 +3197,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] Actually updated', updatedScenesCount, 'scene positions');
             }
             
+            // 🔥 FIX: Small delay to ensure all state updates have propagated before rebuilding relationships
+            // This helps prevent race conditions where relationships are built before new entities are fully in state
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             // 🔥 FIX: Rebuild relationships after rescan to ensure scene counts are updated
             await updateRelationships();
             console.log('[ScreenplayContext] ✅ Rebuilt relationships after rescan');
+            
+            // 🔥 FIX: One more small delay and rebuild to catch any edge cases
+            // Sometimes the first rebuild doesn't catch everything if state updates are still propagating
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await updateRelationships();
+            console.log('[ScreenplayContext] ✅ Second relationship rebuild complete');
             
             console.log('[ScreenplayContext] ✅ Re-scan complete:', {
                 newCharacters: newCharacterNames.length,

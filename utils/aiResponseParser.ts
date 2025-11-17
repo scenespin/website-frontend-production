@@ -60,15 +60,28 @@ export function parseCharacterProfile(aiResponse: string): Partial<ParsedCharact
         parsed.type = 'supporting';
       } else if (typeValue.includes('minor') || typeValue.includes('background')) {
         parsed.type = 'minor';
+      } else {
+        // If type field exists but value is unclear, default to supporting (safer than lead)
+        parsed.type = 'supporting';
       }
     } else {
-      // Fallback: search in text
-      if (/protagonist|lead|main\s+character|hero|heroine/i.test(aiResponse)) {
+      // Fallback: search in text - be more aggressive in detection
+      const lowerResponse = aiResponse.toLowerCase();
+      if (/protagonist|lead|main\s+character|hero|heroine|primary\s+character/i.test(lowerResponse)) {
         parsed.type = 'lead';
-      } else if (/supporting|secondary/i.test(aiResponse)) {
+      } else if (/supporting|secondary|side\s+character/i.test(lowerResponse)) {
         parsed.type = 'supporting';
-      } else if (/minor|background/i.test(aiResponse)) {
+      } else if (/minor|background|bit\s+part|small\s+role/i.test(lowerResponse)) {
         parsed.type = 'minor';
+      } else {
+        // If no clear indication, infer from context:
+        // If they have a main goal in the story, they're likely lead or supporting
+        // If no clear role mentioned, default to supporting (safer than assuming lead)
+        if (/main\s+goal|primary\s+goal|story\s+goal|protagonist/i.test(lowerResponse)) {
+          parsed.type = 'lead';
+        } else {
+          parsed.type = 'supporting'; // Default to supporting instead of lead
+        }
       }
     }
     
@@ -110,23 +123,37 @@ export function parseCharacterProfile(aiResponse: string): Partial<ParsedCharact
       }
     }
     
-    // Extract arc notes (look for Character Arc, Background, etc.)
-    const arcMatch = aiResponse.match(/(?:Character Arc|Arc Potential|Background|Personality Essence)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
-    if (arcMatch && arcMatch[1]) {
-      parsed.arcNotes = arcMatch[1].trim();
+    // Extract arc notes - look for **Arc Notes:** field first (explicit format)
+    let arcNotesMatch = aiResponse.match(/\*\*Arc Notes:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
+    if (!arcNotesMatch) {
+      arcNotesMatch = aiResponse.match(/^Arc Notes:\s*([^\n]+(?:\n(?!\*\*|Name:|Type:|Description:)[^\n]+)*)/im);
+    }
+    if (arcNotesMatch && arcNotesMatch[1]) {
+      let arcNotes = arcNotesMatch[1].trim();
+      // Remove any remaining markdown
+      arcNotes = arcNotes.replace(/\*\*/g, '');
+      parsed.arcNotes = arcNotes;
     } else {
-      // Fallback: combine relevant sections
-      const sections = [];
-      const personalityMatch = aiResponse.match(/Personality(?:\s+Essence)?[\s:]*\n([^\n]+)/i);
-      const goalsMatch = aiResponse.match(/(?:Goals?|What they want)[\s:]*\n([^\n]+)/i);
-      const flawsMatch = aiResponse.match(/(?:Flaws?|Internal Conflict)[\s:]*\n([^\n]+)/i);
-      
-      if (personalityMatch) sections.push(personalityMatch[1].trim());
-      if (goalsMatch) sections.push(`Goals: ${goalsMatch[1].trim()}`);
-      if (flawsMatch) sections.push(`Flaws: ${flawsMatch[1].trim()}`);
-      
-      if (sections.length > 0) {
-        parsed.arcNotes = sections.join('\n\n');
+      // Fallback: look for Character Arc, Arc Potential, Background, etc.
+      const arcMatch = aiResponse.match(/(?:Character Arc|Arc Potential|Background|Personality Essence)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+      if (arcMatch && arcMatch[1]) {
+        parsed.arcNotes = arcMatch[1].trim();
+      } else {
+        // Fallback: combine relevant sections
+        const sections = [];
+        const personalityMatch = aiResponse.match(/Personality(?:\s+Essence)?[\s:]*\n([^\n]+(?:\n[^\n]+)*)/i);
+        const goalsMatch = aiResponse.match(/(?:Goals?|What they want|main goal)[\s:]*\n([^\n]+(?:\n[^\n]+)*)/i);
+        const flawsMatch = aiResponse.match(/(?:Flaws?|Internal Conflict)[\s:]*\n([^\n]+(?:\n[^\n]+)*)/i);
+        const relationshipsMatch = aiResponse.match(/(?:Relationships|Dynamics)[\s:]*\n([^\n]+(?:\n[^\n]+)*)/i);
+        
+        if (personalityMatch) sections.push(`Personality: ${personalityMatch[1].trim()}`);
+        if (goalsMatch) sections.push(`Goals: ${goalsMatch[1].trim()}`);
+        if (flawsMatch) sections.push(`Internal Conflict: ${flawsMatch[1].trim()}`);
+        if (relationshipsMatch) sections.push(`Relationships: ${relationshipsMatch[1].trim()}`);
+        
+        if (sections.length > 0) {
+          parsed.arcNotes = sections.join('\n\n');
+        }
       }
     }
     
@@ -242,22 +269,52 @@ export function parseLocationProfile(aiResponse: string): Partial<ParsedLocation
       }
     }
     
-    // Extract atmosphere (The Feel section)
-    const atmosphereMatch = aiResponse.match(/(?:The Feel|Atmosphere|Mood)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    // Extract atmosphere notes - look for **Atmosphere Notes:** field first (explicit format)
+    let atmosphereMatch = aiResponse.match(/\*\*Atmosphere Notes:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
+    if (!atmosphereMatch) {
+      atmosphereMatch = aiResponse.match(/^Atmosphere Notes:\s*([^\n]+(?:\n(?!\*\*|Name:|Type:|Description:)[^\n]+)*)/im);
+    }
+    if (!atmosphereMatch) {
+      // Fallback: look for The Feel section
+      atmosphereMatch = aiResponse.match(/(?:The Feel|Atmosphere|Mood)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    }
     if (atmosphereMatch && atmosphereMatch[1]) {
-      parsed.atmosphereNotes = atmosphereMatch[1].trim();
+      let atmosphere = atmosphereMatch[1].trim();
+      // Remove any remaining markdown
+      atmosphere = atmosphere.replace(/\*\*/g, '');
+      parsed.atmosphereNotes = atmosphere;
     }
     
-    // Extract production notes
-    const productionMatch = aiResponse.match(/(?:Production Notes|Practical Considerations|Set Requirements)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    // Extract set requirements - look for **Set Requirements:** field first (explicit format)
+    let setRequirementsMatch = aiResponse.match(/\*\*Set Requirements:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
+    if (!setRequirementsMatch) {
+      setRequirementsMatch = aiResponse.match(/^Set Requirements:\s*([^\n]+(?:\n(?!\*\*|Name:|Type:|Description:)[^\n]+)*)/im);
+    }
+    if (!setRequirementsMatch) {
+      // Fallback: look for Action Potential
+      setRequirementsMatch = aiResponse.match(/(?:Action Potential|Set Requirements)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    }
+    if (setRequirementsMatch && setRequirementsMatch[1]) {
+      let setReqs = setRequirementsMatch[1].trim();
+      // Remove any remaining markdown
+      setReqs = setReqs.replace(/\*\*/g, '');
+      parsed.setRequirements = setReqs;
+    }
+    
+    // Extract production notes - look for **Production Notes:** field first (explicit format)
+    let productionMatch = aiResponse.match(/\*\*Production Notes:\*\*\s*([^\n]+(?:\n(?!\*\*)[^\n]+)*)/i);
+    if (!productionMatch) {
+      productionMatch = aiResponse.match(/^Production Notes:\s*([^\n]+(?:\n(?!\*\*|Name:|Type:|Description:)[^\n]+)*)/im);
+    }
+    if (!productionMatch) {
+      // Fallback: look for Production Notes section
+      productionMatch = aiResponse.match(/(?:Production Notes|Practical Considerations|Filming Logistics)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
+    }
     if (productionMatch && productionMatch[1]) {
-      parsed.productionNotes = productionMatch[1].trim();
-    }
-    
-    // Extract action potential or set requirements
-    const actionMatch = aiResponse.match(/(?:Action Potential|Set Requirements)[\s:]*\n([^\n]+(?:\n[^\n#*]+)*)/i);
-    if (actionMatch && actionMatch[1]) {
-      parsed.setRequirements = actionMatch[1].trim();
+      let production = productionMatch[1].trim();
+      // Remove any remaining markdown
+      production = production.replace(/\*\*/g, '');
+      parsed.productionNotes = production;
     }
     
     return Object.keys(parsed).length > 0 ? parsed : null;

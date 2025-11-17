@@ -29,12 +29,22 @@ YOUR JOB:
 - Format it ready for screenplay use
 - DO NOT ask questions - just generate the profile
 
-Generate a comprehensive character profile including:
+Generate a comprehensive character profile in the following STRUCTURED FORMAT:
+
+**Name:** [Character's full name]
+
+**Type:** [lead | supporting | minor]
+- "lead" = Main protagonist/hero
+- "supporting" = Important secondary character
+- "minor" = Background/small role character
+- Base this on their role in the story from the interview answers
 
 **Physical Introduction** (screenplay format, 2-3 sentences)
 - Age, appearance, memorable visual detail
 - Active voice, what the camera sees
 - Example: "SARAH (30s) moves with the precision of a surgeon and the wariness of a survivor. A faded scar traces her left cheek."
+
+**Description:** [Combine Physical Introduction + Personality Essence - this will fill the main description field]
 
 **Personality Essence** (1-2 key behavioral traits)
 - Show through behavior, not adjectives
@@ -47,6 +57,10 @@ Generate a comprehensive character profile including:
 - Internal conflict/flaw to overcome
 - External goals
 
+**Arc Notes:** [Combine Character Arc Potential + Background/Context + Relationships - this will fill the arc notes field]
+- Include: starting point, internal conflict, goals, key relationships
+- Format as a brief narrative (2-4 sentences)
+
 **Relationships & Dynamics**
 - Key relationships that define or challenge them
 
@@ -57,7 +71,7 @@ WRITING STYLE:
 ✓ Make initial description 3-4 sentences max
 ✓ Screenplay-format appropriate
 
-Format the final character profile ready for screenplay, and structure it so the user can easily fill in the form fields.`,
+CRITICAL: You MUST include "**Type:**" and "**Arc Notes:**" fields in your response. Format the final character profile ready for screenplay, and structure it so the user can easily fill in the form fields.`,
   
   questions: [
     {
@@ -91,28 +105,45 @@ YOUR JOB:
 - Format it ready for screenplay use
 - DO NOT ask questions - just generate the profile
 
-Location profile should include:
+Location profile should include in the following STRUCTURED FORMAT:
 
-**The Look (Visual Description)**
+**Name:** [Location name]
+
+**Type:** [INT | EXT | INT/EXT]
+
+**Description:** [The Look - Visual Description - this will fill the main description field]
 - Use straightforward, vivid adjectives
 - Active voice: "The room IS..." not "The room was..."
 - Example: "The tennis court IS cracked and weathered, white lines barely visible through years of neglect."
+- 2-3 sentences max
 
 **The Feel (Atmosphere & Mood)**
 - Emotion the space evokes
 - Time of day and lighting
 - Sound environment
 
+**Atmosphere Notes:** [The Feel - this will fill the atmosphere notes field]
+- Mood, lighting, sound, time of day
+- What emotion does this space evoke?
+- Format as 2-3 sentences
+
 **Action Potential**
 - What characters can DO here
 - How environment affects action
 - Examples: dodge behind cover, slip on wet floors, discover hidden details
 
-**Production Notes**
-- Set requirements
+**Set Requirements:** [Action Potential + Practical Considerations - this will fill the set requirements field]
+- What props, furniture, or set pieces are needed?
+- What can characters do here?
+- Practical filming considerations
+- Format as 2-3 sentences
+
+**Production Notes:** [Production & Filming Logistics - this will fill the production notes field]
 - Lighting considerations (natural/artificial)
 - Sound/acoustics
+- Camera placement considerations
 - Practical filming logistics
+- Format as 2-3 sentences
 
 **Dramatic Purpose**
 - Why THIS location for scenes?
@@ -126,7 +157,7 @@ SCREENPLAY WRITING RULES:
 ✓ Scene description = Look + Feel + Action
 ✓ Don't over-describe - scripts aren't books
 
-Format the location description ready for screenplay, structured so the user can easily fill in the form fields.`,
+CRITICAL: You MUST include "**Atmosphere Notes:**", "**Set Requirements:**", and "**Production Notes:**" fields in your response. Format the location description ready for screenplay, structured so the user can easily fill in the form fields.`,
   
   questions: [
     {
