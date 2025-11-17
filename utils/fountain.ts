@@ -83,9 +83,10 @@ export function detectElementType(line: string, previousType?: FountainElementTy
         return 'parenthetical';
     }
     
-    // Character name (ALL CAPS, optionally with ^)
+    // Character name (ALL CAPS, optionally with ^ or # for numbered characters)
     // Must be preceded by empty line or dialogue
-    if (/^[A-Z\s'0-9]+(\^)?$/.test(trimmed) && trimmed.length < 40) {
+    // Note: # is valid for numbered characters like "REPORTER #1", "COP #2"
+    if (/^[A-Z\s'0-9#]+(\^)?$/.test(trimmed) && trimmed.length < 40) {
         if (!previousType || previousType === 'empty' || previousType === 'dialogue' || previousType === 'parenthetical') {
             // Exclude common transitions and screenplay elements
             if (/^(THE END|END|FADE OUT|FADE IN|FADE TO BLACK|BLACK|CUT TO|DISSOLVE TO|CONTINUED|MORE|CONT'D)\.?$/i.test(trimmed)) {
