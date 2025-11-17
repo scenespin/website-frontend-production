@@ -58,23 +58,32 @@ export function useS3Upload() {
                 }
             );
             
-            if (!uploadUrlResponse?.uploadUrl || !uploadUrlResponse?.s3Key) {
+            if (!uploadUrlResponse?.url || !uploadUrlResponse?.fields || !uploadUrlResponse?.s3Key) {
                 throw new Error('Invalid upload URL response');
             }
             
-            console.log('[S3Upload] Got upload URL, uploading to S3...');
+            console.log('[S3Upload] Got pre-signed POST, uploading to S3...');
             
             if (onProgress) {
                 onProgress(30);
             }
             
-            // Step 2: Upload file directly to S3 using presigned URL
-            // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
-            // The ContentType in PutObjectCommand will be used by S3 automatically
-            const uploadResponse = await fetch(uploadUrlResponse.uploadUrl, {
-                method: 'PUT',
-                body: file,
-                // NO headers - ContentType from PutObjectCommand is used by S3
+            // Step 2: Upload file directly to S3 using FormData POST (presigned POST)
+            // This is the recommended approach for browser uploads - Content-Type is handled
+            // as form data, not headers, preventing 403 Forbidden errors
+            const formData = new FormData();
+            
+            // Add all the fields returned from createPresignedPost
+            Object.entries(uploadUrlResponse.fields).forEach(([key, value]) => {
+                formData.append(key, value as string);
+            });
+            
+            // Add the file last (must be last field in FormData)
+            formData.append('file', file);
+            
+            const uploadResponse = await fetch(uploadUrlResponse.url, {
+                method: 'POST',
+                body: formData,
             });
             
             if (!uploadResponse.ok) {

@@ -550,21 +550,30 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
         }
       }
       
-      const { uploadUrl, s3Key } = await presignedResponse.json();
+      const { url, fields, s3Key } = await presignedResponse.json();
       
-      if (!uploadUrl || !s3Key) {
+      if (!url || !fields || !s3Key) {
         throw new Error('Invalid response from server');
       }
       
       toast.info('Uploading to S3...');
       
-      // Step 2: Upload directly to S3 (bypasses Next.js!)
-      // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
-      // The ContentType in PutObjectCommand will be used by S3 automatically
-      const s3Response = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: clip.uploadedFile,
-        // NO headers - ContentType from PutObjectCommand is used by S3
+      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
+      // This is the recommended approach for browser uploads - Content-Type is handled
+      // as form data, not headers, preventing 403 Forbidden errors
+      const formData = new FormData();
+      
+      // Add all the fields returned from createPresignedPost
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      
+      // Add the file last (must be last field in FormData)
+      formData.append('file', clip.uploadedFile);
+      
+      const s3Response = await fetch(url, {
+        method: 'POST',
+        body: formData,
       });
       
       if (!s3Response.ok) {

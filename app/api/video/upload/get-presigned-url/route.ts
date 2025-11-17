@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client } from '@aws-sdk/client-s3';
+import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 
 const S3_BUCKET = process.env.S3_BUCKET || 'screenplay-assets-043309365215';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -11,7 +11,11 @@ const s3Client = new S3Client({ region: AWS_REGION });
 
 /**
  * GET /api/video/upload/get-presigned-url
- * Generate pre-signed URL for direct S3 upload
+ * Generate pre-signed POST for direct S3 upload (browser-friendly)
+ * 
+ * Uses createPresignedPost instead of getSignedUrl to avoid Content-Type header issues.
+ * This is the recommended approach for browser uploads as it handles Content-Type
+ * as form data rather than headers, preventing 403 Forbidden errors.
  * 
  * Query params:
  * - fileName: Original file name
@@ -20,7 +24,8 @@ const s3Client = new S3Client({ region: AWS_REGION });
  * - projectId: Project/timeline ID (optional)
  * 
  * Returns:
- * - uploadUrl: Pre-signed URL for direct S3 upload (PUT request)
+ * - url: Pre-signed POST URL
+ * - fields: Form fields to include in POST request
  * - s3Key: S3 key where file will be stored
  * - expiresIn: URL expiration time (seconds)
  */
@@ -69,41 +74,41 @@ export async function GET(request: Request) {
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const s3Key = `timeline/${clerkUserId}/${projectId}/${category}/${timestamp}_${sanitizedFileName}`;
     
-    // Generate pre-signed URL for PUT operation (valid for 1 hour)
-    const command = new PutObjectCommand({
+    // Generate pre-signed POST (browser-friendly, handles Content-Type as form data)
+    // This avoids the Content-Type header signing issues with getSignedUrl
+    const { url, fields } = await createPresignedPost(s3Client, {
       Bucket: S3_BUCKET,
       Key: s3Key,
-      ContentType: fileType,
-      Metadata: {
-        userId: clerkUserId,
-        projectId: projectId.toString(),
-        uploadedAt: new Date().toISOString(),
-        originalFileName: fileName,
-        fileType: category
-      }
-    });
-
-    const uploadUrl = await getSignedUrl(s3Client, command, { 
-      expiresIn: 3600 // 1 hour
+      Expires: 3600, // 1 hour
+      Conditions: [
+        // Restrict file size (0 to 50GB)
+        ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
+        // Restrict Content-Type to match the specified file type
+        ['eq', '$Content-Type', fileType],
+      ],
+      Fields: {
+        'Content-Type': fileType,
+        // Add metadata as form fields (S3 will store these)
+        'x-amz-meta-userid': clerkUserId,
+        'x-amz-meta-projectid': projectId.toString(),
+        'x-amz-meta-uploadedat': new Date().toISOString(),
+        'x-amz-meta-originalfilename': fileName,
+        'x-amz-meta-filetype': category,
+      },
     });
     
-    // Log the signed URL to verify Content-Type is in signed headers (for debugging)
-    // Check if 'content-type' appears in X-Amz-SignedHeaders parameter
-    const signedHeadersMatch = uploadUrl.match(/X-Amz-SignedHeaders=([^&]+)/);
-    const signedHeaders = signedHeadersMatch ? decodeURIComponent(signedHeadersMatch[1]) : 'unknown';
-    console.log(`[VideoUpload] Generated pre-signed URL for user ${clerkUserId}: ${s3Key}`);
-    console.log(`[VideoUpload] Signed headers in URL: ${signedHeaders}`);
-    console.log(`[VideoUpload] ContentType specified: ${fileType}`);
+    console.log(`[VideoUpload] Generated pre-signed POST for user ${clerkUserId}: ${s3Key}`);
+    console.log(`[VideoUpload] ContentType: ${fileType}, FileSize: ${fileSizeNum} bytes`);
     
-    // Return pre-signed URL and metadata
-    // IMPORTANT: Return the ContentType so frontend can match it exactly
+    // Return pre-signed POST URL and form fields
     return NextResponse.json({
       success: true,
-      uploadUrl,
+      url, // POST URL
+      fields, // Form fields to include in POST request
       s3Key,
-      contentType: fileType, // Return ContentType so frontend can match exactly
+      contentType: fileType,
       expiresIn: 3600,
-      message: 'Pre-signed URL generated successfully'
+      message: 'Pre-signed POST generated successfully'
     });
     
   } catch (error: any) {

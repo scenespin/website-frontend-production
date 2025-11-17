@@ -469,7 +469,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             `${s.heading.toUpperCase().trim()}|${s.fountain.startLine}` === contentKey
                         );
                         if (!alreadyExists) {
-                            updatedBeats[index].scenes.push(scene);
+                        updatedBeats[index].scenes.push(scene);
                         }
                         return;
                     }
@@ -491,7 +491,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     `${s.heading.toUpperCase().trim()}|${s.fountain.startLine}` === contentKey
                 );
                 if (!alreadyExists) {
-                    updatedBeats[beatIndex].scenes.push(scene);
+                updatedBeats[beatIndex].scenes.push(scene);
                 }
             });
             
@@ -980,9 +980,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0117: Save scene directly to DynamoDB (beats don't persist)
         if (screenplayId) {
             try {
-                const apiScene = transformScenesToAPI([newScene]);
-                await bulkCreateScenes(screenplayId, apiScene, getToken);
-                console.log('[ScreenplayContext] ✅ Saved new scene to DynamoDB');
+                    const apiScene = transformScenesToAPI([newScene]);
+                    await bulkCreateScenes(screenplayId, apiScene, getToken);
+                    console.log('[ScreenplayContext] ✅ Saved new scene to DynamoDB');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to save scene to DynamoDB:', error);
             }
@@ -996,9 +996,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // 🔥 Beats removed - update directly in scenes state
         setScenes(prev => prev.map(scene =>
-            scene.id === id
-                ? { ...scene, ...updates, updatedAt: now }
-                : scene
+                    scene.id === id
+                        ? { ...scene, ...updates, updatedAt: now }
+                        : scene
         ));
         
         // Feature 0117: Save updated scene directly to DynamoDB
@@ -1007,9 +1007,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const currentScene = scenes.find(s => s.id === id);
                 if (currentScene) {
                     const sceneWithUpdates = { ...currentScene, ...updates, updatedAt: now };
-                    const apiScene = transformScenesToAPI([sceneWithUpdates]);
-                    await bulkCreateScenes(screenplayId, apiScene, getToken);
-                    console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
+                        const apiScene = transformScenesToAPI([sceneWithUpdates]);
+                        await bulkCreateScenes(screenplayId, apiScene, getToken);
+                        console.log('[ScreenplayContext] ✅ Updated scene in DynamoDB');
                 }
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to update scene in DynamoDB:', error);
@@ -1814,8 +1814,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     location: locationId
                 };
             } else {
-                // Set scene's location
-                newRels.scenes[sceneId].location = locationId;
+            // Set scene's location
+            newRels.scenes[sceneId].location = locationId;
             }
             
             // Ensure location relationship exists before accessing it
@@ -1849,7 +1849,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         location: locationId
                     };
                 } else {
-                    updatedRels.scenes[sceneId].location = locationId;
+                updatedRels.scenes[sceneId].location = locationId;
                 }
                 
                 // Ensure location relationship exists
@@ -2751,7 +2751,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         bestMatch = { index: contentIndex, scene: contentScene };
                         bestMatchDistance = distance;
                     }
-                } else {
+                    } else {
                     // Try location name + position matching
                     const extractLocationName = (heading: string): string => {
                         const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
@@ -2794,18 +2794,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log(`[ScreenplayContext] Scene "${scene.heading}" -> "${contentScene.heading}" lines ${contentScene.startLine}-${contentScene.endLine} (was ${currentStartLine}-${currentEndLine})`);
                     updates.set(scene.id, {
                         heading: contentScene.heading,
-                        fountain: {
+                                    fountain: {
                             ...scene.fountain,
-                            startLine: contentScene.startLine,
-                            endLine: contentScene.endLine
-                        }
-                    });
+                                        startLine: contentScene.startLine,
+                                        endLine: contentScene.endLine
+                                }
+                            });
                     matchedContentScenes.add(bestMatch.index);
-                } else {
+                        } else {
                     console.log(`[ScreenplayContext] Scene "${scene.heading}" -> position unchanged (${contentScene.startLine}-${contentScene.endLine})`);
                     matchedContentScenes.add(bestMatch.index);
-                }
-            } else {
+                        }
+                    } else {
                 console.warn(`[ScreenplayContext] Could not find matching content scene for database scene: "${scene.heading}" (${scene.fountain?.startLine})`);
             }
         });
@@ -2817,8 +2817,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const update = updates.get(scene.id);
                 if (update) {
                     const updatedScene = { ...scene, ...update };
-                    updatedScenes.push(updatedScene);
-                    return updatedScene;
+                        updatedScenes.push(updatedScene);
+                        return updatedScene;
                 }
                 return scene;
             });
@@ -2936,14 +2936,96 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 scenes: parseResult.scenes.length
             });
             
+            // 🔥 PHASE 4: Link script entities to reference cards
             // Find NEW characters (case-insensitive comparison)
             // 🔥 FIX: Use current state from refs to avoid stale closures
             const currentCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
             const existingCharNames = new Set(
                 currentCharacters.map(c => c.name.toUpperCase())
             );
-            const newCharacterNames = Array.from(parseResult.characters)
-                .filter((name: string) => !existingCharNames.has(name.toUpperCase()));
+            
+            // 🔥 PHASE 4: Separate reference cards (not in script) from active entities (in script)
+            const referenceCardCharacters = currentCharacters.filter(char => 
+                !isEntityInScript(content, char.name, 'character')
+            );
+            const activeCharacters = currentCharacters.filter(char => 
+                isEntityInScript(content, char.name, 'character')
+            );
+            
+            // Find script character names that don't match existing active characters
+            const scriptCharacterNames = Array.from(parseResult.characters);
+            const activeCharNames = new Set(
+                activeCharacters.map(c => c.name.toUpperCase())
+            );
+            
+            // 🔥 PHASE 4: Match script characters to reference cards before creating new ones
+            const charactersToLink: Array<{ scriptName: string; referenceCard: Character }> = [];
+            const trulyNewCharacterNames: string[] = [];
+            
+            for (const scriptCharName of scriptCharacterNames) {
+                const upperScriptName = scriptCharName.toUpperCase();
+                
+                // Check if already active (exact match)
+                if (activeCharNames.has(upperScriptName)) {
+                    continue; // Already active, skip
+                }
+                
+                // Check if matches existing active character (fuzzy)
+                const activeFuzzyMatch = activeCharacters.find(char => 
+                    areCharacterNamesSimilar(upperScriptName, char.name.toUpperCase())
+                );
+                if (activeFuzzyMatch) {
+                    continue; // Already active via fuzzy match, skip
+                }
+                
+                // 🔥 PHASE 4: Check for reference card match (exact)
+                const exactRefMatch = referenceCardCharacters.find(char => 
+                    char.name.toUpperCase() === upperScriptName
+                );
+                if (exactRefMatch) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Linking script character "${scriptCharName}" to reference card "${exactRefMatch.name}"`);
+                    charactersToLink.push({ scriptName: scriptCharName, referenceCard: exactRefMatch });
+                    continue;
+                }
+                
+                // 🔥 PHASE 4: Check for reference card match (fuzzy)
+                const fuzzyRefMatch = referenceCardCharacters.find(char => 
+                    areCharacterNamesSimilar(upperScriptName, char.name.toUpperCase())
+                );
+                if (fuzzyRefMatch) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Linking script character "${scriptCharName}" to reference card "${fuzzyRefMatch.name}" (fuzzy match)`);
+                    charactersToLink.push({ scriptName: scriptCharName, referenceCard: fuzzyRefMatch });
+                    continue;
+                }
+                
+                // No match found - truly new character
+                trulyNewCharacterNames.push(scriptCharName);
+            }
+            
+            // 🔥 PHASE 4: Update reference cards to become active (link them to script)
+            // Update names if script name is different (prefer script name)
+            for (const { scriptName, referenceCard } of charactersToLink) {
+                const scriptDescription = parseResult.characterDescriptions?.get(scriptName.toUpperCase());
+                const updates: Partial<Character> = {};
+                
+                // Update name if script name is different (prefer script name)
+                if (referenceCard.name.toUpperCase() !== scriptName.toUpperCase()) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Updating reference card name "${referenceCard.name}" → "${scriptName}"`);
+                    updates.name = scriptName;
+                }
+                
+                // Update description if script has a better one
+                if (scriptDescription && scriptDescription.length > (referenceCard.description?.length || 0)) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Updating reference card description for "${scriptName}"`);
+                    updates.description = scriptDescription;
+                }
+                
+                if (Object.keys(updates).length > 0) {
+                    await updateCharacter(referenceCard.id, updates);
+                }
+            }
+            
+            const newCharacterNames = trulyNewCharacterNames;
             
             // Find NEW locations (case-insensitive comparison)
             // 🔥 FIX: Use current state from refs to avoid stale closures
@@ -2951,8 +3033,94 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             const existingLocNames = new Set(
                 currentLocations.map(l => l.name.toUpperCase())
             );
-            const newLocationNames = Array.from(parseResult.locations)
-                .filter((name: string) => !existingLocNames.has(name.toUpperCase()));
+            
+            // 🔥 PHASE 4: Separate reference cards (not in script) from active entities (in script)
+            const referenceCardLocations = currentLocations.filter(loc => 
+                !isEntityInScript(content, loc.name, 'location')
+            );
+            const activeLocations = currentLocations.filter(loc => 
+                isEntityInScript(content, loc.name, 'location')
+            );
+            
+            // Find script location names that don't match existing active locations
+            const scriptLocationNames = Array.from(parseResult.locations);
+            const activeLocNames = new Set(
+                activeLocations.map(l => l.name.toUpperCase())
+            );
+            
+            // 🔥 PHASE 4: Match script locations to reference cards before creating new ones
+            const locationsToLink: Array<{ scriptName: string; referenceCard: Location }> = [];
+            const trulyNewLocationNames: string[] = [];
+            
+            for (const scriptLocName of scriptLocationNames) {
+                const upperScriptName = scriptLocName.toUpperCase();
+                
+                // Check if already active (exact match)
+                if (activeLocNames.has(upperScriptName)) {
+                    continue; // Already active, skip
+                }
+                
+                // Check if matches existing active location (fuzzy - simple contains check for locations)
+                const activeFuzzyMatch = activeLocations.find(loc => {
+                    const upperLocName = loc.name.toUpperCase();
+                    return upperLocName === upperScriptName || 
+                           upperLocName.includes(upperScriptName) || 
+                           upperScriptName.includes(upperLocName);
+                });
+                if (activeFuzzyMatch) {
+                    continue; // Already active via fuzzy match, skip
+                }
+                
+                // 🔥 PHASE 4: Check for reference card match (exact)
+                const exactRefMatch = referenceCardLocations.find(loc => 
+                    loc.name.toUpperCase() === upperScriptName
+                );
+                if (exactRefMatch) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Linking script location "${scriptLocName}" to reference card "${exactRefMatch.name}"`);
+                    locationsToLink.push({ scriptName: scriptLocName, referenceCard: exactRefMatch });
+                    continue;
+                }
+                
+                // 🔥 PHASE 4: Check for reference card match (fuzzy)
+                const fuzzyRefMatch = referenceCardLocations.find(loc => {
+                    const upperLocName = loc.name.toUpperCase();
+                    return upperLocName === upperScriptName || 
+                           upperLocName.includes(upperScriptName) || 
+                           upperScriptName.includes(upperLocName);
+                });
+                if (fuzzyRefMatch) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Linking script location "${scriptLocName}" to reference card "${fuzzyRefMatch.name}" (fuzzy match)`);
+                    locationsToLink.push({ scriptName: scriptLocName, referenceCard: fuzzyRefMatch });
+                    continue;
+                }
+                
+                // No match found - truly new location
+                trulyNewLocationNames.push(scriptLocName);
+            }
+            
+            // 🔥 PHASE 4: Update reference cards to become active (link them to script)
+            for (const { scriptName, referenceCard } of locationsToLink) {
+                const scriptType = parseResult.locationTypes?.get(scriptName);
+                const updates: Partial<Location> = {};
+                
+                // Update name if script name is different (prefer script name)
+                if (referenceCard.name.toUpperCase() !== scriptName.toUpperCase()) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Updating reference card name "${referenceCard.name}" → "${scriptName}"`);
+                    updates.name = scriptName;
+                }
+                
+                // Update type if script has a type
+                if (scriptType && referenceCard.type !== scriptType) {
+                    console.log(`[ScreenplayContext] 🔗 Phase 4: Updating reference card type for "${scriptName}" (${referenceCard.type} → ${scriptType})`);
+                    updates.type = scriptType;
+                }
+                
+                if (Object.keys(updates).length > 0) {
+                    await updateLocation(referenceCard.id, updates);
+                }
+            }
+            
+            const newLocationNames = trulyNewLocationNames;
             
             // Find NEW scenes using hybrid matching
             // Collect all existing scenes from all beats
@@ -3050,21 +3218,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] Importing', newScenes.length, 'new scenes');
                 // 🔥 CRITICAL FIX: Use uniqueCharacters (includes newly imported) for scene linking
                 await bulkImportScenes('', newScenes.map(scene => ({ // beatId not used anymore
-                    heading: scene.heading,
-                    location: scene.location,
-                    characterIds: scene.characters.map(charName => {
+                        heading: scene.heading,
+                        location: scene.location,
+                        characterIds: scene.characters.map(charName => {
                         // Find character ID by name (use uniqueCharacters which includes newly imported)
                         const char = uniqueCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
-                        return char?.id || '';
-                    }).filter(id => id !== ''),
-                    locationId: (() => {
-                        // Find location ID by name (use currentLocations from refs)
-                        const loc = currentLocations.find(l => l.name.toUpperCase() === scene.location.toUpperCase());
-                        return loc?.id;
-                    })(),
-                    startLine: scene.startLine,
-                    endLine: scene.endLine
-                })));
+                            return char?.id || '';
+                        }).filter(id => id !== ''),
+                        locationId: (() => {
+                            // Find location ID by name (use currentLocations from refs)
+                            const loc = currentLocations.find(l => l.name.toUpperCase() === scene.location.toUpperCase());
+                            return loc?.id;
+                        })(),
+                        startLine: scene.startLine,
+                        endLine: scene.endLine
+                    })));
                 
                 // 🔥 CRITICAL FIX: Renumber ALL scenes after importing new ones
                 setScenes(prev => {

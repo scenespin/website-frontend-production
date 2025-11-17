@@ -91,18 +91,31 @@ export function useDirectS3Upload() {
         }
       }
       
-      const { uploadUrl, s3Key } = await presignedResponse.json();
+      const { url, fields, s3Key } = await presignedResponse.json();
       
-      if (!uploadUrl || !s3Key) {
+      if (!url || !fields || !s3Key) {
         throw new Error('Invalid response from server');
       }
       
-      console.log('[DirectS3Upload] Got pre-signed URL, uploading to S3...');
+      console.log('[DirectS3Upload] Got pre-signed POST, uploading to S3...');
       
       if (onProgress) onProgress(30);
       
-      // Step 2: Upload directly to S3 using XMLHttpRequest (for progress tracking)
-      const s3Url = await uploadToS3WithProgress(uploadUrl, file, (progress) => {
+      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
+      // This is the recommended approach for browser uploads - Content-Type is handled
+      // as form data, not headers, preventing 403 Forbidden errors
+      const formData = new FormData();
+      
+      // Add all the fields returned from createPresignedPost
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      
+      // Add the file last (must be last field in FormData)
+      formData.append('file', file);
+      
+      // Upload using XMLHttpRequest for progress tracking
+      const s3Url = await uploadToS3WithProgress(url, formData, (progress) => {
         // Map S3 upload progress to 30-90%
         const mappedProgress = 30 + (progress * 0.6);
         setState(prev => ({ ...prev, progress: mappedProgress }));
@@ -172,11 +185,11 @@ export function useDirectS3Upload() {
 }
 
 /**
- * Upload file to S3 using XMLHttpRequest for progress tracking
+ * Upload file to S3 using XMLHttpRequest for progress tracking (FormData POST)
  */
 function uploadToS3WithProgress(
   uploadUrl: string,
-  file: File,
+  formData: FormData,
   onProgress: (progress: number) => void
 ): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -208,12 +221,9 @@ function uploadToS3WithProgress(
       reject(new Error('Upload cancelled'));
     });
 
-    // Start upload
-    // CRITICAL: Do NOT set Content-Type header - it's not in signed headers
-    // The ContentType in PutObjectCommand will be used by S3 automatically
-    xhr.open('PUT', uploadUrl);
-    // NO headers - ContentType from PutObjectCommand is used by S3
-    xhr.send(file);
+    // Start upload using POST with FormData
+    xhr.open('POST', uploadUrl);
+    xhr.send(formData);
   });
 }
 

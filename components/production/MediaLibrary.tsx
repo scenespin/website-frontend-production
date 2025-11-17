@@ -289,16 +289,26 @@ export default function MediaLibrary({
         }
       }
 
-      const { uploadUrl, s3Key } = await presignedResponse.json();
+      const { url, fields, s3Key } = await presignedResponse.json();
       
-      if (!uploadUrl || !s3Key) {
+      if (!url || !fields || !s3Key) {
         throw new Error('Invalid response from server');
       }
 
-      // Step 2: Upload directly to S3 (bypasses Next.js!)
-      // Use XMLHttpRequest instead of fetch to prevent browser from auto-adding Content-Type header
-      // Browsers automatically add Content-Type when using fetch with File objects, which causes 403
-      // XMLHttpRequest gives us full control over headers
+      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
+      // This is the recommended approach for browser uploads - Content-Type is handled
+      // as form data, not headers, preventing 403 Forbidden errors
+      const formData = new FormData();
+      
+      // Add all the fields returned from createPresignedPost
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      
+      // Add the file last (must be last field in FormData)
+      formData.append('file', file);
+      
+      // Use XMLHttpRequest for progress tracking
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
@@ -321,10 +331,8 @@ export default function MediaLibrary({
           reject(new Error('S3 upload failed: Network error'));
         });
         
-        xhr.open('PUT', uploadUrl);
-        // CRITICAL: Do NOT set Content-Type header - it's not in signed headers
-        // The ContentType in PutObjectCommand will be used by S3 automatically
-        xhr.send(file);
+        xhr.open('POST', url);
+        xhr.send(formData);
       });
 
       setUploadProgress(75);
