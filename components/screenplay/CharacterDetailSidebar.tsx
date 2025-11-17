@@ -32,7 +32,7 @@ export default function CharacterDetailSidebar({
   onSwitchToChatImageMode,
   onOpenCharacterBank
 }: CharacterDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity } = useScreenplay()
   const { state: editorState } = useEditor()
   
   // Check if character is in script (if editing existing character) - memoized to prevent render loops
@@ -292,18 +292,18 @@ export default function CharacterDetailSidebar({
                   </div>
                   <button
                     onClick={() => {
-                      if (onOpenCharacterBank) {
-                        onOpenCharacterBank(character.id);
-                      }
+                      // Disabled - Coming Soon
                     }}
-                    className="w-full px-4 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                    disabled
+                    className="w-full px-4 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
                     style={{ 
                       background: 'linear-gradient(135deg, #9333EA 0%, #EC4899 100%)',
                       color: 'white' 
                     }}
+                    title="Coming Soon - This feature will be available shortly"
                   >
                     <Sparkles className="w-3 h-3" />
-                    Create Reference Library
+                    Create Reference Library (Coming Soon)
                   </button>
                   <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
                     ~30 credits • Maintains consistency in body shots, back shots & more
@@ -425,14 +425,26 @@ export default function CharacterDetailSidebar({
         <ImageSourceDialog
           isOpen={showImageDialog}
           onClose={() => setShowImageDialog(false)}
-          preSelectedEntity={{
+          preSelectedEntity={character ? {
             type: 'character',
             id: character.id,
             name: character.name
-          }}
-          onSwitchToChatImageMode={(modelId, entityContext) => {
-            onSwitchToChatImageMode?.(modelId, entityContext);
-            onClose(); // Close the sidebar
+          } : undefined}
+          entityData={character ? {
+            name: character.name,
+            description: character.description,
+            type: character.type,
+            arcNotes: character.arcNotes
+          } : undefined}
+          onImageReady={async (imageUrl, prompt, modelUsed) => {
+            // Associate image with character
+            if (character) {
+              await addImageToEntity('character', character.id, imageUrl, {
+                prompt,
+                modelUsed
+              });
+            }
+            setShowImageDialog(false);
           }}
         />
       )}

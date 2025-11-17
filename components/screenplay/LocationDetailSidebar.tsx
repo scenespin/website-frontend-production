@@ -30,7 +30,7 @@ export default function LocationDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: LocationDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity } = useScreenplay()
   const { state: editorState } = useEditor()
   
   // Check if location is in script (if editing existing location) - memoized to prevent render loops
@@ -367,14 +367,26 @@ export default function LocationDetailSidebar({
         <ImageSourceDialog
           isOpen={showImageDialog}
           onClose={() => setShowImageDialog(false)}
-          preSelectedEntity={{
+          preSelectedEntity={location ? {
             type: 'location',
             id: location.id,
             name: location.name
-          }}
-          onSwitchToChatImageMode={(modelId, entityContext) => {
-            onSwitchToChatImageMode?.(modelId, entityContext);
-            onClose(); // Close the sidebar
+          } : undefined}
+          entityData={location ? {
+            name: location.name,
+            description: location.description,
+            locationType: location.type,
+            atmosphereNotes: location.atmosphereNotes
+          } : undefined}
+          onImageReady={async (imageUrl, prompt, modelUsed) => {
+            // Associate image with location
+            if (location) {
+              await addImageToEntity('location', location.id, imageUrl, {
+                prompt,
+                modelUsed
+              });
+            }
+            setShowImageDialog(false);
           }}
         />
       )}

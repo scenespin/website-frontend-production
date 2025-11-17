@@ -13,6 +13,11 @@ interface ImageAssociationDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onAssociate?: (entityType: string, entityId: string, entityName: string) => void;
+    preSelectedEntity?: {
+        type: 'character' | 'location' | 'scene' | 'storybeat';
+        id: string;
+        name: string;
+    };
 }
 
 type EntityType = 'character' | 'location' | 'scene' | 'storybeat';
@@ -23,13 +28,56 @@ export function ImageAssociationDialog({
     modelUsed,
     isOpen,
     onClose,
-    onAssociate
+    onAssociate,
+    preSelectedEntity
 }: ImageAssociationDialogProps) {
     const { characters, locations, beats, addImageToEntity } = useScreenplay();
-    const [selectedEntityType, setSelectedEntityType] = useState<EntityType>('character');
-    const [selectedEntityId, setSelectedEntityId] = useState<string>('');
+    const [selectedEntityType, setSelectedEntityType] = useState<EntityType>(
+        preSelectedEntity?.type || 'character'
+    );
+    const [selectedEntityId, setSelectedEntityId] = useState<string>(
+        preSelectedEntity?.id || ''
+    );
     const [isAssociating, setIsAssociating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Auto-select and auto-associate pre-selected entity when dialog opens
+    React.useEffect(() => {
+        if (preSelectedEntity && isOpen && preSelectedEntity.id) {
+            setSelectedEntityType(preSelectedEntity.type);
+            setSelectedEntityId(preSelectedEntity.id);
+            
+            // Auto-associate if entity is pre-selected (no need for user to click)
+            const autoAssociate = async () => {
+                try {
+                    setIsAssociating(true);
+                    await addImageToEntity(
+                        preSelectedEntity.type,
+                        preSelectedEntity.id,
+                        imageUrl,
+                        { prompt, modelUsed }
+                    );
+                    
+                    // Call callback if provided
+                    if (onAssociate) {
+                        onAssociate(preSelectedEntity.type, preSelectedEntity.id, preSelectedEntity.name);
+                    }
+                    
+                    // Close dialog
+                    onClose();
+                } catch (err) {
+                    console.error('Failed to auto-associate image:', err);
+                    setError('Failed to associate image. Please try again.');
+                    setIsAssociating(false);
+                }
+            };
+            
+            // Small delay to ensure UI is ready
+            setTimeout(() => {
+                autoAssociate();
+            }, 100);
+        }
+    }, [preSelectedEntity, isOpen, imageUrl, prompt, modelUsed, onAssociate, onClose, addImageToEntity]);
 
     if (!isOpen) return null;
 
