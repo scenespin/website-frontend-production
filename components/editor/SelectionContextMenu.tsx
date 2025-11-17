@@ -104,92 +104,66 @@ export default function SelectionContextMenu({
         <>
             {/* Backdrop to close menu */}
             <div 
-                className="fixed inset-0 z-[999] bg-black/30"
+                className="fixed inset-0 z-[999] bg-transparent"
                 onClick={onClose}
             />
             
-            {/* Context Menu */}
+            {/* Context Menu - Standard browser style */}
             <div 
-                className="rounded-xl border-2 border-primary shadow-2xl overflow-hidden bg-base-100"
-                style={{
-                    ...menuStyle,
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(220, 20, 60, 0.3)'
-                }}
+                className="bg-base-200 border border-base-300 rounded shadow-lg py-1 min-w-[180px]"
+                style={menuStyle}
+                onClick={(e) => e.stopPropagation()}
             >
-                {/* AI Rewrite Button */}
+                {/* Standard Clipboard Operations - Browser style */}
                 <button
-                    onClick={handleClick}
-                    className="w-full px-5 py-4 flex items-center gap-3 transition-all text-left group border-b border-base-300 hover:bg-primary hover:scale-[1.02]"
+                    onClick={handleCut}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-base-300 text-base-content flex items-center gap-2"
                 >
-                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 transition-all shadow-lg">
-                        <Wand2 className="w-6 h-6 text-primary-content" />
-                    </div>
-                    <div className="flex-1">
-                        <div className="text-base font-bold mb-1 text-base-content group-hover:text-primary-content">
-                            ✨ Rewrite with AI
-                        </div>
-                        <div className="text-xs leading-relaxed text-base-content/60 group-hover:text-primary-content/80">
-                            {selectedText.length > 45 
-                                ? `"${selectedText.substring(0, 45)}..."` 
-                                : `"${selectedText}"`}
-                        </div>
-                    </div>
+                    <Scissors className="w-4 h-4" />
+                    Cut
                 </button>
 
-                {/* Scene Visualizer Button */}
+                <button
+                    onClick={handleCopy}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-base-300 text-base-content flex items-center gap-2"
+                >
+                    <Copy className="w-4 h-4" />
+                    Copy
+                </button>
+
+                <button
+                    onClick={handlePaste}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-base-300 text-base-content flex items-center gap-2"
+                >
+                    <Clipboard className="w-4 h-4" />
+                    Paste
+                </button>
+
+                {/* Divider */}
+                <div className="border-t border-base-300 my-1"></div>
+
+                {/* AI Rewrite - Simple text style */}
+                <button
+                    onClick={handleClick}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-primary/20 text-primary flex items-center gap-2"
+                >
+                    <Wand2 className="w-4 h-4" />
+                    Rewrite with AI
+                </button>
+
+                {/* Scene Visualizer */}
                 {onOpenSceneVisualizer && (
-                    <button
-                        onClick={handleSceneVisualizer}
-                        className="w-full px-5 py-4 flex items-center gap-3 transition-all text-left group border-b border-base-300 hover:bg-secondary hover:scale-[1.02]"
-                    >
-                        <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 transition-all shadow-lg">
-                            <Film className="w-6 h-6 text-secondary-content" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-base font-bold mb-1 text-base-content group-hover:text-secondary-content">
-                                🎬 Generate Scene Video
-                            </div>
-                            <div className="text-xs leading-relaxed text-base-content/60 group-hover:text-secondary-content/80">
-                                Create video from selected scene
-                            </div>
-                        </div>
-                    </button>
+                    <>
+                        <div className="border-t border-base-300 my-1"></div>
+                        <button
+                            onClick={handleSceneVisualizer}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-base-300 text-base-content flex items-center gap-2"
+                        >
+                            <Film className="w-4 h-4" />
+                            Generate Scene Video
+                        </button>
+                    </>
                 )}
-
-                {/* Standard Clipboard Operations */}
-                <div className="grid grid-cols-3 gap-0 border-b border-base-300">
-                    {/* Cut */}
-                    <button
-                        onClick={handleCut}
-                        className="px-4 py-3 flex flex-col items-center gap-2 transition-all border-r border-base-300 hover:bg-base-200 text-base-content/60 hover:text-base-content"
-                    >
-                        <Scissors className="w-5 h-5" />
-                        <span className="text-xs font-medium">Cut</span>
-                    </button>
-
-                    {/* Copy */}
-                    <button
-                        onClick={handleCopy}
-                        className="px-4 py-3 flex flex-col items-center gap-2 transition-all border-r border-base-300 hover:bg-base-200 text-base-content/60 hover:text-base-content"
-                    >
-                        <Copy className="w-5 h-5" />
-                        <span className="text-xs font-medium">Copy</span>
-                    </button>
-
-                    {/* Paste */}
-                    <button
-                        onClick={handlePaste}
-                        className="px-4 py-3 flex flex-col items-center gap-2 transition-all hover:bg-base-200 text-base-content/60 hover:text-base-content"
-                    >
-                        <Clipboard className="w-5 h-5" />
-                        <span className="text-xs font-medium">Paste</span>
-                    </button>
-                </div>
-
-                {/* Footer hint */}
-                <div className="px-4 py-2 text-xs text-center bg-base-200 text-base-content/50">
-                    Standard clipboard or AI-powered rewrite
-                </div>
             </div>
         </>
     );

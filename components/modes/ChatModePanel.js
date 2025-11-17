@@ -31,6 +31,29 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
   
+  // Auto-send rewrite request when selected text context is set with input
+  const hasAutoSentRef = useRef(false);
+  useEffect(() => {
+    if (state.selectedTextContext && state.input && !isSending && !hasAutoSentRef.current) {
+      const inputValue = state.input.trim();
+      // Only auto-send if input looks like a rewrite prompt
+      if (inputValue && (inputValue.toLowerCase().includes('rewrite') || inputValue.toLowerCase().includes('improve') || inputValue.toLowerCase().startsWith('make'))) {
+        console.log('[ChatModePanel] Auto-sending rewrite request for selected text');
+        hasAutoSentRef.current = true;
+        // Clear input first to prevent duplicate
+        setInput('');
+        // Then send after a brief delay
+        setTimeout(() => {
+          handleSend(inputValue);
+          // Reset flag after sending completes
+          setTimeout(() => {
+            hasAutoSentRef.current = false;
+          }, 2000);
+        }, 200);
+      }
+    }
+  }, [state.selectedTextContext, state.input, isSending]);
+  
   // Detect scene context when drawer opens or editor content/cursor changes
   // If cursorPosition is undefined, try to detect from editor content (find last scene heading)
   useEffect(() => {

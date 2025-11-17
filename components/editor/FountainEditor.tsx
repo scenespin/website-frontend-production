@@ -19,7 +19,6 @@ import { extractEditorContext } from '@/utils/editorContext';
 // UI components
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
-import SelectionToolbar from './SelectionToolbar';
 import EntityAutocomplete from './EntityAutocomplete';
 import SelectionContextMenu, { RewriteSuggestion } from './SelectionContextMenu';
 import TextComparisonModal from './TextComparisonModal';
@@ -329,26 +328,6 @@ export default function FountainEditor({
                     spellCheck={true}
                 />
             </div>
-            
-            {/* Selection Toolbar - Quick rewrite actions */}
-            {selection.toolbar.show && !selection.contextMenu.show && (
-                <SelectionToolbar
-                    selectedText={selection.selection.text}
-                    onReplace={(newText) => {
-                        replaceSelection(newText, selection.selection.start, selection.selection.end);
-                        // Update cursor position after replacement
-                        const newCursorPos = selection.selection.start + newText.length;
-                        setTimeout(() => {
-                            if (textareaRef.current) {
-                                textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
-                                textareaRef.current.focus();
-                            }
-                        }, 0);
-                    }}
-                    onClose={selection.toolbar.close}
-                    position={selection.toolbar.position}
-                />
-            )}
             
             {/* Context Menu - Right-click/long-press menu */}
             {selection.contextMenu.show && (

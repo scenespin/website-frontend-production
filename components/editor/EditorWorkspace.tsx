@@ -136,17 +136,24 @@ export default function EditorWorkspace() {
         // Set selected text context in ChatContext
         setSelectedTextContext(selectedText, selectionRange || null);
         
-        // Set initial prompt if provided
-        if (initialPrompt) {
-            setInput(initialPrompt);
-        }
+        // Build rewrite prompt if no initial prompt provided
+        const rewritePrompt = initialPrompt || `Rewrite this: "${selectedText.substring(0, 100)}${selectedText.length > 100 ? '...' : ''}"`;
+        
+        // Set the prompt in the input field
+        setInput(rewritePrompt);
         
         // Open drawer in chat mode (rewrite mode is automatically detected by UnifiedChatPanel)
         openDrawer('chat', { 
             mode: 'chat',
             selectedText,
-            initialPrompt 
+            initialPrompt: rewritePrompt
         });
+        
+        // Auto-send the rewrite request after a short delay to ensure drawer is open
+        setTimeout(() => {
+            // The ChatModePanel will detect selectedTextContext and handle it
+            // We'll trigger the send from UnifiedChatPanel when it detects the context
+        }, 300);
     };
     
     // Keyboard shortcuts
