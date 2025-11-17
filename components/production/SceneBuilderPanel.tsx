@@ -357,7 +357,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           fileType: fileType,
           fileName: file.name,
           fileSize: file.size,
-          uploadUrl: uploadUrl.substring(0, 150) // First 150 chars for logging
+          uploadUrl: url.substring(0, 150) // First 150 chars for logging
         });
         throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorText.substring(0, 200)}`);
       }
