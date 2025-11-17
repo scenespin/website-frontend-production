@@ -209,11 +209,12 @@ export function parseContentForImport(content: string): AutoImportResult {
                 continue;
             }
             
-            // Clean name
+            // Clean name - preserve # signs (valid Fountain syntax for numbered characters like "REPORTER #1")
             let characterName = trimmed
-                .replace(/\^$/, '')
-                .replace(/\(.*\)$/, '')
+                .replace(/\^$/, '') // Remove continuation marker
+                .replace(/\(.*\)$/, '') // Remove parentheticals
                 .trim();
+            // Note: # signs are preserved - they're valid Fountain syntax (e.g., "REPORTER #1", "COP #2")
             
             if (characterName) {
                 characters.add(characterName);

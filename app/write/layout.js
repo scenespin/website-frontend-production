@@ -49,7 +49,11 @@ export default function WriteLayout({ children }) {
           onInsert={(text) => {
             // Insert text at current cursor position, or at end if no cursor
             const position = editorState.cursorPosition ?? editorState.content.length;
-            insertText(text, position);
+            // Add newline before insertion for separation (unless at start of file)
+            const contentBefore = editorState.content.substring(0, position);
+            const needsNewlineBefore = position > 0 && !contentBefore.endsWith('\n\n');
+            const textToInsert = needsNewlineBefore ? '\n\n' + text : text;
+            insertText(textToInsert, position);
           }}
         />
       </AgentDrawer>

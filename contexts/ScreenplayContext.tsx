@@ -736,9 +736,67 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Transform API data to frontend format
                     const transformedScenes = transformScenesFromAPI(scenesData);
                     
-                    // 🔥 Beats removed - store scenes directly
-                    setScenes(transformedScenes);
-                    console.log('[ScreenplayContext] ✅ Loaded', transformedScenes.length, 'scenes directly (beats removed)');
+                    // 🔥 CRITICAL FIX: Deduplicate and renumber scenes on load (same logic as rescan)
+                    const sceneMapByContent = new Map<string, Scene>();
+                    const extractLocationName = (heading: string): string => {
+                        const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
+                        return match ? match[1].trim().toUpperCase() : '';
+                    };
+                    
+                    transformedScenes.forEach(scene => {
+                        // Check by content (heading + startLine)
+                        const contentKey = `${(scene.heading || '').toUpperCase().trim()}|${scene.fountain?.startLine || 0}`;
+                        
+                        // Also check by location name + startLine (handle INT/EXT changes)
+                        const locationName = extractLocationName(scene.heading || '');
+                        const locationKey = locationName ? `${locationName}|${scene.fountain?.startLine || 0}` : null;
+                        
+                        let existingScene = sceneMapByContent.get(contentKey);
+                        
+                        // Check by location key if content key doesn't match
+                        if (!existingScene && locationKey) {
+                            for (const [key, existing] of sceneMapByContent.entries()) {
+                                if (key.includes(locationKey.split('|')[0]) && 
+                                    Math.abs((existing.fountain?.startLine || 0) - (scene.fountain?.startLine || 0)) <= 5) {
+                                    existingScene = existing;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!existingScene) {
+                            sceneMapByContent.set(contentKey, scene);
+                        } else {
+                            // Duplicate found - keep the one with earlier order/number
+                            const existingOrder = existingScene.order ?? existingScene.number ?? 0;
+                            const newOrder = scene.order ?? scene.number ?? 0;
+                            if (newOrder < existingOrder) {
+                                sceneMapByContent.set(contentKey, scene);
+                            }
+                        }
+                    });
+                    
+                    // Get deduplicated scenes and sort by order/number
+                    const deduplicatedScenes = Array.from(sceneMapByContent.values()).sort((a, b) => {
+                        const orderA = a.order ?? a.number ?? 0;
+                        const orderB = b.order ?? b.number ?? 0;
+                        return orderA - orderB;
+                    });
+                    
+                    // Renumber all scenes sequentially
+                    const renumberedScenes = deduplicatedScenes.map((scene, index) => ({
+                        ...scene,
+                        number: index + 1,
+                        order: index
+                    }));
+                    
+                    if (transformedScenes.length !== renumberedScenes.length) {
+                        console.log(`[ScreenplayContext] 🔍 Deduplicated ${transformedScenes.length - renumberedScenes.length} duplicate scenes on load`);
+                    }
+                    
+                    // 🔥 Beats removed - store scenes directly (deduplicated and renumbered)
+                    setScenes(renumberedScenes);
+                    console.log('[ScreenplayContext] ✅ Loaded', renumberedScenes.length, 'scenes directly (beats removed, deduplicated, renumbered)');
                     
                     // Keep beats as empty UI templates (if needed for backward compatibility)
                     const defaultBeats = createDefaultBeats();
@@ -2414,10 +2472,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                 });
                 
-                // Link location to scene
-                if (scene.fountain.tags.location && updatedLocations[scene.fountain.tags.location]) {
-                    if (!updatedLocations[scene.fountain.tags.location].scenes.includes(scene.id)) {
-                        updatedLocations[scene.fountain.tags.location].scenes.push(scene.id);
+                // Link location to scene - ensure location relationship exists
+                if (scene.fountain.tags.location) {
+                    const locationId = scene.fountain.tags.location;
+                    if (!updatedLocations[locationId]) {
+                        // Create location relationship if it doesn't exist
+                        updatedLocations[locationId] = {
+                            type: 'location',
+                            scenes: []
+                        };
+                    }
+                    if (!updatedLocations[locationId].scenes.includes(scene.id)) {
+                        updatedLocations[locationId].scenes.push(scene.id);
                     }
                 }
             });
@@ -3028,11 +3094,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             }
             
-            // Update positions and headings for existing scenes
+            // Update positions, headings, and locationIds for existing scenes
             let updatedScenesCount = 0;
             if (existingScenesToUpdate.length > 0) {
-                console.log('[ScreenplayContext] Updating positions and headings for', existingScenesToUpdate.length, 'existing scenes');
-                // Also update headings for scenes that changed (e.g., INT/EXT -> INT)
+                console.log('[ScreenplayContext] Updating positions, headings, and locations for', existingScenesToUpdate.length, 'existing scenes');
+                // Also update headings and locationIds for scenes that changed
                 for (const parsedScene of existingScenesToUpdate) {
                     const matched = matchScene(
                         { heading: parsedScene.heading, startLine: parsedScene.startLine, endLine: parsedScene.endLine },
@@ -3041,9 +3107,38 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     if (matched) {
                         const currentHeading = matched.heading.toUpperCase().trim();
                         const newHeading = parsedScene.heading.toUpperCase().trim();
-                        if (currentHeading !== newHeading) {
-                            console.log(`[ScreenplayContext] Updating scene heading: "${matched.heading}" -> "${parsedScene.heading}"`);
-                            await updateScene(matched.id, { heading: parsedScene.heading });
+                        const needsHeadingUpdate = currentHeading !== newHeading;
+                        
+                        // Find location ID for this scene's location
+                        const locationName = parsedScene.location;
+                        const location = currentLocations.find(l => l.name.toUpperCase() === locationName.toUpperCase());
+                        const locationId = location?.id;
+                        const currentLocationId = matched.fountain?.tags?.location;
+                        const needsLocationUpdate = locationId && locationId !== currentLocationId;
+                        
+                        if (needsHeadingUpdate || needsLocationUpdate) {
+                            const updates: Partial<Scene> = {};
+                            if (needsHeadingUpdate) {
+                                updates.heading = parsedScene.heading;
+                                console.log(`[ScreenplayContext] Updating scene heading: "${matched.heading}" -> "${parsedScene.heading}"`);
+                            }
+                            if (needsLocationUpdate) {
+                                updates.fountain = {
+                                    ...matched.fountain,
+                                    tags: {
+                                        ...matched.fountain?.tags,
+                                        location: locationId
+                                    }
+                                };
+                                console.log(`[ScreenplayContext] Updating scene location: "${matched.heading}" -> location "${locationName}" (${locationId})`);
+                                // Also update relationships
+                                if (locationId) {
+                                    await setSceneLocation(matched.id, locationId);
+                                }
+                            }
+                            if (Object.keys(updates).length > 0) {
+                                await updateScene(matched.id, updates);
+                            }
                         }
                     }
                 }
