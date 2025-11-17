@@ -224,6 +224,14 @@ REQUIRED OUTPUT FORMAT:
         // Parse the final AI response FIRST
         const parsedData = parseAIResponse(finalResponse, 'character');
         
+        // Debug logging to see what was parsed
+        console.log('[CharacterModePanel] 🔍 Parsed AI response:', {
+          raw: finalResponse.substring(0, 200) + '...',
+          parsed: parsedData,
+          hasType: !!parsedData?.type,
+          hasArcNotes: !!parsedData?.arcNotes
+        });
+        
         // Store completion data BEFORE adding message (so UI updates immediately)
         setWorkflowCompletion({
           type: 'character',

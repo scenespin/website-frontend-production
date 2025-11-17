@@ -322,8 +322,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             id: char.id || char.character_id,
             name: char.name || '',
             description: char.description || '',
-            type: 'primary' as CharacterType,
+            type: (char.type as CharacterType) || 'lead', // 🔥 FIX: Read type from API, default to 'lead'
             arcStatus: (char.arcStatus as ArcStatus) || 'introduced' as ArcStatus, // 🔥 FIX: Read arcStatus from API, default to 'introduced' if missing
+            arcNotes: char.arcNotes || '', // 🔥 FIX: Read arcNotes from API
             images: (char.referenceImages || []).map((url: string) => ({
                 imageUrl: url,
                 description: ''
@@ -1285,11 +1286,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (screenplayId) {
             try {
                 // Transform complex Character to simple API Character
-                // 🔥 FIX: Include arcStatus in API call
+                // 🔥 FIX: Include all character fields in API call
                 const apiChar = {
                     name: newCharacter.name,
                     description: newCharacter.description,
-                    arcStatus: newCharacter.arcStatus || 'introduced', // 🔥 FIX: Include arcStatus
+                    type: newCharacter.type || 'lead', // 🔥 FIX: Include type field
+                    arcStatus: newCharacter.arcStatus || 'introduced',
+                    arcNotes: newCharacter.arcNotes || '', // 🔥 FIX: Include arcNotes field
                     referenceImages: newCharacter.images?.map(img => img.imageUrl) || []
                 };
                 const createdCharacter = await apiCreateCharacter(screenplayId, apiChar, getToken);
@@ -3197,19 +3200,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] Actually updated', updatedScenesCount, 'scene positions');
             }
             
-            // 🔥 FIX: Small delay to ensure all state updates have propagated before rebuilding relationships
-            // This helps prevent race conditions where relationships are built before new entities are fully in state
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // 🔥 FIX: Wait for all async operations to complete and state to propagate
+            // Use a longer delay and ensure we're using the latest state from refs
+            await new Promise(resolve => setTimeout(resolve, 200));
             
-            // 🔥 FIX: Rebuild relationships after rescan to ensure scene counts are updated
+            // 🔥 FIX: Force a state refresh by reading from refs before rebuilding
+            // This ensures we're working with the most up-to-date data
+            const latestScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
+            const latestCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
+            const latestLocations = locationsRef.current.length > 0 ? locationsRef.current : locations;
+            
+            console.log('[ScreenplayContext] 🔄 Rebuilding relationships with latest state:', {
+                scenes: latestScenes.length,
+                characters: latestCharacters.length,
+                locations: latestLocations.length
+            });
+            
+            // Rebuild relationships using latest state
+            buildRelationshipsFromScenes(latestScenes, beats, latestCharacters, latestLocations);
+            
+            // Also call updateRelationships to sync with DynamoDB
             await updateRelationships();
             console.log('[ScreenplayContext] ✅ Rebuilt relationships after rescan');
-            
-            // 🔥 FIX: One more small delay and rebuild to catch any edge cases
-            // Sometimes the first rebuild doesn't catch everything if state updates are still propagating
-            await new Promise(resolve => setTimeout(resolve, 50));
-            await updateRelationships();
-            console.log('[ScreenplayContext] ✅ Second relationship rebuild complete');
             
             console.log('[ScreenplayContext] ✅ Re-scan complete:', {
                 newCharacters: newCharacterNames.length,

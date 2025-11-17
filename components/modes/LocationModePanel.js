@@ -204,6 +204,15 @@ REQUIRED OUTPUT FORMAT:
         // Parse the final AI response FIRST
         const parsedData = parseAIResponse(finalResponse, 'location');
         
+        // Debug logging to see what was parsed
+        console.log('[LocationModePanel] 🔍 Parsed AI response:', {
+          raw: finalResponse.substring(0, 200) + '...',
+          parsed: parsedData,
+          hasAtmosphereNotes: !!parsedData?.atmosphereNotes,
+          hasSetRequirements: !!parsedData?.setRequirements,
+          hasProductionNotes: !!parsedData?.productionNotes
+        });
+        
         // Store completion data BEFORE adding message (so UI updates immediately)
         setWorkflowCompletion({
           type: 'location',
