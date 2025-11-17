@@ -39,6 +39,9 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   
+  // Generation length state: 'short' (5-10 lines), 'full' (15-30 lines), 'multiple' (2-3 scenes)
+  const [generationLength, setGenerationLength] = useState('full');
+  
   // Auto-scroll to bottom when messages or streaming text changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -130,21 +133,29 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       }
       
       // Build Director prompt using prompt builder (includes context and full scene instructions)
-      const builtPrompt = buildDirectorPrompt(prompt, sceneContext);
+      // Pass generation length to control output size
+      const builtPrompt = buildDirectorPrompt(prompt, sceneContext, generationLength);
       
-      // Build system prompt with Director Mode instructions - focused on scene generation
+      // Build system prompt with Director Mode instructions - focused on thorough scene generation
+      const lengthDescription = generationLength === 'short' 
+        ? '5-10 lines' 
+        : generationLength === 'multiple' 
+        ? '2-3 complete scenes (15-30 lines each)'
+        : '15-30 lines (full scenes)';
+      
       let systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes.
 
-DIRECTOR MODE - SCENE GENERATION:
-- Generate FULL SCENES (5-15+ lines) or parts of scenes as requested
-- User provides basic info, you write complete screenplay content
-- Include: action lines, dialogue (when appropriate), parentheticals, atmosphere
+DIRECTOR MODE - THOROUGH SCENE GENERATION:
+- Generate ${lengthDescription} of screenplay content
+- User provides basic info, you write COMPLETE, THOROUGH screenplay content
+- This is the Director agent - be MORE comprehensive than the Screenwriter agent
+- Include: action lines, dialogue (when appropriate), parentheticals, atmosphere, visual direction
 - Write in Fountain screenplay format (CRITICAL: NO MARKDOWN)
 - Character names in ALL CAPS (NOT bold/markdown like **SARAH**)
 - Parentheticals in parentheses (NOT italics/markdown)
 - Dialogue in plain text below character name
 - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
-- Be direct and concise - no explanations, just the scene content
+- Be thorough and detailed - generate MORE content, not less
 - Context-aware: Use current scene, characters, and story context when available`;
       
       if (sceneContext) {
@@ -242,6 +253,50 @@ DIRECTOR MODE - SCENE GENERATION:
   
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Generation Length Controls - Always visible when messages exist */}
+      {state.messages.filter(m => m.mode === 'director').length > 0 && (
+        <div className="px-4 py-2 border-b border-base-300 bg-base-200/50">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-base-content/70">Length:</span>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setGenerationLength('short')}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors border ${
+                  generationLength === 'short'
+                    ? 'bg-pink-500 text-white border-pink-500'
+                    : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
+                }`}
+                title="5-10 lines"
+              >
+                Short
+              </button>
+              <button
+                onClick={() => setGenerationLength('full')}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors border ${
+                  generationLength === 'full'
+                    ? 'bg-pink-500 text-white border-pink-500'
+                    : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
+                }`}
+                title="15-30 lines"
+              >
+                Full
+              </button>
+              <button
+                onClick={() => setGenerationLength('multiple')}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors border ${
+                  generationLength === 'multiple'
+                    ? 'bg-pink-500 text-white border-pink-500'
+                    : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
+                }`}
+                title="2-3 scenes"
+              >
+                Multiple
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Messages Area */}
       <div className="flex-1 chat-scroll-container px-4 py-4 space-y-4">
         {state.messages
@@ -339,11 +394,60 @@ DIRECTOR MODE - SCENE GENERATION:
         
         {/* Empty state - Simple prompt for scene generation */}
         {state.messages.filter(m => m.mode === 'director').length === 0 && (
-          <div className="text-center text-base-content/60 py-10">
-            <Camera className="w-16 h-16 mx-auto mb-4 text-cinema-gold" />
-            <p className="text-lg font-semibold mb-2">Director Agent</p>
-            <p className="text-sm mb-2">Create full scenes or parts of scenes from your prompts.</p>
-            <p className="text-xs text-base-content/40">Provide basic info and I'll write a draft scene with action, dialogue, and direction.</p>
+          <div className="flex-1 flex items-center justify-center px-4 py-8">
+            <div className="max-w-md text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/20 to-pink-600/20 flex items-center justify-center mx-auto">
+                <Camera className="w-8 h-8 text-pink-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-base-content mb-2">Director Agent</h3>
+                <p className="text-sm text-base-content/70 mb-4">
+                  Build complete scenes with dialogue, action, and cinematic direction. Generates longer, more thorough content than the Screenwriter agent.
+                </p>
+                <div className="text-xs text-base-content/50 space-y-1 mb-4">
+                  <p>Try: "Write a full confrontation scene between Sarah and John"</p>
+                  <p>or "Generate dialogue for this moment"</p>
+                  <p>or "Create a complete action sequence"</p>
+                </div>
+                
+                {/* Generation Length Buttons */}
+                <div className="mt-4 space-y-2">
+                  <div className="text-xs font-medium text-base-content/70 mb-2">Generation Length:</div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <button
+                      onClick={() => setGenerationLength('short')}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors border ${
+                        generationLength === 'short'
+                          ? 'bg-pink-500 text-white border-pink-500'
+                          : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
+                      }`}
+                    >
+                      📝 Short Scene (5-10 lines)
+                    </button>
+                    <button
+                      onClick={() => setGenerationLength('full')}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors border ${
+                        generationLength === 'full'
+                          ? 'bg-pink-500 text-white border-pink-500'
+                          : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
+                      }`}
+                    >
+                      🎬 Full Scene (15-30 lines)
+                    </button>
+                    <button
+                      onClick={() => setGenerationLength('multiple')}
+                      className={`px-3 py-1.5 text-xs rounded-md transition-colors border ${
+                        generationLength === 'multiple'
+                          ? 'bg-pink-500 text-white border-pink-500'
+                          : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
+                      }`}
+                    >
+                      🎭 Multiple Scenes (2-3 scenes)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -362,11 +362,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             <div>
               <h3 className="text-lg font-semibold text-base-content mb-2">Screenwriter Agent</h3>
               <p className="text-sm text-base-content/70 mb-4">
-                Ask me to write scenes, develop characters, or improve your screenplay structure.
+                Your writing partner for ideas, advice, and short snippets. Perfect for brainstorming, getting feedback, and quick fixes.
               </p>
               <div className="text-xs text-base-content/50 space-y-1">
-                <p>Try: "Write a tense confrontation scene"</p>
-                <p>or "Help me develop this character's backstory"</p>
+                <p>Try: "How do I make this better?"</p>
+                <p>or "Write one line where Sarah enters"</p>
+                <p>or "What's the problem with this structure?"</p>
               </div>
             </div>
           </div>

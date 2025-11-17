@@ -149,13 +149,36 @@ Note: The user is asking for advice or discussion. Keep your response concise an
 }
 
 /**
- * Build director mode prompt (expansive scene generation - 5-15+ lines)
+ * Build director mode prompt (expansive scene generation - supports multiple lengths)
  * @param {string} message - User's message
  * @param {Object} sceneContext - Scene context from detectCurrentScene
+ * @param {string} generationLength - 'short' (5-10 lines), 'full' (15-30 lines), 'multiple' (2-3 scenes)
  * @returns {string} Formatted prompt for Director mode
  */
-export function buildDirectorPrompt(message, sceneContext) {
+export function buildDirectorPrompt(message, sceneContext, generationLength = 'full') {
   const contextInfo = buildContextInfo(sceneContext);
+  
+  // Define length requirements based on generationLength
+  let lengthInstruction = '';
+  let sceneCountInstruction = '';
+  
+  switch (generationLength) {
+    case 'short':
+      lengthInstruction = '5-10 lines of screenplay';
+      sceneCountInstruction = 'ONE scene only';
+      break;
+    case 'full':
+      lengthInstruction = '15-30 lines of screenplay (a complete, full scene)';
+      sceneCountInstruction = 'ONE complete scene';
+      break;
+    case 'multiple':
+      lengthInstruction = '2-3 complete scenes (each 15-30 lines)';
+      sceneCountInstruction = 'MULTIPLE scenes (2-3 scenes) with proper scene headings';
+      break;
+    default:
+      lengthInstruction = '15-30 lines of screenplay';
+      sceneCountInstruction = 'ONE complete scene';
+  }
   
   return `${contextInfo}User's request: "${message}"
 
@@ -163,27 +186,32 @@ DIRECTOR MODE - SCENE DEVELOPMENT:
 
 You are a professional screenplay director helping develop full scenes. Your role is to:
 
-1. EXPAND THE IDEA: Take the user's concept and develop it into a complete scene moment
-2. SCENE LENGTH: Write 5-15 lines of screenplay (longer if they ask for a full scene)
-3. INCLUDE ELEMENTS:
+1. EXPAND THE IDEA: Take the user's concept and develop it into complete scene content
+2. SCENE LENGTH: Write ${lengthInstruction}
+3. SCENE COUNT: Generate ${sceneCountInstruction}
+   ${generationLength === 'multiple' ? '   - Each scene must have its own scene heading (INT./EXT. LOCATION - TIME)\n   - Connect scenes narratively if appropriate\n   - Each scene should be complete and standalone' : ''}
+4. INCLUDE ELEMENTS:
    - Action lines that set the mood and visual
    - Character reactions and emotions
    - Dialogue when appropriate to the moment
    - Parentheticals for tone/delivery
    - Scene atmosphere and tension
+   - Visual storytelling and cinematic direction
 
-4. CREATIVE DEVELOPMENT:
+5. CREATIVE DEVELOPMENT:
    - If user says "Sarah's monitor becomes a robot" → Show the transformation, Sarah's reaction, maybe the robot speaks
    - If user says "Two characters argue" → Write the full argument with back-and-forth dialogue
-   - If user says "Generate a scene where..." → Write the complete scene
+   - If user says "Generate a scene where..." → Write the complete scene(s)
    - Add emotional beats and character dynamics
+   - Build tension and conflict naturally
+   - Show, don't tell - use visual action
 
-5. CONTEXT AWARENESS:
+6. CONTEXT AWARENESS:
    - Current scene: ${sceneContext?.heading || 'current scene'}
    - Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
-   - Do NOT add scene headings unless changing location
+   ${generationLength === 'multiple' ? '   - You MAY add new scene headings to create multiple scenes' : '   - Do NOT add scene headings unless explicitly changing location'}
 
-6. FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
+7. FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
    - Character names in ALL CAPS (NOT bold/markdown)
    - Example: SARAH (NOT **SARAH** or *SARAH*)
    - Parentheticals in parentheses: (examining the USB drive) (NOT italics/markdown)
@@ -191,16 +219,17 @@ You are a professional screenplay director helping develop full scenes. Your rol
    - Action lines in normal case
    - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
    - Proper spacing between elements
+   - Scene headings in ALL CAPS: INT. LOCATION - TIME
    - Example format:
      SARAH
      (examining the USB drive)
      What does that mean?
 
-7. STANDALONE: Each request is independent - create fresh content
+8. THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
 
-8. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary at the end.
+9. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary at the end.
 
-Output: A complete, cinematic scene moment in proper Fountain format (NO MARKDOWN).`;
+Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes' : 'A complete, cinematic scene'} in proper Fountain format (NO MARKDOWN).`;
 }
 
 /**
