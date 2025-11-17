@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default function WriteLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
-  const { state: editorState } = useEditor();
+  const { state: editorState, insertText } = useEditor();
 
   useEffect(() => {
     if (isLoaded && !userId) {
@@ -46,6 +46,11 @@ export default function WriteLayout({ children }) {
         <UnifiedChatPanel 
           editorContent={editorState.content}
           cursorPosition={editorState.cursorPosition}
+          onInsert={(text) => {
+            // Insert text at current cursor position, or at end if no cursor
+            const position = editorState.cursorPosition ?? editorState.content.length;
+            insertText(text, position);
+          }}
         />
       </AgentDrawer>
     </div>

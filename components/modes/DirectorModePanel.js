@@ -283,6 +283,17 @@ DIRECTOR MODE - SCENE GENERATION:
                 </div>
               </div>
             </div>
+            
+            {/* Insert button for streaming text (Director always generates screenplay content) */}
+            {onInsert && (
+              <button
+                onClick={() => onInsert(state.streamingText)}
+                className="btn btn-xs btn-outline gap-2 self-start"
+              >
+                <FileText className="h-4 w-4" />
+                Insert into script
+              </button>
+            )}
           </div>
         )}
         

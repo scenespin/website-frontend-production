@@ -331,14 +331,24 @@ function UnifiedChatPanelInner({
     // Only detect context for AI agents that need screenplay context
     const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
     
+    console.log('[UnifiedChatPanel] Context detection check:', {
+      needsContext,
+      hasEditorContent: !!editorContent,
+      editorContentLength: editorContent?.length,
+      cursorPosition,
+      activeMode: state.activeMode
+    });
+    
     if (needsContext && editorContent) {
       // Try to detect context - use cursor position if available, otherwise find last scene
       let sceneCtx = null;
       
-      if (cursorPosition !== undefined) {
+      if (cursorPosition !== undefined && cursorPosition !== null) {
+        console.log('[UnifiedChatPanel] Detecting scene context with cursor position:', cursorPosition);
         sceneCtx = detectCurrentScene(editorContent, cursorPosition);
       } else {
         // Fallback: find the last scene heading in the content
+        console.log('[UnifiedChatPanel] No cursor position, finding last scene heading...');
         const lines = editorContent.split('\n');
         let lastSceneLine = -1;
         const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
@@ -352,22 +362,31 @@ function UnifiedChatPanelInner({
         
         if (lastSceneLine >= 0) {
           const approximateCursor = editorContent.split('\n').slice(0, lastSceneLine + 1).join('\n').length;
+          console.log('[UnifiedChatPanel] Found last scene at line', lastSceneLine, 'approximate cursor:', approximateCursor);
           sceneCtx = detectCurrentScene(editorContent, approximateCursor);
+        } else {
+          console.warn('[UnifiedChatPanel] No scene headings found in content');
         }
       }
       
       if (sceneCtx) {
-        setSceneContext({
+        const contextData = {
           heading: sceneCtx.heading,
           act: sceneCtx.act,
           characters: sceneCtx.characters,
           pageNumber: sceneCtx.pageNumber,
           totalPages: sceneCtx.totalPages
-        });
-        console.log('[UnifiedChatPanel] Scene context detected:', sceneCtx.heading);
+        };
+        console.log('[UnifiedChatPanel] ✅ Scene context detected and set:', contextData);
+        setSceneContext(contextData);
       } else {
-        console.warn('[UnifiedChatPanel] No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
+        console.warn('[UnifiedChatPanel] ⚠️ No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
+        // Clear context if we can't detect it
+        setSceneContext(null);
       }
+    } else if (needsContext && !editorContent) {
+      console.warn('[UnifiedChatPanel] ⚠️ Needs context but no editorContent provided');
+      setSceneContext(null);
     }
   }, [state.activeMode, editorContent, cursorPosition, setSceneContext]);
 
@@ -891,7 +910,17 @@ function UnifiedChatPanelInner({
   return (
     <div className="flex flex-col h-full bg-base-100" onClick={closeMenus}>
       {/* Context Banner - Shows screenplay position for AI agents */}
-      {MODE_CONFIG[state.activeMode]?.isAgent && state.sceneContext && (
+      {(() => {
+        const isAgent = MODE_CONFIG[state.activeMode]?.isAgent;
+        const hasContext = !!state.sceneContext;
+        console.log('[UnifiedChatPanel] Banner render check:', {
+          activeMode: state.activeMode,
+          isAgent,
+          hasContext,
+          sceneContext: state.sceneContext
+        });
+        return isAgent && hasContext;
+      })() && (
         <div className="px-4 py-2 bg-base-200 border-b border-base-300 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <MapPin className="w-4 h-4 text-cinema-gold flex-shrink-0" />

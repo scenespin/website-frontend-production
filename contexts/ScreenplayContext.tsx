@@ -2607,76 +2607,94 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         console.log('[ScreenplayContext] Found', scenesInOrder.length, 'scenes in stripped content (in order)');
         
-        // Update scenes by matching them to the scenes in order
-        // Collect all scenes from all beats in order
-        // Feature 0117: beatId is for tracking which beat the scene belongs to (frontend grouping)
-        const allScenesFlat: Array<{ scene: Scene; beatId: string }> = [];
-        beats.forEach(beat => {
-            beat.scenes.forEach(scene => {
-                allScenesFlat.push({ scene, beatId: beat.id });
-            });
+        // 🔥 FIX: Use scenes directly instead of beats (beats removed)
+        const currentScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
+        
+        // Sort scenes by number/order to match the order they appear in content
+        const sortedScenes = [...currentScenes].sort((a, b) => {
+            const orderA = a.order ?? a.number ?? 0;
+            const orderB = b.order ?? b.number ?? 0;
+            return orderA - orderB;
         });
         
-        // Sort by scene number to match the order they appear in content
-        allScenesFlat.sort((a, b) => (a.scene.number || 0) - (b.scene.number || 0));
-        
-        console.log('[ScreenplayContext] Matching', allScenesFlat.length, 'database scenes to', scenesInOrder.length, 'content scenes');
+        console.log('[ScreenplayContext] Matching', sortedScenes.length, 'database scenes to', scenesInOrder.length, 'content scenes');
         
         // Match scenes using hybrid matching (ID first, heading+position fallback)
-        const updates = new Map<string, { beatId: string; updates: Partial<Scene> }>();
+        const updates = new Map<string, Partial<Scene>>();
         
-        allScenesFlat.forEach((item, index) => {
+        sortedScenes.forEach((scene, index) => {
             if (index < scenesInOrder.length) {
                 const contentScene = scenesInOrder[index];
-                const currentStartLine = item.scene.fountain?.startLine ?? -1;
-                const currentEndLine = item.scene.fountain?.endLine ?? -1;
+                const currentStartLine = scene.fountain?.startLine ?? -1;
+                const currentEndLine = scene.fountain?.endLine ?? -1;
+                const currentHeading = scene.heading.toUpperCase().trim();
+                const newHeading = contentScene.heading.toUpperCase().trim();
                 
-                // Check if position actually changed
+                // Check if position changed
                 const positionChanged = currentStartLine !== contentScene.startLine || currentEndLine !== contentScene.endLine;
+                // Check if heading changed (handle INT/EXT changes)
+                const headingChanged = currentHeading !== newHeading;
                 
                 // Use hybrid matching to find the best match
                 const matchedScene = matchScene(
-                    { heading: contentScene.heading, startLine: contentScene.startLine, endLine: contentScene.endLine, id: item.scene.id },
-                    [item.scene] // Pass single scene for matching (we already know it's the right one by order)
+                    { heading: contentScene.heading, startLine: contentScene.startLine, endLine: contentScene.endLine, id: scene.id },
+                    [scene] // Pass single scene for matching (we already know it's the right one by order)
                 );
                 
-                if (matchedScene && matchedScene.id === item.scene.id) {
-                    // Match confirmed - update position only if it changed
-                    if (positionChanged) {
-                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (was ${currentStartLine}-${currentEndLine})`);
-                        updates.set(item.scene.id, {
-                            beatId: item.beatId,  // Track which beat this scene belongs to
-                            updates: {
-                                fountain: {
-                                    ...item.scene.fountain,
-                                    startLine: contentScene.startLine,
-                                    endLine: contentScene.endLine
-                                }
+                if (matchedScene && matchedScene.id === scene.id) {
+                    // Match confirmed - update position and/or heading if changed
+                    if (positionChanged || headingChanged) {
+                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> "${contentScene.heading}" lines ${contentScene.startLine}-${contentScene.endLine} (was ${currentStartLine}-${currentEndLine})`);
+                        updates.set(scene.id, {
+                            heading: contentScene.heading, // Update heading if changed
+                            fountain: {
+                                ...scene.fountain,
+                                startLine: contentScene.startLine,
+                                endLine: contentScene.endLine
                             }
                         });
                     } else {
-                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> position unchanged (${contentScene.startLine}-${contentScene.endLine})`);
+                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> position unchanged (${contentScene.startLine}-${contentScene.endLine})`);
                     }
                 } else {
-                    // Try matching by heading only (fallback for order-based matching)
-                    if (item.scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
-                        if (positionChanged) {
-                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (heading match, was ${currentStartLine}-${currentEndLine})`);
-                            updates.set(item.scene.id, {
-                                beatId: item.beatId,
-                                updates: {
-                                    fountain: {
-                                        ...item.scene.fountain,
-                                        startLine: contentScene.startLine,
-                                        endLine: contentScene.endLine
-                                    }
+                    // Try matching by location name + position (handle INT/EXT changes)
+                    const extractLocationName = (heading: string): string => {
+                        const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
+                        return match ? match[1].trim().toUpperCase() : '';
+                    };
+                    
+                    const sceneLocName = extractLocationName(scene.heading || '');
+                    const contentLocName = extractLocationName(contentScene.heading);
+                    const locationMatch = sceneLocName && sceneLocName === contentLocName;
+                    const positionMatch = Math.abs((scene.fountain?.startLine || 0) - contentScene.startLine) <= 5;
+                    
+                    if (locationMatch && positionMatch) {
+                        // Same location, update heading and position
+                        if (positionChanged || headingChanged) {
+                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> "${contentScene.heading}" (location match, was ${currentStartLine}-${currentEndLine})`);
+                            updates.set(scene.id, {
+                                heading: contentScene.heading,
+                                fountain: {
+                                    ...scene.fountain,
+                                    startLine: contentScene.startLine,
+                                    endLine: contentScene.endLine
                                 }
                             });
-                        } else {
-                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${item.scene.heading}" -> position unchanged (heading match)`);
+                        }
+                    } else if (currentHeading === newHeading) {
+                        // Exact heading match, just update position
+                        if (positionChanged) {
+                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (heading match, was ${currentStartLine}-${currentEndLine})`);
+                            updates.set(scene.id, {
+                                fountain: {
+                                    ...scene.fountain,
+                                    startLine: contentScene.startLine,
+                                    endLine: contentScene.endLine
+                                }
+                            });
                         }
                     } else {
-                        console.warn(`[ScreenplayContext] Heading mismatch at position ${index}: DB="${item.scene.heading}" vs Content="${contentScene.heading}"`);
+                        console.warn(`[ScreenplayContext] Heading mismatch at position ${index}: DB="${scene.heading}" vs Content="${contentScene.heading}"`);
                     }
                 }
             }
@@ -2684,20 +2702,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Apply updates and collect updated scenes for saving
         const updatedScenes: Scene[] = [];
-        setBeats(prev => {
-            const updatedBeats = prev.map(beat => ({
-            ...beat,
-            scenes: beat.scenes.map(scene => {
+        setScenes(prev => {
+            return prev.map(scene => {
                 const update = updates.get(scene.id);
-                    if (update && update.beatId === beat.id) {  // Ensure scene belongs to this beat
-                        const updatedScene = { ...scene, ...update.updates };
-                        updatedScenes.push(updatedScene);
-                        return updatedScene;
+                if (update) {
+                    const updatedScene = { ...scene, ...update };
+                    updatedScenes.push(updatedScene);
+                    return updatedScene;
                 }
                 return scene;
-            })
-            }));
-            return updatedBeats;
+            });
         });
         
         console.log('[ScreenplayContext] Scene positions updated -', updates.size, 'scenes updated');
@@ -2714,7 +2728,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
         
         return updates.size; // Return count of scenes that were actually updated
-    }, [beats, matchScene, screenplayId, transformScenesToAPI, getToken]);
+    }, [scenes, matchScene, screenplayId, transformScenesToAPI, getToken]);
     
     useEffect(() => {
         updateScenePositionsRef.current = updateScenePositions;
@@ -3014,10 +3028,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             }
             
-            // Update positions for existing scenes
+            // Update positions and headings for existing scenes
             let updatedScenesCount = 0;
             if (existingScenesToUpdate.length > 0) {
-                console.log('[ScreenplayContext] Updating positions for', existingScenesToUpdate.length, 'existing scenes');
+                console.log('[ScreenplayContext] Updating positions and headings for', existingScenesToUpdate.length, 'existing scenes');
+                // Also update headings for scenes that changed (e.g., INT/EXT -> INT)
+                for (const parsedScene of existingScenesToUpdate) {
+                    const matched = matchScene(
+                        { heading: parsedScene.heading, startLine: parsedScene.startLine, endLine: parsedScene.endLine },
+                        allExistingScenes
+                    );
+                    if (matched) {
+                        const currentHeading = matched.heading.toUpperCase().trim();
+                        const newHeading = parsedScene.heading.toUpperCase().trim();
+                        if (currentHeading !== newHeading) {
+                            console.log(`[ScreenplayContext] Updating scene heading: "${matched.heading}" -> "${parsedScene.heading}"`);
+                            await updateScene(matched.id, { heading: parsedScene.heading });
+                        }
+                    }
+                }
                 updatedScenesCount = await updateScenePositions(content);
                 console.log('[ScreenplayContext] Actually updated', updatedScenesCount, 'scene positions');
             }
@@ -3043,7 +3072,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.error('[ScreenplayContext] ❌ Re-scan failed:', err);
             throw err;
         }
-    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, bulkImportScenes, matchScene, updateScenePositions, updateCharacter, updateLocation, updateRelationships]);
+    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, bulkImportScenes, matchScene, updateScenePositions, updateScene, updateCharacter, updateLocation, updateRelationships]);
     
     // ========================================================================
     // Clear All Data (Editor Source of Truth)

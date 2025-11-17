@@ -328,11 +328,24 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 </div>
                 
                 {/* Streaming Content */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 space-y-3">
                   <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
                     <MarkdownRenderer content={state.streamingText} />
                     <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
                   </div>
+                  
+                  {/* Insert button for streaming text (when it's screenplay content) */}
+                  {onInsert && isScreenplayContent(state.streamingText) && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => onInsert(state.streamingText)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Insert into script
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
