@@ -343,12 +343,24 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Placeholder Info */}
-      <div className="px-4 py-2 border-t border-base-300 text-xs text-base-content/60">
-        {activeWorkflow ? (
-          <span>Answer the question to continue the interview...</span>
-        ) : (
-          <span>Ask me anything about your screenplay</span>
+      {/* Placeholder Info with New Chat button */}
+      <div className="px-4 py-2 border-t border-base-300 flex items-center justify-between">
+        <span className="text-xs text-base-content/60">
+          {activeWorkflow ? (
+            'Answer the question to continue the interview...'
+          ) : (
+            'Ask me anything about your screenplay'
+          )}
+        </span>
+        {state.messages.filter(m => m.mode === 'chat').length > 0 && (
+          <button
+            onClick={() => clearMessagesForMode('chat')}
+            className="btn btn-xs btn-ghost gap-1.5 text-base-content/60 hover:text-base-content"
+            title="Start new chat"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="text-xs">New Chat</span>
+          </button>
         )}
       </div>
     </div>
