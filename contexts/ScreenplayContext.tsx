@@ -2459,21 +2459,44 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }
         
-        // Step 2: Try heading + position match
+        // Step 2: Try heading + position match (exact match)
         const normalizedHeading = parsedScene.heading.toUpperCase().trim();
         const candidates = existingScenes.filter(s => 
             s.heading.toUpperCase().trim() === normalizedHeading
         );
         
+        if (candidates.length === 1) {
+            // Single exact match - use it
+            console.log('[ScreenplayContext] Matched scene by heading:', parsedScene.heading, '->', candidates[0].id);
+            return candidates[0];
+        }
+        
+        // Step 3: Try location-based matching (handle INT/EXT vs INT changes)
+        // Extract location name from heading (e.g., "INT. LOCATION - DAY" -> "LOCATION")
+        const extractLocationName = (heading: string): string => {
+            const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
+            return match ? match[1].trim().toUpperCase() : '';
+        };
+        
+        const parsedLocationName = extractLocationName(parsedScene.heading);
+        if (parsedLocationName) {
+            // Find scenes with same location name and similar startLine (within 5 lines)
+            const locationMatches = existingScenes.filter(s => {
+                const existingLocationName = extractLocationName(s.heading);
+                const locationMatch = existingLocationName === parsedLocationName;
+                const positionMatch = Math.abs((s.fountain?.startLine || 0) - parsedScene.startLine) <= 5;
+                return locationMatch && positionMatch;
+            });
+            
+            if (locationMatches.length === 1) {
+                console.log('[ScreenplayContext] Matched scene by location name + position:', parsedScene.heading, '->', locationMatches[0].heading, locationMatches[0].id);
+                return locationMatches[0];
+            }
+        }
+        
         if (candidates.length === 0) {
             // No match found
             return null;
-        }
-        
-        if (candidates.length === 1) {
-            // Single match - use it
-            console.log('[ScreenplayContext] Matched scene by heading:', parsedScene.heading, '->', candidates[0].id);
-            return candidates[0];
         }
         
         // Multiple scenes with same heading - use position proximity
@@ -2861,6 +2884,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     startLine: scene.startLine,
                     endLine: scene.endLine
                 })));
+                
+                // 🔥 CRITICAL FIX: Renumber ALL scenes after importing new ones
+                setScenes(prev => {
+                    const sorted = [...prev].sort((a, b) => {
+                        const orderA = a.order ?? a.number ?? 0;
+                        const orderB = b.order ?? b.number ?? 0;
+                        return orderA - orderB;
+                    });
+                    
+                    return sorted.map((scene, index) => ({
+                        ...scene,
+                        number: index + 1,
+                        order: index
+                    }));
+                });
+                console.log('[ScreenplayContext] ✅ Renumbered all scenes after import');
             }
             
             // Update positions for existing scenes

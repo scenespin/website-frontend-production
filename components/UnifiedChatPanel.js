@@ -331,10 +331,42 @@ function UnifiedChatPanelInner({
     // Only detect context for AI agents that need screenplay context
     const needsContext = MODE_CONFIG[state.activeMode]?.isAgent;
     
-    if (needsContext && editorContent && cursorPosition !== undefined) {
-      const sceneCtx = detectCurrentScene(editorContent, cursorPosition);
+    if (needsContext && editorContent) {
+      // Try to detect context - use cursor position if available, otherwise find last scene
+      let sceneCtx = null;
+      
+      if (cursorPosition !== undefined) {
+        sceneCtx = detectCurrentScene(editorContent, cursorPosition);
+      } else {
+        // Fallback: find the last scene heading in the content
+        const lines = editorContent.split('\n');
+        let lastSceneLine = -1;
+        const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
+        
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (sceneHeadingRegex.test(lines[i])) {
+            lastSceneLine = i;
+            break;
+          }
+        }
+        
+        if (lastSceneLine >= 0) {
+          const approximateCursor = editorContent.split('\n').slice(0, lastSceneLine + 1).join('\n').length;
+          sceneCtx = detectCurrentScene(editorContent, approximateCursor);
+        }
+      }
+      
       if (sceneCtx) {
-        setSceneContext(sceneCtx);
+        setSceneContext({
+          heading: sceneCtx.heading,
+          act: sceneCtx.act,
+          characters: sceneCtx.characters,
+          pageNumber: sceneCtx.pageNumber,
+          totalPages: sceneCtx.totalPages
+        });
+        console.log('[UnifiedChatPanel] Scene context detected:', sceneCtx.heading);
+      } else {
+        console.warn('[UnifiedChatPanel] No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
       }
     }
   }, [state.activeMode, editorContent, cursorPosition, setSceneContext]);

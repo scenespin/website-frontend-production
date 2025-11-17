@@ -68,16 +68,8 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
     }
   }, [editorContent, cursorPosition, setSceneContext]);
   
-  const quickActions = [
-    // Cinematic Direction
-    { label: 'Shot List', prompt: 'Create a detailed shot list for this scene with camera angles, movements, and framing', category: 'direction' },
-    { label: 'Camera Blocking', prompt: 'Suggest camera blocking and character positions for this scene', category: 'direction' },
-    { label: 'Visual Composition', prompt: 'Describe the visual composition and framing for this shot', category: 'direction' },
-    // Dialogue Writing
-    { label: 'Write Dialogue', prompt: 'Write compelling dialogue for this scene with subtext and character voice', category: 'dialogue' },
-    { label: 'Improve Dialogue', prompt: 'Rewrite this dialogue to add more subtext, conflict, and natural rhythm', category: 'dialogue' },
-    { label: 'Character Voice', prompt: 'Help me develop a unique voice for this character based on their background and personality', category: 'dialogue' }
-  ];
+  // Director agent focuses on scene generation - no quick actions needed
+  // User provides prompts and agent creates scenes/parts of scenes
   
   // Handle sending messages to AI
   const handleSend = async (prompt) => {
@@ -120,14 +112,16 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       // Build Director prompt using prompt builder (includes context and full scene instructions)
       const builtPrompt = buildDirectorPrompt(prompt, sceneContext);
       
-      // Build system prompt with Director Mode instructions
-      let systemPrompt = `You are a professional film director assistant helping a screenwriter with shot planning, camera work, blocking, and dialogue direction.
+      // Build system prompt with Director Mode instructions - focused on scene generation
+      let systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes.
 
-DIRECTOR MODE - SCENE DEVELOPMENT:
-- Generate FULL SCENES (5-15+ lines)
-- Expand ideas into complete cinematic moments
-- Include: action lines, dialogue, parentheticals, atmosphere
-- Context-aware: Use current scene, characters, and story context`;
+DIRECTOR MODE - SCENE GENERATION:
+- Generate FULL SCENES (5-15+ lines) or parts of scenes as requested
+- User provides basic info, you write complete screenplay content
+- Include: action lines, dialogue (when appropriate), parentheticals, atmosphere
+- Write in Fountain screenplay format
+- Be direct and concise - no explanations, just the scene content
+- Context-aware: Use current scene, characters, and story context when available`;
       
       if (sceneContext) {
         systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
@@ -295,47 +289,13 @@ DIRECTOR MODE - SCENE DEVELOPMENT:
         {/* Auto-scroll anchor */}
         <div ref={messagesEndRef} />
         
-        {/* Empty state */}
+        {/* Empty state - Simple prompt for scene generation */}
         {state.messages.filter(m => m.mode === 'director').length === 0 && (
           <div className="text-center text-base-content/60 py-10">
             <Camera className="w-16 h-16 mx-auto mb-4 text-cinema-gold" />
             <p className="text-lg font-semibold mb-2">Director Agent</p>
-            <p className="text-sm mb-6">Get professional direction for shots, camera work, and dialogue</p>
-            
-            {/* Quick actions - grouped by category */}
-            <div className="space-y-4 max-w-md mx-auto">
-              <div>
-                <p className="text-xs font-semibold text-base-content/60 mb-2">🎬 CINEMATIC DIRECTION:</p>
-                <div className="space-y-2">
-                  {quickActions.filter(a => a.category === 'direction').map((action, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSend(action.prompt)}
-                      disabled={isSending}
-                      className="btn btn-sm btn-outline w-full"
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-base-content/60 mb-2">💬 DIALOGUE WRITING:</p>
-                <div className="space-y-2">
-                  {quickActions.filter(a => a.category === 'dialogue').map((action, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSend(action.prompt)}
-                      disabled={isSending}
-                      className="btn btn-sm btn-outline w-full"
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <p className="text-sm mb-2">Create full scenes or parts of scenes from your prompts.</p>
+            <p className="text-xs text-base-content/40">Provide basic info and I'll write a draft scene with action, dialogue, and direction.</p>
           </div>
         )}
       </div>
