@@ -30,18 +30,45 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
   
   // Detect scene context when drawer opens or editor content/cursor changes
+  // If cursorPosition is undefined, try to detect from editor content (find last scene heading)
   useEffect(() => {
-    if (editorContent && cursorPosition !== undefined) {
-      const sceneContext = detectCurrentScene(editorContent, cursorPosition);
-      if (sceneContext) {
+    if (editorContent) {
+      // If cursor position is available, use it; otherwise, try to detect from content
+      let detectedContext = null;
+      
+      if (cursorPosition !== undefined) {
+        detectedContext = detectCurrentScene(editorContent, cursorPosition);
+      } else {
+        // Fallback: find the last scene heading in the content
+        const lines = editorContent.split('\n');
+        let lastSceneLine = -1;
+        const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
+        
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (sceneHeadingRegex.test(lines[i])) {
+            lastSceneLine = i;
+            break;
+          }
+        }
+        
+        if (lastSceneLine >= 0) {
+          // Calculate approximate cursor position at the last scene heading
+          const approximateCursor = editorContent.split('\n').slice(0, lastSceneLine + 1).join('\n').length;
+          detectedContext = detectCurrentScene(editorContent, approximateCursor);
+        }
+      }
+      
+      if (detectedContext) {
         setSceneContext({
-          heading: sceneContext.heading,
-          act: sceneContext.act,
-          characters: sceneContext.characters,
-          pageNumber: sceneContext.pageNumber,
-          totalPages: sceneContext.totalPages
+          heading: detectedContext.heading,
+          act: detectedContext.act,
+          characters: detectedContext.characters,
+          pageNumber: detectedContext.pageNumber,
+          totalPages: detectedContext.totalPages
         });
-        console.log('[ChatModePanel] Scene context detected on mount:', sceneContext.heading);
+        console.log('[ChatModePanel] Scene context detected:', detectedContext.heading, 'cursorPosition:', cursorPosition);
+      } else {
+        console.warn('[ChatModePanel] No scene context detected. editorContent length:', editorContent?.length, 'cursorPosition:', cursorPosition);
       }
     }
   }, [editorContent, cursorPosition, setSceneContext]);
@@ -197,26 +224,6 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3 bg-base-300 border-b border-cinema-red/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-cinema-red" />
-            <h3 className="font-bold text-base-content">General Screenwriting</h3>
-          </div>
-          {state.messages.filter(m => m.mode === 'chat').length > 0 && (
-            <button
-              onClick={() => clearMessagesForMode('chat')}
-              className="btn btn-xs btn-ghost gap-1.5 text-base-content/60 hover:text-base-content"
-              title="Start new chat"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="text-xs">New Chat</span>
-            </button>
-          )}
-        </div>
-      </div>
-      
       {/* Workflow Completion Banner */}
       {workflowCompletionData && (
         <div className="flex items-center justify-between px-4 py-3 bg-base-300 border-b border-cinema-red/20">

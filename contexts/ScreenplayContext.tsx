@@ -863,7 +863,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             updatedAt: now
         };
         
-        // 🔥 Beats removed - add directly to scenes state with deduplication
+        // 🔥 Beats removed - add directly to scenes state with deduplication and renumbering
         setScenes(prev => {
             // Check for duplicates by ID
             if (prev.some(s => s.id === newScene.id)) {
@@ -882,7 +882,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 return prev;
             }
             
-            return [...prev, newScene];
+            // Add new scene and renumber all scenes
+            const updatedScenes = [...prev, newScene];
+            
+            // Sort by order or number, then renumber sequentially
+            updatedScenes.sort((a, b) => {
+                const orderA = a.order ?? a.number ?? 0;
+                const orderB = b.order ?? b.number ?? 0;
+                return orderA - orderB;
+            });
+            
+            // Renumber all scenes sequentially
+            const renumberedScenes = updatedScenes.map((scene, index) => ({
+                ...scene,
+                number: index + 1,
+                order: index
+            }));
+            
+            console.log('[ScreenplayContext] ✅ Added new scene and renumbered all scenes. Total:', renumberedScenes.length);
+            
+            return renumberedScenes;
         });
         
         // Add to relationships

@@ -12,19 +12,6 @@ import { X, GripHorizontal, ChevronRight } from 'lucide-react';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatContext } from '@/contexts/ChatContext';
 
-// Mode labels for drawer header
-const MODE_LABELS = {
-  chat: 'Screenwriter',
-  director: 'Director',
-  character: 'Character',
-  location: 'Location',
-  image: 'Image Generation',
-  'quick-video': 'Video Generation',
-  audio: 'Audio',
-  'try-on': 'Virtual Try-On',
-  workflows: 'AI Workflow Selector'
-};
-
 export default function AgentDrawer({ children }) {
   const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
   const { state } = useChatContext();
@@ -33,9 +20,6 @@ export default function AgentDrawer({ children }) {
   const [isMobile, setIsMobile] = useState(false);
   const dragStartY = useRef(0);
   const dragStartHeight = useRef(0);
-  
-  // Get current mode label
-  const currentModeLabel = MODE_LABELS[state?.activeMode] || 'AI Assistant';
 
   // Detect mobile vs desktop
   useEffect(() => {
@@ -187,11 +171,11 @@ export default function AgentDrawer({ children }) {
         }`}
         style={{ width: '480px' }}
       >
-             {/* Header (Desktop) */}
+             {/* Header (Desktop) - Always shows "Wryda AI" with pulsing red dot */}
              <div className="h-14 flex items-center justify-between px-4 bg-base-300 border-b border-cinema-red/20">
                <div className="flex items-center gap-2">
                  <div className="w-2 h-2 bg-cinema-red rounded-full animate-pulse"></div>
-                 <h3 className="text-base font-semibold text-base-content">{currentModeLabel}</h3>
+                 <h3 className="text-base font-semibold text-base-content">Wryda AI</h3>
                </div>
                <button
                  onClick={closeDrawer}
