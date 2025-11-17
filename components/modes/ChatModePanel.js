@@ -7,8 +7,8 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import { FileText, Sparkles, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
-import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
-import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest } from '@/utils/promptBuilders';
+import { detectCurrentScene, buildContextPrompt, extractSelectionContext } from '@/utils/sceneDetection';
+import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest, buildRewritePrompt } from '@/utils/promptBuilders';
 import toast from 'react-hot-toast';
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
@@ -160,27 +160,63 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         console.warn('[ChatModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
       }
       
-      // Detect if this is content generation vs advice request
-      const isContentRequest = detectContentRequest(prompt);
-      
-      // Build appropriate prompt using prompt builders
-      const builtPrompt = isContentRequest 
-        ? buildChatContentPrompt(prompt, sceneContext)
-        : buildChatAdvicePrompt(prompt, sceneContext);
-      
-      // Build system prompt with scene context
+      // Check if this is a rewrite request (selected text exists)
+      let builtPrompt;
       let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
       
-      if (sceneContext) {
-        systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
-        systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
-        systemPrompt += `Act: ${sceneContext.act}\n`;
-        systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
-        if (sceneContext.characters && sceneContext.characters.length > 0) {
-          systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+      if (state.selectedTextContext && state.selectionRange && editorContent) {
+        // REWRITE MODE: Use buildRewritePrompt with surrounding text
+        const selectionContext = extractSelectionContext(
+          editorContent,
+          state.selectionRange.start,
+          state.selectionRange.end
+        );
+        
+        if (selectionContext) {
+          builtPrompt = buildRewritePrompt(
+            prompt,
+            state.selectedTextContext,
+            sceneContext,
+            {
+              before: selectionContext.beforeContext,
+              after: selectionContext.afterContext
+            }
+          );
+          
+          // System prompt for rewrite mode
+          systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
+          systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+        } else {
+          // Fallback: use regular rewrite prompt without surrounding text
+          builtPrompt = buildRewritePrompt(
+            prompt,
+            state.selectedTextContext,
+            sceneContext,
+            null
+          );
+          systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]`;
         }
-        systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
-        systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+      } else {
+        // REGULAR MODE: Detect if this is content generation vs advice request
+        const isContentRequest = detectContentRequest(prompt);
+        
+        // Build appropriate prompt using prompt builders
+        builtPrompt = isContentRequest 
+          ? buildChatContentPrompt(prompt, sceneContext)
+          : buildChatAdvicePrompt(prompt, sceneContext);
+        
+        // Build system prompt with scene context
+        if (sceneContext) {
+          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+          systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
+          systemPrompt += `Act: ${sceneContext.act}\n`;
+          systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+          if (sceneContext.characters && sceneContext.characters.length > 0) {
+            systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+          }
+          systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
+          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+        }
       }
       
       // Add user message (show original prompt, not built prompt)
