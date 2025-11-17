@@ -330,13 +330,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       }
       
       // Step 2: Upload directly to S3 (bypasses Next.js!)
-      // CRITICAL: Do NOT send Content-Type header - it's not in signed headers
-      // The ContentType in PutObjectCommand will be used by S3 automatically
-      // Sending an unsigned Content-Type header causes 403 Forbidden
+      // CRITICAL: Send Content-Type header that EXACTLY matches fileType used in pre-signed URL
+      // Browsers auto-add Content-Type for File objects, so we must match it exactly
+      // Use fileType (not file.type) to ensure consistency with pre-signed URL generation
       const s3Response = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
-        // NO headers - ContentType from PutObjectCommand is used by S3
+        headers: {
+          'Content-Type': fileType, // Must match exactly what was used in PutObjectCommand
+        },
       });
       
       if (!s3Response.ok) {
