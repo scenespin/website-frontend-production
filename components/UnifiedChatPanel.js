@@ -16,7 +16,7 @@ import { SceneVisualizerModePanel } from './modes/SceneVisualizerModePanel';
 import { TryOnModePanel } from './modes/TryOnModePanel';
 import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
-import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip, User, Building2 } from 'lucide-react';
+import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Sparkles, Paperclip, User, Building2, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
@@ -949,14 +949,22 @@ function UnifiedChatPanelInner({
 
       {/* Selected Text Context Banner - Shows rewrite context */}
       {state.selectedTextContext && (
-        <div className="px-4 py-2 bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between">
+        <div className="px-4 py-2.5 bg-purple-500/10 border-b border-purple-500/20 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <FileText className="w-4 h-4 text-purple-500 flex-shrink-0" />
             <div className="flex flex-col min-w-0 flex-1">
-              <div className="font-medium text-sm text-base-content">
-                Rewrite Mode
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm text-base-content">
+                  Rewrite Mode
+                </span>
+                <div className="group relative">
+                  <Info className="w-3.5 h-3.5 text-purple-500/70 cursor-help" />
+                  <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-2 bg-base-200 border border-base-300 rounded-md shadow-lg text-xs text-base-content/80">
+                    Selected text will be rewritten. Use quick action buttons below or type custom instructions like "make this more dramatic" or "polish the dialogue".
+                  </div>
+                </div>
               </div>
-              <div className="text-xs text-base-content/60 truncate">
+              <div className="text-xs text-base-content/60 truncate mt-0.5">
                 {state.selectedTextContext.substring(0, 60)}...
               </div>
             </div>

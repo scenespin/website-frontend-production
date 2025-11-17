@@ -77,7 +77,7 @@ export default function AgentFABGroup({
             }}
             whileTap={{ scale: 0.9 }}
             whileHover={!isMobile ? { scale: 1.05 } : {}}
-            title="Rewrite selected text"
+            title="Rewrite & Polish: Improve selected text with AI. Quick actions: Make concise, expand detail, more dramatic, polish dialogue, fix grammar"
             aria-label="Launch Rewrite Agent"
           >
             <Sparkles className={iconSize} />

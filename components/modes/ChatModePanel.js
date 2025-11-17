@@ -400,10 +400,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               <p className="text-sm text-base-content/70 mb-4">
                 Your writing partner for ideas, advice, and short snippets. Perfect for brainstorming, getting feedback, and quick fixes.
               </p>
-              <div className="text-xs text-base-content/50 space-y-1">
+              <div className="text-xs text-base-content/50 space-y-1 mb-3">
                 <p>Try: "How do I make this better?"</p>
                 <p>or "Write one line where Sarah enters"</p>
                 <p>or "What's the problem with this structure?"</p>
+              </div>
+              <div className="text-xs text-base-content/40 pt-3 border-t border-base-300">
+                <p>💡 <strong>Tip:</strong> Select any text in your screenplay to enable <strong>Rewrite mode</strong> with quick action buttons</p>
               </div>
             </div>
           </div>
