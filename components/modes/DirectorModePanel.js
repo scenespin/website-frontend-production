@@ -454,7 +454,7 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
       
       {/* Info footer with New Chat button */}
       <div className="px-4 py-2 border-t border-base-300 flex items-center justify-between">
-        <p className="text-xs text-base-content/60">🎬 Professional direction for camera, blocking, visual storytelling, and dialogue</p>
+        <p className="text-xs text-base-content/60">🎬 Generate complete scenes with dialogue, action, and cinematic direction</p>
         {state.messages.filter(m => m.mode === 'director').length > 0 && (
           <button
             onClick={() => clearMessagesForMode('director')}

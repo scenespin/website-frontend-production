@@ -11,6 +11,54 @@ import { detectCurrentScene, buildContextPrompt, extractSelectionContext } from 
 import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest, buildRewritePrompt } from '@/utils/promptBuilders';
 import toast from 'react-hot-toast';
 
+// Helper to clean AI output: strip markdown and remove writing notes
+function cleanFountainOutput(text) {
+  if (!text) return text;
+  
+  let cleaned = text;
+  
+  // Remove markdown formatting
+  cleaned = cleaned
+    // Remove bold markdown (**text** or __text__)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove italic markdown (*text* or _text_) - use word boundaries to avoid issues
+    .replace(/\b\*([^*\n]+)\*\b/g, '$1')
+    .replace(/\b_([^_\n]+)_\b/g, '$1')
+    // Remove horizontal rules (---)
+    .replace(/^---+$/gm, '')
+    // Remove markdown links [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+    // Remove markdown code blocks
+    .replace(/```[a-z]*\n/g, '')
+    .replace(/```/g, '');
+  
+  // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
+  const notePatterns = [
+    /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
+    /---\s*\n\s*WRITING NOTE.*$/is,
+    /\*\*WRITING NOTE\*\*.*$/is,
+    /WRITING NOTE.*$/is,
+    /---\s*\n\s*\*\*NOTE\*\*.*$/is,
+    /---\s*\n\s*NOTE.*$/is,
+    /\*\*NOTE\*\*.*$/is,
+    /^---\s*$/m
+  ];
+  
+  for (const pattern of notePatterns) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      cleaned = cleaned.substring(0, match.index).trim();
+      break;
+    }
+  }
+  
+  // Clean up extra whitespace
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
+
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
   const { closeDrawer } = useDrawer();
@@ -472,7 +520,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => {
-                              onInsert(message.content);
+                              // Clean the content before inserting (strip markdown, remove notes)
+                              const cleanedContent = cleanFountainOutput(message.content);
+                              onInsert(cleanedContent);
                               closeDrawer();
                             }}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
@@ -513,7 +563,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => {
-                          onInsert(state.streamingText);
+                          // Clean the content before inserting (strip markdown, remove notes)
+                          const cleanedContent = cleanFountainOutput(state.streamingText);
+                          onInsert(cleanedContent);
                           closeDrawer();
                         }}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"

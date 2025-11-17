@@ -122,14 +122,15 @@ Sarah Chen. I have a message for you.
 INSTRUCTIONS:
 1. Be DESCRIPTIVE and VISUAL for action
 2. Include dialogue ONLY if user mentions speaking/talking/saying
-3. Character names in ALL CAPS when they speak (NOT bold/markdown)
+3. Character names in ALL CAPS when they speak (NOT bold/markdown like **SARAH** - just SARAH)
 4. Parentheticals in parentheses (NOT italics/markdown)
-5. NO markdown formatting (no **, no *, no ---)
+5. NO markdown formatting (no **, no *, no ---, no markdown of any kind)
 6. Use active verbs and cinematic language
 7. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
 8. NO scene headings
 9. Each request is standalone
-10. OUTPUT ONLY screenplay content - NO explanations or questions
+10. OUTPUT ONLY screenplay content - NO explanations, NO questions, NO writing notes, NO meta-commentary
+11. Do NOT add sections like "WRITING NOTE" or "---" - output ONLY the screenplay content
 
 Now write for: "${message}"`;
 }

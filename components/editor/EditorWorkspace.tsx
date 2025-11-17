@@ -30,7 +30,7 @@ export default function EditorWorkspace() {
     const { state, setContent, setCurrentLine } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
-    const { setSelectedTextContext, setInput, setSceneContext } = useChatContext();
+    const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
@@ -230,6 +230,12 @@ export default function EditorWorkspace() {
     const handleLaunchRewrite = () => {
         if (!selectedText || !selectionRange) return;
         
+        // Clear existing chat messages to start fresh for rewrite
+        clearMessagesForMode('chat');
+        
+        // Ensure we're in chat mode
+        setMode('chat');
+        
         // Extract surrounding context (200 chars before/after selection)
         const beforeStart = Math.max(0, selectionRange.start - 200);
         const afterEnd = Math.min(state.content.length, selectionRange.end + 200);
@@ -251,7 +257,7 @@ export default function EditorWorkspace() {
             });
         }
         
-        // Set selected text context
+        // Set selected text context (this triggers rewrite mode)
         setSelectedTextContext(selectedText, selectionRange);
         
         // Pre-fill input with editable prompt

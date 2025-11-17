@@ -440,16 +440,20 @@ function UnifiedChatPanelInner({
   }, [initialPrompt, setInput]);
 
   // Handle selected text context (rewrite workflow)
+  // Sync prop to state and ensure chat mode is active
   useEffect(() => {
     if (selectedTextContext) {
-      setSelectedTextContext(selectedTextContext, null);
-      // Always switch to chat mode for rewrite workflow, regardless of initialMode
+      console.log('[UnifiedChatPanel] Setting selectedTextContext from prop:', selectedTextContext.substring(0, 50));
+      // Set the context in ChatContext state (range will be set by EditorWorkspace)
+      // If range is not provided, we'll use the state's existing range
+      setSelectedTextContext(selectedTextContext, state.selectionRange);
+      // Always switch to chat mode for rewrite workflow
       if (state.activeMode !== 'chat') {
         console.log('[UnifiedChatPanel] Switching to chat mode for rewrite workflow');
         setMode('chat');
       }
     }
-  }, [selectedTextContext, state.activeMode, setMode, setSelectedTextContext]);
+  }, [selectedTextContext, state.activeMode, state.selectionRange, setMode, setSelectedTextContext]);
 
   // ============================================================================
   // SMART DEFAULT MODE (Issue #1 Fix)
@@ -530,6 +534,13 @@ function UnifiedChatPanelInner({
   const { isDrawerOpen } = useDrawer();
   useEffect(() => {
     if (isDrawerOpen) {
+      // If selectedTextContext exists, we're in rewrite mode - don't override mode
+      if (state.selectedTextContext) {
+        console.log('[UnifiedChatPanel] Drawer opened with rewrite context, keeping chat mode');
+        setMode('chat');
+        return;
+      }
+      
       // Check if there's a pending agent mode first
       const pendingAgentMode = localStorage.getItem('pending-agent-mode');
       
@@ -549,7 +560,7 @@ function UnifiedChatPanelInner({
         }
       }
     }
-  }, [isDrawerOpen, pathname]); // Trigger when drawer opens or page changes
+  }, [isDrawerOpen, pathname, state.selectedTextContext, setMode]); // Trigger when drawer opens or page changes
 
   // Auto-scroll to latest message
   useEffect(() => {
