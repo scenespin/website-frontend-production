@@ -357,15 +357,15 @@ export default function SceneDetailSidebar({
       {showImageDialog && scene && (
         <ImageSourceDialog
           isOpen={showImageDialog}
-          onClose={() => setShowImageDialog(false)}
+          onClose={() => {
+            setShowImageDialog(false);
+            // Call onSwitchToChatImageMode if needed when dialog closes
+            // Note: This is handled elsewhere in the component
+          }}
           preSelectedEntity={{
             type: 'scene',
             id: scene.id,
             name: scene.heading
-          }}
-          onSwitchToChatImageMode={(modelId, entityContext) => {
-            onSwitchToChatImageMode?.(modelId, entityContext);
-            onClose(); // Close the sidebar
           }}
         />
       )}
