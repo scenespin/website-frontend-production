@@ -301,12 +301,25 @@ export default function MediaLibrary({
       const formData = new FormData();
       
       // Add all the fields returned from createPresignedPost
+      // CRITICAL: The 'key' field must be present and match the S3 key exactly
+      console.log('[MediaLibrary] Presigned POST fields:', fields);
+      console.log('[MediaLibrary] Expected S3 key:', s3Key);
+      
       Object.entries(fields).forEach(([key, value]) => {
         formData.append(key, value as string);
+        console.log(`[MediaLibrary] Added field: ${key} = ${value}`);
       });
       
-      // Add the file last (must be last field in FormData)
+      // Verify 'key' field is present (required for presigned POST)
+      if (!fields.key && !fields.Key) {
+        console.error('[MediaLibrary] WARNING: No "key" field in presigned POST fields!');
+        console.error('[MediaLibrary] Available fields:', Object.keys(fields));
+      }
+      
+      // Add the file last (must be last field in FormData per AWS requirements)
       formData.append('file', file);
+      console.log('[MediaLibrary] Added file:', file.name, `(${file.size} bytes, ${file.type})`);
+      console.log('[MediaLibrary] Uploading to URL:', url);
       
       // Use XMLHttpRequest for progress tracking
       await new Promise<void>((resolve, reject) => {

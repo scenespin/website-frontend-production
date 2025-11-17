@@ -335,12 +335,34 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const formData = new FormData();
       
       // Add all the fields returned from createPresignedPost
+      // CRITICAL: The 'key' field must be present and match the S3 key exactly
+      console.log('[SceneBuilderPanel] Presigned POST fields (first frame):', fields);
+      console.log('[SceneBuilderPanel] Expected S3 key (first frame):', s3Key);
+      
       Object.entries(fields).forEach(([key, value]) => {
         formData.append(key, value as string);
+        console.log(`[SceneBuilderPanel] Added field (first frame): ${key} = ${value}`);
       });
       
-      // Add the file last (must be last field in FormData)
+      // Verify 'key' field is present (required for presigned POST)
+      if (!fields.key && !fields.Key) {
+        console.error('[SceneBuilderPanel] WARNING: No "key" field in presigned POST fields!');
+        console.error('[SceneBuilderPanel] Available fields:', Object.keys(fields));
+      } else {
+        const keyField = fields.key || fields.Key;
+        if (keyField !== s3Key) {
+          console.error('[SceneBuilderPanel] WARNING: Key field mismatch!', {
+            fieldsKey: keyField,
+            expectedS3Key: s3Key
+          });
+        }
+      }
+      
+      // Add the file last (must be last field in FormData per AWS requirements)
       formData.append('file', file);
+      console.log('[SceneBuilderPanel] Added file (first frame):', file.name, `(${file.size} bytes, ${file.type})`);
+      console.log('[SceneBuilderPanel] Uploading to URL (first frame):', url);
+      console.log('[SceneBuilderPanel] FormData field count (first frame):', Array.from(formData.keys()).length);
       
       const s3Response = await fetch(url, {
         method: 'POST',
@@ -719,12 +741,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const formData = new FormData();
       
       // Add all the fields returned from createPresignedPost
+      // CRITICAL: The 'key' field must be present and match the S3 key exactly
+      console.log('[SceneBuilderPanel] Presigned POST fields (media upload):', fields);
+      console.log('[SceneBuilderPanel] Expected S3 key (media upload):', s3Key);
+      
       Object.entries(fields).forEach(([key, value]) => {
         formData.append(key, value as string);
+        console.log(`[SceneBuilderPanel] Added field (media): ${key} = ${value}`);
       });
       
-      // Add the file last (must be last field in FormData)
+      // Verify 'key' field is present (required for presigned POST)
+      if (!fields.key && !fields.Key) {
+        console.error('[SceneBuilderPanel] WARNING: No "key" field in presigned POST fields!');
+        console.error('[SceneBuilderPanel] Available fields:', Object.keys(fields));
+      }
+      
+      // Add the file last (must be last field in FormData per AWS requirements)
       formData.append('file', file);
+      console.log('[SceneBuilderPanel] Added file (media):', file.name, `(${file.size} bytes, ${file.type})`);
+      console.log('[SceneBuilderPanel] Uploading to URL (media):', url);
       
       const s3Response = await fetch(url, {
         method: 'POST',
@@ -732,7 +767,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       });
       
       if (!s3Response.ok) {
-        throw new Error(`S3 upload failed: ${s3Response.statusText}`);
+        const errorText = await s3Response.text().catch(() => 'No error details');
+        console.error('[SceneBuilderPanel] S3 upload failed (media):', {
+          status: s3Response.status,
+          statusText: s3Response.statusText,
+          error: errorText,
+          url: url.substring(0, 150),
+          fields: Object.keys(fields),
+          s3Key: s3Key
+        });
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorText.substring(0, 200)}`);
       }
       
       // Step 3: Generate S3 URL
