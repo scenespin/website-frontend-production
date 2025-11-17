@@ -2327,13 +2327,46 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 prev.map(s => `${(s.heading || '').toUpperCase().trim()}|${s.fountain?.startLine || 0}`)
             );
             
+            // Also check by location name (handle INT/EXT changes)
+            const extractLocationName = (heading: string): string => {
+                const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
+                return match ? match[1].trim().toUpperCase() : '';
+            };
+            
+            const existingLocationKeys = new Map<string, Scene>(); // locationName|startLine -> Scene
+            prev.forEach(s => {
+                const locName = extractLocationName(s.heading || '');
+                if (locName) {
+                    const key = `${locName}|${s.fountain?.startLine || 0}`;
+                    if (!existingLocationKeys.has(key)) {
+                        existingLocationKeys.set(key, s);
+                    }
+                }
+            });
+            
             const trulyNewScenes = newScenes.filter(scene => {
                 // Check by ID
-                if (existingSceneIds.has(scene.id)) return false;
+                if (existingSceneIds.has(scene.id)) {
+                    console.log(`[ScreenplayContext] ⚠️ Duplicate scene by ID: ${scene.id}`);
+                    return false;
+                }
                 
                 // Check by content (heading + startLine)
                 const contentKey = `${(scene.heading || '').toUpperCase().trim()}|${scene.fountain?.startLine || 0}`;
-                if (existingContentKeys.has(contentKey)) return false;
+                if (existingContentKeys.has(contentKey)) {
+                    console.log(`[ScreenplayContext] ⚠️ Duplicate scene by content: ${contentKey}`);
+                    return false;
+                }
+                
+                // Check by location name + startLine (handle INT/EXT changes)
+                const sceneLocName = extractLocationName(scene.heading || '');
+                if (sceneLocName) {
+                    const locationKey = `${sceneLocName}|${scene.fountain?.startLine || 0}`;
+                    if (existingLocationKeys.has(locationKey)) {
+                        console.log(`[ScreenplayContext] ⚠️ Duplicate scene by location: ${locationKey} (${scene.heading} vs ${existingLocationKeys.get(locationKey)?.heading})`);
+                        return false;
+                    }
+                }
                 
                 return true;
             });
@@ -2342,7 +2375,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log(`[ScreenplayContext] 🔍 Deduplicated ${newScenes.length - trulyNewScenes.length} duplicate scenes`);
             }
             
-            return [...prev, ...trulyNewScenes];
+            // Add new scenes and renumber ALL scenes
+            const updated = [...prev, ...trulyNewScenes];
+            const sorted = updated.sort((a, b) => {
+                const orderA = a.order ?? a.number ?? 0;
+                const orderB = b.order ?? b.number ?? 0;
+                return orderA - orderB;
+            });
+            
+            return sorted.map((scene, index) => ({
+                ...scene,
+                number: index + 1,
+                order: index
+            }));
         });
         
         // Add to relationships
@@ -2900,6 +2945,73 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }));
                 });
                 console.log('[ScreenplayContext] ✅ Renumbered all scenes after import');
+            }
+            
+            // 🔥 CRITICAL FIX: Remove scenes that no longer exist in the script
+            const parsedSceneKeys = new Set(
+                parseResult.scenes.map(s => `${(s.heading || '').toUpperCase().trim()}|${s.startLine}`)
+            );
+            
+            const scenesToRemove: Scene[] = [];
+            allExistingScenes.forEach(existingScene => {
+                const existingKey = `${(existingScene.heading || '').toUpperCase().trim()}|${existingScene.fountain?.startLine || 0}`;
+                // Also check by location name matching (handle INT/EXT changes)
+                const extractLocationName = (heading: string): string => {
+                    const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
+                    return match ? match[1].trim().toUpperCase() : '';
+                };
+                const existingLocationName = extractLocationName(existingScene.heading || '');
+                
+                let foundInScript = parsedSceneKeys.has(existingKey);
+                
+                // If not found by exact match, check if any parsed scene matches by location name + position
+                if (!foundInScript && existingLocationName) {
+                    foundInScript = parseResult.scenes.some(parsedScene => {
+                        const parsedLocationName = extractLocationName(parsedScene.heading);
+                        const locationMatch = parsedLocationName === existingLocationName;
+                        const positionMatch = Math.abs((existingScene.fountain?.startLine || 0) - parsedScene.startLine) <= 5;
+                        return locationMatch && positionMatch;
+                    });
+                }
+                
+                if (!foundInScript) {
+                    scenesToRemove.push(existingScene);
+                }
+            });
+            
+            if (scenesToRemove.length > 0) {
+                console.log('[ScreenplayContext] 🗑️ Removing', scenesToRemove.length, 'scenes that no longer exist in script:', scenesToRemove.map(s => s.heading));
+                
+                // Remove from state
+                setScenes(prev => {
+                    const sceneIdsToRemove = new Set(scenesToRemove.map(s => s.id));
+                    const filtered = prev.filter(s => !sceneIdsToRemove.has(s.id));
+                    
+                    // Renumber remaining scenes
+                    const sorted = filtered.sort((a, b) => {
+                        const orderA = a.order ?? a.number ?? 0;
+                        const orderB = b.order ?? b.number ?? 0;
+                        return orderA - orderB;
+                    });
+                    
+                    return sorted.map((scene, index) => ({
+                        ...scene,
+                        number: index + 1,
+                        order: index
+                    }));
+                });
+                
+                // Delete from DynamoDB
+                if (screenplayId) {
+                    try {
+                        for (const scene of scenesToRemove) {
+                            await deleteScene(scene.id);
+                        }
+                        console.log('[ScreenplayContext] ✅ Deleted', scenesToRemove.length, 'scenes from DynamoDB');
+                    } catch (error) {
+                        console.error('[ScreenplayContext] Failed to delete scenes from DynamoDB:', error);
+                    }
+                }
             }
             
             // Update positions for existing scenes

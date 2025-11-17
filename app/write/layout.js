@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
+import { useEditor } from "@/contexts/EditorContext";
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,7 @@ export const dynamic = 'force-dynamic';
 export default function WriteLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
+  const { state: editorState } = useEditor();
 
   useEffect(() => {
     if (isLoaded && !userId) {
@@ -41,7 +43,10 @@ export default function WriteLayout({ children }) {
       <Navigation />
       {children}
       <AgentDrawer>
-        <UnifiedChatPanel />
+        <UnifiedChatPanel 
+          editorContent={editorState.content}
+          cursorPosition={editorState.cursorPosition}
+        />
       </AgentDrawer>
     </div>
   );
