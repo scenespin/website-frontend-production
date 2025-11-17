@@ -302,10 +302,16 @@ export default function MediaLibrary({
       
       // Add all the fields returned from createPresignedPost
       // CRITICAL: The 'key' field must be present and match the S3 key exactly
+      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
       console.log('[MediaLibrary] Presigned POST fields:', fields);
       console.log('[MediaLibrary] Expected S3 key:', s3Key);
       
       Object.entries(fields).forEach(([key, value]) => {
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() === 'bucket') {
+          console.log(`[MediaLibrary] Skipping 'bucket' field (policy-only): ${value}`);
+          return;
+        }
         formData.append(key, value as string);
         console.log(`[MediaLibrary] Added field: ${key} = ${value}`);
       });

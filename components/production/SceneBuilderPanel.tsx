@@ -336,10 +336,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Add all the fields returned from createPresignedPost
       // CRITICAL: The 'key' field must be present and match the S3 key exactly
+      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
       console.log('[SceneBuilderPanel] Presigned POST fields (first frame):', fields);
       console.log('[SceneBuilderPanel] Expected S3 key (first frame):', s3Key);
       
       Object.entries(fields).forEach(([key, value]) => {
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() === 'bucket') {
+          console.log(`[SceneBuilderPanel] Skipping 'bucket' field (policy-only): ${value}`);
+          return;
+        }
         formData.append(key, value as string);
         console.log(`[SceneBuilderPanel] Added field (first frame): ${key} = ${value}`);
       });
@@ -742,10 +748,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Add all the fields returned from createPresignedPost
       // CRITICAL: The 'key' field must be present and match the S3 key exactly
+      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
       console.log('[SceneBuilderPanel] Presigned POST fields (media upload):', fields);
       console.log('[SceneBuilderPanel] Expected S3 key (media upload):', s3Key);
       
       Object.entries(fields).forEach(([key, value]) => {
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() === 'bucket') {
+          console.log(`[SceneBuilderPanel] Skipping 'bucket' field (policy-only): ${value}`);
+          return;
+        }
         formData.append(key, value as string);
         console.log(`[SceneBuilderPanel] Added field (media): ${key} = ${value}`);
       });

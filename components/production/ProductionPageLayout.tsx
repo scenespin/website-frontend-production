@@ -564,7 +564,12 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       const formData = new FormData();
       
       // Add all the fields returned from createPresignedPost
+      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
       Object.entries(fields).forEach(([key, value]) => {
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() === 'bucket') {
+          return;
+        }
         formData.append(key, value as string);
       });
       
