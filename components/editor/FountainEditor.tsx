@@ -20,7 +20,6 @@ import { extractEditorContext } from '@/utils/editorContext';
 import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
 import EntityAutocomplete from './EntityAutocomplete';
-import SelectionContextMenu, { RewriteSuggestion } from './SelectionContextMenu';
 import TextComparisonModal from './TextComparisonModal';
 
 interface FountainEditorProps {
@@ -33,6 +32,7 @@ interface FountainEditorProps {
     onKeepOriginal?: () => void;
     onUseRewrite?: () => void;
     onSelectionChangeProp?: (start: number, end: number) => void;
+    onSelectionStateChange?: (hasSelection: boolean, selectedText: string | null, selectionRange: { start: number; end: number } | null) => void;
 }
 
 export default function FountainEditor({
@@ -44,7 +44,8 @@ export default function FountainEditor({
     comparisonTexts,
     onKeepOriginal,
     onUseRewrite,
-    onSelectionChangeProp
+    onSelectionChangeProp,
+    onSelectionStateChange
 }: FountainEditorProps) {
     // Context hooks
     const { state, setContent, setCursorPosition, setCurrentLine, replaceSelection, markSaved, clearHighlight } = useEditor();
@@ -226,6 +227,18 @@ export default function FountainEditor({
         setCurrentLine(lineNumber);
     };
     
+    // Notify parent of selection state changes (for FAB visibility)
+    useEffect(() => {
+        if (onSelectionStateChange) {
+            const hasSelection = selection.hasSelection;
+            const selectedText = hasSelection ? selection.selection.text : null;
+            const selectionRange = hasSelection && selection.selection.start !== null && selection.selection.end !== null
+                ? { start: selection.selection.start, end: selection.selection.end }
+                : null;
+            onSelectionStateChange(hasSelection, selectedText, selectionRange);
+        }
+    }, [selection.hasSelection, selection.selection.text, selection.selection.start, selection.selection.end, onSelectionStateChange]);
+    
     // Open chat with selected text context
     const handleOpenChatWithContext = (initialPrompt?: string) => {
         if (onOpenChatWithContext && selection.selection.text) {
@@ -246,25 +259,6 @@ export default function FountainEditor({
         }
     };
     
-    // Handle suggestion selection from context menu
-    const handleSelectSuggestion = (suggestion: RewriteSuggestion) => {
-        if (onOpenChatWithContext) {
-            if (selection.selection.start !== null && selection.selection.end !== null) {
-                console.log('[FountainEditor] Suggestion selected:', {
-                    suggestion: suggestion.label,
-                    range: { start: selection.selection.start, end: selection.selection.end }
-                });
-                onOpenChatWithContext(
-                    selection.selection.text, 
-                    suggestion.prompt, 
-                    { start: selection.selection.start, end: selection.selection.end }
-                );
-            } else {
-                console.warn('[FountainEditor] No selection range available for suggestion');
-                onOpenChatWithContext(selection.selection.text, suggestion.prompt);
-            }
-        }
-    };
     
     return (
         <div 
@@ -319,27 +313,11 @@ export default function FountainEditor({
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}
                     onMouseUp={selection.handlers.onMouseUp}
-                    onContextMenu={selection.handlers.onContextMenu}
-                    onTouchStart={selection.handlers.onTouchStart}
-                    onTouchEnd={selection.handlers.onTouchEnd}
-                    onTouchMove={selection.handlers.onTouchMove}
                     placeholder={placeholder}
                     readOnly={readonly}
                     spellCheck={true}
                 />
             </div>
-            
-            {/* Context Menu - Right-click/long-press menu */}
-            {selection.contextMenu.show && (
-                <SelectionContextMenu
-                    selectedText={selection.selection.text}
-                    position={selection.contextMenu.position}
-                    onOpenChat={handleOpenChatWithContext}
-                    onOpenSceneVisualizer={onOpenSceneVisualizer}
-                    onSelectSuggestion={handleSelectSuggestion}
-                    onClose={selection.contextMenu.close}
-                />
-            )}
             
             {/* Entity Autocomplete - @ mentions */}
             {autocomplete.autocomplete.show && (

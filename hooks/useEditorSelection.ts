@@ -15,25 +15,15 @@ interface ToolbarState {
     close: () => void;
 }
 
-interface ContextMenuState {
-    show: boolean;
-    position: { x: number; y: number };
-    close: () => void;
-}
-
 interface SelectionHandlers {
     onMouseUp: () => void;
-    onContextMenu: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
-    onTouchStart: (e: React.TouchEvent<HTMLTextAreaElement>) => void;
-    onTouchEnd: () => void;
-    onTouchMove: () => void;
 }
 
 interface UseEditorSelectionReturn {
     selection: SelectionState;
     toolbar: ToolbarState;
-    contextMenu: ContextMenuState;
     handlers: SelectionHandlers;
+    hasSelection: boolean;
 }
 
 /**
@@ -59,25 +49,6 @@ export function useEditorSelection(
     // Toolbar state
     const [showSelectionToolbar, setShowSelectionToolbar] = useState(false);
     const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
-    
-    // Context menu state
-    const [showContextMenu, setShowContextMenu] = useState(false);
-    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
-    
-    // Touch handling state
-    const [isLongPressing, setIsLongPressing] = useState(false);
-    const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-    
-    /**
-     * Cleanup timers on unmount
-     */
-    useEffect(() => {
-        return () => {
-            if (longPressTimer.current) {
-                clearTimeout(longPressTimer.current);
-            }
-        };
-    }, []);
     
     /**
      * Handle mouse up event - check for text selection
@@ -122,86 +93,6 @@ export function useEditorSelection(
     }, [textareaRef, content, setSelection, onSelectionChange]);
     
     /**
-     * Handle right-click on selected text (desktop)
-     */
-    const handleContextMenu = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
-        // Only show context menu if text is selected
-        if (!textareaRef.current) return;
-        
-        const start = textareaRef.current.selectionStart;
-        const end = textareaRef.current.selectionEnd;
-        
-        if (end - start > 0) {
-            e.preventDefault();
-            const selected = content.substring(start, end);
-            
-            setSelectedText(selected);
-            setSelectionStart(start);
-            setSelectionEnd(end);
-            setContextMenuPosition({ x: e.clientX, y: e.clientY });
-            setShowContextMenu(true);
-            
-            // Hide the old toolbar if it's showing
-            setShowSelectionToolbar(false);
-        }
-    }, [textareaRef, content]);
-    
-    /**
-     * Handle long-press start (mobile)
-     */
-    const handleTouchStart = useCallback((e: React.TouchEvent<HTMLTextAreaElement>) => {
-        if (!textareaRef.current) return;
-        
-        const start = textareaRef.current.selectionStart;
-        const end = textareaRef.current.selectionEnd;
-        
-        // Only start long-press timer if text is selected
-        if (end - start > 0) {
-            setIsLongPressing(true);
-            
-            longPressTimer.current = setTimeout(() => {
-                const selected = content.substring(start, end);
-                const touch = e.touches[0];
-                
-                setSelectedText(selected);
-                setSelectionStart(start);
-                setSelectionEnd(end);
-                setContextMenuPosition({ 
-                    x: touch.clientX, 
-                    y: touch.clientY 
-                });
-                setShowContextMenu(true);
-                setIsLongPressing(false);
-                
-                // Hide the old toolbar
-                setShowSelectionToolbar(false);
-            }, 500); // 500ms long press
-        }
-    }, [textareaRef, content]);
-    
-    /**
-     * Handle long-press cancel (mobile)
-     */
-    const handleTouchEnd = useCallback(() => {
-        if (longPressTimer.current) {
-            clearTimeout(longPressTimer.current);
-            longPressTimer.current = null;
-        }
-        setIsLongPressing(false);
-    }, []);
-    
-    /**
-     * Handle touch move - cancel long press if user moves finger
-     */
-    const handleTouchMove = useCallback(() => {
-        if (longPressTimer.current) {
-            clearTimeout(longPressTimer.current);
-            longPressTimer.current = null;
-        }
-        setIsLongPressing(false);
-    }, []);
-    
-    /**
      * Close selection toolbar
      */
     const closeToolbar = useCallback(() => {
@@ -209,11 +100,9 @@ export function useEditorSelection(
     }, []);
     
     /**
-     * Close context menu
+     * Check if text is currently selected
      */
-    const closeContextMenu = useCallback(() => {
-        setShowContextMenu(false);
-    }, []);
+    const hasSelection = selectionEnd - selectionStart > 0;
     
     return {
         selection: {
@@ -226,18 +115,10 @@ export function useEditorSelection(
             position: toolbarPosition,
             close: closeToolbar
         },
-        contextMenu: {
-            show: showContextMenu,
-            position: contextMenuPosition,
-            close: closeContextMenu
-        },
         handlers: {
-            onMouseUp: handleMouseUp,
-            onContextMenu: handleContextMenu,
-            onTouchStart: handleTouchStart,
-            onTouchEnd: handleTouchEnd,
-            onTouchMove: handleTouchMove
-        }
+            onMouseUp: handleMouseUp
+        },
+        hasSelection
     };
 }
 

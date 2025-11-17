@@ -306,6 +306,73 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         </div>
       )}
       
+      {/* Quick Action Buttons for Rewrite Mode */}
+      {state.selectedTextContext && state.messages.filter(m => m.mode === 'chat').length === 0 && !state.input && (
+        <div className="px-4 py-3 border-b border-base-300 bg-base-200/50">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-xs font-medium text-base-content/70 mb-2">Quick Actions:</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handleSend('Make this more concise')}
+                disabled={isSending}
+                className="px-3 py-1.5 text-sm rounded-md bg-base-100 hover:bg-base-200 text-base-content transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-base-300"
+              >
+                ✂️ Make Concise
+              </button>
+              <button
+                onClick={() => handleSend('Expand this with more detail')}
+                disabled={isSending}
+                className="px-3 py-1.5 text-sm rounded-md bg-base-100 hover:bg-base-200 text-base-content transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-base-300"
+              >
+                📝 Expand Detail
+              </button>
+              <button
+                onClick={() => handleSend('Make this more dramatic and intense')}
+                disabled={isSending}
+                className="px-3 py-1.5 text-sm rounded-md bg-base-100 hover:bg-base-200 text-base-content transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-base-300"
+              >
+                🎭 More Dramatic
+              </button>
+              <button
+                onClick={() => handleSend('Improve the dialogue to sound more natural')}
+                disabled={isSending}
+                className="px-3 py-1.5 text-sm rounded-md bg-base-100 hover:bg-base-200 text-base-content transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-base-300"
+              >
+                💬 Polish Dialogue
+              </button>
+              <button
+                onClick={() => handleSend('Fix any grammar or formatting issues')}
+                disabled={isSending}
+                className="px-3 py-1.5 text-sm rounded-md bg-base-100 hover:bg-base-200 text-base-content transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-base-300"
+              >
+                ✅ Fix Grammar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Instruction Messages */}
+      {state.messages.filter(m => m.mode === 'chat').length === 0 && !state.input && !state.selectedTextContext && (
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="max-w-md text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center mx-auto">
+              <Sparkles className="w-8 h-8 text-purple-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-base-content mb-2">Screenwriter Agent</h3>
+              <p className="text-sm text-base-content/70 mb-4">
+                Ask me to write scenes, develop characters, or improve your screenplay structure.
+              </p>
+              <div className="text-xs text-base-content/50 space-y-1">
+                <p>Try: "Write a tense confrontation scene"</p>
+                <p>or "Help me develop this character's backstory"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Chat Messages Area - ChatGPT/Claude Style */}
       <div className="flex-1 chat-scroll-container">
         {state.messages

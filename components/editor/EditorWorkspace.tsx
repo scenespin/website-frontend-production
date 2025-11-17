@@ -11,9 +11,12 @@ import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
 import EditorToolbar from './EditorToolbar';
 import SceneNavigator from './SceneNavigator';
+import AgentFABGroup from './AgentFABGroup';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
 import { CollaborationPanel } from '../CollaborationPanel';
 import { saveToGitHub } from '@/utils/github';
+import { extractEditorContext } from '@/utils/editorContext';
+import { detectCurrentScene } from '@/utils/sceneDetection';
 import { toast } from 'sonner';
 import type { Scene } from '../../types/screenplay';
 
@@ -27,11 +30,17 @@ export default function EditorWorkspace() {
     const { state, setContent, setCurrentLine } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
-    const { setSelectedTextContext, setInput } = useChatContext();
+    const { setSelectedTextContext, setInput, setSceneContext } = useChatContext();
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Mobile detection and selection state for FABs
+    const [isMobile, setIsMobile] = useState(false);
+    const [hasSelection, setHasSelection] = useState(false);
+    const [selectedText, setSelectedText] = useState<string | null>(null);
+    const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
     
     // Get projectId from URL params (for collaboration)
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -50,6 +59,27 @@ export default function EditorWorkspace() {
             console.error('[EditorWorkspace] Failed to load GitHub config:', err);
         }
     }, []);  // Feature 0111: No longer depend on screenplay.isConnected
+    
+    // Mobile detection
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+    
+    // Handle selection state changes from FountainEditor
+    const handleSelectionStateChange = (
+        hasSelection: boolean,
+        selectedText: string | null,
+        selectionRange: { start: number; end: number } | null
+    ) => {
+        setHasSelection(hasSelection);
+        setSelectedText(selectedText);
+        setSelectionRange(selectionRange);
+    };
     
     /**
      * Manual Save Handler
@@ -156,6 +186,85 @@ export default function EditorWorkspace() {
         }, 300);
     };
     
+    // FAB Launch Handlers
+    const handleLaunchScreenwriter = () => {
+        const cursorPos = state.cursorPosition || 0;
+        const context = extractEditorContext(state.content, cursorPos);
+        
+        // Set scene context
+        if (context.sceneContext) {
+            setSceneContext(context.sceneContext);
+        }
+        
+        // Clear selected text context (not needed for screenwriter)
+        setSelectedTextContext(null, null);
+        setInput('');
+        
+        // Open drawer in chat mode
+        openDrawer('chat', {
+            mode: 'chat',
+            initialPrompt: null // Show instruction message
+        });
+    };
+    
+    const handleLaunchDialogue = () => {
+        const cursorPos = state.cursorPosition || 0;
+        const context = extractEditorContext(state.content, cursorPos);
+        
+        // Set scene context
+        if (context.sceneContext) {
+            setSceneContext(context.sceneContext);
+        }
+        
+        // Clear selected text context (not needed for dialogue)
+        setSelectedTextContext(null, null);
+        setInput('');
+        
+        // Open drawer in dialogue mode
+        openDrawer('dialogue', {
+            mode: 'dialogue',
+            initialPrompt: null // Show instruction message
+        });
+    };
+    
+    const handleLaunchRewrite = () => {
+        if (!selectedText || !selectionRange) return;
+        
+        // Extract surrounding context (200 chars before/after selection)
+        const beforeStart = Math.max(0, selectionRange.start - 200);
+        const afterEnd = Math.min(state.content.length, selectionRange.end + 200);
+        const textBefore = state.content.substring(beforeStart, selectionRange.start).trim();
+        const textAfter = state.content.substring(selectionRange.end, afterEnd).trim();
+        
+        // Detect current scene context
+        const cursorPos = selectionRange.start;
+        const sceneCtx = detectCurrentScene(state.content, cursorPos);
+        
+        // Set scene context
+        if (sceneCtx) {
+            setSceneContext({
+                heading: sceneCtx.heading,
+                act: sceneCtx.act,
+                characters: sceneCtx.characters,
+                pageNumber: sceneCtx.pageNumber,
+                totalPages: sceneCtx.totalPages
+            });
+        }
+        
+        // Set selected text context
+        setSelectedTextContext(selectedText, selectionRange);
+        
+        // Pre-fill input with editable prompt
+        setInput('Rewrite this to be more concise');
+        
+        // Open drawer in chat mode (rewrite mode detected by selectedTextContext)
+        openDrawer('chat', {
+            mode: 'chat',
+            selectedText,
+            initialPrompt: 'Rewrite this to be more concise'
+        });
+    };
+    
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -235,8 +344,9 @@ Tip:
 - Press Shift+Tab to format as SCENE HEADING
 - Press Enter for smart line breaks
 - Type @ to mention characters or locations
-- Select text and right-click for 'Rewrite with AI'"
+- Select text and tap FAB button for 'Rewrite with AI'"
                             onOpenChatWithContext={handleOpenChatWithContext}
+                            onSelectionStateChange={handleSelectionStateChange}
                         />
                     </div>
                 </div>
@@ -332,6 +442,16 @@ Tip:
                     <span>Scenes</span>
                 </button>
             )}
+            
+            {/* FAB Group - Mobile & Desktop */}
+            <AgentFABGroup
+                onLaunchScreenwriter={handleLaunchScreenwriter}
+                onLaunchDialogue={handleLaunchDialogue}
+                onLaunchRewrite={handleLaunchRewrite}
+                hasSelection={hasSelection}
+                isDrawerOpen={isDrawerOpen}
+                isMobile={isMobile}
+            />
         </div>
     );
 }
