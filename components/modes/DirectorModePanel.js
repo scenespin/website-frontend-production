@@ -10,6 +10,24 @@ import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import { buildDirectorPrompt } from '@/utils/promptBuilders';
 import toast from 'react-hot-toast';
 
+// Helper to strip markdown formatting from text (for Fountain format compliance)
+function stripMarkdown(text) {
+  if (!text) return text;
+  return text
+    // Remove bold markdown (**text** or __text__)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove italic markdown (*text* or _text_)
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove horizontal rules (---)
+    .replace(/^---+$/gm, '')
+    // Remove markdown links [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+    // Clean up extra whitespace
+    .trim();
+}
+
 export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
   const { isScreenplayContent } = useChatMode();
@@ -119,7 +137,11 @@ DIRECTOR MODE - SCENE GENERATION:
 - Generate FULL SCENES (5-15+ lines) or parts of scenes as requested
 - User provides basic info, you write complete screenplay content
 - Include: action lines, dialogue (when appropriate), parentheticals, atmosphere
-- Write in Fountain screenplay format
+- Write in Fountain screenplay format (CRITICAL: NO MARKDOWN)
+- Character names in ALL CAPS (NOT bold/markdown like **SARAH**)
+- Parentheticals in parentheses (NOT italics/markdown)
+- Dialogue in plain text below character name
+- NO markdown formatting (no **, no *, no ---, no markdown of any kind)
 - Be direct and concise - no explanations, just the scene content
 - Context-aware: Use current scene, characters, and story context when available`;
       
@@ -265,7 +287,7 @@ DIRECTOR MODE - SCENE GENERATION:
                 {/* Insert Button */}
                 {showInsertButton && onInsert && (
                   <button
-                    onClick={() => onInsert(message.content)}
+                    onClick={() => onInsert(stripMarkdown(message.content))}
                     className="btn btn-xs btn-outline gap-2"
                   >
                     <FileText className="h-4 w-4" />
@@ -294,7 +316,7 @@ DIRECTOR MODE - SCENE GENERATION:
             {/* Insert button for streaming text (Director always generates screenplay content) */}
             {onInsert && (
               <button
-                onClick={() => onInsert(state.streamingText)}
+                onClick={() => onInsert(stripMarkdown(state.streamingText))}
                 className="btn btn-xs btn-outline gap-2 self-start"
               >
                 <FileText className="h-4 w-4" />

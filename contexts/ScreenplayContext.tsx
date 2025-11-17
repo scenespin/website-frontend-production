@@ -1801,8 +1801,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         setRelationships(prev => {
             const newRels = { ...prev };
             
-            // Set scene's location
-            newRels.scenes[sceneId].location = locationId;
+            // Ensure scene relationship exists
+            if (!newRels.scenes[sceneId]) {
+                newRels.scenes[sceneId] = {
+                    type: 'scene',
+                    characters: [],
+                    location: locationId
+                };
+            } else {
+                // Set scene's location
+                newRels.scenes[sceneId].location = locationId;
+            }
+            
+            // Ensure location relationship exists before accessing it
+            if (!newRels.locations[locationId]) {
+                newRels.locations[locationId] = {
+                    type: 'location',
+                    scenes: []
+                };
+            }
             
             // Add to location's scenes
             if (!newRels.locations[locationId].scenes.includes(sceneId)) {
@@ -1815,8 +1832,29 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Feature 0111 Phase 3: Update relationships in DynamoDB
         if (screenplayId) {
             try {
-                const updatedRels = { ...relationships };
-                updatedRels.scenes[sceneId].location = locationId;
+                // Use current relationships state
+                const currentRels = relationships;
+                const updatedRels = { ...currentRels };
+                
+                // Ensure scene relationship exists
+                if (!updatedRels.scenes[sceneId]) {
+                    updatedRels.scenes[sceneId] = {
+                        type: 'scene',
+                        characters: [],
+                        location: locationId
+                    };
+                } else {
+                    updatedRels.scenes[sceneId].location = locationId;
+                }
+                
+                // Ensure location relationship exists
+                if (!updatedRels.locations[locationId]) {
+                    updatedRels.locations[locationId] = {
+                        type: 'location',
+                        scenes: []
+                    };
+                }
+                
                 if (!updatedRels.locations[locationId].scenes.includes(sceneId)) {
                     updatedRels.locations[locationId].scenes.push(sceneId);
                 }
@@ -1837,23 +1875,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX: Actually rebuild relationships from current scenes, characters, and locations
         console.log('[ScreenplayContext] 🔄 Rebuilding relationships from current state...');
         
-        // Extract all scenes from all beats
-        const allScenes: Scene[] = [];
-        beats.forEach(beat => {
-            beat.scenes.forEach(scene => {
-                allScenes.push(scene);
-            });
-        });
+        // 🔥 FIX: Use scenes directly (beats removed - scenes are standalone)
+        const currentScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
         
         // 🔥 FIX: Use refs to get latest state (avoid stale closures)
         const currentCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
         const currentLocations = locationsRef.current.length > 0 ? locationsRef.current : locations;
         
         // Rebuild relationships using the same function used during initialization
-        buildRelationshipsFromScenes(allScenes, beats, currentCharacters, currentLocations);
+        buildRelationshipsFromScenes(currentScenes, beats, currentCharacters, currentLocations);
         
         console.log('[ScreenplayContext] ✅ Relationships rebuilt');
-    }, [beats, characters, locations, buildRelationshipsFromScenes]);
+    }, [scenes, beats, characters, locations, buildRelationshipsFromScenes]);
     
     const getSceneCharacters = useCallback((sceneId: string): Character[] => {
         const sceneRels = relationships.scenes[sceneId];
@@ -2685,45 +2718,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         console.log('[ScreenplayContext] Matching', sortedScenes.length, 'database scenes to', scenesInOrder.length, 'content scenes');
         
-        // Match scenes using hybrid matching (ID first, heading+position fallback)
+        // Match scenes using hybrid matching - match each database scene to the correct content scene
+        // 🔥 CRITICAL FIX: Don't match by index - match by actual content (heading + position)
         const updates = new Map<string, Partial<Scene>>();
+        const matchedContentScenes = new Set<number>(); // Track which content scenes have been matched
         
-        sortedScenes.forEach((scene, index) => {
-            if (index < scenesInOrder.length) {
-                const contentScene = scenesInOrder[index];
-                const currentStartLine = scene.fountain?.startLine ?? -1;
-                const currentEndLine = scene.fountain?.endLine ?? -1;
-                const currentHeading = scene.heading.toUpperCase().trim();
-                const newHeading = contentScene.heading.toUpperCase().trim();
+        // For each database scene, find the best matching content scene
+        sortedScenes.forEach((scene) => {
+            // Try to find matching content scene using matchScene logic
+            let bestMatch: { index: number; scene: typeof scenesInOrder[0] } | null = null;
+            let bestMatchDistance = Infinity;
+            
+            scenesInOrder.forEach((contentScene, contentIndex) => {
+                // Skip if already matched
+                if (matchedContentScenes.has(contentIndex)) return;
                 
-                // Check if position changed
-                const positionChanged = currentStartLine !== contentScene.startLine || currentEndLine !== contentScene.endLine;
-                // Check if heading changed (handle INT/EXT changes)
-                const headingChanged = currentHeading !== newHeading;
-                
-                // Use hybrid matching to find the best match
-                const matchedScene = matchScene(
+                // Use matchScene to check if this content scene matches the database scene
+                const testMatch = matchScene(
                     { heading: contentScene.heading, startLine: contentScene.startLine, endLine: contentScene.endLine, id: scene.id },
-                    [scene] // Pass single scene for matching (we already know it's the right one by order)
+                    [scene]
                 );
                 
-                if (matchedScene && matchedScene.id === scene.id) {
-                    // Match confirmed - update position and/or heading if changed
-                    if (positionChanged || headingChanged) {
-                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> "${contentScene.heading}" lines ${contentScene.startLine}-${contentScene.endLine} (was ${currentStartLine}-${currentEndLine})`);
-                        updates.set(scene.id, {
-                            heading: contentScene.heading, // Update heading if changed
-                            fountain: {
-                                ...scene.fountain,
-                                startLine: contentScene.startLine,
-                                endLine: contentScene.endLine
-                            }
-                        });
-                    } else {
-                        console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> position unchanged (${contentScene.startLine}-${contentScene.endLine})`);
+                if (testMatch && testMatch.id === scene.id) {
+                    // Exact match by ID
+                    const distance = Math.abs((scene.fountain?.startLine || 0) - contentScene.startLine);
+                    if (distance < bestMatchDistance) {
+                        bestMatch = { index: contentIndex, scene: contentScene };
+                        bestMatchDistance = distance;
                     }
                 } else {
-                    // Try matching by location name + position (handle INT/EXT changes)
+                    // Try location name + position matching
                     const extractLocationName = (heading: string): string => {
                         const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
                         return match ? match[1].trim().toUpperCase() : '';
@@ -2735,34 +2759,49 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const positionMatch = Math.abs((scene.fountain?.startLine || 0) - contentScene.startLine) <= 5;
                     
                     if (locationMatch && positionMatch) {
-                        // Same location, update heading and position
-                        if (positionChanged || headingChanged) {
-                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> "${contentScene.heading}" (location match, was ${currentStartLine}-${currentEndLine})`);
-                            updates.set(scene.id, {
-                                heading: contentScene.heading,
-                                fountain: {
-                                    ...scene.fountain,
-                                    startLine: contentScene.startLine,
-                                    endLine: contentScene.endLine
-                                }
-                            });
+                        const distance = Math.abs((scene.fountain?.startLine || 0) - contentScene.startLine);
+                        if (distance < bestMatchDistance) {
+                            bestMatch = { index: contentIndex, scene: contentScene };
+                            bestMatchDistance = distance;
                         }
-                    } else if (currentHeading === newHeading) {
-                        // Exact heading match, just update position
-                        if (positionChanged) {
-                            console.log(`[ScreenplayContext] Scene ${index + 1}: "${scene.heading}" -> lines ${contentScene.startLine}-${contentScene.endLine} (heading match, was ${currentStartLine}-${currentEndLine})`);
-                            updates.set(scene.id, {
-                                fountain: {
-                                    ...scene.fountain,
-                                    startLine: contentScene.startLine,
-                                    endLine: contentScene.endLine
-                                }
-                            });
+                    } else if (scene.heading.toUpperCase().trim() === contentScene.heading.toUpperCase().trim()) {
+                        // Exact heading match
+                        const distance = Math.abs((scene.fountain?.startLine || 0) - contentScene.startLine);
+                        if (distance < bestMatchDistance) {
+                            bestMatch = { index: contentIndex, scene: contentScene };
+                            bestMatchDistance = distance;
                         }
-                    } else {
-                        console.warn(`[ScreenplayContext] Heading mismatch at position ${index}: DB="${scene.heading}" vs Content="${contentScene.heading}"`);
                     }
                 }
+            });
+            
+            if (bestMatch) {
+                const contentScene = bestMatch.scene;
+                const currentStartLine = scene.fountain?.startLine ?? -1;
+                const currentEndLine = scene.fountain?.endLine ?? -1;
+                const currentHeading = scene.heading.toUpperCase().trim();
+                const newHeading = contentScene.heading.toUpperCase().trim();
+                
+                const positionChanged = currentStartLine !== contentScene.startLine || currentEndLine !== contentScene.endLine;
+                const headingChanged = currentHeading !== newHeading;
+                
+                if (positionChanged || headingChanged) {
+                    console.log(`[ScreenplayContext] Scene "${scene.heading}" -> "${contentScene.heading}" lines ${contentScene.startLine}-${contentScene.endLine} (was ${currentStartLine}-${currentEndLine})`);
+                    updates.set(scene.id, {
+                        heading: contentScene.heading,
+                        fountain: {
+                            ...scene.fountain,
+                            startLine: contentScene.startLine,
+                            endLine: contentScene.endLine
+                        }
+                    });
+                    matchedContentScenes.add(bestMatch.index);
+                } else {
+                    console.log(`[ScreenplayContext] Scene "${scene.heading}" -> position unchanged (${contentScene.startLine}-${contentScene.endLine})`);
+                    matchedContentScenes.add(bestMatch.index);
+                }
+            } else {
+                console.warn(`[ScreenplayContext] Could not find matching content scene for database scene: "${scene.heading}" (${scene.fountain?.startLine})`);
             }
         });
         

@@ -86,6 +86,30 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // Fallback to state scene context if detection fails
       if (!sceneContext && state.sceneContext) {
         console.log('[ChatModePanel] Using state scene context as fallback');
+        // Try to extract actual scene content from editorContent based on scene heading
+        let sceneContent = '';
+        if (editorContent && state.sceneContext.heading) {
+          const lines = editorContent.split('\n');
+          const headingIndex = lines.findIndex(line => 
+            line.trim().toUpperCase().includes(state.sceneContext.heading.toUpperCase())
+          );
+          if (headingIndex >= 0) {
+            // Extract content from this scene heading to the next scene heading (or end)
+            const sceneLines = [];
+            for (let i = headingIndex; i < lines.length; i++) {
+              const line = lines[i];
+              // Stop at next scene heading (but not the current one)
+              if (i > headingIndex && /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i.test(line)) {
+                break;
+              }
+              sceneLines.push(line);
+            }
+            sceneContent = sceneLines.join('\n').substring(0, 1000);
+          } else {
+            // Fallback to first 1000 chars if scene heading not found
+            sceneContent = editorContent.substring(0, 1000);
+          }
+        }
         // Reconstruct full scene context from state (we need content for the prompt)
         sceneContext = {
           heading: state.sceneContext.heading,
@@ -93,7 +117,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           characters: state.sceneContext.characters || [],
           pageNumber: state.sceneContext.pageNumber,
           totalPages: state.sceneContext.totalPages || 100,
-          content: editorContent ? editorContent.substring(0, 1000) : ''
+          content: sceneContent
         };
       }
       
