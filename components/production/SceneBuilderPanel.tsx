@@ -50,6 +50,7 @@ import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
+import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -118,6 +119,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Media uploads state (Feature 0070)
   const [mediaUploads, setMediaUploads] = useState<(File | null)[]>([null, null, null]);
   const [uploadingMedia, setUploadingMedia] = useState<boolean[]>([false, false, false]);
+  
+  // Annotation system state (Feature 0105/Phase 6)
+  const [firstFrameUrl, setFirstFrameUrl] = useState<string | null>(null);
+  const [isGeneratingFirstFrame, setIsGeneratingFirstFrame] = useState(false);
+  const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
+  const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
+  const [showAnnotationPanel, setShowAnnotationPanel] = useState(false);
   
   // Force defaults on mobile (Feature 0069)
   useEffect(() => {
@@ -246,6 +254,132 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   }
   
   /**
+   * Upload custom first frame image (Feature 0105/Phase 6)
+   */
+  async function handleUploadFirstFrame(file: File) {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image too large. Maximum size is 10MB');
+      return;
+    }
+    
+    setIsUploadingFirstFrame(true);
+    setFirstFrameUrl(null);
+    setVisualAnnotations(null);
+    setShowAnnotationPanel(false);
+    
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+      
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('projectId', projectId);
+      
+      const response = await fetch('/api/media/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        setFirstFrameUrl(data.url);
+        setShowAnnotationPanel(true);
+        toast.success('Image uploaded! Add annotations or proceed to generation.');
+      } else {
+        throw new Error(data.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('[SceneBuilderPanel] Image upload failed:', error);
+      toast.error('Failed to upload image', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setIsUploadingFirstFrame(false);
+    }
+  }
+  
+  /**
+   * Generate first frame for annotation (Feature 0105/Phase 6)
+   */
+  async function handleGenerateFirstFrame() {
+    if (!sceneDescription.trim()) {
+      toast.error('Please enter a scene description');
+      return;
+    }
+    
+    setIsGeneratingFirstFrame(true);
+    setFirstFrameUrl(null);
+    setVisualAnnotations(null);
+    setShowAnnotationPanel(false);
+    
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      
+      // Upload character reference images if any
+      const referenceImageUrls: string[] = [];
+      const uploadedImages = referenceImages.filter(img => img !== null) as File[];
+      
+      if (uploadedImages.length > 0) {
+        for (const file of uploadedImages) {
+          const formData = new FormData();
+          formData.append('image', file);
+          formData.append('projectId', projectId);
+          
+          const uploadRes = await fetch('/api/media/upload-image', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const uploadData = await uploadRes.json();
+          if (uploadData.success && uploadData.url) {
+            referenceImageUrls.push(uploadData.url);
+          }
+        }
+      }
+      
+      // Generate first frame using image generation API
+      const response = await fetch('/api/image/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          prompt: sceneDescription.trim(),
+          aspectRatio: '16:9',
+          size: '1024x576' // 16:9 aspect ratio
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.imageUrl) {
+        setFirstFrameUrl(data.imageUrl);
+        setShowAnnotationPanel(true);
+        toast.success('First frame generated! Add annotations or proceed to generation.');
+      } else {
+        throw new Error(data.message || 'Failed to generate first frame');
+      }
+    } catch (error) {
+      console.error('[SceneBuilderPanel] First frame generation failed:', error);
+      toast.error('Failed to generate first frame', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setIsGeneratingFirstFrame(false);
+    }
+  }
+  
+  /**
    * Start Scene Builder generation
    */
   async function handleGenerate() {
@@ -290,6 +424,33 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         ? styleProfiles.find(p => p.profileId === selectedStyleProfile)
         : null;
       
+      // Prepare workflow inputs with annotations if available
+      const workflowInputs: any = {
+        sceneDescription: sceneDescription.trim(),
+        characterReferences: referenceImageUrls,
+        qualityTier,
+        aspectRatio: '16:9',
+        duration,
+        enableSound,
+        userId: 'default-user', // TODO: Get from auth
+        projectId,
+        // Feature 0109: Style matching support
+        styleProfile: selectedProfile ? {
+          profileId: selectedProfile.profileId,
+          stylePromptAdditions: selectedProfile.stylePromptAdditions,
+          confidence: selectedProfile.confidence
+        } : undefined
+      };
+      
+      // Feature 0105/Phase 6: Add visual annotations if available
+      if (visualAnnotations && firstFrameUrl) {
+        workflowInputs.visualAnnotations = {
+          imageUrl: firstFrameUrl,
+          annotations: visualAnnotations.annotations || []
+        };
+        workflowInputs.startImageUrl = firstFrameUrl; // Use first frame as starting image
+      }
+      
       const response = await fetch('/api/workflows/execute', {
         method: 'POST',
         headers: { 
@@ -298,22 +459,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         },
         body: JSON.stringify({
           workflowId: 'complete-scene',
-          inputs: {
-            sceneDescription: sceneDescription.trim(),
-            characterReferences: referenceImageUrls,
-            qualityTier,
-            aspectRatio: '16:9',
-            duration,
-            enableSound,
-            userId: 'default-user', // TODO: Get from auth
-            projectId,
-            // Feature 0109: Style matching support
-            styleProfile: selectedProfile ? {
-              profileId: selectedProfile.profileId,
-              stylePromptAdditions: selectedProfile.stylePromptAdditions,
-              confidence: selectedProfile.confidence
-            } : undefined
-          }
+          inputs: workflowInputs
         })
       });
       
@@ -1170,6 +1316,126 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
               </CardContent>
             </Card>
             
+            {/* First Frame Generation & Annotation (Feature 0105/Phase 6) */}
+            {!firstFrameUrl && !isGeneratingFirstFrame && !isUploadingFirstFrame && (
+              <Card className="border-2 border-dashed border-purple-300 dark:border-purple-700">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                      <Eye className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <Label className="text-sm font-semibold mb-1 block">
+                          Optional: Preview & Annotate
+                        </Label>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Generate a first frame preview or upload your own image, then add camera motion or action annotations before generating the full scene.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleGenerateFirstFrame}
+                          disabled={!sceneDescription.trim() || isGenerating}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Generate Preview
+                        </Button>
+                        <label className="flex-1">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleUploadFirstFrame(file);
+                              }
+                            }}
+                            className="hidden"
+                            disabled={isGenerating}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            disabled={isGenerating}
+                            asChild
+                          >
+                            <span>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload Image
+                            </span>
+                          </Button>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* First Frame Generation/Upload Progress */}
+            {(isGeneratingFirstFrame || isUploadingFirstFrame) && (
+              <Card className="border-2 border-purple-300 dark:border-purple-700">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {isGeneratingFirstFrame ? 'Generating first frame...' : 'Uploading image...'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {isGeneratingFirstFrame ? 'This will take a few seconds' : 'Please wait'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Annotation Panel (Feature 0105/Phase 6) */}
+            {showAnnotationPanel && firstFrameUrl && (
+              <Card className="border-2 border-purple-300 dark:border-purple-700">
+                <CardContent className="p-4">
+                  <VisualAnnotationPanel
+                    imageUrl={firstFrameUrl}
+                    onAnnotationsComplete={(annotations) => {
+                      setVisualAnnotations(annotations);
+                      toast.success('Annotations saved! They will be used in video generation.');
+                    }}
+                    disabled={isGenerating}
+                    defaultExpanded={true}
+                  />
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setFirstFrameUrl(null);
+                        setVisualAnnotations(null);
+                        setShowAnnotationPanel(false);
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Clear & Regenerate
+                    </Button>
+                    <Button
+                      onClick={() => setShowAnnotationPanel(false)}
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Hide Panel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {/* Generate Button */}
             <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-base-content border-none">
               <CardContent className="p-6">
@@ -1184,9 +1450,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                   </div>
                 </div>
                 
+                {visualAnnotations && (
+                  <div className="mb-3 p-2 bg-white/20 rounded-lg text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Annotations will be applied to generation</span>
+                    </div>
+                  </div>
+                )}
+                
                 <Button
                   onClick={handleGenerate}
-                  disabled={!sceneDescription.trim() || isGenerating}
+                  disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
                   className="w-full bg-white text-purple-600 hover:bg-purple-50 font-bold text-lg h-12"
                   size="lg"
                 >
