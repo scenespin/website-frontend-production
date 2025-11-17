@@ -443,12 +443,13 @@ function UnifiedChatPanelInner({
   useEffect(() => {
     if (selectedTextContext) {
       setSelectedTextContext(selectedTextContext, null);
-      if (state.activeMode !== 'chat' && !initialMode) {
+      // Always switch to chat mode for rewrite workflow, regardless of initialMode
+      if (state.activeMode !== 'chat') {
         console.log('[UnifiedChatPanel] Switching to chat mode for rewrite workflow');
         setMode('chat');
       }
     }
-  }, [selectedTextContext, state.activeMode, initialMode, setMode, setSelectedTextContext]);
+  }, [selectedTextContext, state.activeMode, setMode, setSelectedTextContext]);
 
   // ============================================================================
   // SMART DEFAULT MODE (Issue #1 Fix)

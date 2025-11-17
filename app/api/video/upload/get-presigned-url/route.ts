@@ -99,6 +99,8 @@ export async function GET(request: Request) {
     
     console.log(`[VideoUpload] Generated pre-signed POST for user ${clerkUserId}: ${s3Key}`);
     console.log(`[VideoUpload] ContentType: ${fileType}, FileSize: ${fileSizeNum} bytes`);
+    console.log(`[VideoUpload] Presigned POST URL: ${url}`);
+    console.log(`[VideoUpload] Presigned POST fields:`, JSON.stringify(fields, null, 2));
     
     // Return pre-signed POST URL and form fields
     return NextResponse.json({

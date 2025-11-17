@@ -216,13 +216,13 @@ export default function EditorWorkspace() {
             setSceneContext(context.sceneContext);
         }
         
-        // Clear selected text context (not needed for dialogue)
+        // Clear selected text context (not needed for director/dialogue)
         setSelectedTextContext(null, null);
         setInput('');
         
-        // Open drawer in dialogue mode
-        openDrawer('dialogue', {
-            mode: 'dialogue',
+        // Open drawer in director mode (director handles dialogue & scene generation)
+        openDrawer('director', {
+            mode: 'director',
             initialPrompt: null // Show instruction message
         });
     };
