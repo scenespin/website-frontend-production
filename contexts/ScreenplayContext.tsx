@@ -2982,9 +2982,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
             
             // Import only NEW entities
+            let newlyImportedCharacters: Character[] = [];
             if (newCharacterNames.length > 0) {
                 console.log('[ScreenplayContext] Importing', newCharacterNames.length, 'new characters:', newCharacterNames);
-                await bulkImportCharacters(newCharacterNames, parseResult.characterDescriptions);
+                newlyImportedCharacters = await bulkImportCharacters(newCharacterNames, parseResult.characterDescriptions);
             }
             
             if (newLocationNames.length > 0) {
@@ -2992,6 +2993,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Pass locationTypes to bulkImportLocations
                 await bulkImportLocations(newLocationNames, parseResult.locationTypes);
             }
+            
+            // 🔥 CRITICAL FIX: Merge newly imported characters with current characters for scene linking
+            // This ensures newly added characters (like "REPORTER #1") are available when linking scenes
+            const allCharactersForLinking = [
+                ...currentCharacters,
+                ...newlyImportedCharacters
+            ];
+            // Remove duplicates by ID
+            const uniqueCharacters = Array.from(
+                new Map(allCharactersForLinking.map(c => [c.id, c])).values()
+            );
             
             // 🔥 NEW: Update existing characters/locations with new descriptions from script
             // This handles cases where descriptions are updated in the script
@@ -3001,7 +3013,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             if (existingCharacterNames.length > 0) {
                 console.log('[ScreenplayContext] Updating', existingCharacterNames.length, 'existing characters with new descriptions...');
                 for (const charName of existingCharacterNames) {
-                    const existingChar = currentCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
+                    const existingChar = uniqueCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
                     const newDescription = parseResult.characterDescriptions?.get(charName.toUpperCase());
                     
                     if (existingChar && newDescription && newDescription.length > (existingChar.description?.length || 0)) {
@@ -3031,13 +3043,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Import new scenes (beats removed - scenes are standalone)
             if (newScenes.length > 0) {
                 console.log('[ScreenplayContext] Importing', newScenes.length, 'new scenes');
-                // 🔥 FIX: Use currentCharacters (from refs) to avoid stale state
+                // 🔥 CRITICAL FIX: Use uniqueCharacters (includes newly imported) for scene linking
                 await bulkImportScenes('', newScenes.map(scene => ({ // beatId not used anymore
                     heading: scene.heading,
                     location: scene.location,
                     characterIds: scene.characters.map(charName => {
-                        // Find character ID by name (use currentCharacters from refs)
-                        const char = currentCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
+                        // Find character ID by name (use uniqueCharacters which includes newly imported)
+                        const char = uniqueCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
                         return char?.id || '';
                     }).filter(id => id !== ''),
                     locationId: (() => {
