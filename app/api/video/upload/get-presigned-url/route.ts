@@ -83,8 +83,9 @@ export async function GET(request: Request) {
       Conditions: [
         // Restrict file size (0 to 50GB)
         ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
-        // Restrict Content-Type to match the specified file type
-        ['eq', '$Content-Type', fileType],
+        // Use starts-with for Content-Type to be more flexible (browsers may add charset)
+        // This allows "image/jpeg" or "image/jpeg; charset=utf-8" to both work
+        ['starts-with', '$Content-Type', fileType.split(';')[0]], // Get base MIME type without charset
       ],
       Fields: {
         'Content-Type': fileType,
