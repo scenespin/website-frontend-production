@@ -330,14 +330,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       }
       
       // Step 2: Upload directly to S3 (bypasses Next.js!)
-      // NOTE: ContentType is already in PutObjectCommand, so S3 will use that value
-      // We don't need to send Content-Type header if it's not in signed headers
-      // However, some browsers require it, so we'll try without first, then with if needed
+      // Match MediaLibrary exactly - send Content-Type header
+      // The ContentType in PutObjectCommand should match the header value exactly
       const s3Response = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
-        // Don't send Content-Type header - let S3 use ContentType from PutObjectCommand
-        // This avoids 403 errors when Content-Type is not in X-Amz-SignedHeaders
+        headers: {
+          'Content-Type': fileType, // Must match ContentType in PutObjectCommand exactly
+        },
       });
       
       if (!s3Response.ok) {
