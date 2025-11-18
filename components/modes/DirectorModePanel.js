@@ -12,21 +12,111 @@ import { buildDirectorPrompt } from '@/utils/promptBuilders';
 import toast from 'react-hot-toast';
 
 // Helper to strip markdown formatting from text (for Fountain format compliance)
-function stripMarkdown(text) {
+// Import cleanFountainOutput from ChatModePanel for consistency
+// Using the same robust cleaning function that removes analysis, notes, etc.
+function cleanFountainOutput(text) {
   if (!text) return text;
-  return text
-    // Remove bold markdown (**text** or __text__)
+  
+  let cleaned = text;
+  
+  // Remove markdown formatting
+  cleaned = cleaned
     .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    // Remove italic markdown (*text* or _text_)
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/_([^_]+)_/g, '$1')
-    // Remove horizontal rules (---)
+    .replace(/__([^_]+__)/g, '$1')
+    .replace(/\b\*([^*\n]+)\*\b/g, '$1')
+    .replace(/\b_([^_\n]+)_\b/g, '$1')
     .replace(/^---+$/gm, '')
-    // Remove markdown links [text](url) -> text
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-    // Clean up extra whitespace
-    .trim();
+    .replace(/```[a-z]*\n/g, '')
+    .replace(/```/g, '');
+  
+  // Remove common AI response patterns that aren't screenplay content
+  const unwantedPatterns = [
+    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]*/i,
+    /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
+    /(SCREENWRITING\s+)?NOTE:.*$/is,
+    /^#?\s*REVISION\s*$/im,
+    /^#?\s*REVISED\s+SCENE\s*$/im,
+    /ALTERNATIVE OPTIONS?:.*$/is,
+    /Option \d+[:\-].*$/im,
+    /Which direction.*$/is,
+    /This version:.*$/is,
+    /What comes next\?.*$/is,
+    /What feeling.*$/is,
+    /Would you like.*$/is,
+    /Here are (some|a few) (suggestions|options|ideas|ways|things).*$/is,
+    /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
+    /---\s*\n\s*WRITING NOTE.*$/is,
+    /\*\*WRITING NOTE\*\*.*$/is,
+    /WRITING NOTE.*$/is,
+    /---\s*\n\s*\*\*NOTE\*\*.*$/is,
+    /---\s*\n\s*NOTE.*$/is,
+    /\*\*NOTE\*\*.*$/is,
+    /^---\s*$/m,
+    /This (version|Sarah|character|scene|moment).*$/is,
+    /Works perfectly.*$/is,
+    /What happens next\?.*$/is,
+    /For (your|this) scene.*$/is,
+    /Recommendation:.*$/is,
+    /Current line:.*$/is,
+    /Enhanced options?:.*$/is
+  ];
+  
+  for (const pattern of unwantedPatterns) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      cleaned = cleaned.substring(0, match.index).trim();
+      break;
+    }
+  }
+  
+  // Remove lines that are clearly explanations
+  const lines = cleaned.split('\n');
+  const screenplayLines = [];
+  let foundFirstScreenplayContent = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    if (!foundFirstScreenplayContent && !line) continue;
+    
+    if (/^NOTE:/i.test(line)) {
+      break;
+    }
+    
+    const isLikelyDialogue = line.length < 50 && (
+      /^[A-Z][A-Z\s]+$/.test(lines[i-1]?.trim() || '') ||
+      /^\(/.test(line) ||
+      /[!?.]$/.test(line)
+    );
+    
+    if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
+        !/^(INT\.|EXT\.|I\/E\.)/i.test(line) &&
+        !/^[A-Z][A-Z\s]+$/.test(line) &&
+        line.length > 15) {
+      break;
+    }
+    
+    // Skip scene headings for Director (they may include them, but we want to keep them)
+    // Actually, Director can include scene headings, so we'll keep them
+    // But skip markdown headers
+    if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
+      continue;
+    }
+    
+    if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2) {
+      foundFirstScreenplayContent = true;
+    }
+    
+    if (foundFirstScreenplayContent || line.length > 0) {
+      screenplayLines.push(lines[i]);
+    }
+  }
+  
+  cleaned = screenplayLines.join('\n');
+  cleaned = cleaned.trim();
+  
+  return cleaned;
 }
 
 export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
@@ -345,7 +435,7 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 {showInsertButton && onInsert && (
                   <button
                     onClick={() => {
-                      onInsert(stripMarkdown(message.content));
+                      onInsert(cleanFountainOutput(message.content));
                       closeDrawer();
                     }}
                     className="btn btn-xs btn-outline gap-2"
@@ -377,7 +467,7 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
             {onInsert && (
               <button
                 onClick={() => {
-                  onInsert(stripMarkdown(state.streamingText));
+                  onInsert(cleanFountainOutput(state.streamingText));
                   closeDrawer();
                 }}
                 className="btn btn-xs btn-outline gap-2 self-start"
