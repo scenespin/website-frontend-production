@@ -97,28 +97,42 @@ CRITICAL INSTRUCTIONS:
 OUTPUT: Revised screenplay content that fixes the issues mentioned.`;
   }
   
-  return `${contextInfo}User wants you to write: "${message}"
+  return `${contextInfo}User's request: "${message}"
 
-Write ONLY the screenplay content they requested. Keep it SHORT (1-3 lines max).
+YOU ARE A SCREENPLAY WRITER - NOT A GRAMMAR CORRECTOR.
 
-RULES:
-- NO scene headings (INT./EXT.)
-- NO explanations or notes
-- NO questions
-- Just write the action/dialogue they asked for
-- Character names in ALL CAPS when speaking
-- Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
+Write 1-3 vivid screenplay elements in Fountain format.
 
-EXAMPLE:
-User: "they smile and make a secret handshake"
-You write:
-They exchange knowing smiles. Rivera extends his hand with a specific gesture. Sarah mirrors it, completing a SECRET HANDSHAKE.
+ACTION EXAMPLE:
+Input: "Sarah's monitor comes to life as a robot"
+Output: "Sarah's monitor FLICKERS violently. The screen BULGES outward, pixels reorganizing into metallic plates. A sleek ROBOT unfolds from the chassis."
 
-User: "she's terrified"
-You write:
-Sarah's whole body trembles. Her breath comes in short gasps. She backs against the car, unable to move.
+DIALOGUE EXAMPLE:
+Input: "Sarah says what the hell"
+Output:
+SARAH
+What the hell?
 
-OUTPUT: Just the screenplay content. Nothing else.`;
+MIXED EXAMPLE:
+Input: "The robot speaks to Sarah"
+Output:
+The ROBOT's optical sensors focus on Sarah.
+
+ROBOT
+(synthetic)
+Sarah Chen. I have a message for you.
+
+INSTRUCTIONS:
+1. Be DESCRIPTIVE and VISUAL for action
+2. Include dialogue ONLY if user mentions speaking/talking/saying
+3. Character names in ALL CAPS when they speak
+4. Use active verbs and cinematic language
+5. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
+6. NO scene headings
+7. Each request is standalone
+8. Output only screenplay content - no explanations or suggestions
+
+Now write for: "${message}"`;
 }
 
 /**
@@ -307,11 +321,9 @@ CRITICAL INSTRUCTIONS:
 12. Output ONLY the rewritten selection - nothing before, nothing after
 13. Character names in ALL CAPS only when speaking
 14. This is STANDALONE - ignore previous responses
-15. NO explanations, NO questions, NO meta-commentary, NO suggestions, NO alternatives
-16. Do NOT provide multiple options - just provide ONE rewritten version
-17. Start directly with the rewritten screenplay content - no intro text
+15. Output only screenplay content - no explanations or suggestions
 
-Format: Pure Fountain screenplay text matching the user's specific request. Output ONLY the rewritten text.`;
+Format: Pure Fountain screenplay text matching the user's specific request.`;
   
   return fullPrompt;
 }

@@ -392,19 +392,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             }
           );
           
-          // STRICT system prompt for rewrite mode
-          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it.
-
-CRITICAL RULES FOR REWRITE MODE:
-1. Provide ONLY the rewritten text in Fountain format
-2. NO explanations, NO suggestions, NO options, NO "SCREENWRITING NOTE" sections
-3. NO questions like "Would you like..." or "Here are some options..."
-4. NO meta-commentary about the writing
-5. Start directly with the rewritten screenplay content
-6. Do NOT add any text before or after the rewritten content
-7. If the user says "hands are clammy", just rewrite the selected text to include that detail - don't provide multiple options
-
-OUTPUT: Pure Fountain screenplay text only. Nothing else.`;
+          // Simple system prompt for rewrite mode
+          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten text in Fountain format.`;
         } else {
           // Fallback: use regular rewrite prompt without surrounding text
           builtPrompt = buildRewritePrompt(
@@ -413,7 +402,7 @@ OUTPUT: Pure Fountain screenplay text only. Nothing else.`;
             sceneContext,
             null
           );
-          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection in Fountain format. NO explanations, NO suggestions, NO options.`;
+          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten selection in Fountain format.`;
         }
       } else {
         // REGULAR MODE: Detect if this is content generation vs advice request
@@ -424,29 +413,17 @@ OUTPUT: Pure Fountain screenplay text only. Nothing else.`;
           ? buildChatContentPrompt(prompt, sceneContext)
           : buildChatAdvicePrompt(prompt, sceneContext);
         
-        // Build system prompt - STRICT for content, permissive for advice
+        // Build system prompt - Simple for content, permissive for advice
         if (isContentRequest) {
-          // STRICT system prompt for content generation
-          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT.
-
-CRITICAL RULES FOR CONTENT GENERATION:
-1. Output ONLY screenplay content in Fountain format
-2. NO explanations, NO suggestions, NO "Here are some..." or "Great emotional note..."
-3. NO questions like "Would you like..." or "What would you like..."
-4. NO meta-commentary about the writing
-5. NO "SCREENWRITING NOTE" sections
-6. Start directly with the screenplay content - no intro text
-7. If user says "she's terrified", write the action/dialogue showing her terror - don't provide suggestions
-
-OUTPUT: Pure Fountain screenplay text only. Nothing else.`;
+          // Simple system prompt for content generation (let the user prompt do the work)
+          systemPrompt = `You are a professional screenwriting assistant.`;
           
-          // Add scene context if available
+          // Add scene context if available (minimal, just for context)
           if (sceneContext) {
-            systemPrompt += `\n\n[SCENE CONTEXT]\nCurrent Scene: ${sceneContext.heading}\nAct: ${sceneContext.act}\nPage: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+            systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading}`;
             if (sceneContext.characters && sceneContext.characters.length > 0) {
-              systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+              systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
             }
-            systemPrompt += `Use this context to write appropriate content for this scene.`;
           }
         } else {
           // Permissive system prompt for advice/discussion
