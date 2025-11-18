@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default function WriteLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
-  const { state: editorState, insertText } = useEditor();
+  const { state: editorState, insertText, replaceSelection } = useEditor();
 
   useEffect(() => {
     if (isLoaded && !userId) {
@@ -46,14 +46,22 @@ export default function WriteLayout({ children }) {
         <UnifiedChatPanel 
           editorContent={editorState.content}
           cursorPosition={editorState.cursorPosition}
-          onInsert={(text) => {
-            // Insert text at current cursor position, or at end if no cursor
-            const position = editorState.cursorPosition ?? editorState.content.length;
-            // Add newline before insertion for separation (unless at start of file)
-            const contentBefore = editorState.content.substring(0, position);
-            const needsNewlineBefore = position > 0 && !contentBefore.endsWith('\n\n');
-            const textToInsert = needsNewlineBefore ? '\n\n' + text : text;
-            insertText(textToInsert, position);
+          onInsert={(text, options) => {
+            // If this is a rewrite (selected text exists), use replaceSelection
+            if (options?.isRewrite && options?.selectionRange) {
+              const { start, end } = options.selectionRange;
+              // Clean the text and replace the selection
+              const cleanedText = text.trim();
+              replaceSelection(cleanedText, start, end);
+            } else {
+              // Regular insert: Insert text at current cursor position, or at end if no cursor
+              const position = editorState.cursorPosition ?? editorState.content.length;
+              // Add newline before insertion for separation (unless at start of file)
+              const contentBefore = editorState.content.substring(0, position);
+              const needsNewlineBefore = position > 0 && !contentBefore.endsWith('\n\n');
+              const textToInsert = needsNewlineBefore ? '\n\n' + text : text;
+              insertText(textToInsert, position);
+            }
           }}
         />
       </AgentDrawer>

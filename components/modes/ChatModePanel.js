@@ -33,8 +33,23 @@ function cleanFountainOutput(text) {
     .replace(/```[a-z]*\n/g, '')
     .replace(/```/g, '');
   
-  // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
-  const notePatterns = [
+  // Remove common AI response patterns that aren't screenplay content
+  const unwantedPatterns = [
+    // Remove "Here's..." or "I'll write..." intros
+    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]*/i,
+    // Remove "ALTERNATIVE OPTIONS:" sections
+    /ALTERNATIVE OPTIONS?:.*$/is,
+    // Remove "Option 1:", "Option 2:", etc.
+    /Option \d+[:\-].*$/im,
+    // Remove "Which direction..." questions
+    /Which direction.*$/is,
+    // Remove "This version:" explanations
+    /This version:.*$/is,
+    // Remove "What comes next?" questions
+    /What comes next\?.*$/is,
+    // Remove "What feeling..." questions
+    /What feeling.*$/is,
+    // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
     /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
     /---\s*\n\s*WRITING NOTE.*$/is,
     /\*\*WRITING NOTE\*\*.*$/is,
@@ -42,10 +57,16 @@ function cleanFountainOutput(text) {
     /---\s*\n\s*\*\*NOTE\*\*.*$/is,
     /---\s*\n\s*NOTE.*$/is,
     /\*\*NOTE\*\*.*$/is,
-    /^---\s*$/m
+    /^---\s*$/m,
+    // Remove explanations that start with "This version:" or "This Sarah is..."
+    /This (version|Sarah|character|scene|moment).*$/is,
+    // Remove "Works perfectly for..." explanations
+    /Works perfectly.*$/is,
+    // Remove "What happens next?" questions
+    /What happens next\?.*$/is
   ];
   
-  for (const pattern of notePatterns) {
+  for (const pattern of unwantedPatterns) {
     const match = cleaned.match(pattern);
     if (match) {
       cleaned = cleaned.substring(0, match.index).trim();
@@ -53,10 +74,113 @@ function cleanFountainOutput(text) {
     }
   }
   
+  // Remove lines that are clearly explanations (contain "This", "That", "Which", etc. at start)
+  const lines = cleaned.split('\n');
+  const screenplayLines = [];
+  let foundFirstScreenplayContent = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Skip empty lines at the start
+    if (!foundFirstScreenplayContent && !line) continue;
+    
+    // If line starts with explanation words, stop here
+    if (/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those)/i.test(line) && 
+        !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
+        !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
+        line.length > 20) { // Only if it's a longer explanation
+      break;
+    }
+    
+    // If we find a scene heading or character name, we're in screenplay content
+    if (/^(INT\.|EXT\.|I\/E\.)/i.test(line) || /^[A-Z][A-Z\s]+$/.test(line)) {
+      foundFirstScreenplayContent = true;
+    }
+    
+    // If we've found screenplay content, include this line
+    if (foundFirstScreenplayContent || line.length > 0) {
+      screenplayLines.push(lines[i]);
+    }
+  }
+  
+  cleaned = screenplayLines.join('\n');
+  
   // Clean up extra whitespace
   cleaned = cleaned.trim();
   
   return cleaned;
+}
+
+// Helper to parse 3 rewrite options from AI response
+function parseRewriteOptions(text) {
+  if (!text) return null;
+  
+  // Look for "Option 1", "Option 2", "Option 3" patterns
+  const optionPattern = /Option\s+(\d+)\s*[-:]?\s*([^\n]*)\n([\s\S]*?)(?=Option\s+\d+|$)/gi;
+  const options = [];
+  let match;
+  
+  while ((match = optionPattern.exec(text)) !== null && options.length < 3) {
+    const optionNum = parseInt(match[1]);
+    const description = match[2].trim();
+    let content = match[3].trim();
+    
+    // Clean the content (remove markdown, etc.)
+    content = cleanFountainOutput(content);
+    
+    if (content) {
+      options.push({
+        number: optionNum,
+        description: description || `Option ${optionNum}`,
+        content: content
+      });
+    }
+  }
+  
+  // If we found 3 options, return them
+  if (options.length === 3) {
+    return options;
+  }
+  
+  // Fallback: try to split by "Option 1", "Option 2", "Option 3" more flexibly
+  const lines = text.split('\n');
+  const foundOptions = [];
+  let currentOption = null;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const optionMatch = line.match(/Option\s+(\d+)\s*[-:]?\s*(.*)/i);
+    
+    if (optionMatch) {
+      // Save previous option if exists
+      if (currentOption && currentOption.content.trim()) {
+        foundOptions.push(currentOption);
+      }
+      
+      // Start new option
+      currentOption = {
+        number: parseInt(optionMatch[1]),
+        description: optionMatch[2].trim() || `Option ${optionMatch[1]}`,
+        content: ''
+      };
+    } else if (currentOption) {
+      // Add line to current option
+      currentOption.content += (currentOption.content ? '\n' : '') + line;
+    }
+  }
+  
+  // Add last option
+  if (currentOption && currentOption.content.trim()) {
+    foundOptions.push(currentOption);
+  }
+  
+  // Clean each option's content
+  foundOptions.forEach(opt => {
+    opt.content = cleanFountainOutput(opt.content);
+  });
+  
+  return foundOptions.length >= 2 ? foundOptions : null; // Return if we found at least 2 options
 }
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
@@ -79,28 +203,28 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
   
-  // Auto-send rewrite request when selected text context is set with input
+  // Auto-send rewrite request when selected text context is set (but no messages yet)
   const hasAutoSentRef = useRef(false);
   useEffect(() => {
-    if (state.selectedTextContext && state.input && !isSending && !hasAutoSentRef.current) {
-      const inputValue = state.input.trim();
-      // Only auto-send if input looks like a rewrite prompt
-      if (inputValue && (inputValue.toLowerCase().includes('rewrite') || inputValue.toLowerCase().includes('improve') || inputValue.toLowerCase().startsWith('make'))) {
-        console.log('[ChatModePanel] Auto-sending rewrite request for selected text');
-        hasAutoSentRef.current = true;
-        // Clear input first to prevent duplicate
-        setInput('');
-        // Then send after a brief delay
+    // If we have selected text context but no messages and no input, auto-generate 3 options
+    if (state.selectedTextContext && 
+        state.messages.filter(m => m.mode === 'chat').length === 0 && 
+        !state.input && 
+        !isSending && 
+        !hasAutoSentRef.current) {
+      console.log('[ChatModePanel] Auto-generating 3 rewrite options for selected text');
+      hasAutoSentRef.current = true;
+      
+      // Auto-send empty string to trigger generic rewrite (will generate 3 options)
+      setTimeout(() => {
+        handleSend(''); // Empty string triggers generic rewrite with 3 options
+        // Reset flag after sending completes
         setTimeout(() => {
-          handleSend(inputValue);
-          // Reset flag after sending completes
-          setTimeout(() => {
-            hasAutoSentRef.current = false;
-          }, 2000);
-        }, 200);
-      }
+          hasAutoSentRef.current = false;
+        }, 3000);
+      }, 300);
     }
-  }, [state.selectedTextContext, state.input, isSending]);
+  }, [state.selectedTextContext, state.messages, state.input, isSending]);
   
   // Detect scene context when drawer opens or editor content/cursor changes
   // If cursorPosition is undefined, try to detect from editor content (find last scene heading)
@@ -148,7 +272,16 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   
   // Handle sending messages to AI
   const handleSend = async (prompt) => {
-    if (!prompt || !prompt.trim() || isSending) return;
+    // Allow empty prompt for auto-rewrite (will generate 3 options)
+    if (isSending) return;
+    if (!prompt || !prompt.trim()) {
+      // If empty prompt and in rewrite mode, use generic rewrite request
+      if (state.selectedTextContext) {
+        prompt = ''; // Will trigger generic rewrite in buildRewritePrompt
+      } else {
+        return; // Don't send empty prompts in regular mode
+      }
+    }
     
     setIsSending(true);
     
@@ -487,6 +620,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               !workflowCompletionData &&
               (isScreenplayContent(message.content) || (wasContentRequest && message.content.trim().length > 50));
             
+            // Check if this message contains 3 rewrite options
+            const rewriteOptions = !isUser && state.selectedTextContext ? parseRewriteOptions(message.content) : null;
+            
             return (
               <div
                 key={index}
@@ -505,24 +641,71 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     
                     {/* Message Content */}
                     <div className="flex-1 min-w-0 space-y-3">
-                      <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
-                        {isUser ? (
-                          <div className="whitespace-pre-wrap break-words text-base-content">
-                            {message.content}
-                          </div>
-                        ) : (
-                          <MarkdownRenderer content={message.content} />
-                        )}
-                      </div>
+                      {/* Only show raw message content if we're not displaying parsed rewrite options */}
+                      {!rewriteOptions && (
+                        <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
+                          {isUser ? (
+                            <div className="whitespace-pre-wrap break-words text-base-content">
+                              {message.content}
+                            </div>
+                          ) : (
+                            <MarkdownRenderer content={message.content} />
+                          )}
+                        </div>
+                      )}
                       
-                      {/* Action Buttons */}
-                      {showInsertButton && onInsert && (
+                      {/* Rewrite Options with Individual Insert Buttons */}
+                      {rewriteOptions && rewriteOptions.length >= 2 && onInsert && (
+                        <div className="space-y-4 mt-4">
+                          {rewriteOptions.map((option, optIndex) => (
+                            <div key={optIndex} className="bg-base-100 border border-base-300 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-sm font-semibold text-base-content">
+                                  {option.description || `Option ${option.number}`}
+                                </h4>
+                                <button
+                                  onClick={() => {
+                                    // If in rewrite mode, pass selection range info
+                                    if (state.selectedTextContext && state.selectionRange) {
+                                      onInsert(option.content, {
+                                        isRewrite: true,
+                                        selectionRange: state.selectionRange
+                                      });
+                                    } else {
+                                      onInsert(option.content);
+                                    }
+                                    closeDrawer();
+                                  }}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500 hover:bg-purple-600 text-white transition-colors duration-200"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                  Insert into script
+                                </button>
+                              </div>
+                              <div className="prose prose-sm max-w-none text-base-content/80 whitespace-pre-wrap font-mono text-xs bg-base-200 p-3 rounded border border-base-300">
+                                {option.content}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Single Insert Button (if not showing rewrite options) */}
+                      {showInsertButton && !rewriteOptions && onInsert && (
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => {
                               // Clean the content before inserting (strip markdown, remove notes)
                               const cleanedContent = cleanFountainOutput(message.content);
-                              onInsert(cleanedContent);
+                              // If in rewrite mode, pass selection range info
+                              if (state.selectedTextContext && state.selectionRange) {
+                                onInsert(cleanedContent, {
+                                  isRewrite: true,
+                                  selectionRange: state.selectionRange
+                                });
+                              } else {
+                                onInsert(cleanedContent);
+                              }
                               closeDrawer();
                             }}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
@@ -565,7 +748,15 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                         onClick={() => {
                           // Clean the content before inserting (strip markdown, remove notes)
                           const cleanedContent = cleanFountainOutput(state.streamingText);
-                          onInsert(cleanedContent);
+                          // If in rewrite mode, pass selection range info
+                          if (state.selectedTextContext && state.selectionRange) {
+                            onInsert(cleanedContent, {
+                              isRewrite: true,
+                              selectionRange: state.selectionRange
+                            });
+                          } else {
+                            onInsert(cleanedContent);
+                          }
                           closeDrawer();
                         }}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"

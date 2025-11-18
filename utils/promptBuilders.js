@@ -119,7 +119,7 @@ ROBOT
 (synthetic)
 Sarah Chen. I have a message for you.
 
-INSTRUCTIONS:
+CRITICAL INSTRUCTIONS:
 1. Be DESCRIPTIVE and VISUAL for action
 2. Include dialogue ONLY if user mentions speaking/talking/saying
 3. Character names in ALL CAPS when they speak (NOT bold/markdown like **SARAH** - just SARAH)
@@ -129,8 +129,12 @@ INSTRUCTIONS:
 7. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
 8. NO scene headings
 9. Each request is standalone
-10. OUTPUT ONLY screenplay content - NO explanations, NO questions, NO writing notes, NO meta-commentary
-11. Do NOT add sections like "WRITING NOTE" or "---" - output ONLY the screenplay content
+10. OUTPUT ONLY screenplay content - NO explanations, NO questions, NO writing notes, NO meta-commentary, NO suggestions, NO alternatives
+11. Do NOT add sections like "WRITING NOTE" or "---" or "ALTERNATIVE OPTIONS" - output ONLY the screenplay content
+12. Do NOT ask questions or provide multiple options - just write the screenplay content
+13. Start directly with the screenplay content - no intro text, no "Here's..." or "I'll write..."
+
+OUTPUT FORMAT: Pure Fountain screenplay text only. Nothing else.
 
 Now write for: "${message}"`;
 }
@@ -266,6 +270,44 @@ export function buildRewritePrompt(message, selectedText, sceneContext, surround
     contextInfo += '\n';
   }
   
+  // Check if user provided a generic/default rewrite request (should generate 3 options)
+  const isGenericRequest = !message || 
+    message.toLowerCase().includes('provide 3') || 
+    message.toLowerCase().includes('three options') ||
+    message.toLowerCase().includes('3 different') ||
+    message.trim() === '' ||
+    message.toLowerCase() === 'rewrite this' ||
+    message.toLowerCase() === 'rewrite';
+  
+  if (isGenericRequest) {
+    // Auto-generate 3 rewrite options
+    return `${contextInfo}User wants 3 different rewrite options for the selected text.
+
+CRITICAL INSTRUCTIONS:
+1. Provide EXACTLY 3 different rewrite options
+2. Each option should be a different approach/tone/style
+3. Format as:
+   Option 1 - [Brief description]:
+   [Rewritten text in Fountain format]
+   
+   Option 2 - [Brief description]:
+   [Rewritten text in Fountain format]
+   
+   Option 3 - [Brief description]:
+   [Rewritten text in Fountain format]
+
+4. Maintain Fountain screenplay format for each option
+5. Keep the same scene location: ${sceneContext?.heading || 'current scene'} - NO scene headings
+6. Use ONLY these characters: ${sceneContext?.characters?.join(', ') || 'existing characters'}
+7. Match the length of the original text approximately
+8. BLEND SEAMLESSLY with surrounding text (see before/after context above)
+9. Character names in ALL CAPS only when speaking
+10. NO markdown formatting (no **, no *, no ---)
+11. Each option should be clearly separated and labeled
+
+Output: 3 distinct rewrite options in the format above.`;
+  }
+  
   const fullPrompt = `${contextInfo}User's rewrite request: "${message}"
 
 CRITICAL INSTRUCTIONS:
@@ -283,8 +325,11 @@ CRITICAL INSTRUCTIONS:
 12. Output ONLY the rewritten selection - nothing before, nothing after
 13. Character names in ALL CAPS only when speaking
 14. This is STANDALONE - ignore previous responses
+15. NO explanations, NO questions, NO meta-commentary, NO suggestions, NO alternatives
+16. Do NOT provide multiple options - just provide ONE rewritten version
+17. Start directly with the rewritten screenplay content - no intro text
 
-Format: Pure Fountain screenplay text matching the user's specific request.`;
+Format: Pure Fountain screenplay text matching the user's specific request. Output ONLY the rewritten text.`;
   
   return fullPrompt;
 }
