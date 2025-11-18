@@ -37,6 +37,12 @@ function cleanFountainOutput(text) {
   const unwantedPatterns = [
     // Remove "Here's..." or "I'll write..." intros
     /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]*/i,
+    // Remove "Great emotional note" or similar praise
+    /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
+    // Remove "SCREENWRITING NOTE:" or "NOTE:" sections (case insensitive, multiline)
+    /(SCREENWRITING\s+)?NOTE:.*$/is,
+    // Remove "REVISION" headers
+    /^REVISION\s*$/im,
     // Remove "ALTERNATIVE OPTIONS:" sections
     /ALTERNATIVE OPTIONS?:.*$/is,
     // Remove "Option 1:", "Option 2:", etc.
@@ -49,6 +55,10 @@ function cleanFountainOutput(text) {
     /What comes next\?.*$/is,
     // Remove "What feeling..." questions
     /What feeling.*$/is,
+    // Remove "Would you like..." questions
+    /Would you like.*$/is,
+    // Remove "Here are some suggestions:" patterns
+    /Here are (some|a few) (suggestions|options|ideas|ways|things).*$/is,
     // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
     /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
     /---\s*\n\s*WRITING NOTE.*$/is,
@@ -63,7 +73,15 @@ function cleanFountainOutput(text) {
     // Remove "Works perfectly for..." explanations
     /Works perfectly.*$/is,
     // Remove "What happens next?" questions
-    /What happens next\?.*$/is
+    /What happens next\?.*$/is,
+    // Remove "For your scene" or "For this scene" explanations
+    /For (your|this) scene.*$/is,
+    // Remove "Recommendation:" patterns
+    /Recommendation:.*$/is,
+    // Remove "Current line:" patterns
+    /Current line:.*$/is,
+    // Remove "Enhanced options:" patterns
+    /Enhanced options?:.*$/is
   ];
   
   for (const pattern of unwantedPatterns) {
@@ -85,16 +103,26 @@ function cleanFountainOutput(text) {
     // Skip empty lines at the start
     if (!foundFirstScreenplayContent && !line) continue;
     
-    // If line starts with explanation words, stop here
-    if (/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those)/i.test(line) && 
-        !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
-        !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
-        line.length > 20) { // Only if it's a longer explanation
+    // If line starts with "NOTE:" or explanation words, stop here
+    if (/^NOTE:/i.test(line)) {
       break;
     }
     
-    // If we find a scene heading or character name, we're in screenplay content
-    if (/^(INT\.|EXT\.|I\/E\.)/i.test(line) || /^[A-Z][A-Z\s]+$/.test(line)) {
+    // If line starts with explanation words, stop here (but allow short lines that might be dialogue)
+    if (/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
+        !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
+        !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
+        line.length > 15) { // Only if it's a longer explanation
+      break;
+    }
+    
+    // If we find a scene heading, skip it (we don't want scene headings in content generation)
+    if (/^(INT\.|EXT\.|I\/E\.)/i.test(line)) {
+      continue; // Skip scene headings
+    }
+    
+    // If we find a character name in ALL CAPS, we're in screenplay content
+    if (/^[A-Z][A-Z\s]+$/.test(line) && line.length > 2) {
       foundFirstScreenplayContent = true;
     }
     
@@ -343,7 +371,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       
       // Check if this is a rewrite request (selected text exists)
       let builtPrompt;
-      let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+      let systemPrompt;
       
       if (state.selectedTextContext && state.selectionRange && editorContent) {
         // REWRITE MODE: Use buildRewritePrompt with surrounding text
@@ -364,9 +392,19 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             }
           );
           
-          // System prompt for rewrite mode
-          systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
-          systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+          // STRICT system prompt for rewrite mode
+          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it.
+
+CRITICAL RULES FOR REWRITE MODE:
+1. Provide ONLY the rewritten text in Fountain format
+2. NO explanations, NO suggestions, NO options, NO "SCREENWRITING NOTE" sections
+3. NO questions like "Would you like..." or "Here are some options..."
+4. NO meta-commentary about the writing
+5. Start directly with the rewritten screenplay content
+6. Do NOT add any text before or after the rewritten content
+7. If the user says "hands are clammy", just rewrite the selected text to include that detail - don't provide multiple options
+
+OUTPUT: Pure Fountain screenplay text only. Nothing else.`;
         } else {
           // Fallback: use regular rewrite prompt without surrounding text
           builtPrompt = buildRewritePrompt(
@@ -375,7 +413,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             sceneContext,
             null
           );
-          systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]`;
+          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection in Fountain format. NO explanations, NO suggestions, NO options.`;
         }
       } else {
         // REGULAR MODE: Detect if this is content generation vs advice request
@@ -386,17 +424,46 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           ? buildChatContentPrompt(prompt, sceneContext)
           : buildChatAdvicePrompt(prompt, sceneContext);
         
-        // Build system prompt with scene context
-        if (sceneContext) {
-          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
-          systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
-          systemPrompt += `Act: ${sceneContext.act}\n`;
-          systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
-          if (sceneContext.characters && sceneContext.characters.length > 0) {
-            systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+        // Build system prompt - STRICT for content, permissive for advice
+        if (isContentRequest) {
+          // STRICT system prompt for content generation
+          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT.
+
+CRITICAL RULES FOR CONTENT GENERATION:
+1. Output ONLY screenplay content in Fountain format
+2. NO explanations, NO suggestions, NO "Here are some..." or "Great emotional note..."
+3. NO questions like "Would you like..." or "What would you like..."
+4. NO meta-commentary about the writing
+5. NO "SCREENWRITING NOTE" sections
+6. Start directly with the screenplay content - no intro text
+7. If user says "she's terrified", write the action/dialogue showing her terror - don't provide suggestions
+
+OUTPUT: Pure Fountain screenplay text only. Nothing else.`;
+          
+          // Add scene context if available
+          if (sceneContext) {
+            systemPrompt += `\n\n[SCENE CONTEXT]\nCurrent Scene: ${sceneContext.heading}\nAct: ${sceneContext.act}\nPage: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+            if (sceneContext.characters && sceneContext.characters.length > 0) {
+              systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+            }
+            systemPrompt += `Use this context to write appropriate content for this scene.`;
           }
-          systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
-          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+        } else {
+          // Permissive system prompt for advice/discussion
+          systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+          
+          // Add scene context if available
+          if (sceneContext) {
+            systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+            systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
+            systemPrompt += `Act: ${sceneContext.act}\n`;
+            systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+            if (sceneContext.characters && sceneContext.characters.length > 0) {
+              systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+            }
+            systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
+            systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+          }
         }
       }
       

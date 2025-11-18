@@ -45,10 +45,13 @@ export function detectContentRequest(message) {
   const isShortStatement = message.split(' ').length <= 10 && !message.includes('?');
   const isNarrativeDescription = /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(message);
   
+  // 🔥 NEW: Detect emotional/descriptive statements (like "she's terrified", "hands are clammy")
+  const isEmotionalDescription = /(is|are|was|were|becomes|becomes|feels|feeling|looks|seems)\s+(terrified|scared|afraid|angry|happy|sad|excited|nervous|anxious|calm|tense|relaxed|stressed|worried|confused|shocked|surprised|disgusted|proud|ashamed|embarrassed|jealous|lonely|tired|exhausted|energetic|focused|distracted|clammy|shaky|trembling|shaking|sweating|breathing|panting|gasping|hyperventilating)/i.test(message);
+  
   // 🔥 NEW: Detect rewrite/feedback requests (should be treated as content generation)
   const isRewriteRequest = /(its|it's|this is|that's|this feels|too|not|needs|should|could|make it|fix|change|revise|rewrite|redo|better|different|gooey|melodramatic|convenient|predictable|on-the-nose|telling|showing)/i.test(message);
   
-  const isContentRequest = hasActionVerb || hasContentKeyword || isRewriteRequest || (
+  const isContentRequest = hasActionVerb || hasContentKeyword || isRewriteRequest || isEmotionalDescription || (
     isShortStatement && 
     !message.toLowerCase().startsWith('how') && 
     !message.toLowerCase().startsWith('what') && 
@@ -94,49 +97,28 @@ CRITICAL INSTRUCTIONS:
 OUTPUT: Revised screenplay content that fixes the issues mentioned.`;
   }
   
-  return `${contextInfo}User's request: "${message}"
+  return `${contextInfo}User wants you to write: "${message}"
 
-YOU ARE A SCREENPLAY WRITER - NOT A GRAMMAR CORRECTOR.
+Write ONLY the screenplay content they requested. Keep it SHORT (1-3 lines max).
 
-Write 1-3 vivid screenplay elements in Fountain format.
+RULES:
+- NO scene headings (INT./EXT.)
+- NO explanations or notes
+- NO questions
+- Just write the action/dialogue they asked for
+- Character names in ALL CAPS when speaking
+- Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
 
-ACTION EXAMPLE:
-Input: "Sarah's monitor comes to life as a robot"
-Output: "Sarah's monitor FLICKERS violently. The screen BULGES outward, pixels reorganizing into metallic plates. A sleek ROBOT unfolds from the chassis."
+EXAMPLE:
+User: "they smile and make a secret handshake"
+You write:
+They exchange knowing smiles. Rivera extends his hand with a specific gesture. Sarah mirrors it, completing a SECRET HANDSHAKE.
 
-DIALOGUE EXAMPLE:
-Input: "Sarah says what the hell"
-Output:
-SARAH
-What the hell?
+User: "she's terrified"
+You write:
+Sarah's whole body trembles. Her breath comes in short gasps. She backs against the car, unable to move.
 
-MIXED EXAMPLE:
-Input: "The robot speaks to Sarah"
-Output:
-The ROBOT's optical sensors focus on Sarah.
-
-ROBOT
-(synthetic)
-Sarah Chen. I have a message for you.
-
-CRITICAL INSTRUCTIONS:
-1. Be DESCRIPTIVE and VISUAL for action
-2. Include dialogue ONLY if user mentions speaking/talking/saying
-3. Character names in ALL CAPS when they speak (NOT bold/markdown like **SARAH** - just SARAH)
-4. Parentheticals in parentheses (NOT italics/markdown)
-5. NO markdown formatting (no **, no *, no ---, no markdown of any kind)
-6. Use active verbs and cinematic language
-7. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
-8. NO scene headings
-9. Each request is standalone
-10. OUTPUT ONLY screenplay content - NO explanations, NO questions, NO writing notes, NO meta-commentary, NO suggestions, NO alternatives
-11. Do NOT add sections like "WRITING NOTE" or "---" or "ALTERNATIVE OPTIONS" - output ONLY the screenplay content
-12. Do NOT ask questions or provide multiple options - just write the screenplay content
-13. Start directly with the screenplay content - no intro text, no "Here's..." or "I'll write..."
-
-OUTPUT FORMAT: Pure Fountain screenplay text only. Nothing else.
-
-Now write for: "${message}"`;
+OUTPUT: Just the screenplay content. Nothing else.`;
 }
 
 /**
