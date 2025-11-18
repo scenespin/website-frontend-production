@@ -33,6 +33,7 @@ export function SceneSelector({
   isMobile = false
 }: SceneSelectorProps) {
   const screenplay = useScreenplay();
+  const contextStore = useContextStore();
   const scenes = screenplay.scenes || [];
   const selectedScene = scenes.find(s => s.id === selectedSceneId);
 
@@ -46,8 +47,21 @@ export function SceneSelector({
   const handleEditScene = () => {
     if (selectedSceneId && onEditScene) {
       onEditScene(selectedSceneId);
+    } else if (selectedSceneId) {
+      // Use context store to set scene, then navigate to editor
+      // The editor will read the context and jump to the scene's startLine
+      const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+      
+      if (scene) {
+        // Set scene in context store so editor can jump to it
+        contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
+        
+        // Navigate to editor - it will read context and jump to scene.startLine
+        window.location.href = `/write?sceneId=${scene.id}`;
+      } else {
+        window.location.href = '/write';
+      }
     } else {
-      // Navigate to editor
       window.location.href = '/write';
     }
   };

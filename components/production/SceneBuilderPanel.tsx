@@ -83,7 +83,7 @@ interface GenerationHistoryItem {
   sceneDescription: string;
   characterReferences: string[];
   qualityTier: 'professional' | 'premium';
-  enableSound: boolean;
+  // Note: enableSound removed - sound is handled separately via audio workflows
   createdAt: string;
   status: 'completed' | 'failed';
   workflowExecutionId: string;
@@ -142,14 +142,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
   const [showAnnotationPanel, setShowAnnotationPanel] = useState(false);
   
-  // Force defaults on mobile (Feature 0069)
-  useEffect(() => {
-    if (isMobile || simplified) {
-      setQualityTier('professional');  // Force Professional on mobile
-      setDuration('5s');                // Force 5s on mobile
-      setEnableSound(false);            // Force audio off on mobile
-    }
-  }, [isMobile, simplified]);
+  // Note: Mobile no longer forces defaults - users can choose any options
   
   // Phase 2: Auto-select scene from editor context
   useEffect(() => {
@@ -677,7 +670,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         qualityTier,
         aspectRatio: '16:9',
         duration,
-        enableSound,
+        // Note: enableSound removed - sound is handled separately via audio workflows
         userId: 'default-user', // TODO: Get from auth
         projectId,
         // Feature 0109: Style matching support
@@ -1039,7 +1032,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       sceneDescription,
       characterReferences: referenceImages.filter(img => img !== null).map((_, i) => `char-${i}`),
       qualityTier,
-      enableSound,
+      // Note: enableSound removed - sound is handled separately via audio workflows
       createdAt: new Date().toISOString(),
       status: 'completed',
       workflowExecutionId: execution.id,
@@ -1320,7 +1313,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                       toast.success('Scene loaded! Ready to generate.');
                     }}
                     onEditScene={(sceneId) => {
-                      window.location.href = `/write?scene=${sceneId}`;
+                      // Use context store to set scene, then navigate to editor
+                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                      if (scene) {
+                        // Set scene in context store so editor can jump to it
+                        contextStore.setCurrentScene(scene.id, scene.heading || scene.synopsis || 'Scene');
+                        // Navigate to editor - it will read context and jump to scene.startLine
+                        window.location.href = `/write?sceneId=${sceneId}`;
+                      } else {
+                        window.location.href = '/write';
+                      }
                     }}
                     isMobile={isMobile}
                   />
@@ -1617,38 +1619,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   </div>
                 </div>
                 
-                {/* Audio Toggle */}
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={enableSound}
-                      onChange={(e) => setEnableSound(e.target.checked)}
-                      className="w-4 h-4 rounded border-border"
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">Generate Sound/Music</div>
-                      <div className="text-xs text-muted-foreground">
-                        Add audio to your scene (stricter content guidelines apply)
-                      </div>
-                    </div>
-                  </label>
-                  
-                  {enableSound && (
-                    <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div className="text-xs text-amber-700 dark:text-amber-400">
-                          <div className="font-medium mb-1">Audio Pre-Check</div>
-                          <div>
-                            We&apos;ll validate your scene with audio first. If rejected due to content guidelines,
-                            you&apos;ll choose to continue without audio or cancel at no charge.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Audio Toggle - REMOVED: Sound is handled separately via audio workflows */}
                 
                 {/* Style Matching (Feature 0109) */}
                 {styleProfiles.length > 0 && (
@@ -1961,11 +1932,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                             <Badge variant={item.qualityTier === 'premium' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0.5">
                               {item.qualityTier}
                             </Badge>
-                            {item.enableSound && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
-                                🔊 Audio
-                              </Badge>
-                            )}
+                            {/* Note: enableSound removed - sound is handled separately via audio workflows */}
                           </div>
                           
                           <div className="flex items-center gap-2">
