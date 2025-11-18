@@ -360,7 +360,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                   })),
                   referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
                 }))}
-                isLoading={!screenplay.isLoaded}
+                isLoading={screenplay.isLoading}
                 projectId={projectId}
                 onCharactersUpdate={() => {
                   // Trigger refresh of screenplay context
@@ -599,7 +599,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                   })),
                   referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
                 }))}
-                isLoading={!screenplay.isLoaded}
+                isLoading={screenplay.isLoading}
                 projectId={projectId}
                 onCharactersUpdate={() => {
                   // Trigger refresh of screenplay context
