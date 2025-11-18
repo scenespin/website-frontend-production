@@ -1017,9 +1017,8 @@ function UnifiedChatPanelInner({
       <div ref={messagesEndRef} />
 
       {/* Chat Input - Modern AI Chat Style */}
-      {/* Hide input if mode panel has its own input (workflow modes) */}
-      {!(state.activeWorkflow && (state.activeMode === 'character' || state.activeMode === 'location')) && (
-        <div className="flex-shrink-0 border-t border-base-300/50 bg-base-100">
+      {/* Always show input - Character/Location panels use this input but handle sending themselves */}
+      <div className="flex-shrink-0 border-t border-base-300/50 bg-base-100">
           {/* Attached Files Display */}
           {attachedFiles.length > 0 && (
             <div className="max-w-3xl mx-auto px-4 md:px-6 pt-3 flex flex-wrap gap-2">
@@ -1059,8 +1058,8 @@ function UnifiedChatPanelInner({
                   boxShadow: 'none'
                 }}
               />
-              {/* Action Buttons - Bottom Right */}
-              <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
+              {/* Action Buttons - Vertically centered, aligned with textarea */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                 <button
                   onClick={handleAttachment}
                   className={`p-2.5 rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
@@ -1097,15 +1096,13 @@ function UnifiedChatPanelInner({
             </div>
           </div>
         </div>
-      )}
 
       {/* Bottom Controls - Mode & Model Selector */}
-      <div className="max-w-3xl mx-auto px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
-          <ModeSelector />
-          {/* Only show LLM selector for AI Agents */}
-          {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
-          <div className="flex-1"></div>
-        </div>
+      <div className="px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
+        <ModeSelector />
+        {/* Only show LLM selector for AI Agents */}
+        {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
+      </div>
         
         {/* Hidden file input */}
         <input
