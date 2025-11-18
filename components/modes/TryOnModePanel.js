@@ -2,12 +2,14 @@
 
 import { useState, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useAuth } from '@clerk/nextjs';
 import { Users, Upload, Loader2, Download, Save, Clock, Droplet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 
 export function TryOnModePanel({ onInsert }) {
   const { state, addMessage } = useChatContext();
+  const { getToken } = useAuth();
   const [personImage, setPersonImage] = useState(null);
   const [productImage, setProductImage] = useState(null);
   const [sampleCount, setSampleCount] = useState(1);
@@ -16,6 +18,7 @@ export function TryOnModePanel({ onInsert }) {
   const [selectingFor, setSelectingFor] = useState(null);
   const [uploadProgress, setUploadProgress] = useState({});
   const [results, setResults] = useState([]);
+  const [isUploading, setIsUploading] = useState({ person: false, product: false });
   
   const personFileInput = useRef(null);
   const productFileInput = useRef(null);
@@ -30,13 +33,25 @@ export function TryOnModePanel({ onInsert }) {
   
   const selectedOption = sampleOptions.find(opt => opt.value === sampleCount);
   
-  // Handle local file upload
+  // Handle local file upload (using presigned POST system)
   const handleLocalUpload = async (file, type) => {
     if (!file) return;
     
     // Validate file
     const validTypes = ['image/jpeg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
+    let fileType = file.type;
+    if (!fileType || !fileType.startsWith('image/')) {
+      // Try to detect from extension
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const mimeTypes = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png'
+      };
+      fileType = mimeTypes[extension] || 'image/jpeg';
+    }
+    
+    if (!validTypes.includes(fileType)) {
       toast.error('Please upload JPEG or PNG images only');
       return;
     }
@@ -47,29 +62,117 @@ export function TryOnModePanel({ onInsert }) {
       return;
     }
     
+    setIsUploading({ ...isUploading, [type]: true });
+    setUploadProgress({ [type]: 0 });
+    
     try {
-      // Upload to S3 (7-day expiration)
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+      
+      // Step 1: Get presigned POST URL
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(fileType)}` +
+        `&fileSize=${file.size}` +
+        `&projectId=default`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error('File too large. Maximum size is 10MB.');
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
+      }
+      
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      if (!url || !fields || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+      
+      // Step 2: Upload directly to S3 using FormData POST
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'try-on-input');
       
-      setUploadProgress({ [type]: 0 });
-      
-      const response = await api.upload.file(formData, {
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress({ [type]: percentCompleted });
+      // Add all fields from presigned POST (except 'bucket')
+      Object.entries(fields).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'bucket') {
+          formData.append(key, value);
         }
       });
+      
+      // Add the file last
+      formData.append('file', file);
+      
+      // Upload to S3
+      const s3Response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!s3Response.ok) {
+        const errorText = await s3Response.text().catch(() => 'No error details');
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+      }
+      
+      // Step 3: Register file in DynamoDB (optional for try-on)
+      try {
+        await fetch('/api/media/register', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            projectId: 'default',
+            fileName: file.name,
+            fileType: fileType,
+            fileSize: file.size,
+            s3Key,
+          }),
+        });
+      } catch (regError) {
+        // Registration is optional - log but don't fail
+        console.warn('[TryOnMode] Failed to register file:', regError);
+      }
+      
+      // Step 4: Get download URL for preview
+      const downloadUrlResponse = await fetch('/api/s3/download-url', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          s3Key,
+          expiresIn: 3600 // 1 hour
+        }),
+      });
+      
+      let downloadUrl = null;
+      if (downloadUrlResponse.ok) {
+        const downloadData = await downloadUrlResponse.json();
+        downloadUrl = downloadData.downloadUrl;
+      }
       
       // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         const imageData = {
           source: 's3',
-          s3Key: response.data.s3Key,
-          url: response.data.url,
-          expiresAt: response.data.expiresAt,
+          s3Key: s3Key,
+          url: downloadUrl || `s3://${s3Key}`, // Fallback if download URL fails
+          expiresAt: new Date(Date.now() + 3600000).toISOString(), // 1 hour
           preview: e.target.result
         };
         
@@ -84,11 +187,13 @@ export function TryOnModePanel({ onInsert }) {
       reader.readAsDataURL(file);
       
       setUploadProgress({});
+      setIsUploading({ ...isUploading, [type]: false });
       
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload image');
+      console.error('[TryOnMode] Upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
       setUploadProgress({});
+      setIsUploading({ ...isUploading, [type]: false });
     }
   };
   

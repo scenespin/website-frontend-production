@@ -52,6 +52,9 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { extractS3Key } from '@/utils/s3';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
+import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
+import { EditorContextBanner } from './EditorContextBanner';
+import { useContextStore } from '@/lib/contextStore';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -102,7 +105,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   // Authentication
   const { getToken } = useAuth();
   
-  // Get screenplay context (for scene data from GitHub)
+  // Get screenplay context (for scene data from database)
   const screenplay = useScreenplay();
   
   // Form state
@@ -111,6 +114,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [qualityTier, setQualityTier] = useState<'professional' | 'premium'>('professional');
   const [duration, setDuration] = useState('5s');
   const [enableSound, setEnableSound] = useState(false);
+  
+  // Phase 2: Scene selection state
+  const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [showEditorContextBanner, setShowEditorContextBanner] = useState(false);
+  const [editorContextSceneName, setEditorContextSceneName] = useState<string | null>(null);
+  
+  // Get editor context for auto-select
+  const contextStore = useContextStore();
   
   // Style matching state (Feature 0109)
   const [selectedStyleProfile, setSelectedStyleProfile] = useState<string | null>(null);
@@ -136,6 +148,45 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       setEnableSound(false);            // Force audio off on mobile
     }
   }, [isMobile, simplified]);
+  
+  // Phase 2: Auto-select scene from editor context
+  useEffect(() => {
+    const editorSceneId = contextStore.context.currentSceneId;
+    const editorProjectId = contextStore.context.projectId;
+    
+    // Only auto-select if:
+    // 1. Context has a scene ID
+    // 2. Project IDs match (or context has no project ID)
+    // 3. Scenes are loaded
+    // 4. Scene exists in database
+    if (
+      editorSceneId && 
+      screenplay.scenes && 
+      screenplay.scenes.length > 0 &&
+      (!editorProjectId || editorProjectId === projectId)
+    ) {
+      const sceneFromContext = screenplay.scenes.find(s => s.id === editorSceneId);
+      
+      if (sceneFromContext) {
+        // Auto-select this scene
+        setSelectedSceneId(sceneFromContext.id);
+        setInputMethod('database'); // Force database mode
+        
+        // Load scene content
+        const sceneText = sceneFromContext.synopsis || 
+          `${sceneFromContext.heading || ''}\n\n${sceneFromContext.synopsis || ''}`.trim();
+        setSceneDescription(sceneText);
+        
+        // Show banner
+        setEditorContextSceneName(sceneFromContext.heading || sceneFromContext.synopsis || 'Current Scene');
+        setShowEditorContextBanner(true);
+        
+        console.log('[SceneBuilderPanel] Auto-selected scene from editor context:', sceneFromContext.id);
+      } else {
+        console.log('[SceneBuilderPanel] Scene from editor context not found in database:', editorSceneId);
+      }
+    }
+  }, [contextStore.context.currentSceneId, contextStore.context.projectId, screenplay.scenes, projectId]);
   
   // Load style profiles for this project (Feature 0109)
   useEffect(() => {
@@ -1170,48 +1221,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="h-full flex flex-col">
-      {/* Screenplay Context Banner (when loaded) */}
-      {screenplay.screenplayId && screenplay.beats.length > 0 && (
-        <div className="flex-shrink-0 bg-info/10 border-b border-info/20 px-6 py-2">
-          <div className="text-sm flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Film className="w-4 h-4 text-info flex-shrink-0" />
-              <span className="opacity-70">Screenplay Connected:</span>
-              <span className="font-semibold text-info">
-                {screenplay.beats.length} beat{screenplay.beats.length > 1 ? 's' : ''}
-              </span>
-              <span className="opacity-50">•</span>
-              <span className="opacity-70">
-                {screenplay.beats.reduce((total, beat) => total + (beat.scenes?.length || 0), 0)} scenes available
-              </span>
-            </div>
-            <Badge variant="secondary" className="flex-shrink-0">
-              From GitHub
-            </Badge>
-          </div>
-        </div>
-      )}
-
-      {/* DynamoDB Storage Info (when not loaded from screenplay) */}
-      {!screenplay.screenplayId && (
-        <div className="flex-shrink-0 bg-yellow-50 dark:bg-yellow-950/20 border-b border-yellow-200 dark:border-yellow-900 px-6 py-3">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-                💡 Pro Tip: Connect GitHub to import scenes from your screenplay
-              </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                You can still create scenes manually by typing descriptions below
-              </p>
-            </div>
-            <a 
-              href="/write" 
-              className="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-yellow-900 dark:text-yellow-100 bg-yellow-100 dark:bg-yellow-900/40 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 rounded-md transition-colors border border-yellow-300 dark:border-yellow-700"
-            >
-              Connect GitHub
-            </a>
-          </div>
+      {/* Screenplay Connection Banner */}
+      <ScreenplayStatusBanner
+        onViewEditor={() => {
+          window.location.href = '/write';
+        }}
+        className="mx-6 mt-6"
+      />
+      
+      {/* Editor Context Banner (when scene auto-selected) */}
+      {showEditorContextBanner && editorContextSceneName && (
+        <div className="mx-6 mt-4">
+          <EditorContextBanner
+            sceneName={editorContextSceneName}
+            onDismiss={() => setShowEditorContextBanner(false)}
+          />
         </div>
       )}
       
@@ -1237,26 +1261,158 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            {/* Scene Description */}
+            {/* Scene Selection System - Phase 2 */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">📝 Scene Description</CardTitle>
+                <CardTitle className="text-lg">📝 Scene Selection</CardTitle>
                 <CardDescription>
-                  Describe your scene in screenplay format or plain English
+                  Choose a scene from your screenplay or enter one manually
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Textarea
-                  placeholder={`Example:\n\nINT. COFFEE SHOP - DAY\n\nDetective SARAH interviews nervous suspect across table.\nSteam rises from coffee cups. Tense silence.\n\nOr just: "A detective interviewing someone in a coffee shop"`}
-                  value={sceneDescription}
-                  onChange={(e) => setSceneDescription(e.target.value)}
-                  rows={8}
-                  maxLength={500}
-                  className="font-mono text-sm"
-                />
-                <div className="text-xs text-muted-foreground mt-2 text-right">
-                  {sceneDescription.length}/500 characters
+              <CardContent className="space-y-4">
+                {/* Input Method Toggle */}
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium">Input Method:</label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="inputMethod"
+                        value="database"
+                        checked={inputMethod === 'database'}
+                        onChange={() => setInputMethod('database')}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">From Database</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="inputMethod"
+                        value="manual"
+                        checked={inputMethod === 'manual'}
+                        onChange={() => setInputMethod('manual')}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">Manual Entry</span>
+                    </label>
+                  </div>
                 </div>
+
+                {/* Database Selection */}
+                {inputMethod === 'database' && (
+                  <SceneSelector
+                    selectedSceneId={selectedSceneId}
+                    onSceneSelect={(sceneId) => {
+                      setSelectedSceneId(sceneId);
+                      const scene = screenplay.scenes?.find(s => s.id === sceneId);
+                      if (scene) {
+                        // Load scene content into description
+                        const sceneText = scene.synopsis || 
+                          `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+                        setSceneDescription(sceneText);
+                      }
+                    }}
+                    onUseScene={(scene) => {
+                      // Scene already loaded in onSceneSelect, just confirm
+                      toast.success('Scene loaded! Ready to generate.');
+                    }}
+                    onEditScene={(sceneId) => {
+                      window.location.href = `/write?scene=${sceneId}`;
+                    }}
+                    isMobile={isMobile}
+                  />
+                )}
+
+                {/* Manual Entry */}
+                {inputMethod === 'manual' && (
+                  <ManualSceneEntry
+                    value={sceneDescription}
+                    onChange={setSceneDescription}
+                    onUseAsIs={() => {
+                      if (!sceneDescription.trim()) {
+                        toast.error('Please enter a scene description');
+                        return;
+                      }
+                      toast.success('Scene ready! Set generation options below.');
+                    }}
+                    onGenerateWithAI={async () => {
+                      // Generate scene using Director agent
+                      if (!sceneDescription.trim()) {
+                        toast.error('Please enter a scene description first');
+                        return;
+                      }
+                      
+                      try {
+                        const token = await getToken({ template: 'wryda-backend' });
+                        
+                        // Build prompt for Director agent (full scene generation)
+                        const directorPrompt = `User's request: "${sceneDescription}"
+
+DIRECTOR MODE - SCENE DEVELOPMENT:
+
+You are a professional screenplay director helping develop full scenes. Your role is to:
+
+1. EXPAND THE IDEA: Take the user's concept and develop it into complete scene content
+2. SCENE LENGTH: Write a complete, full scene (15-30+ lines)
+3. INCLUDE ELEMENTS:
+   - Scene heading (INT./EXT. LOCATION - TIME)
+   - Action lines that set the mood and visual
+   - Character reactions and emotions
+   - Dialogue when appropriate
+   - Parentheticals for tone/delivery
+   - Scene atmosphere and tension
+   - Visual storytelling and cinematic direction
+
+4. FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
+   - Character names in ALL CAPS (NOT bold/markdown)
+   - Parentheticals in parentheses: (examining the USB drive)
+   - Dialogue in plain text below character name
+   - Action lines in normal case
+   - NO markdown formatting (no **, no *, no ---)
+   - Proper spacing between elements
+   - Scene headings in ALL CAPS: INT. LOCATION - TIME
+
+5. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary.
+
+Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
+                        
+                        const response = await fetch('/api/chat/generate', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            userPrompt: directorPrompt,
+                            desiredModelId: 'gemini-2.0-flash-001', // Fast and affordable
+                            conversationHistory: [],
+                          }),
+                        });
+                        
+                        if (!response.ok) {
+                          const errorData = await response.json().catch(() => ({}));
+                          throw new Error(errorData.message || `HTTP ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.success && data.content) {
+                          // Update textarea with generated scene
+                          setSceneDescription(data.content);
+                          toast.success('Scene generated! Review and edit if needed.');
+                        } else {
+                          throw new Error(data.message || 'Failed to generate scene');
+                        }
+                      } catch (error: any) {
+                        console.error('[SceneBuilderPanel] AI scene generation failed:', error);
+                        toast.error(error.message || 'Failed to generate scene. Please try again.');
+                        throw error; // Re-throw so ManualSceneEntry can handle it
+                      }
+                    }}
+                    isMobile={isMobile}
+                  />
+                )}
               </CardContent>
             </Card>
             

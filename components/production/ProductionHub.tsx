@@ -52,6 +52,8 @@ import { CharacterBankPanel } from './CharacterBankPanel';
 import { LocationBankPanel } from './LocationBankPanel';
 import AssetBankPanel from './AssetBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
+import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
+import { QuickActions } from './QuickActions';
 
 // ============================================================================
 // TYPES
@@ -237,7 +239,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="bg-gray-900 border-b border-gray-800 p-4">
           <h1 className="text-xl font-bold text-white">Production Hub</h1>
           <p className="text-sm text-gray-400">
-            {screenplay.screenplayId ? `${screenplay.beats.length} beats • ${screenplay.characters.length} characters` : 'No screenplay loaded'}
+            {screenplay.screenplayId ? `${screenplay.scenes?.length || 0} scenes • ${screenplay.characters?.length || 0} characters` : 'No screenplay loaded'}
           </p>
         </div>
 
@@ -389,7 +391,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="p-4 border-b border-gray-800">
           <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>
           <p className="text-sm text-gray-400 truncate">
-            {screenplay.screenplayId ? `${screenplay.beats.length} beats` : 'No screenplay'}
+            {screenplay.screenplayId ? `${screenplay.scenes?.length || 0} scenes` : 'No screenplay'}
           </p>
         </div>
 
@@ -613,9 +615,34 @@ interface OverviewTabProps {
 function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobile }: OverviewTabProps) {
   const screenplay = useScreenplay();
 
+  const handleViewEditor = () => {
+    // Navigate to editor page
+    window.location.href = '/write';
+  };
+
+  const handleRescan = async () => {
+    // Use the same rescanScript function from ScreenplayContext that the editor uses
+    // This is the same functionality - just called from Production Hub
+    try {
+      // Get current editor content from EditorContext if available
+      // For now, we'll need to get it from the screenplay context or navigate to editor
+      // Since rescan needs the script content, we'll navigate to editor for now
+      // TODO: When editor content is accessible from Production Hub, call screenplay.rescanScript() directly
+      window.location.href = '/write?action=rescan';
+    } catch (error) {
+      console.error('[OverviewTab] Rescan failed:', error);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
-      {/* Welcome Section */}
+      {/* Screenplay Connection Status Banner */}
+      <ScreenplayStatusBanner
+        onViewEditor={handleViewEditor}
+        onRescan={handleRescan}
+      />
+
+      {/* Welcome Section with Quick Actions */}
       <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-700/50 rounded-xl p-6">
         <h2 className="text-3xl font-bold text-white mb-3">
           Welcome to Production Hub
@@ -624,59 +651,16 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
           Three powerful ways to create your video content:
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* One-Off Path */}
-          <button
-            onClick={() => {
-              if (onOpenChat) {
-                onOpenChat(); // Open AI Interview drawer
-              }
-            }}
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
-          >
-            <MessageSquare className="w-8 h-8 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
-            <h3 className="text-white font-bold mb-1">One-Off Creation</h3>
-            <p className="text-sm text-purple-200">
-              Quick scenes with AI guidance
-            </p>
-            <div className="flex items-center gap-1 mt-2 text-xs text-purple-300">
-              <span>Start Chat</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-
-          {/* Screenplay Path */}
-          <button
-            onClick={() => onNavigate('scene-builder')}
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
-          >
-            <Video className="w-8 h-8 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
-            <h3 className="text-white font-bold mb-1">From Screenplay</h3>
-            <p className="text-sm text-blue-200">
-              Generate scenes from your script
-            </p>
-            <div className="flex items-center gap-1 mt-2 text-xs text-blue-300">
-              <span>Open Scene Builder</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-
-          {/* Hybrid Path */}
-          <button
-            onClick={() => onNavigate('media')}
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 hover:bg-white/20 transition-all text-left group"
-          >
-            <FolderOpen className="w-8 h-8 text-green-400 mb-2 group-hover:scale-110 transition-transform" />
-            <h3 className="text-white font-bold mb-1">Hybrid Workflow</h3>
-            <p className="text-sm text-green-200">
-              Mix your footage with AI
-            </p>
-            <div className="flex items-center gap-1 mt-2 text-xs text-green-300">
-              <span>Open Media Library</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-        </div>
+        <QuickActions
+          onOneOffClick={() => {
+            if (onOpenChat) {
+              onOpenChat(); // Open AI Interview drawer
+            }
+          }}
+          onScreenplayClick={() => onNavigate('scene-builder')}
+          onHybridClick={() => onNavigate('media')}
+          isMobile={isMobile}
+        />
       </div>
 
       {/* Project Stats */}
@@ -685,7 +669,7 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
             <p className="text-sm text-gray-400 mb-1">Scenes</p>
             <p className="text-2xl font-bold text-white">
-              {screenplay.beats?.length || 0}
+              {screenplay.scenes?.length || 0}
             </p>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
