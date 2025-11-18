@@ -363,10 +363,8 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 isLoading={screenplay.isLoading}
                 projectId={projectId}
                 onCharactersUpdate={() => {
-                  // Trigger refresh of screenplay context
-                  if (screenplay.refresh) {
-                    screenplay.refresh();
-                  }
+                  // CharacterBankPanel uses useScreenplay() internally and will update context automatically
+                  // No refresh needed - context updates when CRUD operations happen
                 }}
               />
             </div>
@@ -602,10 +600,8 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 isLoading={screenplay.isLoading}
                 projectId={projectId}
                 onCharactersUpdate={() => {
-                  // Trigger refresh of screenplay context
-                  if (screenplay.refresh) {
-                    screenplay.refresh();
-                  }
+                  // CharacterBankPanel uses useScreenplay() internally and will update context automatically
+                  // No refresh needed - context updates when CRUD operations happen
                 }}
               />
             </div>
