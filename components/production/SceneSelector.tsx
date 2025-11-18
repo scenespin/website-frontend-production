@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useContextStore } from '@/lib/contextStore';
 import { Film, ChevronDown, Edit, CheckCircle, Users, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

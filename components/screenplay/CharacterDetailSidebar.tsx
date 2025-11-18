@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles, Upload } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Character } from '@/types/screenplay'
@@ -43,6 +43,7 @@ export default function CharacterDetailSidebar({
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [showImagePromptModal, setShowImagePromptModal] = useState(false)
   const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; prompt?: string; modelUsed?: string }>>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<any>(
     character ? { ...character } : (initialData ? {
       name: initialData.name || '',
@@ -108,6 +109,44 @@ export default function CharacterDetailSidebar({
     if (character) {
       onClose(); // Close sidebar
       onDelete(character.id); // This will open DeleteCharacterDialog with dependency check
+    }
+  }
+
+  const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string;
+      
+      // Associate image with character
+      if (character) {
+        // Existing character - add image directly
+        await addImageToEntity('character', character.id, dataUrl);
+      } else if (isCreating) {
+        // New character - store temporarily, will be added after character creation
+        setPendingImages(prev => [...prev, { imageUrl: dataUrl }]);
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   }
 
@@ -346,7 +385,7 @@ export default function CharacterDetailSidebar({
                 {/* Two Small Buttons - Always visible */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setShowImageDialog(true)}
+                    onClick={() => fileInputRef.current?.click()}
                     className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
                     style={{ 
                       backgroundColor: '#DC143C',
@@ -356,6 +395,14 @@ export default function CharacterDetailSidebar({
                   >
                     Upload Photo
                   </button>
+                  {/* Hidden file input for direct upload */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleDirectFileUpload}
+                    className="hidden"
+                  />
                   <button
                     onClick={() => {
                       // Only allow AI generation if character has name/description
@@ -472,47 +519,6 @@ export default function CharacterDetailSidebar({
         )}
       </div>
 
-      {/* Image Source Dialog - For Upload */}
-      {showImageDialog && (
-        <ImageSourceDialog
-          isOpen={showImageDialog}
-          onClose={() => setShowImageDialog(false)}
-          preSelectedEntity={character ? {
-            type: 'character',
-            id: character.id,
-            name: character.name
-          } : (isCreating ? {
-            type: 'character',
-            id: 'new',
-            name: formData.name || 'New Character'
-          } : undefined)}
-          entityData={character ? {
-            name: character.name,
-            description: character.description,
-            type: character.type,
-            arcNotes: character.arcNotes
-          } : (isCreating ? {
-            name: formData.name,
-            description: formData.description,
-            type: formData.type,
-            arcNotes: formData.arcNotes
-          } : undefined)}
-          onImageReady={async (imageUrl, prompt, modelUsed) => {
-            // Associate image with character
-            if (character) {
-              // Existing character - add image directly
-              await addImageToEntity('character', character.id, imageUrl, {
-                prompt,
-                modelUsed
-              });
-            } else if (isCreating) {
-              // New character - store temporarily, will be added after character creation
-              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
-            }
-            setShowImageDialog(false);
-          }}
-        />
-      )}
 
       {/* Image Prompt Modal - For AI Generation */}
       {showImagePromptModal && (

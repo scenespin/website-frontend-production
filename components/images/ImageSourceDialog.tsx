@@ -24,6 +24,7 @@ interface ImageSourceDialogProps {
         atmosphereNotes?: string;
     };
     onImageReady?: (imageUrl: string, prompt?: string, modelUsed?: string) => void;
+    skipMethodSelection?: boolean; // NEW: If true, skip method selection and go directly to upload
 }
 
 export function ImageSourceDialog({
@@ -31,7 +32,8 @@ export function ImageSourceDialog({
     onClose,
     preSelectedEntity,
     entityData,
-    onImageReady
+    onImageReady,
+    skipMethodSelection = false
 }: ImageSourceDialogProps) {
     const [showPromptModal, setShowPromptModal] = useState(false);
     const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
@@ -41,6 +43,13 @@ export function ImageSourceDialog({
     const [imageModelUsed, setImageModelUsed] = useState<string | undefined>();
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // If skipMethodSelection is true, trigger file input immediately
+    React.useEffect(() => {
+        if (isOpen && skipMethodSelection && fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    }, [isOpen, skipMethodSelection]);
 
     if (!isOpen) return null;
 
@@ -122,6 +131,21 @@ export function ImageSourceDialog({
     const entityTypeForPrompt = preSelectedEntity?.type === 'character' ? 'character' : 
                                 preSelectedEntity?.type === 'location' ? 'location' : 
                                 'character'; // default
+
+    // If skipMethodSelection, don't show the modal - just handle file input
+    if (skipMethodSelection) {
+        return (
+            <>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                />
+            </>
+        );
+    }
 
     return (
         <>
