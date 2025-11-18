@@ -342,7 +342,37 @@ export default function MediaLibrary({
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve();
           } else {
-            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+            // Parse XML error response for detailed error code
+            let errorCode = 'Unknown';
+            let errorMessage = xhr.statusText;
+            try {
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(xhr.responseText, 'text/xml');
+              errorCode = xmlDoc.querySelector('Code')?.textContent || 'Unknown';
+              errorMessage = xmlDoc.querySelector('Message')?.textContent || xhr.statusText;
+              const requestId = xmlDoc.querySelector('RequestId')?.textContent;
+              
+              console.error('[MediaLibrary] S3 Error Details:', {
+                Code: errorCode,
+                Message: errorMessage,
+                RequestId: requestId,
+                Status: xhr.status,
+                StatusText: xhr.statusText
+              });
+            } catch (e) {
+              // Not XML, use as-is
+            }
+            
+            // Log FormData contents for debugging
+            const formDataEntries = Array.from(formData.entries());
+            console.error('[MediaLibrary] FormData contents:', formDataEntries.map(([k, v]) => [
+              k,
+              typeof v === 'string' 
+                ? (v.length > 100 ? v.substring(0, 100) + '...' : v)
+                : `File: ${(v as File).name} (${(v as File).size} bytes)`
+            ]));
+            
+            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}. ${errorCode}: ${errorMessage}`));
           }
         });
         

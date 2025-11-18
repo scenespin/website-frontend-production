@@ -378,16 +378,49 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       if (!s3Response.ok) {
         // Enhanced error logging for debugging
         const errorText = await s3Response.text().catch(() => 'No error details');
+        
+        // Parse XML error response for detailed error code
+        let errorCode = 'Unknown';
+        let errorMessage = errorText;
+        try {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(errorText, 'text/xml');
+          errorCode = xmlDoc.querySelector('Code')?.textContent || 'Unknown';
+          errorMessage = xmlDoc.querySelector('Message')?.textContent || errorText;
+          const requestId = xmlDoc.querySelector('RequestId')?.textContent;
+          
+          console.error('[SceneBuilderPanel] S3 Error Details:', {
+            Code: errorCode,
+            Message: errorMessage,
+            RequestId: requestId
+          });
+        } catch (e) {
+          // Not XML, use as-is
+        }
+        
+        // Log FormData contents for debugging
+        const formDataEntries = Array.from(formData.entries());
+        console.error('[SceneBuilderPanel] FormData contents:', formDataEntries.map(([k, v]) => [
+          k,
+          typeof v === 'string' 
+            ? (v.length > 100 ? v.substring(0, 100) + '...' : v)
+            : `File: ${(v as File).name} (${(v as File).size} bytes)`
+        ]));
+        
         console.error('[SceneBuilderPanel] S3 upload failed:', {
           status: s3Response.status,
           statusText: s3Response.statusText,
-          error: errorText,
+          errorCode,
+          errorMessage,
+          errorText: errorText.substring(0, 500),
           fileType: fileType,
           fileName: file.name,
           fileSize: file.size,
-          uploadUrl: url.substring(0, 150) // First 150 chars for logging
+          url: url.substring(0, 150),
+          fieldsCount: formDataEntries.length,
+          fieldNames: formDataEntries.map(([k]) => k)
         });
-        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorText.substring(0, 200)}`);
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorCode}: ${errorMessage}`);
       }
       
       // Step 3: Register the file with the backend
@@ -780,15 +813,48 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (!s3Response.ok) {
         const errorText = await s3Response.text().catch(() => 'No error details');
+        
+        // Parse XML error response for detailed error code
+        let errorCode = 'Unknown';
+        let errorMessage = errorText;
+        try {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(errorText, 'text/xml');
+          errorCode = xmlDoc.querySelector('Code')?.textContent || 'Unknown';
+          errorMessage = xmlDoc.querySelector('Message')?.textContent || errorText;
+          const requestId = xmlDoc.querySelector('RequestId')?.textContent;
+          
+          console.error('[SceneBuilderPanel] S3 Error Details (media):', {
+            Code: errorCode,
+            Message: errorMessage,
+            RequestId: requestId
+          });
+        } catch (e) {
+          // Not XML, use as-is
+        }
+        
+        // Log FormData contents for debugging
+        const formDataEntries = Array.from(formData.entries());
+        console.error('[SceneBuilderPanel] FormData contents (media):', formDataEntries.map(([k, v]) => [
+          k,
+          typeof v === 'string' 
+            ? (v.length > 100 ? v.substring(0, 100) + '...' : v)
+            : `File: ${(v as File).name} (${(v as File).size} bytes)`
+        ]));
+        
         console.error('[SceneBuilderPanel] S3 upload failed (media):', {
           status: s3Response.status,
           statusText: s3Response.statusText,
-          error: errorText,
+          errorCode,
+          errorMessage,
+          errorText: errorText.substring(0, 500),
           url: url.substring(0, 150),
           fields: Object.keys(fields),
-          s3Key: s3Key
+          s3Key: s3Key,
+          fieldsCount: formDataEntries.length,
+          fieldNames: formDataEntries.map(([k]) => k)
         });
-        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorText.substring(0, 200)}`);
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorCode}: ${errorMessage}`);
       }
       
       // Step 3: Generate S3 URL
