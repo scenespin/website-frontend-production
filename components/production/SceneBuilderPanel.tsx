@@ -54,6 +54,8 @@ import { extractS3Key } from '@/utils/s3';
 import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { EditorContextBanner } from './EditorContextBanner';
+import { SceneSelector } from './SceneSelector';
+import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 
 const MAX_IMAGE_SIZE_MB = 10;
