@@ -197,7 +197,7 @@ export function VisualAnnotationPanel({
           
           {/* Optional: Provider Info */}
           <div className="text-xs text-slate-500 dark:text-slate-400 text-center">
-            Annotations work with Luma Ray-3 & Veo 3.1
+            Annotations enhance your Wryda video generation
           </div>
         </div>
       )}

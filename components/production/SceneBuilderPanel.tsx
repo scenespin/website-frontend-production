@@ -461,15 +461,24 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       });
       
       if (!downloadUrlResponse.ok) {
-        // If download URL generation fails, we can still use the s3Key
-        // The annotation panel can handle s3Key or URL
-        console.warn('[SceneBuilderPanel] Failed to generate download URL, using s3Key directly');
-        // For now, construct a temporary URL - annotation system will need to handle s3Key
-        const tempUrl = `s3://${s3Key}`; // This won't work for display, but we'll fix this
-        setFirstFrameUrl(tempUrl);
-        setShowAnnotationPanel(true);
-        toast.success('Image uploaded! Add annotations or proceed to generation.');
-        return;
+        // If download URL generation fails, log the error and show user-friendly message
+        const errorText = await downloadUrlResponse.text().catch(() => 'Unknown error');
+        console.error('[SceneBuilderPanel] Failed to generate download URL:', {
+          status: downloadUrlResponse.status,
+          statusText: downloadUrlResponse.statusText,
+          error: errorText,
+          s3Key
+        });
+        
+        // Don't use direct S3 URL fallback - bucket is private and requires presigned URLs
+        // Instead, show error and let user retry
+        throw new Error(
+          downloadUrlResponse.status === 401 
+            ? 'Authentication failed. Please refresh and try again.'
+            : downloadUrlResponse.status === 403
+            ? 'Access denied. Please contact support if this persists.'
+            : `Failed to generate image URL (${downloadUrlResponse.status}). Please try again.`
+        );
       }
       
       const downloadUrlData = await downloadUrlResponse.json();
