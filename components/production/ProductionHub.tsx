@@ -343,7 +343,23 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={screenplay.characters || []}
+                characters={(screenplay.characters || []).map(char => ({
+                  id: char.id,
+                  name: char.name,
+                  type: char.type,
+                  baseReference: char.images?.[0] ? {
+                    imageUrl: char.images[0].url,
+                    s3Key: char.images[0].s3Key
+                  } : undefined,
+                  references: (char.images || []).slice(1).map((img, idx) => ({
+                    id: img.id || `ref-${idx}`,
+                    imageUrl: img.url,
+                    s3Key: img.s3Key || '',
+                    label: img.label || `Reference ${idx + 1}`,
+                    referenceType: 'base' as const
+                  })),
+                  referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
+                }))}
                 isLoading={!screenplay.isLoaded}
                 projectId={projectId}
                 onCharactersUpdate={() => {
@@ -566,7 +582,23 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={screenplay.characters || []}
+                characters={(screenplay.characters || []).map(char => ({
+                  id: char.id,
+                  name: char.name,
+                  type: char.type,
+                  baseReference: char.images?.[0] ? {
+                    imageUrl: char.images[0].url,
+                    s3Key: char.images[0].s3Key
+                  } : undefined,
+                  references: (char.images || []).slice(1).map((img, idx) => ({
+                    id: img.id || `ref-${idx}`,
+                    imageUrl: img.url,
+                    s3Key: img.s3Key || '',
+                    label: img.label || `Reference ${idx + 1}`,
+                    referenceType: 'base' as const
+                  })),
+                  referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
+                }))}
                 isLoading={!screenplay.isLoaded}
                 projectId={projectId}
                 onCharactersUpdate={() => {
