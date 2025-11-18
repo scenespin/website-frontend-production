@@ -1292,12 +1292,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       )}
       
       {/* Header */}
-      <div className="flex-shrink-0 p-6 border-b border-border bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
-        <div className="flex items-center gap-3">
-          <span className="text-4xl">🎪</span>
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-gray-900/50">
+        <div className="flex items-center gap-2">
+          <Film className="w-5 h-5 text-purple-400" />
           <div>
-            <h2 className="text-2xl font-bold text-purple-600 dark:text-purple-400">Scene Builder</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-lg md:text-xl font-semibold text-purple-400">Scene Builder</h2>
+            <p className="text-xs md:text-sm text-muted-foreground">
               Generate complete scene packages with perfect consistency
             </p>
           </div>
@@ -1305,7 +1305,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       </div>
       
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-4 md:p-5 space-y-4 md:space-y-5">
         {/* Scene Builder Form */}
         {!isGenerating && !workflowStatus && (
           <motion.div
