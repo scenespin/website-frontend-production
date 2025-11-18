@@ -343,10 +343,15 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={[]}
-                isLoading={false}
+                characters={screenplay.characters || []}
+                isLoading={!screenplay.isLoaded}
                 projectId={projectId}
-                onCharactersUpdate={() => {}}
+                onCharactersUpdate={() => {
+                  // Trigger refresh of screenplay context
+                  if (screenplay.refresh) {
+                    screenplay.refresh();
+                  }
+                }}
               />
             </div>
           )}
@@ -561,10 +566,15 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={[]}
-                isLoading={false}
+                characters={screenplay.characters || []}
+                isLoading={!screenplay.isLoaded}
                 projectId={projectId}
-                onCharactersUpdate={() => {}}
+                onCharactersUpdate={() => {
+                  // Trigger refresh of screenplay context
+                  if (screenplay.refresh) {
+                    screenplay.refresh();
+                  }
+                }}
               />
             </div>
           )}
