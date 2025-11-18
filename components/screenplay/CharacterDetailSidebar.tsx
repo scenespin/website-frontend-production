@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles } from "lucide-react"
+import { X, Trash2, Plus, Image as ImageIcon, Camera, Sparkles, Upload } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Character } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
@@ -40,6 +40,10 @@ export default function CharacterDetailSidebar({
     return character ? isEntityInScript(editorState.content, character.name, 'character') : false;
   }, [character, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
+  // Initialize creationMethod based on isCreating - if creating, show selection first
+  const [creationMethod, setCreationMethod] = useState<'upload' | 'ai' | null>(
+    isCreating ? null : null // Always start with null (show selection) when creating
+  )
   const [formData, setFormData] = useState<any>(
     character ? { ...character } : (initialData ? {
       name: initialData.name || '',
@@ -56,10 +60,19 @@ export default function CharacterDetailSidebar({
     })
   )
   
+  // Reset creationMethod when opening for creation (show selection buttons)
+  useEffect(() => {
+    if (isCreating && !character && !initialData) {
+      // When opening fresh create modal, show method selection
+      setCreationMethod(null)
+    }
+  }, [isCreating, character, initialData])
+
   // Update form data when character prop changes
   useEffect(() => {
     if (character) {
       setFormData({ ...character })
+      setCreationMethod(null) // Reset method when editing
     } else if (initialData) {
       setFormData({
         name: initialData.name || '',
@@ -68,7 +81,9 @@ export default function CharacterDetailSidebar({
         description: initialData.description || '',
         arcNotes: initialData.arcNotes || ''
       })
-    } else if (isCreating) {
+      // If initialData exists, user already chose method (from AI interview), so show form
+      // Don't reset creationMethod - keep it as 'ai' if it was set, or show form directly
+    } else if (isCreating && !initialData) {
       setFormData({
         name: '',
         type: 'lead',
@@ -76,6 +91,7 @@ export default function CharacterDetailSidebar({
         description: '',
         arcNotes: ''
       })
+      // Don't reset creationMethod here - let user choose (should be null from above useEffect)
     }
   }, [character, initialData, isCreating])
 
@@ -141,8 +157,53 @@ export default function CharacterDetailSidebar({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-        {/* Name */}
-        <div>
+        {/* Method Selection - Show when creating and no method selected */}
+        {isCreating && creationMethod === null && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm font-medium" style={{ color: '#E5E7EB' }}>
+                Choose how to create your character
+              </p>
+            </div>
+            
+            {/* Two Button Selection */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setCreationMethod('upload')}
+                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
+                style={{ 
+                  borderColor: '#8B5CF6',
+                  backgroundColor: '#1C1C1E',
+                  color: '#E5E7EB'
+                }}
+              >
+                <Upload className="w-8 h-8" style={{ color: '#8B5CF6' }} />
+                <div className="font-semibold text-sm">Upload Photo</div>
+                <div className="text-xs opacity-70">Use existing image</div>
+              </button>
+              
+              <button
+                onClick={() => setCreationMethod('ai')}
+                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
+                style={{ 
+                  borderColor: '#8B5CF6',
+                  backgroundColor: '#1C1C1E',
+                  color: '#E5E7EB'
+                }}
+              >
+                <Sparkles className="w-8 h-8" style={{ color: '#8B5CF6' }} />
+                <div className="font-semibold text-sm">Create with AI</div>
+                <div className="text-xs opacity-70">AI Interview workflow</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Form Fields - Show when editing OR when method is selected */}
+        {(!isCreating || creationMethod !== null) && (
+          <>
+            {/* Name */}
+            <div>
           <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
             Name
             {isInScript && (
@@ -361,28 +422,52 @@ export default function CharacterDetailSidebar({
             })()}
           </div>
         )}
+          </>
+        )}
       </div>
 
       {/* Footer Actions */}
       <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
-        {/* AI Generate Button - Only show when creating */}
-        {isCreating && (
+        {/* Back Button - Show when method is selected but want to change */}
+        {isCreating && creationMethod !== null && (
+          <button
+            onClick={() => setCreationMethod(null)}
+            className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            style={{ 
+              backgroundColor: '#2C2C2E',
+              color: '#E5E7EB',
+              border: '1px solid #3F3F46'
+            }}
+          >
+            <X className="w-4 h-4" />
+            Back to Selection
+          </button>
+        )}
+
+        {/* AI Generate Button - Only show when creating with AI method */}
+        {isCreating && creationMethod === 'ai' && (
           <button
             onClick={() => {
-              if (onSwitchToChatImageMode) {
-                // Pass existing form data to AI interview (if user has entered anything)
-                onSwitchToChatImageMode(undefined, {
-                  type: 'character',
-                  id: 'new',
-                  name: formData.name || 'New Character',
-                  workflow: 'interview',
-                  existingData: {
-                    name: formData.name || '',
-                    description: formData.description || '',
-                    type: formData.type || '',
-                    arcStatus: formData.arcStatus || ''
-                  }
-                });
+              if (onSwitchToChatImageMode && typeof onSwitchToChatImageMode === 'function') {
+                try {
+                  // Pass existing form data to AI interview (if user has entered anything)
+                  onSwitchToChatImageMode(undefined, {
+                    type: 'character',
+                    id: 'new',
+                    name: formData.name || 'New Character',
+                    workflow: 'interview',
+                    existingData: {
+                      name: formData.name || '',
+                      description: formData.description || '',
+                      type: formData.type || '',
+                      arcStatus: formData.arcStatus || ''
+                    }
+                  });
+                } catch (error) {
+                  console.error('[CharacterDetailSidebar] Error calling onSwitchToChatImageMode:', error);
+                }
+              } else {
+                console.warn('[CharacterDetailSidebar] onSwitchToChatImageMode is not a function:', typeof onSwitchToChatImageMode);
               }
               onClose();
             }}
@@ -399,14 +484,17 @@ export default function CharacterDetailSidebar({
           </button>
         )}
         
-        <button
-          onClick={handleSave}
-          disabled={!formData.name.trim()}
-          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-          style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-        >
-          {isCreating ? 'Create Character' : 'Save Changes'}
-        </button>
+        {/* Create/Save Button - Show when not in method selection */}
+        {(!isCreating || creationMethod !== null) && (
+          <button
+            onClick={handleSave}
+            disabled={!formData.name.trim()}
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+            style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+          >
+            {isCreating ? 'Create Character' : 'Save Changes'}
+          </button>
+        )}
         
         {!isCreating && (
           <button

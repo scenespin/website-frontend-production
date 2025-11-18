@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { X, Trash2, Plus, Image as ImageIcon } from "lucide-react"
+import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Location } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
@@ -38,6 +38,7 @@ export default function LocationDetailSidebar({
     return location ? isEntityInScript(editorState.content, location.name, 'location') : false;
   }, [location, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
+  const [creationMethod, setCreationMethod] = useState<'upload' | 'ai' | null>(null) // null = show selection, 'upload' or 'ai' = show form
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
       name: initialData.name || '',
@@ -60,7 +61,10 @@ export default function LocationDetailSidebar({
 
   // 🔥 FIX: Update formData when initialData changes (for column type selection)
   useEffect(() => {
-    if (isCreating && !location) {
+    if (location) {
+      setFormData({ ...location })
+      setCreationMethod(null) // Reset method when editing
+    } else if (isCreating && !location) {
       // If initialData is provided, use it (especially for column type)
       if (initialData) {
         console.log('[LocationDetailSidebar] 🔄 Updating formData from initialData:', initialData);
@@ -73,6 +77,7 @@ export default function LocationDetailSidebar({
           setRequirements: initialData.setRequirements || '',
           productionNotes: initialData.productionNotes || ''
         });
+        setCreationMethod(null) // Reset method when using initialData
       } else {
         // Reset to defaults if no initialData
         setFormData({
@@ -84,6 +89,7 @@ export default function LocationDetailSidebar({
           setRequirements: '',
           productionNotes: ''
         });
+        // Don't reset creationMethod here - let user choose
       }
     }
   }, [isCreating, initialData, location])
@@ -138,8 +144,53 @@ export default function LocationDetailSidebar({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-        {/* Name */}
-        <div>
+        {/* Method Selection - Show when creating and no method selected */}
+        {isCreating && creationMethod === null && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm font-medium" style={{ color: '#E5E7EB' }}>
+                Choose how to create your location
+              </p>
+            </div>
+            
+            {/* Two Button Selection */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setCreationMethod('upload')}
+                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
+                style={{ 
+                  borderColor: '#8B5CF6',
+                  backgroundColor: '#1C1C1E',
+                  color: '#E5E7EB'
+                }}
+              >
+                <Upload className="w-8 h-8" style={{ color: '#8B5CF6' }} />
+                <div className="font-semibold text-sm">Upload Photo</div>
+                <div className="text-xs opacity-70">Use existing image</div>
+              </button>
+              
+              <button
+                onClick={() => setCreationMethod('ai')}
+                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
+                style={{ 
+                  borderColor: '#8B5CF6',
+                  backgroundColor: '#1C1C1E',
+                  color: '#E5E7EB'
+                }}
+              >
+                <Sparkles className="w-8 h-8" style={{ color: '#8B5CF6' }} />
+                <div className="font-semibold text-sm">Create with AI</div>
+                <div className="text-xs opacity-70">AI Interview workflow</div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Form Fields - Show when editing OR when method is selected */}
+        {(!isCreating || creationMethod !== null) && (
+          <>
+            {/* Name */}
+            <div>
           <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
             Name
             {isInScript && (
@@ -304,27 +355,51 @@ export default function LocationDetailSidebar({
             })()}
           </div>
         )}
+          </>
+        )}
       </div>
 
       {/* Footer Actions */}
       <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
-        {/* AI Generate Button - Only show when creating */}
-        {isCreating && (
+        {/* Back Button - Show when method is selected but want to change */}
+        {isCreating && creationMethod !== null && (
+          <button
+            onClick={() => setCreationMethod(null)}
+            className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            style={{ 
+              backgroundColor: '#2C2C2E',
+              color: '#E5E7EB',
+              border: '1px solid #3F3F46'
+            }}
+          >
+            <X className="w-4 h-4" />
+            Back to Selection
+          </button>
+        )}
+
+        {/* AI Generate Button - Only show when creating with AI method */}
+        {isCreating && creationMethod === 'ai' && (
           <button
             onClick={() => {
-              if (onSwitchToChatImageMode) {
-                // Pass existing form data to AI interview (if user has entered anything)
-                onSwitchToChatImageMode(undefined, {
-                  type: 'location',
-                  id: 'new',
-                  name: formData.name || 'New Location',
-                  workflow: 'interview',
-                  existingData: {
-                    name: formData.name || '',
-                    description: formData.description || '',
-                    type: formData.type || ''
-                  }
-                });
+              if (onSwitchToChatImageMode && typeof onSwitchToChatImageMode === 'function') {
+                try {
+                  // Pass existing form data to AI interview (if user has entered anything)
+                  onSwitchToChatImageMode(undefined, {
+                    type: 'location',
+                    id: 'new',
+                    name: formData.name || 'New Location',
+                    workflow: 'interview',
+                    existingData: {
+                      name: formData.name || '',
+                      description: formData.description || '',
+                      type: formData.type || ''
+                    }
+                  });
+                } catch (error) {
+                  console.error('[LocationDetailSidebar] Error calling onSwitchToChatImageMode:', error);
+                }
+              } else {
+                console.warn('[LocationDetailSidebar] onSwitchToChatImageMode is not a function:', typeof onSwitchToChatImageMode);
               }
               onClose();
             }}
@@ -341,14 +416,17 @@ export default function LocationDetailSidebar({
           </button>
         )}
         
-        <button
-          onClick={handleSave}
-          disabled={!formData.name.trim()}
-          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-          style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-        >
-          {isCreating ? 'Create Location' : 'Save Changes'}
-        </button>
+        {/* Create/Save Button - Show when not in method selection */}
+        {(!isCreating || creationMethod !== null) && (
+          <button
+            onClick={handleSave}
+            disabled={!formData.name.trim()}
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+            style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+          >
+            {isCreating ? 'Create Location' : 'Save Changes'}
+          </button>
+        )}
         
         {!isCreating && (
           <button
