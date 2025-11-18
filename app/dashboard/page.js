@@ -104,7 +104,7 @@ export default function Dashboard() {
       // Fetch data independently so one failure doesn't break everything
       const [creditsRes, projectsRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
-        fetch('/api/projects/list').then(r => r.json()),
+        api.projects.list(),
         api.video.getJobs()
       ]);
       
@@ -142,7 +142,9 @@ export default function Dashboard() {
       
       // Handle projects (non-critical)
       if (projectsRes.status === 'fulfilled') {
-        setProjects(projectsRes.value.projects || []);
+        // api.projects.list() returns axios response, so .data is the API response
+        const projectsData = projectsRes.value.data;
+        setProjects(projectsData?.projects || projectsData?.data?.projects || []);
       } else {
         console.error('Error fetching projects:', projectsRes.reason);
         setProjects([]);
@@ -150,7 +152,11 @@ export default function Dashboard() {
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
-        setRecentVideos(videosRes.value.data.data.jobs?.slice(0, 5) || []);
+        // api.video.getJobs() returns axios response
+        // Backend returns: { success: true, jobs: [...], total: number }
+        const videosData = videosRes.value.data;
+        const jobs = videosData?.jobs || videosData?.data?.jobs || [];
+        setRecentVideos(jobs.slice(0, 5));
       } else {
         console.error('Error fetching videos:', videosRes.reason);
         setRecentVideos([]);
