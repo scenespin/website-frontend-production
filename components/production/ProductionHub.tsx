@@ -348,14 +348,14 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                   name: char.name,
                   type: char.type,
                   baseReference: char.images?.[0] ? {
-                    imageUrl: char.images[0].url,
+                    imageUrl: char.images[0].imageUrl,
                     s3Key: char.images[0].s3Key
                   } : undefined,
                   references: (char.images || []).slice(1).map((img, idx) => ({
                     id: img.id || `ref-${idx}`,
-                    imageUrl: img.url,
+                    imageUrl: img.imageUrl,
                     s3Key: img.s3Key || '',
-                    label: img.label || `Reference ${idx + 1}`,
+                    label: img.metadata?.uploadedFileName || `Reference ${idx + 1}`,
                     referenceType: 'base' as const
                   })),
                   referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
@@ -587,14 +587,14 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                   name: char.name,
                   type: char.type,
                   baseReference: char.images?.[0] ? {
-                    imageUrl: char.images[0].url,
+                    imageUrl: char.images[0].imageUrl,
                     s3Key: char.images[0].s3Key
                   } : undefined,
                   references: (char.images || []).slice(1).map((img, idx) => ({
                     id: img.id || `ref-${idx}`,
-                    imageUrl: img.url,
+                    imageUrl: img.imageUrl,
                     s3Key: img.s3Key || '',
-                    label: img.label || `Reference ${idx + 1}`,
+                    label: img.metadata?.uploadedFileName || `Reference ${idx + 1}`,
                     referenceType: 'base' as const
                   })),
                   referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
