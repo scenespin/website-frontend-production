@@ -41,8 +41,9 @@ function cleanFountainOutput(text) {
     /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
     // Remove "SCREENWRITING NOTE:" or "NOTE:" sections (case insensitive, multiline)
     /(SCREENWRITING\s+)?NOTE:.*$/is,
-    // Remove "REVISION" headers
-    /^REVISION\s*$/im,
+    // Remove "REVISION" or "REVISED SCENE" headers (with or without markdown)
+    /^#?\s*REVISION\s*$/im,
+    /^#?\s*REVISED\s+SCENE\s*$/im,
     // Remove "ALTERNATIVE OPTIONS:" sections
     /ALTERNATIVE OPTIONS?:.*$/is,
     // Remove "Option 1:", "Option 2:", etc.
@@ -109,7 +110,14 @@ function cleanFountainOutput(text) {
     }
     
     // If line starts with explanation words, stop here (but allow short lines that might be dialogue)
-    if (/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
+    // IMPORTANT: Don't stop on lines that are clearly dialogue (short, or follow a character name)
+    const isLikelyDialogue = line.length < 50 && (
+      /^[A-Z][A-Z\s]+$/.test(lines[i-1]?.trim() || '') || // Previous line was a character name
+      /^\(/.test(line) || // Starts with parenthetical
+      /[!?.]$/.test(line) // Ends with punctuation (dialogue markers)
+    );
+    
+    if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
         !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
         !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
         line.length > 15) { // Only if it's a longer explanation
@@ -121,8 +129,14 @@ function cleanFountainOutput(text) {
       continue; // Skip scene headings
     }
     
+    // Skip markdown headers like "# REVISED SCENE" (must start with #, have space, then REVISED/REVISION)
+    // This won't match character names like "REPORTER #1" because # is not at the start
+    if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
+      continue; // Skip markdown headers
+    }
+    
     // If we find a character name in ALL CAPS, we're in screenplay content
-    if (/^[A-Z][A-Z\s]+$/.test(line) && line.length > 2) {
+    if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2) {
       foundFirstScreenplayContent = true;
     }
     
