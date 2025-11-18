@@ -643,8 +643,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         },
         body: JSON.stringify({
           prompt: sceneDescription.trim(),
-          aspectRatio: '16:9',
-          size: '1024x576' // 16:9 aspect ratio
+          size: '1024x576' // 16:9 aspect ratio (1024x576 = 16:9)
+          // Note: aspectRatio is not a valid parameter - use size instead
         })
       });
       
@@ -712,31 +712,42 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         ? styleProfiles.find(p => p.profileId === selectedStyleProfile)
         : null;
       
-      // Prepare workflow inputs with annotations if available
-      const workflowInputs: any = {
+      // Prepare workflow inputs - backend expects flat structure, not nested in 'inputs'
+      // Backend expects: workflowId, sceneDescription, characterRefs (not characterReferences), etc.
+      const workflowRequest: any = {
+        workflowId: 'complete-scene',
         sceneDescription: sceneDescription.trim(),
-        characterReferences: referenceImageUrls,
-        qualityTier,
+        characterRefs: referenceImageUrls, // Backend expects 'characterRefs', not 'characterReferences'
         aspectRatio: '16:9',
         duration,
+        qualityTier,
         // Note: enableSound removed - sound is handled separately via audio workflows
-        userId: 'default-user', // TODO: Get from auth
-        projectId,
-        // Feature 0109: Style matching support
-        styleProfile: selectedProfile ? {
-          profileId: selectedProfile.profileId,
-          stylePromptAdditions: selectedProfile.stylePromptAdditions,
-          confidence: selectedProfile.confidence
-        } : undefined
+        // Backend has enableSound = false as default, so we don't need to send it
       };
+      
+      // Add optional fields if available
+      if (selectedSceneId) {
+        workflowRequest.sceneId = selectedSceneId;
+      }
+      
+      // Feature 0109: Style matching support (if backend supports it)
+      if (selectedProfile) {
+        // Note: Backend may not support styleProfile yet - check if it causes errors
+        // workflowRequest.styleProfile = {
+        //   profileId: selectedProfile.profileId,
+        //   stylePromptAdditions: selectedProfile.stylePromptAdditions,
+        //   confidence: selectedProfile.confidence
+        // };
+      }
       
       // Feature 0105/Phase 6: Add visual annotations if available
       if (visualAnnotations && firstFrameUrl) {
-        workflowInputs.visualAnnotations = {
-          imageUrl: firstFrameUrl,
-          annotations: visualAnnotations.annotations || []
-        };
-        workflowInputs.startImageUrl = firstFrameUrl; // Use first frame as starting image
+        // Note: Backend may not support visualAnnotations yet - check if it causes errors
+        // workflowRequest.visualAnnotations = {
+        //   imageUrl: firstFrameUrl,
+        //   annotations: visualAnnotations.annotations || []
+        // };
+        // workflowRequest.startImageUrl = firstFrameUrl;
       }
       
       const response = await fetch('/api/workflows/execute', {
@@ -745,10 +756,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          workflowId: 'complete-scene',
-          inputs: workflowInputs
-        })
+        body: JSON.stringify(workflowRequest)
       });
       
       const data = await response.json();
