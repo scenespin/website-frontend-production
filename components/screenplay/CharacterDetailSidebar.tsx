@@ -8,6 +8,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
+import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -40,10 +41,8 @@ export default function CharacterDetailSidebar({
     return character ? isEntityInScript(editorState.content, character.name, 'character') : false;
   }, [character, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
-  // Initialize creationMethod based on isCreating - if creating, show selection first
-  const [creationMethod, setCreationMethod] = useState<'upload' | 'ai' | null>(
-    isCreating ? null : null // Always start with null (show selection) when creating
-  )
+  const [showImagePromptModal, setShowImagePromptModal] = useState(false)
+  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; prompt?: string; modelUsed?: string }>>([])
   const [formData, setFormData] = useState<any>(
     character ? { ...character } : (initialData ? {
       name: initialData.name || '',
@@ -60,19 +59,10 @@ export default function CharacterDetailSidebar({
     })
   )
   
-  // Reset creationMethod when opening for creation (show selection buttons)
-  useEffect(() => {
-    if (isCreating && !character && !initialData) {
-      // When opening fresh create modal, show method selection
-      setCreationMethod(null)
-    }
-  }, [isCreating, character, initialData])
-
   // Update form data when character prop changes
   useEffect(() => {
     if (character) {
       setFormData({ ...character })
-      setCreationMethod(null) // Reset method when editing
     } else if (initialData) {
       setFormData({
         name: initialData.name || '',
@@ -81,9 +71,7 @@ export default function CharacterDetailSidebar({
         description: initialData.description || '',
         arcNotes: initialData.arcNotes || ''
       })
-      // If initialData exists, user already chose method (from AI interview), so show form
-      // Don't reset creationMethod - keep it as 'ai' if it was set, or show form directly
-    } else if (isCreating && !initialData) {
+    } else if (isCreating) {
       setFormData({
         name: '',
         type: 'lead',
@@ -91,15 +79,21 @@ export default function CharacterDetailSidebar({
         description: '',
         arcNotes: ''
       })
-      // Don't reset creationMethod here - let user choose (should be null from above useEffect)
     }
   }, [character, initialData, isCreating])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) return
     
     if (isCreating) {
-      onCreate(formData)
+      // Pass pending images with form data so parent can add them after character creation
+      await onCreate({
+        ...formData,
+        pendingImages: pendingImages.length > 0 ? pendingImages : undefined
+      })
+      
+      // Clear pending images after creation
+      setPendingImages([])
     } else {
       onUpdate(formData)
     }
@@ -157,53 +151,10 @@ export default function CharacterDetailSidebar({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-        {/* Method Selection - Show when creating and no method selected */}
-        {isCreating && creationMethod === null && (
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-sm font-medium" style={{ color: '#E5E7EB' }}>
-                Choose how to create your character
-              </p>
-            </div>
-            
-            {/* Two Button Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setCreationMethod('upload')}
-                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
-                style={{ 
-                  borderColor: '#8B5CF6',
-                  backgroundColor: '#1C1C1E',
-                  color: '#E5E7EB'
-                }}
-              >
-                <Upload className="w-8 h-8" style={{ color: '#8B5CF6' }} />
-                <div className="font-semibold text-sm">Upload Photo</div>
-                <div className="text-xs opacity-70">Use existing image</div>
-              </button>
-              
-              <button
-                onClick={() => setCreationMethod('ai')}
-                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
-                style={{ 
-                  borderColor: '#8B5CF6',
-                  backgroundColor: '#1C1C1E',
-                  color: '#E5E7EB'
-                }}
-              >
-                <Sparkles className="w-8 h-8" style={{ color: '#8B5CF6' }} />
-                <div className="font-semibold text-sm">Create with AI</div>
-                <div className="text-xs opacity-70">AI Interview workflow</div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Form Fields - Show when editing OR when method is selected */}
-        {(!isCreating || creationMethod !== null) && (
-          <>
-            {/* Name */}
-            <div>
+        {/* Form Fields */}
+        <>
+          {/* Name */}
+          <div>
           <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
             Name
             {isInScript && (
@@ -375,77 +326,92 @@ export default function CharacterDetailSidebar({
           </div>
         )}
 
-        {/* Images Section - Only show for existing characters */}
-        {!isCreating && character && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
-                Character Images
-              </label>
-              <button
-                onClick={() => setShowImageDialog(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
-                style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-              >
-                <Plus size={12} />
-                Add Image
-              </button>
-            </div>
-            {(() => {
-              const images = getEntityImages('character', character.id)
-              return images.length > 0 ? (
-                <ImageGallery
-                  images={images}
-                  entityType="character"
-                  entityId={character.id}
-                  entityName={character.name}
-                  onDeleteImage={(index: number) => {
-                    if (confirm('Remove this image from the character?')) {
-                      removeImageFromEntity('character', character.id, index)
-                    }
-                  }}
-                />
-              ) : (
-                <div
-                  className="flex flex-col items-center justify-center py-8 px-4 rounded-lg border-2 border-dashed"
-                  style={{ borderColor: '#2C2C2E', backgroundColor: '#0A0A0B' }}
-                >
-                  <ImageIcon size={32} style={{ color: '#4B5563' }} className="mb-2" />
-                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
-                    No images yet
-                  </p>
-                  <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
-                    Click &quot;Add Image&quot; to visualize this character
-                  </p>
-                </div>
-              )
-            })()}
+        {/* Character Images Section - Show for both creating and editing */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+              Character Images
+            </label>
           </div>
-        )}
-          </>
-        )}
+          {(() => {
+            const images = character ? getEntityImages('character', character.id) : []
+            const allImages = character ? images : pendingImages.map((img, idx) => ({
+              id: `pending-${idx}`,
+              imageUrl: img.imageUrl,
+              metadata: img.prompt ? { prompt: img.prompt, modelUsed: img.modelUsed } : undefined,
+              createdAt: new Date().toISOString()
+            }))
+            return (
+              <div className="space-y-3">
+                {/* Two Small Buttons - Always visible */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowImageDialog(true)}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    style={{ 
+                      backgroundColor: '#DC143C',
+                      color: 'white',
+                      border: '1px solid #DC143C'
+                    }}
+                  >
+                    Upload Photo
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Only allow AI generation if character has name/description
+                      if (isCreating && (!formData.name || !formData.description)) {
+                        alert('Please enter character name and description first to generate an image')
+                        return
+                      }
+                      setShowImagePromptModal(true)
+                    }}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    style={{ 
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      border: '1px solid #8B5CF6'
+                    }}
+                  >
+                    Create Photo with AI
+                  </button>
+                </div>
+                
+                {/* Image Gallery - Show if images exist */}
+                {allImages.length > 0 && (
+                  <ImageGallery
+                    images={allImages}
+                    entityType="character"
+                    entityId={character?.id || 'new'}
+                    entityName={formData.name || 'New Character'}
+                    onDeleteImage={(index: number) => {
+                      if (character) {
+                        if (confirm('Remove this image from the character?')) {
+                          removeImageFromEntity('character', character.id, index)
+                        }
+                      } else {
+                        // Remove from pending images
+                        setPendingImages(prev => prev.filter((_, i) => i !== index))
+                      }
+                    }}
+                  />
+                )}
+                
+                {allImages.length === 0 && (
+                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
+                    Add an image to visualize this character
+                  </p>
+                )}
+              </div>
+            )
+          })()}
+        </div>
+        </>
       </div>
 
       {/* Footer Actions */}
       <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
-        {/* Back Button - Show when method is selected but want to change */}
-        {isCreating && creationMethod !== null && (
-          <button
-            onClick={() => setCreationMethod(null)}
-            className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-            style={{ 
-              backgroundColor: '#2C2C2E',
-              color: '#E5E7EB',
-              border: '1px solid #3F3F46'
-            }}
-          >
-            <X className="w-4 h-4" />
-            Back to Selection
-          </button>
-        )}
-
-        {/* AI Generate Button - Only show when creating with AI method */}
-        {isCreating && creationMethod === 'ai' && (
+        {/* AI Interview Button - Always available when creating */}
+        {isCreating && (
           <button
             onClick={() => {
               if (onSwitchToChatImageMode && typeof onSwitchToChatImageMode === 'function') {
@@ -484,17 +450,15 @@ export default function CharacterDetailSidebar({
           </button>
         )}
         
-        {/* Create/Save Button - Show when not in method selection */}
-        {(!isCreating || creationMethod !== null) && (
-          <button
-            onClick={handleSave}
-            disabled={!formData.name.trim()}
-            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-            style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-          >
-            {isCreating ? 'Create Character' : 'Save Changes'}
-          </button>
-        )}
+        {/* Create/Save Button */}
+        <button
+          onClick={handleSave}
+          disabled={!formData.name.trim()}
+          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+          style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+        >
+          {isCreating ? 'Create Character' : 'Save Changes'}
+        </button>
         
         {!isCreating && (
           <button
@@ -508,8 +472,8 @@ export default function CharacterDetailSidebar({
         )}
       </div>
 
-      {/* Image Source Dialog */}
-      {showImageDialog && character && (
+      {/* Image Source Dialog - For Upload */}
+      {showImageDialog && (
         <ImageSourceDialog
           isOpen={showImageDialog}
           onClose={() => setShowImageDialog(false)}
@@ -517,22 +481,64 @@ export default function CharacterDetailSidebar({
             type: 'character',
             id: character.id,
             name: character.name
-          } : undefined}
+          } : (isCreating ? {
+            type: 'character',
+            id: 'new',
+            name: formData.name || 'New Character'
+          } : undefined)}
           entityData={character ? {
             name: character.name,
             description: character.description,
             type: character.type,
             arcNotes: character.arcNotes
-          } : undefined}
+          } : (isCreating ? {
+            name: formData.name,
+            description: formData.description,
+            type: formData.type,
+            arcNotes: formData.arcNotes
+          } : undefined)}
           onImageReady={async (imageUrl, prompt, modelUsed) => {
             // Associate image with character
             if (character) {
+              // Existing character - add image directly
               await addImageToEntity('character', character.id, imageUrl, {
                 prompt,
                 modelUsed
               });
+            } else if (isCreating) {
+              // New character - store temporarily, will be added after character creation
+              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
             }
             setShowImageDialog(false);
+          }}
+        />
+      )}
+
+      {/* Image Prompt Modal - For AI Generation */}
+      {showImagePromptModal && (
+        <ImagePromptModal
+          isOpen={showImagePromptModal}
+          onClose={() => setShowImagePromptModal(false)}
+          entityType="character"
+          entityData={{
+            name: formData.name || 'New Character',
+            description: formData.description || '',
+            type: formData.type || 'lead',
+            arcNotes: formData.arcNotes || ''
+          }}
+          onImageGenerated={async (imageUrl, prompt, modelUsed) => {
+            // Associate image with character
+            if (character) {
+              // Existing character - add image directly
+              await addImageToEntity('character', character.id, imageUrl, {
+                prompt,
+                modelUsed
+              });
+            } else if (isCreating) {
+              // New character - store temporarily, will be added after character creation
+              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
+            }
+            setShowImagePromptModal(false);
           }}
         />
       )}

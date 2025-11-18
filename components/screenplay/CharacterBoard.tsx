@@ -27,7 +27,7 @@ interface CharacterBoardProps {
 }
 
 export default function CharacterBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: CharacterBoardProps) {
-    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript } = useScreenplay();
+    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript, addImageToEntity } = useScreenplay();
     const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<CharacterColumn[]>([]);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
@@ -276,10 +276,22 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                     }}
                     onCreate={async (data) => {
                         try {
-                            await createCharacter({
-                                ...data,
+                            const { pendingImages, ...characterData } = data;
+                            const newCharacter = await createCharacter({
+                                ...characterData,
                                 customFields: []
                             });
+                            
+                            // Add pending images after character creation
+                            if (pendingImages && pendingImages.length > 0 && newCharacter) {
+                                for (const img of pendingImages) {
+                                    await addImageToEntity('character', newCharacter.id, img.imageUrl, {
+                                        prompt: img.prompt,
+                                        modelUsed: img.modelUsed
+                                    });
+                                }
+                            }
+                            
                             setIsCreating(false);
                         } catch (err: any) {
                             alert(`Error creating character: ${err.message}`);

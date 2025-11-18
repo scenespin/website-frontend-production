@@ -27,7 +27,7 @@ interface LocationBoardProps {
 }
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
-    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript } = useScreenplay();
+    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript, addImageToEntity } = useScreenplay();
     const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<LocationColumn[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -333,7 +333,19 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                         }}
                         onCreate={async (data) => {
                             try {
-                                await createLocation(data);
+                                const { pendingImages, ...locationData } = data;
+                                const newLocation = await createLocation(locationData);
+                                
+                                // Add pending images after location creation
+                                if (pendingImages && pendingImages.length > 0 && newLocation) {
+                                    for (const img of pendingImages) {
+                                        await addImageToEntity('location', newLocation.id, img.imageUrl, {
+                                            prompt: img.prompt,
+                                            modelUsed: img.modelUsed
+                                        });
+                                    }
+                                }
+                                
                                 setIsCreating(false);
                             } catch (err: any) {
                                 alert(`Error creating location: ${err.message}`);

@@ -8,6 +8,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
+import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 
 interface LocationDetailSidebarProps {
   location?: Location | null
@@ -38,7 +39,8 @@ export default function LocationDetailSidebar({
     return location ? isEntityInScript(editorState.content, location.name, 'location') : false;
   }, [location, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
-  const [creationMethod, setCreationMethod] = useState<'upload' | 'ai' | null>(null) // null = show selection, 'upload' or 'ai' = show form
+  const [showImagePromptModal, setShowImagePromptModal] = useState(false)
+  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; prompt?: string; modelUsed?: string }>>([])
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
       name: initialData.name || '',
@@ -63,7 +65,6 @@ export default function LocationDetailSidebar({
   useEffect(() => {
     if (location) {
       setFormData({ ...location })
-      setCreationMethod(null) // Reset method when editing
     } else if (isCreating && !location) {
       // If initialData is provided, use it (especially for column type)
       if (initialData) {
@@ -77,7 +78,6 @@ export default function LocationDetailSidebar({
           setRequirements: initialData.setRequirements || '',
           productionNotes: initialData.productionNotes || ''
         });
-        setCreationMethod(null) // Reset method when using initialData
       } else {
         // Reset to defaults if no initialData
         setFormData({
@@ -89,16 +89,22 @@ export default function LocationDetailSidebar({
           setRequirements: '',
           productionNotes: ''
         });
-        // Don't reset creationMethod here - let user choose
       }
     }
   }, [isCreating, initialData, location])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) return
     
     if (isCreating) {
-      onCreate(formData)
+      // Pass pending images with form data so parent can add them after location creation
+      await onCreate({
+        ...formData,
+        pendingImages: pendingImages.length > 0 ? pendingImages : undefined
+      })
+      
+      // Clear pending images after creation
+      setPendingImages([])
     } else {
       onUpdate(formData)
     }
@@ -144,53 +150,10 @@ export default function LocationDetailSidebar({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-        {/* Method Selection - Show when creating and no method selected */}
-        {isCreating && creationMethod === null && (
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-sm font-medium" style={{ color: '#E5E7EB' }}>
-                Choose how to create your location
-              </p>
-            </div>
-            
-            {/* Two Button Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setCreationMethod('upload')}
-                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
-                style={{ 
-                  borderColor: '#8B5CF6',
-                  backgroundColor: '#1C1C1E',
-                  color: '#E5E7EB'
-                }}
-              >
-                <Upload className="w-8 h-8" style={{ color: '#8B5CF6' }} />
-                <div className="font-semibold text-sm">Upload Photo</div>
-                <div className="text-xs opacity-70">Use existing image</div>
-              </button>
-              
-              <button
-                onClick={() => setCreationMethod('ai')}
-                className="h-auto py-6 px-4 rounded-lg border-2 transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-2"
-                style={{ 
-                  borderColor: '#8B5CF6',
-                  backgroundColor: '#1C1C1E',
-                  color: '#E5E7EB'
-                }}
-              >
-                <Sparkles className="w-8 h-8" style={{ color: '#8B5CF6' }} />
-                <div className="font-semibold text-sm">Create with AI</div>
-                <div className="text-xs opacity-70">AI Interview workflow</div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Form Fields - Show when editing OR when method is selected */}
-        {(!isCreating || creationMethod !== null) && (
-          <>
-            {/* Name */}
-            <div>
+        {/* Form Fields */}
+        <>
+          {/* Name */}
+          <div>
           <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
             Name
             {isInScript && (
@@ -308,77 +271,92 @@ export default function LocationDetailSidebar({
           />
         </div>
 
-        {/* Images Section - Only show for existing locations */}
-        {!isCreating && location && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
-                Location Images
-              </label>
-              <button
-                onClick={() => setShowImageDialog(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
-                style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-              >
-                <Plus size={12} />
-                Add Image
-              </button>
-            </div>
-            {(() => {
-              const images = getEntityImages('location', location.id)
-              return images.length > 0 ? (
-                <ImageGallery
-                  images={images}
-                  entityType="location"
-                  entityId={location.id}
-                  entityName={location.name}
-                  onDeleteImage={(index: number) => {
-                    if (confirm('Remove this image from the location?')) {
-                      removeImageFromEntity('location', location.id, index)
-                    }
-                  }}
-                />
-              ) : (
-                <div
-                  className="flex flex-col items-center justify-center py-8 px-4 rounded-lg border-2 border-dashed"
-                  style={{ borderColor: '#2C2C2E', backgroundColor: '#0A0A0B' }}
-                >
-                  <ImageIcon size={32} style={{ color: '#4B5563' }} className="mb-2" />
-                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
-                    No images yet
-                  </p>
-                  <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
-                    Click &quot;Add Image&quot; to visualize this location
-                  </p>
-                </div>
-              )
-            })()}
+        {/* Location Images Section - Show for both creating and editing */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+              Location Images
+            </label>
           </div>
-        )}
-          </>
-        )}
+          {(() => {
+            const images = location ? getEntityImages('location', location.id) : []
+            const allImages = location ? images : pendingImages.map((img, idx) => ({
+              id: `pending-${idx}`,
+              imageUrl: img.imageUrl,
+              metadata: img.prompt ? { prompt: img.prompt, modelUsed: img.modelUsed } : undefined,
+              createdAt: new Date().toISOString()
+            }))
+            return (
+              <div className="space-y-3">
+                {/* Two Small Buttons - Always visible */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowImageDialog(true)}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    style={{ 
+                      backgroundColor: '#DC143C',
+                      color: 'white',
+                      border: '1px solid #DC143C'
+                    }}
+                  >
+                    Upload Photo
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Only allow AI generation if location has name/description
+                      if (isCreating && (!formData.name || !formData.description)) {
+                        alert('Please enter location name and description first to generate an image')
+                        return
+                      }
+                      setShowImagePromptModal(true)
+                    }}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    style={{ 
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      border: '1px solid #8B5CF6'
+                    }}
+                  >
+                    Create Photo with AI
+                  </button>
+                </div>
+                
+                {/* Image Gallery - Show if images exist */}
+                {allImages.length > 0 && (
+                  <ImageGallery
+                    images={allImages}
+                    entityType="location"
+                    entityId={location?.id || 'new'}
+                    entityName={formData.name || 'New Location'}
+                    onDeleteImage={(index: number) => {
+                      if (location) {
+                        if (confirm('Remove this image from the location?')) {
+                          removeImageFromEntity('location', location.id, index)
+                        }
+                      } else {
+                        // Remove from pending images
+                        setPendingImages(prev => prev.filter((_, i) => i !== index))
+                      }
+                    }}
+                  />
+                )}
+                
+                {allImages.length === 0 && (
+                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
+                    Add an image to visualize this location
+                  </p>
+                )}
+              </div>
+            )
+          })()}
+        </div>
+        </>
       </div>
 
       {/* Footer Actions */}
       <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
-        {/* Back Button - Show when method is selected but want to change */}
-        {isCreating && creationMethod !== null && (
-          <button
-            onClick={() => setCreationMethod(null)}
-            className="w-full px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-            style={{ 
-              backgroundColor: '#2C2C2E',
-              color: '#E5E7EB',
-              border: '1px solid #3F3F46'
-            }}
-          >
-            <X className="w-4 h-4" />
-            Back to Selection
-          </button>
-        )}
-
-        {/* AI Generate Button - Only show when creating with AI method */}
-        {isCreating && creationMethod === 'ai' && (
+        {/* AI Interview Button - Always available when creating */}
+        {isCreating && (
           <button
             onClick={() => {
               if (onSwitchToChatImageMode && typeof onSwitchToChatImageMode === 'function') {
@@ -416,17 +394,15 @@ export default function LocationDetailSidebar({
           </button>
         )}
         
-        {/* Create/Save Button - Show when not in method selection */}
-        {(!isCreating || creationMethod !== null) && (
-          <button
-            onClick={handleSave}
-            disabled={!formData.name.trim()}
-            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-            style={{ backgroundColor: '#8B5CF6', color: 'white' }}
-          >
-            {isCreating ? 'Create Location' : 'Save Changes'}
-          </button>
-        )}
+        {/* Create/Save Button */}
+        <button
+          onClick={handleSave}
+          disabled={!formData.name.trim()}
+          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+          style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+        >
+          {isCreating ? 'Create Location' : 'Save Changes'}
+        </button>
         
         {!isCreating && (
           <button
@@ -440,8 +416,8 @@ export default function LocationDetailSidebar({
         )}
       </div>
 
-      {/* Image Source Dialog */}
-      {showImageDialog && location && (
+      {/* Image Source Dialog - For Upload */}
+      {showImageDialog && (
         <ImageSourceDialog
           isOpen={showImageDialog}
           onClose={() => setShowImageDialog(false)}
@@ -449,22 +425,64 @@ export default function LocationDetailSidebar({
             type: 'location',
             id: location.id,
             name: location.name
-          } : undefined}
+          } : (isCreating ? {
+            type: 'location',
+            id: 'new',
+            name: formData.name || 'New Location'
+          } : undefined)}
           entityData={location ? {
             name: location.name,
             description: location.description,
             locationType: location.type,
             atmosphereNotes: location.atmosphereNotes
-          } : undefined}
+          } : (isCreating ? {
+            name: formData.name,
+            description: formData.description,
+            locationType: formData.type,
+            atmosphereNotes: formData.atmosphereNotes
+          } : undefined)}
           onImageReady={async (imageUrl, prompt, modelUsed) => {
             // Associate image with location
             if (location) {
+              // Existing location - add image directly
               await addImageToEntity('location', location.id, imageUrl, {
                 prompt,
                 modelUsed
               });
+            } else if (isCreating) {
+              // New location - store temporarily, will be added after location creation
+              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
             }
             setShowImageDialog(false);
+          }}
+        />
+      )}
+
+      {/* Image Prompt Modal - For AI Generation */}
+      {showImagePromptModal && (
+        <ImagePromptModal
+          isOpen={showImagePromptModal}
+          onClose={() => setShowImagePromptModal(false)}
+          entityType="location"
+          entityData={{
+            name: formData.name || 'New Location',
+            description: formData.description || '',
+            type: formData.type || 'INT',
+            atmosphereNotes: formData.atmosphereNotes || ''
+          }}
+          onImageGenerated={async (imageUrl, prompt, modelUsed) => {
+            // Associate image with location
+            if (location) {
+              // Existing location - add image directly
+              await addImageToEntity('location', location.id, imageUrl, {
+                prompt,
+                modelUsed
+              });
+            } else if (isCreating) {
+              // New location - store temporarily, will be added after location creation
+              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
+            }
+            setShowImagePromptModal(false);
           }}
         />
       )}
