@@ -355,7 +355,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                     id: (img as any).id || `ref-${idx}`,
                     imageUrl: img.imageUrl,
                     s3Key: (img as any).s3Key || '',
-                    label: img.metadata?.uploadedFileName || `Reference ${idx + 1}`,
+                    label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
                     referenceType: 'base' as const
                   })),
                   referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
@@ -594,7 +594,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                     id: (img as any).id || `ref-${idx}`,
                     imageUrl: img.imageUrl,
                     s3Key: (img as any).s3Key || '',
-                    label: img.metadata?.uploadedFileName || `Reference ${idx + 1}`,
+                    label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
                     referenceType: 'base' as const
                   })),
                   referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
