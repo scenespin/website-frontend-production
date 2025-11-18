@@ -404,6 +404,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // Check if this is a rewrite request (selected text exists)
       let builtPrompt;
       let systemPrompt;
+      let isContentRequest = false; // Declare outside if/else so it's available for conversation history logic
       
       if (state.selectedTextContext && state.selectionRange && editorContent) {
         // REWRITE MODE: Use buildRewritePrompt with surrounding text
@@ -438,7 +439,15 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         }
       } else {
         // REGULAR MODE: Detect if this is content generation vs advice request
-        const isContentRequest = detectContentRequest(prompt);
+        isContentRequest = detectContentRequest(prompt);
+        
+        // DEBUG: Log detection result
+        console.log('[ChatModePanel] Content detection:', {
+          prompt,
+          isContentRequest,
+          hasActionVerb: /explodes|enters|leaves|says|does|runs|walks|sees|hears|finds|comes|goes|arrives|exits|sits|stands|turns|looks|grabs|takes|opens|closes|attacks|fights|dies|falls|jumps|screams|whispers|shouts|morphs|transforms|becomes|changes|appears|disappears|moves|flies|crashes|breaks|shatters/i.test(prompt),
+          isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
+        });
         
         // Build appropriate prompt using prompt builders
         builtPrompt = isContentRequest 
@@ -447,15 +456,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         
         // Build system prompt - Simple for content, permissive for advice
         if (isContentRequest) {
-          // Simple system prompt for content generation - explicitly forbid analysis, full scenes, and questions
-          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique.
-
-CRITICAL RULES:
-- Write ONLY 1-5 lines - do NOT generate full scenes
-- Do NOT include scene headings (INT./EXT.)
-- Do NOT write "REVISED SCENE:" or any headers
-- Do NOT ask questions (no "Should...?", "Want me to...?", etc.)
-- Write only the screenplay content they requested - no explanations, no suggestions, no alternatives, no meta-commentary`;
+          // SIMPLE system prompt for content generation (matches backend test that works)
+          // Keep it short and direct - complex prompts can confuse the model
+          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. Write only the screenplay content they requested - no explanations, no suggestions, no alternatives.`;
           
           // Add scene context if available (minimal, just for context)
           if (sceneContext) {
@@ -490,12 +493,26 @@ CRITICAL RULES:
         mode: 'chat'
       });
       
-      // Build conversation history (last 10 messages)
-      const chatMessages = state.messages.filter(m => m.mode === 'chat').slice(-10);
-      const conversationHistory = chatMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
+      // Build conversation history
+      // CRITICAL: For content requests, use EMPTY history to prevent AI from continuing in advice mode
+      // Only include history for advice/discussion requests
+      let conversationHistory = [];
+      if (!isContentRequest) {
+        // For advice requests, include last 10 messages for context
+        const chatMessages = state.messages.filter(m => m.mode === 'chat').slice(-10);
+        conversationHistory = chatMessages.map(m => ({
+          role: m.role,
+          content: m.content
+        }));
+      }
+      // For content requests, conversationHistory stays empty (fresh conversation)
+      
+      console.log('[ChatModePanel] API call params:', {
+        isContentRequest,
+        conversationHistoryLength: conversationHistory.length,
+        systemPromptLength: systemPrompt.length,
+        userPromptLength: builtPrompt.length
+      });
       
       // Call streaming AI API
       setStreaming(true, '');

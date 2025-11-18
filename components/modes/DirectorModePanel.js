@@ -276,12 +276,16 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
         mode: 'director'
       });
       
-      // Build conversation history (last 10 messages)
-      const directorMessages = state.messages.filter(m => m.mode === 'director').slice(-10);
-      const conversationHistory = directorMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
+      // CRITICAL: Use EMPTY conversation history for Director agent
+      // Director always generates content (never advice), so we want fresh context each time
+      // This prevents previous messages from influencing scene generation
+      const conversationHistory = [];
+      
+      console.log('[DirectorModePanel] API call params:', {
+        conversationHistoryLength: conversationHistory.length,
+        systemPromptLength: systemPrompt.length,
+        userPromptLength: builtPrompt.length
+      });
       
       // Call streaming AI API
       setStreaming(true, '');
