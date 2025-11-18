@@ -14,6 +14,7 @@ import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
 import { CollaborationPanel } from '../CollaborationPanel';
+import RewriteModal from '../modals/RewriteModal';
 import { saveToGitHub } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -27,7 +28,7 @@ import type { Scene } from '../../types/screenplay';
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
@@ -41,6 +42,9 @@ export default function EditorWorkspace() {
     const [hasSelection, setHasSelection] = useState(false);
     const [selectedText, setSelectedText] = useState<string | null>(null);
     const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+    
+    // Rewrite modal state
+    const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
     
     // Get projectId from URL params (for collaboration)
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -230,45 +234,25 @@ export default function EditorWorkspace() {
     const handleLaunchRewrite = () => {
         if (!selectedText || !selectionRange) return;
         
-        // Clear existing chat messages to start fresh for rewrite
-        clearMessagesForMode('chat');
+        // Open rewrite modal instead of drawer
+        setIsRewriteModalOpen(true);
+    };
+    
+    // Handle rewrite replacement (called from RewriteModal)
+    const handleRewriteReplace = (rewrittenText: string) => {
+        if (!selectionRange) return;
         
-        // Ensure we're in chat mode
-        setMode('chat');
+        // Clean the text (should already be cleaned by modal, but double-check)
+        const cleaned = rewrittenText.trim();
         
-        // Extract surrounding context (200 chars before/after selection)
-        const beforeStart = Math.max(0, selectionRange.start - 200);
-        const afterEnd = Math.min(state.content.length, selectionRange.end + 200);
-        const textBefore = state.content.substring(beforeStart, selectionRange.start).trim();
-        const textAfter = state.content.substring(selectionRange.end, afterEnd).trim();
+        // Replace the selected text
+        replaceSelection(cleaned, selectionRange.start, selectionRange.end);
         
-        // Detect current scene context
-        const cursorPos = selectionRange.start;
-        const sceneCtx = detectCurrentScene(state.content, cursorPos);
+        // Close modal
+        setIsRewriteModalOpen(false);
         
-        // Set scene context
-        if (sceneCtx) {
-            setSceneContext({
-                heading: sceneCtx.heading,
-                act: sceneCtx.act,
-                characters: sceneCtx.characters,
-                pageNumber: sceneCtx.pageNumber,
-                totalPages: sceneCtx.totalPages
-            });
-        }
-        
-        // Set selected text context (this triggers rewrite mode)
-        setSelectedTextContext(selectedText, selectionRange);
-        
-        // Pre-fill input with editable prompt
-        setInput('Rewrite this to be more concise');
-        
-        // Open drawer in chat mode (rewrite mode detected by selectedTextContext)
-        openDrawer('chat', {
-            mode: 'chat',
-            selectedText,
-            initialPrompt: 'Rewrite this to be more concise'
-        });
+        // Show success toast (modal also shows one, but this ensures it)
+        toast.success('Text rewritten successfully');
     };
     
     // Keyboard shortcuts
@@ -457,6 +441,16 @@ Tip:
                 hasSelection={hasSelection}
                 isDrawerOpen={isDrawerOpen}
                 isMobile={isMobile}
+            />
+            
+            {/* Rewrite Modal */}
+            <RewriteModal
+                isOpen={isRewriteModalOpen}
+                onClose={() => setIsRewriteModalOpen(false)}
+                selectedText={selectedText || ''}
+                selectionRange={selectionRange || { start: 0, end: 0 }}
+                editorContent={state.content}
+                onReplace={handleRewriteReplace}
             />
         </div>
     );
