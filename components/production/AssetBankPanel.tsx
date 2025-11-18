@@ -245,7 +245,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
             {assets.map((asset) => {
               // Convert asset.images to CinemaCardImage format
               const referenceImages: CinemaCardImage[] = asset.images.map((img, idx) => ({
-                id: img.id || `img-${idx}`,
+                id: `img-${idx}`,
                 imageUrl: img.url,
                 label: `${asset.name} - Image ${idx + 1}`
               }));
