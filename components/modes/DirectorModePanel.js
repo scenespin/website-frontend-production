@@ -114,6 +114,15 @@ function cleanFountainOutput(text) {
   }
   
   cleaned = screenplayLines.join('\n');
+  
+  // Whitespace normalization
+  // 1. Trim trailing whitespace from each line
+  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  
+  // 2. Normalize multiple consecutive newlines to single newline (but preserve structure)
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
+  
+  // 3. Trim leading/trailing whitespace from entire block
   cleaned = cleaned.trim();
   
   return cleaned;

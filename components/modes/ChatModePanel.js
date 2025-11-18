@@ -158,7 +158,15 @@ function cleanFountainOutput(text) {
   
   cleaned = screenplayLines.join('\n');
   
-  // Clean up extra whitespace
+  // Whitespace normalization
+  // 1. Trim trailing whitespace from each line
+  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  
+  // 2. Normalize multiple consecutive newlines to single newline (but preserve structure)
+  // This ensures consistent spacing without losing line breaks
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
+  
+  // 3. Trim leading/trailing whitespace from entire block
   cleaned = cleaned.trim();
   
   return cleaned;
@@ -443,7 +451,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique.
 
 CRITICAL RULES:
-- Write ONLY 1-3 lines - do NOT generate full scenes
+- Write ONLY 1-5 lines - do NOT generate full scenes
 - Do NOT include scene headings (INT./EXT.)
 - Do NOT write "REVISED SCENE:" or any headers
 - Do NOT ask questions (no "Should...?", "Want me to...?", etc.)
