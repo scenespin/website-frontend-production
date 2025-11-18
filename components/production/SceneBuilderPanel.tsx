@@ -1272,40 +1272,27 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   }
   
   return (
-    <div className="h-full flex flex-col">
-      {/* Screenplay Connection Banner */}
-      <ScreenplayStatusBanner
-        onViewEditor={() => {
-          window.location.href = '/write';
-        }}
-        className="mx-6 mt-6"
-      />
-      
-      {/* Editor Context Banner (when scene auto-selected) */}
-      {showEditorContextBanner && editorContextSceneName && (
-        <div className="mx-6 mt-4">
-          <EditorContextBanner
-            sceneName={editorContextSceneName}
-            onDismiss={() => setShowEditorContextBanner(false)}
-          />
-        </div>
-      )}
-      
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-gray-900/50">
-        <div className="flex items-center gap-2">
-          <Film className="w-5 h-5 text-purple-400" />
-          <div>
-            <h2 className="text-lg md:text-xl font-semibold text-purple-400">Scene Builder</h2>
-            <p className="text-xs md:text-sm text-muted-foreground">
-              Generate complete scene packages with perfect consistency
-            </p>
+    <div className="h-full overflow-auto bg-[#0A0A0A]">
+      <div className="p-4 md:p-5 space-y-4 md:space-y-5">
+        {/* Sticky Editor Context Banner (when scene auto-selected) */}
+        {showEditorContextBanner && editorContextSceneName && (
+          <div className="sticky top-0 z-10 -mx-4 md:-mx-5 px-4 md:px-5 pt-4 md:pt-5 pb-2 bg-[#0A0A0A]">
+            <EditorContextBanner
+              sceneName={editorContextSceneName}
+              onDismiss={() => setShowEditorContextBanner(false)}
+            />
           </div>
-        </div>
-      </div>
-      
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4 md:p-5 space-y-4 md:space-y-5">
+        )}
+        
+        {/* Screenplay Connection Banner - Scrollable */}
+        <ScreenplayStatusBanner
+          onViewEditor={() => {
+            window.location.href = '/write';
+          }}
+        />
+        
+        {/* Content */}
+        <div className="space-y-4 md:space-y-5">
         {/* Scene Builder Form */}
         {!isGenerating && !workflowStatus && (
           <motion.div
@@ -1314,10 +1301,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             className="space-y-6"
           >
             {/* Scene Selection System - Phase 2 */}
-            <Card>
+            <Card className="bg-[#141414] border-[#3F3F46]">
               <CardHeader>
-                <CardTitle className="text-lg">📝 Scene Selection</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg text-[#FFFFFF]">📝 Scene Selection</CardTitle>
+                <CardDescription className="text-[#808080]">
                   Choose a scene from your screenplay or enter one manually
                 </CardDescription>
               </CardHeader>
@@ -1478,10 +1465,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             </Card>
             
             {/* Character References */}
-            <Card>
+            <Card className="bg-[#141414] border-[#3F3F46]">
               <CardHeader>
-                <CardTitle className="text-lg">🎭 Character References (Optional)</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg text-[#FFFFFF]">🎭 Character References (Optional)</CardTitle>
+                <CardDescription className="text-[#808080]">
                   {isMobile || simplified 
                     ? 'Upload 1 character image for consistency'
                     : 'Upload 1-3 images for consistent character appearance'
@@ -1574,10 +1561,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             </Card>
             
             {/* Media Uploads (Optional) - Feature 0070 */}
-            <Card>
+            <Card className="bg-[#141414] border-[#3F3F46]">
               <CardHeader>
-                <CardTitle className="text-lg">📁 Media Uploads (Optional)</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg text-[#FFFFFF]">📁 Media Uploads (Optional)</CardTitle>
+                <CardDescription className="text-[#808080]">
                   {isMobile || simplified 
                     ? 'Upload 1 video, audio, or image file to include in your scene'
                     : 'Upload up to 3 media files (video, audio, images) to include in your scene'
@@ -1618,9 +1605,9 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             </Card>
             
             {/* Options */}
-            <Card>
+            <Card className="bg-[#141414] border-[#3F3F46]">
               <CardHeader>
-                <CardTitle className="text-lg">⚙️ Generation Options</CardTitle>
+                <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Generation Options</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Quality Tier */}
@@ -1767,11 +1754,11 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             
             {/* First Frame Generation & Annotation (Feature 0105/Phase 6) */}
             {!firstFrameUrl && !isGeneratingFirstFrame && !isUploadingFirstFrame && (
-              <Card className="border-2 border-dashed border-purple-300 dark:border-purple-700">
+              <Card className="bg-[#141414] border-2 border-dashed border-[#DC143C]/50">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Eye className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <div className="p-2 bg-[#DC143C]/20 rounded-lg">
+                      <Eye className="w-5 h-5 text-[#DC143C]" />
                     </div>
                     <div className="flex-1 space-y-3">
                       <div>
@@ -1829,10 +1816,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             
             {/* First Frame Generation/Upload Progress */}
             {(isGeneratingFirstFrame || isUploadingFirstFrame) && (
-              <Card className="border-2 border-purple-300 dark:border-purple-700">
+              <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+                    <Loader2 className="w-5 h-5 animate-spin text-[#DC143C]" />
                     <div className="flex-1">
                       <p className="text-sm font-medium">
                         {isGeneratingFirstFrame ? 'Generating first frame...' : 'Uploading image...'}
@@ -1848,7 +1835,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             
             {/* Annotation Panel (Feature 0105/Phase 6) */}
             {showAnnotationPanel && firstFrameUrl && (
-              <Card className="border-2 border-purple-300 dark:border-purple-700">
+              <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
                 <CardContent className="p-4">
                   <VisualAnnotationPanel
                     imageUrl={firstFrameUrl}
@@ -1886,7 +1873,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             )}
             
             {/* Generate Button */}
-            <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-base-content border-none">
+            <Card className="bg-gradient-to-r from-[#DC143C] to-[#B01030] text-white border-none">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -1956,7 +1943,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             {showHistory && (
               <div className="space-y-3">
                 {history.slice(0, 5).map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
+                  <Card key={item.id} className="overflow-hidden bg-[#141414] border-[#3F3F46]">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
                         {/* Thumbnail Grid */}
@@ -2040,6 +2027,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             )}
           </motion.div>
         )}
+        </div>
       </div>
       
       {/* Decision Modal */}

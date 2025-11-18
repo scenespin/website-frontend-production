@@ -620,17 +620,17 @@ export default function MediaLibrary({
   // ============================================================================
 
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-lg shadow-lg ${className}`}>
+    <div className={`bg-[#0A0A0A] rounded-lg shadow-lg ${className}`}>
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 md:p-5 border-b border-[#3F3F46]">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg md:text-xl font-bold text-[#FFFFFF]">
             Media Library
           </h2>
 
           {/* Storage Quota */}
           {storageQuota && (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-[#808080]">
               <span className="font-medium">{formatFileSize(storageQuota.used)}</span>
               {' / '}
               <span>{formatFileSize(storageQuota.total)}</span>
@@ -644,7 +644,7 @@ export default function MediaLibrary({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isUploading ? (
               <>
@@ -678,18 +678,18 @@ export default function MediaLibrary({
             onClick={() => handleConnectDrive('google-drive')}
             className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
               cloudConnections.find(c => c.provider === 'google-drive')?.connected
-                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
+                : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
             }`}
           >
             {cloudConnections.find(c => c.provider === 'google-drive')?.connected ? (
               <>
-                <Check className="w-5 h-5 text-green-500" />
-                <span className="hidden sm:inline text-green-700 dark:text-green-400">Drive Connected</span>
+                <Check className="w-5 h-5" />
+                <span className="hidden sm:inline">Drive Connected</span>
               </>
             ) : (
               <>
-                <Cloud className="w-5 h-5 text-blue-500" />
+                <Cloud className="w-5 h-5" />
                 <span className="hidden sm:inline">Google Drive</span>
               </>
             )}
@@ -699,18 +699,18 @@ export default function MediaLibrary({
             onClick={() => handleConnectDrive('dropbox')}
             className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
               cloudConnections.find(c => c.provider === 'dropbox')?.connected
-                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
+                : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
             }`}
           >
             {cloudConnections.find(c => c.provider === 'dropbox')?.connected ? (
               <>
-                <Check className="w-5 h-5 text-green-500" />
-                <span className="hidden sm:inline text-green-700 dark:text-green-400">Dropbox Connected</span>
+                <Check className="w-5 h-5" />
+                <span className="hidden sm:inline">Dropbox Connected</span>
               </>
             ) : (
               <>
-                <Cloud className="w-5 h-5 text-blue-600" />
+                <Cloud className="w-5 h-5" />
                 <span className="hidden sm:inline">Dropbox</span>
               </>
             )}
@@ -720,20 +720,20 @@ export default function MediaLibrary({
         {/* Search & Filter */}
         <div className="flex gap-3 mt-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#808080]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search files..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
             />
           </div>
 
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
           >
             <option value="all">All Types</option>
             <option value="video">Videos</option>
@@ -742,26 +742,26 @@ export default function MediaLibrary({
           </select>
 
           {/* View Mode Toggle */}
-          <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+          <div className="flex gap-1 bg-[#141414] p-1 rounded-lg">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-gray-700 shadow'
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                  ? 'bg-[#1F1F1F] shadow'
+                  : 'hover:bg-[#1F1F1F]'
               }`}
             >
-              <Grid className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Grid className="w-5 h-5 text-[#B3B3B3]" />
             </button>
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded ${
                 viewMode === 'list'
-                  ? 'bg-white dark:bg-gray-700 shadow'
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-700'
+                  ? 'bg-[#1F1F1F] shadow'
+                  : 'hover:bg-[#1F1F1F]'
               }`}
             >
-              <List className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <List className="w-5 h-5 text-[#B3B3B3]" />
             </button>
           </div>
         </div>
@@ -769,15 +769,15 @@ export default function MediaLibrary({
 
       {/* Error Message */}
       {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <div className="mx-6 mt-4 p-4 bg-[#DC143C]/20 border border-[#DC143C] rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-[#DC143C] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-red-800 dark:text-red-200">Error</p>
-            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <p className="font-medium text-[#FFFFFF]">Error</p>
+            <p className="text-sm text-[#B3B3B3]">{error}</p>
           </div>
           <button
             onClick={() => setError(null)}
-            className="ml-auto text-red-600 dark:text-red-400"
+            className="ml-auto text-[#DC143C] hover:text-[#B91238]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -791,16 +791,16 @@ export default function MediaLibrary({
         onDrop={handleDrop}
         className={`m-6 p-8 border-2 border-dashed rounded-lg transition-colors ${
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-gray-300 dark:border-gray-700'
+            ? 'border-[#DC143C] bg-[#DC143C]/10'
+            : 'border-[#3F3F46]'
         }`}
       >
         <div className="text-center">
-          <Upload className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-          <p className="text-gray-600 dark:text-gray-400 mb-1">
+          <Upload className="w-12 h-12 mx-auto text-[#808080] mb-3" />
+          <p className="text-[#B3B3B3] mb-1">
             Drag and drop files here, or click Upload Files
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500">
+          <p className="text-sm text-[#808080]">
             Max file size: {maxFileSize}MB
           </p>
         </div>
@@ -810,11 +810,11 @@ export default function MediaLibrary({
       <div className="p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
           </div>
         ) : filteredFiles.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">No files found</p>
+            <p className="text-[#B3B3B3]">No files found</p>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}

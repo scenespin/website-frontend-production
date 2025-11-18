@@ -673,7 +673,7 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
   };
 
   return (
-    <div className="p-4 md:p-5 space-y-4 md:space-y-5">
+    <div className="p-4 md:p-5 space-y-4 md:space-y-5 bg-[#0A0A0A]">
       {/* Screenplay Connection Status Banner */}
       <ScreenplayStatusBanner
         onViewEditor={handleViewEditor}
@@ -681,11 +681,11 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
       />
 
       {/* Welcome Section with Quick Actions */}
-      <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-700/50 rounded-xl p-4 md:p-5">
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-2 md:mb-3">
+      <div className="bg-gradient-to-br from-[#DC143C]/20 to-[#00D9FF]/20 border border-[#DC143C]/30 rounded-xl p-4 md:p-5">
+        <h2 className="text-xl md:text-2xl font-bold text-[#FFFFFF] mb-2 md:mb-3">
           Welcome to Production Hub
         </h2>
-        <p className="text-sm md:text-base text-purple-100 mb-3 md:mb-4">
+        <p className="text-sm md:text-base text-[#B3B3B3] mb-3 md:mb-4">
           Three powerful ways to create your video content:
         </p>
 
@@ -704,34 +704,34 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
       {/* Project Stats */}
       {!isMobile && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-gray-400 mb-1">Scenes</p>
-            <p className="text-xl md:text-2xl font-bold text-white">
+          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-[#808080] mb-1">Scenes</p>
+            <p className="text-xl md:text-2xl font-bold text-[#FFFFFF]">
               {screenplay.scenes?.length || 0}
             </p>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-gray-400 mb-1">Characters</p>
-            <p className="text-xl md:text-2xl font-bold text-white">
+          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-[#808080] mb-1">Characters</p>
+            <p className="text-xl md:text-2xl font-bold text-[#FFFFFF]">
               {screenplay.characters?.length || 0}
             </p>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-gray-400 mb-1">Locations</p>
-            <p className="text-xl md:text-2xl font-bold text-white">
+          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-[#808080] mb-1">Locations</p>
+            <p className="text-xl md:text-2xl font-bold text-[#FFFFFF]">
               {screenplay.locations?.length || 0}
             </p>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 md:p-4">
-            <p className="text-xs md:text-sm text-gray-400 mb-1">Jobs Running</p>
-            <p className="text-xl md:text-2xl font-bold text-purple-400">0</p>
+          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-[#808080] mb-1">Jobs Running</p>
+            <p className="text-xl md:text-2xl font-bold text-[#DC143C]">0</p>
           </div>
         </div>
       )}
 
       {/* Creative Possibilities Gallery */}
       <div>
-        <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-[#FFFFFF] mb-3 md:mb-4">
           Creative Possibilities
         </h3>
         <CreativePossibilitiesGallery

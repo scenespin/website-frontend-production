@@ -31,6 +31,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useDrawer } from '@/contexts/DrawerContext';
 import CharacterDetailSidebar from '../screenplay/CharacterDetailSidebar';
 import { AnimatePresence } from 'framer-motion';
+import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 
 interface CharacterBankPanelProps {
   characters: CharacterProfile[];
@@ -188,11 +189,11 @@ export function CharacterBankPanel({
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-[#0A0A0A]">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-slate-700">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-slate-200">
+          <h2 className="text-lg font-semibold text-[#FFFFFF]">
             Character Bank
           </h2>
           <button
@@ -203,19 +204,19 @@ export function CharacterBankPanel({
             <Plus className="w-5 h-5 text-[#DC143C]" />
           </button>
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-[#808080]">
           {characters.length} {characters.length === 1 ? 'character' : 'characters'}
         </p>
       </div>
 
-      {/* Characters List */}
+      {/* Characters Grid */}
       {characters.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <User className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+          <User className="w-12 h-12 text-[#808080] mb-3" />
+          <p className="text-sm font-medium text-[#B3B3B3] mb-1">
             No Characters Yet
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-500 mb-4">
+          <p className="text-xs text-[#808080] mb-4">
             Create characters to maintain consistency across clips
           </p>
           <button
@@ -228,89 +229,50 @@ export function CharacterBankPanel({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Character Cards */}
-          <div className="p-3 space-y-2">
-            {characters.map(character => (
-              <button
-                key={character.id}
-                onClick={() => setSelectedCharacterId(
-                  selectedCharacterId === character.id ? null : character.id
-                )}
-                className={cn(
-                  'w-full text-left p-3 rounded-lg border transition-all',
-                  selectedCharacterId === character.id
-                    ? 'bg-teal-50 dark:bg-teal-900/20 border-teal-300 dark:border-teal-700'
-                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  {/* Base Reference Thumbnail */}
-                  <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {character.baseReference ? (
-                      <img
-                        src={character.baseReference.imageUrl}
-                        alt={character.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-6 h-6 text-slate-400 dark:text-slate-500" />
+          {/* Character Cards Grid */}
+          <div className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {characters.map(character => {
+                // Convert CharacterReference to CinemaCardImage
+                const referenceImages: CinemaCardImage[] = character.references.map(ref => ({
+                  id: ref.id,
+                  imageUrl: ref.imageUrl,
+                  label: ref.label
+                }));
+
+                return (
+                  <CinemaCard
+                    key={character.id}
+                    id={character.id}
+                    name={character.name}
+                    type={character.type}
+                    typeLabel={character.type}
+                    mainImage={character.baseReference ? {
+                      id: 'base',
+                      imageUrl: character.baseReference.imageUrl,
+                      label: `${character.name} - Base Reference`
+                    } : null}
+                    referenceImages={referenceImages}
+                    referenceCount={character.referenceCount}
+                    cardType="character"
+                    onClick={() => setSelectedCharacterId(
+                      selectedCharacterId === character.id ? null : character.id
                     )}
-                  </div>
-
-                  {/* Character Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
-                      {character.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={cn(
-                        'text-xs px-2 py-0.5 rounded-full',
-                        character.type === 'lead' && 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
-                        character.type === 'supporting' && 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
-                        character.type === 'minor' && 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                      )}>
-                        {character.type}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {character.referenceCount} refs
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Expanded References */}
-                {selectedCharacterId === character.id && character.references.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                    <div className="grid grid-cols-3 gap-2">
-                      {character.references.map(ref => (
-                        <div key={ref.id} className="relative group">
-                          <img
-                            src={ref.imageUrl}
-                            alt={ref.label}
-                            className="w-full aspect-square object-cover rounded border border-slate-200 dark:border-slate-700"
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-end p-1">
-                            <span className="text-xs text-base-content font-medium truncate">
-                              {ref.label}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </button>
-            ))}
+                    isSelected={selectedCharacterId === character.id}
+                  />
+                );
+              })}
+            </div>
           </div>
 
           {/* Selected Character Actions */}
           {selectedCharacter && (
-            <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-white dark:from-slate-800 to-transparent pt-8 pb-3 px-3">
-              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 space-y-3">
+            <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#0A0A0A] to-transparent pt-8 pb-3 px-3">
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 space-y-3">
                 
                 {/* Performance Controls - Only show if advanced features available */}
                 {hasAdvancedFeatures && (
-                  <div className="pb-3 border-b border-slate-200 dark:border-slate-600">
+                  <div className="pb-3 border-b border-[#3F3F46]">
                     <PerformanceControls
                       settings={performanceSettings}
                       onChange={setPerformanceSettings}
@@ -325,7 +287,7 @@ export function CharacterBankPanel({
                   className={cn(
                     'w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                     isGeneratingRefs[selectedCharacter.id]
-                      ? 'bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+                      ? 'bg-[#1F1F1F] text-[#808080] cursor-not-allowed border border-[#3F3F46]'
                       : 'bg-[#DC143C] hover:bg-[#B91238] text-white'
                   )}
                 >
@@ -348,11 +310,11 @@ export function CharacterBankPanel({
                     setPoseCharacter({id: selectedCharacter.id, name: selectedCharacter.name});
                     setShowPoseModal(true);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-purple-500 hover:bg-purple-600 text-base-content"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-[#00D9FF] hover:bg-[#0099CC] text-[#0A0A0A]"
                 >
                   <Sparkles className="w-4 h-4" />
                   Generate Pose Package
-                  <span className="badge badge-sm bg-blue-400 text-base-content ml-1">NEW!</span>
+                  <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-[#DC143C] text-white ml-1">NEW!</span>
                 </button>
 
                 <label className="block">
@@ -365,7 +327,7 @@ export function CharacterBankPanel({
                     }}
                     className="hidden"
                   />
-                  <span className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                  <span className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] transition-colors cursor-pointer">
                     <Upload className="w-4 h-4" />
                     Upload Reference
                   </span>

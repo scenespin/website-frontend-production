@@ -266,10 +266,10 @@ export default function CreativePossibilitiesGallery({
 
   const getDifficultyColor = (difficulty: string): string => {
     switch (difficulty) {
-      case 'beginner': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700';
-      case 'intermediate': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700';
-      case 'advanced': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700';
-      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
+      case 'beginner': return 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/30';
+      case 'intermediate': return 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30';
+      case 'advanced': return 'bg-[#DC143C]/20 text-[#DC143C] border-[#DC143C]/30';
+      default: return 'bg-[#808080]/20 text-[#808080] border-[#808080]/30';
     }
   };
 
@@ -293,16 +293,16 @@ export default function CreativePossibilitiesGallery({
   // ============================================================================
 
   return (
-    <div className={`bg-white dark:bg-gray-900 rounded-lg shadow-lg ${className}`}>
+    <div className={`bg-[#0A0A0A] rounded-lg shadow-lg ${className}`}>
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-4 md:p-5 border-b border-[#3F3F46]">
         <div className="flex items-center gap-3 mb-4">
-          <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <Sparkles className="w-6 h-6 text-[#DC143C]" />
+          <h2 className="text-lg md:text-xl font-bold text-[#FFFFFF]">
             Creative Possibilities
           </h2>
         </div>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-[#B3B3B3]">
           Discover what you can create with AI. Click any example to get started instantly.
         </p>
 
@@ -310,13 +310,13 @@ export default function CreativePossibilitiesGallery({
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#808080]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search examples..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
             />
           </div>
 
@@ -324,7 +324,7 @@ export default function CreativePossibilitiesGallery({
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
           >
             <option value="all">All Categories</option>
             {availableCategories.map(category => (
@@ -338,7 +338,7 @@ export default function CreativePossibilitiesGallery({
           <select
             value={selectedDifficulty}
             onChange={(e) => setSelectedDifficulty(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
           >
             <option value="all">All Levels</option>
             <option value="beginner">Beginner</option>
@@ -351,20 +351,20 @@ export default function CreativePossibilitiesGallery({
       {/* Loading State */}
       {loading && (
         <div className="p-12 flex flex-col items-center justify-center">
-          <Loader2 className="w-12 h-12 text-purple-600 dark:text-purple-400 animate-spin mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Loading creative possibilities...</p>
+          <Loader2 className="w-12 h-12 text-[#DC143C] animate-spin mb-4" />
+          <p className="text-[#B3B3B3]">Loading creative possibilities...</p>
         </div>
       )}
 
       {/* Error State */}
       {error && !loading && (
         <div className="p-12 flex flex-col items-center justify-center">
-          <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400 mb-4" />
-          <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Failed to load workflows</p>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">{error}</p>
+          <AlertCircle className="w-12 h-12 text-[#DC143C] mb-4" />
+          <p className="text-[#DC143C] font-semibold mb-2">Failed to load workflows</p>
+          <p className="text-[#B3B3B3] text-sm">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors"
           >
             Retry
           </button>
@@ -376,14 +376,14 @@ export default function CreativePossibilitiesGallery({
         <div className="p-6">
           {filteredExamples.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 dark:text-gray-400">No examples found</p>
+              <p className="text-[#B3B3B3]">No examples found</p>
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('all');
                   setSelectedDifficulty('all');
                 }}
-                className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
+                className="mt-2 text-sm text-[#DC143C] hover:text-[#B91238] hover:underline"
               >
                 Clear filters
               </button>
@@ -394,11 +394,11 @@ export default function CreativePossibilitiesGallery({
               {featuredWorkflows.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
+                    <h3 className="text-lg font-semibold text-[#FFFFFF] flex items-center gap-2">
+                      <Star className="w-5 h-5 text-[#FFD700]" />
                       Featured Workflows
                     </h3>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="text-sm text-[#808080]">
                       {featuredWorkflows.length} workflows
                     </span>
                   </div>
@@ -428,28 +428,28 @@ export default function CreativePossibilitiesGallery({
 
               {/* TIER 2: BROWSE ALL BUTTON */}
               {remainingWorkflows.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <div className="border-t border-[#3F3F46] pt-6">
                   <button
                     onClick={() => setShowBrowseAll(!showBrowseAll)}
                     aria-expanded={showBrowseAll}
                     aria-label={showBrowseAll ? "Hide all workflows" : "Browse all workflows"}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+                    className="w-full px-6 py-4 bg-gradient-to-r from-[#DC143C]/20 to-[#00D9FF]/20 rounded-lg border-2 border-[#DC143C]/30 hover:border-[#DC143C]/50 transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-[#DC143C] rounded-full flex items-center justify-center">
                         <Sparkles className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold text-gray-900 dark:text-white">
+                        <p className="font-semibold text-[#FFFFFF]">
                           Browse All {filteredExamples.length} Workflows
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-[#B3B3B3]">
                           Explore the complete catalog organized by category
                         </p>
                       </div>
                     </div>
                     <ChevronDown 
-                      className={`w-6 h-6 text-purple-600 dark:text-purple-400 transition-transform ${showBrowseAll ? 'rotate-180' : ''}`}
+                      className={`w-6 h-6 text-[#DC143C] transition-transform ${showBrowseAll ? 'rotate-180' : ''}`}
                     />
                   </button>
 
@@ -461,23 +461,23 @@ export default function CreativePossibilitiesGallery({
                         .map(([category, categoryWorkflows]) => (
                           <div 
                             key={category}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                            className="border border-[#3F3F46] rounded-lg overflow-hidden"
                           >
                             {/* Category Header */}
                             <button
                               onClick={() => toggleCategory(category)}
                               aria-expanded={expandedCategories.has(category)}
                               aria-label={`${expandedCategories.has(category) ? 'Collapse' : 'Expand'} ${category} workflows (${workflows.length} items)`}
-                              className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset"
+                              className="w-full px-6 py-4 bg-[#141414] hover:bg-[#1F1F1F] transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:ring-inset"
                             >
                               <div className="flex items-center gap-3">
                                 <ChevronRight 
-                                  className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${expandedCategories.has(category) ? 'rotate-90' : ''}`}
+                                  className={`w-5 h-5 text-[#B3B3B3] transition-transform ${expandedCategories.has(category) ? 'rotate-90' : ''}`}
                                 />
-                                <h4 className="font-semibold text-gray-900 dark:text-white">
+                                <h4 className="font-semibold text-[#FFFFFF]">
                                   {category}
                                 </h4>
-                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                <span className="text-sm text-[#808080]">
                                   ({categoryWorkflows.length})
                                 </span>
                               </div>
@@ -485,7 +485,7 @@ export default function CreativePossibilitiesGallery({
 
                             {/* Category Workflows */}
                             {expandedCategories.has(category) && (
-                              <div className="p-6 bg-white dark:bg-gray-900">
+                              <div className="p-6 bg-[#0A0A0A]">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                   {categoryWorkflows.map((example) => (
                                     <WorkflowCard
@@ -521,14 +521,14 @@ export default function CreativePossibilitiesGallery({
 
       {/* Footer Tip */}
       {!loading && !error && (
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-purple-50 dark:bg-purple-900/20">
+        <div className="p-6 border-t border-[#3F3F46] bg-[#DC143C]/10">
           <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+            <Sparkles className="w-5 h-5 text-[#DC143C] flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+              <p className="text-sm font-medium text-[#FFFFFF] mb-1">
                 💡 Pro Tip: Start Simple
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-[#B3B3B3]">
                 New to AI video? Try a beginner example first! The AI will guide you through each step and help you learn the workflow.
               </p>
             </div>
@@ -543,7 +543,7 @@ export default function CreativePossibilitiesGallery({
           onClick={() => setVideoModalOpen(false)}
         >
           <div 
-            className="relative w-full max-w-4xl mx-4 bg-gray-900 rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95"
+            className="relative w-full max-w-4xl mx-4 bg-[#141414] border border-[#3F3F46] rounded-xl overflow-hidden shadow-2xl animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -567,7 +567,7 @@ export default function CreativePossibilitiesGallery({
                   Your browser does not support the video tag.
                 </video>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <div className="w-full h-full flex items-center justify-center text-[#808080]">
                   <div className="text-center">
                     <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p>Video preview coming soon</p>
@@ -577,11 +577,11 @@ export default function CreativePossibilitiesGallery({
             </div>
 
             {/* Video Info */}
-            <div className="p-6 border-t border-gray-800">
-              <h3 className="text-xl font-bold text-white mb-2">
+            <div className="p-6 border-t border-[#3F3F46]">
+              <h3 className="text-xl font-bold text-[#FFFFFF] mb-2">
                 {selectedVideo.title}
               </h3>
-              <p className="text-gray-400 mb-4">
+              <p className="text-[#B3B3B3] mb-4">
                 {selectedVideo.description}
               </p>
               
@@ -592,7 +592,7 @@ export default function CreativePossibilitiesGallery({
                     onStartExample(selectedVideo);
                   }
                 }}
-                className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full px-6 py-3 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />
                 Start This Workflow
@@ -648,7 +648,7 @@ function WorkflowCard({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onKeyDown={handleKeyDown}
-      className="group relative bg-gray-50 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:shadow-xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
+      className="group relative bg-[#141414] rounded-xl overflow-hidden border border-[#3F3F46] hover:border-[#DC143C]/50 transition-all hover:shadow-xl hover:shadow-[#DC143C]/20 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
       onClick={onClick}
     >
       {/* Thumbnail */}
@@ -663,9 +663,9 @@ function WorkflowCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         
         {/* Category Badge */}
-        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-medium">
+        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 bg-[#0A0A0A]/90 backdrop-blur-sm rounded-full text-xs font-medium">
           {getCategoryIcon(example.category)}
-          <span className="text-gray-900 dark:text-white">
+          <span className="text-[#FFFFFF]">
             {getCategoryLabel(example.category)}
           </span>
         </div>
@@ -681,7 +681,7 @@ function WorkflowCard({
             className="absolute inset-0 flex items-center justify-center bg-black/50 animate-in fade-in"
             onClick={onPlayClick}
           >
-            <div className="w-16 h-16 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center transition-colors">
+            <div className="w-16 h-16 bg-[#DC143C] hover:bg-[#B91238] rounded-full flex items-center justify-center transition-colors">
               <Play className="w-8 h-8 text-white ml-1" />
             </div>
           </div>
@@ -690,15 +690,15 @@ function WorkflowCard({
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-1">
+        <h3 className="font-semibold text-[#FFFFFF] mb-2 line-clamp-1">
           {example.title}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+        <p className="text-sm text-[#B3B3B3] mb-3 line-clamp-2">
           {example.description}
         </p>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mb-3">
+        <div className="flex items-center gap-4 text-xs text-[#808080] mb-3">
           <div className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
             <span>{example.estimatedTime}</span>
@@ -714,7 +714,7 @@ function WorkflowCard({
           {example.tags.slice(0, 3).map((tag, idx) => (
             <span
               key={idx}
-              className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
+              className="px-2 py-0.5 bg-[#1F1F1F] text-[#B3B3B3] rounded text-xs border border-[#3F3F46]"
             >
               {tag}
             </span>
@@ -727,7 +727,7 @@ function WorkflowCard({
             e.stopPropagation();
             onClick();
           }}
-          className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium group-hover:bg-purple-700"
+          className="w-full px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors flex items-center justify-center gap-2 text-sm font-medium"
         >
           Try This
           <ChevronRight className="w-4 h-4" />
