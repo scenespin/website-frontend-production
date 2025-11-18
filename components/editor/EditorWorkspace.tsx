@@ -46,9 +46,10 @@ export default function EditorWorkspace() {
     // Rewrite modal state
     const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
     
-    // Get projectId from URL params (for collaboration)
+    // Get projectId and sceneId from URL params (for collaboration and scene navigation)
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const projectId = searchParams?.get('project') || 'default';
+    const sceneIdFromUrl = searchParams?.get('sceneId');
     
     // Get GitHub config from localStorage
     const [githubConfig, setGithubConfig] = useState<{ owner: string; repo: string; token: string } | null>(null);
@@ -160,6 +161,28 @@ export default function EditorWorkspace() {
             setCurrentLine(scene.fountain.startLine, true);
         }
     };
+    
+    // Handle sceneId from URL param - jump to scene when editor loads
+    useEffect(() => {
+        if (sceneIdFromUrl && screenplay.scenes && state.content) {
+            const targetScene = screenplay.scenes.find(s => s.id === sceneIdFromUrl);
+            if (targetScene && targetScene.fountain?.startLine) {
+                console.log('[EditorWorkspace] Jumping to scene from URL:', {
+                    sceneId: sceneIdFromUrl,
+                    sceneName: targetScene.heading,
+                    startLine: targetScene.fountain.startLine
+                });
+                // Use a small delay to ensure editor is fully initialized
+                setTimeout(() => {
+                    setCurrentLine(targetScene.fountain.startLine, true);
+                    // Clear URL param after navigation
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.delete('sceneId');
+                    window.history.replaceState({}, '', newUrl.toString());
+                }, 100);
+            }
+        }
+    }, [sceneIdFromUrl, screenplay.scenes, state.content, setCurrentLine]);
     
     // Handle opening chat drawer with rewrite context
     const handleOpenChatWithContext = (

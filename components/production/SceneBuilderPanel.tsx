@@ -569,18 +569,67 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (uploadedImages.length > 0) {
         for (const file of uploadedImages) {
-          const formData = new FormData();
-          formData.append('image', file);
-          formData.append('projectId', projectId);
+          // Use presigned POST upload (same as first frame upload)
+          const fileType = file.type || 'image/jpeg';
+          const presignedResponse = await fetch(
+            `/api/video/upload/get-presigned-url?` +
+            `fileName=${encodeURIComponent(file.name)}` +
+            `&fileType=${encodeURIComponent(fileType)}` +
+            `&fileSize=${file.size}` +
+            `&projectId=${encodeURIComponent(projectId)}`,
+            { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+          );
           
-          const uploadRes = await fetch('/api/media/upload-image', {
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to get presigned URL: ${presignedResponse.statusText}`);
+          }
+          
+          const { url, fields, s3Key } = await presignedResponse.json();
+          
+          // Upload directly to S3 using FormData POST
+          const formData = new FormData();
+          Object.entries(fields).forEach(([key, value]) => {
+            if (key.toLowerCase() !== 'bucket') {
+              formData.append(key, value as string);
+            }
+          });
+          formData.append('file', file); // File must be last
+          
+          const s3Response = await fetch(url, { method: 'POST', body: formData });
+          if (!s3Response.ok) {
+            const errorText = await s3Response.text();
+            throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorText}`);
+          }
+          
+          // Register file in DynamoDB
+          await fetch('/api/media/register', {
             method: 'POST',
-            body: formData
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              projectId,
+              fileName: file.name,
+              fileType,
+              fileSize: file.size,
+              s3Key,
+            }),
           });
           
-          const uploadData = await uploadRes.json();
-          if (uploadData.success && uploadData.url) {
-            referenceImageUrls.push(uploadData.url);
+          // Get download URL for reference
+          const downloadUrlResponse = await fetch('/api/s3/download-url', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ s3Key }),
+          });
+          
+          if (downloadUrlResponse.ok) {
+            const { downloadUrl } = await downloadUrlResponse.json();
+            referenceImageUrls.push(downloadUrl);
           }
         }
       }
