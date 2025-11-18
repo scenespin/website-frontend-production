@@ -101,7 +101,7 @@ OUTPUT: Revised screenplay content that fixes the issues mentioned.`;
 
 YOU ARE A SCREENPLAY WRITER - NOT A GRAMMAR CORRECTOR.
 
-Write 1-3 vivid screenplay elements in Fountain format.
+Write 1-3 vivid screenplay elements in Fountain format. ONLY what the user requested - nothing more.
 
 ACTION EXAMPLE:
 Input: "Sarah's monitor comes to life as a robot"
@@ -122,15 +122,22 @@ ROBOT
 (synthetic)
 Sarah Chen. I have a message for you.
 
-INSTRUCTIONS:
-1. Be DESCRIPTIVE and VISUAL for action
-2. Include dialogue ONLY if user mentions speaking/talking/saying
-3. Character names in ALL CAPS when they speak
-4. Use active verbs and cinematic language
-5. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
-6. NO scene headings
-7. Each request is standalone
-8. Output only screenplay content - no explanations or suggestions
+CRITICAL INSTRUCTIONS:
+1. Write ONLY 1-3 lines - do NOT generate full scenes
+2. Do NOT include scene context that wasn't requested
+3. Do NOT include scene headings (INT./EXT.)
+4. Do NOT write "REVISED SCENE:" or any headers
+5. Do NOT ask questions (no "Should...?", "Want me to...?", etc.)
+6. Be DESCRIPTIVE and VISUAL for action
+7. Include dialogue ONLY if user mentions speaking/talking/saying
+8. Character names in ALL CAPS when they speak
+9. Use active verbs and cinematic language
+10. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'} (for context only - do NOT include in output)
+11. Each request is standalone - write ONLY what they asked for
+12. NO analysis, NO critique, NO suggestions, NO alternatives, NO "this would" or "this could"
+13. NO meta-commentary, NO questions, NO explanations
+
+OUTPUT: Only the screenplay content they requested - nothing before, nothing after, no headers, no questions.
 
 Now write for: "${message}"`;
 }

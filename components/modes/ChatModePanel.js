@@ -41,9 +41,9 @@ function cleanFountainOutput(text) {
     /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
     // Remove "SCREENWRITING NOTE:" or "NOTE:" sections (case insensitive, multiline)
     /(SCREENWRITING\s+)?NOTE:.*$/is,
-    // Remove "REVISION" or "REVISED SCENE" headers (with or without markdown)
-    /^#?\s*REVISION\s*$/im,
-    /^#?\s*REVISED\s+SCENE\s*$/im,
+    // Remove "REVISION" or "REVISED SCENE" headers (with or without markdown, with or without colon)
+    /^#?\s*REVISION\s*:?\s*$/im,
+    /^#?\s*REVISED\s+SCENE\s*:?\s*$/im,
     // Remove "ALTERNATIVE OPTIONS:" sections
     /ALTERNATIVE OPTIONS?:.*$/is,
     // Remove "Option 1:", "Option 2:", etc.
@@ -117,6 +117,11 @@ function cleanFountainOutput(text) {
       /[!?.]$/.test(line) // Ends with punctuation (dialogue markers)
     );
     
+    // Stop on questions (especially at the end of responses)
+    if (/\?.*$/.test(line) && /(Should|Want|Would|Do you|Can you|Shall|Want me|keep going|continue|next)/i.test(line)) {
+      break; // Stop on questions like "Should the footsteps enter, or pass by? Want me to keep going?"
+    }
+    
     if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
         !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
         !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
@@ -127,6 +132,11 @@ function cleanFountainOutput(text) {
     // If we find a scene heading, skip it (we don't want scene headings in content generation)
     if (/^(INT\.|EXT\.|I\/E\.)/i.test(line)) {
       continue; // Skip scene headings
+    }
+    
+    // Skip "REVISED SCENE:" or "REVISION:" headers (with or without colon, with or without markdown)
+    if (/^#?\s*REVISED\s+SCENE\s*:?\s*$/i.test(line) || /^#?\s*REVISION\s*:?\s*$/i.test(line)) {
+      continue; // Skip revision headers
     }
     
     // Skip markdown headers like "# REVISED SCENE" (must start with #, have space, then REVISED/REVISION)
@@ -429,12 +439,19 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         
         // Build system prompt - Simple for content, permissive for advice
         if (isContentRequest) {
-          // Simple system prompt for content generation (let the user prompt do the work)
-          systemPrompt = `You are a professional screenwriting assistant.`;
+          // Simple system prompt for content generation - explicitly forbid analysis, full scenes, and questions
+          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique.
+
+CRITICAL RULES:
+- Write ONLY 1-3 lines - do NOT generate full scenes
+- Do NOT include scene headings (INT./EXT.)
+- Do NOT write "REVISED SCENE:" or any headers
+- Do NOT ask questions (no "Should...?", "Want me to...?", etc.)
+- Write only the screenplay content they requested - no explanations, no suggestions, no alternatives, no meta-commentary`;
           
           // Add scene context if available (minimal, just for context)
           if (sceneContext) {
-            systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading}`;
+            systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
             if (sceneContext.characters && sceneContext.characters.length > 0) {
               systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
             }
