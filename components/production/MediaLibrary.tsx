@@ -1103,13 +1103,13 @@ export default function MediaLibrary({
                   {filteredFiles.map((file) => (
                     <div
                       key={file.id}
-                onClick={() => handleFileClick(file)}
-                className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
-                  selectedFiles.has(file.id)
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
-              >
+                      onClick={() => handleFileClick(file)}
+                      className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
+                        selectedFiles.has(file.id)
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
+                    >
                 {/* Selected Checkmark */}
                 {selectedFiles.has(file.id) && (
                   <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1 z-10">
