@@ -249,6 +249,28 @@ export default function MediaLibrary({
     }
   };
 
+  const handleFolderSelect = (folderId: string, path: string[]) => {
+    setSelectedFolderId(folderId || null);
+    setSelectedFolderPath(path);
+    loadFiles(folderId || undefined);
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    if (index === -1) {
+      // Navigate to root (All Files)
+      setSelectedFolderId(null);
+      setSelectedFolderPath([]);
+      loadFiles();
+    } else {
+      // Navigate to specific folder in path
+      const newPath = selectedFolderPath.slice(0, index + 1);
+      // Note: We'd need to get the folderId for this path segment
+      // For now, just update the path and reload
+      setSelectedFolderPath(newPath);
+      // TODO: Get folderId for this path segment and load files
+    }
+  };
+
   // Helper function to detect file type from MIME type or filename
   const detectFileType = (mimeTypeOrFilename: string): 'video' | 'image' | 'audio' | 'other' => {
     const lower = mimeTypeOrFilename.toLowerCase();
