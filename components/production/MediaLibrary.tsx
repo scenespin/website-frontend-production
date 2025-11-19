@@ -22,7 +22,8 @@ import {
   Clock,
   Check,
   X,
-  Eye
+  Eye,
+  FileAudio
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -618,8 +619,13 @@ export default function MediaLibrary({
       }
       setSelectedFiles(newSelected);
     } else {
+      // If onSelectFile callback is provided, use it (for file selection mode)
+      // Otherwise, open preview modal (for viewing mode)
       if (onSelectFile) {
         onSelectFile(file);
+      } else {
+        // Open preview modal when clicking file directly
+        handleViewFile(file);
       }
     }
   };
@@ -1113,29 +1119,52 @@ export default function MediaLibrary({
             {/* Content */}
             <div className="p-4 md:p-5">
               {previewFile.fileType === 'image' && (
-                <img 
-                  src={previewFile.fileUrl || previewFile.thumbnailUrl} 
-                  alt={previewFile.fileName}
-                  className="w-full h-auto rounded-lg"
-                />
+                <div className="relative">
+                  <img 
+                    src={previewFile.fileUrl || previewFile.thumbnailUrl} 
+                    alt={previewFile.fileName}
+                    className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto"
+                    onError={(e) => {
+                      console.error('[MediaLibrary] Image failed to load:', previewFile.fileUrl);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
               )}
               {previewFile.fileType === 'video' && (
-                <video 
-                  src={previewFile.fileUrl} 
-                  controls
-                  className="w-full h-auto rounded-lg"
-                >
-                  Your browser does not support the video tag.
-                </video>
+                <div className="relative">
+                  <video 
+                    src={previewFile.fileUrl} 
+                    controls
+                    controlsList="nodownload"
+                    className="w-full h-auto rounded-lg max-h-[70vh] bg-[#0A0A0A]"
+                    preload="metadata"
+                    onError={(e) => {
+                      console.error('[MediaLibrary] Video failed to load:', previewFile.fileUrl);
+                      toast.error('Video failed to load. The file may be corrupted or the URL expired.');
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
               )}
               {previewFile.fileType === 'audio' && (
-                <audio 
-                  src={previewFile.fileUrl} 
-                  controls
-                  className="w-full"
-                >
-                  Your browser does not support the audio tag.
-                </audio>
+                <div className="flex flex-col items-center justify-center py-12">
+                  <FileAudio className="w-16 h-16 text-[#DC143C] mb-4" />
+                  <audio 
+                    src={previewFile.fileUrl} 
+                    controls
+                    className="w-full max-w-md"
+                    preload="metadata"
+                    onError={(e) => {
+                      console.error('[MediaLibrary] Audio failed to load:', previewFile.fileUrl);
+                      toast.error('Audio file failed to load. The file may be corrupted or the URL expired.');
+                    }}
+                  >
+                    Your browser does not support the audio tag.
+                  </audio>
+                  <p className="text-sm text-[#808080] mt-4">{previewFile.fileName}</p>
+                </div>
               )}
               {previewFile.fileType === 'other' && (
                 <div className="text-center py-12">
