@@ -76,6 +76,7 @@ export interface Screenplay {
   screenplay_id: string;
   title: string;
   author: string;
+  description?: string;
   content: string;
   beats: Beat[];
   characters: Character[];
