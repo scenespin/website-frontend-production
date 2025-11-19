@@ -64,11 +64,22 @@ export function detectCurrentScene(content, cursorPosition) {
   
   // Extract LIMITED context window around cursor (before and after)
   // This gives AI enough context to understand the scene without seeing the full scene
-  // BEFORE: 400 chars (enough to see last few lines of action/dialogue)
+  // BEFORE: 150 chars (2-3 lines - just enough for continuity, not enough to repeat)
   // AFTER: 200 chars (just to see what comes next)
-  const contextBeforeCursor = cursorInScene > 0
-    ? sceneContent.substring(Math.max(0, cursorInScene - 400), cursorInScene).trim()
+  // CRITICAL: Exclude scene heading from context - AI shouldn't see it to repeat it
+  let contextBeforeCursor = cursorInScene > 0
+    ? sceneContent.substring(Math.max(0, cursorInScene - 150), cursorInScene).trim()
     : '';
+  
+  // Remove scene heading from contextBeforeCursor if present
+  // Scene headings are at the start of sceneContent, so if we're near the start, remove it
+  const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
+  if (contextBeforeCursor) {
+    const lines = contextBeforeCursor.split('\n');
+    // Remove scene heading if it's in the context
+    contextBeforeCursor = lines.filter(line => !sceneHeadingRegex.test(line.trim())).join('\n').trim();
+  }
+  
   const contextAfterCursor = cursorInScene >= 0 && cursorInScene < sceneContent.length
     ? sceneContent.substring(cursorInScene, Math.min(sceneContent.length, cursorInScene + 200)).trim()
     : '';

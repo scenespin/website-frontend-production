@@ -12,7 +12,8 @@ import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest, bu
 import toast from 'react-hot-toast';
 
 // Helper to clean AI output: strip markdown and remove writing notes
-function cleanFountainOutput(text) {
+// Also removes duplicate content that matches context before cursor
+function cleanFountainOutput(text, contextBeforeCursor = null) {
   if (!text) return text;
   
   let cleaned = text;
@@ -153,14 +154,46 @@ function cleanFountainOutput(text) {
       }
       
       // If we find a scene heading, skip it AND mark that a full scene was generated (we don't want this)
-      if (/^(INT\.|EXT\.|I\/E\.)/i.test(line)) {
+      if (/^(INT\.|EXT\.|I\/E\.|#\s*INT\.|#\s*EXT\.)/i.test(line)) {
         sceneHeadingFound = true;
-        continue; // Skip scene headings
+        continue; // Skip scene headings (including markdown headers like "# INT. NEWS OFFICE - NIGHT")
       }
       
       // If we've seen a scene heading, we're in a full scene - stop processing (user only wanted 1-5 lines)
       if (sceneHeadingFound) {
         break; // Don't include content from full scenes
+      }
+      
+      // 🔥 NEW: Detect and remove duplicate content that matches context before cursor
+      // This prevents AI from repeating content that already exists
+      if (contextBeforeCursor) {
+        const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const currentLineTrimmed = line.trim();
+        
+        // Check if this line matches any line from context before cursor (exact match)
+        // This is best practice: exact match first (simple, reliable, no false positives)
+        const isDuplicate = contextLines.some(contextLine => {
+          // Exact match (case-insensitive, ignoring extra whitespace)
+          const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ').trim();
+          const normalizedCurrent = currentLineTrimmed.toLowerCase().replace(/\s+/g, ' ').trim();
+          
+          // Match if lines are identical (allowing for minor whitespace differences)
+          if (normalizedContext === normalizedCurrent) {
+            return true;
+          }
+          
+          // Also check if current line is a substring of context line (handles partial matches)
+          // This catches cases where AI repeats a phrase that's part of a longer line
+          if (normalizedContext.includes(normalizedCurrent) && normalizedCurrent.length > 10) {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        if (isDuplicate) {
+          continue; // Skip duplicate lines
+        }
       }
       
       // If we find a character name in ALL CAPS, we're in screenplay content
@@ -532,11 +565,14 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         },
         // onComplete
         (fullContent) => {
+          // Clean the output and remove duplicates using context before cursor
+          const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
+          
           // Keep streamingText visible briefly so insert button doesn't disappear
           // The message will be added and streamingText will be cleared by the message render
           addMessage({
             role: 'assistant',
-            content: fullContent,
+            content: cleanedContent,
             mode: 'chat'
           });
           // Clear streaming after a brief delay to allow message to render
@@ -789,8 +825,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => {
-                              // Clean the content before inserting (strip markdown, remove notes)
-                              const cleanedContent = cleanFountainOutput(message.content);
+                              // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
+                              // Get scene context for duplicate detection
+                              const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
+                              const cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null);
                               // If in rewrite mode, pass selection range info
                               if (state.selectedTextContext && state.selectionRange) {
                                 onInsert(cleanedContent, {
@@ -841,7 +879,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                       <button
                         onClick={() => {
                           // Clean the content before inserting (strip markdown, remove notes)
-                          const cleanedContent = cleanFountainOutput(state.streamingText);
+                          // Get scene context for duplicate detection
+                          const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
+                          const cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null);
                           // If in rewrite mode, pass selection range info
                           if (state.selectedTextContext && state.selectionRange) {
                             onInsert(cleanedContent, {

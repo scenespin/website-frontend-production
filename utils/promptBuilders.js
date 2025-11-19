@@ -81,11 +81,13 @@ export function buildChatContentPrompt(message, sceneContext) {
     if (sceneContext.contextBeforeCursor) {
       continuationContext += `...${sceneContext.contextBeforeCursor}\n`;
     }
-    continuationContext += '← [CURSOR IS HERE - Continue from this point]\n';
+    continuationContext += '← [CURSOR IS HERE - Continue from this point - DO NOT repeat anything above this line]\n';
     
     if (sceneContext.contextAfterCursor) {
       continuationContext += `${sceneContext.contextAfterCursor}...\n`;
     }
+    
+    continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output.';
   }
   
   return `${contextInfo}User's request: "${message}"
@@ -112,6 +114,36 @@ CONTINUATION EXAMPLE:
 User's cursor is after: "She starts downloading everything."
 User requests: "the computer freezes and then explodes"
 Output: "The download bar STOPS at 47%. A SPARK erupts from the back of her computer tower. Then another. WHOOSH — the tower EXPLODES in a burst of flame and smoke, throwing Sarah backward in her chair."
+
+BAD EXAMPLE (DO NOT DO THIS):
+User's cursor is after: "She starts downloading everything."
+User requests: "the computer freezes and then explodes"
+BAD Output:
+# INT. NEWS OFFICE - NIGHT
+
+The newsroom is empty now. Sarah's desk lamp is the only light on.
+
+She opens the email from earlier. Her eyes widen.
+
+She starts downloading everything.
+
+The download bar STOPS at 47%...
+
+❌ THIS IS WRONG because:
+- It includes the scene heading (INT. NEWS OFFICE - NIGHT)
+- It repeats content that already exists before the cursor
+- It rewrites the entire scene instead of continuing from the cursor
+
+GOOD EXAMPLE (DO THIS):
+User's cursor is after: "She starts downloading everything."
+User requests: "the computer freezes and then explodes"
+GOOD Output:
+The download bar STOPS at 47%. A SPARK erupts from the back of her computer tower. Then another. WHOOSH — the tower EXPLODES in a burst of flame and smoke, throwing Sarah backward in her chair.
+
+✅ THIS IS CORRECT because:
+- No scene heading
+- No repetition of existing content
+- Only new content continuing from the cursor
 
 ACTION EXAMPLE:
 Input: "Sarah's monitor comes to life as a robot"
