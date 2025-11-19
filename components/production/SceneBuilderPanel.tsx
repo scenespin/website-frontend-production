@@ -823,7 +823,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           currentStep: 1,
           totalSteps: 5,
           stepResults: [],
-          totalCreditsUsed: 0
+          totalCreditsUsed: 0,
+          finalOutputs: []
         });
         // Move to a "generating" view - hide wizard, show progress
         setCurrentStep(3); // Keep on Step 3 but show progress instead
