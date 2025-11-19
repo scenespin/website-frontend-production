@@ -262,7 +262,7 @@ function parseRewriteOptions(text) {
 }
 
 export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
-  const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext } = useChatContext();
+  const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext, setSelectedTextContext } = useChatContext();
   const { closeDrawer } = useDrawer();
   const {
     activeWorkflow,
@@ -422,45 +422,19 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         console.warn('[ChatModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
       }
       
-      // Check if this is a rewrite request (selected text exists)
+      // 🔥 CRITICAL: Rewrite is now handled by RewriteModal, NOT the chat window
+      // The chat window is ONLY for content generation (continuing the scene) or advice
+      // If selectedTextContext exists, clear it and use regular content generation
+      if (state.selectedTextContext) {
+        console.warn('[ChatModePanel] selectedTextContext detected in chat window - rewrite should use RewriteModal, clearing context');
+        // Clear the selected text context - rewrite should be done via modal
+        setSelectedTextContext(null, null);
+      }
+      
+      // REGULAR MODE: Detect if this is content generation vs advice request
       let builtPrompt;
       let systemPrompt;
-      let isContentRequest = false; // Declare outside if/else so it's available for conversation history logic
-      
-      if (state.selectedTextContext && state.selectionRange && editorContent) {
-        // REWRITE MODE: Use buildRewritePrompt with surrounding text
-        const selectionContext = extractSelectionContext(
-          editorContent,
-          state.selectionRange.start,
-          state.selectionRange.end
-        );
-        
-        if (selectionContext) {
-          builtPrompt = buildRewritePrompt(
-            prompt,
-            state.selectedTextContext,
-            sceneContext,
-            {
-              before: selectionContext.beforeContext,
-              after: selectionContext.afterContext
-            }
-          );
-          
-          // Simple system prompt for rewrite mode
-          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten text in Fountain format.`;
-        } else {
-          // Fallback: use regular rewrite prompt without surrounding text
-          builtPrompt = buildRewritePrompt(
-            prompt,
-            state.selectedTextContext,
-            sceneContext,
-            null
-          );
-          systemPrompt = `You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten selection in Fountain format.`;
-        }
-      } else {
-        // REGULAR MODE: Detect if this is content generation vs advice request
-        isContentRequest = detectContentRequest(prompt);
+      const isContentRequest = detectContentRequest(prompt);
         
         // DEBUG: Log detection result
         console.log('[ChatModePanel] Content detection:', {

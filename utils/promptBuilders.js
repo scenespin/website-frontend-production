@@ -48,10 +48,10 @@ export function detectContentRequest(message) {
   // 🔥 NEW: Detect emotional/descriptive statements (like "she's terrified", "hands are clammy")
   const isEmotionalDescription = /(is|are|was|were|becomes|becomes|feels|feeling|looks|seems)\s+(terrified|scared|afraid|angry|happy|sad|excited|nervous|anxious|calm|tense|relaxed|stressed|worried|confused|shocked|surprised|disgusted|proud|ashamed|embarrassed|jealous|lonely|tired|exhausted|energetic|focused|distracted|clammy|shaky|trembling|shaking|sweating|breathing|panting|gasping|hyperventilating)/i.test(message);
   
-  // 🔥 NEW: Detect rewrite/feedback requests (should be treated as content generation)
-  const isRewriteRequest = /(its|it's|this is|that's|this feels|too|not|needs|should|could|make it|fix|change|revise|rewrite|redo|better|different|gooey|melodramatic|convenient|predictable|on-the-nose|telling|showing)/i.test(message);
+  // Note: Rewrite requests are now handled by RewriteModal, not the chat window
+  // The chat window is ONLY for content generation (continuing the scene) or advice
   
-  const isContentRequest = hasActionVerb || hasContentKeyword || isRewriteRequest || isEmotionalDescription || (
+  const isContentRequest = hasActionVerb || hasContentKeyword || isEmotionalDescription || (
     isShortStatement && 
     !message.toLowerCase().startsWith('how') && 
     !message.toLowerCase().startsWith('what') && 
@@ -71,31 +71,6 @@ export function detectContentRequest(message) {
  */
 export function buildChatContentPrompt(message, sceneContext) {
   const contextInfo = buildContextInfo(sceneContext);
-  
-  // 🔥 NEW: Detect if this is a rewrite/feedback request
-  const isRewriteRequest = /(its|it's|this is|that's|this feels|too|not|needs|should|could|make it|fix|change|revise|rewrite|redo|better|different|gooey|melodramatic|convenient|predictable|on-the-nose|telling|showing)/i.test(message);
-  
-  if (isRewriteRequest) {
-    // This is a rewrite/feedback request - provide revised screenplay content
-    return `${contextInfo}User's feedback: "${message}"
-
-REWRITE REQUEST - PROVIDE REVISED SCREENPLAY CONTENT:
-
-The user is giving feedback about the current scene/content. They want you to revise it based on their feedback.
-
-CRITICAL INSTRUCTIONS:
-1. Provide ONLY revised screenplay content in Fountain format
-2. NO explanations, NO meta-commentary, NO questions
-3. Character names in ALL CAPS (NOT bold/markdown)
-4. Parentheticals in parentheses (NOT italics/markdown)
-5. Dialogue in plain text below character name
-6. Action lines in normal case
-7. NO markdown formatting (no **, no *, no ---)
-8. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'}
-9. Use the scene context to provide a revised version that addresses their feedback
-
-OUTPUT: Revised screenplay content that fixes the issues mentioned.`;
-  }
   
   // 🔥 CRITICAL: Build limited context window around cursor (before and after)
   // This gives AI enough context to understand the scene without seeing the full scene
