@@ -44,6 +44,18 @@ Generate a comprehensive character profile in the following STRUCTURED FORMAT:
 - Active voice, what the camera sees
 - Example: "SARAH (30s) moves with the precision of a surgeon and the wariness of a survivor. A faded scar traces her left cheek."
 
+**Physical Attributes** (extract from description if mentioned)
+- Height: [short/average/tall] - Extract from words like "tall", "short", "average height"
+- Weight/Build: [slim/athletic/muscular/heavyset/average] - Extract from words like "athletic", "muscular", "slim"
+- Eye Color: [blue/brown/green/hazel/gray] - Extract from phrases like "blue eyes", "brown eyes"
+- Body Type: [slim/athletic/muscular/heavyset/average] - Can be same as weight/build
+- Hair Color: [blonde/brunette/brown/black/red/gray/bald] - Extract from phrases like "blonde hair", "dark hair", "red hair"
+- Hair Length: [bald/very-short/short/medium/long] - Extract from phrases like "short hair", "long hair", "shoulder-length"
+- Hair Style: [curly/straight/wavy/braided/ponytail] - Extract from phrases like "curly hair", "straight hair", "wavy locks"
+
+If physical attributes are mentioned in the description, extract them and include in the character profile.
+Hair details are especially important for character consistency across all video generations!
+
 **Description:** [Combine Physical Introduction + Personality Essence - this will fill the main description field]
 
 **Personality Essence** (1-2 key behavioral traits)
@@ -87,8 +99,8 @@ CRITICAL: You MUST include "**Type:**" and "**Arc Notes:**" fields in your respo
       placeholder: "e.g., Expose corporate corruption"
     },
     {
-      question: "Describe them in 2-3 sentences (appearance, personality, key trait).",
-      placeholder: "e.g., Sharp eyes, determined, too trusting"
+      question: "Describe them in 2-3 sentences (appearance, personality, key trait). Include physical details like height, build, eye color, and hair if relevant.",
+      placeholder: "e.g., Tall, athletic build, brown eyes, dark brown wavy hair, determined personality, scar on left cheek"
     }
   ]
 };

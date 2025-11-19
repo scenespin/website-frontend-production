@@ -50,13 +50,15 @@ export default function CharacterDetailSidebar({
       type: initialData.type || 'lead',
       arcStatus: initialData.arcStatus || 'introduced',
       description: initialData.description || '',
-      arcNotes: initialData.arcNotes || ''
+      arcNotes: initialData.arcNotes || '',
+      physicalAttributes: initialData.physicalAttributes || {}
     } : {
       name: '',
       type: 'lead',
       arcStatus: 'introduced',
       description: '',
-      arcNotes: ''
+      arcNotes: '',
+      physicalAttributes: {}
     })
   )
   
@@ -70,7 +72,8 @@ export default function CharacterDetailSidebar({
         type: initialData.type || 'lead',
         arcStatus: initialData.arcStatus || 'introduced',
         description: initialData.description || '',
-        arcNotes: initialData.arcNotes || ''
+        arcNotes: initialData.arcNotes || '',
+        physicalAttributes: initialData.physicalAttributes || {}
       })
     } else if (isCreating) {
       setFormData({
@@ -78,7 +81,8 @@ export default function CharacterDetailSidebar({
         type: 'lead',
         arcStatus: 'introduced',
         description: '',
-        arcNotes: ''
+        arcNotes: '',
+        physicalAttributes: {}
       })
     }
   }, [character, initialData, isCreating])
@@ -266,6 +270,138 @@ export default function CharacterDetailSidebar({
             rows={3}
             placeholder="Brief character description"
           />
+        </div>
+
+        {/* Physical Attributes Section */}
+        <div>
+          <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+            Physical Attributes <span className="text-[#6B7280]">(Optional)</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Height */}
+            <div>
+              <select
+                value={formData.physicalAttributes?.height || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    height: e.target.value as 'short' | 'average' | 'tall' | '' || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+              >
+                <option value="">Height</option>
+                <option value="short">Short</option>
+                <option value="average">Average</option>
+                <option value="tall">Tall</option>
+              </select>
+            </div>
+            
+            {/* Body Type */}
+            <div>
+              <select
+                value={formData.physicalAttributes?.bodyType || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    bodyType: e.target.value as 'slim' | 'athletic' | 'muscular' | 'heavyset' | 'average' | '' || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+              >
+                <option value="">Body Type</option>
+                <option value="slim">Slim</option>
+                <option value="athletic">Athletic</option>
+                <option value="muscular">Muscular</option>
+                <option value="heavyset">Heavyset</option>
+                <option value="average">Average</option>
+              </select>
+            </div>
+            
+            {/* Eye Color */}
+            <div>
+              <input
+                type="text"
+                value={formData.physicalAttributes?.eyeColor || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    eyeColor: e.target.value || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                placeholder="Eye Color"
+              />
+            </div>
+            
+            {/* Hair Color */}
+            <div>
+              <input
+                type="text"
+                value={formData.physicalAttributes?.hairColor || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    hairColor: e.target.value || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                placeholder="Hair Color"
+              />
+            </div>
+            
+            {/* Hair Length */}
+            <div>
+              <select
+                value={formData.physicalAttributes?.hairLength || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    hairLength: e.target.value as 'bald' | 'very-short' | 'short' | 'medium' | 'long' | '' || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+              >
+                <option value="">Hair Length</option>
+                <option value="bald">Bald</option>
+                <option value="very-short">Very Short</option>
+                <option value="short">Short</option>
+                <option value="medium">Medium</option>
+                <option value="long">Long</option>
+              </select>
+            </div>
+            
+            {/* Hair Style */}
+            <div>
+              <input
+                type="text"
+                value={formData.physicalAttributes?.hairStyle || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    hairStyle: e.target.value || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                placeholder="Hair Style (curly, straight, wavy)"
+              />
+            </div>
+          </div>
+          <p className="text-xs mt-1.5" style={{ color: '#6B7280' }}>
+            💡 These help AI generate more accurate character images and pose packages
+          </p>
         </div>
 
         {/* Arc Notes */}

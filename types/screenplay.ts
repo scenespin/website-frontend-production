@@ -149,6 +149,17 @@ export interface Character {
     customFields: CharacterCustomField[];
     images?: ImageAsset[]; // Associated images (portraits, costumes, references)
     
+    // Physical Attributes (Optional - for pose package generation and AI consistency)
+    physicalAttributes?: {
+        height?: 'short' | 'average' | 'tall';
+        weight?: string; // "slim", "athletic", "muscular", "heavyset", "average"
+        eyeColor?: string; // "blue", "brown", "green", "hazel", "gray"
+        bodyType?: 'slim' | 'athletic' | 'muscular' | 'heavyset' | 'average';
+        hairColor?: string; // "blonde", "brunette", "brown", "black", "red", "gray", "bald"
+        hairLength?: 'bald' | 'very-short' | 'short' | 'medium' | 'long';
+        hairStyle?: string; // "curly", "straight", "wavy", "braided", "ponytail"
+    };
+    
     // Character consistency integration (NEW - links to production CharacterBank)
     referenceLibrary?: {
         bankId: string; // References CharacterBank in production system
