@@ -34,7 +34,8 @@ import {
   ArrowRight,
   Film,
   Save,
-  Loader2
+  Loader2,
+  ChevronRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
