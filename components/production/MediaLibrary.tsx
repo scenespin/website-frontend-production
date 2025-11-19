@@ -34,6 +34,7 @@ import {
 import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
+import { useDropdownCoordinator } from '@/hooks/useDropdownCoordinator';
 
 // ============================================================================
 // VIDEO THUMBNAIL COMPONENT
@@ -214,7 +215,7 @@ export default function MediaLibrary({
   const [isDragging, setIsDragging] = useState(false);
   const [cloudConnections, setCloudConnections] = useState<CloudStorageConnection[]>([]);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const { openMenuId, setOpenMenuId, isOpen } = useDropdownCoordinator();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
   const [showFolderSidebar, setShowFolderSidebar] = useState(true);
@@ -1245,26 +1246,10 @@ export default function MediaLibrary({
                       {/* Actions Menu */}
                       <div className="absolute top-2 right-2 z-20">
                         <DropdownMenu 
-                          open={openMenuId === file.id} 
+                          open={isOpen(file.id)} 
                           onOpenChange={(open) => {
-                            // 🔥 FIX: Ensure only one menu is open at a time
-                            if (open) {
-                              // If opening this menu, immediately close any other open menu
-                              if (openMenuId && openMenuId !== file.id) {
-                                setOpenMenuId(null);
-                                // Use setTimeout to ensure the close completes before opening
-                                setTimeout(() => {
-                                  setOpenMenuId(file.id);
-                                }, 10);
-                              } else {
-                                setOpenMenuId(file.id);
-                              }
-                            } else {
-                              // Only close if this is the currently open menu
-                              if (openMenuId === file.id) {
-                                setOpenMenuId(null);
-                              }
-                            }
+                            // Use the coordinator hook which handles all the complexity
+                            setOpenMenuId(open ? file.id : null);
                           }}
                           modal={false}
                         >
@@ -1272,15 +1257,7 @@ export default function MediaLibrary({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // 🔥 FIX: Close any other open menu before opening this one
-                                if (openMenuId && openMenuId !== file.id) {
-                                  setOpenMenuId(null);
-                                  // Small delay to ensure state update
-                                  setTimeout(() => {
-                                    setOpenMenuId(file.id);
-                                  }, 10);
-                                }
-                                // Let Radix handle the rest
+                                // Let the coordinator hook handle menu state
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                               aria-label={`Actions for ${file.fileName}`}
