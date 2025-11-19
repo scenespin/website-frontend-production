@@ -118,6 +118,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [duration, setDuration] = useState('5s');
   const [enableSound, setEnableSound] = useState(false);
   
+  // Wizard flow state
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  
   // Phase 2: Scene selection state
   const [inputMethod, setInputMethod] = useState<'database' | 'manual'>('database');
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
@@ -145,6 +148,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   // Note: Mobile no longer forces defaults - users can choose any options
   
+  // Auto-advance to Step 2 when scene is selected
+  useEffect(() => {
+    if (sceneDescription.trim() && currentStep === 1) {
+      // Don't auto-advance, let user click Continue button
+      // setCurrentStep(2);
+    }
+  }, [sceneDescription, currentStep]);
+
   // Phase 2: Auto-select scene from editor context
   useEffect(() => {
     const editorSceneId = contextStore.context.currentSceneId;
@@ -1338,22 +1349,22 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         {/* Step Indicator */}
         {!isGenerating && !workflowStatus && (
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className={`flex items-center gap-2 ${sceneDescription.trim() ? 'text-[#DC143C]' : 'text-[#808080]'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${sceneDescription.trim() ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414]'}`}>
-                {sceneDescription.trim() ? <CheckCircle2 className="w-5 h-5" /> : <span className="text-sm font-bold">1</span>}
+            <div className={`flex items-center gap-2 ${currentStep >= 1 ? 'text-[#DC143C]' : 'text-[#808080]'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 1 ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414]'}`}>
+                {currentStep > 1 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">1</span>}
               </div>
               <span className="text-sm font-medium hidden sm:inline">Select Scene</span>
             </div>
             <ChevronRight className="w-4 h-4 text-[#808080]" />
-            <div className={`flex items-center gap-2 ${sceneDescription.trim() ? 'text-[#808080]' : 'text-[#3F3F46]'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${sceneDescription.trim() ? 'border-[#3F3F46] bg-[#141414]' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
-                <span className="text-sm font-bold">2</span>
+            <div className={`flex items-center gap-2 ${currentStep >= 2 ? 'text-[#DC143C]' : currentStep === 1 ? 'text-[#808080]' : 'text-[#3F3F46] opacity-50'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 2 ? 'border-[#DC143C] bg-[#DC143C]/10' : currentStep === 1 ? 'border-[#3F3F46] bg-[#141414]' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
+                {currentStep > 2 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">2</span>}
               </div>
               <span className="text-sm font-medium hidden sm:inline">Configure</span>
             </div>
             <ChevronRight className="w-4 h-4 text-[#808080]" />
-            <div className="flex items-center gap-2 text-[#3F3F46] opacity-50">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#3F3F46] bg-[#141414]">
+            <div className={`flex items-center gap-2 ${currentStep === 3 ? 'text-[#DC143C]' : 'text-[#3F3F46] opacity-50'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 3 ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
                 <span className="text-sm font-bold">3</span>
               </div>
               <span className="text-sm font-medium hidden sm:inline">Generate</span>
@@ -1361,22 +1372,23 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           </div>
         )}
 
-        {/* Scene Builder Form */}
+        {/* Scene Builder Form - Wizard Flow */}
         {!isGenerating && !workflowStatus && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            {/* Scene Selection System - Phase 2 */}
-            <Card className="bg-[#141414] border-[#3F3F46]">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
-                <CardDescription className="text-[#808080]">
-                  Choose a scene from your screenplay or enter one manually
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Step 1: Scene Selection */}
+            {currentStep === 1 && (
+              <Card className="bg-[#141414] border-[#3F3F46]">
+                <CardHeader>
+                  <CardTitle className="text-lg text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
+                  <CardDescription className="text-[#808080]">
+                    Choose a scene from your screenplay or enter one manually
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                 {/* Input Method Toggle */}
                 <div className="flex items-center gap-4">
                   <label className="text-sm font-medium">Input Method:</label>
@@ -1532,153 +1544,16 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </CardContent>
             </Card>
             
-            {/* Step 2: Configuration Options - Only show if scene is selected */}
-            {sceneDescription.trim() && (
+            {/* Step 2: Configuration */}
+            {currentStep === 2 && (
               <>
-                {/* Character References */}
+                {/* Generation Options - REQUIRED (First) */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
                   <CardHeader>
-                    <CardTitle className="text-lg text-[#FFFFFF]">🎭 Step 2: Character References (Optional)</CardTitle>
-                <CardDescription className="text-[#808080]">
-                  {isMobile || simplified 
-                    ? 'Upload 1 character image for consistency'
-                    : 'Upload 1-3 images for consistent character appearance'
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className={`grid gap-4 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                  {/* Mobile: Show only 1 upload slot | Desktop: Show 3 slots */}
-                  {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => {
-                    const file = referenceImages[index];
-                    const preview = file ? URL.createObjectURL(file) : null;
-                    
-                    return (
-                      <div key={index}>
-                        {preview ? (
-                          <div className="relative">
-                            <img
-                              src={preview}
-                              alt={`Character ${index + 1}`}
-                              className={`w-full object-cover rounded border-2 border-[#DC143C] ${isMobile || simplified ? 'h-48' : 'h-32'}`}
-                            />
-                            <button
-                              onClick={() => {
-                                const newImages = [...referenceImages];
-                                newImages[index] = null;
-                                setReferenceImages(newImages);
-                              }}
-                              className="absolute top-2 right-2 p-1 bg-background/90 rounded-full hover:bg-background shadow-lg"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <div className="text-xs text-center text-muted-foreground mt-2 font-medium">
-                              Character {isMobile || simplified ? 'Reference' : index + 1}
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = SUPPORTED_IMAGE_TYPES.join(',');
-                              input.onchange = (e: any) => {
-                                const selectedFile = e.target?.files?.[0];
-                                if (selectedFile) {
-                                  if (selectedFile.size > MAX_IMAGE_SIZE_BYTES) {
-                                    toast.error(`Image too large. Max ${MAX_IMAGE_SIZE_MB}MB`);
-                                    return;
-                                  }
-                                  if (!SUPPORTED_IMAGE_TYPES.includes(selectedFile.type)) {
-                                    toast.error('Unsupported format. Use JPG, PNG, GIF, or WebP.');
-                                    return;
-                                  }
-                                  const newImages = [...referenceImages];
-                                  newImages[index] = selectedFile;
-                                  setReferenceImages(newImages);
-                                }
-                              };
-                              input.click();
-                            }}
-                            className={`w-full border-2 border-dashed border-border rounded flex flex-col items-center justify-center hover:border-[#DC143C] hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-colors ${isMobile || simplified ? 'h-48' : 'h-32'}`}
-                          >
-                            <Upload className="w-6 h-6 text-muted-foreground mb-2" />
-                            <span className="text-xs text-muted-foreground font-medium">
-                              {isMobile || simplified ? 'Upload Character' : `Character ${index + 1}`}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Show different tip for mobile vs desktop */}
-                {isMobile || simplified ? (
-                  <div className="mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-500">
-                    <p className="text-xs text-amber-800 dark:text-amber-200">
-                      💻 <strong>Desktop Only:</strong> Upload up to 3 character references for more consistency
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-                    <p className="text-xs text-blue-600 dark:text-[#DC143C]">
-                      💡 <strong>With character refs:</strong> 4 videos (establishing + 3 character angles)<br />
-                      <strong>Without character refs:</strong> 4 videos (establishing + 3 scene variations)
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            {/* Media Uploads (Optional) - Feature 0070 */}
-            <Card className="bg-[#141414] border-[#3F3F46]">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#FFFFFF]">📁 Media Uploads (Optional)</CardTitle>
-                <CardDescription className="text-[#808080]">
-                  {isMobile || simplified 
-                    ? 'Upload 1 video, audio, or image file to include in your scene'
-                    : 'Upload up to 3 media files (video, audio, images) to include in your scene'
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className={`grid gap-4 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                  {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => (
-                    <MediaUploadSlot
-                      key={index}
-                      index={index}
-                      file={mediaUploads[index]}
-                      onUpload={(file) => handleMediaUpload(index, file)}
-                      onRemove={() => handleRemoveMedia(index)}
-                      isMobile={isMobile || simplified}
-                      uploading={uploadingMedia[index]}
-                    />
-                  ))}
-                </div>
-                
-                {/* Show mobile tip */}
-                {(isMobile || simplified) && (
-                  <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900">
-                    <p className="text-xs text-blue-600 dark:text-[#DC143C]">
-                      💻 <strong>Desktop Only:</strong> Upload up to 3 media files simultaneously
-                    </p>
-                  </div>
-                )}
-                
-                {/* General tip */}
-                <div className="mt-4 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900">
-                  <p className="text-xs text-purple-600 dark:text-purple-400">
-                    💡 <strong>Tip:</strong> Uploaded media can be used as reference material or incorporated directly into your generated scene
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            
-                {/* Options */}
-                <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Generation Options</CardTitle>
+                    <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Step 2: Generation Options</CardTitle>
+                    <CardDescription className="text-[#808080]">
+                      Configure quality and duration for your scene
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                 {/* Quality Tier */}
@@ -1689,27 +1564,27 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       onClick={() => setQualityTier('professional')}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         qualityTier === 'professional'
-                          ? 'border-[#DC143C] bg-purple-50 dark:bg-purple-950/20'
-                          : 'border-border hover:border-purple-300'
+                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                          : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
                       <div className="font-semibold text-sm">Professional 1080p</div>
-                      <div className="text-xs text-muted-foreground mt-1">100-125 credits</div>
+                      <div className="text-xs text-[#808080] mt-1">100-125 credits</div>
                     </button>
                     
                     <button
                       onClick={() => setQualityTier('premium')}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         qualityTier === 'premium'
-                          ? 'border-[#DC143C] bg-purple-50 dark:bg-purple-950/20'
-                          : 'border-border hover:border-purple-300'
+                          ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                          : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
                       <div className="font-semibold text-sm flex items-center gap-2">
                         Premium 4K
                         <Sparkles className="w-3 h-3" />
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">200-225 credits</div>
+                      <div className="text-xs text-[#808080] mt-1">200-225 credits</div>
                     </button>
                   </div>
                 </div>
@@ -1724,8 +1599,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         onClick={() => setDuration(dur)}
                         className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-all ${
                           duration === dur
-                            ? 'bg-[#DC143C] text-base-content border-[#DC143C]'
-                            : 'bg-background border-border hover:border-purple-300'
+                            ? 'bg-[#DC143C] text-white border-[#DC143C]'
+                            : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                         }`}
                       >
                         {dur}
@@ -1739,25 +1614,25 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                 {/* Style Matching (Feature 0109) */}
                 {styleProfiles.length > 0 && (
                   <div>
-                    <Label className="text-sm font-medium mb-2 block flex items-center gap-2">
+                    <Label className="text-sm font-medium mb-2 block flex items-center gap-2 text-[#FFFFFF]">
                       🎨 Style Matching
                       <Badge variant="secondary" className="text-xs">NEW</Badge>
                     </Label>
                     <div className="space-y-3">
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-[#808080]">
                         Match the visual style of your uploaded footage ({styleProfiles.length} profile{styleProfiles.length > 1 ? 's' : ''} available)
                       </div>
                       
                       {!showStyleSelector ? (
                         <button
                           onClick={() => setShowStyleSelector(true)}
-                          className="w-full p-3 rounded-lg border-2 border-dashed border-border hover:border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-all text-sm text-muted-foreground"
+                          className="w-full p-3 rounded-lg border-2 border-dashed border-[#3F3F46] hover:border-[#DC143C] hover:bg-[#DC143C]/10 transition-all text-sm text-[#808080]"
                         >
                           Click to select style profile
                         </button>
                       ) : (
                         <div className="space-y-2">
-                          <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-background border border-border rounded-lg">
+                          <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg">
                             {styleProfiles.map((profile) => (
                               <button
                                 key={profile.profileId}
@@ -1767,8 +1642,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                                 }}
                                 className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                                   selectedStyleProfile === profile.profileId
-                                    ? 'border-[#DC143C] bg-purple-50 dark:bg-purple-950/20'
-                                    : 'border-border hover:border-purple-300'
+                                    ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                                    : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                                 }`}
                               >
                                 <div className="flex items-center gap-3">
@@ -1783,7 +1658,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                                     <div className="font-semibold text-sm">
                                       {profile.sceneId || 'Default Style'}
                                     </div>
-                                    <div className="text-xs text-muted-foreground">
+                                    <div className="text-xs text-[#808080]">
                                       Confidence: {profile.confidence}%
                                     </div>
                                   </div>
@@ -1796,10 +1671,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                           </div>
                           
                           {selectedStyleProfile && (
-                            <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                            <div className="p-3 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
                               <div className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                                <div className="text-xs text-green-700 dark:text-green-400">
+                                <CheckCircle2 className="w-4 h-4 text-[#DC143C] flex-shrink-0 mt-0.5" />
+                                <div className="text-xs text-[#FFFFFF]">
                                   Style profile selected! Your generated videos will match the visual style of your uploaded footage.
                                 </div>
                               </div>
@@ -1811,7 +1686,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                               setShowStyleSelector(false);
                               setSelectedStyleProfile(null);
                             }}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            className="text-xs text-[#808080] hover:text-[#FFFFFF] transition-colors"
                           >
                             Clear selection
                           </button>
@@ -1820,33 +1695,140 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-            
-            {/* First Frame Generation & Annotation (Feature 0105/Phase 6) */}
-            {!firstFrameUrl && !isGeneratingFirstFrame && !isUploadingFirstFrame && (
-              <Card className="bg-[#141414] border-2 border-dashed border-[#DC143C]/50">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-[#DC143C]/20 rounded-lg">
-                      <Eye className="w-5 h-5 text-[#DC143C]" />
+                  </CardContent>
+                </Card>
+
+                {/* Character References (Optional) */}
+                <Card className="bg-[#141414] border-[#3F3F46]">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#FFFFFF]">🎭 Character References (Optional)</CardTitle>
+                    <CardDescription className="text-[#808080]">
+                      Upload headshots for consistent character appearance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`grid gap-3 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                      {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => {
+                        const file = referenceImages[index];
+                        const preview = file ? URL.createObjectURL(file) : null;
+                        
+                        return (
+                          <div key={index}>
+                            {preview ? (
+                              <div className="relative">
+                                <img
+                                  src={preview}
+                                  alt={`Character ${index + 1}`}
+                                  className={`w-full object-cover rounded border-2 border-[#DC143C] ${isMobile || simplified ? 'h-20' : 'h-20'}`}
+                                />
+                                <button
+                                  onClick={() => {
+                                    const newImages = [...referenceImages];
+                                    newImages[index] = null;
+                                    setReferenceImages(newImages);
+                                  }}
+                                  className="absolute top-1 right-1 p-1 bg-[#0A0A0A]/90 rounded-full hover:bg-[#DC143C] shadow-lg"
+                                >
+                                  <X className="w-3 h-3 text-[#FFFFFF]" />
+                                </button>
+                                <div className="text-[10px] text-center text-[#808080] mt-1 font-medium">
+                                  Character {isMobile || simplified ? 'Ref' : index + 1}
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = SUPPORTED_IMAGE_TYPES.join(',');
+                                  input.onchange = (e: any) => {
+                                    const selectedFile = e.target?.files?.[0];
+                                    if (selectedFile) {
+                                      if (selectedFile.size > MAX_IMAGE_SIZE_BYTES) {
+                                        toast.error(`Image too large. Max ${MAX_IMAGE_SIZE_MB}MB`);
+                                        return;
+                                      }
+                                      if (!SUPPORTED_IMAGE_TYPES.includes(selectedFile.type)) {
+                                        toast.error('Unsupported format. Use JPG, PNG, GIF, or WebP.');
+                                        return;
+                                      }
+                                      const newImages = [...referenceImages];
+                                      newImages[index] = selectedFile;
+                                      setReferenceImages(newImages);
+                                    }
+                                  };
+                                  input.click();
+                                }}
+                                className={`w-full border-2 border-dashed border-[#3F3F46] rounded flex flex-col items-center justify-center hover:border-[#DC143C] hover:bg-[#DC143C]/10 transition-colors ${isMobile || simplified ? 'h-20' : 'h-20'}`}
+                              >
+                                <Upload className="w-4 h-4 text-[#808080] mb-1" />
+                                <span className="text-[10px] text-[#808080] font-medium">
+                                  {isMobile || simplified ? 'Headshot' : `Headshot ${index + 1}`}
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <Label className="text-sm font-semibold mb-1 block">
-                          Optional: Preview & Annotate
-                        </Label>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Generate a first frame preview or upload your own image, then add camera motion or action annotations before generating the full scene.
-                        </p>
-                      </div>
+                    
+                    <div className="mt-3 p-2 rounded-lg bg-[#1F1F1F] border border-[#3F3F46]">
+                      <p className="text-xs text-[#808080]">
+                        💡 <strong className="text-[#FFFFFF]">With character refs:</strong> 4 videos (establishing + 3 character angles)<br />
+                        <strong className="text-[#FFFFFF]">Without character refs:</strong> 4 videos (establishing + 3 scene variations)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Media Uploads (Optional) */}
+                <Card className="bg-[#141414] border-[#3F3F46]">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#FFFFFF]">📁 Media Uploads (Optional)</CardTitle>
+                    <CardDescription className="text-[#808080]">
+                      Upload video, audio, or images to include in your scene
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`grid gap-3 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                      {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => (
+                        <MediaUploadSlot
+                          key={index}
+                          index={index}
+                          file={mediaUploads[index]}
+                          onUpload={(file) => handleMediaUpload(index, file)}
+                          onRemove={() => handleRemoveMedia(index)}
+                          isMobile={isMobile || simplified}
+                          uploading={uploadingMedia[index]}
+                        />
+                      ))}
+                    </div>
+                    
+                    <div className="mt-3 p-2 rounded-lg bg-[#1F1F1F] border border-[#3F3F46]">
+                      <p className="text-xs text-[#808080]">
+                        💡 <strong className="text-[#FFFFFF]">Tip:</strong> Uploaded media can be used as reference material or incorporated directly into your generated scene
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Preview & Annotate (Optional) */}
+                {!firstFrameUrl && !isGeneratingFirstFrame && !isUploadingFirstFrame && (
+                  <Card className="bg-[#141414] border-2 border-dashed border-[#3F3F46]">
+                    <CardHeader>
+                      <CardTitle className="text-lg text-[#FFFFFF]">👁️ Preview & Annotate (Optional)</CardTitle>
+                      <CardDescription className="text-[#808080]">
+                        Generate a first frame preview or upload your own image, then add camera motion or action annotations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
                       <div className="flex gap-2">
                         <Button
                           onClick={handleGenerateFirstFrame}
                           disabled={!sceneDescription.trim() || isGenerating}
                           variant="outline"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           Generate Preview
@@ -1868,7 +1850,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="w-full"
+                            className="w-full bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
                             disabled={isGenerating}
                             asChild
                           >
@@ -1879,117 +1861,173 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                           </Button>
                         </label>
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            {/* First Frame Generation/Upload Progress */}
-            {(isGeneratingFirstFrame || isUploadingFirstFrame) && (
-              <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#DC143C]" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {isGeneratingFirstFrame ? 'Generating first frame...' : 'Uploading image...'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {isGeneratingFirstFrame ? 'This will take a few seconds' : 'Please wait'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            {/* Annotation Panel (Feature 0105/Phase 6) */}
-            {showAnnotationPanel && firstFrameUrl && (
-              <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
-                <CardContent className="p-4">
-                  <VisualAnnotationPanel
-                    imageUrl={firstFrameUrl}
-                    onAnnotationsComplete={(annotations) => {
-                      setVisualAnnotations(annotations);
-                      toast.success('Annotations saved! They will be used in video generation.');
-                    }}
-                    disabled={isGenerating}
-                    defaultExpanded={true}
-                  />
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      onClick={() => {
-                        setFirstFrameUrl(null);
-                        setVisualAnnotations(null);
-                        setShowAnnotationPanel(false);
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      Clear & Regenerate
-                    </Button>
-                    <Button
-                      onClick={() => setShowAnnotationPanel(false)}
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1"
-                    >
-                      Hide Panel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-                {/* Generate Button - Step 3 */}
-                <Card className="bg-gradient-to-r from-[#DC143C] to-[#B01030] text-white border-none">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <div className="text-sm font-medium opacity-90">Estimated Cost</div>
-                        <div className="text-3xl font-bold">{calculateEstimate()} credits</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm opacity-90">Estimated Time</div>
-                        <div className="text-xl font-semibold">8-15 min</div>
-                      </div>
-                    </div>
-                    
-                    {visualAnnotations && (
-                      <div className="mb-3 p-2 bg-white/20 rounded-lg text-sm">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Annotations will be applied to generation</span>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* First Frame Generation/Upload Progress */}
+                {(isGeneratingFirstFrame || isUploadingFirstFrame) && (
+                  <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin text-[#DC143C]" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-[#FFFFFF]">
+                            {isGeneratingFirstFrame ? 'Generating first frame...' : 'Uploading image...'}
+                          </p>
+                          <p className="text-xs text-[#808080]">
+                            {isGeneratingFirstFrame ? 'This will take a few seconds' : 'Please wait'}
+                          </p>
                         </div>
                       </div>
-                    )}
-                    
-                    {/* Preview Section */}
-                    <div className="mb-4 p-4 bg-white/10 rounded-lg border border-white/20">
-                      <div className="text-sm font-semibold mb-3">What You'll Get:</div>
-                      <ul className="text-xs opacity-90 space-y-1 mb-3">
-                        <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
-                        <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
-                        <li>• {duration} each</li>
-                        <li>• Perfect consistency across all clips</li>
-                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Annotation Panel */}
+                {showAnnotationPanel && firstFrameUrl && (
+                  <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
+                    <CardContent className="p-4">
+                      <VisualAnnotationPanel
+                        imageUrl={firstFrameUrl}
+                        onAnnotationsComplete={(annotations) => {
+                          setVisualAnnotations(annotations);
+                          toast.success('Annotations saved! They will be used in video generation.');
+                        }}
+                        disabled={isGenerating}
+                        defaultExpanded={true}
+                      />
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setFirstFrameUrl(null);
+                            setVisualAnnotations(null);
+                            setShowAnnotationPanel(false);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C]"
+                        >
+                          Clear & Regenerate
+                        </Button>
+                        <Button
+                          onClick={() => setShowAnnotationPanel(false)}
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-[#808080] hover:text-[#FFFFFF]"
+                        >
+                          Hide Panel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Continue to Step 3 Button */}
+                <Card className="bg-[#141414] border-[#3F3F46]">
+                  <CardContent className="pt-6">
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => setCurrentStep(1)}
+                        variant="outline"
+                        className="flex-1 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
+                      >
+                        ← Back
+                      </Button>
+                      <Button
+                        onClick={() => setCurrentStep(3)}
+                        className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white"
+                      >
+                        Continue to Step 3
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
                     </div>
-                    
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* Step 3: Review & Generate */}
+            {currentStep === 3 && (
+              <Card className="bg-gradient-to-r from-[#DC143C] to-[#B01030] text-white border-none">
+                <CardHeader>
+                  <CardTitle className="text-xl text-white">✨ Step 3: Review & Generate</CardTitle>
+                  <CardDescription className="text-white/80">
+                    Review your selections and generate your scene package
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* What You'll Get Preview */}
+                  <div className="p-4 bg-white/10 rounded-lg border border-white/20">
+                    <div className="text-sm font-semibold mb-3 text-white">What You'll Get:</div>
+                    <ul className="text-xs opacity-90 space-y-1 mb-3 text-white">
+                      <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
+                      <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
+                      <li>• {duration} each</li>
+                      <li>• Perfect consistency across all clips</li>
+                    </ul>
+                  </div>
+
+                  {/* Selected Options Summary */}
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                    <div className="text-sm font-semibold text-white mb-2">Your Selections:</div>
+                    <div className="text-xs opacity-90 space-y-1 text-white">
+                      <div><strong>Scene:</strong> {sceneDescription.split('\n')[0] || 'Custom scene'}</div>
+                      <div><strong>Quality:</strong> {qualityTier === 'premium' ? 'Premium 4K' : 'Professional 1080p'}</div>
+                      <div><strong>Duration:</strong> {duration}</div>
+                      <div><strong>Character References:</strong> {referenceImages.filter(img => img !== null).length} uploaded</div>
+                      {mediaUploads.some(m => m !== null) && (
+                        <div><strong>Media Files:</strong> {mediaUploads.filter(m => m !== null).length} uploaded</div>
+                      )}
+                      {visualAnnotations && (
+                        <div><strong>Annotations:</strong> ✓ Applied</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cost & Time */}
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div>
+                      <div className="text-sm opacity-90 text-white">Estimated Cost</div>
+                      <div className="text-3xl font-bold text-white">{calculateEstimate()} credits</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm opacity-90 text-white">Estimated Time</div>
+                      <div className="text-xl font-semibold text-white">8-15 min</div>
+                    </div>
+                  </div>
+
+                  {visualAnnotations && (
+                    <div className="p-3 bg-white/20 rounded-lg text-sm text-white">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Annotations will be applied to generation</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={() => setCurrentStep(2)}
+                      variant="outline"
+                      className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    >
+                      ← Back
+                    </Button>
                     <Button
                       onClick={handleGenerate}
                       disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
-                      className="w-full bg-white text-[#DC143C] hover:bg-gray-100 font-bold text-lg h-12"
+                      className="flex-1 bg-white text-[#DC143C] hover:bg-gray-100 font-bold text-lg h-12"
                       size="lg"
                     >
                       <Sparkles className="w-5 h-5 mr-2" />
                       Generate Complete Scene
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
-                  </CardContent>
-                </Card>
-              </>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </motion.div>
         )}
