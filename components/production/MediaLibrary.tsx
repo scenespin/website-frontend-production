@@ -1240,7 +1240,15 @@ export default function MediaLibrary({
                   {filteredFiles.map((file) => (
                     <div
                       key={file.id}
-                      onClick={() => handleFileClick(file)}
+                      onClick={(e) => {
+                        // Don't trigger file click if clicking on dropdown menu area
+                        const target = e.target as HTMLElement;
+                        if (target.closest('[data-radix-dropdown-menu-trigger]') || 
+                            target.closest('[data-radix-dropdown-menu-content]')) {
+                          return;
+                        }
+                        handleFileClick(file);
+                      }}
                       className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
                         selectedFiles.has(file.id)
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -1305,19 +1313,11 @@ export default function MediaLibrary({
                       {/* Actions Menu */}
                       <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu 
+                          open={isOpen(file.id)}
                           onOpenChange={(open) => {
                             // Use the coordinator hook which handles all the complexity
                             if (open) {
-                              // Close any other open menu first
-                              if (openMenuId && openMenuId !== file.id) {
-                                setOpenMenuId(null);
-                                // Use a small delay to ensure the previous menu closes
-                                setTimeout(() => {
-                                  setOpenMenuId(file.id);
-                                }, 10);
-                              } else {
-                                setOpenMenuId(file.id);
-                              }
+                              setOpenMenuId(file.id);
                             } else {
                               setOpenMenuId(null);
                             }
@@ -1326,17 +1326,15 @@ export default function MediaLibrary({
                         >
                           <DropdownMenuTrigger asChild>
                             <button
-                              onClick={(e) => {
+                              onPointerDown={(e) => {
+                                // Use onPointerDown instead of onClick to prevent file card click
+                                // This works better with React's synthetic events and Radix UI
                                 e.stopPropagation();
-                                // Prevent file card click when clicking menu button
-                              }}
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                                // Prevent file card selection when clicking menu button
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                               aria-label={`Actions for ${file.fileName}`}
                               aria-haspopup="menu"
+                              type="button"
                             >
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                             </button>
