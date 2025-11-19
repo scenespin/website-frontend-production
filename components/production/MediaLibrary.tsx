@@ -232,10 +232,10 @@ export default function MediaLibrary({
               }
             }
           }
+        } catch (error) {
+          console.warn('[MediaLibrary] Failed to load cloud storage files:', error);
+          // Don't fail the whole load, just show local files
         }
-      } catch (error) {
-        console.warn('[MediaLibrary] Failed to load cloud storage files:', error);
-        // Don't fail the whole load, just show local files
       }
 
       setFiles(allFiles);
