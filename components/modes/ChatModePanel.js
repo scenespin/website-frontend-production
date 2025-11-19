@@ -93,68 +93,86 @@ function cleanFountainOutput(text) {
     }
   }
   
-  // Remove lines that are clearly explanations (contain "This", "That", "Which", etc. at start)
-  const lines = cleaned.split('\n');
-  const screenplayLines = [];
-  let foundFirstScreenplayContent = false;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    // Remove lines that are clearly explanations (contain "This", "That", "Which", etc. at start)
+    const lines = cleaned.split('\n');
+    const screenplayLines = [];
+    let foundFirstScreenplayContent = false;
+    let sceneHeadingFound = false; // Track if we've seen a scene heading (means full scene was generated)
     
-    // Skip empty lines at the start
-    if (!foundFirstScreenplayContent && !line) continue;
-    
-    // If line starts with "NOTE:" or explanation words, stop here
-    if (/^NOTE:/i.test(line)) {
-      break;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip empty lines at the start
+      if (!foundFirstScreenplayContent && !line) continue;
+      
+      // If line starts with "NOTE:" or explanation words, stop here
+      if (/^NOTE:/i.test(line)) {
+        break;
+      }
+      
+      // CRITICAL: Stop on meta-commentary patterns (analysis, explanations about the story)
+      // Pattern: "This [verb] [something]" - indicates analysis/explanation, not screenplay content
+      if (/^\*?\s*This\s+(adds|creates|raises|builds|establishes|introduces|sets up|develops|enhances|improves|strengthens|deepens|expands|explores|reveals|highlights|emphasizes|underscores|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i.test(line)) {
+        break; // Stop on meta-commentary like "This adds immediate digital threat..."
+      }
+      
+      // Also stop on lines that start with asterisk (markdown emphasis) followed by "This"
+      if (/^\*\s*This\s+/i.test(line)) {
+        break;
+      }
+      
+      // If line starts with explanation words, stop here (but allow short lines that might be dialogue)
+      // IMPORTANT: Don't stop on lines that are clearly dialogue (short, or follow a character name)
+      const isLikelyDialogue = line.length < 50 && (
+        /^[A-Z][A-Z\s]+$/.test(lines[i-1]?.trim() || '') || // Previous line was a character name
+        /^\(/.test(line) || // Starts with parenthetical
+        /[!?.]$/.test(line) // Ends with punctuation (dialogue markers)
+      );
+      
+      // Stop on questions (especially at the end of responses)
+      if (/\?.*$/.test(line) && /(Should|Want|Would|Do you|Can you|Shall|Want me|keep going|continue|next)/i.test(line)) {
+        break; // Stop on questions like "Should the footsteps enter, or pass by? Want me to keep going?"
+      }
+      
+      if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
+          !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
+          !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
+          line.length > 15) { // Only if it's a longer explanation
+        break;
+      }
+      
+      // Skip "REVISED SCENE:" or "REVISION:" headers (with or without colon, with or without markdown)
+      if (/^#?\s*REVISED\s+SCENE\s*:?\s*$/i.test(line) || /^#?\s*REVISION\s*:?\s*$/i.test(line)) {
+        continue; // Skip revision headers
+      }
+      
+      // Skip markdown headers like "# REVISED SCENE" (must start with #, have space, then REVISED/REVISION)
+      // This won't match character names like "REPORTER #1" because # is not at the start
+      if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
+        continue; // Skip markdown headers
+      }
+      
+      // If we find a scene heading, skip it AND mark that a full scene was generated (we don't want this)
+      if (/^(INT\.|EXT\.|I\/E\.)/i.test(line)) {
+        sceneHeadingFound = true;
+        continue; // Skip scene headings
+      }
+      
+      // If we've seen a scene heading, we're in a full scene - stop processing (user only wanted 1-5 lines)
+      if (sceneHeadingFound) {
+        break; // Don't include content from full scenes
+      }
+      
+      // If we find a character name in ALL CAPS, we're in screenplay content
+      if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2) {
+        foundFirstScreenplayContent = true;
+      }
+      
+      // If we've found screenplay content, include this line
+      if (foundFirstScreenplayContent || line.length > 0) {
+        screenplayLines.push(lines[i]);
+      }
     }
-    
-    // If line starts with explanation words, stop here (but allow short lines that might be dialogue)
-    // IMPORTANT: Don't stop on lines that are clearly dialogue (short, or follow a character name)
-    const isLikelyDialogue = line.length < 50 && (
-      /^[A-Z][A-Z\s]+$/.test(lines[i-1]?.trim() || '') || // Previous line was a character name
-      /^\(/.test(line) || // Starts with parenthetical
-      /[!?.]$/.test(line) // Ends with punctuation (dialogue markers)
-    );
-    
-    // Stop on questions (especially at the end of responses)
-    if (/\?.*$/.test(line) && /(Should|Want|Would|Do you|Can you|Shall|Want me|keep going|continue|next)/i.test(line)) {
-      break; // Stop on questions like "Should the footsteps enter, or pass by? Want me to keep going?"
-    }
-    
-    if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
-        !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
-        !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
-        line.length > 15) { // Only if it's a longer explanation
-      break;
-    }
-    
-    // If we find a scene heading, skip it (we don't want scene headings in content generation)
-    if (/^(INT\.|EXT\.|I\/E\.)/i.test(line)) {
-      continue; // Skip scene headings
-    }
-    
-    // Skip "REVISED SCENE:" or "REVISION:" headers (with or without colon, with or without markdown)
-    if (/^#?\s*REVISED\s+SCENE\s*:?\s*$/i.test(line) || /^#?\s*REVISION\s*:?\s*$/i.test(line)) {
-      continue; // Skip revision headers
-    }
-    
-    // Skip markdown headers like "# REVISED SCENE" (must start with #, have space, then REVISED/REVISION)
-    // This won't match character names like "REPORTER #1" because # is not at the start
-    if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
-      continue; // Skip markdown headers
-    }
-    
-    // If we find a character name in ALL CAPS, we're in screenplay content
-    if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2) {
-      foundFirstScreenplayContent = true;
-    }
-    
-    // If we've found screenplay content, include this line
-    if (foundFirstScreenplayContent || line.length > 0) {
-      screenplayLines.push(lines[i]);
-    }
-  }
   
   cleaned = screenplayLines.join('\n');
   
@@ -259,9 +277,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   const messagesEndRef = useRef(null);
   
   // Auto-scroll to bottom when messages or streaming text changes
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
+  // DISABLED: Removed auto-scroll to allow users to copy/paste without chat jumping
+  // useEffect(() => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
   
   // Auto-send rewrite request when selected text context is set (but no messages yet)
   const hasAutoSentRef = useRef(false);
@@ -872,8 +891,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           </div>
         )}
         
-        {/* Auto-scroll anchor */}
-        <div ref={messagesEndRef} />
+        {/* Auto-scroll anchor - DISABLED to allow copy/paste without chat jumping */}
+        {/* <div ref={messagesEndRef} /> */}
       </div>
       
       {/* Placeholder Info with New Chat button */}

@@ -140,20 +140,23 @@ Sarah Chen. I have a message for you.
 CRITICAL INSTRUCTIONS:
 1. Write ONLY 1-5 lines - do NOT generate full scenes
 2. Do NOT include scene context that wasn't requested
-3. Do NOT include scene headings (INT./EXT.)
+3. Do NOT include scene headings (INT./EXT.) - NEVER include scene headings
 4. Do NOT write "REVISED SCENE:" or any headers
 5. Do NOT ask questions (no "Should...?", "Want me to...?", etc.)
-6. Be DESCRIPTIVE and VISUAL for action
-7. Include dialogue ONLY if user mentions speaking/talking/saying
-8. Character names in ALL CAPS when they speak
-9. Use active verbs and cinematic language
-10. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'} (for context only - do NOT include in output)
-11. Each request is standalone - write ONLY what they asked for
-12. NO analysis, NO critique, NO suggestions, NO alternatives, NO "this would" or "this could"
-13. NO meta-commentary, NO questions, NO explanations
-14. If the user says "her computer explodes", write the explosion - do NOT analyze whether it's a good idea
+6. Do NOT repeat existing scene content - write ONLY the new content requested
+7. Be DESCRIPTIVE and VISUAL for action
+8. Include dialogue ONLY if user mentions speaking/talking/saying
+9. Character names in ALL CAPS when they speak
+10. Use active verbs and cinematic language
+11. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'} (for context only - do NOT include in output)
+12. Each request is standalone - write ONLY what they asked for
+13. NO analysis, NO critique, NO suggestions, NO alternatives, NO "this would" or "this could"
+14. NO meta-commentary, NO questions, NO explanations
+15. NO notes like "This adds..." or "This creates..." - just write the content
+16. If the user says "her computer explodes", write the explosion - do NOT analyze whether it's a good idea
+17. If the user says "the computer freezes", write ONLY the freezing action - do NOT write the whole scene
 
-OUTPUT: Only the screenplay content they requested - nothing before, nothing after, no headers, no questions, no analysis.
+OUTPUT: Only the screenplay content they requested - nothing before, nothing after, no headers, no questions, no analysis, no scene headings, no meta-commentary.
 
 Now write for: "${message}"`;
 }
