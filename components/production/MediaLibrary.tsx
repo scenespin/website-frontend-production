@@ -1249,7 +1249,6 @@ export default function MediaLibrary({
             ))}
           </div>
         )}
-            </div>
           </div>
         </div>
       </div>
