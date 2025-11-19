@@ -655,27 +655,107 @@ export default function MediaLibrary({
   const handleViewFile = async (file: MediaFile) => {
     setOpenMenuId(null); // Close menu
     
-    // 🔥 FIX: For cloud storage files, fetch direct media URLs for preview
-    if ((file.storageType === 'google-drive' || file.storageType === 'dropbox') && 
-        (file.fileType === 'image' || file.fileType === 'video' || file.fileType === 'audio')) {
-      try {
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) {
-          console.warn('[MediaLibrary] No auth token, using original URL');
-          setPreviewFile(file);
-          return;
-        }
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        console.warn('[MediaLibrary] No auth token, using original URL');
+        setPreviewFile(file);
+        return;
+      }
 
-        let previewUrl = file.fileUrl;
-        
-        if (file.storageType === 'google-drive') {
-          // Google Drive: Use direct view URL for images, direct download for videos/audio
-          if (file.fileType === 'image') {
-            previewUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
-          } else {
-            // For videos/audio, get download URL from backend
+      let previewUrl = file.fileUrl;
+      
+      // 🔥 FIX: For S3/local files, generate fresh presigned URL if needed
+      if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
+        // Check if fileUrl is an S3 key or needs a presigned URL
+        // If fileUrl doesn't start with http/https, it might be an S3 key
+        if (!file.fileUrl.startsWith('http://') && !file.fileUrl.startsWith('https://')) {
+          // It's an S3 key, generate presigned URL
+          try {
+            const response = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key: file.fileUrl,
+                expiresIn: 3600 // 1 hour
+              }),
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.downloadUrl) {
+                previewUrl = data.downloadUrl;
+              }
+            }
+          } catch (error) {
+            console.warn('[MediaLibrary] Failed to get presigned URL for S3 file:', error);
+            // Fallback to original URL
+          }
+        } else if (file.fileUrl.includes('.s3.') || file.fileUrl.includes('s3.amazonaws.com')) {
+          // It's an S3 URL but might be expired, try to get fresh presigned URL
+          // Extract S3 key from URL
+          const s3KeyMatch = file.fileUrl.match(/s3[^/]*\/\/[^/]+\/(.+?)(\?|$)/);
+          if (s3KeyMatch && s3KeyMatch[1]) {
+            const s3Key = decodeURIComponent(s3KeyMatch[1]);
             try {
-              const response = await fetch(`/api/storage/download/google-drive/${file.id}`, {
+              const response = await fetch('/api/s3/download-url', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  s3Key: s3Key,
+                  expiresIn: 3600 // 1 hour
+                }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                if (data.downloadUrl) {
+                  previewUrl = data.downloadUrl;
+                }
+              }
+            } catch (error) {
+              console.warn('[MediaLibrary] Failed to refresh presigned URL:', error);
+              // Use original URL as fallback
+            }
+          }
+        }
+        // If fileUrl is already a valid presigned URL, use it directly
+      } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
+        // 🔥 FIX: For cloud storage files, fetch direct media URLs for preview
+        if (file.fileType === 'image' || file.fileType === 'video' || file.fileType === 'audio') {
+          if (file.storageType === 'google-drive') {
+            // Google Drive: Use direct view URL for images, direct download for videos/audio
+            if (file.fileType === 'image') {
+              previewUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
+            } else {
+              // For videos/audio, get download URL from backend
+              try {
+                const response = await fetch(`/api/storage/download/google-drive/${file.id}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  },
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  if (data.downloadUrl) {
+                    previewUrl = data.downloadUrl;
+                  }
+                }
+              } catch (error) {
+                console.warn('[MediaLibrary] Failed to get Google Drive download URL, using fallback');
+                previewUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
+              }
+            }
+          } else if (file.storageType === 'dropbox') {
+            // Dropbox: Get download URL from backend
+            try {
+              const response = await fetch(`/api/storage/download/dropbox/${file.id}`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
@@ -684,52 +764,31 @@ export default function MediaLibrary({
                 const data = await response.json();
                 if (data.downloadUrl) {
                   previewUrl = data.downloadUrl;
+                } else {
+                  // Fallback to thumbnailUrl for images
+                  previewUrl = file.thumbnailUrl || file.fileUrl;
                 }
-              }
-            } catch (error) {
-              console.warn('[MediaLibrary] Failed to get Google Drive download URL, using fallback');
-              previewUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
-            }
-          }
-        } else if (file.storageType === 'dropbox') {
-          // Dropbox: Get download URL from backend
-          try {
-            const response = await fetch(`/api/storage/download/dropbox/${file.id}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
-            if (response.ok) {
-              const data = await response.json();
-              if (data.downloadUrl) {
-                previewUrl = data.downloadUrl;
               } else {
-                // Fallback to thumbnailUrl for images
+                // Fallback to original URL
                 previewUrl = file.thumbnailUrl || file.fileUrl;
               }
-            } else {
-              // Fallback to original URL
+            } catch (error) {
+              console.warn('[MediaLibrary] Failed to get Dropbox download URL, using fallback');
               previewUrl = file.thumbnailUrl || file.fileUrl;
             }
-          } catch (error) {
-            console.warn('[MediaLibrary] Failed to get Dropbox download URL, using fallback');
-            previewUrl = file.thumbnailUrl || file.fileUrl;
           }
         }
-        
-        // Update file with preview URL
-        setPreviewFile({
-          ...file,
-          fileUrl: previewUrl
-        });
-      } catch (error) {
-        console.error('[MediaLibrary] Error getting preview URL:', error);
-        toast.error('Failed to get preview URL. Using original URL.');
-        // Fallback to original file
-        setPreviewFile(file);
       }
-    } else {
-      // For local/S3 files, use fileUrl directly
+      
+      // Update file with preview URL
+      setPreviewFile({
+        ...file,
+        fileUrl: previewUrl
+      });
+    } catch (error) {
+      console.error('[MediaLibrary] Error getting preview URL:', error);
+      toast.error('Failed to get preview URL. Using original URL.');
+      // Fallback to original file
       setPreviewFile(file);
     }
   };
@@ -1249,7 +1308,11 @@ export default function MediaLibrary({
                           open={isOpen(file.id)} 
                           onOpenChange={(open) => {
                             // Use the coordinator hook which handles all the complexity
-                            setOpenMenuId(open ? file.id : null);
+                            if (open) {
+                              setOpenMenuId(file.id);
+                            } else {
+                              setOpenMenuId(null);
+                            }
                           }}
                           modal={false}
                         >
@@ -1257,21 +1320,34 @@ export default function MediaLibrary({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Let the coordinator hook handle menu state
+                                // Prevent file card click when clicking menu button
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                // Prevent file card selection when clicking menu button
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                               aria-label={`Actions for ${file.fileName}`}
+                              aria-haspopup="menu"
+                              aria-expanded={isOpen(file.id)}
                             >
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent 
                             align="end" 
-                            className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-50"
-                            style={{ backgroundColor: '#141414', color: '#FFFFFF' }}
+                            className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-[100]"
+                            style={{ backgroundColor: '#141414', color: '#FFFFFF', zIndex: 100 }}
                             onCloseAutoFocus={(e) => {
                               // 🔥 FIX: Prevent focus trap issues with aria-hidden
                               e.preventDefault();
+                            }}
+                            onEscapeKeyDown={() => {
+                              setOpenMenuId(null);
+                            }}
+                            onPointerDownOutside={(e) => {
+                              // Allow outside clicks to close menu
+                              setOpenMenuId(null);
                             }}
                           >
                             <DropdownMenuItem 

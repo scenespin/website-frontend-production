@@ -263,13 +263,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           }
         });
         
-        // 🔥 FIX: Handle 404 and other error responses
+        // 🔥 FIX: Handle 404, 401, and other error responses
         if (!response.ok) {
           if (response.status === 404) {
             console.warn('[SceneBuilderPanel] Workflow execution not found (404), stopping poll:', workflowExecutionId);
             clearInterval(interval);
             setIsGenerating(false);
             toast.error('Workflow execution not found. It may have been deleted or expired.');
+            return;
+          }
+          if (response.status === 401) {
+            console.error('[SceneBuilderPanel] Authentication failed (401), stopping poll:', workflowExecutionId);
+            clearInterval(interval);
+            setIsGenerating(false);
+            toast.error('Authentication failed. Please refresh the page and try again.');
             return;
           }
           // For other errors, log and continue polling (might be temporary)
@@ -1141,8 +1148,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setIsGenerating(false);
     
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+      
       // Fetch partial delivery details
-      const response = await fetch(`/api/workflows/${execution.id}/partial-delivery`);
+      const response = await fetch(`/api/workflows/${execution.id}/partial-delivery`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       const data = await response.json();
       
