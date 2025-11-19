@@ -276,11 +276,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   
-  // Auto-scroll to bottom when messages or streaming text changes
-  // DISABLED: Removed auto-scroll to allow users to copy/paste without chat jumping
-  // useEffect(() => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  // }, [state.messages.filter(m => m.mode === 'chat'), state.streamingText, state.isStreaming]);
+  // Auto-scroll to bottom ONLY while streaming (so user can see new content)
+  // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
+  useEffect(() => {
+    if (state.isStreaming) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [state.isStreaming, state.streamingText]); // Only trigger when streaming state or streaming text changes
   
   // Auto-send rewrite request when selected text context is set (but no messages yet)
   const hasAutoSentRef = useRef(false);
@@ -891,8 +893,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           </div>
         )}
         
-        {/* Auto-scroll anchor - DISABLED to allow copy/paste without chat jumping */}
-        {/* <div ref={messagesEndRef} /> */}
+        {/* Auto-scroll anchor - only scrolls while streaming */}
+        <div ref={messagesEndRef} />
       </div>
       
       {/* Placeholder Info with New Chat button */}
