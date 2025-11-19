@@ -568,13 +568,25 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           // Clean the output and remove duplicates using context before cursor
           const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
           
-          // Keep streamingText visible briefly so insert button doesn't disappear
-          // The message will be added and streamingText will be cleared by the message render
-          addMessage({
-            role: 'assistant',
-            content: cleanedContent,
-            mode: 'chat'
-          });
+          // 🔥 PHASE 1 FIX: Validate content before adding message
+          // If cleaned content is empty or too short, log warning and use original
+          if (!cleanedContent || cleanedContent.trim().length < 3) {
+            console.warn('[ChatModePanel] ⚠️ Cleaned content is empty or too short. Original length:', fullContent?.length, 'Cleaned length:', cleanedContent?.length);
+            console.warn('[ChatModePanel] Original content preview:', fullContent?.substring(0, 200));
+            // Use original content if cleaned is empty (better than nothing)
+            const fallbackContent = fullContent?.trim() || 'No content generated';
+            addMessage({
+              role: 'assistant',
+              content: fallbackContent,
+              mode: 'chat'
+            });
+          } else {
+            addMessage({
+              role: 'assistant',
+              content: cleanedContent,
+              mode: 'chat'
+            });
+          }
           // Clear streaming after a brief delay to allow message to render
           setTimeout(() => {
             setStreaming(false, '');
@@ -829,6 +841,16 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                               // Get scene context for duplicate detection
                               const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
                               const cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null);
+                              
+                              // 🔥 PHASE 1 FIX: Validate content before inserting
+                              if (!cleanedContent || cleanedContent.trim().length < 3) {
+                                console.error('[ChatModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                                console.error('[ChatModePanel] Original content length:', message.content?.length);
+                                console.error('[ChatModePanel] Cleaned content length:', cleanedContent?.length);
+                                toast.error('Content is empty after cleaning. Please try again or use the original response.');
+                                return; // Don't insert empty content
+                              }
+                              
                               // If in rewrite mode, pass selection range info
                               if (state.selectedTextContext && state.selectionRange) {
                                 onInsert(cleanedContent, {
@@ -878,10 +900,20 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => {
-                          // Clean the content before inserting (strip markdown, remove notes)
+                          // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
                           // Get scene context for duplicate detection
                           const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
                           const cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null);
+                          
+                          // 🔥 PHASE 1 FIX: Validate content before inserting
+                          if (!cleanedContent || cleanedContent.trim().length < 3) {
+                            console.error('[ChatModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                            console.error('[ChatModePanel] Original content length:', state.streamingText?.length);
+                            console.error('[ChatModePanel] Cleaned content length:', cleanedContent?.length);
+                            toast.error('Content is empty after cleaning. Please try again or use the original response.');
+                            return; // Don't insert empty content
+                          }
+                          
                           // If in rewrite mode, pass selection range info
                           if (state.selectedTextContext && state.selectionRange) {
                             onInsert(cleanedContent, {
