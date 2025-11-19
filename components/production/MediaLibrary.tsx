@@ -1076,23 +1076,23 @@ export default function MediaLibrary({
 
             {/* Files Grid/List */}
             <div className="p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
-          </div>
-        ) : filteredFiles.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-[#B3B3B3]">No files found</p>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Clear search
-              </button>
-            )}
-          </div>
-        ) : (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
+                </div>
+              ) : filteredFiles.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-[#B3B3B3]">No files found</p>
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </div>
+              ) : (
           <div
             className={
               viewMode === 'grid'
@@ -1248,7 +1248,8 @@ export default function MediaLibrary({
               </div>
             ))}
           </div>
-        )}
+              )}
+            </div>
           </div>
         </div>
       </div>
