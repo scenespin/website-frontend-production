@@ -62,7 +62,11 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         return;
       }
 
-      const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=${statusFilter === 'all' ? '' : statusFilter}&limit=50`, {
+      // Use the new executions endpoint instead of list endpoint
+      const statusParam = statusFilter === 'all' ? '' : statusFilter;
+      const url = `/api/workflows/executions?projectId=${projectId}${statusParam ? `&status=${statusParam}` : ''}&limit=50`;
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

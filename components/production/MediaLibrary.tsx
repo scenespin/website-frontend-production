@@ -651,9 +651,48 @@ export default function MediaLibrary({
     }
   };
 
-  const handleViewFile = (file: MediaFile) => {
-    setPreviewFile(file);
+  const handleViewFile = async (file: MediaFile) => {
     setOpenMenuId(null); // Close menu
+    
+    // For cloud storage files, we need to get a direct preview URL
+    // since webViewLink is a preview page, not a direct media URL
+    if ((file.storageType === 'google-drive' || file.storageType === 'dropbox') && 
+        (file.fileType === 'image' || file.fileType === 'video')) {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          // Fallback to original file
+          setPreviewFile(file);
+          return;
+        }
+
+        // Try to get a direct preview URL from backend
+        // For now, use a workaround: Google Drive direct view URL
+        let previewUrl = file.fileUrl;
+        
+        if (file.storageType === 'google-drive') {
+          // Google Drive direct view URL format for images/videos
+          // This works for files that are shared (even if just with the app)
+          previewUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
+        } else if (file.storageType === 'dropbox') {
+          // For Dropbox, try using downloadUrl if available, or use thumbnailUrl
+          previewUrl = file.thumbnailUrl || file.fileUrl;
+        }
+        
+        // Update file with preview URL
+        setPreviewFile({
+          ...file,
+          fileUrl: previewUrl
+        });
+      } catch (error) {
+        console.error('[MediaLibrary] Error getting preview URL:', error);
+        // Fallback to original file
+        setPreviewFile(file);
+      }
+    } else {
+      // For local/S3 files, use fileUrl directly
+      setPreviewFile(file);
+    }
   };
 
   const handleDownloadFile = async (file: MediaFile) => {
@@ -1170,13 +1209,14 @@ export default function MediaLibrary({
                         <DropdownMenu 
                           open={openMenuId === file.id} 
                           onOpenChange={(open) => {
-                            // When opening, close all other menus first
                             if (open) {
-                              // Close any other open menu
+                              // Close any other open menu first, then open this one
                               if (openMenuId && openMenuId !== file.id) {
                                 setOpenMenuId(null);
-                                // Use setTimeout to ensure state update completes
-                                setTimeout(() => setOpenMenuId(file.id), 0);
+                                // Use setTimeout to ensure state update completes before opening new menu
+                                setTimeout(() => {
+                                  setOpenMenuId(file.id);
+                                }, 10);
                               } else {
                                 setOpenMenuId(file.id);
                               }
@@ -1189,13 +1229,7 @@ export default function MediaLibrary({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                e.preventDefault();
-                                // Toggle this specific menu
-                                if (openMenuId === file.id) {
-                                  setOpenMenuId(null);
-                                } else {
-                                  setOpenMenuId(file.id);
-                                }
+                                // Don't prevent default - let Radix handle it
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                             >
