@@ -251,7 +251,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/workflows/${workflowExecutionId}`);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          console.error('[SceneBuilderPanel] No auth token for workflow status');
+          return;
+        }
+        
+        const response = await fetch(`/api/workflows/${workflowExecutionId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         const data = await response.json();
         
         if (data.success) {

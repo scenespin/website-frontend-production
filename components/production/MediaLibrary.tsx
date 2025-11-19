@@ -654,29 +654,66 @@ export default function MediaLibrary({
   const handleViewFile = async (file: MediaFile) => {
     setOpenMenuId(null); // Close menu
     
-    // For cloud storage files, we need to get a direct preview URL
-    // since webViewLink is a preview page, not a direct media URL
+    // 🔥 FIX: For cloud storage files, fetch direct media URLs for preview
     if ((file.storageType === 'google-drive' || file.storageType === 'dropbox') && 
-        (file.fileType === 'image' || file.fileType === 'video')) {
+        (file.fileType === 'image' || file.fileType === 'video' || file.fileType === 'audio')) {
       try {
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) {
-          // Fallback to original file
+          console.warn('[MediaLibrary] No auth token, using original URL');
           setPreviewFile(file);
           return;
         }
 
-        // Try to get a direct preview URL from backend
-        // For now, use a workaround: Google Drive direct view URL
         let previewUrl = file.fileUrl;
         
         if (file.storageType === 'google-drive') {
-          // Google Drive direct view URL format for images/videos
-          // This works for files that are shared (even if just with the app)
-          previewUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
+          // Google Drive: Use direct view URL for images, direct download for videos/audio
+          if (file.fileType === 'image') {
+            previewUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
+          } else {
+            // For videos/audio, get download URL from backend
+            try {
+              const response = await fetch(`/api/storage/download/google-drive/${file.id}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              if (response.ok) {
+                const data = await response.json();
+                if (data.downloadUrl) {
+                  previewUrl = data.downloadUrl;
+                }
+              }
+            } catch (error) {
+              console.warn('[MediaLibrary] Failed to get Google Drive download URL, using fallback');
+              previewUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
+            }
+          }
         } else if (file.storageType === 'dropbox') {
-          // For Dropbox, try using downloadUrl if available, or use thumbnailUrl
-          previewUrl = file.thumbnailUrl || file.fileUrl;
+          // Dropbox: Get download URL from backend
+          try {
+            const response = await fetch(`/api/storage/download/dropbox/${file.id}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.downloadUrl) {
+                previewUrl = data.downloadUrl;
+              } else {
+                // Fallback to thumbnailUrl for images
+                previewUrl = file.thumbnailUrl || file.fileUrl;
+              }
+            } else {
+              // Fallback to original URL
+              previewUrl = file.thumbnailUrl || file.fileUrl;
+            }
+          } catch (error) {
+            console.warn('[MediaLibrary] Failed to get Dropbox download URL, using fallback');
+            previewUrl = file.thumbnailUrl || file.fileUrl;
+          }
         }
         
         // Update file with preview URL
@@ -686,6 +723,7 @@ export default function MediaLibrary({
         });
       } catch (error) {
         console.error('[MediaLibrary] Error getting preview URL:', error);
+        toast.error('Failed to get preview URL. Using original URL.');
         // Fallback to original file
         setPreviewFile(file);
       }
@@ -1209,19 +1247,23 @@ export default function MediaLibrary({
                         <DropdownMenu 
                           open={openMenuId === file.id} 
                           onOpenChange={(open) => {
+                            // 🔥 FIX: Simplified logic - only one menu can be open at a time
                             if (open) {
-                              // Close any other open menu first, then open this one
+                              // If opening this menu, close any other open menu first
                               if (openMenuId && openMenuId !== file.id) {
                                 setOpenMenuId(null);
-                                // Use setTimeout to ensure state update completes before opening new menu
-                                setTimeout(() => {
+                                // Use requestAnimationFrame to ensure state update completes
+                                requestAnimationFrame(() => {
                                   setOpenMenuId(file.id);
-                                }, 10);
+                                });
                               } else {
                                 setOpenMenuId(file.id);
                               }
                             } else {
-                              setOpenMenuId(null);
+                              // Only close if this is the currently open menu
+                              if (openMenuId === file.id) {
+                                setOpenMenuId(null);
+                              }
                             }
                           }}
                         >
@@ -1229,7 +1271,16 @@ export default function MediaLibrary({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Don't prevent default - let Radix handle it
+                                // Prevent file click when clicking menu button
+                              }}
+                              onMouseDown={(e) => {
+                                // Prevent menu from opening if another is already open
+                                if (openMenuId && openMenuId !== file.id) {
+                                  e.preventDefault();
+                                  setOpenMenuId(null);
+                                  // Open this menu after closing the other
+                                  setTimeout(() => setOpenMenuId(file.id), 0);
+                                }
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                             >
@@ -1294,6 +1345,13 @@ export default function MediaLibrary({
         <div 
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setPreviewFile(null)}
+          onKeyDown={(e) => {
+            // Close modal on Escape key
+            if (e.key === 'Escape') {
+              setPreviewFile(null);
+            }
+          }}
+          tabIndex={-1}
         >
           <div 
             className="bg-[#0A0A0A] rounded-lg border border-[#3F3F46] max-w-4xl w-full max-h-[90vh] overflow-auto"
@@ -1332,8 +1390,12 @@ export default function MediaLibrary({
                   Delete
                 </button>
                 <button
-                  onClick={() => setPreviewFile(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewFile(null);
+                  }}
                   className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                  aria-label="Close preview"
                 >
                   <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
                 </button>

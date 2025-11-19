@@ -35,11 +35,15 @@ interface LocationProfile {
 interface LocationBankPanelProps {
   projectId: string;
   className?: string;
+  locations?: LocationProfile[]; // 🔥 NEW: Accept locations from screenplay context (like CharacterBankPanel)
+  isLoading?: boolean; // 🔥 NEW: Loading state from screenplay context
 }
 
 export function LocationBankPanel({
   projectId,
-  className = ''
+  className = '',
+  locations: propsLocations, // 🔥 NEW: Locations from props (screenplay context)
+  isLoading: propsIsLoading = false // 🔥 NEW: Loading state from props
 }: LocationBankPanelProps) {
   const { getToken } = useAuth();
   
@@ -53,10 +57,17 @@ export function LocationBankPanel({
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [showLocationDetail, setShowLocationDetail] = useState(false);
   
-  // Load locations
+  // 🔥 NEW: Use locations from props if provided, otherwise load from API
   useEffect(() => {
-    loadLocations();
-  }, [projectId]);
+    if (propsLocations !== undefined) {
+      // Locations provided via props (from screenplay context) - use them directly
+      setLocations(propsLocations);
+      setIsLoading(propsIsLoading);
+    } else {
+      // No props provided - load from API (backward compatibility)
+      loadLocations();
+    }
+  }, [projectId, propsLocations, propsIsLoading]);
   
   async function loadLocations() {
     try {
