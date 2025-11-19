@@ -1093,16 +1093,16 @@ export default function MediaLibrary({
                   )}
                 </div>
               ) : (
-          <div
-            className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
-                : 'space-y-2'
-            }
-          >
-            {filteredFiles.map((file) => (
-              <div
-                key={file.id}
+                <div
+                  className={
+                    viewMode === 'grid'
+                      ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                      : 'space-y-2'
+                  }
+                >
+                  {filteredFiles.map((file) => (
+                    <div
+                      key={file.id}
                 onClick={() => handleFileClick(file)}
                 className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
                   selectedFiles.has(file.id)
@@ -1245,9 +1245,9 @@ export default function MediaLibrary({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
-            ))}
-          </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
