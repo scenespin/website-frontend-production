@@ -28,8 +28,11 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Get Clerk client instance (clerkClient is a function that returns the client)
+    const client = await clerkClient();
+    
     // Get current user to preserve existing metadata
-    const currentUser = await clerkClient.users.getUser(userId);
+    const currentUser = await client.users.getUser(userId);
     
     // Merge with existing metadata
     const updatedPublicMetadata = publicMetadata
@@ -41,7 +44,7 @@ export async function PATCH(request: NextRequest) {
       : undefined;
 
     // Update user metadata via Clerk Admin API
-    await clerkClient.users.updateUser(userId, {
+    await client.users.updateUser(userId, {
       publicMetadata: updatedPublicMetadata,
       unsafeMetadata: updatedUnsafeMetadata,
     });
