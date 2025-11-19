@@ -816,6 +816,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (data.success && data.executionId) {
         setWorkflowExecutionId(data.executionId);
+        // Set initial workflow status to show progress immediately
+        setWorkflowStatus({
+          id: data.executionId,
+          status: 'running',
+          currentStep: 1,
+          totalSteps: 5,
+          stepResults: [],
+          totalCreditsUsed: 0
+        });
+        // Move to a "generating" view - hide wizard, show progress
+        setCurrentStep(3); // Keep on Step 3 but show progress instead
         toast.success('Scene Builder started!', {
           description: 'Generating your complete scene package...'
         });
@@ -1570,6 +1581,11 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Step 2: Generation Options</CardTitle>
                     <CardDescription className="text-[#808080]">
                       Configure quality and duration for your scene
+                      {selectedSceneId && (
+                        <span className="block mt-2 text-xs text-[#DC143C]">
+                          💡 Note: Scene Analyzer integration coming soon. For now, please configure these options manually.
+                        </span>
+                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -2049,16 +2065,22 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
           </motion.div>
         )}
         
-        {/* Progress Tracking */}
-        {(isGenerating || workflowStatus) && workflowStatus && (
-          <SceneBuilderProgress 
-            executionId={workflowStatus.id}
-            status={workflowStatus.status as 'idle' | 'running' | 'completed' | 'failed' | 'awaiting_user_decision' | 'cancelled'}
-            currentStep={workflowStatus.currentStep}
-            totalSteps={workflowStatus.totalSteps}
-            stepResults={workflowStatus.stepResults}
-            totalCreditsUsed={workflowStatus.totalCreditsUsed || 0}
-          />
+        {/* Progress Tracking - Show when generating or workflow is active */}
+        {((isGenerating || workflowStatus) && workflowStatus) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6"
+          >
+            <SceneBuilderProgress 
+              executionId={workflowStatus.id}
+              status={workflowStatus.status as 'idle' | 'running' | 'completed' | 'failed' | 'awaiting_user_decision' | 'cancelled'}
+              currentStep={workflowStatus.currentStep}
+              totalSteps={workflowStatus.totalSteps}
+              stepResults={workflowStatus.stepResults}
+              totalCreditsUsed={workflowStatus.totalCreditsUsed || 0}
+            />
+          </motion.div>
         )}
         
         {/* Generation History */}
