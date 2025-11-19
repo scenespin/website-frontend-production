@@ -3375,6 +3375,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     await saveScenes(allNewScenes, screenplayId);
                     console.log('[ScreenplayContext] ✅ Saved', allNewScenes.length, 'new scenes to DynamoDB');
                     
+                    // 🔥 CRITICAL FIX: Verify scenes were saved by checking DynamoDB before deleting old ones
+                    // This prevents data loss if save partially failed
+                    const { getScenes } = await import('@/utils/screenplayStorage');
+                    const verifyScenes = await getScenes(screenplayId, getToken);
+                    const savedSceneCount = verifyScenes?.length || 0;
+                    
+                    if (savedSceneCount < allNewScenes.length) {
+                        console.warn(`[ScreenplayContext] ⚠️ Only ${savedSceneCount} scenes saved, expected ${allNewScenes.length}. Aborting deletion of old scenes.`);
+                        throw new Error(`Failed to save all scenes: only ${savedSceneCount} of ${allNewScenes.length} were saved`);
+                    }
+                    
+                    console.log('[ScreenplayContext] ✅ Verified', savedSceneCount, 'scenes saved to DynamoDB');
+                    
                     // Then delete ONLY old scenes by their IDs (not all scenes - that would delete the new ones!)
                     if (allExistingScenes.length > 0) {
                         const { deleteScene: apiDeleteScene } = await import('@/utils/screenplayStorage');
@@ -3398,31 +3411,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             }
             
-            // Step 4: 🔥 SAFEGUARD #4: Update state atomically (direct update, no clear to prevent navigation loops)
-            // CRITICAL FIX: Don't clear scenes first - this causes navigation loops when UI tries to navigate to deleted scenes
-            // Instead, update directly to new scenes to minimize state disruption
-            setScenes(allNewScenes); // Set new scenes with correct numbering
+            // Step 4: 🔥 SAFEGUARD #4: Update state atomically AFTER all DB operations complete
+            // CRITICAL FIX: Update state AFTER save/delete operations to prevent navigation loops
+            // Use requestAnimationFrame to ensure state update happens in next render cycle
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            // Update scenes state with new scenes (this will trigger UI updates)
+            setScenes(allNewScenes);
+            
+            // Update refs immediately to prevent stale closures
+            scenesRef.current = allNewScenes;
             
             const updatedScenesCount = allNewScenes.length;
             
-            // 🔥 FIX: Wait for all async operations to complete and state to propagate
-            // Use a longer delay and ensure we're using the latest state from refs
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // 🔥 FIX: Wait for state to propagate before rebuilding relationships
+            // This prevents navigation loops by ensuring state is stable
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // 🔥 FIX: Force a state refresh by reading from refs before rebuilding
-            // This ensures we're working with the most up-to-date data
-            const latestScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
-            const latestCharacters = charactersRef.current.length > 0 ? charactersRef.current : characters;
-            const latestLocations = locationsRef.current.length > 0 ? locationsRef.current : locations;
-            
-            console.log('[ScreenplayContext] 🔄 Rebuilding relationships with latest state:', {
-                scenes: latestScenes.length,
-                characters: latestCharacters.length,
-                locations: latestLocations.length
+            // 🔥 FIX: Use the new scenes directly (not from refs) since we just set them
+            // This ensures we're working with the correct data
+            console.log('[ScreenplayContext] 🔄 Rebuilding relationships with new scenes:', {
+                scenes: allNewScenes.length,
+                characters: uniqueCharacters.length,
+                locations: currentLocations.length
             });
             
-            // Rebuild relationships using latest state
-            buildRelationshipsFromScenes(latestScenes, beats, latestCharacters, latestLocations);
+            // Rebuild relationships using the new scenes and current characters/locations
+            buildRelationshipsFromScenes(allNewScenes, beats, uniqueCharacters, currentLocations);
             
             // Also call updateRelationships to sync with DynamoDB
             await updateRelationships();
