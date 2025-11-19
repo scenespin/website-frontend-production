@@ -1110,142 +1110,142 @@ export default function MediaLibrary({
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
                     >
-                {/* Selected Checkmark */}
-                {selectedFiles.has(file.id) && (
-                  <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1 z-10">
-                    <Check className="w-4 h-4" />
-                  </div>
-                )}
+                      {/* Selected Checkmark */}
+                      {selectedFiles.has(file.id) && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1 z-10">
+                          <Check className="w-4 h-4" />
+                        </div>
+                      )}
 
-                {/* Thumbnail */}
-                <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
-                  {file.fileType === 'image' && file.fileUrl ? (
-                    <img
-                      src={file.fileUrl}
-                      alt={file.fileName}
-                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                  ) : file.fileType === 'video' && file.fileUrl ? (
-                    <VideoThumbnail 
-                      videoUrl={file.fileUrl} 
-                      fileName={file.fileName}
-                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'}`}
-                    />
-                  ) : file.thumbnailUrl ? (
-                    <img
-                      src={file.thumbnailUrl}
-                      alt={file.fileName}
-                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
-                    />
-                  ) : null}
-                  {/* Fallback icon */}
-                  <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(file.fileType === 'image' && file.fileUrl) || (file.fileType === 'video' && file.fileUrl) ? 'hidden' : ''}`}>
-                    {getFileIcon(file.fileType)}
-                  </div>
-                </div>
+                      {/* Thumbnail */}
+                      <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
+                        {file.fileType === 'image' && file.fileUrl ? (
+                          <img
+                            src={file.fileUrl}
+                            alt={file.fileName}
+                            className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : file.fileType === 'video' && file.fileUrl ? (
+                          <VideoThumbnail 
+                            videoUrl={file.fileUrl} 
+                            fileName={file.fileName}
+                            className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'}`}
+                          />
+                        ) : file.thumbnailUrl ? (
+                          <img
+                            src={file.thumbnailUrl}
+                            alt={file.fileName}
+                            className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                          />
+                        ) : null}
+                        {/* Fallback icon */}
+                        <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(file.fileType === 'image' && file.fileUrl) || (file.fileType === 'video' && file.fileUrl) ? 'hidden' : ''}`}>
+                          {getFileIcon(file.fileType)}
+                        </div>
+                      </div>
 
-                {/* File Info */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900 dark:text-white truncate text-sm">
-                    {file.fileName}
-                  </h4>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
-                    {getStorageIcon(file.storageType)}
-                    <span>{formatFileSize(file.fileSize)}</span>
-                  </div>
-                  {file.expiresAt && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-orange-600 dark:text-orange-400">
-                      <Clock className="w-3 h-3" />
-                      <span>{formatTimeRemaining(file.expiresAt)}</span>
-                    </div>
-                  )}
-                </div>
+                      {/* File Info */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-white truncate text-sm">
+                          {file.fileName}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                          {getStorageIcon(file.storageType)}
+                          <span>{formatFileSize(file.fileSize)}</span>
+                        </div>
+                        {file.expiresAt && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-orange-600 dark:text-orange-400">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatTimeRemaining(file.expiresAt)}</span>
+                          </div>
+                        )}
+                      </div>
 
-                {/* Actions Menu */}
-                <div className="absolute top-2 right-2 z-20">
-                  <DropdownMenu 
-                    open={openMenuId === file.id} 
-                    onOpenChange={(open) => {
-                      // When opening, close all other menus first
-                      if (open) {
-                        // Close any other open menu
-                        if (openMenuId && openMenuId !== file.id) {
-                          setOpenMenuId(null);
-                          // Use setTimeout to ensure state update completes
-                          setTimeout(() => setOpenMenuId(file.id), 0);
-                        } else {
-                          setOpenMenuId(file.id);
-                        }
-                      } else {
-                        setOpenMenuId(null);
-                      }
-                    }}
-                  >
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          // Toggle this specific menu
-                          if (openMenuId === file.id) {
-                            setOpenMenuId(null);
-                          } else {
-                            setOpenMenuId(file.id);
-                          }
-                        }}
-                        className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
-                      >
-                        <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
-                      </button>
-                    </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="end" 
-                    className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-50"
-                    style={{ backgroundColor: '#141414', color: '#FFFFFF' }}
-                  >
-                    <DropdownMenuItem 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setOpenMenuId(null);
-                        handleViewFile(file); 
-                      }}
-                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                      style={{ color: '#FFFFFF' }}
-                    >
-                      <Eye className="w-4 h-4 mr-2 text-[#808080]" />
-                      View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setOpenMenuId(null);
-                        handleDownloadFile(file); 
-                      }}
-                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                      style={{ color: '#FFFFFF' }}
-                    >
-                      <Download className="w-4 h-4 mr-2 text-[#808080]" />
-                      Download
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setOpenMenuId(null);
-                        deleteFile(file.id); 
-                      }}
-                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
-                      style={{ color: '#DC143C' }}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                    </div>
+                      {/* Actions Menu */}
+                      <div className="absolute top-2 right-2 z-20">
+                        <DropdownMenu 
+                          open={openMenuId === file.id} 
+                          onOpenChange={(open) => {
+                            // When opening, close all other menus first
+                            if (open) {
+                              // Close any other open menu
+                              if (openMenuId && openMenuId !== file.id) {
+                                setOpenMenuId(null);
+                                // Use setTimeout to ensure state update completes
+                                setTimeout(() => setOpenMenuId(file.id), 0);
+                              } else {
+                                setOpenMenuId(file.id);
+                              }
+                            } else {
+                              setOpenMenuId(null);
+                            }
+                          }}
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                // Toggle this specific menu
+                                if (openMenuId === file.id) {
+                                  setOpenMenuId(null);
+                                } else {
+                                  setOpenMenuId(file.id);
+                                }
+                              }}
+                              className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
+                            >
+                              <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent 
+                            align="end" 
+                            className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-50"
+                            style={{ backgroundColor: '#141414', color: '#FFFFFF' }}
+                          >
+                            <DropdownMenuItem 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setOpenMenuId(null);
+                                handleViewFile(file); 
+                              }}
+                              className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                              style={{ color: '#FFFFFF' }}
+                            >
+                              <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setOpenMenuId(null);
+                                handleDownloadFile(file); 
+                              }}
+                              className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                              style={{ color: '#FFFFFF' }}
+                            >
+                              <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setOpenMenuId(null);
+                                deleteFile(file.id); 
+                              }}
+                              className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
+                              style={{ color: '#DC143C' }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                   ))}
                 </div>
               )}
