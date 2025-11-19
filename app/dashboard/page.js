@@ -102,9 +102,15 @@ export default function Dashboard() {
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       
       // Fetch data independently so one failure doesn't break everything
-      const [creditsRes, projectsRes, videosRes] = await Promise.allSettled([
+      // Use screenplays API instead of projects
+      const token = await getToken({ template: 'wryda-backend' });
+      const [creditsRes, screenplaysRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
-        api.projects.list(),
+        fetch('/api/screenplays/list?status=active&limit=50', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(r => r.json()),
         api.video.getJobs()
       ]);
       
@@ -140,13 +146,21 @@ export default function Dashboard() {
         setCredits({ balance: 0 }); // Fallback
       }
       
-      // Handle projects (non-critical)
-      if (projectsRes.status === 'fulfilled') {
-        // api.projects.list() returns axios response, so .data is the API response
-        const projectsData = projectsRes.value.data;
-        setProjects(projectsData?.projects || projectsData?.data?.projects || []);
+      // Handle screenplays (non-critical)
+      if (screenplaysRes.status === 'fulfilled') {
+        const screenplaysData = screenplaysRes.value;
+        // API returns { success: true, data: { screenplays: [...], count: number } }
+        const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
+        // Transform screenplays to match the projects format for UI compatibility
+        setProjects(screenplays.map(s => ({
+          id: s.screenplay_id,
+          name: s.title,
+          created_at: s.created_at,
+          updated_at: s.updated_at,
+          screenplay_id: s.screenplay_id // Keep for reference
+        })));
       } else {
-        console.error('Error fetching projects:', projectsRes.reason);
+        console.error('Error fetching screenplays:', screenplaysRes.reason);
         setProjects([]);
       }
       
@@ -186,7 +200,9 @@ export default function Dashboard() {
     setDeletingProjectId(projectId);
     try {
       const token = await getToken({ template: 'wryda-backend' });
-      const response = await fetch(`/api/projects/${projectId}`, {
+      // Use screenplays API for deletion (projectId is actually screenplayId)
+      const screenplayId = projectId;
+      const response = await fetch(`/api/screenplays/${screenplayId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -196,21 +212,21 @@ export default function Dashboard() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to delete project');
+        throw new Error(error.message || 'Failed to delete screenplay');
       }
 
       // Remove from list
-      setProjects(projects.filter(p => p.project_id !== projectId));
+      setProjects(projects.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
       setShowDeleteConfirm(null);
-      toast.success('Project deleted successfully');
+      toast.success('Screenplay deleted successfully');
       
       // If this was the current screenplay, clear it
       if (currentScreenplayId === projectId) {
         setCurrentScreenplayId(null);
       }
     } catch (error) {
-      console.error('Error deleting project:', error);
-      toast.error(error.message || 'Failed to delete project');
+      console.error('Error deleting screenplay:', error);
+      toast.error(error.message || 'Failed to delete screenplay');
     } finally {
       setDeletingProjectId(null);
     }
@@ -356,7 +372,7 @@ export default function Dashboard() {
         {/* Projects Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-base-content">My Projects</h2>
+            <h2 className="text-lg font-semibold text-base-content">My Screenplays</h2>
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm"
@@ -370,8 +386,8 @@ export default function Dashboard() {
             <div className="space-y-3">
               {projects.map((project) => {
                 // Check if this project's screenplay_id matches the current screenplay
-                // Projects have a screenplay_id field that links to the screenplay
-                const projectScreenplayId = project.screenplay_id || project.project_id;
+                // Screenplays are now the primary entity
+                const projectScreenplayId = project.screenplay_id || project.id;
                 const isCurrent = currentScreenplayId === projectScreenplayId || 
                                  (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
                 const isDeleting = deletingProjectId === project.project_id;
@@ -454,7 +470,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center py-8 text-base-content/60">
-              <p className="mb-4">No projects yet. Create your first project to get started.</p>
+              <p className="mb-4">No screenplays yet. Create your first screenplay to get started.</p>
             </div>
           )}
         </div>

@@ -94,7 +94,7 @@ export default function CharacterBankManager({ projectId, onCharacterSelect }: P
     setIsLoading(true);
     try {
       const token = await getToken({ template: 'wryda-backend' });
-      const response = await fetch(`/api/character-bank/list?projectId=${projectId}`, {
+      const response = await fetch(`/api/character-bank/list?screenplayId=${projectId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -591,7 +591,8 @@ function CreateCharacterDialog({
       
       // Prepare request body
       const requestBody: any = {
-        projectId,
+        screenplayId: projectId, // projectId prop is actually screenplayId
+        projectId: projectId, // Backward compatibility
         name,
         description,
         baseReference: {

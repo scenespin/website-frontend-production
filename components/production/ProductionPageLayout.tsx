@@ -291,7 +291,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       const token = await getToken({ template: 'wryda-backend' });
       console.log('[ProductionPage] Loading characters with auth token:', token ? 'TOKEN_PRESENT' : 'NO_TOKEN');
       
-      const response = await fetch(`/api/character-bank/list?projectId=${projectId}`, {
+      const response = await fetch(`/api/character-bank/list?screenplayId=${projectId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

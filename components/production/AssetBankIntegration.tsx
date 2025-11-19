@@ -68,7 +68,7 @@ export function AssetSelector({
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch(`/api/asset-bank?projectId=${projectId}&limit=50`, {
+      const response = await fetch(`/api/asset-bank?screenplayId=${projectId}&limit=50`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },

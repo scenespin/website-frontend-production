@@ -63,7 +63,7 @@ const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
 interface SceneBuilderPanelProps {
-  projectId: string;
+  projectId: string; // Actually screenplayId - kept as projectId for backward compatibility
   onVideoGenerated?: (videos: GeneratedVideo[]) => void;
   isMobile?: boolean;       // NEW: Feature 0069
   simplified?: boolean;     // NEW: Feature 0069
@@ -188,7 +188,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     async function loadStyleProfiles() {
       try {
         const token = await getToken({ template: 'wryda-backend' });
-        const response = await fetch(`/api/style/project/${projectId}`, {
+        const response = await fetch(`/api/style/project/${projectId}`, { // projectId is actually screenplayId
           headers: { 'Authorization': `Bearer ${token}` }
         });
         

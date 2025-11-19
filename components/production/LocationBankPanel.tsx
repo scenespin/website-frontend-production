@@ -61,7 +61,7 @@ export function LocationBankPanel({
       setIsLoading(true);
       
       const token = await getToken({ template: 'wryda-backend' });
-      const response = await fetch(`/api/projects/${projectId}/locations`, {
+      const response = await fetch(`/api/projects/${projectId}/locations`, { // projectId is treated as screenplayId by backend
         headers: {
           'Authorization': `Bearer ${token}`
         }

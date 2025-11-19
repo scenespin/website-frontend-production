@@ -99,7 +99,7 @@ export function CharacterBankPanel({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              projectId,
+              screenplayId: projectId, // projectId prop is actually screenplayId
               characterId: selectedCharacter.id,
               performanceSettings
             })
@@ -142,7 +142,7 @@ export function CharacterBankPanel({
     try {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('projectId', projectId);
+      formData.append('screenplayId', projectId); // projectId prop is actually screenplayId
       formData.append('characterId', characterId);
 
       const response = await fetch('/api/character-bank/upload-reference', {

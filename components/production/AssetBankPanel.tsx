@@ -54,7 +54,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
         return;
       }
       
-      const params = new URLSearchParams({ projectId });
+      const params = new URLSearchParams({ screenplayId: projectId }); // projectId prop is actually screenplayId
       if (selectedCategory !== 'all') {
         params.append('category', selectedCategory);
       }

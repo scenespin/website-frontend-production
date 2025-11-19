@@ -47,7 +47,7 @@ export default function ProductionPage() {
   return (
     <>
       {/* ResponsiveHeader removed - Navigation.js comes from production/layout.js */}
-      <ProductionHub projectId={screenplay.projectId || 'default'} />
+      <ProductionHub projectId={screenplay.screenplayId || 'default'} /> {/* projectId prop is actually screenplayId */}
     </>
   );
 }
