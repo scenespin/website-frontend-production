@@ -73,7 +73,7 @@ export function detectCurrentScene(content, cursorPosition) {
   
   // Remove scene heading from contextBeforeCursor if present
   // Scene headings are at the start of sceneContent, so if we're near the start, remove it
-  const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
+  // Reuse sceneHeadingRegex declared above (line 33)
   if (contextBeforeCursor) {
     const lines = contextBeforeCursor.split('\n');
     // Remove scene heading if it's in the context
