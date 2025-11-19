@@ -82,6 +82,16 @@ export interface Screenplay {
   characters: Character[];
   locations: Location[];
   relationships: Relationships;
+  metadata?: {
+    genre?: string;
+    logline?: string;
+    pageCount?: number;
+    tags?: string[];
+    wordCount?: number;
+    sceneCount?: number;
+    characterCount?: number;
+    version?: number;
+  };
   created_at: string;
   updated_at: string;
   last_accessed_at: string;
