@@ -215,8 +215,11 @@ export default function Dashboard() {
         throw new Error(error.message || 'Failed to delete screenplay');
       }
 
-      // Remove from list
-      setProjects(projects.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
+      // Remove from list - filter by both id and screenplay_id to be safe
+      setProjects(prevProjects => prevProjects.filter(p => {
+        const pId = p.id || p.screenplay_id;
+        return pId !== projectId;
+      }));
       setShowDeleteConfirm(null);
       toast.success('Screenplay deleted successfully');
       
@@ -387,19 +390,20 @@ export default function Dashboard() {
               {projects.map((project) => {
                 // Check if this project's screenplay_id matches the current screenplay
                 // Screenplays are now the primary entity
+                const projectId = project.id || project.screenplay_id; // Use id (which is screenplay_id)
                 const projectScreenplayId = project.screenplay_id || project.id;
                 const isCurrent = currentScreenplayId === projectScreenplayId || 
                                  (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
-                const isDeleting = deletingProjectId === project.project_id;
-                const showConfirm = showDeleteConfirm === project.project_id;
+                const isDeleting = deletingProjectId === projectId;
+                const showConfirm = showDeleteConfirm === projectId;
                 
                 return (
                   <div
-                    key={project.project_id}
+                    key={projectId}
                     className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
                   >
                     <Link
-                      href={`/write?project=${project.project_id}`}
+                      href={`/write?project=${projectId}`}
                       className="flex items-center gap-4 flex-1 min-w-0"
                     >
                       <div className="p-3 bg-cinema-red/10 rounded-lg group-hover:bg-cinema-red/20 transition-colors flex-shrink-0">
@@ -408,7 +412,7 @@ export default function Dashboard() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-base text-base-content group-hover:text-cinema-red transition-colors truncate">
-                            {project.project_name || 'Untitled Project'}
+                            {project.name || project.title || 'Untitled Project'}
                           </h3>
                           {isCurrent && (
                             <span className="badge badge-sm badge-primary">Current</span>
@@ -422,15 +426,15 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {!showConfirm ? (
                         <>
-                          <span className="badge badge-sm badge-ghost">{project.is_archived ? 'archived' : 'active'}</span>
+                          <span className="badge badge-sm badge-ghost">active</span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteProject(project.project_id, project.project_name);
+                              handleDeleteProject(projectId, project.name || project.title || 'Untitled Project');
                             }}
                             disabled={isDeleting}
                             className="p-2 rounded-lg hover:bg-red-500/20 text-base-content/60 hover:text-red-500 transition-colors disabled:opacity-50"
-                            title="Delete project"
+                            title="Delete screenplay"
                           >
                             {isDeleting ? (
                               <span className="loading loading-spinner loading-xs"></span>
@@ -445,7 +449,7 @@ export default function Dashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteProject(project.project_id, project.project_name);
+                              handleDeleteProject(projectId, project.name || project.title || 'Untitled Project');
                             }}
                             disabled={isDeleting}
                             className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"
