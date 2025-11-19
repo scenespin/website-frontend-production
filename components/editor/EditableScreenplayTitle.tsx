@@ -25,7 +25,7 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch screenplay title when screenplayId changes
+  // Fetch screenplay title when screenplayId changes or when updated
   useEffect(() => {
     const fetchTitle = async () => {
       if (!screenplay?.screenplayId) {
@@ -50,6 +50,13 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
     };
 
     fetchTitle();
+
+    // Listen for screenplay updates
+    const handleUpdate = () => {
+      fetchTitle();
+    };
+    window.addEventListener('screenplayUpdated', handleUpdate);
+    return () => window.removeEventListener('screenplayUpdated', handleUpdate);
   }, [screenplay?.screenplayId, getToken]);
 
   const handleClick = () => {
@@ -97,6 +104,8 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
       setTitle(trimmedValue);
       setIsEditing(false);
       toast.success('Screenplay title updated');
+      // Notify other components of the update
+      window.dispatchEvent(new CustomEvent('screenplayUpdated'));
     } catch (error) {
       console.error('[EditableScreenplayTitle] Failed to update title:', error);
       toast.error('Failed to update title. Please try again.');
