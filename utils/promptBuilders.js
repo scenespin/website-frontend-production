@@ -97,9 +97,25 @@ CRITICAL INSTRUCTIONS:
 OUTPUT: Revised screenplay content that fixes the issues mentioned.`;
   }
   
+  // 🔥 CRITICAL: Build limited context window around cursor (before and after)
+  // This gives AI enough context to understand the scene without seeing the full scene
+  let continuationContext = '';
+  if (sceneContext?.contextBeforeCursor || sceneContext?.contextAfterCursor) {
+    continuationContext = '\n\n[SCENE CONTEXT - Limited window around your cursor (for reference only, do NOT include in output)]:\n';
+    
+    if (sceneContext.contextBeforeCursor) {
+      continuationContext += `...${sceneContext.contextBeforeCursor}\n`;
+    }
+    continuationContext += '← [CURSOR IS HERE - Continue from this point]\n';
+    
+    if (sceneContext.contextAfterCursor) {
+      continuationContext += `${sceneContext.contextAfterCursor}...\n`;
+    }
+  }
+  
   return `${contextInfo}User's request: "${message}"
 
-YOU ARE A SCREENPLAY WRITER - WRITE SCREENPLAY CONTENT ONLY.
+YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
 
 🚫 ABSOLUTELY FORBIDDEN:
 - NO analysis, critique, or feedback about the story
@@ -110,17 +126,21 @@ YOU ARE A SCREENPLAY WRITER - WRITE SCREENPLAY CONTENT ONLY.
 - NO "This would..." or "This could..." statements
 - NO "Consider..." or "Think about..." statements
 - NO lists of options or alternatives
+- NO scene headings (INT./EXT.) - NEVER include scene headings
+- NO repeating content that already exists before the cursor
+- NO rewriting the beginning of the scene - CONTINUE from where the cursor is
 
 ✅ YOU MUST ONLY:
-Write 1-5 vivid screenplay elements in Fountain format. ONLY what the user requested - nothing more.
+Write 1-5 vivid screenplay elements in Fountain format. CONTINUE the scene from the cursor position - write ONLY what comes NEXT, not what came before.
+
+CONTINUATION EXAMPLE:
+User's cursor is after: "She starts downloading everything."
+User requests: "the computer freezes and then explodes"
+Output: "The download bar STOPS at 47%. A SPARK erupts from the back of her computer tower. Then another. WHOOSH — the tower EXPLODES in a burst of flame and smoke, throwing Sarah backward in her chair."
 
 ACTION EXAMPLE:
 Input: "Sarah's monitor comes to life as a robot"
 Output: "Sarah's monitor FLICKERS violently. The screen BULGES outward, pixels reorganizing into metallic plates. A sleek ROBOT unfolds from the chassis."
-
-EXPLOSION EXAMPLE:
-Input: "her computer explodes"
-Output: "A SPARK erupts from the back of her computer tower. Then another. WHOOSH — the tower EXPLODES in a burst of flame and smoke, throwing Sarah backward in her chair."
 
 DIALOGUE EXAMPLE:
 Input: "Sarah says what the hell"
@@ -139,7 +159,7 @@ Sarah Chen. I have a message for you.
 
 CRITICAL INSTRUCTIONS:
 1. Write ONLY 1-5 lines - do NOT generate full scenes
-2. Do NOT include scene context that wasn't requested
+2. CONTINUE from the cursor position - do NOT rewrite or repeat what came before
 3. Do NOT include scene headings (INT./EXT.) - NEVER include scene headings
 4. Do NOT write "REVISED SCENE:" or any headers
 5. Do NOT ask questions (no "Should...?", "Want me to...?", etc.)
@@ -155,8 +175,9 @@ CRITICAL INSTRUCTIONS:
 15. NO notes like "This adds..." or "This creates..." - just write the content
 16. If the user says "her computer explodes", write the explosion - do NOT analyze whether it's a good idea
 17. If the user says "the computer freezes", write ONLY the freezing action - do NOT write the whole scene
+18. 🔥 CRITICAL: The cursor is positioned AFTER existing content. Write ONLY what comes NEXT, not what came before.${continuationContext}
 
-OUTPUT: Only the screenplay content they requested - nothing before, nothing after, no headers, no questions, no analysis, no scene headings, no meta-commentary.
+OUTPUT: Only the screenplay content they requested - nothing before, nothing after, no headers, no questions, no analysis, no scene headings, no meta-commentary, no repeating existing content.
 
 Now write for: "${message}"`;
 }

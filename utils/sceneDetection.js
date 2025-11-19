@@ -52,6 +52,26 @@ export function detectCurrentScene(content, cursorPosition) {
   // Extract scene content
   const sceneLines = lines.slice(sceneStartLine, sceneEndLine + 1);
   const sceneContent = sceneLines.join('\n');
+  
+  // Calculate where the scene starts in the full content (character position)
+  let sceneStartPosition = 0;
+  for (let i = 0; i < sceneStartLine; i++) {
+    sceneStartPosition += lines[i].length + 1; // +1 for newline
+  }
+  
+  // Calculate cursor position relative to scene start
+  const cursorInScene = cursorPosition - sceneStartPosition;
+  
+  // Extract LIMITED context window around cursor (before and after)
+  // This gives AI enough context to understand the scene without seeing the full scene
+  // BEFORE: 400 chars (enough to see last few lines of action/dialogue)
+  // AFTER: 200 chars (just to see what comes next)
+  const contextBeforeCursor = cursorInScene > 0
+    ? sceneContent.substring(Math.max(0, cursorInScene - 400), cursorInScene).trim()
+    : '';
+  const contextAfterCursor = cursorInScene >= 0 && cursorInScene < sceneContent.length
+    ? sceneContent.substring(cursorInScene, Math.min(sceneContent.length, cursorInScene + 200)).trim()
+    : '';
 
   // Extract characters mentioned in scene
   const characters = extractCharacters(sceneContent);
@@ -65,7 +85,9 @@ export function detectCurrentScene(content, cursorPosition) {
     heading: sceneHeading || 'Unknown Scene',
     act: act,
     characters: characters,
-    content: sceneContent,
+    content: sceneContent, // Full scene content (for reference)
+    contextBeforeCursor: contextBeforeCursor || '', // Limited context before cursor (~400 chars)
+    contextAfterCursor: contextAfterCursor || '', // Limited context after cursor (~200 chars)
     startLine: sceneStartLine,
     endLine: sceneEndLine,
     currentLine: currentLine,
