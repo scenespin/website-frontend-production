@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
@@ -108,7 +108,8 @@ const defaultState: EditorState = {
 
 export const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
-export function EditorProvider({ children }: { children: ReactNode }) {
+// Inner component that uses useSearchParams (must be wrapped in Suspense)
+function EditorProviderInner({ children, projectId }: { children: ReactNode; projectId: string | null }) {
     const [state, setState] = useState<EditorState>(defaultState);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -120,8 +121,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
-    const searchParams = useSearchParams();
-    const projectId = searchParams?.get('project');
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -763,6 +762,52 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         <EditorContext.Provider value={value}>
             {children}
         </EditorContext.Provider>
+    );
+}
+
+// Wrapper component that handles useSearchParams with Suspense
+function ProjectIdReader({ children }: { children: ReactNode }) {
+    const searchParams = useSearchParams();
+    const projectId = searchParams?.get('project');
+    return <EditorProviderInner projectId={projectId}>{children}</EditorProviderInner>;
+}
+
+// Create a minimal context value for Suspense fallback
+const createMinimalContextValue = (): EditorContextType => ({
+    state: defaultState,
+    setContent: () => {},
+    insertText: () => {},
+    replaceSelection: () => {},
+    undo: () => {},
+    redo: () => {},
+    pushToUndoStack: () => {},
+    setCursorPosition: () => {},
+    setSelection: () => {},
+    setCurrentLine: () => {},
+    setCurrentElementType: () => {},
+    setTitle: () => {},
+    setAuthor: () => {},
+    markSaved: () => {},
+    markDirty: () => {},
+    saveNow: async () => false,
+    toggleFocusMode: () => {},
+    toggleLineNumbers: () => {},
+    setFontSize: () => {},
+    setHighlightRange: () => {},
+    clearHighlight: () => {},
+    reset: () => {},
+});
+
+// Public EditorProvider that wraps the search params logic in Suspense
+export function EditorProvider({ children }: { children: ReactNode }) {
+    return (
+        <Suspense fallback={
+            <EditorContext.Provider value={createMinimalContextValue()}>
+                {children}
+            </EditorContext.Provider>
+        }>
+            <ProjectIdReader>{children}</ProjectIdReader>
+        </Suspense>
     );
 }
 
