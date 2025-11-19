@@ -291,12 +291,6 @@ export function CharacterDetailModal({
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Type</label>
                         <p className="text-[#FFFFFF] capitalize">{character.type}</p>
                       </div>
-                      {character.description && (
-                        <div>
-                          <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Description</label>
-                          <p className="text-[#808080]">{character.description}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
 
