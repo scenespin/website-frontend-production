@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { saveToGitHub } from '@/utils/github';
@@ -119,6 +120,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
+    const searchParams = useSearchParams();
+    const projectId = searchParams?.get('project');
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -607,6 +610,72 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         
         async function loadContent() {
             try {
+                // 🔥 NEW: If a project is specified, create a screenplay for it
+                if (projectId && !screenplayIdRef.current) {
+                    try {
+                        console.log('[EditorContext] 🎬 Project specified, fetching project details...', projectId);
+                        
+                        // Fetch project details
+                        const token = await getToken({ template: 'wryda-backend' });
+                        const projectResponse = await fetch(`/api/projects/${projectId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                            },
+                        });
+                        
+                        if (projectResponse.ok) {
+                            const projectData = await projectResponse.json();
+                            const project = projectData.data?.project || projectData.project;
+                            
+                            if (project) {
+                                console.log('[EditorContext] ✅ Project loaded:', project.project_name);
+                                
+                                // Create a new screenplay for this project
+                                const currentAuthor = stateRef.current.author || defaultState.author;
+                                const newScreenplay = await createScreenplay({
+                                    title: project.project_name || 'Untitled Screenplay',
+                                    author: currentAuthor,
+                                    content: ''
+                                }, getToken);
+                                
+                                screenplayIdRef.current = newScreenplay.screenplay_id;
+                                
+                                // Save to Clerk metadata
+                                try {
+                                    await setCurrentScreenplayId(user, newScreenplay.screenplay_id);
+                                } catch (error) {
+                                    console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
+                                }
+                                
+                                // Trigger storage event for ScreenplayContext
+                                window.dispatchEvent(new StorageEvent('storage', {
+                                    key: 'current_screenplay_id',
+                                    newValue: newScreenplay.screenplay_id,
+                                    oldValue: null,
+                                    storageArea: localStorage,
+                                    url: window.location.href
+                                }));
+                                
+                                // Update state with project name
+                                setState(prev => ({
+                                    ...prev,
+                                    title: project.project_name || prev.title,
+                                    isDirty: false
+                                }));
+                                
+                                console.log('[EditorContext] ✅ Created screenplay for project:', newScreenplay.screenplay_id);
+                                isInitialLoadRef.current = false;
+                                return; // Success - screenplay created!
+                            }
+                        } else {
+                            console.warn('[EditorContext] ⚠️ Failed to fetch project:', projectResponse.status);
+                        }
+                    } catch (error) {
+                        console.error('[EditorContext] ⚠️ Error creating screenplay for project:', error);
+                        // Continue with normal load flow
+                    }
+                }
+                
                 // Feature 0119: Priority 1 - Load from Clerk metadata (persists across sessions)
                 // Falls back to localStorage for backward compatibility
                 let savedScreenplayId = getCurrentScreenplayId(user);
@@ -688,7 +757,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
         
         loadContent();
-    }, [screenplay, getToken, user]); // Depend on screenplay, getToken, and user
+    }, [screenplay, getToken, user, projectId]); // Depend on screenplay, getToken, user, and projectId
     
     return (
         <EditorContext.Provider value={value}>
