@@ -17,6 +17,7 @@ import LocationDetailSidebar from '../screenplay/LocationDetailSidebar';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@clerk/nextjs';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
+import { LocationDetailModal } from './LocationDetailModal';
 
 interface LocationProfile {
   location_id: string;
@@ -49,7 +50,8 @@ export function LocationBankPanel({
   const [locations, setLocations] = useState<LocationProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateSidebar, setShowCreateSidebar] = useState(false);
-  const [expandedLocationId, setExpandedLocationId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [showLocationDetail, setShowLocationDetail] = useState(false);
   
   // Load locations
   useEffect(() => {
@@ -70,7 +72,13 @@ export function LocationBankPanel({
       if (!response.ok) throw new Error('Failed to load locations');
       
       const data = await response.json();
-      setLocations(data.locations || []);
+      const locationsData = data.locations || data || [];
+      // Ensure reference_images is properly mapped from referenceImages
+      const mappedLocations = locationsData.map((loc: any) => ({
+        ...loc,
+        reference_images: loc.reference_images || loc.referenceImages || []
+      }));
+      setLocations(mappedLocations);
       
     } catch (error: any) {
       console.error('[LocationBank] Error loading locations:', error);
@@ -149,9 +157,9 @@ export function LocationBankPanel({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Location Cards Grid */}
+          {/* Location Cards Grid - Smaller cards with more spacing */}
           <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {locations.map((location) => {
                 // Convert reference_images to CinemaCardImage format
                 const referenceImages: CinemaCardImage[] = (location.reference_images || []).map((img, idx) => ({
@@ -177,10 +185,11 @@ export function LocationBankPanel({
                     metadata={location.scenes && location.scenes.length > 0 ? `${location.scenes.length} scenes` : undefined}
                     description={location.description}
                     cardType="location"
-                    onClick={() => setExpandedLocationId(
-                      expandedLocationId === location.location_id ? null : location.location_id
-                    )}
-                    isSelected={expandedLocationId === location.location_id}
+                    onClick={() => {
+                      setSelectedLocationId(location.location_id);
+                      setShowLocationDetail(true);
+                    }}
+                    isSelected={selectedLocationId === location.location_id}
                   />
                 );
               })}
@@ -188,6 +197,39 @@ export function LocationBankPanel({
           </div>
         </div>
       )}
+      
+      {/* Location Detail Modal */}
+      {showLocationDetail && selectedLocationId && (() => {
+        const selectedLocation = locations.find(l => l.location_id === selectedLocationId);
+        return selectedLocation ? (
+          <LocationDetailModal
+            location={selectedLocation}
+            isOpen={showLocationDetail}
+            onClose={() => {
+              setShowLocationDetail(false);
+              setSelectedLocationId(null);
+            }}
+            onUpdate={async (locationId, updates) => {
+              // Handle location updates
+              console.log('Update location:', locationId, updates);
+              await loadLocations();
+            }}
+            projectId={projectId}
+            onUploadImage={async (locationId, file) => {
+              // TODO: Implement location image upload
+              toast.info('Location image upload coming soon');
+            }}
+            onGenerate3D={async (locationId) => {
+              // TODO: Implement 3D generation
+              toast.info('3D generation coming soon');
+            }}
+            onGenerateAngles={async (locationId) => {
+              // TODO: Implement angle package generation
+              toast.info('Angle package generation coming soon');
+            }}
+          />
+        ) : null;
+      })()}
       
       {/* Create Location Sidebar */}
       <AnimatePresence>
