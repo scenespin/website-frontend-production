@@ -1247,15 +1247,15 @@ export default function MediaLibrary({
                         <DropdownMenu 
                           open={openMenuId === file.id} 
                           onOpenChange={(open) => {
-                            // 🔥 FIX: Simplified logic - only one menu can be open at a time
+                            // 🔥 FIX: Ensure only one menu is open at a time
                             if (open) {
-                              // If opening this menu, close any other open menu first
+                              // If opening this menu, immediately close any other open menu
                               if (openMenuId && openMenuId !== file.id) {
                                 setOpenMenuId(null);
-                                // Use requestAnimationFrame to ensure state update completes
-                                requestAnimationFrame(() => {
+                                // Use setTimeout to ensure the close completes before opening
+                                setTimeout(() => {
                                   setOpenMenuId(file.id);
-                                });
+                                }, 10);
                               } else {
                                 setOpenMenuId(file.id);
                               }
@@ -1266,23 +1266,24 @@ export default function MediaLibrary({
                               }
                             }
                           }}
+                          modal={false}
                         >
                           <DropdownMenuTrigger asChild>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Prevent file click when clicking menu button
-                              }}
-                              onMouseDown={(e) => {
-                                // Prevent menu from opening if another is already open
+                                // 🔥 FIX: Close any other open menu before opening this one
                                 if (openMenuId && openMenuId !== file.id) {
-                                  e.preventDefault();
                                   setOpenMenuId(null);
-                                  // Open this menu after closing the other
-                                  setTimeout(() => setOpenMenuId(file.id), 0);
+                                  // Small delay to ensure state update
+                                  setTimeout(() => {
+                                    setOpenMenuId(file.id);
+                                  }, 10);
                                 }
+                                // Let Radix handle the rest
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
+                              aria-label={`Actions for ${file.fileName}`}
                             >
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                             </button>
@@ -1291,6 +1292,10 @@ export default function MediaLibrary({
                             align="end" 
                             className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-50"
                             style={{ backgroundColor: '#141414', color: '#FFFFFF' }}
+                            onCloseAutoFocus={(e) => {
+                              // 🔥 FIX: Prevent focus trap issues with aria-hidden
+                              e.preventDefault();
+                            }}
                           >
                             <DropdownMenuItem 
                               onClick={(e) => { 
