@@ -266,7 +266,23 @@ export default function EditorWorkspace() {
         if (!selectionRange) return;
         
         // Clean the text (should already be cleaned by modal, but double-check)
-        const cleaned = rewrittenText.trim();
+        let cleaned = rewrittenText.trim();
+        
+        // Smart newline detection: If original was single line but rewrite is multi-line,
+        // and there's text after that doesn't start with newline, add a newline after rewrite
+        if (selectedText) {
+            const originalWasSingleLine = !selectedText.includes('\n');
+            const rewriteIsMultiLine = cleaned.includes('\n');
+            const textAfter = state.content.substring(selectionRange.end);
+            const hasTextAfter = textAfter.trim().length > 0;
+            const textAfterStartsWithNewline = textAfter.startsWith('\n');
+            
+            // If original was single line, rewrite is multi-line, and there's text after without newline
+            if (originalWasSingleLine && rewriteIsMultiLine && hasTextAfter && !textAfterStartsWithNewline) {
+                // Add a newline after the rewritten text to separate it from following content
+                cleaned = cleaned + '\n';
+            }
+        }
         
         // Replace the selected text
         replaceSelection(cleaned, selectionRange.start, selectionRange.end);
