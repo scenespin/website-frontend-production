@@ -266,7 +266,7 @@ export default function CreativePossibilitiesGallery({
 
   const getDifficultyColor = (difficulty: string): string => {
     switch (difficulty) {
-      case 'beginner': return 'bg-[#00D9FF]/20 text-[#00D9FF] border-[#00D9FF]/30';
+      case 'beginner': return 'bg-[#1F1F1F] text-[#808080] border border-[#3F3F46]';
       case 'intermediate': return 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/30';
       case 'advanced': return 'bg-[#DC143C]/20 text-[#DC143C] border-[#DC143C]/30';
       default: return 'bg-[#808080]/20 text-[#808080] border-[#808080]/30';
@@ -433,7 +433,7 @@ export default function CreativePossibilitiesGallery({
                     onClick={() => setShowBrowseAll(!showBrowseAll)}
                     aria-expanded={showBrowseAll}
                     aria-label={showBrowseAll ? "Hide all workflows" : "Browse all workflows"}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-[#DC143C]/20 to-[#00D9FF]/20 rounded-lg border-2 border-[#DC143C]/30 hover:border-[#DC143C]/50 transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
+                    className="w-full px-6 py-4 bg-gradient-to-r from-[#DC143C]/20 to-[#1F1F1F] rounded-lg border-2 border-[#DC143C]/30 hover:border-[#DC143C]/50 transition-all flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-2 focus:ring-offset-[#0A0A0A]"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#DC143C] rounded-full flex items-center justify-center">

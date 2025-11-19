@@ -32,6 +32,7 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import CharacterDetailSidebar from '../screenplay/CharacterDetailSidebar';
 import { AnimatePresence } from 'framer-motion';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
+import { CharacterDetailModal } from './CharacterDetailModal';
 
 interface CharacterBankPanelProps {
   characters: CharacterProfile[];
@@ -54,6 +55,7 @@ export function CharacterBankPanel({
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [isGeneratingRefs, setIsGeneratingRefs] = useState<Record<string, boolean>>({});
   const [showCreateSidebar, setShowCreateSidebar] = useState(false);
+  const [showCharacterDetail, setShowCharacterDetail] = useState(false);
   
   // Pose Generation Modal state
   const [showPoseModal, setShowPoseModal] = useState(false);
@@ -229,9 +231,9 @@ export function CharacterBankPanel({
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Character Cards Grid */}
+          {/* Character Cards Grid - Smaller cards with more spacing */}
           <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {characters.map(character => {
                 // Convert CharacterReference to CinemaCardImage
                 const referenceImages: CinemaCardImage[] = character.references.map(ref => ({
@@ -255,9 +257,11 @@ export function CharacterBankPanel({
                     referenceImages={referenceImages}
                     referenceCount={character.referenceCount}
                     cardType="character"
-                    onClick={() => setSelectedCharacterId(
-                      selectedCharacterId === character.id ? null : character.id
-                    )}
+                    onClick={() => {
+                      // Open detail modal instead of just selecting
+                      setSelectedCharacterId(character.id);
+                      setShowCharacterDetail(true);
+                    }}
                     isSelected={selectedCharacterId === character.id}
                   />
                 );
@@ -310,7 +314,7 @@ export function CharacterBankPanel({
                     setPoseCharacter({id: selectedCharacter.id, name: selectedCharacter.name});
                     setShowPoseModal(true);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-[#00D9FF] hover:bg-[#0099CC] text-[#0A0A0A]"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]"
                 >
                   <Sparkles className="w-4 h-4" />
                   Generate Pose Package
@@ -354,6 +358,31 @@ export function CharacterBankPanel({
           />
         )}
       </AnimatePresence>
+      
+      {/* Character Detail Modal */}
+      {showCharacterDetail && selectedCharacter && (
+        <CharacterDetailModal
+          character={selectedCharacter}
+          isOpen={showCharacterDetail}
+          onClose={() => {
+            setShowCharacterDetail(false);
+            setSelectedCharacterId(null);
+          }}
+          onUpdate={async (characterId, updates) => {
+            // Handle character updates
+            console.log('Update character:', characterId, updates);
+            onCharactersUpdate();
+          }}
+          projectId={projectId}
+          onUploadImage={async (characterId, file) => {
+            await uploadReference(characterId, file);
+          }}
+          onGenerate3D={async (characterId) => {
+            // TODO: Implement 3D generation
+            toast.info('3D generation coming soon');
+          }}
+        />
+      )}
       
       {/* NEW: Pose Generation Modal */}
       {showPoseModal && poseCharacter && (

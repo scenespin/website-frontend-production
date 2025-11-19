@@ -88,7 +88,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
 
   const getCategoryColor = (category: AssetCategory) => {
     const colors = {
-      prop: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      prop: 'bg-[#1F1F1F] text-[#808080] border border-[#3F3F46]',
       vehicle: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       furniture: 'bg-green-500/20 text-green-400 border-green-500/30',
       other: 'bg-base-content/20 text-base-content/60 border-base-content/30',
@@ -141,12 +141,12 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
     <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
       {/* Context Indicator Banner */}
       {editorContext.currentSceneName && (
-        <div className="bg-[#00D9FF]/10 border-b border-[#00D9FF]/20 px-4 py-2">
+        <div className="bg-[#1F1F1F] border-b border-[#3F3F46] px-4 py-2">
           <div className="text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Film className="w-4 h-4 text-[#00D9FF] flex-shrink-0" />
+              <Film className="w-4 h-4 text-[#808080] flex-shrink-0" />
               <span className="text-[#808080]">Managing assets for scene:</span>
-              <span className="font-semibold text-[#00D9FF] truncate">{editorContext.currentSceneName}</span>
+              <span className="font-semibold text-[#FFFFFF] truncate">{editorContext.currentSceneName}</span>
             </div>
             <button
               onClick={() => {
@@ -251,7 +251,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
               }));
 
               // Determine badge color based on category
-              const badgeColor = asset.category === 'prop' ? 'blue' :
+              const badgeColor = asset.category === 'prop' ? 'gray' :
                                 asset.category === 'vehicle' ? 'red' :
                                 asset.category === 'furniture' ? 'gold' : 'gray';
 

@@ -73,7 +73,7 @@ export function CinemaCard({
     if (typeBadgeColor) {
       const colors = {
         red: 'bg-[#DC143C]/20 text-[#DC143C]',
-        blue: 'bg-[#00D9FF]/20 text-[#00D9FF]',
+        blue: 'bg-[#1F1F1F] text-[#808080] border border-[#3F3F46]',
         gold: 'bg-[#FFD700]/20 text-[#FFD700]',
         gray: 'bg-[#808080]/20 text-[#808080]'
       };
@@ -83,13 +83,13 @@ export function CinemaCard({
     // Auto-detect based on type
     if (cardType === 'character') {
       if (type === 'lead') return 'bg-[#DC143C]/20 text-[#DC143C]';
-      if (type === 'supporting') return 'bg-[#00D9FF]/20 text-[#00D9FF]';
+      if (type === 'supporting') return 'bg-[#1F1F1F] text-[#808080] border border-[#3F3F46]';
       return 'bg-[#808080]/20 text-[#808080]';
     }
     
     if (cardType === 'location') {
       if (type === 'interior') return 'bg-[#DC143C]/20 text-[#DC143C]';
-      if (type === 'exterior') return 'bg-[#00D9FF]/20 text-[#00D9FF]';
+      if (type === 'exterior') return 'bg-[#1F1F1F] text-[#808080] border border-[#3F3F46]';
       return 'bg-[#808080]/20 text-[#808080]';
     }
     
@@ -131,8 +131,8 @@ export function CinemaCard({
         className
       )}
     >
-      {/* Main Image Hero */}
-      <div className="relative aspect-video bg-[#1F1F1F] overflow-hidden">
+      {/* Main Image Hero - Smaller aspect ratio */}
+      <div className="relative aspect-[4/3] bg-[#1F1F1F] overflow-hidden">
         {mainImage?.imageUrl ? (
           <img
             src={mainImage.imageUrl}
@@ -141,7 +141,9 @@ export function CinemaCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            {getDefaultIcon()}
+            <div className="scale-75">
+              {getDefaultIcon()}
+            </div>
           </div>
         )}
         
@@ -149,35 +151,35 @@ export function CinemaCard({
         <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      {/* Card Content */}
-      <div className="p-3 md:p-4">
+      {/* Card Content - More compact */}
+      <div className="p-2.5">
         <div className="flex items-start justify-between gap-2 mb-2">
           {/* Name and Type */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-[#FFFFFF] truncate mb-1">
+            <h3 className="font-semibold text-xs text-[#FFFFFF] truncate mb-1">
               {name}
             </h3>
             <span className={cn(
-              'text-xs px-2 py-0.5 rounded-full inline-block',
+              'text-[10px] px-1.5 py-0.5 rounded-full inline-block',
               getBadgeColor()
             )}>
               {typeLabel || type}
             </span>
           </div>
           
-          {/* Reference Images Sidebar */}
+          {/* Reference Images Sidebar - Smaller */}
           {visibleReferences.length > 0 && (
-            <div className="flex flex-col gap-1 flex-shrink-0">
+            <div className="flex flex-col gap-0.5 flex-shrink-0">
               {visibleReferences.map(ref => (
                 <img
                   key={ref.id}
                   src={ref.imageUrl}
                   alt={ref.label || 'Reference'}
-                  className="w-8 h-8 rounded object-cover border border-[#3F3F46] group-hover:border-[#DC143C]/50 transition-colors"
+                  className="w-6 h-6 rounded object-cover border border-[#3F3F46] group-hover:border-[#DC143C]/50 transition-colors"
                 />
               ))}
               {remainingCount > 0 && (
-                <div className="w-8 h-8 rounded bg-[#1F1F1F] border border-[#3F3F46] flex items-center justify-center text-xs text-[#808080] group-hover:border-[#DC143C]/50 transition-colors">
+                <div className="w-6 h-6 rounded bg-[#1F1F1F] border border-[#3F3F46] flex items-center justify-center text-[10px] text-[#808080] group-hover:border-[#DC143C]/50 transition-colors">
                   +{remainingCount}
                 </div>
               )}
