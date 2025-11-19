@@ -146,7 +146,7 @@ export function MediaUploadSlot({
    * Get file type icon
    */
   function getFileIcon() {
-    if (!file) return <Upload className="w-6 h-6 text-muted-foreground" />;
+    if (!file) return <Upload className="w-4 h-4 text-[#808080]" />;
     
     const fileType = file.type;
     if (fileType.startsWith('video/')) {
@@ -158,7 +158,7 @@ export function MediaUploadSlot({
     if (fileType.startsWith('image/')) {
       return <ImageIcon className="w-8 h-8 text-purple-500" />;
     }
-    return <Upload className="w-6 h-6 text-muted-foreground" />;
+    return <Upload className="w-4 h-4 text-[#808080]" />;
   }
 
   /**
@@ -173,10 +173,10 @@ export function MediaUploadSlot({
   return (
     <div className="relative">
       {file ? (
-        <div className="relative w-full border-2 border-border rounded overflow-hidden bg-background">
+        <div className="relative w-full border-2 border-[#3F3F46] rounded overflow-hidden bg-[#141414]">
           {/* Preview for images */}
           {file.type.startsWith('image/') && previewUrl ? (
-            <div className={`relative ${isMobile ? 'h-48' : 'h-32'}`}>
+            <div className={`relative ${isMobile ? 'h-20' : 'h-20'}`}>
               <img
                 src={previewUrl}
                 alt={file.name}
@@ -185,12 +185,12 @@ export function MediaUploadSlot({
             </div>
           ) : (
             /* Icon display for video/audio */
-            <div className={`flex flex-col items-center justify-center ${isMobile ? 'h-48' : 'h-32'} bg-muted/30`}>
+            <div className={`flex flex-col items-center justify-center ${isMobile ? 'h-20' : 'h-20'} bg-[#1F1F1F]`}>
               {getFileIcon()}
-              <div className="text-xs font-medium text-center mt-2 px-2 line-clamp-1">
+              <div className="text-[10px] font-medium text-center mt-1 px-2 line-clamp-1 text-[#FFFFFF]">
                 {file.name}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[10px] text-[#808080]">
                 {formatFileSize(file.size)}
               </div>
             </div>
@@ -200,22 +200,22 @@ export function MediaUploadSlot({
           {!uploading && (
             <button
               onClick={handleRemove}
-              className="absolute top-2 right-2 p-1 bg-background/90 rounded-full hover:bg-background shadow-lg z-10"
+              className="absolute top-1 right-1 p-1 bg-[#0A0A0A]/90 rounded-full hover:bg-[#DC143C] shadow-lg z-10"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3 text-[#FFFFFF]" />
             </button>
           )}
 
           {/* Uploading overlay */}
           {uploading && (
-            <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
-              <span className="text-xs text-muted-foreground mt-2">Uploading...</span>
+            <div className="absolute inset-0 bg-[#0A0A0A]/80 flex flex-col items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
+              <span className="text-xs text-[#808080] mt-2">Uploading...</span>
             </div>
           )}
 
           {/* File type badge */}
-          <div className="absolute bottom-2 left-2 px-2 py-1 bg-background/90 rounded text-xs font-medium">
+          <div className="absolute bottom-1 left-1 px-2 py-1 bg-[#0A0A0A]/90 rounded text-[10px] font-medium text-[#FFFFFF]">
             {file.type.split('/')[0].toUpperCase()}
           </div>
         </div>
@@ -237,15 +237,15 @@ export function MediaUploadSlot({
             };
             input.click();
           }}
-          className={`w-full border-2 border-dashed border-border rounded flex flex-col items-center justify-center hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/20 transition-colors ${
-            isMobile ? 'h-48' : 'h-32'
+          className={`w-full border-2 border-dashed border-[#3F3F46] rounded flex flex-col items-center justify-center hover:border-[#DC143C] hover:bg-[#DC143C]/10 transition-colors ${
+            isMobile ? 'h-20' : 'h-20'
           }`}
         >
-          <Upload className="w-6 h-6 text-muted-foreground mb-2" />
-          <span className="text-xs text-muted-foreground font-medium">
+          <Upload className="w-4 h-4 text-[#808080] mb-1" />
+          <span className="text-[10px] text-[#808080] font-medium">
             {isMobile ? 'Upload Media' : `Media ${index + 1}`}
           </span>
-          <span className="text-xs text-muted-foreground mt-1">
+          <span className="text-[10px] text-[#808080] mt-1">
             Video, Audio, or Image
           </span>
         </button>

@@ -102,10 +102,11 @@ export function SceneSelector({
           <select
             value={selectedSceneId || ''}
             onChange={(e) => onSceneSelect(e.target.value)}
-            className="w-full px-4 py-3 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-4 py-3 bg-[#141414] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+            style={{ colorScheme: 'dark' }}
           >
             {scenes.map((scene) => (
-              <option key={scene.id} value={scene.id}>
+              <option key={scene.id} value={scene.id} className="bg-[#141414] text-[#FFFFFF]">
                 {scene.heading || `Scene ${scene.order || scenes.indexOf(scene) + 1}`}
               </option>
             ))}
@@ -116,15 +117,16 @@ export function SceneSelector({
             <select
               value={selectedSceneId || ''}
               onChange={(e) => onSceneSelect(e.target.value)}
-              className="w-full px-4 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none pr-10"
+              className="w-full px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] appearance-none pr-10"
+              style={{ colorScheme: 'dark' }}
             >
               {scenes.map((scene) => (
-                <option key={scene.id} value={scene.id}>
+                <option key={scene.id} value={scene.id} className="bg-[#141414] text-[#FFFFFF]">
                   {scene.heading || `Scene ${scene.order || scenes.indexOf(scene) + 1}`}
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#808080] pointer-events-none" />
           </div>
         )}
       </div>
