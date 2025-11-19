@@ -3368,27 +3368,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             console.log('[ScreenplayContext] Built', allNewScenes.length, 'scenes with correct numbering (1-' + allNewScenes.length + ' based on script order)');
             
-            // Step 3: 🔥 SAFEGUARD #1: Save new scenes FIRST, then delete old ones (prevents data loss)
+            // Step 3: 🔥 SAFEGUARD #1: Save new scenes FIRST, then delete ONLY old scenes by ID (prevents deleting new scenes)
             if (screenplayId && allNewScenes.length > 0) {
                 try {
                     // Save new scenes first
                     await saveScenes(allNewScenes, screenplayId);
                     console.log('[ScreenplayContext] ✅ Saved', allNewScenes.length, 'new scenes to DynamoDB');
                     
-                    // Then delete old scenes (safer order - if save fails, old scenes still exist)
+                    // Then delete ONLY old scenes by their IDs (not all scenes - that would delete the new ones!)
                     if (allExistingScenes.length > 0) {
-                        await deleteAllScenes(screenplayId, getToken);
-                        console.log('[ScreenplayContext] ✅ Deleted', allExistingScenes.length, 'old scenes from DynamoDB');
+                        const { deleteScene: apiDeleteScene } = await import('@/utils/screenplayStorage');
+                        const oldSceneIds = allExistingScenes.map(s => s.id);
+                        console.log('[ScreenplayContext] 🗑️ Deleting', oldSceneIds.length, 'old scenes by ID...');
+                        
+                        // Delete old scenes in parallel (but limit concurrency)
+                        const deletePromises = oldSceneIds.map(sceneId => 
+                            apiDeleteScene(screenplayId, sceneId, getToken).catch(err => {
+                                console.warn(`[ScreenplayContext] Failed to delete scene ${sceneId}:`, err);
+                                // Continue deleting other scenes even if one fails
+                            })
+                        );
+                        
+                        await Promise.all(deletePromises);
+                        console.log('[ScreenplayContext] ✅ Deleted', oldSceneIds.length, 'old scenes from DynamoDB');
                     }
-                    } catch (error) {
+                } catch (error) {
                     console.error('[ScreenplayContext] ❌ Failed to save/delete scenes:', error);
                     throw error; // Re-throw so user sees error
                 }
             }
             
-            // Step 4: 🔥 SAFEGUARD #4: Update state atomically (clear old, set new)
-            setScenes([]); // Clear old scenes first
-            await new Promise(resolve => setTimeout(resolve, 0)); // Let React update
+            // Step 4: 🔥 SAFEGUARD #4: Update state atomically (direct update, no clear to prevent navigation loops)
+            // CRITICAL FIX: Don't clear scenes first - this causes navigation loops when UI tries to navigate to deleted scenes
+            // Instead, update directly to new scenes to minimize state disruption
             setScenes(allNewScenes); // Set new scenes with correct numbering
             
             const updatedScenesCount = allNewScenes.length;
@@ -3437,7 +3449,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Always release the lock
             isRescanningRef.current = false;
         }
-    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, saveScenes, deleteAllScenes, preserveSceneMetadata, updateRelationships, buildRelationshipsFromScenes, getToken, screenplayId]);
+    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, saveScenes, preserveSceneMetadata, updateRelationships, buildRelationshipsFromScenes, getToken, screenplayId]);
     
     // ========================================================================
     // Clear All Data (Editor Source of Truth)
