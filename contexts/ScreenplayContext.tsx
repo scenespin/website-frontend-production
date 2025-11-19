@@ -3377,8 +3377,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                     // 🔥 CRITICAL FIX: Verify scenes were saved by checking DynamoDB before deleting old ones
                     // This prevents data loss if save partially failed
-                    const { getScenes } = await import('@/utils/screenplayStorage');
-                    const verifyScenes = await getScenes(screenplayId, getToken);
+                    const { listScenes } = await import('@/utils/screenplayStorage');
+                    const verifyScenes = await listScenes(screenplayId, getToken);
                     const savedSceneCount = verifyScenes?.length || 0;
                     
                     if (savedSceneCount < allNewScenes.length) {
