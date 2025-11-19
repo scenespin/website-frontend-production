@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
+import { toast } from 'sonner';
 
 // ============================================================================
 // TYPES
