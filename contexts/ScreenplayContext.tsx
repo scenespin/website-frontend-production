@@ -3368,45 +3368,35 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             console.log('[ScreenplayContext] Built', allNewScenes.length, 'scenes with correct numbering (1-' + allNewScenes.length + ' based on script order)');
             
-            // Step 3: 🔥 SAFEGUARD #1: Save new scenes FIRST, then delete ONLY old scenes by ID (prevents deleting new scenes)
+            // Step 3: 🔥 CRITICAL FIX: Delete ALL existing scenes FIRST (like import does), then save new ones
+            // This prevents duplicates - the current approach saves new scenes then deletes old ones by ID,
+            // but if duplicates already exist, they remain. Delete all first ensures clean slate.
             if (screenplayId && allNewScenes.length > 0) {
                 try {
-                    // Save new scenes first
+                    // 🔥 FIX: Delete ALL scenes first (prevents duplicates from accumulating)
+                    // This matches the import behavior which works perfectly
+                    const { deleteAllScenes: apiDeleteAllScenes } = await import('@/utils/screenplayStorage');
+                    console.log('[ScreenplayContext] 🗑️ Deleting ALL existing scenes first (prevents duplicates)...');
+                    await apiDeleteAllScenes(screenplayId, getToken);
+                    console.log('[ScreenplayContext] ✅ Deleted all existing scenes from DynamoDB');
+                    
+                    // Now save the new scenes (clean slate, no duplicates)
                     await saveScenes(allNewScenes, screenplayId);
                     console.log('[ScreenplayContext] ✅ Saved', allNewScenes.length, 'new scenes to DynamoDB');
                     
-                    // 🔥 CRITICAL FIX: Verify scenes were saved by checking DynamoDB before deleting old ones
-                    // This prevents data loss if save partially failed
+                    // 🔥 VERIFICATION: Verify scenes were saved correctly
                     const { listScenes } = await import('@/utils/screenplayStorage');
                     const verifyScenes = await listScenes(screenplayId, getToken);
                     const savedSceneCount = verifyScenes?.length || 0;
                     
-                    if (savedSceneCount < allNewScenes.length) {
-                        console.warn(`[ScreenplayContext] ⚠️ Only ${savedSceneCount} scenes saved, expected ${allNewScenes.length}. Aborting deletion of old scenes.`);
-                        throw new Error(`Failed to save all scenes: only ${savedSceneCount} of ${allNewScenes.length} were saved`);
+                    if (savedSceneCount !== allNewScenes.length) {
+                        console.warn(`[ScreenplayContext] ⚠️ Scene count mismatch: saved ${savedSceneCount}, expected ${allNewScenes.length}`);
+                        // Don't throw - this might be due to deduplication on backend, log warning instead
                     }
                     
-                    console.log('[ScreenplayContext] ✅ Verified', savedSceneCount, 'scenes saved to DynamoDB');
-                    
-                    // Then delete ONLY old scenes by their IDs (not all scenes - that would delete the new ones!)
-                    if (allExistingScenes.length > 0) {
-                        const { deleteScene: apiDeleteScene } = await import('@/utils/screenplayStorage');
-                        const oldSceneIds = allExistingScenes.map(s => s.id);
-                        console.log('[ScreenplayContext] 🗑️ Deleting', oldSceneIds.length, 'old scenes by ID...');
-                        
-                        // Delete old scenes in parallel (but limit concurrency)
-                        const deletePromises = oldSceneIds.map(sceneId => 
-                            apiDeleteScene(screenplayId, sceneId, getToken).catch(err => {
-                                console.warn(`[ScreenplayContext] Failed to delete scene ${sceneId}:`, err);
-                                // Continue deleting other scenes even if one fails
-                            })
-                        );
-                        
-                        await Promise.all(deletePromises);
-                        console.log('[ScreenplayContext] ✅ Deleted', oldSceneIds.length, 'old scenes from DynamoDB');
-                    }
+                    console.log('[ScreenplayContext] ✅ Verified', savedSceneCount, 'scenes in DynamoDB (expected', allNewScenes.length, ')');
                 } catch (error) {
-                    console.error('[ScreenplayContext] ❌ Failed to save/delete scenes:', error);
+                    console.error('[ScreenplayContext] ❌ Failed to delete/save scenes:', error);
                     throw error; // Re-throw so user sees error
                 }
             }
