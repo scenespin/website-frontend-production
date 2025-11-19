@@ -680,6 +680,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setWorkflowStatus(null);
     
     try {
+      // Get authentication token first (needed for uploads and workflow execution)
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+      
       // Upload character reference images if any
       const referenceImageUrls: string[] = [];
       const uploadedImages = referenceImages.filter(img => img !== null) as File[];
@@ -688,24 +692,56 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         toast.info('Uploading character references...');
         
         for (const file of uploadedImages) {
-          const formData = new FormData();
-          formData.append('image', file);
-          formData.append('projectId', projectId);
+          // Use presigned POST upload (same as first frame upload)
+          const fileType = file.type || 'image/jpeg';
+          const presignedResponse = await fetch(
+            `/api/video/upload/get-presigned-url?` +
+            `fileName=${encodeURIComponent(file.name)}` +
+            `&fileType=${encodeURIComponent(fileType)}` +
+            `&fileSize=${file.size}` +
+            `&projectId=${encodeURIComponent(projectId)}`,
+            { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+          );
           
-          const uploadRes = await fetch('/api/media/upload-image', {
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to get presigned URL: ${presignedResponse.statusText}`);
+          }
+          
+          const { url, fields, s3Key } = await presignedResponse.json();
+          
+          // Upload directly to S3 using FormData POST
+          const formData = new FormData();
+          Object.entries(fields).forEach(([key, value]) => {
+            if (key.toLowerCase() !== 'bucket') {
+              formData.append(key, value as string);
+            }
+          });
+          formData.append('file', file); // File must be last
+          
+          const s3Response = await fetch(url, { method: 'POST', body: formData });
+          if (!s3Response.ok) {
+            throw new Error(`S3 upload failed: ${s3Response.statusText}`);
+          }
+          
+          // Get download URL
+          const downloadUrlResponse = await fetch('/api/s3/download-url', {
             method: 'POST',
-            body: formData
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ s3Key, expiresIn: 3600 })
           });
           
-          const uploadData = await uploadRes.json();
-          if (uploadData.success && uploadData.url) {
-            referenceImageUrls.push(uploadData.url);
+          if (!downloadUrlResponse.ok) {
+            throw new Error(`Failed to get download URL: ${downloadUrlResponse.statusText}`);
+          }
+          
+          const { downloadUrl } = await downloadUrlResponse.json();
+          if (downloadUrl) {
+            referenceImageUrls.push(downloadUrl);
           }
         }
       }
       
       // Start workflow execution with authentication
-      const token = await getToken({ template: 'wryda-backend' });
       
       // Get style profile data if selected
       const selectedProfile = selectedStyleProfile 
@@ -759,6 +795,11 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         body: JSON.stringify(workflowRequest)
       });
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || `Workflow execution failed: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       if (data.success && data.executionId) {
@@ -767,7 +808,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           description: 'Generating your complete scene package...'
         });
       } else {
-        throw new Error(data.message || 'Failed to start workflow');
+        throw new Error(data.message || data.error || 'Failed to start workflow');
       }
       
     } catch (error) {
@@ -1293,6 +1334,32 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         {/* Content */}
         <div className="space-y-4 md:space-y-5">
+        {/* Step Indicator */}
+        {!isGenerating && !workflowStatus && (
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className={`flex items-center gap-2 ${sceneDescription.trim() ? 'text-[#DC143C]' : 'text-[#808080]'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${sceneDescription.trim() ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414]'}`}>
+                {sceneDescription.trim() ? <CheckCircle2 className="w-5 h-5" /> : <span className="text-sm font-bold">1</span>}
+              </div>
+              <span className="text-sm font-medium hidden sm:inline">Select Scene</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#808080]" />
+            <div className={`flex items-center gap-2 ${sceneDescription.trim() ? 'text-[#808080]' : 'text-[#3F3F46]'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${sceneDescription.trim() ? 'border-[#3F3F46] bg-[#141414]' : 'border-[#3F3F46] bg-[#141414] opacity-50'}`}>
+                <span className="text-sm font-bold">2</span>
+              </div>
+              <span className="text-sm font-medium hidden sm:inline">Configure</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#808080]" />
+            <div className="flex items-center gap-2 text-[#3F3F46] opacity-50">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#3F3F46] bg-[#141414]">
+                <span className="text-sm font-bold">3</span>
+              </div>
+              <span className="text-sm font-medium hidden sm:inline">Generate</span>
+            </div>
+          </div>
+        )}
+
         {/* Scene Builder Form */}
         {!isGenerating && !workflowStatus && (
           <motion.div
@@ -1303,7 +1370,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             {/* Scene Selection System - Phase 2 */}
             <Card className="bg-[#141414] border-[#3F3F46]">
               <CardHeader>
-                <CardTitle className="text-lg text-[#FFFFFF]">📝 Scene Selection</CardTitle>
+                <CardTitle className="text-lg text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
                 <CardDescription className="text-[#808080]">
                   Choose a scene from your screenplay or enter one manually
                 </CardDescription>
@@ -1464,10 +1531,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </CardContent>
             </Card>
             
-            {/* Character References */}
-            <Card className="bg-[#141414] border-[#3F3F46]">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#FFFFFF]">🎭 Character References (Optional)</CardTitle>
+            {/* Step 2: Configuration Options - Only show if scene is selected */}
+            {sceneDescription.trim() && (
+              <>
+                {/* Character References */}
+                <Card className="bg-[#141414] border-[#3F3F46]">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#FFFFFF]">🎭 Step 2: Character References (Optional)</CardTitle>
                 <CardDescription className="text-[#808080]">
                   {isMobile || simplified 
                     ? 'Upload 1 character image for consistency'
@@ -1604,12 +1674,12 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </CardContent>
             </Card>
             
-            {/* Options */}
-            <Card className="bg-[#141414] border-[#3F3F46]">
-              <CardHeader>
-                <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Generation Options</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                {/* Options */}
+                <Card className="bg-[#141414] border-[#3F3F46]">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Generation Options</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                 {/* Quality Tier */}
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Quality Tier</Label>
@@ -1872,41 +1942,54 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </Card>
             )}
             
-            {/* Generate Button */}
-            <Card className="bg-gradient-to-r from-[#DC143C] to-[#B01030] text-white border-none">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-sm font-medium opacity-90">Estimated Cost</div>
-                    <div className="text-3xl font-bold">{calculateEstimate()} credits</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm opacity-90">Estimated Time</div>
-                    <div className="text-xl font-semibold">8-15 min</div>
-                  </div>
-                </div>
-                
-                {visualAnnotations && (
-                  <div className="mb-3 p-2 bg-white/20 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Annotations will be applied to generation</span>
+                {/* Generate Button - Step 3 */}
+                <Card className="bg-gradient-to-r from-[#DC143C] to-[#B01030] text-white border-none">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="text-sm font-medium opacity-90">Estimated Cost</div>
+                        <div className="text-3xl font-bold">{calculateEstimate()} credits</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm opacity-90">Estimated Time</div>
+                        <div className="text-xl font-semibold">8-15 min</div>
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
-                  className="w-full bg-white text-purple-600 hover:bg-purple-50 font-bold text-lg h-12"
-                  size="lg"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate Complete Scene
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </CardContent>
-            </Card>
+                    
+                    {visualAnnotations && (
+                      <div className="mb-3 p-2 bg-white/20 rounded-lg text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Annotations will be applied to generation</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Preview Section */}
+                    <div className="mb-4 p-4 bg-white/10 rounded-lg border border-white/20">
+                      <div className="text-sm font-semibold mb-3">What You'll Get:</div>
+                      <ul className="text-xs opacity-90 space-y-1 mb-3">
+                        <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
+                        <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
+                        <li>• {duration} each</li>
+                        <li>• Perfect consistency across all clips</li>
+                      </ul>
+                    </div>
+                    
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
+                      className="w-full bg-white text-[#DC143C] hover:bg-gray-100 font-bold text-lg h-12"
+                      size="lg"
+                    >
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Generate Complete Scene
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </motion.div>
         )}
         

@@ -21,8 +21,17 @@ import {
   ExternalLink,
   Clock,
   Check,
-  X
+  X,
+  Eye
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { FolderTreeSidebar } from './FolderTreeSidebar';
+import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 
 // ============================================================================
 // TYPES
@@ -90,22 +99,27 @@ export default function MediaLibrary({
   const [storageQuota, setStorageQuota] = useState<StorageQuota | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [cloudConnections, setCloudConnections] = useState<CloudStorageConnection[]>([]);
+  const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
+  const [showFolderSidebar, setShowFolderSidebar] = useState(true);
 
   // ============================================================================
   // EFFECTS
   // ============================================================================
 
   useEffect(() => {
-    loadFiles();
+    loadFiles(selectedFolderId || undefined);
     loadStorageQuota();
     loadCloudConnections();
-  }, [projectId]);
+  }, [projectId, selectedFolderId]);
 
   // ============================================================================
   // API CALLS
   // ============================================================================
 
-  const loadFiles = async () => {
+  const loadFiles = async (folderId?: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -113,41 +127,91 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      // Load local/S3 files
-      const localResponse = await fetch(`/api/media/list?projectId=${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
       let allFiles: MediaFile[] = [];
 
-      if (localResponse.ok) {
-        const localData = await localResponse.json();
-        allFiles = localData.files || [];
-      }
+      // If folderId is provided, load files from that folder only
+      if (folderId) {
+        // Load files from specific folder (cloud storage)
+        try {
+          const connectionsResponse = await fetch('/api/storage/connections', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
 
-      // Load cloud storage files (Google Drive & Dropbox)
-      try {
-        const connectionsResponse = await fetch('/api/storage/connections', {
+          if (connectionsResponse.ok) {
+            const connectionsData = await connectionsResponse.json();
+            const connections = connectionsData.connections || [];
+
+            // Determine provider from folderId (Google Drive IDs are long strings, Dropbox paths start with /)
+            const provider = folderId.startsWith('/') ? 'dropbox' : 'google-drive';
+            const connection = connections.find((c: any) => c.provider === provider && (c.status === 'active' || c.status === 'connected'));
+
+            if (connection) {
+              try {
+                const filesResponse = await fetch(`/api/storage/files/${provider}?folderId=${encodeURIComponent(folderId)}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                  },
+                });
+
+                if (filesResponse.ok) {
+                  const filesData = await filesResponse.json();
+                  const cloudFiles = (filesData.files || []).map((file: any) => ({
+                    id: file.id,
+                    fileName: file.name,
+                    fileUrl: file.webViewLink || file.downloadUrl || '',
+                    fileType: detectFileType(file.mimeType || file.name),
+                    fileSize: file.size || 0,
+                    storageType: provider,
+                    uploadedAt: file.createdTime || file.modified || new Date().toISOString(),
+                    thumbnailUrl: file.thumbnailLink || undefined,
+                  }));
+                  allFiles = cloudFiles;
+                }
+              } catch (error) {
+                console.warn(`[MediaLibrary] Failed to load files from folder:`, error);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('[MediaLibrary] Failed to load folder files:', error);
+        }
+      } else {
+        // Load all files (no folder filter)
+        // Load local/S3 files
+        const localResponse = await fetch(`/api/media/list?projectId=${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
 
-        if (connectionsResponse.ok) {
-          const connectionsData = await connectionsResponse.json();
-          const connections = connectionsData.connections || [];
+        if (localResponse.ok) {
+          const localData = await localResponse.json();
+          allFiles = localData.files || [];
+        }
 
-          // Fetch files from each connected provider
-          for (const connection of connections) {
-            if (connection.status === 'active' || connection.status === 'connected') {
-              try {
-                const filesResponse = await fetch(`/api/storage/files/${connection.provider}`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                  },
-                });
+        // Load cloud storage files (Google Drive & Dropbox)
+        try {
+          const connectionsResponse = await fetch('/api/storage/connections', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (connectionsResponse.ok) {
+            const connectionsData = await connectionsResponse.json();
+            const connections = connectionsData.connections || [];
+
+            // Fetch files from each connected provider
+            for (const connection of connections) {
+              if (connection.status === 'active' || connection.status === 'connected') {
+                try {
+                  const filesResponse = await fetch(`/api/storage/files/${connection.provider}`, {
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                    },
+                  });
 
                 if (filesResponse.ok) {
                   const filesData = await filesResponse.json();
@@ -438,10 +502,51 @@ export default function MediaLibrary({
 
       if (response.ok) {
         await loadFiles();
+        setOpenMenuId(null); // Close menu after deletion
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete file');
       }
 
     } catch (error) {
       console.error('[MediaLibrary] Delete error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete file');
+    }
+  };
+
+  const handleViewFile = (file: MediaFile) => {
+    setPreviewFile(file);
+    setOpenMenuId(null); // Close menu
+  };
+
+  const handleDownloadFile = async (file: MediaFile) => {
+    try {
+      // For cloud storage files, we might need to get a download URL first
+      if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) throw new Error('Not authenticated');
+
+        // Get download URL from backend
+        const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.downloadUrl) {
+            window.open(data.downloadUrl, '_blank');
+          }
+        }
+      } else {
+        // For local/S3 files, use the fileUrl directly
+        window.open(file.fileUrl, '_blank');
+      }
+      setOpenMenuId(null); // Close menu
+    } catch (error) {
+      console.error('[MediaLibrary] Download error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to download file');
     }
   };
 
@@ -620,9 +725,9 @@ export default function MediaLibrary({
   // ============================================================================
 
   return (
-    <div className={`bg-[#0A0A0A] rounded-lg shadow-lg ${className}`}>
+    <div className={`bg-[#0A0A0A] rounded-lg shadow-lg flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="p-4 md:p-5 border-b border-[#3F3F46]">
+      <div className="p-4 md:p-5 border-b border-[#3F3F46] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg md:text-xl font-bold text-[#FFFFFF]">
             Media Library
@@ -784,30 +889,51 @@ export default function MediaLibrary({
         </div>
       )}
 
-      {/* Drop Zone */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`m-6 p-8 border-2 border-dashed rounded-lg transition-colors ${
-          isDragging
-            ? 'border-[#DC143C] bg-[#DC143C]/10'
-            : 'border-[#3F3F46]'
-        }`}
-      >
-        <div className="text-center">
-          <Upload className="w-12 h-12 mx-auto text-[#808080] mb-3" />
-          <p className="text-[#B3B3B3] mb-1">
-            Drag and drop files here, or click Upload Files
-          </p>
-          <p className="text-sm text-[#808080]">
-            Max file size: {maxFileSize}MB
-          </p>
-        </div>
-      </div>
+      {/* Main Content with Folder Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Folder Tree Sidebar */}
+        {showFolderSidebar && (
+          <FolderTreeSidebar
+            screenplayId={projectId}
+            onFolderSelect={handleFolderSelect}
+            selectedFolderId={selectedFolderId}
+          />
+        )}
+        
+        {/* File Grid Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Breadcrumb Navigation */}
+          <BreadcrumbNavigation
+            path={selectedFolderPath}
+            onNavigate={handleBreadcrumbClick}
+          />
+          
+          {/* File Grid Content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Drop Zone */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`m-6 p-8 border-2 border-dashed rounded-lg transition-colors ${
+                isDragging
+                  ? 'border-[#DC143C] bg-[#DC143C]/10'
+                  : 'border-[#3F3F46]'
+              }`}
+            >
+              <div className="text-center">
+                <Upload className="w-12 h-12 mx-auto text-[#808080] mb-3" />
+                <p className="text-[#B3B3B3] mb-1">
+                  Drag and drop files here, or click Upload Files
+                </p>
+                <p className="text-sm text-[#808080]">
+                  Max file size: {maxFileSize}MB
+                </p>
+              </div>
+            </div>
 
-      {/* Files Grid/List */}
-      <div className="p-6">
+            {/* Files Grid/List */}
+            <div className="p-6">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
@@ -882,19 +1008,152 @@ export default function MediaLibrary({
                 </div>
 
                 {/* Actions Menu */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  className="absolute top-2 right-2 p-1 bg-white dark:bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                </button>
+                <DropdownMenu open={openMenuId === file.id} onOpenChange={(open) => setOpenMenuId(open ? file.id : null)}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
+                    >
+                      <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-[#141414] border border-[#3F3F46]">
+                    <DropdownMenuItem 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleViewFile(file); 
+                      }}
+                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer"
+                    >
+                      <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleDownloadFile(file); 
+                      }}
+                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                      Download
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        deleteFile(file.id); 
+                      }}
+                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ))}
           </div>
         )}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Preview Modal */}
+      {previewFile && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setPreviewFile(null)}
+        >
+          <div 
+            className="bg-[#0A0A0A] rounded-lg border border-[#3F3F46] max-w-4xl w-full max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-[#141414] p-4 md:p-5 border-b border-[#3F3F46] flex items-center justify-between">
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-[#FFFFFF]">{previewFile.fileName}</h3>
+                <p className="text-sm text-[#808080] mt-1">
+                  {formatFileSize(previewFile.fileSize)} • {previewFile.fileType}
+                </p>
+              </div>
+              <button
+                onClick={() => setPreviewFile(null)}
+                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 md:p-5">
+              {previewFile.fileType === 'image' && (
+                <img 
+                  src={previewFile.fileUrl || previewFile.thumbnailUrl} 
+                  alt={previewFile.fileName}
+                  className="w-full h-auto rounded-lg"
+                />
+              )}
+              {previewFile.fileType === 'video' && (
+                <video 
+                  src={previewFile.fileUrl} 
+                  controls
+                  className="w-full h-auto rounded-lg"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              )}
+              {previewFile.fileType === 'audio' && (
+                <audio 
+                  src={previewFile.fileUrl} 
+                  controls
+                  className="w-full"
+                >
+                  Your browser does not support the audio tag.
+                </audio>
+              )}
+              {previewFile.fileType === 'other' && (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-[#808080] mx-auto mb-4" />
+                  <p className="text-[#B3B3B3] mb-4">Preview not available for this file type</p>
+                  <button
+                    onClick={() => handleDownloadFile(previewFile)}
+                    className="bg-[#DC143C] hover:bg-[#B91238] text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <Download className="w-4 h-4 inline mr-2" />
+                    Download File
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="bg-[#141414] p-4 border-t border-[#3F3F46] flex items-center justify-end gap-3">
+              <button
+                onClick={() => handleDownloadFile(previewFile)}
+                className="bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this file?')) {
+                    deleteFile(previewFile.id);
+                    setPreviewFile(null);
+                  }
+                }}
+                className="bg-[#DC143C] hover:bg-[#B91238] text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
