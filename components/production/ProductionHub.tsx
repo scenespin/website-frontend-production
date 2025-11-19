@@ -22,6 +22,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext'; // NEW: For AI Interview drawer
 import { 
@@ -89,13 +90,40 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
   const { openDrawer } = useDrawer();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // State
-  const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
+  // State - sync with URL params
+  const [activeTab, setActiveTab] = useState<ProductionTab>(() => {
+    const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
+    return (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) 
+      ? tabFromUrl 
+      : 'overview';
+  });
   const [isMobile, setIsMobile] = useState(false);
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
+
+  // Sync activeTab with URL params
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
+    if (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  // Update URL when activeTab changes
+  const handleTabChange = (tab: ProductionTab) => {
+    setActiveTab(tab);
+    const newUrl = new URL(window.location.href);
+    if (tab === 'overview') {
+      newUrl.searchParams.delete('tab');
+    } else {
+      newUrl.searchParams.set('tab', tab);
+    }
+    window.history.pushState({}, '', newUrl.toString());
+  };
 
   // ============================================================================
   // RESPONSIVE DETECTION
@@ -259,7 +287,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setActiveTab('jobs')}
+                onClick={() => handleTabChange('jobs')}
                 className="text-xs px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-md transition-colors flex items-center gap-1"
               >
                 View
@@ -279,7 +307,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
         <div className="bg-gray-900 border-b border-gray-800 p-3">
           <select
             value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value as ProductionTab)}
+            onChange={(e) => handleTabChange(e.target.value as ProductionTab)}
             className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             {tabs.map((tab) => (
@@ -421,7 +449,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all
                   ${isActive 
@@ -481,7 +509,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setActiveTab('jobs')}
+                onClick={() => handleTabChange('jobs')}
                 className="text-sm px-4 py-2 bg-blue-800 hover:bg-blue-700 text-blue-100 rounded-lg transition-colors flex items-center gap-2 font-medium"
               >
                 <Clock className="w-4 h-4" />

@@ -36,6 +36,90 @@ import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
 
 // ============================================================================
+// VIDEO THUMBNAIL COMPONENT
+// ============================================================================
+
+function VideoThumbnail({ videoUrl, fileName, className }: { videoUrl: string; fileName: string; className: string }) {
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    if (!video || !canvas) return;
+
+    const generateThumbnail = () => {
+      try {
+        video.currentTime = 0.1; // Seek to 0.1 seconds for first frame
+      } catch (err) {
+        console.warn('[VideoThumbnail] Failed to seek video:', err);
+      }
+    };
+
+    const captureFrame = () => {
+      if (!video || !canvas) return;
+      
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 240;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setThumbnailUrl(dataUrl);
+      } catch (err) {
+        console.warn('[VideoThumbnail] Failed to capture frame:', err);
+      }
+    };
+
+    video.addEventListener('loadedmetadata', generateThumbnail);
+    video.addEventListener('seeked', captureFrame);
+    video.addEventListener('loadeddata', () => {
+      if (video.readyState >= 2) {
+        generateThumbnail();
+      }
+    });
+
+    return () => {
+      video.removeEventListener('loadedmetadata', generateThumbnail);
+      video.removeEventListener('seeked', captureFrame);
+      video.removeEventListener('loadeddata', generateThumbnail);
+    };
+  }, [videoUrl]);
+
+  return (
+    <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden`}>
+      {thumbnailUrl ? (
+        <img 
+          src={thumbnailUrl} 
+          alt={fileName}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <Video className="w-8 h-8 text-[#808080]" />
+        </div>
+      )}
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        preload="metadata"
+        className="hidden"
+        crossOrigin="anonymous"
+        onError={(e) => {
+          console.warn('[VideoThumbnail] Video load error:', e);
+        }}
+      />
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
+  );
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -1006,18 +1090,34 @@ export default function MediaLibrary({
                 )}
 
                 {/* Thumbnail */}
-                <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0`}>
-                  {file.thumbnailUrl ? (
+                <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
+                  {file.fileType === 'image' && file.fileUrl ? (
+                    <img
+                      src={file.fileUrl}
+                      alt={file.fileName}
+                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : file.fileType === 'video' && file.fileUrl ? (
+                    <VideoThumbnail 
+                      videoUrl={file.fileUrl} 
+                      fileName={file.fileName}
+                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'}`}
+                    />
+                  ) : file.thumbnailUrl ? (
                     <img
                       src={file.thumbnailUrl}
                       alt={file.fileName}
-                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded`}
+                      className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
                     />
-                  ) : (
-                    <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center`}>
-                      {getFileIcon(file.fileType)}
-                    </div>
-                  )}
+                  ) : null}
+                  {/* Fallback icon */}
+                  <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(file.fileType === 'image' && file.fileUrl) || (file.fileType === 'video' && file.fileUrl) ? 'hidden' : ''}`}>
+                    {getFileIcon(file.fileType)}
+                  </div>
                 </div>
 
                 {/* File Info */}
@@ -1038,24 +1138,43 @@ export default function MediaLibrary({
                 </div>
 
                 {/* Actions Menu */}
-                <DropdownMenu open={openMenuId === file.id} onOpenChange={(open) => setOpenMenuId(open ? file.id : null)}>
+                <DropdownMenu 
+                  open={openMenuId === file.id} 
+                  onOpenChange={(open) => {
+                    if (open) {
+                      setOpenMenuId(file.id);
+                    } else {
+                      setOpenMenuId(null);
+                    }
+                  }}
+                >
                   <DropdownMenuTrigger asChild>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        // Close any other open menus
+                        if (openMenuId !== file.id) {
+                          setOpenMenuId(file.id);
+                        }
                       }}
-                      className="absolute top-2 right-2 p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
+                      className="absolute top-2 right-2 p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C] z-10"
                     >
                       <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-[#141414] border border-[#3F3F46]">
+                  <DropdownMenuContent 
+                    align="end" 
+                    className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-50"
+                    style={{ backgroundColor: '#141414', color: '#FFFFFF' }}
+                  >
                     <DropdownMenuItem 
                       onClick={(e) => { 
                         e.stopPropagation(); 
+                        setOpenMenuId(null);
                         handleViewFile(file); 
                       }}
-                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer"
+                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                      style={{ color: '#FFFFFF' }}
                     >
                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
                       View
@@ -1063,9 +1182,11 @@ export default function MediaLibrary({
                     <DropdownMenuItem 
                       onClick={(e) => { 
                         e.stopPropagation(); 
+                        setOpenMenuId(null);
                         handleDownloadFile(file); 
                       }}
-                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer"
+                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                      style={{ color: '#FFFFFF' }}
                     >
                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                       Download
@@ -1073,9 +1194,11 @@ export default function MediaLibrary({
                     <DropdownMenuItem 
                       onClick={(e) => { 
                         e.stopPropagation(); 
+                        setOpenMenuId(null);
                         deleteFile(file.id); 
                       }}
-                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer"
+                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
+                      style={{ color: '#DC143C' }}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
@@ -1122,11 +1245,12 @@ export default function MediaLibrary({
               {previewFile.fileType === 'image' && (
                 <div className="relative">
                   <img 
-                    src={previewFile.fileUrl || previewFile.thumbnailUrl} 
+                    src={previewFile.fileUrl || previewFile.thumbnailUrl || ''} 
                     alt={previewFile.fileName}
-                    className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto"
+                    className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto bg-[#0A0A0A]"
                     onError={(e) => {
                       console.error('[MediaLibrary] Image failed to load:', previewFile.fileUrl);
+                      toast.error('Image failed to load. The file may be corrupted or the URL expired.');
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
