@@ -73,22 +73,32 @@ export default function Dashboard() {
     // Close modal immediately for better UX
     setShowWelcomeModal(false);
     
-    // Save to localStorage first (instant)
+    // Save to localStorage first (instant, works offline)
     if (typeof window !== 'undefined') {
       localStorage.setItem('hasSeenWelcome', 'true');
     }
     
-    // Update user metadata in background (can fail silently)
+    // Update Clerk metadata via backend API (syncs across devices)
+    // Falls back gracefully if API fails - localStorage already saved
     try {
-      await user?.update({
-        publicMetadata: {
-          ...user.publicMetadata,
-          hasSeenWelcome: true,
+      const response = await fetch('/api/user/metadata', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          publicMetadata: {
+            hasSeenWelcome: true
+          }
+        }),
       });
-      console.log('[Dashboard] Welcome modal dismissed and saved');
+
+      if (!response.ok) {
+        throw new Error('Failed to update metadata');
+      }
     } catch (error) {
-      console.error('[Dashboard] Error saving welcome modal state (localStorage used as fallback):', error);
+      // Silent failure - localStorage already saved, so UX is not affected
+      console.log('[Dashboard] Metadata update failed, using localStorage fallback');
     }
   };
 
@@ -183,10 +193,37 @@ export default function Dashboard() {
   };
 
   const handleProjectCreated = (project) => {
+    if (!project) {
+      console.error('[Dashboard] handleProjectCreated called with undefined project');
+      toast.error('Failed to create project - invalid response');
+      return;
+    }
+    
+    console.log('[Dashboard] Project received:', project);
+    
+    // Transform project to match the format expected by the dashboard
+    // Backend returns project with project_id, but dashboard expects id
+    const transformedProject = {
+      id: project.project_id || project.id,
+      name: project.project_name || project.name,
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+      screenplay_id: project.project_id || project.id, // For compatibility
+      project_id: project.project_id || project.id
+    };
+    
+    console.log('[Dashboard] Transformed project:', transformedProject);
+    
     // Add new project to list
-    setProjects([project, ...projects]);
+    setProjects([transformedProject, ...projects]);
     // Navigate to the editor with the new project
-    router.push(`/write?project=${project.project_id}`);
+    const projectId = transformedProject.id || transformedProject.project_id;
+    if (projectId) {
+      router.push(`/write?project=${projectId}`);
+    } else {
+      console.error('[Dashboard] No project ID found in transformed project');
+      toast.error('Failed to navigate to project - missing ID');
+    }
   };
 
   const handleDeleteProject = async (projectId, projectName) => {
@@ -387,11 +424,11 @@ export default function Dashboard() {
           
           {projects.length > 0 ? (
             <div className="space-y-3">
-              {projects.map((project) => {
+              {projects.filter(project => project != null).map((project) => {
                 // Check if this project's screenplay_id matches the current screenplay
                 // Screenplays are now the primary entity
-                const projectId = project.id || project.screenplay_id; // Use id (which is screenplay_id)
-                const projectScreenplayId = project.screenplay_id || project.id;
+                const projectId = project?.id || project?.screenplay_id; // Use id (which is screenplay_id)
+                const projectScreenplayId = project?.screenplay_id || project?.id;
                 const isCurrent = currentScreenplayId === projectScreenplayId || 
                                  (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
                 const isDeleting = deletingProjectId === projectId;

@@ -17,6 +17,7 @@ import { FileText, Users, MapPin, ChevronDown, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditableScreenplayTitle from './EditableScreenplayTitle';
 import ScreenplaySettingsModal from './ScreenplaySettingsModal';
+import ScreenplaySwitcher from './ScreenplaySwitcher';
 
 export type EditorTab = 'write' | 'characters' | 'locations';
 
@@ -82,11 +83,14 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
         className
       )}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between py-2 border-b border-base-300">
-            <EditableScreenplayTitle />
+          <div className="flex items-center justify-between gap-3 py-2 border-b border-base-300">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <ScreenplaySwitcher />
+              <EditableScreenplayTitle />
+            </div>
             <button
               onClick={() => setShowSettingsModal(true)}
-              className="p-2 hover:bg-base-300 rounded transition-colors"
+              className="p-2 hover:bg-base-300 rounded transition-colors flex-shrink-0"
               title="Screenplay settings"
             >
               <Settings className="w-4 h-4 text-base-content/60 hover:text-base-content" />
@@ -143,11 +147,14 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
         "md:hidden border-b border-base-300 bg-base-200",
         className
       )}>
-        <div className="px-4 py-2 border-b border-base-300 flex items-center justify-between">
-          <EditableScreenplayTitle />
+        <div className="px-4 py-2 border-b border-base-300 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <ScreenplaySwitcher />
+            <EditableScreenplayTitle />
+          </div>
           <button
             onClick={() => setShowSettingsModal(true)}
-            className="p-2 hover:bg-base-300 rounded transition-colors"
+            className="p-2 hover:bg-base-300 rounded transition-colors flex-shrink-0"
             title="Screenplay settings"
           >
             <Settings className="w-4 h-4 text-base-content/60 hover:text-base-content" />

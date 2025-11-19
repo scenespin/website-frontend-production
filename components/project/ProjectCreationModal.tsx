@@ -44,8 +44,20 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
 
       const data = await response.json();
       
+      console.log('[ProjectCreationModal] API response:', data);
+      
+      // Backend returns: { success: true, data: { project: {...} } }
+      const project = data.data?.project || data.project;
+      
+      if (!project) {
+        console.error('[ProjectCreationModal] Invalid response structure:', data);
+        throw new Error('Invalid response from server - project not found in response');
+      }
+      
+      console.log('[ProjectCreationModal] Project created:', project);
+      
       toast.success(`Project "${projectName}" created!`);
-      onSuccess(data.project);
+      onSuccess(project);
       handleClose();
     } catch (error) {
       console.error('Failed to create project:', error);

@@ -23,6 +23,8 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
   
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
+  const [description, setDescription] = useState('');
+  const [genre, setGenre] = useState('');
 
   useEffect(() => {
     if (isOpen && screenplay?.screenplayId) {
@@ -40,6 +42,8 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
       if (screenplayData) {
         setTitle(screenplayData.title || '');
         setAuthor(screenplayData.author || '');
+        setDescription(screenplayData.description || '');
+        setGenre(screenplayData.metadata?.genre || '');
       }
     } catch (error) {
       console.error('[ScreenplaySettingsModal] Failed to fetch screenplay:', error);
@@ -62,11 +66,19 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
 
     setIsSaving(true);
     try {
+      // Fetch current screenplay to preserve existing metadata
+      const currentScreenplay = await getScreenplay(screenplay.screenplayId, getToken);
+      
       await updateScreenplay(
         {
           screenplay_id: screenplay.screenplayId,
           title: title.trim(),
-          author: author.trim() || undefined
+          author: author.trim() || undefined,
+          description: description.trim() || undefined,
+          metadata: {
+            ...(currentScreenplay?.metadata || {}),
+            ...(genre.trim() ? { genre: genre.trim() } : {})
+          }
         },
         getToken
       );
@@ -141,6 +153,47 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
                   className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
                   disabled={isSaving}
                 />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="A brief description of your screenplay..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
+                  disabled={isSaving}
+                />
+              </div>
+
+              {/* Genre */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Genre (Optional)
+                </label>
+                <select
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                  disabled={isSaving}
+                >
+                  <option value="">Select a genre...</option>
+                  <option value="action">Action</option>
+                  <option value="comedy">Comedy</option>
+                  <option value="drama">Drama</option>
+                  <option value="horror">Horror</option>
+                  <option value="sci-fi">Sci-Fi</option>
+                  <option value="thriller">Thriller</option>
+                  <option value="romance">Romance</option>
+                  <option value="fantasy">Fantasy</option>
+                  <option value="mystery">Mystery</option>
+                  <option value="documentary">Documentary</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
             </>
           )}

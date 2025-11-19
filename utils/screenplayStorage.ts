@@ -105,6 +105,17 @@ export interface UpdateScreenplayParams {
   screenplay_id: string;
   title?: string;
   author?: string;
+  description?: string;
+  metadata?: {
+    genre?: string;
+    logline?: string;
+    pageCount?: number;
+    tags?: string[];
+    wordCount?: number;
+    sceneCount?: number;
+    characterCount?: number;
+    version?: number;
+  };
   content?: string;
   beats?: Beat[];
   characters?: Character[];

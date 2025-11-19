@@ -30,10 +30,14 @@ export async function POST(request: Request) {
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json();
+      console.error('[Projects Create API] Backend error:', errorData);
       return NextResponse.json(errorData, { status: backendResponse.status });
     }
 
     const data = await backendResponse.json();
+    console.log('[Projects Create API] Backend response:', data);
+    
+    // Pass through the response as-is (backend returns { success: true, data: { project: {...} } })
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error creating project:', error);
