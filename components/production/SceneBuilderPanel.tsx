@@ -262,37 +262,62 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             'Authorization': `Bearer ${token}`
           }
         });
+        
+        // 🔥 FIX: Handle 404 and other error responses
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.warn('[SceneBuilderPanel] Workflow execution not found (404), stopping poll:', workflowExecutionId);
+            clearInterval(interval);
+            setIsGenerating(false);
+            toast.error('Workflow execution not found. It may have been deleted or expired.');
+            return;
+          }
+          // For other errors, log and continue polling (might be temporary)
+          console.warn('[SceneBuilderPanel] Workflow status check failed:', response.status, response.statusText);
+          return;
+        }
+        
         const data = await response.json();
         
-        if (data.success) {
-          setWorkflowStatus(data.execution);
-          
-          // Check if awaiting user decision
-          if (data.execution.status === 'awaiting_user_decision') {
-            setShowDecisionModal(true);
-            setIsGenerating(false);
-          }
-          
-          // Check if partial delivery (Premium tier - dialog rejected)
-          if (data.execution.status === 'partial_delivery') {
-            await handlePartialDelivery(data.execution);
-            clearInterval(interval);
-          }
-          
-          // Check if completed
-          if (data.execution.status === 'completed') {
-            handleGenerationComplete(data.execution);
-            clearInterval(interval);
-          }
-          
-          // Check if failed
-          if (data.execution.status === 'failed') {
-            handleGenerationFailed(data.execution);
-            clearInterval(interval);
-          }
+        // 🔥 FIX: Validate response structure before accessing properties
+        if (!data.success) {
+          console.warn('[SceneBuilderPanel] Workflow status response not successful:', data);
+          return;
+        }
+        
+        if (!data.execution) {
+          console.warn('[SceneBuilderPanel] Workflow status response missing execution data:', data);
+          return;
+        }
+        
+        setWorkflowStatus(data.execution);
+        
+        // Check if awaiting user decision
+        if (data.execution.status === 'awaiting_user_decision') {
+          setShowDecisionModal(true);
+          setIsGenerating(false);
+        }
+        
+        // Check if partial delivery (Premium tier - dialog rejected)
+        if (data.execution.status === 'partial_delivery') {
+          await handlePartialDelivery(data.execution);
+          clearInterval(interval);
+        }
+        
+        // Check if completed
+        if (data.execution.status === 'completed') {
+          handleGenerationComplete(data.execution);
+          clearInterval(interval);
+        }
+        
+        // Check if failed
+        if (data.execution.status === 'failed') {
+          handleGenerationFailed(data.execution);
+          clearInterval(interval);
         }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to poll workflow:', error);
+        // Don't stop polling on network errors - might be temporary
       }
     }, 3000);
     
