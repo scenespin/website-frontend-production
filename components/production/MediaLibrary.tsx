@@ -1303,13 +1303,21 @@ export default function MediaLibrary({
                       </div>
 
                       {/* Actions Menu */}
-                      <div className="absolute top-2 right-2 z-20">
+                      <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu 
-                          open={isOpen(file.id)} 
                           onOpenChange={(open) => {
                             // Use the coordinator hook which handles all the complexity
                             if (open) {
-                              setOpenMenuId(file.id);
+                              // Close any other open menu first
+                              if (openMenuId && openMenuId !== file.id) {
+                                setOpenMenuId(null);
+                                // Use a small delay to ensure the previous menu closes
+                                setTimeout(() => {
+                                  setOpenMenuId(file.id);
+                                }, 10);
+                              } else {
+                                setOpenMenuId(file.id);
+                              }
                             } else {
                               setOpenMenuId(null);
                             }
@@ -1329,7 +1337,6 @@ export default function MediaLibrary({
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                               aria-label={`Actions for ${file.fileName}`}
                               aria-haspopup="menu"
-                              aria-expanded={isOpen(file.id)}
                             >
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                             </button>
