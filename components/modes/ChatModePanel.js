@@ -435,49 +435,48 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       let builtPrompt;
       let systemPrompt;
       const isContentRequest = detectContentRequest(prompt);
+      
+      // DEBUG: Log detection result
+      console.log('[ChatModePanel] Content detection:', {
+        prompt,
+        isContentRequest,
+        hasActionVerb: /explodes|enters|leaves|says|does|runs|walks|sees|hears|finds|comes|goes|arrives|exits|sits|stands|turns|looks|grabs|takes|opens|closes|attacks|fights|dies|falls|jumps|screams|whispers|shouts|morphs|transforms|becomes|changes|appears|disappears|moves|flies|crashes|breaks|shatters/i.test(prompt),
+        isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
+      });
+      
+      // Build appropriate prompt using prompt builders
+      builtPrompt = isContentRequest 
+        ? buildChatContentPrompt(prompt, sceneContext)
+        : buildChatAdvicePrompt(prompt, sceneContext);
+      
+      // Build system prompt - Simple for content, permissive for advice
+      if (isContentRequest) {
+        // SIMPLE system prompt for content generation (matches backend test that works)
+        // Keep it short and direct - complex prompts can confuse the model
+        systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. Write only the screenplay content they requested - no explanations, no suggestions, no alternatives.`;
         
-        // DEBUG: Log detection result
-        console.log('[ChatModePanel] Content detection:', {
-          prompt,
-          isContentRequest,
-          hasActionVerb: /explodes|enters|leaves|says|does|runs|walks|sees|hears|finds|comes|goes|arrives|exits|sits|stands|turns|looks|grabs|takes|opens|closes|attacks|fights|dies|falls|jumps|screams|whispers|shouts|morphs|transforms|becomes|changes|appears|disappears|moves|flies|crashes|breaks|shatters/i.test(prompt),
-          isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
-        });
-        
-        // Build appropriate prompt using prompt builders
-        builtPrompt = isContentRequest 
-          ? buildChatContentPrompt(prompt, sceneContext)
-          : buildChatAdvicePrompt(prompt, sceneContext);
-        
-        // Build system prompt - Simple for content, permissive for advice
-        if (isContentRequest) {
-          // SIMPLE system prompt for content generation (matches backend test that works)
-          // Keep it short and direct - complex prompts can confuse the model
-          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. Write only the screenplay content they requested - no explanations, no suggestions, no alternatives.`;
-          
-          // Add scene context if available (minimal, just for context)
-          if (sceneContext) {
-            systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
-            if (sceneContext.characters && sceneContext.characters.length > 0) {
-              systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
-            }
+        // Add scene context if available (minimal, just for context)
+        if (sceneContext) {
+          systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
+          if (sceneContext.characters && sceneContext.characters.length > 0) {
+            systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
           }
-        } else {
-          // Permissive system prompt for advice/discussion
-          systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
-          
-          // Add scene context if available
-          if (sceneContext) {
-            systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
-            systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
-            systemPrompt += `Act: ${sceneContext.act}\n`;
-            systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
-            if (sceneContext.characters && sceneContext.characters.length > 0) {
-              systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
-            }
-            systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
-            systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+        }
+      } else {
+        // Permissive system prompt for advice/discussion
+        systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+        
+        // Add scene context if available
+        if (sceneContext) {
+          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+          systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
+          systemPrompt += `Act: ${sceneContext.act}\n`;
+          systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+          if (sceneContext.characters && sceneContext.characters.length > 0) {
+            systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
           }
+          systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
+          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
         }
       }
       
