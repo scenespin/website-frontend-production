@@ -195,11 +195,11 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             if (result.newLocations > 0) {
                 parts.push(`${result.newLocations} new location${result.newLocations !== 1 ? 's' : ''}`);
             }
-            if (result.newScenes > 0) {
-                parts.push(`${result.newScenes} new scene${result.newScenes !== 1 ? 's' : ''}`);
-            }
             if (result.updatedScenes > 0) {
-                parts.push(`${result.updatedScenes} scene position${result.updatedScenes !== 1 ? 's' : ''} updated`);
+                parts.push(`${result.updatedScenes} scene${result.updatedScenes !== 1 ? 's' : ''} updated`);
+            }
+            if (result.preservedMetadata !== undefined && result.preservedMetadata > 0) {
+                parts.push(`${result.preservedMetadata} with preserved metadata`);
             }
             
             if (parts.length === 0) {

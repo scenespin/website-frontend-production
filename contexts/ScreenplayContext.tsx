@@ -115,7 +115,7 @@ interface ScreenplayContextType {
     clearContentOnly: () => Promise<StoryBeat[]>;  // 🔥 Returns fresh beats (frontend template only)
     
     // Re-scan script for NEW entities only (smart merge for additive re-scan)
-    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; newScenes: number; updatedScenes: number; }>;
+    rescanScript: (content: string) => Promise<{ newCharacters: number; newLocations: number; newScenes: number; updatedScenes: number; preservedMetadata?: number; }>;
     
     // Scene Position Management
     updateScenePositions: (content: string) => Promise<number>; // Returns count of scenes updated
@@ -247,6 +247,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     // 🔥 NEW: Flag to prevent concurrent initialization runs
     const isInitializingRef = useRef(false);
+    
+    // 🔥 NEW: Flag to prevent concurrent rescan operations
+    const isRescanningRef = useRef(false);
     
     // 🔥 NEW: Reload trigger - incrementing this will force a reload from DynamoDB
     const [reloadTrigger, setReloadTrigger] = useState(0);
@@ -2583,6 +2586,110 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Feature 0117: saveAllToDynamoDBDirect removed - use saveScenes() instead
     
     // ========================================================================
+    // Metadata Preservation Helpers (for Rescan)
+    // ========================================================================
+    
+    /**
+     * Extract location name from scene heading
+     * Example: "INT. COFFEE SHOP - DAY" -> "COFFEE SHOP"
+     */
+    const extractLocationName = useCallback((heading: string): string => {
+        const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
+        return match ? match[1].trim().toUpperCase() : '';
+    }, []);
+    
+    /**
+     * Match old scene to new scene for metadata preservation
+     * Uses hybrid matching: heading+position -> location+position -> heading only
+     */
+    const matchOldSceneToNewScene = useCallback((
+        oldScene: Scene,
+        newScene: { heading: string; startLine: number; endLine: number }
+    ): boolean => {
+        // Strategy 1: Exact heading + position match (within ±5 lines)
+        const headingMatch = oldScene.heading.toUpperCase().trim() === newScene.heading.toUpperCase().trim();
+        const positionMatch = Math.abs((oldScene.fountain?.startLine || 0) - newScene.startLine) <= 5;
+        
+        if (headingMatch && positionMatch) {
+            return true; // Perfect match
+        }
+        
+        // Strategy 2: Location name + position match (handles INT/EXT changes)
+        const oldLocation = extractLocationName(oldScene.heading);
+        const newLocation = extractLocationName(newScene.heading);
+        const locationMatch = oldLocation === newLocation && oldLocation !== '';
+        
+        if (locationMatch && positionMatch) {
+            return true; // Good match (handles INT/EXT changes)
+        }
+        
+        // Strategy 3: Heading only (last resort)
+        if (headingMatch) {
+            return true; // Acceptable match
+        }
+        
+        return false; // No match
+    }, [extractLocationName]);
+    
+    /**
+     * Preserve metadata from old scenes and match to new scenes
+     * Returns map of new scene index -> preserved metadata
+     */
+    interface PreservedMetadata {
+        synopsis: string;
+        status: 'draft' | 'review' | 'final';
+        images?: any[];
+        videoAssets?: any;
+        timing?: { startMinute: number; durationMinutes: number; pageNumber?: number };
+        estimatedPageCount?: number;
+        group_label?: string;
+    }
+    
+    const preserveSceneMetadata = useCallback((
+        oldScenes: Scene[],
+        newScenes: Array<{ heading: string; startLine: number; endLine: number }>
+    ): Map<number, PreservedMetadata> => {
+        const metadataMap = new Map<number, PreservedMetadata>();
+        const matchedOldScenes = new Set<string>(); // Track which old scenes have been matched
+        
+        newScenes.forEach((newScene, newIndex) => {
+            // Find best matching old scene (closest position match)
+            let bestMatch: Scene | null = null;
+            let bestDistance = Infinity;
+            
+            oldScenes.forEach(oldScene => {
+                // Skip if already matched
+                if (matchedOldScenes.has(oldScene.id)) return;
+                
+                // Check if scenes match
+                if (matchOldSceneToNewScene(oldScene, newScene)) {
+                    const distance = Math.abs((oldScene.fountain?.startLine || 0) - newScene.startLine);
+                    if (distance < bestDistance) {
+                        bestMatch = oldScene;
+                        bestDistance = distance;
+                    }
+                }
+            });
+            
+            // If match found, preserve metadata
+            if (bestMatch) {
+                matchedOldScenes.add(bestMatch.id);
+                metadataMap.set(newIndex, {
+                    synopsis: bestMatch.synopsis,
+                    status: bestMatch.status,
+                    images: bestMatch.images,
+                    videoAssets: bestMatch.videoAssets,
+                    timing: bestMatch.timing,
+                    estimatedPageCount: bestMatch.estimatedPageCount,
+                    group_label: bestMatch.group_label
+                });
+            }
+        });
+        
+        return metadataMap;
+    }, [matchOldSceneToNewScene]);
+    
+    // ========================================================================
     // Scene Matching Helper (Hybrid: ID first, heading+position fallback)
     // ========================================================================
     
@@ -2924,11 +3031,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
      * Used for additive re-scan - keeps existing data, adds only new items.
      */
     const rescanScript = useCallback(async (content: string) => {
-        console.log('[ScreenplayContext] 🔍 Re-scanning script for new entities...');
+        // 🔥 SAFEGUARD #3: Concurrency lock - prevent multiple rescans
+        if (isRescanningRef.current) {
+            console.warn('[ScreenplayContext] ⚠️ Rescan already in progress, skipping...');
+            throw new Error('Rescan already in progress');
+        }
+        isRescanningRef.current = true;
         
         try {
+            // 🔥 SAFEGUARD #2: Content validation before proceeding
+            if (!content || content.trim().length === 0) {
+                throw new Error('Script is empty');
+            }
+            
+            console.log('[ScreenplayContext] 🔍 Re-scanning script for new entities...');
+            
             // Parse the content
             const parseResult = parseContentForImport(content);
+            
+            // Validate parsing result
+            if (!parseResult || parseResult.scenes.length === 0) {
+                throw new Error('Failed to parse script or no scenes found');
+            }
             
             console.log('[ScreenplayContext] Parsed content:', {
                 characters: parseResult.characters.size,
@@ -3122,36 +3246,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             const newLocationNames = trulyNewLocationNames;
             
-            // Find NEW scenes using hybrid matching
-            // Collect all existing scenes from all beats
-            // 🔥 Beats removed - get all existing scenes directly
+            // 🔥 NEW APPROACH: Reimport all scenes (like import does) with metadata preservation
+            // This ensures scene numbers always match script order and eliminates matching failures
             const currentScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
             const allExistingScenes = currentScenes;
-            
-            const newScenes: typeof parseResult.scenes = [];
-            const existingScenesToUpdate: typeof parseResult.scenes = [];
-            
-            parseResult.scenes.forEach(parsedScene => {
-                const matched = matchScene(
-                    { heading: parsedScene.heading, startLine: parsedScene.startLine, endLine: parsedScene.endLine },
-                    allExistingScenes
-                );
-                
-                if (!matched) {
-                    // No match found - it's a new scene
-                    newScenes.push(parsedScene);
-                    console.log('[ScreenplayContext] New scene detected:', parsedScene.heading);
-                } else {
-                    // Match found - mark for position update
-                    existingScenesToUpdate.push(parsedScene);
-                }
-            });
             
             console.log('[ScreenplayContext] Found new entities:', {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
-                newScenes: newScenes.length,
-                existingScenesToUpdate: existingScenesToUpdate.length
+                scenesInScript: parseResult.scenes.length,
+                existingScenes: allExistingScenes.length
             });
             
             // Import only NEW entities
@@ -3213,162 +3317,81 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             }
             
-            // Import new scenes (beats removed - scenes are standalone)
-            if (newScenes.length > 0) {
-                console.log('[ScreenplayContext] Importing', newScenes.length, 'new scenes');
-                // 🔥 CRITICAL FIX: Use uniqueCharacters (includes newly imported) for scene linking
-                await bulkImportScenes('', newScenes.map(scene => ({ // beatId not used anymore
-                        heading: scene.heading,
-                        location: scene.location,
-                        characterIds: scene.characters.map(charName => {
-                        // Find character ID by name (use uniqueCharacters which includes newly imported)
+            // 🔥 NEW APPROACH: Reimport all scenes with metadata preservation
+            // Step 1: Preserve metadata from existing scenes
+            let preservedCount = 0; // Initialize for return statement
+            const metadataMap = preserveSceneMetadata(allExistingScenes, parseResult.scenes);
+            preservedCount = metadataMap.size;
+            console.log('[ScreenplayContext] Preserved metadata for', preservedCount, 'scenes');
+            
+            // Step 2: Build all new scenes with preserved metadata + correct numbering (based on script order)
+            const now = new Date().toISOString();
+            const allNewScenes: Scene[] = parseResult.scenes.map((parsedScene, index) => {
+                const preserved = metadataMap.get(index);
+                
+                // Map character names to IDs
+                const characterIds = parsedScene.characters
+                    .map(charName => {
                         const char = uniqueCharacters.find(c => c.name.toUpperCase() === charName.toUpperCase());
-                            return char?.id || '';
-                        }).filter(id => id !== ''),
-                        locationId: (() => {
-                            // Find location ID by name (use currentLocations from refs)
-                            const loc = currentLocations.find(l => l.name.toUpperCase() === scene.location.toUpperCase());
-                            return loc?.id;
-                        })(),
-                        startLine: scene.startLine,
-                        endLine: scene.endLine
-                    })));
+                        return char?.id;
+                    })
+                    .filter((id): id is string => !!id);
                 
-                // 🔥 CRITICAL FIX: Renumber ALL scenes after importing new ones
-                setScenes(prev => {
-                    const sorted = [...prev].sort((a, b) => {
-                        const orderA = a.order ?? a.number ?? 0;
-                        const orderB = b.order ?? b.number ?? 0;
-                        return orderA - orderB;
-                    });
-                    
-                    return sorted.map((scene, index) => ({
-                        ...scene,
-                        number: index + 1,
-                        order: index
-                    }));
-                });
-                console.log('[ScreenplayContext] ✅ Renumbered all scenes after import');
-            }
-            
-            // 🔥 CRITICAL FIX: Remove scenes that no longer exist in the script
-            const parsedSceneKeys = new Set(
-                parseResult.scenes.map(s => `${(s.heading || '').toUpperCase().trim()}|${s.startLine}`)
-            );
-            
-            const scenesToRemove: Scene[] = [];
-            allExistingScenes.forEach(existingScene => {
-                const existingKey = `${(existingScene.heading || '').toUpperCase().trim()}|${existingScene.fountain?.startLine || 0}`;
-                // Also check by location name matching (handle INT/EXT changes)
-                const extractLocationName = (heading: string): string => {
-                    const match = heading.match(/(?:INT|EXT|INT\/EXT|I\/E)[\.\s]+(.+?)(?:\s*-\s*(?:DAY|NIGHT|DAWN|DUSK|CONTINUOUS|LATER))?$/i);
-                    return match ? match[1].trim().toUpperCase() : '';
+                // Map location name to ID
+                const location = currentLocations.find(l => l.name.toUpperCase() === parsedScene.location.toUpperCase());
+                const locationId = location?.id;
+                
+                return {
+                    id: `scene-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                    number: index + 1, // ← Sequential based on script order (always correct!)
+                    order: index + 1,
+                    heading: parsedScene.heading,
+                    synopsis: preserved?.synopsis || `Imported from script`,
+                    status: preserved?.status || 'draft',
+                    fountain: {
+                        startLine: parsedScene.startLine,
+                        endLine: parsedScene.endLine,
+                        tags: {
+                            characters: characterIds,
+                            location: locationId
+                        }
+                    },
+                    images: preserved?.images,
+                    videoAssets: preserved?.videoAssets,
+                    timing: preserved?.timing,
+                    estimatedPageCount: preserved?.estimatedPageCount,
+                    group_label: preserved?.group_label,
+                    createdAt: now,
+                    updatedAt: now
                 };
-                const existingLocationName = extractLocationName(existingScene.heading || '');
-                
-                let foundInScript = parsedSceneKeys.has(existingKey);
-                
-                // If not found by exact match, check if any parsed scene matches by location name + position
-                if (!foundInScript && existingLocationName) {
-                    foundInScript = parseResult.scenes.some(parsedScene => {
-                        const parsedLocationName = extractLocationName(parsedScene.heading);
-                        const locationMatch = parsedLocationName === existingLocationName;
-                        const positionMatch = Math.abs((existingScene.fountain?.startLine || 0) - parsedScene.startLine) <= 5;
-                        return locationMatch && positionMatch;
-                    });
-                }
-                
-                if (!foundInScript) {
-                    scenesToRemove.push(existingScene);
-                }
             });
             
-            if (scenesToRemove.length > 0) {
-                console.log('[ScreenplayContext] 🗑️ Removing', scenesToRemove.length, 'scenes that no longer exist in script:', scenesToRemove.map(s => s.heading));
-                
-                // Remove from state
-                setScenes(prev => {
-                    const sceneIdsToRemove = new Set(scenesToRemove.map(s => s.id));
-                    const filtered = prev.filter(s => !sceneIdsToRemove.has(s.id));
+            console.log('[ScreenplayContext] Built', allNewScenes.length, 'scenes with correct numbering (1-' + allNewScenes.length + ' based on script order)');
+            
+            // Step 3: 🔥 SAFEGUARD #1: Save new scenes FIRST, then delete old ones (prevents data loss)
+            if (screenplayId && allNewScenes.length > 0) {
+                try {
+                    // Save new scenes first
+                    await saveScenes(allNewScenes, screenplayId);
+                    console.log('[ScreenplayContext] ✅ Saved', allNewScenes.length, 'new scenes to DynamoDB');
                     
-                    // Renumber remaining scenes
-                    const sorted = filtered.sort((a, b) => {
-                        const orderA = a.order ?? a.number ?? 0;
-                        const orderB = b.order ?? b.number ?? 0;
-                        return orderA - orderB;
-                    });
-                    
-                    return sorted.map((scene, index) => ({
-                        ...scene,
-                        number: index + 1,
-                        order: index
-                    }));
-                });
-                
-                // Delete from DynamoDB
-                if (screenplayId) {
-                    try {
-                        for (const scene of scenesToRemove) {
-                            await deleteScene(scene.id);
-                        }
-                        console.log('[ScreenplayContext] ✅ Deleted', scenesToRemove.length, 'scenes from DynamoDB');
-                    } catch (error) {
-                        console.error('[ScreenplayContext] Failed to delete scenes from DynamoDB:', error);
+                    // Then delete old scenes (safer order - if save fails, old scenes still exist)
+                    if (allExistingScenes.length > 0) {
+                        await deleteAllScenes(screenplayId, getToken);
+                        console.log('[ScreenplayContext] ✅ Deleted', allExistingScenes.length, 'old scenes from DynamoDB');
                     }
+                    } catch (error) {
+                    console.error('[ScreenplayContext] ❌ Failed to save/delete scenes:', error);
+                    throw error; // Re-throw so user sees error
                 }
             }
             
-            // Update positions, headings, and locationIds for existing scenes
-            let updatedScenesCount = 0;
-            if (existingScenesToUpdate.length > 0) {
-                console.log('[ScreenplayContext] Updating positions, headings, and locations for', existingScenesToUpdate.length, 'existing scenes');
-                // Also update headings and locationIds for scenes that changed
-                for (const parsedScene of existingScenesToUpdate) {
-                    const matched = matchScene(
-                        { heading: parsedScene.heading, startLine: parsedScene.startLine, endLine: parsedScene.endLine },
-                        allExistingScenes
-                    );
-                    if (matched) {
-                        const currentHeading = matched.heading.toUpperCase().trim();
-                        const newHeading = parsedScene.heading.toUpperCase().trim();
-                        const needsHeadingUpdate = currentHeading !== newHeading;
-                        
-                        // Find location ID for this scene's location
-                        const locationName = parsedScene.location;
-                        const location = currentLocations.find(l => l.name.toUpperCase() === locationName.toUpperCase());
-                        const locationId = location?.id;
-                        const currentLocationId = matched.fountain?.tags?.location;
-                        const needsLocationUpdate = locationId && locationId !== currentLocationId;
-                        
-                        if (needsHeadingUpdate || needsLocationUpdate) {
-                            const updates: Partial<Scene> = {};
-                            if (needsHeadingUpdate) {
-                                updates.heading = parsedScene.heading;
-                                console.log(`[ScreenplayContext] Updating scene heading: "${matched.heading}" -> "${parsedScene.heading}"`);
-                            }
-                            if (needsLocationUpdate) {
-                                updates.fountain = {
-                                    ...matched.fountain,
-                                    tags: {
-                                        ...matched.fountain?.tags,
-                                        location: locationId
-                                    }
-                                };
-                                console.log(`[ScreenplayContext] Updating scene location: "${matched.heading}" -> location "${locationName}" (${locationId})`);
-                                // Also update relationships
-                                if (locationId) {
-                                    await setSceneLocation(matched.id, locationId);
-                                }
-                            }
-                            if (Object.keys(updates).length > 0) {
-                                await updateScene(matched.id, updates);
-                            }
-                        }
-                    }
-                }
-                updatedScenesCount = await updateScenePositions(content);
-                console.log('[ScreenplayContext] Actually updated', updatedScenesCount, 'scene positions');
-            }
+            // Step 4: 🔥 SAFEGUARD #4: Update state atomically (clear old, set new)
+            setScenes([]); // Clear old scenes first
+            await new Promise(resolve => setTimeout(resolve, 0)); // Let React update
+            setScenes(allNewScenes); // Set new scenes with correct numbering
+            
+            const updatedScenesCount = allNewScenes.length;
             
             // 🔥 FIX: Wait for all async operations to complete and state to propagate
             // Use a longer delay and ensure we're using the latest state from refs
@@ -3396,21 +3419,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.log('[ScreenplayContext] ✅ Re-scan complete:', {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
-                newScenes: newScenes.length,
-                updatedScenes: updatedScenesCount
+                scenesReimported: updatedScenesCount,
+                preservedMetadata: preservedCount
             });
             
             return {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
-                newScenes: newScenes.length,
-                updatedScenes: updatedScenesCount
+                newScenes: 0, // Always 0 (we reimport all)
+                updatedScenes: updatedScenesCount,
+                preservedMetadata: preservedCount
             };
         } catch (err) {
             console.error('[ScreenplayContext] ❌ Re-scan failed:', err);
             throw err;
+        } finally {
+            // Always release the lock
+            isRescanningRef.current = false;
         }
-    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, bulkImportScenes, matchScene, updateScenePositions, updateScene, updateCharacter, updateLocation, updateRelationships]);
+    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, saveScenes, deleteAllScenes, preserveSceneMetadata, updateRelationships, buildRelationshipsFromScenes, getToken, screenplayId]);
     
     // ========================================================================
     // Clear All Data (Editor Source of Truth)

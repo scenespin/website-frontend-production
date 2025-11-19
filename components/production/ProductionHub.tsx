@@ -658,30 +658,15 @@ function OverviewTab({ projectId, onStartExample, onNavigate, onOpenChat, isMobi
     window.location.href = '/write';
   };
 
-  const handleRescan = async () => {
-    // Use the same rescanScript function from ScreenplayContext that the editor uses
-    // This is the same functionality - just called from Production Hub
-    try {
-      // Get current editor content from EditorContext if available
-      // For now, we'll need to get it from the screenplay context or navigate to editor
-      // Since rescan needs the script content, we'll navigate to editor for now
-      // TODO: When editor content is accessible from Production Hub, call screenplay.rescanScript() directly
-      window.location.href = '/write?action=rescan';
-    } catch (error) {
-      console.error('[OverviewTab] Rescan failed:', error);
-    }
-  };
-
   return (
     <div className="p-4 md:p-5 space-y-4 md:space-y-5 bg-[#0A0A0A]">
       {/* Screenplay Connection Status Banner */}
       <ScreenplayStatusBanner
         onViewEditor={handleViewEditor}
-        onRescan={handleRescan}
       />
 
       {/* Welcome Section with Quick Actions */}
-      <div className="bg-gradient-to-br from-[#DC143C]/20 to-[#00D9FF]/20 border border-[#DC143C]/30 rounded-xl p-4 md:p-5">
+      <div className="bg-gradient-to-br from-[#DC143C]/20 to-[#1F1F1F] border border-[#DC143C]/30 rounded-xl p-4 md:p-5">
         <h2 className="text-xl md:text-2xl font-bold text-[#FFFFFF] mb-2 md:mb-3">
           Welcome to Production Hub
         </h2>
