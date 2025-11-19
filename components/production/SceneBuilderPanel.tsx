@@ -1541,9 +1541,26 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     isMobile={isMobile}
                   />
                 )}
-              </CardContent>
-            </Card>
-            
+                </CardContent>
+                <CardContent className="pt-0">
+                  <Button
+                    onClick={() => {
+                      if (!sceneDescription.trim()) {
+                        toast.error('Please select or enter a scene first');
+                        return;
+                      }
+                      setCurrentStep(2);
+                    }}
+                    disabled={!sceneDescription.trim()}
+                    className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
+                  >
+                    Continue to Step 2
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Step 2: Configuration */}
             {currentStep === 2 && (
               <>
