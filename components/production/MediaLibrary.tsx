@@ -213,22 +213,23 @@ export default function MediaLibrary({
                     },
                   });
 
-                if (filesResponse.ok) {
-                  const filesData = await filesResponse.json();
-                  const cloudFiles = (filesData.files || []).map((file: any) => ({
-                    id: file.id,
-                    fileName: file.name,
-                    fileUrl: file.webViewLink || file.downloadUrl || '',
-                    fileType: detectFileType(file.mimeType || file.name),
-                    fileSize: file.size || 0,
-                    storageType: connection.provider,
-                    uploadedAt: file.createdTime || file.modified || new Date().toISOString(),
-                    thumbnailUrl: file.thumbnailLink || undefined,
-                  }));
-                  allFiles = [...allFiles, ...cloudFiles];
+                  if (filesResponse.ok) {
+                    const filesData = await filesResponse.json();
+                    const cloudFiles = (filesData.files || []).map((file: any) => ({
+                      id: file.id,
+                      fileName: file.name,
+                      fileUrl: file.webViewLink || file.downloadUrl || '',
+                      fileType: detectFileType(file.mimeType || file.name),
+                      fileSize: file.size || 0,
+                      storageType: connection.provider,
+                      uploadedAt: file.createdTime || file.modified || new Date().toISOString(),
+                      thumbnailUrl: file.thumbnailLink || undefined,
+                    }));
+                    allFiles = [...allFiles, ...cloudFiles];
+                  }
+                } catch (error) {
+                  console.warn(`[MediaLibrary] Failed to load files from ${connection.provider}:`, error);
                 }
-              } catch (error) {
-                console.warn(`[MediaLibrary] Failed to load files from ${connection.provider}:`, error);
               }
             }
           }
