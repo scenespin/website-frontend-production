@@ -142,37 +142,65 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
+            // CRITICAL: Push current state to undo stack BEFORE making changes
+            const currentSnapshot = {
+                content: prev.content,
+                cursorPosition: prev.cursorPosition ?? 0,
+                timestamp: Date.now()
+            };
+            
+            // Push to undo stack (this will clear redo stack)
+            const newUndoStack = [...prev.undoStack, currentSnapshot].slice(-10);
+            
             const pos = position ?? prev.cursorPosition;
             const before = prev.content.substring(0, pos);
             const after = prev.content.substring(pos);
             const newContent = before + text + after;
             
-            console.log('[EditorContext] insertText - setting highlightRange:', { start: pos, end: pos + text.length });
+            console.log('[EditorContext] insertText - pushed to undo stack, setting highlightRange:', { start: pos, end: pos + text.length });
             
             return {
                 ...prev,
                 content: newContent,
                 cursorPosition: pos + text.length,
                 isDirty: true,
-                highlightRange: { start: pos, end: pos + text.length }
+                highlightRange: { start: pos, end: pos + text.length },
+                undoStack: newUndoStack,
+                redoStack: [], // Clear redo stack when new action is performed
+                canUndo: true,
+                canRedo: false
             };
         });
     }, []);
     
     const replaceSelection = useCallback((text: string, start: number, end: number) => {
         setState(prev => {
+            // CRITICAL: Push current state to undo stack BEFORE making changes
+            const currentSnapshot = {
+                content: prev.content,
+                cursorPosition: prev.cursorPosition ?? 0,
+                timestamp: Date.now()
+            };
+            
+            // Push to undo stack (this will clear redo stack)
+            const newUndoStack = [...prev.undoStack, currentSnapshot].slice(-10);
+            
             const before = prev.content.substring(0, start);
             const after = prev.content.substring(end);
             const newContent = before + text + after;
             
-            console.log('[EditorContext] replaceSelection - setting highlightRange:', { start, end: start + text.length });
+            console.log('[EditorContext] replaceSelection - pushed to undo stack, setting highlightRange:', { start, end: start + text.length });
             
             return {
                 ...prev,
                 content: newContent,
                 cursorPosition: start + text.length,
                 isDirty: true,
-                highlightRange: { start, end: start + text.length }
+                highlightRange: { start, end: start + text.length },
+                undoStack: newUndoStack,
+                redoStack: [], // Clear redo stack when new action is performed
+                canUndo: true,
+                canRedo: false
             };
         });
     }, []);
