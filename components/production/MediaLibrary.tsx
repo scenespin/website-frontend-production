@@ -1246,10 +1246,11 @@ export default function MediaLibrary({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
