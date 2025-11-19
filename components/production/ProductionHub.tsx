@@ -433,7 +433,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   return (
     <div className="flex h-screen bg-gray-950">
       {/* Sidebar Navigation */}
-      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
+      <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col relative z-10">
         {/* Project Header */}
         <div className="p-4 border-b border-gray-800">
           <h2 className="text-lg font-bold text-white mb-1">Production Hub</h2>

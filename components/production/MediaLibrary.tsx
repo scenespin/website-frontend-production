@@ -48,46 +48,74 @@ function VideoThumbnail({ videoUrl, fileName, className }: { videoUrl: string; f
     const video = videoRef.current;
     const canvas = canvasRef.current;
     
-    if (!video || !canvas) return;
+    if (!video || !canvas || !videoUrl) return;
+
+    let mounted = true;
 
     const generateThumbnail = () => {
+      if (!mounted || !video || !canvas) return;
       try {
-        video.currentTime = 0.1; // Seek to 0.1 seconds for first frame
+        // Set video time to capture first frame
+        video.currentTime = 0.5; // Use 0.5 seconds for better frame capture
       } catch (err) {
         console.warn('[VideoThumbnail] Failed to seek video:', err);
       }
     };
 
     const captureFrame = () => {
-      if (!video || !canvas) return;
+      if (!mounted || !video || !canvas) return;
       
       try {
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx || video.videoWidth === 0 || video.videoHeight === 0) return;
 
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 240;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setThumbnailUrl(dataUrl);
+        if (mounted) {
+          setThumbnailUrl(dataUrl);
+        }
       } catch (err) {
         console.warn('[VideoThumbnail] Failed to capture frame:', err);
       }
     };
 
-    video.addEventListener('loadedmetadata', generateThumbnail);
-    video.addEventListener('seeked', captureFrame);
-    video.addEventListener('loadeddata', () => {
-      if (video.readyState >= 2) {
+    const handleLoadedMetadata = () => {
+      if (mounted && video) {
         generateThumbnail();
       }
+    };
+
+    const handleSeeked = () => {
+      if (mounted) {
+        captureFrame();
+      }
+    };
+
+    const handleLoadedData = () => {
+      if (mounted && video && video.readyState >= 2) {
+        generateThumbnail();
+      }
+    };
+
+    // Set video source and load
+    video.src = videoUrl;
+    video.load();
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('seeked', handleSeeked);
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('error', (e) => {
+      console.warn('[VideoThumbnail] Video load error:', e);
     });
 
     return () => {
-      video.removeEventListener('loadedmetadata', generateThumbnail);
-      video.removeEventListener('seeked', captureFrame);
-      video.removeEventListener('loadeddata', generateThumbnail);
+      mounted = false;
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('loadeddata', handleLoadedData);
     };
   }, [videoUrl]);
 
@@ -1138,30 +1166,42 @@ export default function MediaLibrary({
                 </div>
 
                 {/* Actions Menu */}
-                <DropdownMenu 
-                  open={openMenuId === file.id} 
-                  onOpenChange={(open) => {
-                    if (open) {
-                      setOpenMenuId(file.id);
-                    } else {
-                      setOpenMenuId(null);
-                    }
-                  }}
-                >
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Close any other open menus
-                        if (openMenuId !== file.id) {
+                <div className="absolute top-2 right-2 z-20">
+                  <DropdownMenu 
+                    open={openMenuId === file.id} 
+                    onOpenChange={(open) => {
+                      // When opening, close all other menus first
+                      if (open) {
+                        // Close any other open menu
+                        if (openMenuId && openMenuId !== file.id) {
+                          setOpenMenuId(null);
+                          // Use setTimeout to ensure state update completes
+                          setTimeout(() => setOpenMenuId(file.id), 0);
+                        } else {
                           setOpenMenuId(file.id);
                         }
-                      }}
-                      className="absolute top-2 right-2 p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C] z-10"
-                    >
-                      <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
-                    </button>
-                  </DropdownMenuTrigger>
+                      } else {
+                        setOpenMenuId(null);
+                      }
+                    }}
+                  >
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          // Toggle this specific menu
+                          if (openMenuId === file.id) {
+                            setOpenMenuId(null);
+                          } else {
+                            setOpenMenuId(file.id);
+                          }
+                        }}
+                        className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
+                      >
+                        <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
+                      </button>
+                    </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="end" 
                     className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-50"
@@ -1232,12 +1272,37 @@ export default function MediaLibrary({
                   {formatFileSize(previewFile.fileSize)} • {previewFile.fileType}
                 </p>
               </div>
-              <button
-                onClick={() => setPreviewFile(null)}
-                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadFile(previewFile);
+                  }}
+                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm('Are you sure you want to delete this file?')) {
+                      deleteFile(previewFile.id);
+                      setPreviewFile(null);
+                    }
+                  }}
+                  className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#DC143C] text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+                <button
+                  onClick={() => setPreviewFile(null)}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
+                </button>
+              </div>
             </div>
 
             {/* Content */}

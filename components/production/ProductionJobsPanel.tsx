@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
@@ -43,6 +44,7 @@ interface ProductionJobsPanelProps {
 type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
 
 export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
+  const { getToken } = useAuth();
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -53,7 +55,18 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    */
   const loadJobs = async () => {
     try {
-      const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=${statusFilter === 'all' ? '' : statusFilter}&limit=50`);
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=${statusFilter === 'all' ? '' : statusFilter}&limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -109,8 +122,17 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
     if (!confirm('Delete this job? This cannot be undone.')) return;
 
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
       const response = await fetch(`/api/workflows/delete/${jobId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       const data = await response.json();
