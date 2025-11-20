@@ -673,6 +673,10 @@ export default function MediaLibrary({
           s3Key,
         });
         console.log('[MediaLibrary] File registered, cache invalidated');
+        
+        // Force refetch to ensure UI updates immediately
+        await refetchFiles();
+        console.log('[MediaLibrary] Files refetched after upload');
       } catch (error) {
         console.error('[MediaLibrary] Failed to register file:', error);
         throw new Error('File uploaded but failed to register. Please refresh the page.');
@@ -1488,12 +1492,14 @@ export default function MediaLibrary({
                               onMouseDown={(e) => {
                                 // Stop propagation to prevent file card click
                                 e.stopPropagation();
+                                e.preventDefault();
                               }}
                               onClick={(e) => {
                                 // Stop propagation to prevent file card click
                                 e.stopPropagation();
+                                e.preventDefault();
                               }}
-                              className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-all hover:bg-[#1F1F1F] hover:border-[#DC143C] pointer-events-none group-hover:pointer-events-auto"
+                              className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-70 group-hover:opacity-100 transition-all hover:bg-[#1F1F1F] hover:border-[#DC143C] hover:opacity-100"
                               aria-label={`Actions for ${file.fileName}`}
                               aria-haspopup="menu"
                               aria-expanded={isOpen(file.id)}
