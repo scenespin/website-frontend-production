@@ -306,7 +306,8 @@ export default function MediaLibrary({
       } else {
         // Load all files (no folder filter)
         // Load local/S3 files
-        const localResponse = await fetch(`/api/media/list?projectId=${projectId}`, {
+        // Use screenplayId as primary, projectId as fallback (projectId prop is actually screenplayId)
+        const localResponse = await fetch(`/api/media/list?screenplayId=${projectId}&projectId=${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -318,7 +319,8 @@ export default function MediaLibrary({
           
           console.log('[MediaLibrary] Loaded files from backend:', {
             count: backendFiles.length,
-            projectId: projectId,
+            screenplayId: projectId, // projectId prop is actually screenplayId
+            projectId: projectId, // Keep for backward compatibility
             files: backendFiles.map((f: any) => ({ id: f.fileId, name: f.fileName }))
           });
           
@@ -544,12 +546,14 @@ export default function MediaLibrary({
       if (!token) throw new Error('Not authenticated');
 
       // Step 1: Get pre-signed URL for S3 upload
+      // Use screenplayId as primary, projectId as fallback (projectId prop is actually screenplayId)
       const presignedResponse = await fetch(
         `/api/video/upload/get-presigned-url?` + 
         `fileName=${encodeURIComponent(file.name)}` +
         `&fileType=${encodeURIComponent(file.type)}` +
         `&fileSize=${file.size}` +
-        `&projectId=${encodeURIComponent(projectId)}`,
+        `&screenplayId=${encodeURIComponent(projectId)}` +
+        `&projectId=${encodeURIComponent(projectId)}`, // Keep for backward compatibility
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -674,7 +678,8 @@ export default function MediaLibrary({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          projectId,
+          screenplayId: projectId, // projectId prop is actually screenplayId
+          projectId: projectId, // Keep for backward compatibility
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,

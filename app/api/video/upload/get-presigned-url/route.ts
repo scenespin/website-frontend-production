@@ -43,11 +43,12 @@ export async function GET(request: Request) {
     }
 
     // Parse query parameters
+    // Support both screenplayId (primary) and projectId (fallback for backward compatibility)
     const { searchParams } = new URL(request.url);
     const fileName = searchParams.get('fileName');
     const fileType = searchParams.get('fileType');
     const fileSize = searchParams.get('fileSize');
-    const projectId = searchParams.get('projectId') || 'default';
+    const screenplayId = searchParams.get('screenplayId') || searchParams.get('projectId') || 'default';
     
     if (!fileName || !fileType) {
       return NextResponse.json({ 
@@ -69,10 +70,10 @@ export async function GET(request: Request) {
     const category = fileType.startsWith('video/') ? 'video' : 
                      fileType.startsWith('audio/') ? 'audio' : 'image';
     
-    // Generate S3 key
+    // Generate S3 key (use screenplayId as the project identifier)
     const timestamp = Date.now();
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const s3Key = `timeline/${clerkUserId}/${projectId}/${category}/${timestamp}_${sanitizedFileName}`;
+    const s3Key = `timeline/${clerkUserId}/${screenplayId}/${category}/${timestamp}_${sanitizedFileName}`;
     
     // Generate pre-signed POST (browser-friendly, handles Content-Type as form data)
     // This avoids the Content-Type header signing issues with getSignedUrl
@@ -90,7 +91,8 @@ export async function GET(request: Request) {
         'Content-Type': fileType,
         // Add metadata as form fields (S3 will store these)
         'x-amz-meta-userid': clerkUserId,
-        'x-amz-meta-projectid': projectId.toString(),
+        'x-amz-meta-screenplayid': screenplayId.toString(), // Primary identifier
+        'x-amz-meta-projectid': screenplayId.toString(), // Keep for backward compatibility
         'x-amz-meta-uploadedat': new Date().toISOString(),
         'x-amz-meta-originalfilename': fileName,
         'x-amz-meta-filetype': category,
