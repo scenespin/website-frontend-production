@@ -28,14 +28,19 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   // Fetch screenplay title when screenplayId changes or when updated
   useEffect(() => {
     const fetchTitle = async () => {
-      if (!screenplay?.screenplayId) {
+      const screenplayId = screenplay?.screenplayId;
+      console.log('[EditableScreenplayTitle] Fetching title for screenplay:', screenplayId);
+      
+      if (!screenplayId) {
+        setTitle('Untitled Screenplay');
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
-        const screenplayData = await getScreenplay(screenplay.screenplayId, getToken);
+        const screenplayData = await getScreenplay(screenplayId, getToken);
+        console.log('[EditableScreenplayTitle] Fetched screenplay data:', screenplayData?.title);
         if (screenplayData?.title) {
           setTitle(screenplayData.title);
         } else {
@@ -53,6 +58,7 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
 
     // Listen for screenplay updates
     const handleUpdate = () => {
+      console.log('[EditableScreenplayTitle] Screenplay updated event received');
       fetchTitle();
     };
     window.addEventListener('screenplayUpdated', handleUpdate);

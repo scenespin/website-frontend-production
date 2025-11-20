@@ -50,9 +50,17 @@ export default function ScreenplaySwitcher() {
   const fetchScreenplays = async () => {
     try {
       setIsLoading(true);
-      const screenplaysList = await listScreenplays(getToken, 'active', 50);
-      console.log('[ScreenplaySwitcher] Fetched screenplays:', screenplaysList?.length);
-      setScreenplays(screenplaysList || []);
+      // Fetch all active screenplays (same as dashboard)
+      const screenplaysList = await listScreenplays(getToken, 'active', 100);
+      console.log('[ScreenplaySwitcher] Fetched screenplays:', screenplaysList?.length, screenplaysList);
+      
+      // Filter out any deleted screenplays just to be safe
+      const activeScreenplays = (screenplaysList || []).filter(sp => 
+        !sp.status || sp.status === 'active'
+      );
+      
+      console.log('[ScreenplaySwitcher] Active screenplays after filtering:', activeScreenplays.length);
+      setScreenplays(activeScreenplays);
     } catch (error) {
       console.error('[ScreenplaySwitcher] Failed to fetch screenplays:', error);
       setScreenplays([]);

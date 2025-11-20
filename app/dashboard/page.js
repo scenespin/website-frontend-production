@@ -119,7 +119,7 @@ export default function Dashboard() {
       // Note: Next.js API routes handle auth server-side, so we don't need to send token
       const [creditsRes, screenplaysRes, projectsRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
-        fetch('/api/screenplays/list?status=active&limit=50')
+        fetch('/api/screenplays/list?status=active&limit=100')
           .then(async r => {
             if (!r.ok) {
               const errorText = await r.text().catch(() => 'Unknown error');
@@ -183,6 +183,10 @@ export default function Dashboard() {
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
         console.log('[Dashboard] Parsed screenplays:', screenplays.length);
         screenplays.forEach(s => {
+          // Only include active screenplays (filter out deleted/archived)
+          if (s.status && s.status !== 'active') {
+            return;
+          }
           const screenplayId = s.screenplay_id;
           screenplayIdSet.add(screenplayId);
           allScreenplays.push({
@@ -214,6 +218,10 @@ export default function Dashboard() {
         // API returns { success: true, data: { projects: [...], count: number } }
         const projects = projectsData?.data?.projects || projectsData?.projects || [];
         projects.forEach(p => {
+          // Only include active projects (filter out deleted/archived)
+          if (p.status && p.status !== 'active') {
+            return;
+          }
           // Treat project_id as screenplay_id (unified system)
           const screenplayId = p.project_id;
           // Only add if it doesn't already exist as a screenplay
@@ -365,6 +373,10 @@ export default function Dashboard() {
         throw new Error(errorMessage);
       }
 
+      // Get response data to check if deletion was successful
+      const responseData = await response.json().catch(() => ({}));
+      console.log('[Dashboard] Delete response:', responseData);
+      
       // Refresh the dashboard to get updated list from server
       await fetchDashboardData();
       setShowDeleteConfirm(null);
