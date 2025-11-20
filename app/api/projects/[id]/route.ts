@@ -47,8 +47,22 @@ export async function DELETE(
     });
 
     if (!backendResponse.ok) {
-      const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
-      console.error('[Project Delete API] Backend error:', backendResponse.status, errorData);
+      let errorData;
+      try {
+        const errorText = await backendResponse.text();
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { 
+          error: 'Backend error',
+          message: `Backend returned ${backendResponse.status} ${backendResponse.statusText}`
+        };
+      }
+      console.error('[Project Delete API] Backend error:', {
+        status: backendResponse.status,
+        statusText: backendResponse.statusText,
+        error: errorData,
+        projectId: id
+      });
       return NextResponse.json(errorData, { status: backendResponse.status });
     }
 

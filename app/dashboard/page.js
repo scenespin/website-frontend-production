@@ -373,12 +373,24 @@ export default function Dashboard() {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        let errorMessage = 'Failed to delete';
+        let errorMessage = `Failed to delete (${response.status})`;
         try {
           const error = JSON.parse(errorText);
           errorMessage = error.message || error.error || errorMessage;
+          console.error('[Dashboard] Delete error details:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: error,
+            projectId: projectId
+          });
         } catch {
-          errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+          errorMessage = `${errorMessage}: ${errorText}`;
+          console.error('[Dashboard] Delete error (non-JSON):', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText: errorText,
+            projectId: projectId
+          });
         }
         throw new Error(errorMessage);
       }

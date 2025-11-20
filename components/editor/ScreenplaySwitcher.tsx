@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Film, Check, Plus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
-import { listScreenplays } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { cn } from '@/lib/utils';
 
@@ -50,17 +48,92 @@ export default function ScreenplaySwitcher() {
   const fetchScreenplays = async () => {
     try {
       setIsLoading(true);
-      // Fetch all active screenplays (same as dashboard)
-      const screenplaysList = await listScreenplays(getToken, 'active', 100);
-      console.log('[ScreenplaySwitcher] Fetched screenplays:', screenplaysList?.length, screenplaysList);
       
-      // Filter out any deleted screenplays just to be safe
-      const activeScreenplays = (screenplaysList || []).filter(sp => 
-        !sp.status || sp.status === 'active'
-      );
+      // Fetch from both APIs like the dashboard does, then merge and deduplicate
+      const [screenplaysRes, projectsRes] = await Promise.allSettled([
+        fetch('/api/screenplays/list?status=active&limit=100')
+          .then(async r => {
+            if (!r.ok) {
+              const errorText = await r.text().catch(() => 'Unknown error');
+              throw new Error(`Failed to fetch screenplays: ${r.status} ${errorText}`);
+            }
+            return r.json();
+          }),
+        fetch('/api/projects/list')
+          .then(async r => {
+            if (!r.ok) {
+              const errorText = await r.text().catch(() => 'Unknown error');
+              throw new Error(`Failed to fetch projects: ${r.status} ${errorText}`);
+            }
+            return r.json();
+          })
+      ]);
       
-      console.log('[ScreenplaySwitcher] Active screenplays after filtering:', activeScreenplays.length);
-      setScreenplays(activeScreenplays);
+      const allScreenplays = [];
+      const screenplayIdSet = new Set();
+      
+      // PRIMARY: Add screenplays (source of truth)
+      if (screenplaysRes.status === 'fulfilled') {
+        const screenplaysData = screenplaysRes.value;
+        const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
+        console.log('[ScreenplaySwitcher] Fetched screenplays:', screenplays.length);
+        
+        screenplays.forEach(s => {
+          // Only include active screenplays
+          if (s.status && s.status !== 'active') {
+            return;
+          }
+          const screenplayId = s.screenplay_id;
+          if (screenplayId && !screenplayIdSet.has(screenplayId)) {
+            screenplayIdSet.add(screenplayId);
+            allScreenplays.push({
+              screenplay_id: screenplayId,
+              id: screenplayId,
+              title: s.title,
+              description: s.description,
+              status: s.status || 'active'
+            });
+          }
+        });
+      } else {
+        console.error('[ScreenplaySwitcher] Error fetching screenplays:', screenplaysRes.reason);
+      }
+      
+      // FALLBACK: Add projects that don't have screenplays yet (legacy data)
+      if (projectsRes.status === 'fulfilled') {
+        const projectsData = projectsRes.value;
+        const projects = projectsData?.data?.projects || projectsData?.projects || [];
+        console.log('[ScreenplaySwitcher] Fetched projects:', projects.length);
+        
+        projects.forEach(p => {
+          // Only include active projects
+          if (p.status && p.status !== 'active') {
+            return;
+          }
+          const screenplayId = p.project_id;
+          if (screenplayId && !screenplayIdSet.has(screenplayId)) {
+            screenplayIdSet.add(screenplayId);
+            allScreenplays.push({
+              screenplay_id: screenplayId,
+              id: screenplayId,
+              title: p.project_name,
+              description: p.description,
+              status: p.status || 'active'
+            });
+          }
+        });
+      } else {
+        console.error('[ScreenplaySwitcher] Error fetching projects:', projectsRes.reason);
+      }
+      
+      // Sort by updated_at (most recent first)
+      allScreenplays.sort((a, b) => {
+        // We don't have updated_at in the merged data, so just keep original order
+        return 0;
+      });
+      
+      console.log('[ScreenplaySwitcher] Total active screenplays after merge:', allScreenplays.length);
+      setScreenplays(allScreenplays);
     } catch (error) {
       console.error('[ScreenplaySwitcher] Failed to fetch screenplays:', error);
       setScreenplays([]);
