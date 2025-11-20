@@ -609,68 +609,93 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         async function loadContent() {
             try {
-                // 🔥 NEW: If a project is specified, create a screenplay for it
+                // 🔥 NEW: If a project/screenplay ID is specified in URL, load it directly
                 if (projectId && !screenplayIdRef.current) {
                     try {
-                        console.log('[EditorContext] 🎬 Project specified, fetching project details...', projectId);
+                        console.log('[EditorContext] 🎬 Project/screenplay specified in URL:', projectId);
                         
-                        // Fetch project details
-                        const token = await getToken({ template: 'wryda-backend' });
-                        const projectResponse = await fetch(`/api/projects/${projectId}`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                            },
-                        });
+                        // Check if it's a screenplay ID (starts with screenplay_) or legacy project ID (starts with proj_)
+                        const isScreenplayId = projectId.startsWith('screenplay_');
                         
-                        if (projectResponse.ok) {
-                            const projectData = await projectResponse.json();
-                            const project = projectData.data?.project || projectData.project;
+                        if (isScreenplayId) {
+                            // It's a screenplay ID - load it directly
+                            console.log('[EditorContext] Loading screenplay directly from URL...', projectId);
+                            const screenplay = await getScreenplay(projectId, getToken);
                             
-                            if (project) {
-                                console.log('[EditorContext] ✅ Project loaded:', project.project_name);
-                                
-                                // Create a new screenplay for this project
-                                const currentAuthor = stateRef.current.author || defaultState.author;
-                                const newScreenplay = await createScreenplay({
-                                    title: project.project_name || 'Untitled Screenplay',
-                                    author: currentAuthor,
-                                    content: ''
-                                }, getToken);
-                                
-                                screenplayIdRef.current = newScreenplay.screenplay_id;
+                            if (screenplay) {
+                                console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
+                                screenplayIdRef.current = projectId;
                                 
                                 // Save to Clerk metadata
                                 try {
-                                    await setCurrentScreenplayId(user, newScreenplay.screenplay_id);
+                                    await setCurrentScreenplayId(user, projectId);
                                 } catch (error) {
                                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
                                 }
                                 
-                                // Trigger storage event for ScreenplayContext
-                                window.dispatchEvent(new StorageEvent('storage', {
-                                    key: 'current_screenplay_id',
-                                    newValue: newScreenplay.screenplay_id,
-                                    oldValue: null,
-                                    storageArea: localStorage,
-                                    url: window.location.href
-                                }));
-                                
-                                // Update state with project name
+                                // Update state with screenplay data
                                 setState(prev => ({
                                     ...prev,
-                                    title: project.project_name || prev.title,
+                                    title: screenplay.title || prev.title,
+                                    content: screenplay.content || prev.content,
+                                    author: screenplay.author || prev.author,
                                     isDirty: false
                                 }));
                                 
-                                console.log('[EditorContext] ✅ Created screenplay for project:', newScreenplay.screenplay_id);
+                                console.log('[EditorContext] ✅ Loaded screenplay from URL:', projectId);
                                 isInitialLoadRef.current = false;
-                                return; // Success - screenplay created!
+                                return; // Success - screenplay loaded!
+                            } else {
+                                console.warn('[EditorContext] ⚠️ Screenplay not found:', projectId);
                             }
                         } else {
-                            console.warn('[EditorContext] ⚠️ Failed to fetch project:', projectResponse.status);
+                            // It's a legacy project ID - try to fetch project details
+                            console.log('[EditorContext] Fetching legacy project details...', projectId);
+                            // Note: Next.js API route handles auth server-side
+                            const projectResponse = await fetch(`/api/projects/${projectId}`);
+                            
+                            if (projectResponse.ok) {
+                                const projectData = await projectResponse.json();
+                                const project = projectData.data?.project || projectData.project;
+                                
+                                if (project) {
+                                    console.log('[EditorContext] ✅ Legacy project loaded:', project.project_name);
+                                    
+                                    // For legacy projects, try to find associated screenplay or create one
+                                    // First, try to find if there's already a screenplay with this project_id
+                                    const currentAuthor = stateRef.current.author || defaultState.author;
+                                    const newScreenplay = await createScreenplay({
+                                        title: project.project_name || 'Untitled Screenplay',
+                                        author: currentAuthor,
+                                        content: ''
+                                    }, getToken);
+                                    
+                                    screenplayIdRef.current = newScreenplay.screenplay_id;
+                                    
+                                    // Save to Clerk metadata
+                                    try {
+                                        await setCurrentScreenplayId(user, newScreenplay.screenplay_id);
+                                    } catch (error) {
+                                        console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
+                                    }
+                                    
+                                    // Update state with project name
+                                    setState(prev => ({
+                                        ...prev,
+                                        title: project.project_name || prev.title,
+                                        isDirty: false
+                                    }));
+                                    
+                                    console.log('[EditorContext] ✅ Created screenplay for legacy project:', newScreenplay.screenplay_id);
+                                    isInitialLoadRef.current = false;
+                                    return; // Success - screenplay created!
+                                }
+                            } else {
+                                console.warn('[EditorContext] ⚠️ Failed to fetch legacy project:', projectResponse.status);
+                            }
                         }
                     } catch (error) {
-                        console.error('[EditorContext] ⚠️ Error creating screenplay for project:', error);
+                        console.error('[EditorContext] ⚠️ Error loading project/screenplay from URL:', error);
                         // Continue with normal load flow
                     }
                 }

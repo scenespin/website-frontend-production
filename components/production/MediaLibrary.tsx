@@ -36,6 +36,16 @@ import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
 import { useDropdownCoordinator } from '@/hooks/useDropdownCoordinator';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
+import { 
+  useMediaFiles, 
+  useStorageConnectionsQuery, 
+  useStorageQuota,
+  useUploadMedia,
+  useDeleteMedia,
+  usePresignedUrl,
+  useBulkPresignedUrls
+} from '@/hooks/useMediaLibrary';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ============================================================================
 // VIDEO THUMBNAIL COMPONENT
@@ -153,31 +163,15 @@ function VideoThumbnail({ videoUrl, fileName, className }: { videoUrl: string; f
 // TYPES
 // ============================================================================
 
-interface MediaFile {
-  id: string;
-  fileName: string;
-  fileUrl: string;
-  fileType: 'video' | 'image' | 'audio' | 'other';
-  fileSize: number;
-  storageType: 'google-drive' | 'dropbox' | 'wryda-temp' | 'local';
-  uploadedAt: string;
-  expiresAt?: string; // For temporary storage
-  thumbnailUrl?: string;
-  s3Key?: string; // Store S3 key for generating fresh presigned URLs (bucket is private)
-}
+import type { 
+  MediaFile, 
+  StorageQuota, 
+  CloudStorageConnection 
+} from '@/types/media';
 
-interface StorageQuota {
-  used: number;
-  total: number;
-  storageType: string;
-}
-
-interface CloudStorageConnection {
-  provider: 'google-drive' | 'dropbox';
-  connected: boolean;
-  connectedAt?: string;
-  quota?: StorageQuota;
-}
+// Re-export types for component use
+// Note: MediaFile no longer includes fileUrl - presigned URLs are generated on-demand
+// TODO Phase 2B/C: Remove all fileUrl usage and replace with on-demand presigned URL generation via React Query
 
 interface MediaLibraryProps {
   projectId: string;
@@ -202,20 +196,52 @@ export default function MediaLibrary({
 }: MediaLibraryProps) {
   const { getToken } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Backend API URL for direct calls (Phase 2A: Direct Backend Auth)
+  const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
-  // State
-  const [files, setFiles] = useState<MediaFile[]>([]);
+  // ============================================================================
+  // REACT QUERY HOOKS (Phase 2B: React Query Integration)
+  // ============================================================================
+  
+  // Load media files - only when no folder is selected (folder files handled separately for now)
+  const { 
+    data: files = [], 
+    isLoading, 
+    error: filesError,
+    refetch: refetchFiles 
+  } = useMediaFiles(projectId, !selectedFolderId);
+  
+  // Load cloud storage connections
+  const { 
+    data: cloudConnections = [],
+    isLoading: connectionsLoading 
+  } = useStorageConnectionsQuery();
+  
+  // Load storage quota
+  const { 
+    data: storageQuota,
+    isLoading: quotaLoading 
+  } = useStorageQuota();
+  
+  // Mutations
+  const uploadMediaMutation = useUploadMedia(projectId);
+  const deleteMediaMutation = useDeleteMedia(projectId);
+  
+  // Query client for on-demand presigned URL fetching
+  const queryClient = useQueryClient();
+
+  // ============================================================================
+  // UI STATE (not server state - keep as useState)
+  // ============================================================================
+  
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<string>('all');
-  const [storageQuota, setStorageQuota] = useState<StorageQuota | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [cloudConnections, setCloudConnections] = useState<CloudStorageConnection[]>([]);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const { openMenuId, setOpenMenuId, isOpen } = useDropdownCoordinator();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -230,25 +256,21 @@ export default function MediaLibrary({
     name: string;
     type: 'video' | 'image' | 'attachment';
   } | null>(null);
-
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
-
-  useEffect(() => {
-    loadFiles(selectedFolderId || undefined);
-    loadStorageQuota();
-    loadCloudConnections();
-  }, [projectId, selectedFolderId]);
+  
+  // Folder files state (cloud storage files in folders - will be refactored in Phase 2C)
+  const [folderFiles, setFolderFiles] = useState<MediaFile[]>([]);
+  const [folderFilesLoading, setFolderFilesLoading] = useState(false);
+  
+  // Local error state for mutations (upload/delete)
+  const [mutationError, setMutationError] = useState<string | null>(null);
 
   // ============================================================================
   // API CALLS
   // ============================================================================
 
-  const loadFiles = async (folderId?: string) => {
-    setIsLoading(true);
-    setError(null);
-
+  // Load folder files (cloud storage folders - not using React Query yet)
+  const loadFolderFiles = async (folderId: string) => {
+    setFolderFilesLoading(true);
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -259,7 +281,7 @@ export default function MediaLibrary({
       if (folderId) {
         // Load files from specific folder (cloud storage)
         try {
-          const connectionsResponse = await fetch('/api/storage/connections', {
+          const connectionsResponse = await fetch(`${BACKEND_API_URL}/api/storage/connections`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -275,7 +297,7 @@ export default function MediaLibrary({
 
             if (connection) {
               try {
-                const filesResponse = await fetch(`/api/storage/files/${provider}?folderId=${encodeURIComponent(folderId)}`, {
+                const filesResponse = await fetch(`${BACKEND_API_URL}/api/storage/files/${provider}?folderId=${encodeURIComponent(folderId)}`, {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                   },
@@ -307,7 +329,7 @@ export default function MediaLibrary({
         // Load all files (no folder filter)
         // Load local/S3 files
         // Use screenplayId as primary, projectId as fallback (projectId prop is actually screenplayId)
-        const localResponse = await fetch(`/api/media/list?screenplayId=${projectId}&projectId=${projectId}`, {
+        const localResponse = await fetch(`${BACKEND_API_URL}/api/media/list?screenplayId=${projectId}&projectId=${projectId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -334,7 +356,7 @@ export default function MediaLibrary({
               
               if (file.s3Key) {
                 try {
-                  const presignedResponse = await fetch('/api/s3/download-url', {
+                  const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
                     method: 'POST',
                     headers: {
                       'Authorization': `Bearer ${token}`,
@@ -373,7 +395,7 @@ export default function MediaLibrary({
 
         // Load cloud storage files (Google Drive & Dropbox)
         try {
-          const connectionsResponse = await fetch('/api/storage/connections', {
+          const connectionsResponse = await fetch(`${BACKEND_API_URL}/api/storage/connections`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -387,7 +409,7 @@ export default function MediaLibrary({
             for (const connection of connections) {
               if (connection.status === 'active' || connection.status === 'connected') {
                 try {
-                  const filesResponse = await fetch(`/api/storage/files/${connection.provider}`, {
+                  const filesResponse = await fetch(`${BACKEND_API_URL}/api/storage/files/${connection.provider}`, {
                     headers: {
                       'Authorization': `Bearer ${token}`,
                     },
@@ -419,20 +441,28 @@ export default function MediaLibrary({
         }
       }
 
-      setFiles(allFiles);
-
+      setFolderFiles(allFiles);
     } catch (err) {
-      console.error('[MediaLibrary] Load error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load files');
+      console.error('[MediaLibrary] Load folder files error:', err);
+      setFolderFiles([]);
     } finally {
-      setIsLoading(false);
+      setFolderFilesLoading(false);
     }
   };
+  
+  // Load folder files when folderId changes
+  useEffect(() => {
+    if (selectedFolderId) {
+      loadFolderFiles(selectedFolderId);
+    } else {
+      setFolderFiles([]);
+    }
+  }, [selectedFolderId, projectId]);
 
   const handleFolderSelect = (folderId: string, path: string[]) => {
     setSelectedFolderId(folderId || null);
     setSelectedFolderPath(path);
-    loadFiles(folderId || undefined);
+    // loadFolderFiles will be called by useEffect when selectedFolderId changes
   };
 
   const handleBreadcrumbClick = (index: number) => {
@@ -440,15 +470,38 @@ export default function MediaLibrary({
       // Navigate to root (All Files)
       setSelectedFolderId(null);
       setSelectedFolderPath([]);
-      loadFiles();
     } else {
       // Navigate to specific folder in path
       const newPath = selectedFolderPath.slice(0, index + 1);
-      // Note: We'd need to get the folderId for this path segment
-      // For now, just update the path and reload
       setSelectedFolderPath(newPath);
-      // TODO: Get folderId for this path segment and load files
+      // TODO: Get folderId for this path segment and set it
     }
+  };
+  
+  // Determine which files to display
+  const displayFiles = selectedFolderId ? folderFiles : files;
+  const displayLoading = selectedFolderId ? folderFilesLoading : isLoading;
+  const displayError = mutationError || filesError?.message || null;
+  
+  // Phase 2C: Generate bulk presigned URLs for grid view thumbnails (S3 files only)
+  const s3Files = displayFiles.filter(f => (f.storageType === 'local' || f.storageType === 'wryda-temp') && f.s3Key);
+  const s3Keys = s3Files.map(f => f.s3Key!);
+  const { data: bulkPresignedUrls } = useBulkPresignedUrls(
+    s3Keys,
+    viewMode === 'grid' && s3Keys.length > 0 // Only fetch when in grid view and we have S3 files
+  );
+  
+  // Helper function to get file URL (presigned for S3, original for cloud storage)
+  const getFileUrl = (file: MediaFile): string | undefined => {
+    if (file.storageType === 'local' || file.storageType === 'wryda-temp') {
+      if (file.s3Key && bulkPresignedUrls) {
+        return bulkPresignedUrls.get(file.s3Key);
+      }
+      // Fallback to deprecated fileUrl if available (for backward compatibility during transition)
+      return file.fileUrl;
+    }
+    // Cloud storage files use their original URLs
+    return file.fileUrl;
   };
 
   // Helper function to detect file type from MIME type or filename
@@ -471,7 +524,7 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) return;
 
-      const response = await fetch('/api/storage/quota', {
+      const response = await fetch(`${BACKEND_API_URL}/api/storage/quota`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -495,7 +548,7 @@ export default function MediaLibrary({
         return;
       }
 
-      const response = await fetch('/api/storage/connections', {
+      const response = await fetch(`${BACKEND_API_URL}/api/storage/connections`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -533,13 +586,13 @@ export default function MediaLibrary({
 
   const uploadFile = async (file: File) => {
     if (file.size > maxFileSize * 1024 * 1024) {
-      setError(`File size exceeds ${maxFileSize}MB limit`);
+      setMutationError(`File size exceeds ${maxFileSize}MB limit`);
       return;
     }
 
     setIsUploading(true);
     setUploadProgress(0);
-    setError(null);
+      setMutationError(null);
 
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -671,7 +724,7 @@ export default function MediaLibrary({
       setUploadProgress(75);
 
       // Step 3: Register the file with the backend
-      const registerResponse = await fetch('/api/media/register', {
+      const registerResponse = await fetch(`${BACKEND_API_URL}/api/media/register`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -699,7 +752,7 @@ export default function MediaLibrary({
       
       let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
       try {
-        const downloadResponse = await fetch('/api/s3/download-url', {
+        const downloadResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -749,7 +802,7 @@ export default function MediaLibrary({
 
     } catch (err) {
       console.error('[MediaLibrary] Upload error:', err);
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setMutationError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setTimeout(() => {
         setIsUploading(false);
@@ -767,7 +820,7 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      const response = await fetch(`/api/media/${fileId}`, {
+      const response = await fetch(`${BACKEND_API_URL}/api/media/${fileId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -784,7 +837,7 @@ export default function MediaLibrary({
 
     } catch (error) {
       console.error('[MediaLibrary] Delete error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete file');
+      setMutationError(error instanceof Error ? error.message : 'Failed to delete file');
     }
   };
 
@@ -792,64 +845,60 @@ export default function MediaLibrary({
     setOpenMenuId(null); // Close menu
     
     try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        console.warn('[MediaLibrary] No auth token, using original URL');
-        setPreviewFile(file);
-        return;
-      }
-
-      let previewUrl = file.fileUrl;
+      let previewUrl: string | undefined = undefined;
       
-      // 🔥 FIX: For S3/local files, ALWAYS generate fresh presigned URL (bucket is private)
-      // Same approach as annotation uploads - bucket is private, direct S3 URLs don't work
+      // Phase 2C: On-demand presigned URL generation for S3/local files
       if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
-        // Use stored s3Key if available (most reliable)
-        const s3Key = file.s3Key || (() => {
-          // Fallback: Try to extract from fileUrl if s3Key not stored
-          if (file.fileUrl.includes('.s3.') || file.fileUrl.includes('s3.amazonaws.com')) {
-            const s3KeyMatch = file.fileUrl.match(/s3[^/]*\/\/[^/]+\/(.+?)(\?|$)/);
-            if (s3KeyMatch && s3KeyMatch[1]) {
-              return decodeURIComponent(s3KeyMatch[1]);
-            }
-          }
-          return null;
-        })();
-        
-        if (s3Key) {
-          try {
-            // Generate fresh presigned URL (same as annotation uploads)
-            const response = await fetch('/api/s3/download-url', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                s3Key: s3Key,
-                expiresIn: 3600 // 1 hour
-              }),
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.downloadUrl) {
-                previewUrl = data.downloadUrl;
-              } else {
-                console.warn('[MediaLibrary] No downloadUrl in response, using fallback');
-              }
-            } else {
-              console.warn('[MediaLibrary] Failed to get presigned URL:', response.status, response.statusText);
-            }
-          } catch (error) {
-            console.warn('[MediaLibrary] Failed to get presigned URL for S3 file:', error);
-            // Fallback to original URL (won't work with private bucket, but at least won't crash)
-          }
-        } else {
+        if (!file.s3Key) {
           console.warn('[MediaLibrary] No s3Key available for file:', file.id);
+          toast.error('Cannot preview file: missing file key');
+          return;
+        }
+        
+        // Use React Query to fetch presigned URL on-demand
+        try {
+          const presignedData = await queryClient.fetchQuery({
+            queryKey: ['media', 'presigned-url', file.s3Key],
+            queryFn: async () => {
+              const token = await getToken({ template: 'wryda-backend' });
+              if (!token) throw new Error('Not authenticated');
+              
+              const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  s3Key: file.s3Key,
+                  expiresIn: 3600, // 1 hour
+                }),
+              });
+              
+              if (!response.ok) {
+                throw new Error(`Failed to generate presigned URL: ${response.status}`);
+              }
+              
+              return await response.json();
+            },
+            staleTime: 5 * 60 * 1000, // 5 minutes
+          });
+          
+          previewUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[MediaLibrary] Failed to get presigned URL:', error);
+          toast.error('Failed to get preview URL');
+          return;
         }
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
-        // 🔥 FIX: For cloud storage files, fetch direct media URLs for preview
+        // For cloud storage files, fetch direct media URLs for preview
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          console.warn('[MediaLibrary] No auth token');
+          setPreviewFile(file);
+          return;
+        }
+        
         if (file.fileType === 'image' || file.fileType === 'video' || file.fileType === 'audio') {
           if (file.storageType === 'google-drive') {
             // Google Drive: Use direct view URL for images, direct download for videos/audio
@@ -858,48 +907,45 @@ export default function MediaLibrary({
             } else {
               // For videos/audio, get download URL from backend
               try {
-                const response = await fetch(`/api/storage/download/google-drive/${file.id}`, {
+                const response = await fetch(`${BACKEND_API_URL}/api/storage/download/google-drive/${file.id}`, {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                   },
                 });
                 if (response.ok) {
                   const data = await response.json();
-                  if (data.downloadUrl) {
-                    previewUrl = data.downloadUrl;
-                  }
+                  previewUrl = data.downloadUrl;
                 }
               } catch (error) {
-                console.warn('[MediaLibrary] Failed to get Google Drive download URL, using fallback');
+                console.warn('[MediaLibrary] Failed to get Google Drive download URL');
                 previewUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
               }
             }
           } else if (file.storageType === 'dropbox') {
             // Dropbox: Get download URL from backend
             try {
-              const response = await fetch(`/api/storage/download/dropbox/${file.id}`, {
+              const response = await fetch(`${BACKEND_API_URL}/api/storage/download/dropbox/${file.id}`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
               });
               if (response.ok) {
                 const data = await response.json();
-                if (data.downloadUrl) {
-                  previewUrl = data.downloadUrl;
-                } else {
-                  // Fallback to thumbnailUrl for images
-                  previewUrl = file.thumbnailUrl || file.fileUrl;
-                }
+                previewUrl = data.downloadUrl || file.thumbnailUrl;
               } else {
-                // Fallback to original URL
-                previewUrl = file.thumbnailUrl || file.fileUrl;
+                previewUrl = file.thumbnailUrl;
               }
             } catch (error) {
-              console.warn('[MediaLibrary] Failed to get Dropbox download URL, using fallback');
-              previewUrl = file.thumbnailUrl || file.fileUrl;
+              console.warn('[MediaLibrary] Failed to get Dropbox download URL');
+              previewUrl = file.thumbnailUrl;
             }
           }
         }
+      }
+      
+      if (!previewUrl) {
+        toast.error('Cannot preview this file type');
+        return;
       }
       
       // Update file with preview URL
@@ -909,22 +955,65 @@ export default function MediaLibrary({
       });
     } catch (error) {
       console.error('[MediaLibrary] Error getting preview URL:', error);
-      toast.error('Failed to get preview URL. Using original URL.');
-      // Fallback to original file
-      setPreviewFile(file);
+      toast.error('Failed to get preview URL');
     }
   };
 
   const handleDownloadFile = async (file: MediaFile) => {
     try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      let downloadUrl = file.fileUrl;
-
-      // For cloud storage files, get download URL from backend
-      if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
-        const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
+      let downloadUrl: string | undefined = undefined;
+      
+      // Phase 2C: On-demand presigned URL generation for S3/local files
+      if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
+        if (!file.s3Key) {
+          toast.error('Cannot download file: missing file key');
+          return;
+        }
+        
+        // Use React Query to fetch presigned URL on-demand
+        try {
+          const presignedData = await queryClient.fetchQuery({
+            queryKey: ['media', 'presigned-url', file.s3Key],
+            queryFn: async () => {
+              const token = await getToken({ template: 'wryda-backend' });
+              if (!token) throw new Error('Not authenticated');
+              
+              const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  s3Key: file.s3Key,
+                  expiresIn: 3600, // 1 hour
+                }),
+              });
+              
+              if (!response.ok) {
+                throw new Error(`Failed to generate presigned URL: ${response.status}`);
+              }
+              
+              return await response.json();
+            },
+            staleTime: 5 * 60 * 1000, // 5 minutes
+          });
+          
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[MediaLibrary] Failed to get presigned URL:', error);
+          toast.error('Failed to get download URL');
+          return;
+        }
+      } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
+        // For cloud storage files, get download URL from backend
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          toast.error('Not authenticated');
+          return;
+        }
+        
+        const response = await fetch(`${BACKEND_API_URL}/api/storage/download/${file.storageType}/${file.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -932,47 +1021,16 @@ export default function MediaLibrary({
 
         if (response.ok) {
           const data = await response.json();
-          if (data.downloadUrl) {
-            downloadUrl = data.downloadUrl;
-          }
+          downloadUrl = data.downloadUrl;
+        } else {
+          toast.error('Failed to get download URL');
+          return;
         }
-      } else if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
-        // 🔥 FIX: For S3 files, generate presigned URL (bucket is private)
-        const s3Key = file.s3Key || (() => {
-          // Fallback: Try to extract from fileUrl if s3Key not stored
-          if (file.fileUrl.includes('.s3.') || file.fileUrl.includes('s3.amazonaws.com')) {
-            const s3KeyMatch = file.fileUrl.match(/s3[^/]*\/\/[^/]+\/(.+?)(\?|$)/);
-            if (s3KeyMatch && s3KeyMatch[1]) {
-              return decodeURIComponent(s3KeyMatch[1]);
-            }
-          }
-          return null;
-        })();
-        
-        if (s3Key) {
-          try {
-            const response = await fetch('/api/s3/download-url', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                s3Key: s3Key,
-                expiresIn: 3600 // 1 hour
-              }),
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.downloadUrl) {
-                downloadUrl = data.downloadUrl;
-              }
-            }
-          } catch (error) {
-            console.warn('[MediaLibrary] Failed to get presigned URL for download, using original URL:', error);
-          }
-        }
+      }
+
+      if (!downloadUrl) {
+        toast.error('Cannot download this file');
+        return;
       }
 
       // Open download URL in new tab
@@ -1047,7 +1105,7 @@ export default function MediaLibrary({
       if (!token) throw new Error('Not authenticated');
 
       // Get OAuth authorization URL from backend
-      const response = await fetch(`/api/storage/connect/${storageType}`, {
+      const response = await fetch(`${BACKEND_API_URL}/api/storage/connect/${storageType}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -1065,7 +1123,7 @@ export default function MediaLibrary({
       // Poll for connection status
       const pollInterval = setInterval(async () => {
         try {
-          const statusResponse = await fetch(`/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
+          const statusResponse = await fetch(`${BACKEND_API_URL}/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -1095,7 +1153,7 @@ export default function MediaLibrary({
       
     } catch (error) {
       console.error('[MediaLibrary] Connect error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to connect storage');
+      setMutationError(error instanceof Error ? error.message : 'Failed to connect storage');
     }
   };
 
@@ -1103,7 +1161,7 @@ export default function MediaLibrary({
   // RENDER HELPERS
   // ============================================================================
 
-  const filteredFiles = files.filter(file => {
+  const filteredFiles = displayFiles.filter(file => {
     // Search filter
     if (searchQuery && !file.fileName.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
@@ -1321,7 +1379,7 @@ export default function MediaLibrary({
             <p className="text-sm text-[#B3B3B3]">{error}</p>
           </div>
           <button
-            onClick={() => setError(null)}
+            onClick={() => setMutationError(null)}
             className="ml-auto text-[#DC143C] hover:text-[#B91238]"
           >
             <X className="w-5 h-5" />
@@ -1374,7 +1432,7 @@ export default function MediaLibrary({
 
             {/* Files Grid/List */}
             <div className="p-6">
-              {isLoading ? (
+              {displayLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
                 </div>
@@ -1443,31 +1501,34 @@ export default function MediaLibrary({
 
                       {/* Thumbnail */}
                       <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
-                        {file.fileType === 'image' && file.fileUrl ? (
-                          <img
-                            src={file.fileUrl}
-                            alt={file.fileName}
-                            className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                        ) : file.fileType === 'video' && file.fileUrl ? (
-                          <VideoThumbnail 
-                            videoUrl={file.fileUrl} 
-                            fileName={file.fileName}
-                            className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'}`}
-                          />
-                        ) : file.thumbnailUrl ? (
-                          <img
-                            src={file.thumbnailUrl}
-                            alt={file.fileName}
-                            className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
-                          />
-                        ) : null}
+                        {(() => {
+                          const fileUrl = getFileUrl(file);
+                          return file.fileType === 'image' && fileUrl ? (
+                            <img
+                              src={fileUrl}
+                              alt={file.fileName}
+                              className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : file.fileType === 'video' && fileUrl ? (
+                            <VideoThumbnail 
+                              videoUrl={fileUrl} 
+                              fileName={file.fileName}
+                              className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'}`}
+                            />
+                          ) : file.thumbnailUrl ? (
+                            <img
+                              src={file.thumbnailUrl}
+                              alt={file.fileName}
+                              className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} object-cover rounded bg-[#1F1F1F]`}
+                            />
+                          ) : null;
+                        })()}
                         {/* Fallback icon */}
-                        <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(file.fileType === 'image' && file.fileUrl) || (file.fileType === 'video' && file.fileUrl) ? 'hidden' : ''}`}>
+                        <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center ${(file.fileType === 'image' && getFileUrl(file)) || (file.fileType === 'video' && getFileUrl(file)) ? 'hidden' : ''}`}>
                           {getFileIcon(file.fileType)}
                         </div>
                       </div>

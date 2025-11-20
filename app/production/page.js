@@ -24,6 +24,7 @@ export const dynamic = 'force-dynamic';
 
 import { ProductionHub } from '@/components/production/ProductionHub';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { QueryClientProvider } from '@/providers/QueryClientProvider';
 
 export default function ProductionPage() {
   const [mounted, setMounted] = useState(false);
@@ -45,9 +46,9 @@ export default function ProductionPage() {
   }
   
   return (
-    <>
+    <QueryClientProvider>
       {/* ResponsiveHeader removed - Navigation.js comes from production/layout.js */}
       <ProductionHub projectId={screenplay.screenplayId || 'default'} /> {/* projectId prop is actually screenplayId */}
-    </>
+    </QueryClientProvider>
   );
 }

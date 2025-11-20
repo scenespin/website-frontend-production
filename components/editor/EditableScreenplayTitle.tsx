@@ -58,12 +58,12 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
 
     // Listen for screenplay updates
     const handleUpdate = () => {
-      console.log('[EditableScreenplayTitle] Screenplay updated event received');
+      console.log('[EditableScreenplayTitle] Screenplay updated event received, refetching title');
       fetchTitle();
     };
     window.addEventListener('screenplayUpdated', handleUpdate);
     return () => window.removeEventListener('screenplayUpdated', handleUpdate);
-  }, [screenplay?.screenplayId, getToken]);
+  }, [screenplay?.screenplayId, getToken]); // Depend on screenplay.screenplayId to refetch when it changes
 
   const handleClick = () => {
     if (!screenplay?.screenplayId) {

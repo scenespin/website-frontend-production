@@ -150,10 +150,13 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   // Generation length state: 'short' (5-10 lines), 'full' (15-30 lines), 'multiple' (2-3 scenes)
   const [generationLength, setGenerationLength] = useState('full');
   
-  // Auto-scroll to bottom when messages or streaming text changes
+  // Auto-scroll to bottom ONLY while streaming (so user can see new content)
+  // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [state.messages.filter(m => m.mode === 'director'), state.streamingText, state.isStreaming]);
+    if (state.isStreaming) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [state.isStreaming, state.streamingText]); // Only trigger when streaming state or streaming text changes
   
   // Detect scene context when drawer opens or editor content/cursor changes
   // If cursorPosition is undefined, try to detect from editor content (find last scene heading)
@@ -457,7 +460,19 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 {showInsertButton && onInsert && (
                   <button
                     onClick={() => {
-                      onInsert(cleanFountainOutput(message.content));
+                      // Clean the content before inserting (strip markdown, remove notes)
+                      const cleanedContent = cleanFountainOutput(message.content);
+                      
+                      // 🔥 PHASE 1 FIX: Validate content before inserting
+                      if (!cleanedContent || cleanedContent.trim().length < 3) {
+                        console.error('[DirectorModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                        console.error('[DirectorModePanel] Original content length:', message.content?.length);
+                        console.error('[DirectorModePanel] Cleaned content length:', cleanedContent?.length);
+                        toast.error('Content is empty after cleaning. Please try again or use the original response.');
+                        return; // Don't insert empty content
+                      }
+                      
+                      onInsert(cleanedContent);
                       closeDrawer();
                     }}
                     className="btn btn-xs btn-outline gap-2"
@@ -489,7 +504,19 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
             {onInsert && (
               <button
                 onClick={() => {
-                  onInsert(cleanFountainOutput(state.streamingText));
+                  // Clean the content before inserting (strip markdown, remove notes)
+                  const cleanedContent = cleanFountainOutput(state.streamingText);
+                  
+                  // 🔥 PHASE 1 FIX: Validate content before inserting
+                  if (!cleanedContent || cleanedContent.trim().length < 3) {
+                    console.error('[DirectorModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                    console.error('[DirectorModePanel] Original content length:', state.streamingText?.length);
+                    console.error('[DirectorModePanel] Cleaned content length:', cleanedContent?.length);
+                    toast.error('Content is empty after cleaning. Please try again or use the original response.');
+                    return; // Don't insert empty content
+                  }
+                  
+                  onInsert(cleanedContent);
                   closeDrawer();
                 }}
                 className="btn btn-xs btn-outline gap-2 self-start"
