@@ -1397,10 +1397,15 @@ export default function MediaLibrary({
                     <div
                       key={file.id}
                       onClick={(e) => {
-                        // Don't trigger file click if clicking on dropdown menu area
+                        // Don't trigger file click if clicking on dropdown menu area or menu items
                         const target = e.target as HTMLElement;
-                        if (target.closest('[data-radix-dropdown-menu-trigger]') || 
-                            target.closest('[data-radix-dropdown-menu-content]')) {
+                        if (
+                          target.closest('[data-radix-dropdown-menu-trigger]') || 
+                          target.closest('[data-radix-dropdown-menu-content]') ||
+                          target.closest('[data-slot="dropdown-menu-content"]') ||
+                          target.closest('[data-slot="dropdown-menu-item"]') ||
+                          target.closest('[data-radix-dropdown-menu-item]')
+                        ) {
                           return;
                         }
                         handleFileClick(file);
@@ -1529,11 +1534,19 @@ export default function MediaLibrary({
                             }}
                           >
                             <DropdownMenuItem 
-                              onSelect={(e) => { 
+                              onSelect={() => { 
                                 // Use onSelect - Radix UI's recommended handler
                                 // It automatically closes the menu after selection
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
-                                handleViewFile(file); 
+                                handleViewFile(file);
+                              }}
+                              onPointerDown={(e) => {
+                                // Stop propagation early to prevent file card click
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                // Also stop propagation on click
+                                e.stopPropagation();
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                               style={{ color: '#FFFFFF' }}
@@ -1542,10 +1555,16 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={(e) => { 
+                              onSelect={() => { 
                                 // Use onSelect - Radix UI's recommended handler
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
-                                handleDownloadFile(file); 
+                                handleDownloadFile(file);
+                              }}
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                               style={{ color: '#FFFFFF' }}
@@ -1554,10 +1573,16 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={(e) => { 
+                              onSelect={() => { 
                                 // Use onSelect - Radix UI's recommended handler
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
-                                deleteFile(file.id); 
+                                deleteFile(file.id);
+                              }}
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
                               }}
                               className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                               style={{ color: '#DC143C' }}
