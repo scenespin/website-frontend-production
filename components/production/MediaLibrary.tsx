@@ -35,6 +35,7 @@ import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
 import { useDropdownCoordinator } from '@/hooks/useDropdownCoordinator';
+import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 
 // ============================================================================
 // VIDEO THUMBNAIL COMPONENT
@@ -162,6 +163,7 @@ interface MediaFile {
   uploadedAt: string;
   expiresAt?: string; // For temporary storage
   thumbnailUrl?: string;
+  s3Key?: string; // Store S3 key for generating fresh presigned URLs (bucket is private)
 }
 
 interface StorageQuota {
@@ -219,6 +221,15 @@ export default function MediaLibrary({
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
   const [showFolderSidebar, setShowFolderSidebar] = useState(true);
+  
+  // Storage Decision Modal state (same as Scene Builder)
+  const [showStorageModal, setShowStorageModal] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<{
+    url: string;
+    s3Key: string;
+    name: string;
+    type: 'video' | 'image' | 'attachment';
+  } | null>(null);
 
   // ============================================================================
   // EFFECTS
@@ -303,7 +314,59 @@ export default function MediaLibrary({
 
         if (localResponse.ok) {
           const localData = await localResponse.json();
-          allFiles = localData.files || [];
+          const backendFiles = localData.files || [];
+          
+          console.log('[MediaLibrary] Loaded files from backend:', {
+            count: backendFiles.length,
+            projectId: projectId,
+            files: backendFiles.map((f: any) => ({ id: f.fileId, name: f.fileName }))
+          });
+          
+          // Map backend format to frontend format
+          // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, s3Url, createdAt }
+          // Frontend expects: { id, fileName, fileUrl, fileType (enum), fileSize, storageType, uploadedAt }
+          allFiles = await Promise.all(
+            backendFiles.map(async (file: any) => {
+              // Generate presigned URL for S3 files (more reliable than direct S3 URL)
+              let fileUrl = file.s3Url;
+              
+              if (file.s3Key) {
+                try {
+                  const presignedResponse = await fetch('/api/s3/download-url', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      s3Key: file.s3Key,
+                      expiresIn: 3600, // 1 hour
+                    }),
+                  });
+                  
+                  if (presignedResponse.ok) {
+                    const presignedData = await presignedResponse.json();
+                    fileUrl = presignedData.downloadUrl || file.s3Url;
+                  }
+                } catch (error) {
+                  console.warn('[MediaLibrary] Failed to get presigned URL, using direct S3 URL:', error);
+                }
+              }
+              
+              return {
+                id: file.fileId,                    // Map fileId → id
+                fileName: file.fileName,
+                fileUrl,                            // Use presigned URL if available
+                fileType: detectFileType(file.fileType),  // Convert MIME type to enum
+                fileSize: file.fileSize,
+                storageType: 'local' as const,      // S3 files are 'local' storage type
+                uploadedAt: file.createdAt,         // Map createdAt → uploadedAt
+                expiresAt: undefined,               // Not applicable for S3 files
+                thumbnailUrl: undefined,            // Will be generated client-side for videos
+                s3Key: file.s3Key,                  // Store S3 key for generating fresh presigned URLs (bucket is private)
+              };
+            })
+          );
         }
 
         // Load cloud storage files (Google Drive & Dropbox)
@@ -424,7 +487,11 @@ export default function MediaLibrary({
   const loadCloudConnections = async () => {
     try {
       const token = await getToken({ template: 'wryda-backend' });
-      if (!token) return;
+      if (!token) {
+        // User not authenticated - silently fail (not an error)
+        setCloudConnections([]);
+        return;
+      }
 
       const response = await fetch('/api/storage/connections', {
         headers: {
@@ -445,9 +512,20 @@ export default function MediaLibrary({
           } : undefined,
         }));
         setCloudConnections(connections);
+      } else if (response.status === 401) {
+        // Unauthorized - user not authenticated or token expired
+        // Silently fail (not an error, just means no connections available)
+        setCloudConnections([]);
+        console.debug('[MediaLibrary] Not authenticated for storage connections');
+      } else {
+        // Other error - log but don't block
+        console.warn('[MediaLibrary] Failed to load cloud connections:', response.status, response.statusText);
+        setCloudConnections([]);
       }
     } catch (error) {
-      console.error('[MediaLibrary] Cloud connections error:', error);
+      // Network or other error - silently fail (not critical)
+      console.debug('[MediaLibrary] Cloud connections error (non-critical):', error);
+      setCloudConnections([]);
     }
   };
 
@@ -605,10 +683,59 @@ export default function MediaLibrary({
       });
 
       if (!registerResponse.ok) {
-        throw new Error('Failed to register file');
+        const errorData = await registerResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to register file');
       }
 
-      await loadFiles(); // Refresh list
+      // Step 4: Get presigned download URL for StorageDecisionModal (bucket is private)
+      let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
+      try {
+        const downloadResponse = await fetch('/api/s3/download-url', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: s3Key,
+            expiresIn: 3600 // 1 hour
+          }),
+        });
+        
+        if (downloadResponse.ok) {
+          const downloadData = await downloadResponse.json();
+          if (downloadData.downloadUrl) {
+            downloadUrl = downloadData.downloadUrl;
+          }
+        }
+      } catch (error) {
+        console.warn('[MediaLibrary] Failed to get presigned download URL for modal, using direct S3 URL:', error);
+      }
+
+      // ✅ Upload and registration successful
+      toast.success(`✅ File uploaded: ${file.name}`, {
+        description: 'File is now available in your library',
+      });
+
+      // Show StorageDecisionModal (same as Scene Builder)
+      const fileType = file.type.startsWith('video/') ? 'video' : 
+                       file.type.startsWith('image/') ? 'image' : 'attachment';
+      
+      setSelectedAsset({
+        url: downloadUrl,
+        s3Key: s3Key,
+        name: file.name,
+        type: fileType
+      });
+      setShowStorageModal(true);
+
+      // Refresh list - add small delay to ensure DynamoDB consistency
+      console.log('[MediaLibrary] Refreshing file list...');
+      setTimeout(async () => {
+        await loadFiles();
+        console.log('[MediaLibrary] File list refreshed');
+      }, 500);
+      
       setUploadProgress(100);
 
     } catch (err) {
@@ -665,13 +792,24 @@ export default function MediaLibrary({
 
       let previewUrl = file.fileUrl;
       
-      // 🔥 FIX: For S3/local files, generate fresh presigned URL if needed
+      // 🔥 FIX: For S3/local files, ALWAYS generate fresh presigned URL (bucket is private)
+      // Same approach as annotation uploads - bucket is private, direct S3 URLs don't work
       if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
-        // Check if fileUrl is an S3 key or needs a presigned URL
-        // If fileUrl doesn't start with http/https, it might be an S3 key
-        if (!file.fileUrl.startsWith('http://') && !file.fileUrl.startsWith('https://')) {
-          // It's an S3 key, generate presigned URL
+        // Use stored s3Key if available (most reliable)
+        const s3Key = file.s3Key || (() => {
+          // Fallback: Try to extract from fileUrl if s3Key not stored
+          if (file.fileUrl.includes('.s3.') || file.fileUrl.includes('s3.amazonaws.com')) {
+            const s3KeyMatch = file.fileUrl.match(/s3[^/]*\/\/[^/]+\/(.+?)(\?|$)/);
+            if (s3KeyMatch && s3KeyMatch[1]) {
+              return decodeURIComponent(s3KeyMatch[1]);
+            }
+          }
+          return null;
+        })();
+        
+        if (s3Key) {
           try {
+            // Generate fresh presigned URL (same as annotation uploads)
             const response = await fetch('/api/s3/download-url', {
               method: 'POST',
               headers: {
@@ -679,7 +817,7 @@ export default function MediaLibrary({
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                s3Key: file.fileUrl,
+                s3Key: s3Key,
                 expiresIn: 3600 // 1 hour
               }),
             });
@@ -688,44 +826,19 @@ export default function MediaLibrary({
               const data = await response.json();
               if (data.downloadUrl) {
                 previewUrl = data.downloadUrl;
+              } else {
+                console.warn('[MediaLibrary] No downloadUrl in response, using fallback');
               }
+            } else {
+              console.warn('[MediaLibrary] Failed to get presigned URL:', response.status, response.statusText);
             }
           } catch (error) {
             console.warn('[MediaLibrary] Failed to get presigned URL for S3 file:', error);
-            // Fallback to original URL
+            // Fallback to original URL (won't work with private bucket, but at least won't crash)
           }
-        } else if (file.fileUrl.includes('.s3.') || file.fileUrl.includes('s3.amazonaws.com')) {
-          // It's an S3 URL but might be expired, try to get fresh presigned URL
-          // Extract S3 key from URL
-          const s3KeyMatch = file.fileUrl.match(/s3[^/]*\/\/[^/]+\/(.+?)(\?|$)/);
-          if (s3KeyMatch && s3KeyMatch[1]) {
-            const s3Key = decodeURIComponent(s3KeyMatch[1]);
-            try {
-              const response = await fetch('/api/s3/download-url', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  s3Key: s3Key,
-                  expiresIn: 3600 // 1 hour
-                }),
-              });
-              
-              if (response.ok) {
-                const data = await response.json();
-                if (data.downloadUrl) {
-                  previewUrl = data.downloadUrl;
-                }
-              }
-            } catch (error) {
-              console.warn('[MediaLibrary] Failed to refresh presigned URL:', error);
-              // Use original URL as fallback
-            }
-          }
+        } else {
+          console.warn('[MediaLibrary] No s3Key available for file:', file.id);
         }
-        // If fileUrl is already a valid presigned URL, use it directly
       } else if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         // 🔥 FIX: For cloud storage files, fetch direct media URLs for preview
         if (file.fileType === 'image' || file.fileType === 'video' || file.fileType === 'audio') {
@@ -1311,7 +1424,7 @@ export default function MediaLibrary({
                       </div>
 
                       {/* Actions Menu */}
-                      <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute top-2 right-2 z-50" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu 
                           open={isOpen(file.id)}
                           onOpenChange={(open) => {
@@ -1330,10 +1443,20 @@ export default function MediaLibrary({
                                 // Use onPointerDown instead of onClick to prevent file card click
                                 // This works better with React's synthetic events and Radix UI
                                 e.stopPropagation();
+                                // Toggle menu state
+                                if (isOpen(file.id)) {
+                                  setOpenMenuId(null);
+                                } else {
+                                  setOpenMenuId(file.id);
+                                }
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
                               aria-label={`Actions for ${file.fileName}`}
                               aria-haspopup="menu"
+                              aria-expanded={isOpen(file.id)}
                               type="button"
                             >
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
@@ -1341,8 +1464,9 @@ export default function MediaLibrary({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent 
                             align="end" 
-                            className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-[100]"
-                            style={{ backgroundColor: '#141414', color: '#FFFFFF', zIndex: 100 }}
+                            sideOffset={5}
+                            className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-[9999] shadow-xl"
+                            style={{ backgroundColor: '#141414', color: '#FFFFFF', zIndex: 9999 }}
                             onCloseAutoFocus={(e) => {
                               // 🔥 FIX: Prevent focus trap issues with aria-hidden
                               e.preventDefault();
@@ -1350,8 +1474,13 @@ export default function MediaLibrary({
                             onEscapeKeyDown={() => {
                               setOpenMenuId(null);
                             }}
-                            onPointerDownOutside={(e) => {
-                              // Allow outside clicks to close menu
+                            onInteractOutside={(e) => {
+                              // Prevent closing when clicking on the trigger
+                              const target = e.target as HTMLElement;
+                              if (target.closest('[data-radix-dropdown-menu-trigger]')) {
+                                e.preventDefault();
+                                return;
+                              }
                               setOpenMenuId(null);
                             }}
                           >
@@ -1555,6 +1684,22 @@ export default function MediaLibrary({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Storage Decision Modal (same as Scene Builder) */}
+      {showStorageModal && selectedAsset && (
+        <StorageDecisionModal
+          isOpen={showStorageModal}
+          onClose={() => {
+            setShowStorageModal(false);
+            setSelectedAsset(null);
+          }}
+          assetType={selectedAsset.type === 'video' ? 'video' : 
+                     selectedAsset.type === 'image' ? 'image' : 'composition'}
+          assetName={selectedAsset.name}
+          s3TempUrl={selectedAsset.url}
+          s3Key={selectedAsset.s3Key}
+        />
       )}
     </div>
   );
