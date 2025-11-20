@@ -1378,33 +1378,35 @@ export default function MediaLibrary({
                   {filteredFiles.map((file) => (
                     <div
                       key={file.id}
-                      onClick={(e) => {
-                        // Don't trigger file click if clicking on dropdown menu area or menu items
-                        const target = e.target as HTMLElement;
-                        // Check if click originated from dropdown trigger or menu
-                        if (
-                          target.closest('button[aria-haspopup="menu"]') ||
-                          target.closest('[data-radix-dropdown-menu-trigger]') || 
-                          target.closest('[data-radix-dropdown-menu-content]') ||
-                          target.closest('[data-slot="dropdown-menu-content"]') ||
-                          target.closest('[data-slot="dropdown-menu-item"]') ||
-                          target.closest('[data-radix-dropdown-menu-item]') ||
-                          target.closest('[role="menuitem"]')
-                        ) {
-                          return;
-                        }
-                        handleFileClick(file);
-                      }}
-                      onMouseDown={(e) => {
-                        // Don't trigger file click if mousedown originated from dropdown
-                        const target = e.target as HTMLElement;
-                        if (
-                          target.closest('button[aria-haspopup="menu"]') ||
-                          target.closest('[data-radix-dropdown-menu-trigger]')
-                        ) {
-                          return;
-                        }
-                      }}
+                      // TEMPORARILY DISABLED: Testing if parent onClick is interfering with dropdown menu items
+                      // onClick={(e) => {
+                      //   // Don't trigger file click if clicking on dropdown menu area or menu items
+                      //   const target = e.target as HTMLElement;
+                      //   // Check if click originated from dropdown trigger or menu
+                      //   if (
+                      //     target.closest('button[aria-haspopup="menu"]') ||
+                      //     target.closest('[data-radix-dropdown-menu-trigger]') || 
+                      //     target.closest('[data-radix-dropdown-menu-content]') ||
+                      //     target.closest('[data-slot="dropdown-menu-content"]') ||
+                      //     target.closest('[data-slot="dropdown-menu-item"]') ||
+                      //     target.closest('[data-radix-dropdown-menu-item]') ||
+                      //     target.closest('[role="menuitem"]')
+                      //   ) {
+                      //     return;
+                      //   }
+                      //   handleFileClick(file);
+                      // }}
+                      // TEMPORARILY DISABLED: Testing if parent onMouseDown is interfering
+                      // onMouseDown={(e) => {
+                      //   // Don't trigger file click if mousedown originated from dropdown
+                      //   const target = e.target as HTMLElement;
+                      //   if (
+                      //     target.closest('button[aria-haspopup="menu"]') ||
+                      //     target.closest('[data-radix-dropdown-menu-trigger]')
+                      //   ) {
+                      //     return;
+                      //   }
+                      // }}
                       className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
                         selectedFiles.has(file.id)
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -1478,6 +1480,7 @@ export default function MediaLibrary({
                         <DropdownMenu 
                           open={isOpen(file.id)}
                           onOpenChange={(open) => {
+                            console.log('[MediaLibrary] Menu onOpenChange:', open, Date.now(), file.id);
                             // Use the coordinator hook which handles all the complexity
                             if (open) {
                               setOpenMenuId(file.id);
@@ -1529,22 +1532,25 @@ export default function MediaLibrary({
                           >
                             <DropdownMenuItem 
                               onSelect={(e) => {
+                                console.log('[MediaLibrary] onSelect fired!', Date.now(), file.id);
                                 // Radix UI onSelect receives an Event, but we need to prevent default behavior
                                 if (e) {
                                   e.preventDefault();
                                   e.stopPropagation();
                                 }
-                                console.log('[MediaLibrary] View clicked for file:', file.id);
+                                console.log('[MediaLibrary] View onSelect - file:', file.id);
                                 setOpenMenuId(null); // Close menu manually
                                 // Use setTimeout to ensure menu closes before action
                                 setTimeout(() => {
+                                  console.log('[MediaLibrary] View onSelect - executing handleViewFile');
                                   handleViewFile(file);
                                 }, 0);
                               }}
                               onClick={(e) => {
+                                console.log('[MediaLibrary] onClick fired!', Date.now(), file.id);
                                 e.preventDefault();
                                 e.stopPropagation();
-                                console.log('[MediaLibrary] View onClick for file:', file.id);
+                                console.log('[MediaLibrary] View onClick - file:', file.id);
                                 setOpenMenuId(null); // Close menu manually
                                 handleViewFile(file);
                               }}
