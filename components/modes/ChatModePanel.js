@@ -182,6 +182,10 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
             // Only check substantial context lines
             if (contextLine.length < 5) continue;
             
+            // 🔥 FIX: Declare these at the top of the loop so they're accessible throughout
+            const contextLineOriginal = contextLine.trim();
+            const currentLineOriginal = currentLineTrimmed;
+            
             const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ').trim();
             const normalizedCurrent = currentLineTrimmed.toLowerCase().replace(/\s+/g, ' ').trim();
             
@@ -200,8 +204,6 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
             // BUT: Skip if context line is just a character name (common in screenplays)
             if (!isCharacterName && normalizedCurrent.startsWith(normalizedContext) && normalizedCurrent.length > normalizedContext.length) {
               // Find where the new content starts in the original (case-sensitive) line
-              const contextLineOriginal = contextLine.trim();
-              const currentLineOriginal = currentLineTrimmed;
               
               // Try to find the context line at the start of current line (case-insensitive)
               const contextLower = contextLineOriginal.toLowerCase();
