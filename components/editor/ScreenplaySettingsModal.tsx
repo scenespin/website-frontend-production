@@ -10,16 +10,20 @@ import { toast } from 'sonner';
 interface ScreenplaySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  screenplayId?: string; // Optional: allows use without ScreenplayContext (e.g., from dashboard)
 }
 
 /**
  * ScreenplaySettingsModal - Edit screenplay metadata (title, description, genre, etc.)
  */
-export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplaySettingsModalProps) {
+export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId: propScreenplayId }: ScreenplaySettingsModalProps) {
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Use prop screenplayId if provided, otherwise fall back to context
+  const screenplayId = propScreenplayId || screenplay?.screenplayId;
   
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -27,17 +31,17 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
   const [genre, setGenre] = useState('');
 
   useEffect(() => {
-    if (isOpen && screenplay?.screenplayId) {
+    if (isOpen && screenplayId) {
       fetchScreenplayData();
     }
-  }, [isOpen, screenplay?.screenplayId]);
+  }, [isOpen, screenplayId]);
 
   const fetchScreenplayData = async () => {
-    if (!screenplay?.screenplayId) return;
+    if (!screenplayId) return;
 
     try {
       setIsLoading(true);
-      const screenplayData = await getScreenplay(screenplay.screenplayId, getToken);
+      const screenplayData = await getScreenplay(screenplayId, getToken);
       
       if (screenplayData) {
         setTitle(screenplayData.title || '');
@@ -54,7 +58,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
   };
 
   const handleSave = async () => {
-    if (!screenplay?.screenplayId) {
+    if (!screenplayId) {
       toast.error('No screenplay loaded');
       return;
     }
@@ -67,11 +71,11 @@ export default function ScreenplaySettingsModal({ isOpen, onClose }: ScreenplayS
     setIsSaving(true);
     try {
       // Fetch current screenplay to preserve existing metadata
-      const currentScreenplay = await getScreenplay(screenplay.screenplayId, getToken);
+      const currentScreenplay = await getScreenplay(screenplayId, getToken);
       
       await updateScreenplay(
         {
-          screenplay_id: screenplay.screenplayId,
+          screenplay_id: screenplayId,
           title: title.trim(),
           author: author.trim() || undefined,
           description: description.trim() || undefined,

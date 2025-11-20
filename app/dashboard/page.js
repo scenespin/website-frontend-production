@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
+import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
 // ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js
@@ -21,6 +22,7 @@ import {
   Zap,
   TrendingUp,
   Trash2,
+  Settings,
   MoreVertical
 } from 'lucide-react';
 
@@ -37,6 +39,7 @@ export default function Dashboard() {
   const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
   const [deletingProjectId, setDeletingProjectId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [editingProjectId, setEditingProjectId] = useState(null);
 
   useEffect(() => {
     // Auth guaranteed by wrapper, fetch data immediately
@@ -384,6 +387,18 @@ export default function Dashboard() {
         onClose={handleCloseWelcome}
         userCredits={credits?.balance || 50}
       />
+      
+      {/* Settings Modal */}
+      {editingProjectId && (
+        <ScreenplaySettingsModal
+          isOpen={!!editingProjectId}
+          onClose={() => {
+            setEditingProjectId(null);
+            fetchDashboardData(); // Refresh to show updated data
+          }}
+          screenplayId={editingProjectId}
+        />
+      )}
 
       {/* Project Creation Modal */}
       <ProjectCreationModal
@@ -557,6 +572,16 @@ export default function Dashboard() {
                       {!showConfirm ? (
                         <>
                           <span className="badge badge-sm badge-ghost">active</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProjectId(projectId);
+                            }}
+                            className="p-2 rounded-lg hover:bg-primary/20 text-base-content/60 hover:text-primary transition-colors"
+                            title="Edit screenplay settings"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
