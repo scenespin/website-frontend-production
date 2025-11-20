@@ -351,19 +351,29 @@ export default function Dashboard() {
     // Second click - actually delete
     setDeletingProjectId(projectId);
     try {
-      // Use screenplays API for deletion (projectId is actually screenplayId)
+      // Try screenplays API first (most common case)
       // Note: Next.js API route handles auth server-side
-      const screenplayId = projectId;
-      const response = await fetch(`/api/screenplays/${screenplayId}`, {
+      let response = await fetch(`/api/screenplays/${projectId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         }
       });
 
+      // If screenplay deletion returns 404, try projects API (for legacy projects)
+      if (response.status === 404) {
+        console.log('[Dashboard] Screenplay not found, trying projects API for:', projectId);
+        response = await fetch(`/api/projects/${projectId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
-        let errorMessage = 'Failed to delete screenplay';
+        let errorMessage = 'Failed to delete';
         try {
           const error = JSON.parse(errorText);
           errorMessage = error.message || error.error || errorMessage;
@@ -380,7 +390,7 @@ export default function Dashboard() {
       // Refresh the dashboard to get updated list from server
       await fetchDashboardData();
       setShowDeleteConfirm(null);
-      toast.success('Screenplay deleted successfully');
+      toast.success('Deleted successfully');
       
       // If this was the current screenplay, clear it
       if (currentScreenplayId === projectId) {
