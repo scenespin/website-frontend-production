@@ -161,23 +161,26 @@ export default function Dashboard() {
         setCredits({ balance: 0 }); // Fallback
       }
       
-      // Handle screenplays and projects - merge them together
-      const allProjects = [];
+      // UNIFIED: screenplay_id is primary, project_id is fallback
+      // Screenplays are the source of truth - projects are legacy/fallback
+      const allScreenplays = [];
+      const screenplayIdSet = new Set(); // Track IDs to avoid duplicates
       
-      // Add screenplays
+      // PRIMARY: Add screenplays (source of truth)
       if (screenplaysRes.status === 'fulfilled') {
         const screenplaysData = screenplaysRes.value;
         // API returns { success: true, data: { screenplays: [...], count: number } }
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
-        // Transform screenplays to match the projects format for UI compatibility
         screenplays.forEach(s => {
-          allProjects.push({
-            id: s.screenplay_id,
+          const screenplayId = s.screenplay_id;
+          screenplayIdSet.add(screenplayId);
+          allScreenplays.push({
+            id: screenplayId, // Primary identifier
+            screenplay_id: screenplayId, // Primary identifier
+            project_id: screenplayId, // Fallback compatibility (project_id = screenplay_id)
             name: s.title,
             created_at: s.created_at,
             updated_at: s.updated_at,
-            screenplay_id: s.screenplay_id,
-            project_id: s.screenplay_id, // For compatibility
             description: s.description,
             genre: s.metadata?.genre,
             storage_provider: s.storage_provider
@@ -187,23 +190,24 @@ export default function Dashboard() {
         console.error('Error fetching screenplays:', screenplaysRes.reason);
       }
       
-      // Add projects (these might not have corresponding screenplays yet)
+      // FALLBACK: Add projects that don't have screenplays yet (legacy data)
       if (projectsRes.status === 'fulfilled') {
         const projectsData = projectsRes.value;
         // API returns { success: true, data: { projects: [...], count: number } }
         const projects = projectsData?.data?.projects || projectsData?.projects || [];
         projects.forEach(p => {
-          // Check if this project already exists in allProjects (by ID)
-          const exists = allProjects.find(proj => proj.id === p.project_id || proj.project_id === p.project_id);
-          if (!exists) {
-            // Add project that doesn't have a screenplay yet
-            allProjects.push({
-              id: p.project_id,
+          // Treat project_id as screenplay_id (unified system)
+          const screenplayId = p.project_id;
+          // Only add if it doesn't already exist as a screenplay
+          if (!screenplayIdSet.has(screenplayId)) {
+            screenplayIdSet.add(screenplayId);
+            allScreenplays.push({
+              id: screenplayId, // Primary identifier
+              screenplay_id: screenplayId, // Primary identifier
+              project_id: screenplayId, // Fallback compatibility (project_id = screenplay_id)
               name: p.project_name,
               created_at: p.created_at,
               updated_at: p.updated_at,
-              screenplay_id: p.project_id, // Treat project_id as screenplay_id
-              project_id: p.project_id,
               description: p.description,
               genre: p.metadata?.genre,
               storage_provider: p.storage_provider
@@ -215,14 +219,14 @@ export default function Dashboard() {
       }
       
       // Sort by updated_at (most recent first)
-      allProjects.sort((a, b) => {
+      allScreenplays.sort((a, b) => {
         const dateA = new Date(a.updated_at || a.created_at || 0);
         const dateB = new Date(b.updated_at || b.created_at || 0);
         return dateB - dateA;
       });
       
-      setProjects(allProjects);
-      console.log('[Dashboard] Merged projects and screenplays:', allProjects.length, 'total');
+      setProjects(allScreenplays);
+      console.log('[Dashboard] Unified screenplays (screenplay_id primary, project_id fallback):', allScreenplays.length, 'total');
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
@@ -251,15 +255,16 @@ export default function Dashboard() {
     
     console.log('[Dashboard] Project received:', project);
     
-    // Transform project to match the format expected by the dashboard
-    // Backend returns project with project_id, but dashboard expects id
+    // UNIFIED: screenplay_id is primary, project_id is fallback
+    // Treat project_id as screenplay_id (they're the same in unified system)
+    const screenplayId = project.project_id || project.screenplay_id || project.id;
     const transformedProject = {
-      id: project.project_id || project.id,
+      id: screenplayId, // Primary identifier
+      screenplay_id: screenplayId, // Primary identifier
+      project_id: screenplayId, // Fallback compatibility (project_id = screenplay_id)
       name: project.project_name || project.name,
       created_at: project.created_at,
       updated_at: project.updated_at,
-      screenplay_id: project.project_id || project.id, // For compatibility
-      project_id: project.project_id || project.id,
       description: project.description,
       genre: project.metadata?.genre,
       storage_provider: project.storage_provider
