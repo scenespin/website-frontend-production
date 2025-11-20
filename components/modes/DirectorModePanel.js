@@ -28,7 +28,13 @@ function cleanFountainOutput(text) {
     .replace(/^---+$/gm, '')
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
     .replace(/```[a-z]*\n/g, '')
-    .replace(/```/g, '');
+    .replace(/```/g, '')
+    // 🔥 NEW: Remove markdown headers (## or ###) and convert to action lines
+    // Example: "## A FEW BLOCKS LATER" -> "A FEW BLOCKS LATER"
+    .replace(/^#+\s+(.+)$/gm, '$1')
+    // 🔥 NEW: Remove trailing asterisks (standalone * at end of line or end of content)
+    .replace(/\s*\*\s*$/gm, '') // Remove * at end of lines
+    .replace(/\s*\*$/, ''); // Remove * at very end of content
   
   // Remove common AI response patterns that aren't screenplay content
   const unwantedPatterns = [
@@ -97,10 +103,13 @@ function cleanFountainOutput(text) {
       break;
     }
     
-    // Skip scene headings for Director (they may include them, but we want to keep them)
-    // Actually, Director can include scene headings, so we'll keep them
-    // But skip markdown headers
+    // Skip markdown headers (already removed above, but double-check)
     if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
+      continue;
+    }
+    
+    // 🔥 NEW: Skip standalone asterisks (should already be removed, but catch any remaining)
+    if (/^\s*\*\s*$/.test(line)) {
       continue;
     }
     
