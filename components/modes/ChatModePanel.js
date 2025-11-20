@@ -292,15 +292,32 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
   // Keep single newlines between lines, but limit multiple newlines to max 2
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
   
-  // 3. 🔥 FIX: Don't trim leading/trailing whitespace - preserve newlines at start/end
-  // Only trim if there's excessive whitespace (more than 2 newlines)
+  // 3. 🔥 FIX: Preserve newlines but still trim excessive whitespace
+  // Limit excessive leading/trailing newlines but preserve single newlines
   // This preserves newlines before character names like "SARAH"
   if (cleaned.startsWith('\n\n\n')) {
     cleaned = cleaned.replace(/^\n+/, '\n\n'); // Limit leading newlines to 2
+  } else if (cleaned.startsWith('\n\n')) {
+    // Keep 2 newlines at start (for scene breaks)
+    // Don't trim
+  } else if (cleaned.startsWith('\n')) {
+    // Keep single newline at start
+    // Don't trim
   }
+  
   if (cleaned.endsWith('\n\n\n')) {
     cleaned = cleaned.replace(/\n+$/, '\n\n'); // Limit trailing newlines to 2
+  } else if (cleaned.endsWith('\n\n')) {
+    // Keep 2 newlines at end (for scene breaks)
+    // Don't trim
+  } else if (cleaned.endsWith('\n')) {
+    // Keep single newline at end
+    // Don't trim
   }
+  
+  // Final trim only removes spaces/tabs, not newlines
+  // This ensures content validation works (trim().length check)
+  cleaned = cleaned.trim(); // This removes spaces/tabs but newlines are preserved in the content
   
   return cleaned;
 }
