@@ -1524,14 +1524,15 @@ export default function MediaLibrary({
                                 e.preventDefault();
                                 return;
                               }
-                              setOpenMenuId(null);
+                              // Let Radix UI handle closing naturally - don't manually close here
+                              // This prevents race conditions with onClick handlers
                             }}
                           >
                             <DropdownMenuItem 
-                              onClick={(e) => { 
-                                e.stopPropagation();
+                              onSelect={(e) => { 
+                                // Use onSelect - Radix UI's recommended handler
+                                // It automatically closes the menu after selection
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
-                                setOpenMenuId(null);
                                 handleViewFile(file); 
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -1541,10 +1542,9 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => { 
-                                e.stopPropagation();
+                              onSelect={(e) => { 
+                                // Use onSelect - Radix UI's recommended handler
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
-                                setOpenMenuId(null);
                                 handleDownloadFile(file); 
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -1554,10 +1554,9 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => { 
-                                e.stopPropagation();
+                              onSelect={(e) => { 
+                                // Use onSelect - Radix UI's recommended handler
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
-                                setOpenMenuId(null);
                                 deleteFile(file.id); 
                               }}
                               className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
