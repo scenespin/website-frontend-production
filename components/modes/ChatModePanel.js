@@ -215,14 +215,15 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
                   newContentStart++;
                 }
                 // If there's substantial new content, use it instead of skipping
-                if (newContentStart < currentLineOriginal.length && currentLineOriginal.substring(newContentStart).trim().length > 3) {
+                const extractedContent = currentLineOriginal.substring(newContentStart).trim();
+                if (extractedContent.length > 3) {
                   console.log('[cleanFountainOutput] Extracting new content from partial duplicate:', {
                     original: currentLineOriginal,
                     duplicate: contextLineOriginal,
-                    newContent: currentLineOriginal.substring(newContentStart)
+                    newContent: extractedContent
                   });
-                  // Replace the line with just the new content
-                  screenplayLines.push(currentLineOriginal.substring(newContentStart).trim());
+                  // Replace the line with just the new content (preserve original line structure)
+                  screenplayLines.push(lines[i].substring(lines[i].indexOf(currentLineOriginal) + newContentStart).trimStart());
                   isDuplicate = true; // Mark as handled
                   break;
                 }
@@ -273,23 +274,33 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       }
       
       // If we've found screenplay content, include this line
+      // 🔥 FIX: Preserve original line structure (including leading/trailing whitespace for newlines)
+      // Use original line from lines array to preserve newline structure
       if (foundFirstScreenplayContent || line.length > 0) {
-        screenplayLines.push(lines[i]);
+        screenplayLines.push(lines[i]); // Use original line to preserve structure
       }
     }
   
   cleaned = screenplayLines.join('\n');
   
   // Whitespace normalization
-  // 1. Trim trailing whitespace from each line
+  // 1. Trim trailing whitespace from each line (but preserve newlines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // 2. Normalize multiple consecutive newlines to single newline (but preserve structure)
+  // 2. Normalize multiple consecutive newlines (but preserve single newlines between lines)
   // This ensures consistent spacing without losing line breaks
+  // Keep single newlines between lines, but limit multiple newlines to max 2
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
   
-  // 3. Trim leading/trailing whitespace from entire block
-  cleaned = cleaned.trim();
+  // 3. 🔥 FIX: Don't trim leading/trailing whitespace - preserve newlines at start/end
+  // Only trim if there's excessive whitespace (more than 2 newlines)
+  // This preserves newlines before character names like "SARAH"
+  if (cleaned.startsWith('\n\n\n')) {
+    cleaned = cleaned.replace(/^\n+/, '\n\n'); // Limit leading newlines to 2
+  }
+  if (cleaned.endsWith('\n\n\n')) {
+    cleaned = cleaned.replace(/\n+$/, '\n\n'); // Limit trailing newlines to 2
+  }
   
   return cleaned;
 }
