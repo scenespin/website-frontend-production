@@ -165,41 +165,82 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       // This allows users to insert content even if AI generated a full scene
       // The scene heading is removed, but the rest of the content is preserved
       
-      // 🔥 NEW: Detect and remove duplicate content that matches context before cursor
+      // 🔥 NEW: Smart duplicate detection with partial content extraction
       // This prevents AI from repeating content that already exists
-      // BUT: Be less strict - only skip if it's an EXACT match or very substantial substring match
+      // BUT: If a line starts with duplicate content but has new content after, extract just the new part
       if (contextBeforeCursor) {
         const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         const currentLineTrimmed = line.trim();
 
         // Only check for duplicates if the line is substantial (avoid false positives)
         if (currentLineTrimmed.length > 5) {
-          const isDuplicate = contextLines.some(contextLine => {
+          let isDuplicate = false;
+          let newContentStart = -1;
+          
+          // Check each context line for matches
+          for (const contextLine of contextLines) {
             // Only check substantial context lines
-            if (contextLine.length < 5) return false;
+            if (contextLine.length < 5) continue;
             
-            // Exact match (case-insensitive, ignoring extra whitespace) - STRICT
             const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ').trim();
             const normalizedCurrent = currentLineTrimmed.toLowerCase().replace(/\s+/g, ' ').trim();
             
+            // Exact match - skip entire line
             if (normalizedContext === normalizedCurrent) {
-              return true;
+              isDuplicate = true;
+              break;
             }
             
-            // Substring match - only if both are substantial (avoid removing short lines)
-            // Increased threshold from 10 to 25 chars to be less strict
-            if (normalizedContext.length > 25 && normalizedCurrent.length > 25) {
-              if (normalizedContext.includes(normalizedCurrent) || normalizedCurrent.includes(normalizedContext)) {
-                return true;
+            // Check if current line STARTS with context line (partial match at beginning)
+            // This means AI repeated the end of existing content but added new content after
+            if (normalizedCurrent.startsWith(normalizedContext) && normalizedCurrent.length > normalizedContext.length) {
+              // Find where the new content starts in the original (case-sensitive) line
+              const contextLineOriginal = contextLine.trim();
+              const currentLineOriginal = currentLineTrimmed;
+              
+              // Try to find the context line at the start of current line (case-insensitive)
+              const contextLower = contextLineOriginal.toLowerCase();
+              const currentLower = currentLineOriginal.toLowerCase();
+              
+              if (currentLower.startsWith(contextLower)) {
+                // Extract the new content (everything after the duplicate part)
+                newContentStart = contextLineOriginal.length;
+                // Skip whitespace after the duplicate
+                while (newContentStart < currentLineOriginal.length && /\s/.test(currentLineOriginal[newContentStart])) {
+                  newContentStart++;
+                }
+                // If there's substantial new content, use it instead of skipping
+                if (newContentStart < currentLineOriginal.length && currentLineOriginal.substring(newContentStart).trim().length > 3) {
+                  console.log('[cleanFountainOutput] Extracting new content from partial duplicate:', {
+                    original: currentLineOriginal,
+                    duplicate: contextLineOriginal,
+                    newContent: currentLineOriginal.substring(newContentStart)
+                  });
+                  // Replace the line with just the new content
+                  screenplayLines.push(currentLineOriginal.substring(newContentStart).trim());
+                  isDuplicate = true; // Mark as handled
+                  break;
+                }
               }
             }
             
-            return false;
-          });
+            // Check if context line contains current line (current is substring of context)
+            // Only if both are substantial (avoid removing short lines)
+            if (normalizedContext.length > 25 && normalizedCurrent.length > 25) {
+              if (normalizedContext.includes(normalizedCurrent)) {
+                isDuplicate = true;
+                break;
+              }
+            }
+          }
           
-          if (isDuplicate) {
+          if (isDuplicate && newContentStart === -1) {
+            // Only skip if we didn't extract new content
             console.log('[cleanFountainOutput] Skipping duplicate line:', line);
-            continue; // Skip duplicate lines
+            continue;
+          } else if (newContentStart !== -1) {
+            // Already added the new content above, skip adding the original line
+            continue;
           }
         }
       }
