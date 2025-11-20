@@ -723,26 +723,21 @@ export default function MediaLibrary({
 
       setUploadProgress(75);
 
-      // Step 3: Register the file with the backend
-      const registerResponse = await fetch(`${BACKEND_API_URL}/api/media/register`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          screenplayId: projectId, // projectId prop is actually screenplayId
-          projectId: projectId, // Keep for backward compatibility
+      // Step 3: Register the file with the backend using mutation (automatically invalidates cache)
+      // Add small delay to ensure DynamoDB consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      try {
+        await uploadMediaMutation.mutateAsync({
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,
           s3Key,
-        }),
-      });
-
-      if (!registerResponse.ok) {
-        const errorData = await registerResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to register file');
+        });
+        console.log('[MediaLibrary] File registered, cache invalidated');
+      } catch (error) {
+        console.error('[MediaLibrary] Failed to register file:', error);
+        throw new Error('File uploaded but failed to register. Please refresh the page.');
       }
 
       // Step 4: Generate S3 URL and get presigned download URL for StorageDecisionModal (bucket is private)
@@ -791,12 +786,7 @@ export default function MediaLibrary({
       });
       setShowStorageModal(true);
 
-      // Refresh list - add small delay to ensure DynamoDB consistency
-      console.log('[MediaLibrary] Refreshing file list...');
-      setTimeout(async () => {
-        await loadFiles();
-        console.log('[MediaLibrary] File list refreshed');
-      }, 500);
+      // File registration already handled above via mutation
       
       setUploadProgress(100);
 
@@ -817,27 +807,14 @@ export default function MediaLibrary({
     }
 
     try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      const response = await fetch(`${BACKEND_API_URL}/api/media/${fileId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        await loadFiles();
-        setOpenMenuId(null); // Close menu after deletion
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to delete file');
-      }
-
+      // Use mutation (automatically invalidates cache and refetches)
+      await deleteMediaMutation.mutateAsync(fileId);
+      setOpenMenuId(null); // Close menu after deletion
+      toast.success('File deleted successfully');
     } catch (error) {
       console.error('[MediaLibrary] Delete error:', error);
       setMutationError(error instanceof Error ? error.message : 'Failed to delete file');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete file');
     }
   };
 
@@ -1137,7 +1114,7 @@ export default function MediaLibrary({
                 popup.close();
               }
               // Refresh file list to include cloud storage files
-              await loadFiles();
+              await refetchFiles();
               alert(`${storageType === 'google-drive' ? 'Google Drive' : 'Dropbox'} connected successfully!`);
             }
           }
