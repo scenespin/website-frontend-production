@@ -1520,17 +1520,26 @@ export default function MediaLibrary({
                               setOpenMenuId(null);
                             }}
                             onInteractOutside={(e) => {
-                              // Allow clicks outside to close menu
-                              setOpenMenuId(null);
+                              // Allow clicks outside to close menu, but not if clicking on menu items
+                              const target = e.target as HTMLElement;
+                              if (!target.closest('[role="menuitem"]') && !target.closest('[data-radix-dropdown-menu-item]') && !target.closest('[data-slot="dropdown-menu-item"]')) {
+                                setOpenMenuId(null);
+                              }
                             }}
                           >
                             <DropdownMenuItem 
                               onSelect={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
+                                // Radix UI onSelect receives an Event, but we need to prevent default behavior
+                                if (e) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
                                 setOpenMenuId(null); // Close menu manually
-                                handleViewFile(file);
+                                // Use setTimeout to ensure menu closes before action
+                                setTimeout(() => {
+                                  handleViewFile(file);
+                                }, 0);
                               }}
                               onClick={(e) => {
                                 e.preventDefault();
@@ -1546,11 +1555,17 @@ export default function MediaLibrary({
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onSelect={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
+                                // Radix UI onSelect receives an Event, but we need to prevent default behavior
+                                if (e) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
                                 setOpenMenuId(null); // Close menu manually
-                                handleDownloadFile(file);
+                                // Use setTimeout to ensure menu closes before action
+                                setTimeout(() => {
+                                  handleDownloadFile(file);
+                                }, 0);
                               }}
                               onClick={(e) => {
                                 e.preventDefault();
@@ -1566,11 +1581,17 @@ export default function MediaLibrary({
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onSelect={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
+                                // Radix UI onSelect receives an Event, but we need to prevent default behavior
+                                if (e) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
                                 setOpenMenuId(null); // Close menu manually
-                                deleteFile(file.id);
+                                // Use setTimeout to ensure menu closes before action
+                                setTimeout(() => {
+                                  deleteFile(file.id);
+                                }, 0);
                               }}
                               onClick={(e) => {
                                 e.preventDefault();
