@@ -1528,7 +1528,8 @@ export default function MediaLibrary({
                             }}
                           >
                             <DropdownMenuItem 
-                              onSelect={() => { 
+                              onClick={(e) => { 
+                                e.stopPropagation();
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
                                 setOpenMenuId(null);
                                 handleViewFile(file); 
@@ -1540,7 +1541,8 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={() => { 
+                              onClick={(e) => { 
+                                e.stopPropagation();
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
                                 setOpenMenuId(null);
                                 handleDownloadFile(file); 
@@ -1552,7 +1554,8 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={() => { 
+                              onClick={(e) => { 
+                                e.stopPropagation();
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
                                 setOpenMenuId(null);
                                 deleteFile(file.id); 
