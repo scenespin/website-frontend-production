@@ -578,8 +578,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // Call streaming AI API
       setStreaming(true, '');
       let accumulatedText = '';
-      let retryAttempt = 0;
       const maxRetries = 1; // Only retry once
+      
+      // Use a ref-like object to track retry attempts across async callbacks
+      const retryState = { attempts: 0 };
       
       const makeApiCall = async (isRetry = false, retryErrors = []) => {
         const requestData = isRetry && isContentRequest && useJSONFormat && retryErrors.length > 0
@@ -618,9 +620,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               console.warn('[ChatModePanel] Raw JSON:', validation.rawJson);
               
               // Retry with more explicit instructions if we haven't retried yet
-              if (retryAttempt < maxRetries) {
-                retryAttempt++;
-                console.log('[ChatModePanel] Retrying with more explicit JSON instructions...');
+              if (retryState.attempts < maxRetries) {
+                retryState.attempts++;
+                console.log('[ChatModePanel] Retrying with more explicit JSON instructions... (attempt', retryState.attempts, 'of', maxRetries, ')');
                 setStreaming(true, '');
                 accumulatedText = '';
                 await makeApiCall(true, validation.errors);
