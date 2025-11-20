@@ -1404,16 +1404,29 @@ export default function MediaLibrary({
                       onClick={(e) => {
                         // Don't trigger file click if clicking on dropdown menu area or menu items
                         const target = e.target as HTMLElement;
+                        // Check if click originated from dropdown trigger or menu
                         if (
+                          target.closest('button[aria-haspopup="menu"]') ||
                           target.closest('[data-radix-dropdown-menu-trigger]') || 
                           target.closest('[data-radix-dropdown-menu-content]') ||
                           target.closest('[data-slot="dropdown-menu-content"]') ||
                           target.closest('[data-slot="dropdown-menu-item"]') ||
-                          target.closest('[data-radix-dropdown-menu-item]')
+                          target.closest('[data-radix-dropdown-menu-item]') ||
+                          target.closest('[role="menuitem"]')
                         ) {
                           return;
                         }
                         handleFileClick(file);
+                      }}
+                      onMouseDown={(e) => {
+                        // Don't trigger file click if mousedown originated from dropdown
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest('button[aria-haspopup="menu"]') ||
+                          target.closest('[data-radix-dropdown-menu-trigger]')
+                        ) {
+                          return;
+                        }
                       }}
                       className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
                         selectedFiles.has(file.id)
@@ -1477,7 +1490,11 @@ export default function MediaLibrary({
                       </div>
 
                       {/* Actions Menu */}
-                      <div className="absolute top-2 right-2 z-50" onClick={(e) => e.stopPropagation()}>
+                      <div 
+                        className="absolute top-2 right-2 z-50" 
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
                         <DropdownMenu 
                           open={isOpen(file.id)}
                           onOpenChange={(open) => {
@@ -1492,12 +1509,15 @@ export default function MediaLibrary({
                         >
                           <DropdownMenuTrigger asChild>
                             <button
-                              onClick={(e) => {
-                                // Stop propagation to prevent file card click, but don't prevent default
-                                // Radix UI needs the default behavior to open the menu
+                              onMouseDown={(e) => {
+                                // Stop propagation to prevent file card click
                                 e.stopPropagation();
                               }}
-                              className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
+                              onClick={(e) => {
+                                // Stop propagation to prevent file card click
+                                e.stopPropagation();
+                              }}
+                              className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-all hover:bg-[#1F1F1F] hover:border-[#DC143C] pointer-events-none group-hover:pointer-events-auto"
                               aria-label={`Actions for ${file.fileName}`}
                               aria-haspopup="menu"
                               aria-expanded={isOpen(file.id)}
@@ -1517,10 +1537,14 @@ export default function MediaLibrary({
                             onEscapeKeyDown={() => {
                               setOpenMenuId(null);
                             }}
+                            onInteractOutside={(e) => {
+                              // Allow clicks outside to close menu
+                              setOpenMenuId(null);
+                            }}
                           >
                             <DropdownMenuItem 
                               onSelect={() => {
-                                // Don't prevent default - let Radix handle menu closing
+                                // Radix handles menu closing automatically
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
                                 handleViewFile(file);
                               }}
@@ -1531,7 +1555,7 @@ export default function MediaLibrary({
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onSelect={() => {
-                                // Don't prevent default - let Radix handle menu closing
+                                // Radix handles menu closing automatically
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
                                 handleDownloadFile(file);
                               }}
@@ -1542,7 +1566,7 @@ export default function MediaLibrary({
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onSelect={() => {
-                                // Don't prevent default - let Radix handle menu closing
+                                // Radix handles menu closing automatically
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
                                 deleteFile(file.id);
                               }}
