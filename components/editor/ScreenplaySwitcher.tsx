@@ -18,11 +18,20 @@ export default function ScreenplaySwitcher() {
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentScreenplayId = screenplay?.screenplayId || searchParams?.get('project');
+  // Get current screenplay ID from URL params (most reliable) or context
+  const currentScreenplayId = searchParams?.get('project') || screenplay?.screenplayId;
 
   useEffect(() => {
     fetchScreenplays();
   }, []);
+
+  // Refresh screenplays when dropdown opens to ensure we have latest data
+  useEffect(() => {
+    if (isOpen) {
+      fetchScreenplays();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,8 +64,8 @@ export default function ScreenplaySwitcher() {
   const handleSwitch = (screenplayId: string) => {
     console.log('[ScreenplaySwitcher] Switching to screenplay:', screenplayId);
     setIsOpen(false);
-    // Navigate to the screenplay editor
-    router.push(`/write?project=${screenplayId}`);
+    // Navigate to the screenplay editor - use window.location for full reload to ensure context updates
+    window.location.href = `/write?project=${screenplayId}`;
   };
 
   const handleNewProject = () => {
@@ -65,12 +74,12 @@ export default function ScreenplaySwitcher() {
   };
 
   // Match by screenplay_id, with fallback to id
-  const currentScreenplay = screenplays.find(s => 
-    s.screenplay_id === currentScreenplayId || 
-    (s as any).id === currentScreenplayId ||
-    s.screenplay_id === searchParams?.get('project') ||
-    (s as any).id === searchParams?.get('project')
-  );
+  // Use URL param as primary source of truth
+  const urlProjectId = searchParams?.get('project');
+  const currentScreenplay = screenplays.find(s => {
+    const screenplayId = s.screenplay_id || (s as any).id;
+    return screenplayId === urlProjectId || screenplayId === currentScreenplayId;
+  });
 
   if (isLoading) {
     return (
@@ -124,8 +133,10 @@ export default function ScreenplaySwitcher() {
             ) : (
               screenplays.map((sp) => {
                 const screenplayId = sp.screenplay_id || (sp as any).id;
-                const isActive = screenplayId === currentScreenplayId || 
-                                 screenplayId === searchParams?.get('project');
+                // Only mark as active if it matches the URL param (most reliable)
+                const urlProjectId = searchParams?.get('project');
+                const isActive = screenplayId === urlProjectId || 
+                                 (urlProjectId === null && screenplayId === currentScreenplayId);
                 
                 return (
                   <button

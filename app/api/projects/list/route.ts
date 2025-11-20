@@ -9,24 +9,24 @@ import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the token from the Authorization header that the client sent
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    
-    if (!token) {
-      console.error('[Projects List] No token in Authorization header');
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify user is authenticated with Clerk
-    const { userId } = await auth();
+    console.log('[Projects List] Request received');
+    // Verify user is authenticated with Clerk and get token
+    const { userId, getToken } = await auth();
     if (!userId) {
       console.error('[Projects List] User not authenticated');
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    console.log('[Projects List] User authenticated:', userId);
+    // Get token with wryda-backend template for backend API
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) {
+      console.error('[Projects List] Could not generate token');
+      return NextResponse.json(
+        { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
       );
     }

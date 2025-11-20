@@ -365,11 +365,8 @@ export default function Dashboard() {
         throw new Error(errorMessage);
       }
 
-      // Remove from list - filter by both id and screenplay_id to be safe
-      setProjects(prevProjects => prevProjects.filter(p => {
-        const pId = p.id || p.screenplay_id;
-        return pId !== projectId;
-      }));
+      // Refresh the dashboard to get updated list from server
+      await fetchDashboardData();
       setShowDeleteConfirm(null);
       toast.success('Screenplay deleted successfully');
       
@@ -588,11 +585,11 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {!showConfirm ? (
                         <>
-                          {project.status && (
+                          {project.status && project.status !== 'active' && (
                             <span className={`badge badge-sm ${
-                              project.status === 'active' ? 'badge-ghost' : 
                               project.status === 'archived' ? 'badge-warning' : 
-                              'badge-error'
+                              project.status === 'deleted' ? 'badge-error' : 
+                              'badge-ghost'
                             }`}>
                               {project.status}
                             </span>
