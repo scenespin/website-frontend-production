@@ -66,6 +66,74 @@ export async function GET(
 }
 
 /**
+ * PUT /api/screenplays/[id]
+ * Proxy to backend to update a screenplay
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    console.log('[Screenplay Update API] Request received');
+    const { userId, getToken } = await auth();
+    
+    if (!userId) {
+      console.error('[Screenplay Update API] No userId found');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    console.log('[Screenplay Update API] User authenticated:', userId);
+    // Get token with wryda-backend template for backend API
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) {
+      console.error('[Screenplay Update API] Could not generate token');
+      return NextResponse.json(
+        { error: 'Unauthorized - Could not generate token' },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+    console.log('[Screenplay Update API] Updating screenplay:', id);
+
+    // Get request body
+    const body = await request.json();
+
+    // Proxy to backend
+    const backendResponse = await fetch(`${BACKEND_API_URL}/api/screenplays/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!backendResponse.ok) {
+      const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
+      console.error('[Screenplay Update API] Backend error:', backendResponse.status, errorData);
+      return NextResponse.json(errorData, { status: backendResponse.status });
+    }
+
+    const data = await backendResponse.json();
+    console.log('[Screenplay Update API] Successfully updated screenplay');
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('[Screenplay Update API] Error:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal Server Error',
+        message: error.message 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * DELETE /api/screenplays/[id]
  * Proxy to backend to delete a screenplay (soft delete)
  */

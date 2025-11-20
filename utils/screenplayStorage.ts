@@ -205,37 +205,43 @@ export async function updateScreenplay(
   params: UpdateScreenplayParams,
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
   const { screenplay_id, ...updates } = params;
   
-  console.error('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplay_id, {
+  console.log('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplay_id, {
     updates_keys: Object.keys(updates),
     beats_count: updates.beats?.length,
     characters_count: updates.characters?.length,
     locations_count: updates.locations?.length
   });
   
+  // Note: Next.js API route handles auth server-side, so we don't need to send token
   const response = await fetch(`/api/screenplays/${screenplay_id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify(updates)
   });
 
-  console.error('[screenplayStorage] Response status:', response.status, response.statusText);
+  console.log('[screenplayStorage] Response status:', response.status, response.statusText);
 
   if (!response.ok) {
-    const error = await response.json();
-    console.error('[screenplayStorage] ❌ API ERROR:', error);
-    throw new Error(error.message || 'Failed to update screenplay');
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorMessage = 'Failed to update screenplay';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.message || error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+    }
+    console.error('[screenplayStorage] ❌ API ERROR:', errorMessage);
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
-  console.error('[screenplayStorage] ✅ API SUCCESS:', Object.keys(data));
-  return data.data;
+  console.log('[screenplayStorage] ✅ API SUCCESS:', Object.keys(data));
+  // Handle different response structures: { data: {...} } or { success: true, data: {...} }
+  return data.data || data;
 }
 
 /**
