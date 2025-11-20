@@ -689,6 +689,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           });
         }
       );
+      };
+      
+      // Make the initial API call
+      await makeApiCall(false);
       
       // Clear input
       setInput('');
