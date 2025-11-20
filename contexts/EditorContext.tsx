@@ -593,9 +593,18 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     //     }
     // }, [state.content, screenplay]);
     
+    // Reset hasRunAutoImportRef when projectId changes to re-trigger loadContent
+    useEffect(() => {
+        console.log('[EditorContext] projectId changed:', projectId, 'Resetting hasRunAutoImportRef.');
+        hasRunAutoImportRef.current = false;
+        screenplayIdRef.current = null; // Also clear the screenplayIdRef to force a fresh load
+        // Optionally, reset editor state to default or loading state here
+        setState(defaultState);
+    }, [projectId]);
+    
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
-        // Only run once on mount
+        // Only run once per projectId change (controlled by hasRunAutoImportRef)
         if (hasRunAutoImportRef.current) {
             return;
         }
@@ -610,7 +619,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         async function loadContent() {
             try {
                 // 🔥 NEW: If a project/screenplay ID is specified in URL, load it directly
-                if (projectId && !screenplayIdRef.current) {
+                if (projectId) {
                     try {
                         console.log('[EditorContext] 🎬 Project/screenplay specified in URL:', projectId);
                         

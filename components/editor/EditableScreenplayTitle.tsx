@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { Pencil, Check, X, Loader2 } from 'lucide-react';
@@ -17,6 +18,7 @@ interface EditableScreenplayTitleProps {
  */
 export default function EditableScreenplayTitle({ className = '' }: EditableScreenplayTitleProps) {
   const { getToken } = useAuth();
+  const searchParams = useSearchParams();
   const screenplay = useScreenplay();
   const [title, setTitle] = useState<string>('Untitled Screenplay');
   const [isEditing, setIsEditing] = useState(false);
@@ -28,8 +30,10 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   // Fetch screenplay title when screenplayId changes or when updated
   useEffect(() => {
     const fetchTitle = async () => {
-      const screenplayId = screenplay?.screenplayId;
-      console.log('[EditableScreenplayTitle] Fetching title for screenplay:', screenplayId);
+      // Priority: URL param > ScreenplayContext
+      const urlProjectId = searchParams?.get('project');
+      const screenplayId = urlProjectId || screenplay?.screenplayId;
+      console.log('[EditableScreenplayTitle] Fetching title for screenplay:', screenplayId, '(from URL:', urlProjectId, ', from context:', screenplay?.screenplayId, ')');
       
       if (!screenplayId) {
         setTitle('Untitled Screenplay');
@@ -63,10 +67,12 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
     };
     window.addEventListener('screenplayUpdated', handleUpdate);
     return () => window.removeEventListener('screenplayUpdated', handleUpdate);
-  }, [screenplay?.screenplayId, getToken]); // Depend on screenplay.screenplayId to refetch when it changes
+  }, [searchParams, screenplay?.screenplayId, getToken]); // Depend on URL params and screenplay.screenplayId to refetch when it changes
 
   const handleClick = () => {
-    if (!screenplay?.screenplayId) {
+    const urlProjectId = searchParams?.get('project');
+    const screenplayId = urlProjectId || screenplay?.screenplayId;
+    if (!screenplayId) {
       toast.error('No screenplay loaded');
       return;
     }
@@ -80,7 +86,9 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   };
 
   const handleSave = async () => {
-    if (!screenplay?.screenplayId) {
+    const urlProjectId = searchParams?.get('project');
+    const screenplayId = urlProjectId || screenplay?.screenplayId;
+    if (!screenplayId) {
       toast.error('No screenplay loaded');
       setIsEditing(false);
       return;
@@ -101,7 +109,7 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
     try {
       await updateScreenplay(
         {
-          screenplay_id: screenplay.screenplayId,
+          screenplay_id: screenplayId,
           title: trimmedValue
         },
         getToken
