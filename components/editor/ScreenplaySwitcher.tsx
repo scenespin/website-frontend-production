@@ -42,16 +42,20 @@ export default function ScreenplaySwitcher() {
     try {
       setIsLoading(true);
       const screenplaysList = await listScreenplays(getToken, 'active', 50);
+      console.log('[ScreenplaySwitcher] Fetched screenplays:', screenplaysList?.length);
       setScreenplays(screenplaysList || []);
     } catch (error) {
       console.error('[ScreenplaySwitcher] Failed to fetch screenplays:', error);
+      setScreenplays([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSwitch = (screenplayId: string) => {
+    console.log('[ScreenplaySwitcher] Switching to screenplay:', screenplayId);
     setIsOpen(false);
+    // Navigate to the screenplay editor
     router.push(`/write?project=${screenplayId}`);
   };
 
@@ -60,7 +64,13 @@ export default function ScreenplaySwitcher() {
     router.push('/dashboard');
   };
 
-  const currentScreenplay = screenplays.find(s => s.screenplay_id === currentScreenplayId);
+  // Match by screenplay_id, with fallback to id
+  const currentScreenplay = screenplays.find(s => 
+    s.screenplay_id === currentScreenplayId || 
+    (s as any).id === currentScreenplayId ||
+    s.screenplay_id === searchParams?.get('project') ||
+    (s as any).id === searchParams?.get('project')
+  );
 
   if (isLoading) {
     return (
@@ -113,12 +123,18 @@ export default function ScreenplaySwitcher() {
               </div>
             ) : (
               screenplays.map((sp) => {
-                const isActive = sp.screenplay_id === currentScreenplayId;
+                const screenplayId = sp.screenplay_id || (sp as any).id;
+                const isActive = screenplayId === currentScreenplayId || 
+                                 screenplayId === searchParams?.get('project');
                 
                 return (
                   <button
-                    key={sp.screenplay_id}
-                    onClick={() => handleSwitch(sp.screenplay_id)}
+                    key={screenplayId}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSwitch(screenplayId);
+                    }}
                     className={cn(
                       "w-full px-4 py-3 flex items-start gap-3 hover:bg-base-200 transition-colors text-left",
                       isActive && "bg-cinema-red/10"
@@ -136,7 +152,7 @@ export default function ScreenplaySwitcher() {
                         "text-sm font-medium truncate",
                         isActive && "text-cinema-red"
                       )}>
-                        {sp.title || 'Untitled Screenplay'}
+                        {sp.title || (sp as any).name || 'Untitled Screenplay'}
                       </p>
                       {sp.description && (
                         <p className="text-xs text-base-content/60 mt-1 truncate">

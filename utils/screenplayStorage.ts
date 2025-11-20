@@ -174,25 +174,28 @@ export async function getScreenplay(
   screenplayId: string,
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay | null> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  const response = await fetch(`/api/screenplays/${screenplayId}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
+  // Note: Next.js API route handles auth server-side, so we don't need to send token
+  const response = await fetch(`/api/screenplays/${screenplayId}`);
 
   if (response.status === 404) {
     return null;
   }
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to get screenplay');
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorMessage = 'Failed to get screenplay';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.message || error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
-  return data.data;
+  // Handle different response structures: { data: {...} } or { success: true, data: {...} }
+  return data.data || data;
 }
 
 /**
@@ -265,21 +268,25 @@ export async function listScreenplays(
   status: 'active' | 'archived' | 'deleted' = 'active',
   limit: number = 50
 ): Promise<Screenplay[]> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
-  const response = await fetch(`/api/screenplays/list?status=${status}&limit=${limit}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
+  // Note: Next.js API route handles auth server-side, so we don't need to send token
+  const response = await fetch(`/api/screenplays/list?status=${status}&limit=${limit}`);
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to list screenplays');
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorMessage = 'Failed to list screenplays';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.message || error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
-  return data.data.screenplays;
+  // Handle different response structures:
+  // { data: { screenplays: [...] } } or { success: true, data: { screenplays: [...] } } or { screenplays: [...] }
+  return data.data?.screenplays || data.screenplays || [];
 }
 
 /**
