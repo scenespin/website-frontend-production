@@ -1493,12 +1493,8 @@ export default function MediaLibrary({
                           <DropdownMenuTrigger asChild>
                             <button
                               onClick={(e) => {
-                                // Stop propagation to prevent file card click
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                              onMouseDown={(e) => {
-                                // Stop propagation on mousedown too
+                                // Stop propagation to prevent file card click, but don't prevent default
+                                // Radix UI needs the default behavior to open the menu
                                 e.stopPropagation();
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
@@ -1514,7 +1510,6 @@ export default function MediaLibrary({
                             align="end" 
                             sideOffset={5}
                             className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-[9999] shadow-xl"
-                            style={{ backgroundColor: '#141414', color: '#FFFFFF', zIndex: 9999, pointerEvents: 'auto' }}
                             onCloseAutoFocus={(e) => {
                               // 🔥 FIX: Prevent focus trap issues with aria-hidden
                               e.preventDefault();
@@ -1522,24 +1517,10 @@ export default function MediaLibrary({
                             onEscapeKeyDown={() => {
                               setOpenMenuId(null);
                             }}
-                            onInteractOutside={(e) => {
-                              // Prevent closing when clicking on the trigger or inside menu content
-                              const target = e.target as HTMLElement;
-                              if (
-                                target.closest('[data-radix-dropdown-menu-trigger]') ||
-                                target.closest('[data-radix-dropdown-menu-content]') ||
-                                target.closest('[data-slot="dropdown-menu-content"]')
-                              ) {
-                                e.preventDefault();
-                                return;
-                              }
-                              setOpenMenuId(null);
-                            }}
                           >
                             <DropdownMenuItem 
-                              onSelect={(e) => {
-                                // onSelect is the recommended Radix UI way - it fires before onClick
-                                e.preventDefault();
+                              onSelect={() => {
+                                // Don't prevent default - let Radix handle menu closing
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
                                 handleViewFile(file);
                               }}
@@ -1549,8 +1530,8 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={(e) => {
-                                e.preventDefault();
+                              onSelect={() => {
+                                // Don't prevent default - let Radix handle menu closing
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
                                 handleDownloadFile(file);
                               }}
@@ -1560,8 +1541,8 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={(e) => {
-                                e.preventDefault();
+                              onSelect={() => {
+                                // Don't prevent default - let Radix handle menu closing
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
                                 deleteFile(file.id);
                               }}
