@@ -912,12 +912,13 @@ export default function MediaLibrary({
 
   const handleDownloadFile = async (file: MediaFile) => {
     try {
-      // For cloud storage files, we might need to get a download URL first
-      if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) throw new Error('Not authenticated');
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
 
-        // Get download URL from backend
+      let downloadUrl = file.fileUrl;
+
+      // For cloud storage files, get download URL from backend
+      if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
         const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -927,17 +928,55 @@ export default function MediaLibrary({
         if (response.ok) {
           const data = await response.json();
           if (data.downloadUrl) {
-            window.open(data.downloadUrl, '_blank');
+            downloadUrl = data.downloadUrl;
           }
         }
-      } else {
-        // For local/S3 files, use the fileUrl directly
-        window.open(file.fileUrl, '_blank');
+      } else if (file.storageType === 'wryda-temp' || file.storageType === 'local') {
+        // 🔥 FIX: For S3 files, generate presigned URL (bucket is private)
+        const s3Key = file.s3Key || (() => {
+          // Fallback: Try to extract from fileUrl if s3Key not stored
+          if (file.fileUrl.includes('.s3.') || file.fileUrl.includes('s3.amazonaws.com')) {
+            const s3KeyMatch = file.fileUrl.match(/s3[^/]*\/\/[^/]+\/(.+?)(\?|$)/);
+            if (s3KeyMatch && s3KeyMatch[1]) {
+              return decodeURIComponent(s3KeyMatch[1]);
+            }
+          }
+          return null;
+        })();
+        
+        if (s3Key) {
+          try {
+            const response = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key: s3Key,
+                expiresIn: 3600 // 1 hour
+              }),
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.downloadUrl) {
+                downloadUrl = data.downloadUrl;
+              }
+            }
+          } catch (error) {
+            console.warn('[MediaLibrary] Failed to get presigned URL for download, using original URL:', error);
+          }
+        }
       }
+
+      // Open download URL in new tab
+      window.open(downloadUrl, '_blank');
       setOpenMenuId(null); // Close menu
     } catch (error) {
       console.error('[MediaLibrary] Download error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to download file');
+      toast.error(error instanceof Error ? error.message : 'Failed to download file');
+      setOpenMenuId(null);
     }
   };
 
@@ -1489,8 +1528,9 @@ export default function MediaLibrary({
                             }}
                           >
                             <DropdownMenuItem 
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
+                              onSelect={(e) => { 
+                                e.preventDefault();
+                                console.log('[MediaLibrary] View clicked for file:', file.id);
                                 setOpenMenuId(null);
                                 handleViewFile(file); 
                               }}
@@ -1501,8 +1541,9 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
+                              onSelect={(e) => { 
+                                e.preventDefault();
+                                console.log('[MediaLibrary] Download clicked for file:', file.id);
                                 setOpenMenuId(null);
                                 handleDownloadFile(file); 
                               }}
@@ -1513,8 +1554,9 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => { 
-                                e.stopPropagation(); 
+                              onSelect={(e) => { 
+                                e.preventDefault();
+                                console.log('[MediaLibrary] Delete clicked for file:', file.id);
                                 setOpenMenuId(null);
                                 deleteFile(file.id); 
                               }}
