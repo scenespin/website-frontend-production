@@ -201,6 +201,30 @@ export default function MediaLibrary({
   const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
   // ============================================================================
+  // UI STATE (not server state - keep as useState)
+  // ============================================================================
+  
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
+  const { openMenuId, setOpenMenuId, isOpen } = useDropdownCoordinator();
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
+  const [showFolderSidebar, setShowFolderSidebar] = useState(true);
+  
+  // Folder files state (cloud storage files in folders - will be refactored in Phase 2C)
+  const [folderFiles, setFolderFiles] = useState<MediaFile[]>([]);
+  const [folderFilesLoading, setFolderFilesLoading] = useState(false);
+  
+  // Local error state for mutations (upload/delete)
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
+  // ============================================================================
   // REACT QUERY HOOKS (Phase 2B: React Query Integration)
   // ============================================================================
   
@@ -223,30 +247,13 @@ export default function MediaLibrary({
     data: storageQuota,
     isLoading: quotaLoading 
   } = useStorageQuota();
-  
+
   // Mutations
   const uploadMediaMutation = useUploadMedia(projectId);
   const deleteMediaMutation = useDeleteMedia(projectId);
   
   // Query client for on-demand presigned URL fetching
   const queryClient = useQueryClient();
-
-  // ============================================================================
-  // UI STATE (not server state - keep as useState)
-  // ============================================================================
-  
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [isDragging, setIsDragging] = useState(false);
-  const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
-  const { openMenuId, setOpenMenuId, isOpen } = useDropdownCoordinator();
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
-  const [showFolderSidebar, setShowFolderSidebar] = useState(true);
   
   // Storage Decision Modal state (same as Scene Builder)
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -256,13 +263,6 @@ export default function MediaLibrary({
     name: string;
     type: 'video' | 'image' | 'attachment';
   } | null>(null);
-  
-  // Folder files state (cloud storage files in folders - will be refactored in Phase 2C)
-  const [folderFiles, setFolderFiles] = useState<MediaFile[]>([]);
-  const [folderFilesLoading, setFolderFilesLoading] = useState(false);
-  
-  // Local error state for mutations (upload/delete)
-  const [mutationError, setMutationError] = useState<string | null>(null);
 
   // ============================================================================
   // API CALLS
