@@ -9,6 +9,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest, buildRewritePrompt } from '@/utils/promptBuilders';
+import { validateScreenplayContent, supportsNativeJSON, buildRetryPrompt } from '@/utils/jsonValidator';
 import toast from 'react-hot-toast';
 
 // Helper to clean AI output: strip markdown and remove writing notes
@@ -61,7 +62,7 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
     /Would you like.*$/is,
     // Remove "Here are some suggestions:" patterns
     /Here are (some|a few) (suggestions|options|ideas|ways|things).*$/is,
-    // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
+  // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
     /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
     /---\s*\n\s*WRITING NOTE.*$/is,
     /\*\*WRITING NOTE\*\*.*$/is,
@@ -313,7 +314,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
   useEffect(() => {
     if (state.isStreaming) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [state.isStreaming, state.streamingText]); // Only trigger when streaming state or streaming text changes
   
@@ -327,14 +328,14 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         !isSending && 
         !hasAutoSentRef.current) {
       console.log('[ChatModePanel] Auto-generating 3 rewrite options for selected text');
-      hasAutoSentRef.current = true;
+        hasAutoSentRef.current = true;
       
       // Auto-send empty string to trigger generic rewrite (will generate 3 options)
       setTimeout(() => {
         handleSend(''); // Empty string triggers generic rewrite with 3 options
         // Reset flag after sending completes
-        setTimeout(() => {
-          hasAutoSentRef.current = false;
+          setTimeout(() => {
+            hasAutoSentRef.current = false;
         }, 3000);
       }, 300);
     }
@@ -477,16 +478,25 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
       });
       
+      // 🔥 PHASE 4: Use JSON format for content requests (structured output)
+      // Check if model supports native JSON (for OpenAI models)
+      const useJSONFormat = isContentRequest; // Always use JSON for content requests
+      const modelSupportsNativeJSON = supportsNativeJSON(selectedModel);
+      
       // Build appropriate prompt using prompt builders
       builtPrompt = isContentRequest 
-        ? buildChatContentPrompt(prompt, sceneContext)
+        ? buildChatContentPrompt(prompt, sceneContext, useJSONFormat) // Pass useJSON flag
         : buildChatAdvicePrompt(prompt, sceneContext);
       
       // Build system prompt - Simple for content, permissive for advice
       if (isContentRequest) {
-        // SIMPLE system prompt for content generation (matches backend test that works)
-        // Keep it short and direct - complex prompts can confuse the model
-        systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. Write only the screenplay content they requested - no explanations, no suggestions, no alternatives.`;
+        // 🔥 PHASE 4: System prompt for JSON format
+        if (useJSONFormat) {
+          systemPrompt = `You are a professional screenwriting assistant. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
+        } else {
+          // Fallback: Original text format
+          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. Write only the screenplay content they requested - no explanations, no suggestions, no alternatives.`;
+        }
         
         // Add scene context if available (minimal, just for context)
         if (sceneContext) {
@@ -526,27 +536,25 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       let conversationHistory = [];
       if (!isContentRequest) {
         // For advice requests, include last 10 messages for context
-        const chatMessages = state.messages.filter(m => m.mode === 'chat').slice(-10);
+      const chatMessages = state.messages.filter(m => m.mode === 'chat').slice(-10);
         conversationHistory = chatMessages.map(m => ({
-          role: m.role,
-          content: m.content
-        }));
+        role: m.role,
+        content: m.content
+      }));
       }
       // For content requests, conversationHistory stays empty (fresh conversation)
       
       console.log('[ChatModePanel] API call params:', {
         isContentRequest,
+        useJSONFormat,
+        modelSupportsNativeJSON,
         conversationHistoryLength: conversationHistory.length,
         systemPromptLength: systemPrompt.length,
         userPromptLength: builtPrompt.length
       });
       
-      // Call streaming AI API
-      setStreaming(true, '');
-      let accumulatedText = '';
-      
-      await api.chat.generateStream(
-        {
+      // 🔥 PHASE 4: Prepare API request with JSON format support
+      const apiRequestData = {
           userPrompt: builtPrompt, // Use built prompt instead of raw prompt
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
@@ -557,40 +565,115 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
           } : null
-        },
+      };
+      
+      // 🔥 PHASE 4: Note: Backend doesn't support responseFormat yet
+      // For now, we use prompt engineering (works for all models)
+      // TODO: Add backend support for responseFormat when available
+      if (isContentRequest && useJSONFormat && modelSupportsNativeJSON) {
+        console.log('[ChatModePanel] Model supports native JSON, but backend support pending. Using prompt engineering.');
+        // apiRequestData.responseFormat = { type: 'json_object' }; // Will work when backend supports it
+      }
+      
+      // Call streaming AI API
+      setStreaming(true, '');
+      let accumulatedText = '';
+      let retryAttempt = 0;
+      const maxRetries = 1; // Only retry once
+      
+      const makeApiCall = async (isRetry = false, retryErrors = []) => {
+        const requestData = isRetry && isContentRequest && useJSONFormat && retryErrors.length > 0
+          ? {
+              ...apiRequestData,
+              userPrompt: buildRetryPrompt(builtPrompt, retryErrors)
+            }
+          : apiRequestData;
+        
+        await api.chat.generateStream(
+          requestData,
         // onChunk
         (chunk) => {
           accumulatedText += chunk;
           setStreaming(true, accumulatedText);
         },
         // onComplete
-        (fullContent) => {
-          // Clean the output and remove duplicates using context before cursor
-          const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
-          
-          // 🔥 PHASE 1 FIX: Validate content before adding message
-          // If cleaned content is empty or too short, log warning and use original
-          if (!cleanedContent || cleanedContent.trim().length < 3) {
-            console.warn('[ChatModePanel] ⚠️ Cleaned content is empty or too short. Original length:', fullContent?.length, 'Cleaned length:', cleanedContent?.length);
-            console.warn('[ChatModePanel] Original content preview:', fullContent?.substring(0, 200));
-            // Use original content if cleaned is empty (better than nothing)
-            const fallbackContent = fullContent?.trim() || 'No content generated';
-            addMessage({
-              role: 'assistant',
-              content: fallbackContent,
-              mode: 'chat'
-            });
+        async (fullContent) => {
+          // 🔥 PHASE 4: Validate JSON for content requests
+          if (isContentRequest && useJSONFormat) {
+            console.log('[ChatModePanel] Validating JSON response...');
+            const validation = validateScreenplayContent(fullContent, sceneContext?.contextBeforeCursor || null);
+            
+            if (validation.valid) {
+              console.log('[ChatModePanel] ✅ JSON validation passed');
+              addMessage({
+                role: 'assistant',
+                content: validation.content,
+                mode: 'chat'
+              });
+              setTimeout(() => {
+                setStreaming(false, '');
+              }, 100);
+            } else {
+              console.warn('[ChatModePanel] ❌ JSON validation failed:', validation.errors);
+              console.warn('[ChatModePanel] Raw JSON:', validation.rawJson);
+              
+              // Retry with more explicit instructions if we haven't retried yet
+              if (retryAttempt < maxRetries) {
+                retryAttempt++;
+                console.log('[ChatModePanel] Retrying with more explicit JSON instructions...');
+                setStreaming(true, '');
+                accumulatedText = '';
+                await makeApiCall(true, validation.errors);
+                return; // Don't continue with error handling
+              }
+              
+              // If retry failed or we've already retried, fallback to text cleaning
+              console.warn('[ChatModePanel] Falling back to text cleaning...');
+              const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
+              
+              if (!cleanedContent || cleanedContent.trim().length < 3) {
+                toast.error('Failed to generate valid content. Please try again.');
+                addMessage({
+                  role: 'assistant',
+                  content: '❌ Sorry, I encountered an error generating content. Please try again.',
+                  mode: 'chat'
+                });
+              } else {
+                addMessage({
+                  role: 'assistant',
+                  content: cleanedContent,
+                  mode: 'chat'
+                });
+              }
+              setTimeout(() => {
+                setStreaming(false, '');
+              }, 100);
+            }
           } else {
-            addMessage({
-              role: 'assistant',
-              content: cleanedContent,
-              mode: 'chat'
-            });
-          }
-          // Clear streaming after a brief delay to allow message to render
+            // For advice requests or fallback: use text cleaning
+            const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
+            
+            // 🔥 PHASE 1 FIX: Validate content before adding message
+            if (!cleanedContent || cleanedContent.trim().length < 3) {
+              console.warn('[ChatModePanel] ⚠️ Cleaned content is empty or too short. Original length:', fullContent?.length, 'Cleaned length:', cleanedContent?.length);
+              console.warn('[ChatModePanel] Original content preview:', fullContent?.substring(0, 200));
+              const fallbackContent = fullContent?.trim() || 'No content generated';
+              addMessage({
+                role: 'assistant',
+                content: fallbackContent,
+                mode: 'chat'
+              });
+            } else {
+          addMessage({
+            role: 'assistant',
+                content: cleanedContent,
+            mode: 'chat'
+          });
+            }
           setTimeout(() => {
             setStreaming(false, '');
           }, 100);
+          }
         },
         // onError
         (error) => {
@@ -785,15 +868,15 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     <div className="flex-1 min-w-0 space-y-3">
                       {/* Only show raw message content if we're not displaying parsed rewrite options */}
                       {!rewriteOptions && (
-                        <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
-                          {isUser ? (
-                            <div className="whitespace-pre-wrap break-words text-base-content">
-                              {message.content}
-                            </div>
-                          ) : (
-                            <MarkdownRenderer content={message.content} />
-                          )}
-                        </div>
+                      <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
+                        {isUser ? (
+                          <div className="whitespace-pre-wrap break-words text-base-content">
+                            {message.content}
+                          </div>
+                        ) : (
+                          <MarkdownRenderer content={message.content} />
+                        )}
+                      </div>
                       )}
                       
                       {/* Rewrite Options with Individual Insert Buttons */}
@@ -858,7 +941,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                                   selectionRange: state.selectionRange
                                 });
                               } else {
-                                onInsert(cleanedContent);
+                              onInsert(cleanedContent);
                               }
                               closeDrawer();
                             }}
@@ -921,7 +1004,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                               selectionRange: state.selectionRange
                             });
                           } else {
-                            onInsert(cleanedContent);
+                          onInsert(cleanedContent);
                           }
                           closeDrawer();
                         }}

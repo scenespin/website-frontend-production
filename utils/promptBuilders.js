@@ -69,7 +69,14 @@ export function detectContentRequest(message) {
  * @param {Object} sceneContext - Scene context from detectCurrentScene
  * @returns {string} Formatted prompt for content generation
  */
-export function buildChatContentPrompt(message, sceneContext) {
+/**
+ * Build chat content prompt with JSON format (Phase 4: Structured Output)
+ * @param {string} message - User's message
+ * @param {Object} sceneContext - Scene context from detectCurrentScene
+ * @param {boolean} useJSON - Whether to request JSON format (default: true for Phase 4)
+ * @returns {string} Formatted prompt for content generation
+ */
+export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
   
   // 🔥 CRITICAL: Build limited context window around cursor (before and after)
@@ -89,7 +96,64 @@ export function buildChatContentPrompt(message, sceneContext) {
     
     continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output.';
   }
+
+  // Phase 4: JSON Format Request
+  if (useJSON) {
+    return `${contextInfo}User's request: "${message}"
+
+YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
+
+🚫 ABSOLUTELY FORBIDDEN:
+- NO analysis, critique, or feedback about the story
+- NO suggestions or alternatives
+- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
+- NO explanations about why something is good or bad
+- NO meta-commentary about writing or storytelling
+- NO "This would..." or "This could..." statements
+- NO "Consider..." or "Think about..." statements
+- NO lists of options or alternatives
+- NO scene headings (INT./EXT.) - NEVER include scene headings
+- NO repeating content that already exists before the cursor
+- NO rewriting the beginning of the scene - CONTINUE from where the cursor is
+
+✅ YOU MUST RESPOND WITH VALID JSON ONLY:
+
+{
+  "content": ["line 1", "line 2", "line 3"],
+  "lineCount": 3
+}
+
+JSON SCHEMA REQUIREMENTS:
+- "content": Array of 1-5 strings (screenplay lines)
+- "lineCount": Number matching content.length
+- Each line in content array is a string (action or dialogue)
+- NO scene headings in any line
+- NO content that exists before the cursor
+- NO markdown formatting in JSON
+- NO explanations outside JSON
+
+EXAMPLE JSON RESPONSE:
+{
+  "content": [
+    "The download bar STOPS at 47%.",
+    "A SPARK erupts from the back of her computer tower.",
+    "Then another. WHOOSH — the tower EXPLODES in a burst of flame and smoke, throwing Sarah backward in her chair."
+  ],
+  "lineCount": 3
+}
+
+CRITICAL INSTRUCTIONS:
+1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
+2. content array must have 1-5 items
+3. Each item is a screenplay line (action or dialogue)
+4. NO scene headings (INT./EXT.)
+5. NO repeating content before cursor
+6. lineCount must exactly match content.length${continuationContext}
+
+OUTPUT: Only valid JSON object. Nothing else.`;
+  }
   
+  // Fallback: Original text format (for backward compatibility)
   return `${contextInfo}User's request: "${message}"
 
 YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
