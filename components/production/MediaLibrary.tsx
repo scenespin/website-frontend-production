@@ -687,7 +687,11 @@ export default function MediaLibrary({
         throw new Error(errorData.error || 'Failed to register file');
       }
 
-      // Step 4: Get presigned download URL for StorageDecisionModal (bucket is private)
+      // Step 4: Generate S3 URL and get presigned download URL for StorageDecisionModal (bucket is private)
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      
       let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
       try {
         const downloadResponse = await fetch('/api/s3/download-url', {
