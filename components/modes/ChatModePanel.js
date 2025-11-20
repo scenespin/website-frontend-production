@@ -191,9 +191,14 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
               break;
             }
             
+            // 🔥 FIX: Don't extract partial content if the match is just a character name
+            // Character names (ALL CAPS, short) are common and shouldn't trigger extraction
+            const isCharacterName = /^[A-Z][A-Z\s#0-9']+$/.test(contextLine.trim()) && contextLine.trim().length < 30;
+            
             // Check if current line STARTS with context line (partial match at beginning)
             // This means AI repeated the end of existing content but added new content after
-            if (normalizedCurrent.startsWith(normalizedContext) && normalizedCurrent.length > normalizedContext.length) {
+            // BUT: Skip if context line is just a character name (common in screenplays)
+            if (!isCharacterName && normalizedCurrent.startsWith(normalizedContext) && normalizedCurrent.length > normalizedContext.length) {
               // Find where the new content starts in the original (case-sensitive) line
               const contextLineOriginal = contextLine.trim();
               const currentLineOriginal = currentLineTrimmed;
@@ -221,6 +226,23 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
                   isDuplicate = true; // Mark as handled
                   break;
                 }
+              }
+            }
+            
+            // 🔥 FIX: Also check if current line starts with a character name that appears in context
+            // But only if it's followed by action (not just the character name alone)
+            // Example: Context has "SARAH (whispers) Holy shit." and AI generates "SARAH glances at..."
+            // We should keep "SARAH glances at..." not extract just "glances at..."
+            if (isCharacterName) {
+              // If context line is a character name, check if current line starts with it
+              const contextName = contextLineOriginal.trim();
+              const currentStartsWithName = currentLineOriginal.trim().toLowerCase().startsWith(contextName.toLowerCase());
+              
+              if (currentStartsWithName && currentLineOriginal.trim().length > contextName.length + 5) {
+                // Current line starts with the character name but has more content
+                // This is valid - character names appear in action lines, don't extract
+                // Just continue to next check (don't mark as duplicate)
+                continue;
               }
             }
             
