@@ -154,46 +154,53 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip markdown headers
       }
       
-      // If we find a scene heading, skip it AND mark that a full scene was generated (we don't want this)
+      // If we find a scene heading, skip it (but continue processing - don't break)
+      // Users might still want content even if AI generated a full scene
       if (/^(INT\.|EXT\.|I\/E\.|#\s*INT\.|#\s*EXT\.)/i.test(line)) {
         sceneHeadingFound = true;
         continue; // Skip scene headings (including markdown headers like "# INT. NEWS OFFICE - NIGHT")
       }
       
-      // If we've seen a scene heading, we're in a full scene - stop processing (user only wanted 1-5 lines)
-      if (sceneHeadingFound) {
-        break; // Don't include content from full scenes
-      }
+      // 🔥 RELAXED: Don't break on scene headings - just skip them and continue
+      // This allows users to insert content even if AI generated a full scene
+      // The scene heading is removed, but the rest of the content is preserved
       
       // 🔥 NEW: Detect and remove duplicate content that matches context before cursor
       // This prevents AI from repeating content that already exists
+      // BUT: Be less strict - only skip if it's an EXACT match or very substantial substring match
       if (contextBeforeCursor) {
         const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         const currentLineTrimmed = line.trim();
-        
-        // Check if this line matches any line from context before cursor (exact match)
-        // This is best practice: exact match first (simple, reliable, no false positives)
-        const isDuplicate = contextLines.some(contextLine => {
-          // Exact match (case-insensitive, ignoring extra whitespace)
-          const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ').trim();
-          const normalizedCurrent = currentLineTrimmed.toLowerCase().replace(/\s+/g, ' ').trim();
+
+        // Only check for duplicates if the line is substantial (avoid false positives)
+        if (currentLineTrimmed.length > 5) {
+          const isDuplicate = contextLines.some(contextLine => {
+            // Only check substantial context lines
+            if (contextLine.length < 5) return false;
+            
+            // Exact match (case-insensitive, ignoring extra whitespace) - STRICT
+            const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ').trim();
+            const normalizedCurrent = currentLineTrimmed.toLowerCase().replace(/\s+/g, ' ').trim();
+            
+            if (normalizedContext === normalizedCurrent) {
+              return true;
+            }
+            
+            // Substring match - only if both are substantial (avoid removing short lines)
+            // Increased threshold from 10 to 25 chars to be less strict
+            if (normalizedContext.length > 25 && normalizedCurrent.length > 25) {
+              if (normalizedContext.includes(normalizedCurrent) || normalizedCurrent.includes(normalizedContext)) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
           
-          // Match if lines are identical (allowing for minor whitespace differences)
-          if (normalizedContext === normalizedCurrent) {
-            return true;
+          if (isDuplicate) {
+            console.log('[cleanFountainOutput] Skipping duplicate line:', line);
+            continue; // Skip duplicate lines
           }
-          
-          // Also check if current line is a substring of context line (handles partial matches)
-          // This catches cases where AI repeats a phrase that's part of a longer line
-          if (normalizedContext.includes(normalizedCurrent) && normalizedCurrent.length > 10) {
-            return true;
-          }
-          
-          return false;
-        });
-        
-        if (isDuplicate) {
-          continue; // Skip duplicate lines
         }
       }
       
