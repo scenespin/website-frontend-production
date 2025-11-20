@@ -10,18 +10,22 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Screenplay List API] Request received');
     const { userId, getToken } = await auth();
     
     if (!userId) {
+      console.error('[Screenplay List API] No userId found');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    console.log('[Screenplay List API] User authenticated:', userId);
     // Get token with wryda-backend template for backend API
     const token = await getToken({ template: 'wryda-backend' });
     if (!token) {
+      console.error('[Screenplay List API] Could not generate token');
       return NextResponse.json(
         { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
@@ -34,17 +38,17 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '50';
 
     // Proxy to backend
-    const backendResponse = await fetch(
-      `${BACKEND_API_URL}/api/screenplays/list?status=${status}&limit=${limit}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const backendUrl = `${BACKEND_API_URL}/api/screenplays/list?status=${status}&limit=${limit}`;
+    console.log('[Screenplay List API] Proxying to backend:', backendUrl);
+    const backendResponse = await fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
+    console.log('[Screenplay List API] Backend response status:', backendResponse.status);
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
       console.error('[Screenplay List API] Backend error:', backendResponse.status, errorData);
@@ -52,6 +56,11 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await backendResponse.json();
+    console.log('[Screenplay List API] Backend response data:', { 
+      success: data?.success, 
+      count: data?.data?.count || data?.count,
+      screenplaysCount: data?.data?.screenplays?.length || data?.screenplays?.length 
+    });
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('[Screenplay List API] Error:', error);

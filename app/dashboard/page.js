@@ -116,19 +116,25 @@ export default function Dashboard() {
       
       // Fetch data independently so one failure doesn't break everything
       // Fetch both screenplays AND projects, then merge them
-      const token = await getToken({ template: 'wryda-backend' });
+      // Note: Next.js API routes handle auth server-side, so we don't need to send token
       const [creditsRes, screenplaysRes, projectsRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
-        fetch('/api/screenplays/list?status=active&limit=50', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }).then(r => r.json()),
-        fetch('/api/projects/list', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }).then(r => r.json()),
+        fetch('/api/screenplays/list?status=active&limit=50')
+          .then(async r => {
+            if (!r.ok) {
+              const errorText = await r.text().catch(() => 'Unknown error');
+              throw new Error(`Failed to fetch screenplays: ${r.status} ${errorText}`);
+            }
+            return r.json();
+          }),
+        fetch('/api/projects/list')
+          .then(async r => {
+            if (!r.ok) {
+              const errorText = await r.text().catch(() => 'Unknown error');
+              throw new Error(`Failed to fetch projects: ${r.status} ${errorText}`);
+            }
+            return r.json();
+          }),
         api.video.getJobs()
       ]);
       
@@ -172,8 +178,10 @@ export default function Dashboard() {
       // PRIMARY: Add screenplays (source of truth)
       if (screenplaysRes.status === 'fulfilled') {
         const screenplaysData = screenplaysRes.value;
+        console.log('[Dashboard] Screenplays API response:', screenplaysData);
         // API returns { success: true, data: { screenplays: [...], count: number } }
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
+        console.log('[Dashboard] Parsed screenplays:', screenplays.length);
         screenplays.forEach(s => {
           const screenplayId = s.screenplay_id;
           screenplayIdSet.add(screenplayId);
@@ -186,11 +194,18 @@ export default function Dashboard() {
             updated_at: s.updated_at,
             description: s.description,
             genre: s.metadata?.genre,
-            storage_provider: s.storage_provider
+            storage_provider: s.storage_provider,
+            status: s.status || 'active' // Include status from API
           });
         });
       } else {
-        console.error('Error fetching screenplays:', screenplaysRes.reason);
+        console.error('[Dashboard] Error fetching screenplays:', screenplaysRes.reason);
+        console.error('[Dashboard] Screenplay fetch error details:', {
+          message: screenplaysRes.reason?.message,
+          stack: screenplaysRes.reason?.stack,
+          status: screenplaysRes.reason?.response?.status,
+          statusText: screenplaysRes.reason?.response?.statusText
+        });
       }
       
       // FALLBACK: Add projects that don't have screenplays yet (legacy data)
@@ -213,7 +228,8 @@ export default function Dashboard() {
               updated_at: p.updated_at,
               description: p.description,
               genre: p.metadata?.genre,
-              storage_provider: p.storage_provider
+              storage_provider: p.storage_provider,
+              status: p.status || 'active' // Include status from API
             });
           }
         });
@@ -281,12 +297,7 @@ export default function Dashboard() {
     // Also refresh the projects list from the backend to ensure consistency
     // This ensures the project appears even if user navigates back
     try {
-      const token = await getToken({ template: 'wryda-backend' });
-      const screenplaysRes = await fetch('/api/screenplays/list?status=active&limit=50', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const screenplaysRes = await fetch('/api/screenplays/list?status=active&limit=50');
       
       if (screenplaysRes.ok) {
         const screenplaysData = await screenplaysRes.json();
@@ -332,20 +343,26 @@ export default function Dashboard() {
     // Second click - actually delete
     setDeletingProjectId(projectId);
     try {
-      const token = await getToken({ template: 'wryda-backend' });
       // Use screenplays API for deletion (projectId is actually screenplayId)
+      // Note: Next.js API route handles auth server-side
       const screenplayId = projectId;
       const response = await fetch(`/api/screenplays/${screenplayId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete screenplay');
+        const errorText = await response.text().catch(() => 'Unknown error');
+        let errorMessage = 'Failed to delete screenplay';
+        try {
+          const error = JSON.parse(errorText);
+          errorMessage = error.message || error.error || errorMessage;
+        } catch {
+          errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Remove from list - filter by both id and screenplay_id to be safe
@@ -571,7 +588,15 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {!showConfirm ? (
                         <>
-                          <span className="badge badge-sm badge-ghost">active</span>
+                          {project.status && (
+                            <span className={`badge badge-sm ${
+                              project.status === 'active' ? 'badge-ghost' : 
+                              project.status === 'archived' ? 'badge-warning' : 
+                              'badge-error'
+                            }`}>
+                              {project.status}
+                            </span>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

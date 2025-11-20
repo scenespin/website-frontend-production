@@ -12,18 +12,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[Screenplay Get API] Request received');
     const { userId, getToken } = await auth();
     
     if (!userId) {
+      console.error('[Screenplay Get API] No userId found');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    console.log('[Screenplay Get API] User authenticated:', userId);
     // Get token with wryda-backend template for backend API
     const token = await getToken({ template: 'wryda-backend' });
     if (!token) {
+      console.error('[Screenplay Get API] Could not generate token');
       return NextResponse.json(
         { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
@@ -31,6 +35,7 @@ export async function GET(
     }
 
     const { id } = await params;
+    console.log('[Screenplay Get API] Fetching screenplay:', id);
 
     // Proxy to backend
     const backendResponse = await fetch(`${BACKEND_API_URL}/api/screenplays/${id}`, {
@@ -69,18 +74,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[Screenplay Delete API] Request received');
     const { userId, getToken } = await auth();
     
     if (!userId) {
+      console.error('[Screenplay Delete API] No userId found');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    console.log('[Screenplay Delete API] User authenticated:', userId);
     // Get token with wryda-backend template for backend API
     const token = await getToken({ template: 'wryda-backend' });
     if (!token) {
+      console.error('[Screenplay Delete API] Could not generate token');
       return NextResponse.json(
         { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
@@ -88,6 +97,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    console.log('[Screenplay Delete API] Deleting screenplay:', id);
 
     // Proxy to backend
     const backendResponse = await fetch(`${BACKEND_API_URL}/api/screenplays/${id}`, {
