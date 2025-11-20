@@ -479,7 +479,7 @@ export default function MediaLibrary({
   };
   
   // Determine which files to display
-  const displayFiles = selectedFolderId ? folderFiles : files;
+  const displayFiles: MediaFile[] = selectedFolderId ? folderFiles : (files as MediaFile[]);
   const displayLoading = selectedFolderId ? folderFilesLoading : isLoading;
   const displayError = mutationError || filesError?.message || null;
   
@@ -495,7 +495,7 @@ export default function MediaLibrary({
   const getFileUrl = (file: MediaFile): string | undefined => {
     if (file.storageType === 'local' || file.storageType === 'wryda-temp') {
       if (file.s3Key && bulkPresignedUrls) {
-        return bulkPresignedUrls.get(file.s3Key);
+        return (bulkPresignedUrls as Map<string, string>).get(file.s3Key);
       }
       // Fallback to deprecated fileUrl if available (for backward compatibility during transition)
       return file.fileUrl;
@@ -519,70 +519,8 @@ export default function MediaLibrary({
     return 'other';
   };
 
-  const loadStorageQuota = async () => {
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) return;
-
-      const response = await fetch(`${BACKEND_API_URL}/api/storage/quota`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStorageQuota(data.quota);
-      }
-    } catch (error) {
-      console.error('[MediaLibrary] Quota error:', error);
-    }
-  };
-
-  const loadCloudConnections = async () => {
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        // User not authenticated - silently fail (not an error)
-        setCloudConnections([]);
-        return;
-      }
-
-      const response = await fetch(`${BACKEND_API_URL}/api/storage/connections`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const connections: CloudStorageConnection[] = (data.connections || []).map((conn: any) => ({
-          provider: conn.provider,
-          connected: conn.status === 'active' || conn.status === 'connected',
-          connectedAt: conn.connected_at,
-          quota: conn.quota_used && conn.quota_total ? {
-            used: conn.quota_used,
-            total: conn.quota_total,
-            storageType: conn.provider
-          } : undefined,
-        }));
-        setCloudConnections(connections);
-      } else if (response.status === 401) {
-        // Unauthorized - user not authenticated or token expired
-        // Silently fail (not an error, just means no connections available)
-        setCloudConnections([]);
-        console.debug('[MediaLibrary] Not authenticated for storage connections');
-      } else {
-        // Other error - log but don't block
-        console.warn('[MediaLibrary] Failed to load cloud connections:', response.status, response.statusText);
-        setCloudConnections([]);
-      }
-    } catch (error) {
-      // Network or other error - silently fail (not critical)
-      console.debug('[MediaLibrary] Cloud connections error (non-critical):', error);
-      setCloudConnections([]);
-    }
-  };
+  // loadStorageQuota and loadCloudConnections removed - now handled by React Query hooks
+  // (useStorageQuota and useStorageConnectionsQuery)
 
   const uploadFile = async (file: File) => {
     if (file.size > maxFileSize * 1024 * 1024) {
@@ -1211,9 +1149,9 @@ export default function MediaLibrary({
           {/* Storage Quota */}
           {storageQuota && (
             <div className="text-sm text-[#808080]">
-              <span className="font-medium">{formatFileSize(storageQuota.used)}</span>
+              <span className="font-medium">{formatFileSize((storageQuota as { used: number; total: number }).used)}</span>
               {' / '}
-              <span>{formatFileSize(storageQuota.total)}</span>
+              <span>{formatFileSize((storageQuota as { used: number; total: number }).total)}</span>
             </div>
           )}
         </div>
@@ -1257,12 +1195,12 @@ export default function MediaLibrary({
           <button
             onClick={() => handleConnectDrive('google-drive')}
             className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
-              cloudConnections.find(c => c.provider === 'google-drive')?.connected
+              (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected
                 ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
                 : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
             }`}
           >
-            {cloudConnections.find(c => c.provider === 'google-drive')?.connected ? (
+            {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected ? (
               <>
                 <Check className="w-5 h-5" />
                 <span className="hidden sm:inline">Drive Connected</span>
@@ -1278,12 +1216,12 @@ export default function MediaLibrary({
           <button
             onClick={() => handleConnectDrive('dropbox')}
             className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
-              cloudConnections.find(c => c.provider === 'dropbox')?.connected
+              (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected
                 ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
                 : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
             }`}
           >
-            {cloudConnections.find(c => c.provider === 'dropbox')?.connected ? (
+            {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected ? (
               <>
                 <Check className="w-5 h-5" />
                 <span className="hidden sm:inline">Dropbox Connected</span>
@@ -1348,12 +1286,12 @@ export default function MediaLibrary({
       </div>
 
       {/* Error Message */}
-      {error && (
+      {displayError && (
         <div className="mx-6 mt-4 p-4 bg-[#DC143C]/20 border border-[#DC143C] rounded-lg flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[#DC143C] flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-medium text-[#FFFFFF]">Error</p>
-            <p className="text-sm text-[#B3B3B3]">{error}</p>
+            <p className="text-sm text-[#B3B3B3]">{displayError}</p>
           </div>
           <button
             onClick={() => setMutationError(null)}

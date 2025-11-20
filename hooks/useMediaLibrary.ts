@@ -90,7 +90,7 @@ export function useMediaFiles(screenplayId: string, enabled: boolean = true) {
     },
     enabled: enabled && !!screenplayId,
     staleTime: 30 * 1000, // 30 seconds - files list doesn't change often
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -136,7 +136,7 @@ export function usePresignedUrl(s3Key: string | null, enabled: boolean = false) 
     },
     enabled: enabled && !!s3Key,
     staleTime: 5 * 60 * 1000, // 5 minutes - presigned URLs expire in 1 hour, refresh cache after 5 min
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
@@ -190,7 +190,7 @@ export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) 
     },
     enabled: enabled && s3Keys.length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
@@ -246,7 +246,7 @@ export function useStorageConnectionsQuery(enabled: boolean = true) {
     },
     enabled: enabled && isSignedIn,
     staleTime: 60 * 1000, // 1 minute - connections don't change often
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Only retry once for 401 errors
     retryDelay: 1000,
   });
@@ -281,7 +281,7 @@ export function useStorageQuota(enabled: boolean = true) {
     },
     enabled,
     staleTime: 60 * 1000, // 1 minute
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
 }
