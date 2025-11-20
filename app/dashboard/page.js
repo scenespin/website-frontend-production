@@ -112,11 +112,16 @@ export default function Dashboard() {
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       
       // Fetch data independently so one failure doesn't break everything
-      // Use screenplays API instead of projects
+      // Fetch both screenplays AND projects, then merge them
       const token = await getToken({ template: 'wryda-backend' });
-      const [creditsRes, screenplaysRes, videosRes] = await Promise.allSettled([
+      const [creditsRes, screenplaysRes, projectsRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
         fetch('/api/screenplays/list?status=active&limit=50', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(r => r.json()),
+        fetch('/api/projects/list', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -156,23 +161,68 @@ export default function Dashboard() {
         setCredits({ balance: 0 }); // Fallback
       }
       
-      // Handle screenplays (non-critical)
+      // Handle screenplays and projects - merge them together
+      const allProjects = [];
+      
+      // Add screenplays
       if (screenplaysRes.status === 'fulfilled') {
         const screenplaysData = screenplaysRes.value;
         // API returns { success: true, data: { screenplays: [...], count: number } }
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
         // Transform screenplays to match the projects format for UI compatibility
-        setProjects(screenplays.map(s => ({
-          id: s.screenplay_id,
-          name: s.title,
-          created_at: s.created_at,
-          updated_at: s.updated_at,
-          screenplay_id: s.screenplay_id // Keep for reference
-        })));
+        screenplays.forEach(s => {
+          allProjects.push({
+            id: s.screenplay_id,
+            name: s.title,
+            created_at: s.created_at,
+            updated_at: s.updated_at,
+            screenplay_id: s.screenplay_id,
+            project_id: s.screenplay_id, // For compatibility
+            description: s.description,
+            genre: s.metadata?.genre,
+            storage_provider: s.storage_provider
+          });
+        });
       } else {
         console.error('Error fetching screenplays:', screenplaysRes.reason);
-        setProjects([]);
       }
+      
+      // Add projects (these might not have corresponding screenplays yet)
+      if (projectsRes.status === 'fulfilled') {
+        const projectsData = projectsRes.value;
+        // API returns { success: true, data: { projects: [...], count: number } }
+        const projects = projectsData?.data?.projects || projectsData?.projects || [];
+        projects.forEach(p => {
+          // Check if this project already exists in allProjects (by ID)
+          const exists = allProjects.find(proj => proj.id === p.project_id || proj.project_id === p.project_id);
+          if (!exists) {
+            // Add project that doesn't have a screenplay yet
+            allProjects.push({
+              id: p.project_id,
+              name: p.project_name,
+              created_at: p.created_at,
+              updated_at: p.updated_at,
+              screenplay_id: p.project_id, // Treat project_id as screenplay_id
+              project_id: p.project_id,
+              description: p.description,
+              genre: p.metadata?.genre,
+              storage_provider: p.storage_provider
+            });
+          }
+        });
+      } else {
+        console.error('Error fetching projects:', projectsRes.reason);
+      }
+      
+      // Sort by updated_at (most recent first)
+      allProjects.sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at || 0);
+        const dateB = new Date(b.updated_at || b.created_at || 0);
+        return dateB - dateA;
+      });
+      
+      setProjects(allProjects);
+      console.log('[Dashboard] Merged projects and screenplays:', allProjects.length, 'total');
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
@@ -192,7 +242,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleProjectCreated = (project) => {
+  const handleProjectCreated = async (project) => {
     if (!project) {
       console.error('[Dashboard] handleProjectCreated called with undefined project');
       toast.error('Failed to create project - invalid response');
@@ -209,13 +259,51 @@ export default function Dashboard() {
       created_at: project.created_at,
       updated_at: project.updated_at,
       screenplay_id: project.project_id || project.id, // For compatibility
-      project_id: project.project_id || project.id
+      project_id: project.project_id || project.id,
+      description: project.description,
+      genre: project.metadata?.genre,
+      storage_provider: project.storage_provider
     };
     
     console.log('[Dashboard] Transformed project:', transformedProject);
     
-    // Add new project to list
+    // Add new project to list immediately for instant UI feedback
     setProjects([transformedProject, ...projects]);
+    
+    // Also refresh the projects list from the backend to ensure consistency
+    // This ensures the project appears even if user navigates back
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      const screenplaysRes = await fetch('/api/screenplays/list?status=active&limit=50', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (screenplaysRes.ok) {
+        const screenplaysData = await screenplaysRes.json();
+        const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
+        // Transform screenplays to match the projects format
+        const refreshedProjects = screenplays.map(s => ({
+          id: s.screenplay_id,
+          name: s.title,
+          created_at: s.created_at,
+          updated_at: s.updated_at,
+          screenplay_id: s.screenplay_id,
+          description: s.description,
+          genre: s.metadata?.genre,
+          storage_provider: s.storage_provider
+        })).filter(Boolean);
+        
+        // Update projects list with fresh data from backend
+        setProjects(refreshedProjects);
+        console.log('[Dashboard] Refreshed projects list from backend:', refreshedProjects.length, 'projects');
+      }
+    } catch (error) {
+      console.error('[Dashboard] Error refreshing projects after creation:', error);
+      // Don't fail the whole flow if refresh fails - we already added it to state
+    }
+    
     // Navigate to the editor with the new project
     const projectId = transformedProject.id || transformedProject.project_id;
     if (projectId) {
