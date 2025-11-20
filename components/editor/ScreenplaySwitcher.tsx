@@ -7,7 +7,6 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { cn } from '@/lib/utils';
 
 export default function ScreenplaySwitcher() {
-  const { getToken } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const screenplay = useScreenplay();
