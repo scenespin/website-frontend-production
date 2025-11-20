@@ -1492,18 +1492,13 @@ export default function MediaLibrary({
                         >
                           <DropdownMenuTrigger asChild>
                             <button
-                              onPointerDown={(e) => {
-                                // Use onPointerDown instead of onClick to prevent file card click
-                                // This works better with React's synthetic events and Radix UI
+                              onClick={(e) => {
+                                // Stop propagation to prevent file card click
                                 e.stopPropagation();
-                                // Toggle menu state
-                                if (isOpen(file.id)) {
-                                  setOpenMenuId(null);
-                                } else {
-                                  setOpenMenuId(file.id);
-                                }
+                                e.preventDefault();
                               }}
                               onMouseDown={(e) => {
+                                // Stop propagation on mousedown too
                                 e.stopPropagation();
                               }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#1F1F1F] hover:border-[#DC143C]"
@@ -1542,50 +1537,35 @@ export default function MediaLibrary({
                             }}
                           >
                             <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onSelect={(e) => {
+                                // onSelect is the recommended Radix UI way - it fires before onClick
                                 e.preventDefault();
                                 console.log('[MediaLibrary] View clicked for file:', file.id);
-                                setOpenMenuId(null);
-                                // Use setTimeout to ensure menu closes first
-                                setTimeout(() => {
-                                  handleViewFile(file);
-                                }, 100);
+                                handleViewFile(file);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                              style={{ color: '#FFFFFF', pointerEvents: 'auto' }}
                             >
                               <Eye className="w-4 h-4 mr-2 text-[#808080]" />
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onSelect={(e) => {
                                 e.preventDefault();
                                 console.log('[MediaLibrary] Download clicked for file:', file.id);
-                                setOpenMenuId(null);
-                                setTimeout(() => {
-                                  handleDownloadFile(file);
-                                }, 100);
+                                handleDownloadFile(file);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                              style={{ color: '#FFFFFF', pointerEvents: 'auto' }}
                             >
                               <Download className="w-4 h-4 mr-2 text-[#808080]" />
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onSelect={(e) => {
                                 e.preventDefault();
                                 console.log('[MediaLibrary] Delete clicked for file:', file.id);
-                                setOpenMenuId(null);
-                                setTimeout(() => {
-                                  deleteFile(file.id);
-                                }, 100);
+                                deleteFile(file.id);
                               }}
                               className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
-                              style={{ color: '#DC143C', pointerEvents: 'auto' }}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
