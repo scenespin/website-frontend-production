@@ -1514,7 +1514,7 @@ export default function MediaLibrary({
                             align="end" 
                             sideOffset={5}
                             className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-[9999] shadow-xl"
-                            style={{ backgroundColor: '#141414', color: '#FFFFFF', zIndex: 9999 }}
+                            style={{ backgroundColor: '#141414', color: '#FFFFFF', zIndex: 9999, pointerEvents: 'auto' }}
                             onCloseAutoFocus={(e) => {
                               // 🔥 FIX: Prevent focus trap issues with aria-hidden
                               e.preventDefault();
@@ -1523,69 +1523,64 @@ export default function MediaLibrary({
                               setOpenMenuId(null);
                             }}
                             onInteractOutside={(e) => {
-                              // Prevent closing when clicking on the trigger
+                              // Prevent closing when clicking on the trigger or inside menu content
                               const target = e.target as HTMLElement;
-                              if (target.closest('[data-radix-dropdown-menu-trigger]')) {
+                              if (
+                                target.closest('[data-radix-dropdown-menu-trigger]') ||
+                                target.closest('[data-radix-dropdown-menu-content]') ||
+                                target.closest('[data-slot="dropdown-menu-content"]')
+                              ) {
                                 e.preventDefault();
                                 return;
                               }
-                              // Let Radix UI handle closing naturally - don't manually close here
-                              // This prevents race conditions with onClick handlers
+                              setOpenMenuId(null);
                             }}
                           >
                             <DropdownMenuItem 
-                              onSelect={() => { 
-                                // Use onSelect - Radix UI's recommended handler
-                                // It automatically closes the menu after selection
-                                console.log('[MediaLibrary] View clicked for file:', file.id);
-                                handleViewFile(file);
-                              }}
-                              onPointerDown={(e) => {
-                                // Stop propagation early to prevent file card click
-                                e.stopPropagation();
-                              }}
                               onClick={(e) => {
-                                // Also stop propagation on click
                                 e.stopPropagation();
+                                e.preventDefault();
+                                console.log('[MediaLibrary] View clicked for file:', file.id);
+                                setOpenMenuId(null);
+                                // Use setTimeout to ensure menu closes first
+                                setTimeout(() => {
+                                  handleViewFile(file);
+                                }, 100);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                              style={{ color: '#FFFFFF' }}
+                              style={{ color: '#FFFFFF', pointerEvents: 'auto' }}
                             >
                               <Eye className="w-4 h-4 mr-2 text-[#808080]" />
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={() => { 
-                                // Use onSelect - Radix UI's recommended handler
-                                console.log('[MediaLibrary] Download clicked for file:', file.id);
-                                handleDownloadFile(file);
-                              }}
-                              onPointerDown={(e) => {
-                                e.stopPropagation();
-                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                e.preventDefault();
+                                console.log('[MediaLibrary] Download clicked for file:', file.id);
+                                setOpenMenuId(null);
+                                setTimeout(() => {
+                                  handleDownloadFile(file);
+                                }, 100);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                              style={{ color: '#FFFFFF' }}
+                              style={{ color: '#FFFFFF', pointerEvents: 'auto' }}
                             >
                               <Download className="w-4 h-4 mr-2 text-[#808080]" />
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={() => { 
-                                // Use onSelect - Radix UI's recommended handler
-                                console.log('[MediaLibrary] Delete clicked for file:', file.id);
-                                deleteFile(file.id);
-                              }}
-                              onPointerDown={(e) => {
-                                e.stopPropagation();
-                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                e.preventDefault();
+                                console.log('[MediaLibrary] Delete clicked for file:', file.id);
+                                setOpenMenuId(null);
+                                setTimeout(() => {
+                                  deleteFile(file.id);
+                                }, 100);
                               }}
                               className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
-                              style={{ color: '#DC143C' }}
+                              style={{ color: '#DC143C', pointerEvents: 'auto' }}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
