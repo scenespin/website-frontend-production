@@ -245,6 +245,92 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     loadHistory();
   }, [projectId]);
   
+  // Dialogue detection: Check if scene description contains dialogue
+  useEffect(() => {
+    if (sceneDescription.trim()) {
+      const detected = detectDialogue(sceneDescription);
+      setHasDialogue(detected.hasDialogue);
+      
+      // If dialogue detected and no character selected, try to extract character name
+      if (detected.hasDialogue && !selectedCharacterId && detected.characterName) {
+        // Try to find matching character
+        const matchingChar = characters.find(c => 
+          c.name?.toLowerCase() === detected.characterName?.toLowerCase()
+        );
+        if (matchingChar) {
+          setSelectedCharacterId(matchingChar.id);
+        }
+      }
+    } else {
+      setHasDialogue(false);
+    }
+  }, [sceneDescription, characters, selectedCharacterId]);
+  
+  // Load characters for dialogue selection
+  useEffect(() => {
+    async function loadCharacters() {
+      if (!projectId) return;
+      
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        
+        // Load characters from Character Bank
+        const response = await fetch(`/api/characters/bank/${projectId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCharacters(data.characters || []);
+        }
+      } catch (error) {
+        console.error('[SceneBuilder] Failed to load characters:', error);
+      }
+    }
+    
+    loadCharacters();
+  }, [projectId, getToken]);
+  
+  // Check voice profile when character is selected
+  useEffect(() => {
+    async function checkVoiceProfile() {
+      if (!selectedCharacterId || !projectId) {
+        setVoiceProfileStatus(null);
+        return;
+      }
+      
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        
+        const response = await fetch(`/api/voice-profile/${selectedCharacterId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.voiceProfile) {
+            setVoiceProfileStatus({
+              hasVoice: true,
+              voiceName: data.voiceProfile.voiceName || data.voiceProfile.autoMatchedVoiceName,
+              voiceType: data.voiceProfile.voiceType || 'custom'
+            });
+          } else {
+            setVoiceProfileStatus({ hasVoice: false });
+          }
+        } else {
+          setVoiceProfileStatus({ hasVoice: false });
+        }
+      } catch (error) {
+        console.error('[SceneBuilder] Failed to check voice profile:', error);
+        setVoiceProfileStatus({ hasVoice: false });
+      }
+    }
+    
+    checkVoiceProfile();
+  }, [selectedCharacterId, projectId, getToken]);
+  
   // Poll workflow status every 3 seconds
   useEffect(() => {
     if (!workflowExecutionId || !isGenerating) return;
@@ -330,6 +416,50 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     return () => clearInterval(interval);
   }, [workflowExecutionId, isGenerating]);
+  
+  /**
+   * Detect if scene description contains dialogue
+   * Simple detection for Phase 1 - will be enhanced in Phase 2
+   */
+  function detectDialogue(text: string): { hasDialogue: boolean; characterName?: string; dialogue?: string } {
+    const trimmed = text.trim();
+    if (!trimmed) return { hasDialogue: false };
+    
+    // Method 1: Screenplay format - CHARACTER NAME followed by dialogue
+    const screenplayRegex = /\n\s*([A-Z\s]{2,})\n\s*([^\n]+)/;
+    const screenplayMatch = trimmed.match(screenplayRegex);
+    if (screenplayMatch) {
+      const speaker = screenplayMatch[1].trim();
+      const dialogue = screenplayMatch[2].trim();
+      // Filter out sluglines
+      if (!dialogue.match(/^(INT\.|EXT\.|FADE|CUT TO|DISSOLVE)/i)) {
+        return { hasDialogue: true, characterName: speaker, dialogue };
+      }
+    }
+    
+    // Method 2: Quoted dialogue - "dialog text" or 'dialog text'
+    const quotedRegex = /["']([^"']{10,})["']/;
+    const quotedMatch = trimmed.match(quotedRegex);
+    if (quotedMatch) {
+      return { hasDialogue: true, dialogue: quotedMatch[1].trim() };
+    }
+    
+    // Method 3: Says/speaks pattern
+    const saysRegex = /(\w+)\s+(says?|speaks?|yells?|shouts?|whispers?)[:\s]+["']?([^"'\n.]{10,})["']?/i;
+    const saysMatch = trimmed.match(saysRegex);
+    if (saysMatch) {
+      return { hasDialogue: true, characterName: saysMatch[1].trim(), dialogue: saysMatch[3].trim() };
+    }
+    
+    // Method 4: Colon format - "CHARACTER: dialog text"
+    const colonRegex = /(\w+):\s*["']?([^"\n]{10,})["']?/;
+    const colonMatch = trimmed.match(colonRegex);
+    if (colonMatch) {
+      return { hasDialogue: true, characterName: colonMatch[1].trim(), dialogue: colonMatch[2].trim() };
+    }
+    
+    return { hasDialogue: false };
+  }
   
   /**
    * Load generation history from localStorage
@@ -723,6 +853,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   /**
    * Start Scene Builder generation
+   * Routes to dialogue video API if dialogue detected, otherwise uses workflow API
    */
   async function handleGenerate() {
     if (!sceneDescription.trim()) {
@@ -730,6 +861,190 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       return;
     }
     
+    // Check if this is a dialogue scene
+    const dialogueInfo = detectDialogue(sceneDescription);
+    
+    if (dialogueInfo.hasDialogue) {
+      // Route to dialogue video generation
+      await handleDialogueGeneration(dialogueInfo);
+      return;
+    }
+    
+    // Otherwise, use standard workflow generation
+    await handleWorkflowGeneration();
+  }
+  
+  /**
+   * Handle dialogue video generation (Phase 1: Core Integration)
+   */
+  async function handleDialogueGeneration(dialogueInfo: { hasDialogue: boolean; characterName?: string; dialogue?: string }) {
+    // Validate character selection
+    if (!selectedCharacterId) {
+      toast.error('Please select a character for dialogue generation', {
+        description: 'Dialogue scenes require a character to be selected'
+      });
+      return;
+    }
+    
+    // Validate character image (required for dialogue)
+    const characterImageUrl = referenceImages[0] 
+      ? await uploadCharacterImage(referenceImages[0] as File)
+      : null;
+    
+    if (!characterImageUrl) {
+      toast.error('Character image required', {
+        description: 'Please upload a character reference image for dialogue generation'
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+      
+      // Extract dialogue text (use detected or full scene description)
+      const dialogueText = dialogueInfo.dialogue || sceneDescription.trim();
+      
+      // Prepare dialogue generation request
+      const dialogueRequest: any = {
+        characterId: selectedCharacterId,
+        screenplayId: projectId,
+        dialogue: dialogueText,
+        mode: dialogueMode,
+        characterImageUrl,
+        autoMatchVoice: true, // Default to auto-match if no voice profile
+        duration: parseInt(duration.replace('s', '')) || 5
+      };
+      
+      // Add driving video URL if Mode 2 selected
+      if (dialogueMode === 'user-video' && drivingVideoUrl) {
+        dialogueRequest.drivingVideoUrl = drivingVideoUrl;
+      }
+      
+      const response = await fetch('/api/dialogue/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(dialogueRequest)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Dialogue generation failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.result) {
+        toast.success('🎬 Dialogue video generated!', {
+          description: `Used ${data.result.creditsUsed} credits`
+        });
+        
+        // Create history item
+        const historyItem: GenerationHistoryItem = {
+          id: `dialogue-${Date.now()}`,
+          sceneDescription,
+          characterReferences: [characterImageUrl],
+          qualityTier,
+          createdAt: new Date().toISOString(),
+          status: 'completed',
+          workflowExecutionId: `dialogue-${Date.now()}`,
+          outputs: [{
+            id: `dialogue-video-${Date.now()}`,
+            url: data.result.videoUrl,
+            thumbnailUrl: data.result.videoUrl,
+            clipType: 'dialogue',
+            creditsUsed: data.result.creditsUsed,
+            duration: parseInt(duration.replace('s', '')) || 5
+          }],
+          totalCredits: data.result.creditsUsed
+        };
+        
+        saveHistory(historyItem);
+        
+        // Callback
+        if (onVideoGenerated) {
+          onVideoGenerated(historyItem.outputs);
+        }
+        
+        // Reset form
+        setSceneDescription('');
+        setReferenceImages([null, null, null]);
+        setSelectedCharacterId(null);
+        setHasDialogue(false);
+      } else {
+        throw new Error(data.message || 'Failed to generate dialogue video');
+      }
+      
+    } catch (error) {
+      console.error('[SceneBuilderPanel] Dialogue generation failed:', error);
+      toast.error('Failed to generate dialogue video', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+  
+  /**
+   * Upload character image and return URL
+   */
+  async function uploadCharacterImage(file: File): Promise<string | null> {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return null;
+      
+      const fileType = file.type || 'image/jpeg';
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(fileType)}` +
+        `&fileSize=${file.size}` +
+        `&projectId=${encodeURIComponent(projectId)}`,
+        { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      );
+      
+      if (!presignedResponse.ok) return null;
+      
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'bucket') {
+          formData.append(key, value as string);
+        }
+      });
+      formData.append('file', file);
+      
+      const s3Response = await fetch(url, { method: 'POST', body: formData });
+      if (!s3Response.ok) return null;
+      
+      const downloadUrlResponse = await fetch('/api/s3/download-url', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ s3Key, expiresIn: 3600 })
+      });
+      
+      if (downloadUrlResponse.ok) {
+        const { downloadUrl } = await downloadUrlResponse.json();
+        return downloadUrl;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('[SceneBuilderPanel] Failed to upload character image:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Handle standard workflow generation (existing logic)
+   */
+  async function handleWorkflowGeneration() {
     setIsGenerating(true);
     setWorkflowStatus(null);
     
@@ -1674,6 +1989,99 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     </button>
                   </div>
                 </div>
+                
+                {/* Dialogue Detection & Configuration (Phase 1: Core Integration) */}
+                {hasDialogue && (
+                  <div className="p-4 bg-[#DC143C]/10 border-2 border-[#DC143C]/50 rounded-lg space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Film className="w-5 h-5 text-[#DC143C]" />
+                      <div>
+                        <div className="font-semibold text-sm text-[#FFFFFF]">Dialogue Scene Detected</div>
+                        <div className="text-xs text-[#808080]">Configure character and voice settings</div>
+                      </div>
+                    </div>
+                    
+                    {/* Character Selection */}
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block text-[#FFFFFF]">Character *</Label>
+                      <select
+                        value={selectedCharacterId || ''}
+                        onChange={(e) => setSelectedCharacterId(e.target.value || null)}
+                        className="w-full p-2 bg-[#141414] border border-[#3F3F46] rounded text-[#FFFFFF] text-sm"
+                      >
+                        <option value="">Select a character...</option>
+                        {characters.map((char) => (
+                          <option key={char.id} value={char.id}>
+                            {char.name}
+                          </option>
+                        ))}
+                      </select>
+                      {!selectedCharacterId && (
+                        <p className="text-xs text-[#DC143C] mt-1">Character selection required for dialogue</p>
+                      )}
+                    </div>
+                    
+                    {/* Voice Profile Status */}
+                    {selectedCharacterId && voiceProfileStatus && (
+                      <div className="p-3 bg-[#141414] rounded border border-[#3F3F46]">
+                        <div className="flex items-center gap-2">
+                          {voiceProfileStatus.hasVoice ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              <span className="text-xs text-[#FFFFFF]">
+                                Voice: {voiceProfileStatus.voiceName || 'Configured'} ({voiceProfileStatus.voiceType || 'custom'})
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-4 h-4 text-yellow-500" />
+                              <span className="text-xs text-yellow-500">
+                                No voice profile. Will auto-match voice (10 credits)
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Mode Selection */}
+                    {selectedCharacterId && (
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block text-[#FFFFFF]">Generation Mode</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => setDialogueMode('talking-head')}
+                            className={`p-3 rounded-lg border-2 text-left transition-all ${
+                              dialogueMode === 'talking-head'
+                                ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                                : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
+                            }`}
+                          >
+                            <div className="font-semibold text-xs">Talking Head</div>
+                            <div className="text-xs text-[#808080] mt-1">Static portrait, perfect lip-sync</div>
+                          </button>
+                          
+                          <button
+                            onClick={() => setDialogueMode('user-video')}
+                            className={`p-3 rounded-lg border-2 text-left transition-all ${
+                              dialogueMode === 'user-video'
+                                ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
+                                : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
+                            }`}
+                          >
+                            <div className="font-semibold text-xs">Video-to-Video</div>
+                            <div className="text-xs text-[#808080] mt-1">Motion + performance transfer</div>
+                          </button>
+                        </div>
+                        {dialogueMode === 'user-video' && (
+                          <p className="text-xs text-[#808080] mt-2">
+                            ⚠️ Requires driving video upload (coming in Phase 2)
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* Duration */}
                 <div>
