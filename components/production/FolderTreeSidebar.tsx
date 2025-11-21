@@ -248,10 +248,14 @@ export function FolderTreeSidebar({
           <span className="text-sm truncate flex-1">{node.name}</span>
           {/* Storage type indicator */}
           {node.storageType === 's3' && (
-            <HardDrive className="w-3 h-3 text-[#808080]" title="S3 Storage" />
+            <span title="S3 Storage">
+              <HardDrive className="w-3 h-3 text-[#808080]" />
+            </span>
           )}
           {(node.storageType === 'google-drive' || node.storageType === 'dropbox') && (
-            <Cloud className="w-3 h-3 text-[#808080]" title="Cloud Storage" />
+            <span title="Cloud Storage">
+              <Cloud className="w-3 h-3 text-[#808080]" />
+            </span>
           )}
           {node.fileCount !== undefined && (
             <span className="text-xs text-[#808080] ml-1">{node.fileCount}</span>
