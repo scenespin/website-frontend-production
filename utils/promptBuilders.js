@@ -298,10 +298,10 @@ export function buildDirectorPrompt(message, sceneContext, generationLength = 'f
       maxLines = 50;
       break;
     case 'multiple':
-      lengthInstruction = '2-3 complete scenes (each 15-30 lines)';
-      sceneCountInstruction = 'MULTIPLE scenes (2-3 scenes) with proper scene headings';
-      minLines = 30;
-      maxLines = 150;
+      lengthInstruction = `${sceneCount} complete scenes (each 15-30 lines)`;
+      sceneCountInstruction = `EXACTLY ${sceneCount} complete scenes with proper scene headings`;
+      minLines = sceneCount * 15; // Minimum: 15 lines per scene
+      maxLines = sceneCount * 50; // Maximum: 50 lines per scene (allows for longer scenes)
       break;
     default:
       lengthInstruction = '15-30 lines of screenplay';
@@ -310,7 +310,7 @@ export function buildDirectorPrompt(message, sceneContext, generationLength = 'f
       maxLines = 50;
   }
   
-  // JSON Format (Phase 4: Structured Output)
+  // JSON Format (Phase 4: Structured Output) - Matching Screenwriter agent format
   if (useJSON) {
     return `${contextInfo}User's request: "${message}"
 
@@ -327,7 +327,7 @@ DIRECTOR MODE - SCENE DEVELOPMENT:
 - NO lists of options or alternatives
 - NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers
 - NO repeating content that already exists before the cursor
-- NO rewriting the beginning of the scene - CONTINUE from cursor position
+- NO rewriting the beginning of the scene - ${generationLength !== 'multiple' ? 'CONTINUE from cursor position' : 'Generate complete new scenes'}
 - ${generationLength !== 'multiple' ? '🚫 NO scene headings (INT./EXT.) - You are CONTINUING the current scene from the cursor position. The scene heading already exists above. Do NOT add scene headings.' : ''}
 
 ✅ YOU MUST RESPOND WITH VALID JSON ONLY:
@@ -349,7 +349,7 @@ JSON SCHEMA REQUIREMENTS:
 SCENE REQUIREMENTS:
 - SCENE LENGTH: ${lengthInstruction}
 - SCENE COUNT: ${sceneCountInstruction}
-${generationLength === 'multiple' ? '🔥 CRITICAL FOR MULTIPLE SCENES:\n- Generate EXACTLY 2-3 complete scenes\n- Each scene MUST start with its own scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- Each scene should be 15-30 lines long\n- Connect scenes narratively if appropriate\n- Example structure:\n  INT. LOCATION 1 - TIME\n  [Scene 1 content - 15-30 lines]\n  \n  INT. LOCATION 2 - TIME\n  [Scene 2 content - 15-30 lines]\n  \n  INT. LOCATION 3 - TIME (optional)\n  [Scene 3 content - 15-30 lines]' : ''}
+${generationLength === 'multiple' ? `🔥 CRITICAL FOR MULTIPLE SCENES:\n- Generate EXACTLY ${sceneCount} complete scenes\n- Each scene MUST start with its own scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- Each scene should be 15-30 lines long\n- Connect scenes narratively if appropriate\n- Example structure for ${sceneCount} scenes:\n  INT. LOCATION 1 - TIME\n  [Scene 1 content - 15-30 lines]\n  \n  INT. LOCATION 2 - TIME\n  [Scene 2 content - 15-30 lines]\n  ${sceneCount > 2 ? `\n  INT. LOCATION 3 - TIME\n  [Scene 3 content - 15-30 lines]${sceneCount > 3 ? `\n  \n  ... (continue for all ${sceneCount} scenes)` : ''}` : ''}` : ''}
 
 INCLUDE ELEMENTS:
 - Action lines that set the mood and visual
@@ -396,7 +396,7 @@ EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generation
 }
 
 CRITICAL INSTRUCTIONS:
-1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
+1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks, no ```json``` wrappers
 2. content array must have ${minLines}-${maxLines} items
 3. Each item is a screenplay line (action, dialogue, scene heading if multiple scenes)
 4. ${generationLength === 'multiple' ? 'Scene headings ARE allowed for multiple scenes - each new scene needs its own heading' : '🚫 CRITICAL: NO scene headings (INT./EXT.) - You are CONTINUING from the cursor position. The scene heading already exists. Continue the scene content without adding any scene heading.'}
@@ -405,8 +405,9 @@ CRITICAL INSTRUCTIONS:
 7. lineCount must exactly match content.length
 8. Empty strings in content array are allowed for spacing (screenplay formatting)
 9. ${generationLength !== 'multiple' ? 'CONTINUE from cursor position - do NOT add scene headings, do NOT restart the scene' : 'Generate multiple complete scenes, each with its own scene heading'}
+10. 🔥 CRITICAL: Output ONLY the raw JSON object. Do NOT wrap it in markdown code blocks. Do NOT add any text before or after the JSON.
 
-OUTPUT: Only valid JSON object. Nothing else.`;
+OUTPUT: Only valid JSON object. Nothing else. No markdown. No explanations. Just JSON.`;
   }
   
   // Fallback: Original text format (for backward compatibility)

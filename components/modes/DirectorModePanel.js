@@ -37,90 +37,113 @@ function cleanFountainOutput(text) {
     .replace(/\s*\*\s*$/gm, '') // Remove * at end of lines
     .replace(/\s*\*$/, ''); // Remove * at very end of content
   
-  // Remove common AI response patterns that aren't screenplay content
-  const unwantedPatterns = [
-    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]*/i,
-    /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
-    /(SCREENWRITING\s+)?NOTE:.*$/is,
-    /^#?\s*REVISION\s*$/im,
-    /^#?\s*REVISED\s+SCENE\s*$/im,
-    /ALTERNATIVE OPTIONS?:.*$/is,
-    /Option \d+[:\-].*$/im,
-    /Which direction.*$/is,
-    /This version:.*$/is,
-    /What comes next\?.*$/is,
-    /What feeling.*$/is,
-    /Would you like.*$/is,
-    /Here are (some|a few) (suggestions|options|ideas|ways|things).*$/is,
-    /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
-    /---\s*\n\s*WRITING NOTE.*$/is,
-    /\*\*WRITING NOTE\*\*.*$/is,
-    /WRITING NOTE.*$/is,
-    /---\s*\n\s*\*\*NOTE\*\*.*$/is,
-    /---\s*\n\s*NOTE.*$/is,
-    /\*\*NOTE\*\*.*$/is,
-    /^---\s*$/m,
-    /This (version|Sarah|character|scene|moment).*$/is,
-    /Works perfectly.*$/is,
-    /What happens next\?.*$/is,
-    /For (your|this) scene.*$/is,
-    /Recommendation:.*$/is,
-    /Current line:.*$/is,
-    /Enhanced options?:.*$/is
-  ];
-  
-  for (const pattern of unwantedPatterns) {
-    const match = cleaned.match(pattern);
-    if (match) {
-      cleaned = cleaned.substring(0, match.index).trim();
-      break;
-    }
-  }
-  
-  // Remove lines that are clearly explanations
+  // 🔥 FIX: Process line by line to handle headers properly
+  // Split into lines first, then filter out unwanted patterns
   const lines = cleaned.split('\n');
   const screenplayLines = [];
   let foundFirstScreenplayContent = false;
   
+  // Patterns that indicate we should stop processing (end of screenplay content)
+  const stopPatterns = [
+    /^NOTE:/i,
+    /Would you like/i,
+    /What happens next\?/i,
+    /What feeling/i,
+    /For (your|this) scene/i,
+    /Recommendation:/i,
+    /Enhanced options?:/i,
+    /ALTERNATIVE OPTIONS?:/i,
+    /Option \d+[:\-]/i,
+    /Which direction/i,
+    /Here are (some|a few) (suggestions|options|ideas|ways|things)/i
+  ];
+  
+  // Patterns for lines to skip (but continue processing after them)
+  const skipPatterns = [
+    /^#+\s*(REVISED|REVISION|NEW SCENE ADDITION)\s*$/i,
+    /^#?\s*REVISED\s+SCENE\s*$/i,
+    /^#?\s*REVISION\s*$/i,
+    /^\s*---\s*$/,
+    /^\s*\*\s*$/
+  ];
+  
+  // Patterns for lines that are clearly explanations (stop here)
+  const explanationPatterns = [
+    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]/i,
+    /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea)/i,
+    /This (version|Sarah|character|scene|moment).*$/i,
+    /Works perfectly/i,
+    /Current line:/i
+  ];
+  
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = lines[i];
+    const trimmedLine = line.trim();
     
-    if (!foundFirstScreenplayContent && !line) continue;
+    // Skip empty lines until we find content
+    if (!foundFirstScreenplayContent && !trimmedLine) continue;
     
-    if (/^NOTE:/i.test(line)) {
-      break;
+    // Check if this is a line we should skip (but continue processing)
+    let shouldSkip = false;
+    for (const pattern of skipPatterns) {
+      if (pattern.test(trimmedLine)) {
+        shouldSkip = true;
+        break;
+      }
+    }
+    if (shouldSkip) {
+      continue; // Skip this line but keep processing
     }
     
-    const isLikelyDialogue = line.length < 50 && (
+    // Check if we should stop processing (end of screenplay content)
+    let shouldStop = false;
+    for (const pattern of stopPatterns) {
+      if (pattern.test(trimmedLine)) {
+        shouldStop = true;
+        break;
+      }
+    }
+    if (shouldStop) {
+      break; // Stop processing, don't include this or any following lines
+    }
+    
+    // Check if this is an explanation (stop here)
+    let isExplanation = false;
+    for (const pattern of explanationPatterns) {
+      if (pattern.test(trimmedLine)) {
+        isExplanation = true;
+        break;
+      }
+    }
+    if (isExplanation && !foundFirstScreenplayContent) {
+      break; // Stop if we haven't found screenplay content yet
+    }
+    
+    // Check if this looks like dialogue or character name
+    const isLikelyDialogue = trimmedLine.length < 50 && (
       /^[A-Z][A-Z\s]+$/.test(lines[i-1]?.trim() || '') ||
-      /^\(/.test(line) ||
-      /[!?.]$/.test(line)
+      /^\(/.test(trimmedLine) ||
+      /[!?.]$/.test(trimmedLine)
     );
     
-    if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
-        !/^(INT\.|EXT\.|I\/E\.)/i.test(line) &&
-        !/^[A-Z][A-Z\s]+$/.test(line) &&
-        line.length > 15) {
-      break;
+    // Check if this is an explanation line (but allow if we've already found screenplay content)
+    if (!isLikelyDialogue && !foundFirstScreenplayContent && 
+        /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(trimmedLine) && 
+        !/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine) &&
+        !/^[A-Z][A-Z\s]+$/.test(trimmedLine) &&
+        trimmedLine.length > 15) {
+      // This might be an explanation, but if it's after screenplay content, allow it
+      // Only break if we haven't found screenplay content yet
+      continue; // Skip this line but continue
     }
     
-    // Skip markdown headers (already removed above, but double-check)
-    if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
-      continue;
-    }
-    
-    // 🔥 NEW: Skip standalone asterisks (should already be removed, but catch any remaining)
-    if (/^\s*\*\s*$/.test(line)) {
-      continue;
-    }
-    
-    if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2) {
+    // Mark that we've found screenplay content
+    if (/^(INT\.|EXT\.|I\/E\.|[A-Z][A-Z\s#0-9']+$)/.test(trimmedLine) && trimmedLine.length > 2) {
       foundFirstScreenplayContent = true;
     }
     
-    if (foundFirstScreenplayContent || line.length > 0) {
-      screenplayLines.push(lines[i]);
-    }
+    // Include this line
+    screenplayLines.push(line);
   }
   
   cleaned = screenplayLines.join('\n');
@@ -148,8 +171,10 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   
-  // Generation length state: 'short' (5-10 lines), 'full' (15-30 lines), 'multiple' (2-3 scenes)
+  // Generation length state: 'short' (5-10 lines), 'full' (15-30 lines), 'multiple' (with scene count)
   const [generationLength, setGenerationLength] = useState('full');
+  // Scene count for multiple scenes mode (2, 3, 5, 10, etc.)
+  const [sceneCount, setSceneCount] = useState(3);
   
   // Auto-scroll to bottom ONLY while streaming (so user can see new content)
   // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
@@ -250,8 +275,8 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       
       // Build Director prompt using prompt builder (includes context and full scene instructions)
       // Pass generation length to control output size and useJSON flag
-      console.log('[DirectorModePanel] Building prompt with generationLength:', generationLength);
-      const builtPrompt = buildDirectorPrompt(prompt, sceneContext, generationLength, useJSONFormat);
+      console.log('[DirectorModePanel] Building prompt with generationLength:', generationLength, 'sceneCount:', sceneCount);
+      const builtPrompt = buildDirectorPrompt(prompt, sceneContext, generationLength, useJSONFormat, sceneCount);
       
       // Build system prompt with Director Mode instructions - focused on thorough scene generation
       const lengthDescription = generationLength === 'short' 
@@ -260,10 +285,10 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         ? '2-3 complete scenes (15-30 lines each)'
         : '15-30 lines (full scenes)';
       
-      // 🔥 PHASE 4: System prompt for JSON format
+      // 🔥 PHASE 4: System prompt for JSON format - Matching Screenwriter agent format
       let systemPrompt = '';
       if (useJSONFormat) {
-        systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
+        systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes. You MUST respond with valid JSON only. No explanations, no markdown, no code blocks, just raw JSON.`;
       } else {
         systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes.
 
@@ -367,7 +392,8 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
             if (useJSONFormat) {
               console.log('[DirectorModePanel] Validating JSON response...');
               const contextBeforeCursor = sceneContext?.contextBeforeCursor || null;
-              const validation = validateDirectorContent(fullContent, contextBeforeCursor, generationLength);
+              // Pass sceneCount for multiple scenes mode
+              const validation = validateDirectorContent(fullContent, contextBeforeCursor, generationLength, generationLength === 'multiple' ? sceneCount : undefined);
               
               if (validation.valid) {
                 console.log('[DirectorModePanel] ✅ JSON validation passed');
@@ -601,7 +627,7 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                   
                   if (useJSONFormat) {
                     const contextBeforeCursor = detectCurrentScene(editorContent, cursorPosition)?.contextBeforeCursor || null;
-                    const validation = validateDirectorContent(state.streamingText, contextBeforeCursor, generationLength);
+                    const validation = validateDirectorContent(state.streamingText, contextBeforeCursor, generationLength, generationLength === 'multiple' ? sceneCount : undefined);
                     
                     if (validation.valid) {
                       console.log('[DirectorModePanel] ✅ JSON validation passed for streaming text');
@@ -690,9 +716,26 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                           : 'bg-base-100 hover:bg-base-200 text-base-content border-base-300'
                       }`}
                     >
-                      🎭 Multiple Scenes (2-3 scenes)
+                      🎭 Multiple Scenes
                     </button>
                   </div>
+                  {generationLength === 'multiple' && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <span className="text-xs font-medium text-base-content/70">Number of scenes:</span>
+                      <select
+                        value={sceneCount}
+                        onChange={(e) => setSceneCount(parseInt(e.target.value))}
+                        className="px-2 py-1 text-xs rounded-md border border-base-300 bg-base-100 text-base-content focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      >
+                        <option value={2}>2</option>
+                        <option value={3}>3</option>
+                        <option value={4}>4</option>
+                        <option value={5}>5</option>
+                        <option value={7}>7</option>
+                        <option value={10}>10</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

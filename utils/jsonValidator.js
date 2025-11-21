@@ -224,7 +224,12 @@ export function validateDirectorContent(jsonResponse, contextBeforeCursor = null
   }
 
   // Define max lines based on generation length
-  const maxLines = generationLength === 'short' ? 15 : generationLength === 'multiple' ? 150 : 50;
+  // For multiple scenes, allow up to 50 lines per scene
+  const maxLines = generationLength === 'short' 
+    ? 15 
+    : generationLength === 'multiple' 
+    ? sceneCount * 50  // 50 lines per scene
+    : 50;
 
   // Check for required fields
   if (!parsedJson.content) {
