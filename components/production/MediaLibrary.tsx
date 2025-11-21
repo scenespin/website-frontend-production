@@ -34,7 +34,7 @@ import {
 import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
-import { useDropdownCoordinator } from '@/hooks/useDropdownCoordinator';
+// Removed useDropdownCoordinator - using uncontrolled state
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { 
   useMediaFiles, 
@@ -212,7 +212,7 @@ export default function MediaLibrary({
   const [filterType, setFilterType] = useState<string>('all');
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
-  const { openMenuId, setOpenMenuId, isOpen } = useDropdownCoordinator();
+  // Removed useDropdownCoordinator - using uncontrolled state like MusicLibrary
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
   const [showFolderSidebar, setShowFolderSidebar] = useState(true);
@@ -751,7 +751,6 @@ export default function MediaLibrary({
     try {
       // Use mutation (automatically invalidates cache and refetches)
       await deleteMediaMutation.mutateAsync(fileId);
-      setOpenMenuId(null); // Close menu after deletion
       toast.success('File deleted successfully');
     } catch (error) {
       console.error('[MediaLibrary] Delete error:', error);
@@ -761,7 +760,6 @@ export default function MediaLibrary({
   };
 
   const handleViewFile = async (file: MediaFile) => {
-    setOpenMenuId(null); // Close menu
     
     try {
       let previewUrl: string | undefined = undefined;
@@ -954,11 +952,9 @@ export default function MediaLibrary({
 
       // Open download URL in new tab
       window.open(downloadUrl, '_blank');
-      setOpenMenuId(null); // Close menu
     } catch (error) {
       console.error('[MediaLibrary] Download error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to download file');
-      setOpenMenuId(null);
     }
   };
 
@@ -1475,59 +1471,22 @@ export default function MediaLibrary({
                       <div 
                         className="absolute top-2 right-2 z-50" 
                         onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
                       >
-                        <DropdownMenu 
-                          open={isOpen(file.id)}
-                          onOpenChange={(open) => {
-                            console.log('[MediaLibrary] Menu onOpenChange:', open, Date.now(), file.id);
-                            // Use the coordinator hook which handles all the complexity
-                            if (open) {
-                              setOpenMenuId(file.id);
-                            } else {
-                              setOpenMenuId(null);
-                            }
-                          }}
-                          modal={false}
-                        >
-                          <DropdownMenuTrigger asChild>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <button
-                              onMouseDown={(e) => {
-                                // Stop propagation to prevent file card click
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                              onClick={(e) => {
-                                // Stop propagation to prevent file card click
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
                               className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-70 group-hover:opacity-100 transition-all hover:bg-[#1F1F1F] hover:border-[#DC143C] hover:opacity-100"
                               aria-label={`Actions for ${file.fileName}`}
-                              aria-haspopup="menu"
-                              aria-expanded={isOpen(file.id)}
                               type="button"
                             >
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent 
-                            align="end" 
-                            sideOffset={5}
-                            className="bg-[#141414] border border-[#3F3F46] text-[#FFFFFF] min-w-[150px] z-[9999] shadow-xl"
-                            onCloseAutoFocus={(e) => {
-                              // 🔥 FIX: Prevent focus trap issues with aria-hidden
-                              e.preventDefault();
-                            }}
-                            onEscapeKeyDown={() => {
-                              setOpenMenuId(null);
-                            }}
-                          >
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 console.log('[MediaLibrary] View onClick for file:', file.id);
-                                setOpenMenuId(null);
                                 handleViewFile(file);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -1539,7 +1498,6 @@ export default function MediaLibrary({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 console.log('[MediaLibrary] Download onClick for file:', file.id);
-                                setOpenMenuId(null);
                                 handleDownloadFile(file);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -1551,7 +1509,6 @@ export default function MediaLibrary({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 console.log('[MediaLibrary] Delete onClick for file:', file.id);
-                                setOpenMenuId(null);
                                 deleteFile(file.id);
                               }}
                               className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
