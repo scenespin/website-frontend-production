@@ -38,12 +38,22 @@ export function FolderActionsMenu({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Close dropdown when any modal opens
+  // Close dropdown when any modal opens - use immediate effect
   useEffect(() => {
     if (showCreateModal || showRenameModal || showDeleteModal) {
+      // Immediately close dropdown
       setDropdownOpen(false);
     }
   }, [showCreateModal, showRenameModal, showDeleteModal]);
+
+  // Also close dropdown when clicking menu items (before modal opens)
+  const handleMenuItemClick = (modalSetter: () => void) => {
+    setDropdownOpen(false);
+    // Small delay to ensure dropdown closes before modal opens
+    setTimeout(() => {
+      modalSetter();
+    }, 50);
+  };
 
   return (
     <>
@@ -65,7 +75,7 @@ export function FolderActionsMenu({
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
-              setShowCreateModal(true);
+              handleMenuItemClick(() => setShowCreateModal(true));
             }}
             className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
           >
@@ -75,7 +85,7 @@ export function FolderActionsMenu({
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
-              setShowRenameModal(true);
+              handleMenuItemClick(() => setShowRenameModal(true));
             }}
             className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
           >
@@ -85,7 +95,7 @@ export function FolderActionsMenu({
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
-              setShowDeleteModal(true);
+              handleMenuItemClick(() => setShowDeleteModal(true));
             }}
             className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
           >

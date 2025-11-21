@@ -728,12 +728,14 @@ export default function MediaLibrary({
       }
 
       // ✅ Upload and registration successful
-      // Feature 0128: Invalidate folder tree query to update folder counts
-      if (selectedFolderId && selectedStorageType === 's3') {
-        queryClient.invalidateQueries({ 
-          queryKey: mediaCacheKeys.folderTree(projectId) 
-        });
-      }
+      // Feature 0128: Invalidate and refetch folder tree query to update folder counts
+      queryClient.invalidateQueries({ 
+        queryKey: mediaCacheKeys.folderTree(projectId) 
+      });
+      // Also refetch to ensure counts update immediately
+      queryClient.refetchQueries({ 
+        queryKey: mediaCacheKeys.folderTree(projectId) 
+      });
       
       toast.success(`✅ File uploaded: ${file.name}`, {
         description: 'File is now available in your library',
@@ -1489,7 +1491,11 @@ export default function MediaLibrary({
                               <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent 
+                            align="end"
+                            className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                            style={{ backgroundColor: '#0A0A0A' }}
+                          >
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1538,7 +1544,7 @@ export default function MediaLibrary({
       {/* Preview Modal */}
       {previewFile && (
         <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
           onClick={() => setPreviewFile(null)}
           onKeyDown={(e) => {
             // Close modal on Escape key
