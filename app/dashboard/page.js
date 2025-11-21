@@ -267,36 +267,47 @@ export default function Dashboard() {
     console.log('[Dashboard] Transformed project:', transformedProject);
     
     // Add new project to list immediately for instant UI feedback
-    setProjects([transformedProject, ...projects]);
-    
-    // Also refresh the projects list from the backend to ensure consistency
-    // This ensures the project appears even if user navigates back
-    try {
-      const screenplaysRes = await fetch('/api/screenplays/list?status=active&limit=50');
-      
-      if (screenplaysRes.ok) {
-        const screenplaysData = await screenplaysRes.json();
-        const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
-        // Transform screenplays to match the projects format
-        const refreshedProjects = screenplays.map(s => ({
-          id: s.screenplay_id,
-          name: s.title,
-          created_at: s.created_at,
-          updated_at: s.updated_at,
-          screenplay_id: s.screenplay_id,
-          description: s.description,
-          genre: s.metadata?.genre,
-          storage_provider: s.storage_provider
-        })).filter(Boolean);
-        
-        // Update projects list with fresh data from backend
-        setProjects(refreshedProjects);
-        console.log('[Dashboard] Refreshed projects list from backend:', refreshedProjects.length, 'projects');
+    setProjects(prev => {
+      // Check if it already exists (avoid duplicates)
+      const exists = prev.some(p => p.id === screenplayId || p.screenplay_id === screenplayId);
+      if (exists) {
+        console.log('[Dashboard] Screenplay already in list, skipping duplicate');
+        return prev;
       }
-    } catch (error) {
-      console.error('[Dashboard] Error refreshing projects after creation:', error);
-      // Don't fail the whole flow if refresh fails - we already added it to state
-    }
+      return [transformedProject, ...prev];
+    });
+    
+    // Wait a moment for DynamoDB eventual consistency, then refresh from backend
+    // This ensures the project appears even if user navigates back
+    setTimeout(async () => {
+      try {
+        const screenplaysRes = await fetch('/api/screenplays/list?status=active&limit=100');
+        
+        if (screenplaysRes.ok) {
+          const screenplaysData = await screenplaysRes.json();
+          const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
+          // Transform screenplays to match the projects format
+          const refreshedProjects = screenplays.map(s => ({
+            id: s.screenplay_id,
+            name: s.title,
+            created_at: s.created_at,
+            updated_at: s.updated_at,
+            screenplay_id: s.screenplay_id,
+            description: s.description,
+            genre: s.metadata?.genre,
+            storage_provider: s.storage_provider,
+            status: s.status || 'active'
+          })).filter(Boolean);
+          
+          // Update projects list with fresh data from backend
+          setProjects(refreshedProjects);
+          console.log('[Dashboard] Refreshed projects list from backend:', refreshedProjects.length, 'projects');
+        }
+      } catch (error) {
+        console.error('[Dashboard] Error refreshing projects after creation:', error);
+        // Don't fail the whole flow if refresh fails - we already added it to state
+      }
+    }, 1000); // 1 second delay for DynamoDB eventual consistency
     
     // Navigate to the editor with the new screenplay
     if (screenplayId) {
@@ -366,8 +377,14 @@ export default function Dashboard() {
       const responseData = await response.json().catch(() => ({}));
       console.log('[Dashboard] Delete response:', responseData);
       
-      // Refresh the dashboard to get updated list from server
-      await fetchDashboardData();
+      // Optimistically remove from UI immediately
+      setProjects(prev => prev.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
+      
+      // Wait a moment for DynamoDB eventual consistency, then refresh
+      setTimeout(async () => {
+        await fetchDashboardData();
+      }, 500);
+      
       setShowDeleteConfirm(null);
       toast.success('Deleted successfully');
       
