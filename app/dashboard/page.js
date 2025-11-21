@@ -40,6 +40,8 @@ export default function Dashboard() {
   const [deletingProjectId, setDeletingProjectId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingProjectId, setEditingProjectId] = useState(null);
+  // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
+  const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(new Set());
 
   useEffect(() => {
     // Auth guaranteed by wrapper, fetch data immediately
@@ -172,13 +174,30 @@ export default function Dashboard() {
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
         console.log('[Dashboard] Parsed screenplays:', screenplays.length);
         screenplays.forEach(s => {
-          // Only include active screenplays (filter out deleted/archived)
-          // Check both status field and is_archived field
-          if ((s.status && s.status !== 'active') || s.is_archived) {
-            console.log('[Dashboard] Filtering out screenplay:', s.screenplay_id, 'status:', s.status, 'is_archived:', s.is_archived);
+          const screenplayId = s.screenplay_id;
+          
+          // CRITICAL: Filter out screenplays that we've deleted locally
+          // This prevents deleted items from reappearing due to DynamoDB eventual consistency
+          if (deletedScreenplayIds.has(screenplayId)) {
+            console.log('[Dashboard] Filtering out locally deleted screenplay:', screenplayId);
             return;
           }
-          const screenplayId = s.screenplay_id;
+          
+          // Only include active screenplays (filter out deleted/archived)
+          // Check both status field and is_archived field
+          // CRITICAL: This client-side filter is a backup in case DynamoDB eventual consistency
+          // returns deleted items before the status update has propagated
+          if ((s.status && s.status !== 'active') || s.is_archived) {
+            console.log('[Dashboard] Filtering out screenplay:', screenplayId, 'status:', s.status, 'is_archived:', s.is_archived);
+            return;
+          }
+          
+          // Additional safety check: if status is explicitly 'deleted', filter it out
+          // This handles cases where DynamoDB eventual consistency returns deleted items
+          if (s.status === 'deleted') {
+            console.log('[Dashboard] Filtering out deleted screenplay (eventual consistency catch):', screenplayId);
+            return;
+          }
           allScreenplays.push({
             id: screenplayId, // Primary identifier
             screenplay_id: screenplayId, // Primary identifier
@@ -353,6 +372,9 @@ export default function Dashboard() {
       const responseData = await response.json().catch(() => ({}));
       console.log('[Dashboard] Delete response:', responseData);
       
+      // Track this ID as deleted to prevent it from reappearing due to DynamoDB eventual consistency
+      setDeletedScreenplayIds(prev => new Set([...prev, projectId]));
+      
       // Optimistically remove from UI immediately
       // Following the pattern from characters/locations: update local state only
       // The backend filters by status='active', so deleted items won't appear on next page load
@@ -366,11 +388,12 @@ export default function Dashboard() {
         setCurrentScreenplayId(null);
       }
       
-      // Refresh the list after a short delay to account for DynamoDB eventual consistency
-      // This ensures the deleted item doesn't reappear on next page load
+      // Refresh the list after a longer delay to account for DynamoDB eventual consistency
+      // DynamoDB eventual consistency can take 1-2 seconds, so we wait longer
+      // The deletedScreenplayIds Set will ensure deleted items don't reappear even if backend returns them
       setTimeout(() => {
         fetchDashboardData();
-      }, 500);
+      }, 2000);
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
