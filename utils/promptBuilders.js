@@ -372,7 +372,7 @@ FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
 CONTEXT AWARENESS:
 - Current scene: ${sceneContext?.heading || 'current scene'}
 - Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
-- ${generationLength !== 'multiple' ? '🔥 CRITICAL: You are CONTINUING from the cursor position in the current scene. The scene heading "${sceneContext?.heading || 'INT. LOCATION - TIME'}" already exists. Do NOT repeat it. Continue with action/dialogue only.' : 'Generate multiple complete scenes, each starting with its own scene heading.'}
+- ${generationLength !== 'multiple' ? `🔥 CRITICAL: You are CONTINUING from the cursor position in the current scene. The scene heading "${sceneContext?.heading || 'INT. LOCATION - TIME'}" already exists. Do NOT repeat it. Continue with action/dialogue only.` : 'Generate multiple complete scenes, each starting with its own scene heading.'}
 
 THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
 
