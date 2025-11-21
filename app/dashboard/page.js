@@ -261,7 +261,8 @@ export default function Dashboard() {
       updated_at: project.updated_at,
       description: project.description,
       genre: project.metadata?.genre,
-      storage_provider: project.storage_provider
+      storage_provider: project.storage_provider,
+      status: project.status || 'active' // Ensure status is included for filtering
     };
     
     console.log('[Dashboard] Transformed project:', transformedProject);
@@ -287,17 +288,27 @@ export default function Dashboard() {
           const screenplaysData = await screenplaysRes.json();
           const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
           // Transform screenplays to match the projects format
-          const refreshedProjects = screenplays.map(s => ({
-            id: s.screenplay_id,
-            name: s.title,
-            created_at: s.created_at,
-            updated_at: s.updated_at,
-            screenplay_id: s.screenplay_id,
-            description: s.description,
-            genre: s.metadata?.genre,
-            storage_provider: s.storage_provider,
-            status: s.status || 'active'
-          })).filter(Boolean);
+          // Filter out deleted/archived items
+          const refreshedProjects = screenplays
+            .filter(s => {
+              // Only include active screenplays
+              if ((s.status && s.status !== 'active') || s.is_archived) {
+                return false;
+              }
+              return true;
+            })
+            .map(s => ({
+              id: s.screenplay_id,
+              name: s.title,
+              created_at: s.created_at,
+              updated_at: s.updated_at,
+              screenplay_id: s.screenplay_id,
+              description: s.description,
+              genre: s.metadata?.genre,
+              storage_provider: s.storage_provider,
+              status: s.status || 'active'
+            }))
+            .filter(Boolean);
           
           // Update projects list with fresh data from backend
           setProjects(refreshedProjects);
@@ -307,7 +318,7 @@ export default function Dashboard() {
         console.error('[Dashboard] Error refreshing projects after creation:', error);
         // Don't fail the whole flow if refresh fails - we already added it to state
       }
-    }, 1000); // 1 second delay for DynamoDB eventual consistency
+    }, 2000); // 2 second delay for DynamoDB eventual consistency (increased from 1s)
     
     // Navigate to the editor with the new screenplay
     if (screenplayId) {
@@ -381,9 +392,10 @@ export default function Dashboard() {
       setProjects(prev => prev.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
       
       // Wait a moment for DynamoDB eventual consistency, then refresh
+      // Increased delay to ensure delete has propagated
       setTimeout(async () => {
         await fetchDashboardData();
-      }, 500);
+      }, 1500); // 1.5 second delay for DynamoDB eventual consistency (increased from 500ms)
       
       setShowDeleteConfirm(null);
       toast.success('Deleted successfully');
@@ -424,9 +436,12 @@ export default function Dashboard() {
       {editingProjectId && (
         <ScreenplaySettingsModal
           isOpen={!!editingProjectId}
-          onClose={() => {
+          onClose={async () => {
             setEditingProjectId(null);
-            fetchDashboardData(); // Refresh to show updated data
+            // Wait a moment for DynamoDB eventual consistency, then refresh
+            setTimeout(async () => {
+              await fetchDashboardData(); // Refresh to show updated data
+            }, 1000); // 1 second delay for DynamoDB eventual consistency
           }}
           screenplayId={editingProjectId}
         />
