@@ -184,7 +184,9 @@ export default function Dashboard() {
         console.log('[Dashboard] Parsed screenplays:', screenplays.length);
         screenplays.forEach(s => {
           // Only include active screenplays (filter out deleted/archived)
-          if (s.status && s.status !== 'active') {
+          // Check both status field and is_archived field
+          if ((s.status && s.status !== 'active') || s.is_archived) {
+            console.log('[Dashboard] Filtering out screenplay:', s.screenplay_id, 'status:', s.status, 'is_archived:', s.is_archived);
             return;
           }
           const screenplayId = s.screenplay_id;
@@ -219,7 +221,9 @@ export default function Dashboard() {
         const projects = projectsData?.data?.projects || projectsData?.projects || [];
         projects.forEach(p => {
           // Only include active projects (filter out deleted/archived)
-          if (p.status && p.status !== 'active') {
+          // Check both status field and is_archived field
+          if ((p.status && p.status !== 'active') || p.is_archived) {
+            console.log('[Dashboard] Filtering out project:', p.project_id, 'status:', p.status, 'is_archived:', p.is_archived);
             return;
           }
           // Treat project_id as screenplay_id (unified system)

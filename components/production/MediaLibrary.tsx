@@ -1003,14 +1003,9 @@ export default function MediaLibrary({
       }
       setSelectedFiles(newSelected);
     } else {
-      // If onSelectFile callback is provided, use it (for file selection mode)
-      // Otherwise, open preview modal (for viewing mode)
-      if (onSelectFile) {
-        onSelectFile(file);
-      } else {
-        // Open preview modal when clicking file directly
-        handleViewFile(file);
-      }
+      // Default behavior: Open preview modal when clicking file card
+      // This is more intuitive than just logging to console
+      handleViewFile(file);
     }
   };
 
