@@ -48,8 +48,8 @@ export default function ScreenplaySwitcher() {
     try {
       setIsLoading(true);
       
-      // Fetch from both APIs like the dashboard does, then merge and deduplicate
-      const [screenplaysRes, projectsRes] = await Promise.allSettled([
+      // Feature 0130: Only fetch screenplays - no project API fallback
+      const screenplaysRes = await Promise.allSettled([
         fetch('/api/screenplays/list?status=active&limit=100')
           .then(async r => {
             if (!r.ok) {
@@ -57,23 +57,13 @@ export default function ScreenplaySwitcher() {
               throw new Error(`Failed to fetch screenplays: ${r.status} ${errorText}`);
             }
             return r.json();
-          }),
-        fetch('/api/projects/list')
-          .then(async r => {
-            if (!r.ok) {
-              const errorText = await r.text().catch(() => 'Unknown error');
-              throw new Error(`Failed to fetch projects: ${r.status} ${errorText}`);
-            }
-            return r.json();
           })
       ]);
       
       const allScreenplays = [];
-      const screenplayIdSet = new Set();
       
-      // PRIMARY: Add screenplays (source of truth)
-      if (screenplaysRes.status === 'fulfilled') {
-        const screenplaysData = screenplaysRes.value;
+      if (screenplaysRes[0].status === 'fulfilled') {
+        const screenplaysData = screenplaysRes[0].value;
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
         console.log('[ScreenplaySwitcher] Fetched screenplays:', screenplays.length);
         
@@ -83,8 +73,7 @@ export default function ScreenplaySwitcher() {
             return;
           }
           const screenplayId = s.screenplay_id;
-          if (screenplayId && !screenplayIdSet.has(screenplayId)) {
-            screenplayIdSet.add(screenplayId);
+          if (screenplayId) {
             allScreenplays.push({
               screenplay_id: screenplayId,
               id: screenplayId,
@@ -95,43 +84,15 @@ export default function ScreenplaySwitcher() {
           }
         });
       } else {
-        console.error('[ScreenplaySwitcher] Error fetching screenplays:', screenplaysRes.reason);
+        console.error('[ScreenplaySwitcher] Error fetching screenplays:', screenplaysRes[0].reason);
       }
       
-      // FALLBACK: Add projects that don't have screenplays yet (legacy data)
-      if (projectsRes.status === 'fulfilled') {
-        const projectsData = projectsRes.value;
-        const projects = projectsData?.data?.projects || projectsData?.projects || [];
-        console.log('[ScreenplaySwitcher] Fetched projects:', projects.length);
-        
-        projects.forEach(p => {
-          // Only include active projects
-          if (p.status && p.status !== 'active') {
-            return;
-          }
-          const screenplayId = p.project_id;
-          if (screenplayId && !screenplayIdSet.has(screenplayId)) {
-            screenplayIdSet.add(screenplayId);
-            allScreenplays.push({
-              screenplay_id: screenplayId,
-              id: screenplayId,
-              title: p.project_name,
-              description: p.description,
-              status: p.status || 'active'
-            });
-          }
-        });
-      } else {
-        console.error('[ScreenplaySwitcher] Error fetching projects:', projectsRes.reason);
-      }
-      
-      // Sort by updated_at (most recent first)
+      // Sort by updated_at (most recent first) - keeping original order for now
       allScreenplays.sort((a, b) => {
-        // We don't have updated_at in the merged data, so just keep original order
         return 0;
       });
       
-      console.log('[ScreenplaySwitcher] Total active screenplays after merge:', allScreenplays.length);
+      console.log('[ScreenplaySwitcher] Total active screenplays:', allScreenplays.length);
       setScreenplays(allScreenplays);
     } catch (error) {
       console.error('[ScreenplaySwitcher] Failed to fetch screenplays:', error);

@@ -385,22 +385,24 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
         
         try {
-            // 🔥 FIX: Use projectId from URL as source of truth (like characters/locations do)
+            // Feature 0130: Use projectId from URL as source of truth (must be screenplay_ ID)
             // Priority: projectId from URL > screenplayIdRef.current
             // This ensures we always save to the correct screenplay when switching
             let activeScreenplayId: string | null = null;
             
             if (projectId) {
-                // Check if it's a screenplay ID (starts with screenplay_) or legacy project ID (starts with proj_)
+                // Feature 0130: Only accept screenplay_ IDs - reject proj_ IDs
                 if (projectId.startsWith('screenplay_')) {
                     activeScreenplayId = projectId;
                     console.log('[EditorContext] Using screenplay_id from URL:', activeScreenplayId);
                 } else if (projectId.startsWith('proj_')) {
-                    // Legacy project ID - we need to use the screenplay_id that was created/linked for it
-                    // If screenplayIdRef.current exists and matches this project, use it
-                    // Otherwise, we should have already created a screenplay for this project during load
+                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', projectId);
+                    // Use ref as fallback, but log warning
                     activeScreenplayId = screenplayIdRef.current;
-                    console.log('[EditorContext] Using screenplay_id from ref for legacy project:', activeScreenplayId);
+                    console.warn('[EditorContext] ⚠️ Using screenplay_id from ref instead:', activeScreenplayId);
+                } else {
+                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
+                    activeScreenplayId = screenplayIdRef.current;
                 }
             } else {
                 // No projectId in URL - use ref (fallback for when no URL param)
@@ -630,15 +632,17 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         async function loadContent() {
             try {
-                // 🔥 NEW: If a project/screenplay ID is specified in URL, load it directly
+                // Feature 0130: If a screenplay ID is specified in URL, load it directly
                 if (projectId) {
                     try {
-                        console.log('[EditorContext] 🎬 Project/screenplay specified in URL:', projectId);
+                        console.log('[EditorContext] 🎬 Screenplay specified in URL:', projectId);
                         
-                        // Check if it's a screenplay ID (starts with screenplay_) or legacy project ID (starts with proj_)
-                        const isScreenplayId = projectId.startsWith('screenplay_');
-                        
-                        if (isScreenplayId) {
+                        // Feature 0130: Only accept screenplay_ IDs - reject proj_ IDs
+                        if (projectId.startsWith('proj_')) {
+                            console.warn('[EditorContext] ⚠️ Rejected proj_ ID (legacy format):', projectId);
+                            console.warn('[EditorContext] ⚠️ Please use screenplay_ ID instead. Legacy project IDs are no longer supported.');
+                            // Continue with normal load flow (don't throw - let user see empty editor)
+                        } else if (projectId.startsWith('screenplay_')) {
                             // It's a screenplay ID - load it directly
                             console.log('[EditorContext] Loading screenplay directly from URL...', projectId);
                             const screenplay = await getScreenplay(projectId, getToken);
@@ -670,53 +674,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 console.warn('[EditorContext] ⚠️ Screenplay not found:', projectId);
                             }
                         } else {
-                            // It's a legacy project ID - try to fetch project details
-                            console.log('[EditorContext] Fetching legacy project details...', projectId);
-                            // Note: Next.js API route handles auth server-side
-                            const projectResponse = await fetch(`/api/projects/${projectId}`);
-                            
-                            if (projectResponse.ok) {
-                                const projectData = await projectResponse.json();
-                                const project = projectData.data?.project || projectData.project;
-                                
-                                if (project) {
-                                    console.log('[EditorContext] ✅ Legacy project loaded:', project.project_name);
-                                    
-                                    // For legacy projects, try to find associated screenplay or create one
-                                    // First, try to find if there's already a screenplay with this project_id
-                                    const currentAuthor = stateRef.current.author || defaultState.author;
-                                    const newScreenplay = await createScreenplay({
-                                        title: project.project_name || 'Untitled Screenplay',
-                                        author: currentAuthor,
-                                        content: ''
-                                    }, getToken);
-                                    
-                                    screenplayIdRef.current = newScreenplay.screenplay_id;
-                                    
-                                    // Save to Clerk metadata
-                                    try {
-                                        await setCurrentScreenplayId(user, newScreenplay.screenplay_id);
-                                    } catch (error) {
-                                        console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
-                                    }
-                                    
-                                    // Update state with project name
-                                    setState(prev => ({
-                                        ...prev,
-                                        title: project.project_name || prev.title,
-                                        isDirty: false
-                                    }));
-                                    
-                                    console.log('[EditorContext] ✅ Created screenplay for legacy project:', newScreenplay.screenplay_id);
-                                    isInitialLoadRef.current = false;
-                                    return; // Success - screenplay created!
-                                }
-                            } else {
-                                console.warn('[EditorContext] ⚠️ Failed to fetch legacy project:', projectResponse.status);
-                            }
+                            console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
+                            console.warn('[EditorContext] ⚠️ Expected screenplay_* format');
                         }
                     } catch (error) {
-                        console.error('[EditorContext] ⚠️ Error loading project/screenplay from URL:', error);
+                        console.error('[EditorContext] ⚠️ Error loading screenplay from URL:', error);
                         // Continue with normal load flow
                     }
                 }

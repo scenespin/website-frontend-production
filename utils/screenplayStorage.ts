@@ -169,11 +169,25 @@ export async function createScreenplay(
 
 /**
  * Get screenplay by ID
+ * Feature 0130: Uses screenplay_id only - no project_id fallback
  */
 export async function getScreenplay(
   screenplayId: string,
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay | null> {
+  // Feature 0130: Validate ID format - reject proj_ IDs
+  if (screenplayId.startsWith('proj_')) {
+    console.warn('[screenplayStorage] ⚠️ Rejected proj_ ID (legacy format):', screenplayId);
+    throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplayId}`);
+  }
+  
+  if (!screenplayId.startsWith('screenplay_')) {
+    console.warn('[screenplayStorage] ⚠️ Invalid ID format:', screenplayId);
+    throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplayId}`);
+  }
+  
+  console.log('[screenplayStorage] GET /api/screenplays/' + screenplayId);
+  
   // Note: Next.js API route handles auth server-side, so we don't need to send token
   const response = await fetch(`/api/screenplays/${screenplayId}`);
 
@@ -200,7 +214,7 @@ export async function getScreenplay(
 
 /**
  * Update screenplay
- * Handles both screenplay_id (screenplay_*) and legacy project_id (proj_*)
+ * Feature 0130: Uses screenplay_id only - no project_id fallback
  */
 export async function updateScreenplay(
   params: UpdateScreenplayParams,
@@ -208,17 +222,19 @@ export async function updateScreenplay(
 ): Promise<Screenplay> {
   const { screenplay_id, ...updates } = params;
   
-  // Determine which API endpoint to use based on ID prefix
-  // screenplay_* IDs use /api/screenplays/[id]
-  // proj_* IDs use /api/projects/[id] (legacy projects)
-  const isLegacyProject = screenplay_id.startsWith('proj_');
-  const apiEndpoint = isLegacyProject 
-    ? `/api/projects/${screenplay_id}`
-    : `/api/screenplays/${screenplay_id}`;
+  // Feature 0130: Validate ID format - reject proj_ IDs
+  if (screenplay_id.startsWith('proj_')) {
+    console.warn('[screenplayStorage] ⚠️ Rejected proj_ ID (legacy format):', screenplay_id);
+    throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplay_id}`);
+  }
   
-  console.log('[screenplayStorage] 🔥 PUT ' + apiEndpoint, {
+  if (!screenplay_id.startsWith('screenplay_')) {
+    console.warn('[screenplayStorage] ⚠️ Invalid ID format:', screenplay_id);
+    throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplay_id}`);
+  }
+  
+  console.log('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplay_id, {
     screenplay_id,
-    isLegacyProject,
     updates_keys: Object.keys(updates),
     beats_count: updates.beats?.length,
     characters_count: updates.characters?.length,
@@ -226,7 +242,7 @@ export async function updateScreenplay(
   });
   
   // Note: Next.js API route handles auth server-side, so we don't need to send token
-  const response = await fetch(apiEndpoint, {
+  const response = await fetch(`/api/screenplays/${screenplay_id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

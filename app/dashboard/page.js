@@ -114,24 +114,16 @@ export default function Dashboard() {
       const { setAuthTokenGetter } = await import('@/lib/api');
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       
-      // Fetch data independently so one failure doesn't break everything
-      // Fetch both screenplays AND projects, then merge them
+      // Feature 0130: Fetch data independently so one failure doesn't break everything
+      // Only fetch screenplays - no project API fallback
       // Note: Next.js API routes handle auth server-side, so we don't need to send token
-      const [creditsRes, screenplaysRes, projectsRes, videosRes] = await Promise.allSettled([
+      const [creditsRes, screenplaysRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
         fetch('/api/screenplays/list?status=active&limit=100')
           .then(async r => {
             if (!r.ok) {
               const errorText = await r.text().catch(() => 'Unknown error');
               throw new Error(`Failed to fetch screenplays: ${r.status} ${errorText}`);
-            }
-            return r.json();
-          }),
-        fetch('/api/projects/list')
-          .then(async r => {
-            if (!r.ok) {
-              const errorText = await r.text().catch(() => 'Unknown error');
-              throw new Error(`Failed to fetch projects: ${r.status} ${errorText}`);
             }
             return r.json();
           }),
@@ -170,12 +162,9 @@ export default function Dashboard() {
         setCredits({ balance: 0 }); // Fallback
       }
       
-      // UNIFIED: screenplay_id is primary, project_id is fallback
-      // Screenplays are the source of truth - projects are legacy/fallback
+      // Feature 0130: Only use screenplays - no project API fallback
       const allScreenplays = [];
-      const screenplayIdSet = new Set(); // Track IDs to avoid duplicates
       
-      // PRIMARY: Add screenplays (source of truth)
       if (screenplaysRes.status === 'fulfilled') {
         const screenplaysData = screenplaysRes.value;
         console.log('[Dashboard] Screenplays API response:', screenplaysData);
@@ -190,11 +179,9 @@ export default function Dashboard() {
             return;
           }
           const screenplayId = s.screenplay_id;
-          screenplayIdSet.add(screenplayId);
           allScreenplays.push({
             id: screenplayId, // Primary identifier
             screenplay_id: screenplayId, // Primary identifier
-            project_id: screenplayId, // Fallback compatibility (project_id = screenplay_id)
             name: s.title,
             created_at: s.created_at,
             updated_at: s.updated_at,
@@ -214,41 +201,6 @@ export default function Dashboard() {
         });
       }
       
-      // FALLBACK: Add projects that don't have screenplays yet (legacy data)
-      if (projectsRes.status === 'fulfilled') {
-        const projectsData = projectsRes.value;
-        // API returns { success: true, data: { projects: [...], count: number } }
-        const projects = projectsData?.data?.projects || projectsData?.projects || [];
-        projects.forEach(p => {
-          // Only include active projects (filter out deleted/archived)
-          // Check both status field and is_archived field
-          if ((p.status && p.status !== 'active') || p.is_archived) {
-            console.log('[Dashboard] Filtering out project:', p.project_id, 'status:', p.status, 'is_archived:', p.is_archived);
-            return;
-          }
-          // Treat project_id as screenplay_id (unified system)
-          const screenplayId = p.project_id;
-          // Only add if it doesn't already exist as a screenplay
-          if (!screenplayIdSet.has(screenplayId)) {
-            screenplayIdSet.add(screenplayId);
-            allScreenplays.push({
-              id: screenplayId, // Primary identifier
-              screenplay_id: screenplayId, // Primary identifier
-              project_id: screenplayId, // Fallback compatibility (project_id = screenplay_id)
-              name: p.project_name,
-              created_at: p.created_at,
-              updated_at: p.updated_at,
-              description: p.description,
-              genre: p.metadata?.genre,
-              storage_provider: p.storage_provider,
-              status: p.status || 'active' // Include status from API
-            });
-          }
-        });
-      } else {
-        console.error('Error fetching projects:', projectsRes.reason);
-      }
-      
       // Sort by updated_at (most recent first)
       allScreenplays.sort((a, b) => {
         const dateA = new Date(a.updated_at || a.created_at || 0);
@@ -257,7 +209,7 @@ export default function Dashboard() {
       });
       
       setProjects(allScreenplays);
-      console.log('[Dashboard] Unified screenplays (screenplay_id primary, project_id fallback):', allScreenplays.length, 'total');
+      console.log('[Dashboard] Screenplays (screenplay_id only):', allScreenplays.length, 'total');
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
@@ -286,14 +238,25 @@ export default function Dashboard() {
     
     console.log('[Dashboard] Project received:', project);
     
-    // UNIFIED: screenplay_id is primary, project_id is fallback
-    // Treat project_id as screenplay_id (they're the same in unified system)
-    const screenplayId = project.project_id || project.screenplay_id || project.id;
+    // Feature 0130: Only use screenplay_id - no project_id fallback
+    const screenplayId = project.screenplay_id || project.id;
+    if (!screenplayId) {
+      console.error('[Dashboard] No screenplay_id found in project:', project);
+      toast.error('Failed to create project - missing screenplay ID');
+      return;
+    }
+    
+    // Feature 0130: Validate ID format - reject proj_ IDs
+    if (screenplayId.startsWith('proj_')) {
+      console.warn('[Dashboard] ⚠️ Rejected proj_ ID (legacy format):', screenplayId);
+      toast.error('Invalid screenplay ID format. Legacy project IDs are no longer supported.');
+      return;
+    }
+    
     const transformedProject = {
       id: screenplayId, // Primary identifier
       screenplay_id: screenplayId, // Primary identifier
-      project_id: screenplayId, // Fallback compatibility (project_id = screenplay_id)
-      name: project.project_name || project.name,
+      name: project.project_name || project.name || project.title,
       created_at: project.created_at,
       updated_at: project.updated_at,
       description: project.description,
@@ -335,13 +298,12 @@ export default function Dashboard() {
       // Don't fail the whole flow if refresh fails - we already added it to state
     }
     
-    // Navigate to the editor with the new project
-    const projectId = transformedProject.id || transformedProject.project_id;
-    if (projectId) {
-      router.push(`/write?project=${projectId}`);
+    // Navigate to the editor with the new screenplay
+    if (screenplayId) {
+      router.push(`/write?project=${screenplayId}`);
     } else {
-      console.error('[Dashboard] No project ID found in transformed project');
-      toast.error('Failed to navigate to project - missing ID');
+      console.error('[Dashboard] No screenplay ID found in transformed project');
+      toast.error('Failed to navigate to screenplay - missing ID');
     }
   };
 
@@ -355,25 +317,25 @@ export default function Dashboard() {
     // Second click - actually delete
     setDeletingProjectId(projectId);
     try {
-      // Try screenplays API first (most common case)
+      // Feature 0130: Only use screenplays API - no project API fallback
+      // Validate ID format - reject proj_ IDs
+      if (projectId.startsWith('proj_')) {
+        console.warn('[Dashboard] ⚠️ Rejected proj_ ID (legacy format):', projectId);
+        throw new Error(`Invalid screenplay ID format. Legacy project IDs (proj_*) are no longer supported.`);
+      }
+      
+      if (!projectId.startsWith('screenplay_')) {
+        console.warn('[Dashboard] ⚠️ Invalid ID format:', projectId);
+        throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${projectId}`);
+      }
+      
       // Note: Next.js API route handles auth server-side
-      let response = await fetch(`/api/screenplays/${projectId}`, {
+      const response = await fetch(`/api/screenplays/${projectId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         }
       });
-
-      // If screenplay deletion returns 404, try projects API (for legacy projects)
-      if (response.status === 404) {
-        console.log('[Dashboard] Screenplay not found, trying projects API for:', projectId);
-        response = await fetch(`/api/projects/${projectId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-      }
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');

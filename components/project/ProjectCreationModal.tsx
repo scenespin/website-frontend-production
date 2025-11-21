@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { X, Film, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/nextjs';
+import { createScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 
 interface ProjectCreationModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const { getToken } = useAuth();
 
   const handleCreate = async () => {
     if (!projectName.trim()) {
@@ -25,43 +28,59 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
     setIsCreating(true);
 
     try {
-      const response = await fetch('/api/projects/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          project_name: projectName.trim(),
-          description: description.trim() || undefined,
-          genre: genre || undefined,
-          storage_provider: 'local', // Default to local storage
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create project');
+      // Feature 0130 Phase 0: Create screenplay instead of project
+      // This ensures new "projects" get screenplay_ IDs from the start
+      console.log('[ProjectCreationModal] Creating screenplay via /api/screenplays...');
+      
+      // Feature 0130 Phase 0: Create screenplay instead of project
+      // This ensures new "projects" get screenplay_ IDs from the start
+      console.log('[ProjectCreationModal] Creating screenplay via /api/screenplays...');
+      
+      const screenplay = await createScreenplay({
+        title: projectName.trim(),
+        author: 'Anonymous', // Default author (user can change later)
+        content: '', // Start with empty content
+      }, getToken);
+      
+      console.log('[ProjectCreationModal] Screenplay created:', screenplay);
+      
+      // If description or genre were provided, update the screenplay with metadata
+      if (description.trim() || genre) {
+        try {
+          await updateScreenplay({
+            screenplay_id: screenplay.screenplay_id,
+            description: description.trim() || undefined,
+            metadata: genre ? { genre } : undefined,
+          }, getToken);
+          console.log('[ProjectCreationModal] Updated screenplay with description/genre');
+        } catch (updateError) {
+          console.warn('[ProjectCreationModal] Failed to update description/genre (non-critical):', updateError);
+          // Don't fail the whole flow - screenplay was created successfully
+        }
       }
-
-      const data = await response.json();
       
-      console.log('[ProjectCreationModal] API response:', data);
+      // Transform screenplay response to match expected project format for onSuccess callback
+      // This maintains compatibility with dashboard's handleProjectCreated function
+      const transformedProject = {
+        id: screenplay.screenplay_id,
+        screenplay_id: screenplay.screenplay_id,
+        project_id: screenplay.screenplay_id, // For backward compatibility during transition
+        project_name: screenplay.title,
+        name: screenplay.title,
+        title: screenplay.title,
+        description: description.trim() || undefined,
+        metadata: genre ? { genre } : undefined,
+        created_at: screenplay.created_at,
+        updated_at: screenplay.updated_at,
+        status: screenplay.status || 'active'
+      };
       
-      // Backend returns: { success: true, data: { project: {...} } }
-      const project = data.data?.project || data.project;
-      
-      if (!project) {
-        console.error('[ProjectCreationModal] Invalid response structure:', data);
-        throw new Error('Invalid response from server - project not found in response');
-      }
-      
-      console.log('[ProjectCreationModal] Project created:', project);
-      
-      toast.success(`Project "${projectName}" created!`);
-      onSuccess(project);
+      toast.success(`Screenplay "${projectName}" created!`);
+      onSuccess(transformedProject);
       handleClose();
-    } catch (error) {
-      console.error('Failed to create project:', error);
-      toast.error('Failed to create project. Please try again.');
+    } catch (error: any) {
+      console.error('[ProjectCreationModal] Failed to create screenplay:', error);
+      toast.error(error.message || 'Failed to create screenplay. Please try again.');
     } finally {
       setIsCreating(false);
     }
@@ -85,7 +104,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
             <div className="p-2 bg-[#DC143C]/10 rounded-lg">
               <Film className="w-6 h-6 text-[#DC143C]" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Create New Project</h2>
+            <h2 className="text-2xl font-bold text-white">Create New Screenplay</h2>
           </div>
           <button
             onClick={handleClose}
@@ -100,7 +119,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
           {/* Project Name */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Project Name <span className="text-[#DC143C]">*</span>
+              Screenplay Title <span className="text-[#DC143C]">*</span>
             </label>
             <input
               type="text"
@@ -177,7 +196,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
             ) : (
               <>
                 <FileText className="w-4 h-4" />
-                Create Project
+                Create Screenplay
               </>
             )}
           </button>
