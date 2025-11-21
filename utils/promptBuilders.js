@@ -325,9 +325,10 @@ DIRECTOR MODE - SCENE DEVELOPMENT:
 - NO "This would..." or "This could..." statements
 - NO "Consider..." or "Think about..." statements
 - NO lists of options or alternatives
-- NO "REVISED SCENE" or "REVISION" headers
+- NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers
 - NO repeating content that already exists before the cursor
-- NO rewriting the beginning of the scene - REPLACE/INSERT the requested content
+- NO rewriting the beginning of the scene - CONTINUE from cursor position
+- ${generationLength !== 'multiple' ? '🚫 NO scene headings (INT./EXT.) - You are CONTINUING the current scene from the cursor position. The scene heading already exists above. Do NOT add scene headings.' : ''}
 
 ✅ YOU MUST RESPOND WITH VALID JSON ONLY:
 
@@ -340,15 +341,15 @@ JSON SCHEMA REQUIREMENTS:
 - "content": Array of ${minLines}-${maxLines} strings (screenplay lines)
 - "lineCount": Number matching content.length
 - Each line in content array is a string (action, dialogue, scene heading if multiple scenes)
-- ${generationLength === 'multiple' ? 'Scene headings (INT./EXT.) ARE ALLOWED for multiple scenes mode' : 'NO scene headings (INT./EXT.) unless explicitly changing location'}
+- ${generationLength === 'multiple' ? 'Scene headings (INT./EXT.) ARE ALLOWED for multiple scenes mode - each new scene needs its own heading' : '🚫 CRITICAL: NO scene headings (INT./EXT.) - You are CONTINUING from the cursor position in the current scene. Do NOT add scene headings. Continue the existing scene without any scene heading.'}
 - NO markdown formatting in JSON strings
 - NO explanations outside JSON
-- NO "REVISED SCENE" headers - just the screenplay content
+- NO "REVISED SCENE" or "NEW SCENE ADDITION" headers - just the screenplay content
 
 SCENE REQUIREMENTS:
 - SCENE LENGTH: ${lengthInstruction}
 - SCENE COUNT: ${sceneCountInstruction}
-${generationLength === 'multiple' ? '- Each scene must have its own scene heading (INT./EXT. LOCATION - TIME)\n- Connect scenes narratively if appropriate\n- Each scene should be complete and standalone' : ''}
+${generationLength === 'multiple' ? '🔥 CRITICAL FOR MULTIPLE SCENES:\n- Generate EXACTLY 2-3 complete scenes\n- Each scene MUST start with its own scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- Each scene should be 15-30 lines long\n- Connect scenes narratively if appropriate\n- Example structure:\n  INT. LOCATION 1 - TIME\n  [Scene 1 content - 15-30 lines]\n  \n  INT. LOCATION 2 - TIME\n  [Scene 2 content - 15-30 lines]\n  \n  INT. LOCATION 3 - TIME (optional)\n  [Scene 3 content - 15-30 lines]' : ''}
 
 INCLUDE ELEMENTS:
 - Action lines that set the mood and visual
@@ -371,6 +372,7 @@ FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
 CONTEXT AWARENESS:
 - Current scene: ${sceneContext?.heading || 'current scene'}
 - Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
+- ${generationLength !== 'multiple' ? '🔥 CRITICAL: You are CONTINUING from the cursor position in the current scene. The scene heading "${sceneContext?.heading || 'INT. LOCATION - TIME'}" already exists. Do NOT repeat it. Continue with action/dialogue only.' : 'Generate multiple complete scenes, each starting with its own scene heading.'}
 
 THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
 
@@ -397,11 +399,12 @@ CRITICAL INSTRUCTIONS:
 1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
 2. content array must have ${minLines}-${maxLines} items
 3. Each item is a screenplay line (action, dialogue, scene heading if multiple scenes)
-4. ${generationLength === 'multiple' ? 'Scene headings ARE allowed for multiple scenes' : 'NO scene headings (INT./EXT.) unless explicitly changing location'}
+4. ${generationLength === 'multiple' ? 'Scene headings ARE allowed for multiple scenes - each new scene needs its own heading' : '🚫 CRITICAL: NO scene headings (INT./EXT.) - You are CONTINUING from the cursor position. The scene heading already exists. Continue the scene content without adding any scene heading.'}
 5. NO repeating content before cursor
-6. NO "REVISED SCENE" or "REVISION" headers - just the screenplay content
+6. NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers - just the screenplay content
 7. lineCount must exactly match content.length
 8. Empty strings in content array are allowed for spacing (screenplay formatting)
+9. ${generationLength !== 'multiple' ? 'CONTINUE from cursor position - do NOT add scene headings, do NOT restart the scene' : 'Generate multiple complete scenes, each with its own scene heading'}
 
 OUTPUT: Only valid JSON object. Nothing else.`;
   }

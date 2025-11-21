@@ -124,11 +124,15 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
   }
 
   // Join content array into screenplay format
-  const content = parsedJson.content.join('\n').trim();
+  // Preserve empty strings for spacing (they create blank lines in screenplay format)
+  // Only trim leading/trailing whitespace, not internal spacing
+  const content = parsedJson.content.join('\n');
+  // Trim only leading/trailing whitespace, preserve internal structure
+  const trimmedContent = content.replace(/^\s+|\s+$/g, '');
 
   return {
     valid: true,
-    content,
+    content: trimmedContent,
     errors: [],
     rawJson: parsedJson
   };
@@ -233,12 +237,12 @@ export function validateDirectorContent(jsonResponse, contextBeforeCursor = null
     errors.push(`Field "content" must have at most ${maxLines} items (got ${parsedJson.content.length})`);
   } else {
     // Validate each line in content array
+    // Note: Empty strings are ALLOWED for screenplay spacing/formatting
     parsedJson.content.forEach((line, index) => {
       if (typeof line !== 'string') {
         errors.push(`Content item ${index} must be a string`);
-      } else if (line.trim().length === 0) {
-        errors.push(`Content item ${index} is empty`);
       }
+      // Empty strings are allowed - they create spacing in screenplay format
       // Note: Director agent CAN include scene headings for multiple scenes mode
       // So we don't check for scene headings here
     });

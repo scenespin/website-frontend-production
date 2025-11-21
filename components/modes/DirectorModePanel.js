@@ -250,6 +250,7 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       
       // Build Director prompt using prompt builder (includes context and full scene instructions)
       // Pass generation length to control output size and useJSON flag
+      console.log('[DirectorModePanel] Building prompt with generationLength:', generationLength);
       const builtPrompt = buildDirectorPrompt(prompt, sceneContext, generationLength, useJSONFormat);
       
       // Build system prompt with Director Mode instructions - focused on thorough scene generation
@@ -546,18 +547,22 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 {showInsertButton && onInsert && (
                   <button
                     onClick={() => {
-                      // Clean the content before inserting (strip markdown, remove notes)
+                      console.log('[DirectorModePanel] Insert button clicked, message content length:', message.content?.length);
+                      
+                      // Content should already be clean (extracted from JSON), but clean again as safeguard
                       const cleanedContent = cleanFountainOutput(message.content);
                       
-                      // 🔥 PHASE 1 FIX: Validate content before inserting
+                      // Validate content before inserting
                       if (!cleanedContent || cleanedContent.trim().length < 3) {
                         console.error('[DirectorModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                        console.error('[DirectorModePanel] Original content:', message.content?.substring(0, 200));
                         console.error('[DirectorModePanel] Original content length:', message.content?.length);
                         console.error('[DirectorModePanel] Cleaned content length:', cleanedContent?.length);
                         toast.error('Content is empty after cleaning. Please try again or use the original response.');
                         return; // Don't insert empty content
                       }
                       
+                      console.log('[DirectorModePanel] ✅ Inserting content, length:', cleanedContent.length);
                       onInsert(cleanedContent);
                       closeDrawer();
                     }}
