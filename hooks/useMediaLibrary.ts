@@ -25,9 +25,9 @@ import type {
   CreateMediaFolderRequest,
   MediaFolderResponse,
   MediaFolderListResponse,
-  MediaFolderTreeResponse,
-  mediaCacheKeys
+  MediaFolderTreeResponse
 } from '@/types/media';
+import { mediaCacheKeys } from '@/types/media';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
