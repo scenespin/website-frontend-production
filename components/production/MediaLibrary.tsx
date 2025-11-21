@@ -1523,17 +1523,21 @@ export default function MediaLibrary({
                               setOpenMenuId(null);
                             }}
                             onInteractOutside={(e) => {
-                              // Allow clicks outside to close menu, but not if clicking on menu items
+                              // Prevent closing if clicking on menu items
                               const target = e.target as HTMLElement;
-                              if (!target.closest('[role="menuitem"]') && !target.closest('[data-radix-dropdown-menu-item]') && !target.closest('[data-slot="dropdown-menu-item"]')) {
-                                setOpenMenuId(null);
+                              if (target.closest('[role="menuitem"]') || 
+                                  target.closest('[data-radix-dropdown-menu-item]') || 
+                                  target.closest('[data-slot="dropdown-menu-item"]')) {
+                                e.preventDefault();
+                                return;
                               }
+                              setOpenMenuId(null);
                             }}
                           >
                             <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('[MediaLibrary] View clicked for file:', file.id);
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                console.log('[MediaLibrary] View onSelect for file:', file.id);
                                 setOpenMenuId(null);
                                 handleViewFile(file);
                               }}
@@ -1543,9 +1547,9 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('[MediaLibrary] Download clicked for file:', file.id);
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                console.log('[MediaLibrary] Download onSelect for file:', file.id);
                                 setOpenMenuId(null);
                                 handleDownloadFile(file);
                               }}
@@ -1555,9 +1559,9 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('[MediaLibrary] Delete clicked for file:', file.id);
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                console.log('[MediaLibrary] Delete onSelect for file:', file.id);
                                 setOpenMenuId(null);
                                 deleteFile(file.id);
                               }}
