@@ -96,6 +96,7 @@ export interface CloudStorageConnection {
 
 /**
  * Media file list response from backend
+ * Feature 0128: Added folderId and folderPath fields
  */
 export interface MediaFileListResponse {
   success: boolean;
@@ -111,6 +112,8 @@ export interface MediaFileListResponse {
     s3Url: string; // Legacy field - not used, s3Key is used instead
     createdAt: string;
     updatedAt: string;
+    folderId?: string; // Feature 0128: Optional folder ID
+    folderPath?: string[]; // Feature 0128: Optional breadcrumb path array
   }>;
   count: number;
 }
