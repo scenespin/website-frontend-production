@@ -162,6 +162,138 @@ export function supportsNativeJSON(modelId) {
 }
 
 /**
+ * Validates and extracts director content from JSON response (supports longer content)
+ * Director agent generates 5-50+ lines, so this validator is more permissive
+ * @param {string} jsonResponse - Raw response from LLM (may be JSON or markdown-wrapped)
+ * @param {string} contextBeforeCursor - Optional context to check for duplicates
+ * @param {string} generationLength - 'short' (5-10), 'full' (15-30), 'multiple' (50+)
+ * @returns {{ valid: boolean, content: string, errors: string[], rawJson?: object }}
+ */
+export function validateDirectorContent(jsonResponse, contextBeforeCursor = null, generationLength = 'full') {
+  if (!jsonResponse || typeof jsonResponse !== 'string') {
+    return {
+      valid: false,
+      content: '',
+      errors: ['Response is empty or not a string']
+    };
+  }
+
+  let parsedJson = null;
+  let rawJsonString = jsonResponse.trim();
+
+  // Step 1: Try to extract JSON from markdown code blocks
+  const jsonBlockMatch = rawJsonString.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (jsonBlockMatch) {
+    rawJsonString = jsonBlockMatch[1].trim();
+  }
+
+  // Also try generic code blocks
+  const codeBlockMatch = rawJsonString.match(/```\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1].trim().startsWith('{')) {
+    rawJsonString = codeBlockMatch[1].trim();
+  }
+
+  // Step 2: Try to find JSON object in the response
+  const jsonObjectMatch = rawJsonString.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    rawJsonString = jsonObjectMatch[0];
+  }
+
+  // Step 3: Parse JSON
+  try {
+    parsedJson = JSON.parse(rawJsonString);
+  } catch (error) {
+    return {
+      valid: false,
+      content: '',
+      errors: [`JSON parsing failed: ${error.message}`, `Attempted to parse: ${rawJsonString.substring(0, 200)}...`]
+    };
+  }
+
+  // Step 4: Validate schema
+  const errors = [];
+
+  // Check if it's an object
+  if (typeof parsedJson !== 'object' || parsedJson === null || Array.isArray(parsedJson)) {
+    errors.push('Response must be a JSON object, not an array or primitive');
+    return { valid: false, content: '', errors, rawJson: parsedJson };
+  }
+
+  // Define max lines based on generation length
+  const maxLines = generationLength === 'short' ? 15 : generationLength === 'multiple' ? 150 : 50;
+
+  // Check for required fields
+  if (!parsedJson.content) {
+    errors.push('Missing required field: "content"');
+  } else if (!Array.isArray(parsedJson.content)) {
+    errors.push('Field "content" must be an array');
+  } else if (parsedJson.content.length < 1) {
+    errors.push('Field "content" must have at least 1 item');
+  } else if (parsedJson.content.length > maxLines) {
+    errors.push(`Field "content" must have at most ${maxLines} items (got ${parsedJson.content.length})`);
+  } else {
+    // Validate each line in content array
+    parsedJson.content.forEach((line, index) => {
+      if (typeof line !== 'string') {
+        errors.push(`Content item ${index} must be a string`);
+      } else if (line.trim().length === 0) {
+        errors.push(`Content item ${index} is empty`);
+      }
+      // Note: Director agent CAN include scene headings for multiple scenes mode
+      // So we don't check for scene headings here
+    });
+  }
+
+  // Check lineCount if provided (should match content.length)
+  if (parsedJson.lineCount !== undefined) {
+    if (typeof parsedJson.lineCount !== 'number') {
+      errors.push('Field "lineCount" must be a number');
+    } else if (parsedJson.lineCount !== parsedJson.content?.length) {
+      errors.push(`Field "lineCount" (${parsedJson.lineCount}) does not match content.length (${parsedJson.content?.length})`);
+    }
+  }
+
+  // Step 5: Check for duplicate content (if context provided)
+  // For director agent, we're more lenient - only check for exact duplicates of substantial content
+  if (contextBeforeCursor && parsedJson.content && Array.isArray(parsedJson.content)) {
+    const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    parsedJson.content.forEach((line, index) => {
+      const normalizedLine = line.trim().toLowerCase().replace(/\s+/g, ' ');
+      // Only flag as duplicate if it's a substantial line (more than 20 chars) and exact match
+      if (normalizedLine.length > 20) {
+        const isDuplicate = contextLines.some(contextLine => {
+          const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
+          return normalizedContext === normalizedLine;
+        });
+        if (isDuplicate) {
+          errors.push(`Content item ${index} is a duplicate of content before cursor`);
+        }
+      }
+    });
+  }
+
+  // Step 6: Extract content if valid
+  if (errors.length > 0) {
+    return {
+      valid: false,
+      content: '',
+      errors,
+      rawJson: parsedJson
+    };
+  }
+
+  // Join content array into screenplay format
+  const content = parsedJson.content.join('\n').trim();
+
+  return {
+    valid: true,
+    content,
+    errors: [],
+    rawJson: parsedJson
+  };
+}
+
+/**
  * Builds a retry prompt with more explicit JSON instructions
  * @param {string} originalPrompt - Original user prompt
  * @param {string[]} errors - Validation errors from first attempt

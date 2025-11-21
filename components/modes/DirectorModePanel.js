@@ -9,6 +9,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import { buildDirectorPrompt } from '@/utils/promptBuilders';
+import { validateDirectorContent, supportsNativeJSON, buildRetryPrompt } from '@/utils/jsonValidator';
 import toast from 'react-hot-toast';
 
 // Helper to strip markdown formatting from text (for Fountain format compliance)
@@ -243,9 +244,13 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         console.warn('[DirectorModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
       }
       
+      // 🔥 PHASE 4: Use JSON format for Director agent (structured output)
+      const useJSONFormat = true; // Always use JSON for Director agent
+      const modelSupportsNativeJSON = supportsNativeJSON(selectedModel);
+      
       // Build Director prompt using prompt builder (includes context and full scene instructions)
-      // Pass generation length to control output size
-      const builtPrompt = buildDirectorPrompt(prompt, sceneContext, generationLength);
+      // Pass generation length to control output size and useJSON flag
+      const builtPrompt = buildDirectorPrompt(prompt, sceneContext, generationLength, useJSONFormat);
       
       // Build system prompt with Director Mode instructions - focused on thorough scene generation
       const lengthDescription = generationLength === 'short' 
@@ -254,7 +259,12 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         ? '2-3 complete scenes (15-30 lines each)'
         : '15-30 lines (full scenes)';
       
-      let systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes.
+      // 🔥 PHASE 4: System prompt for JSON format
+      let systemPrompt = '';
+      if (useJSONFormat) {
+        systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
+      } else {
+        systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes.
 
 DIRECTOR MODE - THOROUGH SCENE GENERATION:
 - Generate ${lengthDescription} of screenplay content
@@ -268,17 +278,25 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
 - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
 - Be thorough and detailed - generate MORE content, not less
 - Context-aware: Use current scene, characters, and story context when available`;
+      }
       
       if (sceneContext) {
-        systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
-        systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
-        systemPrompt += `Act: ${sceneContext.act}\n`;
-        systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
-        if (sceneContext.characters && sceneContext.characters.length > 0) {
-          systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+        if (useJSONFormat) {
+          systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
+          if (sceneContext.characters && sceneContext.characters.length > 0) {
+            systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
+          }
+        } else {
+          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+          systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
+          systemPrompt += `Act: ${sceneContext.act}\n`;
+          systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
+          if (sceneContext.characters && sceneContext.characters.length > 0) {
+            systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+          }
+          systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
+          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual direction. Reference the scene, characters, and content when appropriate.`;
         }
-        systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
-        systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual direction. Reference the scene, characters, and content when appropriate.`;
       }
       
       // Add user message (show original prompt, not built prompt)
@@ -294,6 +312,9 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
       const conversationHistory = [];
       
       console.log('[DirectorModePanel] API call params:', {
+        useJSONFormat,
+        modelSupportsNativeJSON,
+        generationLength,
         conversationHistoryLength: conversationHistory.length,
         systemPromptLength: systemPrompt.length,
         userPromptLength: builtPrompt.length
@@ -302,51 +323,116 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
       // Call streaming AI API
       setStreaming(true, '');
       let accumulatedText = '';
+      const maxRetries = 1; // Only retry once
+      const retryState = { attempts: 0 };
       
-      await api.chat.generateStream(
-        {
-          userPrompt: builtPrompt, // Use built prompt instead of raw prompt
-          systemPrompt: systemPrompt,
-          desiredModelId: selectedModel,
-          conversationHistory,
-          sceneContext: sceneContext ? {
-            heading: sceneContext.heading,
-            act: sceneContext.act,
-            characters: sceneContext.characters,
-            pageNumber: sceneContext.pageNumber
-          } : null
-        },
-        // onChunk
-        (chunk) => {
-          accumulatedText += chunk;
-          setStreaming(true, accumulatedText);
-        },
-        // onComplete
-        (fullContent) => {
-          // Keep streamingText visible briefly so insert button doesn't disappear
-          // The message will be added and streamingText will be cleared by the message render
-          addMessage({
-            role: 'assistant',
-            content: fullContent,
-            mode: 'director'
-          });
-          // Clear streaming after a brief delay to allow message to render
-          setTimeout(() => {
+      const makeApiCall = async (isRetry = false, retryErrors = []) => {
+        const requestData = isRetry && useJSONFormat && retryErrors.length > 0
+          ? {
+              userPrompt: buildRetryPrompt(builtPrompt, retryErrors),
+              systemPrompt: systemPrompt,
+              desiredModelId: selectedModel,
+              conversationHistory,
+              sceneContext: sceneContext ? {
+                heading: sceneContext.heading,
+                act: sceneContext.act,
+                characters: sceneContext.characters,
+                pageNumber: sceneContext.pageNumber
+              } : null
+            }
+          : {
+              userPrompt: builtPrompt,
+              systemPrompt: systemPrompt,
+              desiredModelId: selectedModel,
+              conversationHistory,
+              sceneContext: sceneContext ? {
+                heading: sceneContext.heading,
+                act: sceneContext.act,
+                characters: sceneContext.characters,
+                pageNumber: sceneContext.pageNumber
+              } : null
+            };
+        
+        await api.chat.generateStream(
+          requestData,
+          // onChunk
+          (chunk) => {
+            accumulatedText += chunk;
+            setStreaming(true, accumulatedText);
+          },
+          // onComplete
+          async (fullContent) => {
+            // 🔥 PHASE 4: Validate JSON for Director agent
+            if (useJSONFormat) {
+              console.log('[DirectorModePanel] Validating JSON response...');
+              const contextBeforeCursor = sceneContext?.contextBeforeCursor || null;
+              const validation = validateDirectorContent(fullContent, contextBeforeCursor, generationLength);
+              
+              if (validation.valid) {
+                console.log('[DirectorModePanel] ✅ JSON validation passed');
+                // Use the extracted content from JSON
+                addMessage({
+                  role: 'assistant',
+                  content: validation.content, // Use validated content, not raw JSON
+                  mode: 'director'
+                });
+                setTimeout(() => {
+                  setStreaming(false, '');
+                }, 100);
+              } else {
+                console.warn('[DirectorModePanel] ❌ JSON validation failed:', validation.errors);
+                console.warn('[DirectorModePanel] Raw JSON:', validation.rawJson);
+                
+                // Retry with more explicit instructions if we haven't retried yet
+                if (retryState.attempts < maxRetries) {
+                  retryState.attempts++;
+                  console.log('[DirectorModePanel] Retrying with more explicit JSON instructions... (attempt', retryState.attempts, 'of', maxRetries, ')');
+                  setStreaming(true, '');
+                  accumulatedText = '';
+                  await makeApiCall(true, validation.errors);
+                  return; // Don't continue with error handling
+                }
+                
+                // If retry failed or we've already retried, fall back to cleaning the raw response
+                console.warn('[DirectorModePanel] Falling back to cleaning raw response');
+                const cleanedContent = cleanFountainOutput(fullContent);
+                addMessage({
+                  role: 'assistant',
+                  content: cleanedContent || fullContent,
+                  mode: 'director'
+                });
+                setTimeout(() => {
+                  setStreaming(false, '');
+                }, 100);
+              }
+            } else {
+              // Fallback: Original text format (clean and insert)
+              const cleanedContent = cleanFountainOutput(fullContent);
+              addMessage({
+                role: 'assistant',
+                content: cleanedContent || fullContent,
+                mode: 'director'
+              });
+              setTimeout(() => {
+                setStreaming(false, '');
+              }, 100);
+            }
+          },
+          // onError
+          (error) => {
+            console.error('Error in streaming:', error);
             setStreaming(false, '');
-          }, 100);
-        },
-        // onError
-        (error) => {
-          console.error('Error in streaming:', error);
-          setStreaming(false, '');
-          toast.error(error.message || 'Failed to get AI response');
-          addMessage({
-            role: 'assistant',
-            content: '❌ Sorry, I encountered an error. Please try again.',
-            mode: 'director'
-          });
-        }
-      );
+            toast.error(error.message || 'Failed to get AI response');
+            addMessage({
+              role: 'assistant',
+              content: '❌ Sorry, I encountered an error. Please try again.',
+              mode: 'director'
+            });
+          }
+        );
+      };
+      
+      await makeApiCall();
       
       // Clear input
       setInput('');
@@ -504,19 +590,37 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
             {onInsert && (
               <button
                 onClick={() => {
-                  // Clean the content before inserting (strip markdown, remove notes)
-                  const cleanedContent = cleanFountainOutput(state.streamingText);
+                  // 🔥 PHASE 4: Validate JSON for streaming text (if JSON format is enabled)
+                  const useJSONFormat = true; // Director agent always uses JSON
+                  let contentToInsert = state.streamingText;
                   
-                  // 🔥 PHASE 1 FIX: Validate content before inserting
-                  if (!cleanedContent || cleanedContent.trim().length < 3) {
-                    console.error('[DirectorModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                  if (useJSONFormat) {
+                    const contextBeforeCursor = detectCurrentScene(editorContent, cursorPosition)?.contextBeforeCursor || null;
+                    const validation = validateDirectorContent(state.streamingText, contextBeforeCursor, generationLength);
+                    
+                    if (validation.valid) {
+                      console.log('[DirectorModePanel] ✅ JSON validation passed for streaming text');
+                      contentToInsert = validation.content;
+                    } else {
+                      console.warn('[DirectorModePanel] ❌ JSON validation failed for streaming text, falling back to cleaning');
+                      // Fallback to cleaning if JSON validation fails
+                      contentToInsert = cleanFountainOutput(state.streamingText);
+                    }
+                  } else {
+                    // Fallback: Clean the content before inserting (strip markdown, remove notes)
+                    contentToInsert = cleanFountainOutput(state.streamingText);
+                  }
+                  
+                  // Validate content before inserting
+                  if (!contentToInsert || contentToInsert.trim().length < 3) {
+                    console.error('[DirectorModePanel] ❌ Cannot insert: content is empty or too short');
                     console.error('[DirectorModePanel] Original content length:', state.streamingText?.length);
-                    console.error('[DirectorModePanel] Cleaned content length:', cleanedContent?.length);
-                    toast.error('Content is empty after cleaning. Please try again or use the original response.');
+                    console.error('[DirectorModePanel] Final content length:', contentToInsert?.length);
+                    toast.error('Content is empty after processing. Please try again or use the original response.');
                     return; // Don't insert empty content
                   }
                   
-                  onInsert(cleanedContent);
+                  onInsert(contentToInsert);
                   closeDrawer();
                 }}
                 className="btn btn-xs btn-outline gap-2 self-start"

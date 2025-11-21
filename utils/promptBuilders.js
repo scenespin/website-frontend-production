@@ -272,33 +272,141 @@ Note: The user is asking for advice or discussion. Keep your response concise an
  * @param {string} message - User's message
  * @param {Object} sceneContext - Scene context from detectCurrentScene
  * @param {string} generationLength - 'short' (5-10 lines), 'full' (15-30 lines), 'multiple' (2-3 scenes)
+ * @param {boolean} useJSON - Whether to use JSON format (structured output)
  * @returns {string} Formatted prompt for Director mode
  */
-export function buildDirectorPrompt(message, sceneContext, generationLength = 'full') {
+export function buildDirectorPrompt(message, sceneContext, generationLength = 'full', useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
   
   // Define length requirements based on generationLength
   let lengthInstruction = '';
   let sceneCountInstruction = '';
+  let minLines = 5;
+  let maxLines = 10;
   
   switch (generationLength) {
     case 'short':
       lengthInstruction = '5-10 lines of screenplay';
       sceneCountInstruction = 'ONE scene only';
+      minLines = 5;
+      maxLines = 15;
       break;
     case 'full':
       lengthInstruction = '15-30 lines of screenplay (a complete, full scene)';
       sceneCountInstruction = 'ONE complete scene';
+      minLines = 15;
+      maxLines = 50;
       break;
     case 'multiple':
       lengthInstruction = '2-3 complete scenes (each 15-30 lines)';
       sceneCountInstruction = 'MULTIPLE scenes (2-3 scenes) with proper scene headings';
+      minLines = 30;
+      maxLines = 150;
       break;
     default:
       lengthInstruction = '15-30 lines of screenplay';
       sceneCountInstruction = 'ONE complete scene';
+      minLines = 15;
+      maxLines = 50;
   }
   
+  // JSON Format (Phase 4: Structured Output)
+  if (useJSON) {
+    return `${contextInfo}User's request: "${message}"
+
+DIRECTOR MODE - SCENE DEVELOPMENT:
+
+🚫 ABSOLUTELY FORBIDDEN:
+- NO analysis, critique, or feedback about the story
+- NO suggestions or alternatives
+- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
+- NO explanations about why something is good or bad
+- NO meta-commentary about writing or storytelling
+- NO "This would..." or "This could..." statements
+- NO "Consider..." or "Think about..." statements
+- NO lists of options or alternatives
+- NO "REVISED SCENE" or "REVISION" headers
+- NO repeating content that already exists before the cursor
+- NO rewriting the beginning of the scene - REPLACE/INSERT the requested content
+
+✅ YOU MUST RESPOND WITH VALID JSON ONLY:
+
+{
+  "content": ["line 1", "line 2", "line 3", ...],
+  "lineCount": 3
+}
+
+JSON SCHEMA REQUIREMENTS:
+- "content": Array of ${minLines}-${maxLines} strings (screenplay lines)
+- "lineCount": Number matching content.length
+- Each line in content array is a string (action, dialogue, scene heading if multiple scenes)
+- ${generationLength === 'multiple' ? 'Scene headings (INT./EXT.) ARE ALLOWED for multiple scenes mode' : 'NO scene headings (INT./EXT.) unless explicitly changing location'}
+- NO markdown formatting in JSON strings
+- NO explanations outside JSON
+- NO "REVISED SCENE" headers - just the screenplay content
+
+SCENE REQUIREMENTS:
+- SCENE LENGTH: ${lengthInstruction}
+- SCENE COUNT: ${sceneCountInstruction}
+${generationLength === 'multiple' ? '- Each scene must have its own scene heading (INT./EXT. LOCATION - TIME)\n- Connect scenes narratively if appropriate\n- Each scene should be complete and standalone' : ''}
+
+INCLUDE ELEMENTS:
+- Action lines that set the mood and visual
+- Character reactions and emotions
+- Dialogue when appropriate to the moment
+- Parentheticals for tone/delivery
+- Scene atmosphere and tension
+- Visual storytelling and cinematic direction
+
+FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
+- Character names in ALL CAPS (NOT bold/markdown like **SARAH**)
+- Example: SARAH (NOT **SARAH** or *SARAH*)
+- Parentheticals in parentheses: (examining the USB drive) (NOT italics/markdown)
+- Dialogue in plain text below character name
+- Action lines in normal case
+- NO markdown formatting (no **, no *, no ---, no markdown of any kind)
+- Proper spacing between elements
+- Scene headings in ALL CAPS: INT. LOCATION - TIME
+
+CONTEXT AWARENESS:
+- Current scene: ${sceneContext?.heading || 'current scene'}
+- Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
+
+THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
+
+EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
+{
+  "content": [
+    "Sarah sits up straighter, grabbing her pen.",
+    "",
+    "SARAH",
+    "Who is this?",
+    "",
+    "VOICE (V.O.)",
+    "(digitally altered)",
+    "Someone who knows what you're capable of. Check your home address tonight. Come alone. Tell no one.",
+    "",
+    "The line goes DEAD.",
+    "",
+    "Sarah stares at her phone, pulse quickening."
+  ],
+  "lineCount": 11
+}
+
+CRITICAL INSTRUCTIONS:
+1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
+2. content array must have ${minLines}-${maxLines} items
+3. Each item is a screenplay line (action, dialogue, scene heading if multiple scenes)
+4. ${generationLength === 'multiple' ? 'Scene headings ARE allowed for multiple scenes' : 'NO scene headings (INT./EXT.) unless explicitly changing location'}
+5. NO repeating content before cursor
+6. NO "REVISED SCENE" or "REVISION" headers - just the screenplay content
+7. lineCount must exactly match content.length
+8. Empty strings in content array are allowed for spacing (screenplay formatting)
+
+OUTPUT: Only valid JSON object. Nothing else.`;
+  }
+  
+  // Fallback: Original text format (for backward compatibility)
   return `${contextInfo}User's request: "${message}"
 
 DIRECTOR MODE - SCENE DEVELOPMENT:
@@ -346,7 +454,7 @@ You are a professional screenplay director helping develop full scenes. Your rol
 
 8. THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
 
-9. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary at the end.
+9. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary at the end. Do NOT add "REVISED SCENE" or "REVISION" headers.
 
 Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes' : 'A complete, cinematic scene'} in proper Fountain format (NO MARKDOWN).`;
 }
