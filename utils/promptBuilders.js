@@ -396,7 +396,7 @@ EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generation
 }
 
 CRITICAL INSTRUCTIONS:
-1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks, no ```json``` wrappers
+1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks, no markdown code block wrappers
 2. content array must have ${minLines}-${maxLines} items
 3. Each item is a screenplay line (action, dialogue, scene heading if multiple scenes)
 4. ${generationLength === 'multiple' ? 'Scene headings ARE allowed for multiple scenes - each new scene needs its own heading' : '🚫 CRITICAL: NO scene headings (INT./EXT.) - You are CONTINUING from the cursor position. The scene heading already exists. Continue the scene content without adding any scene heading.'}
