@@ -14,6 +14,7 @@
  * 
  * Phase 1: fileUrl is optional for backward compatibility
  * Phase 2B/C: fileUrl will be removed - presigned URLs generated on-demand via React Query
+ * Feature 0128: Added folderId and folderPath for S3 folder support
  */
 export interface MediaFile {
   id: string;
@@ -26,6 +27,32 @@ export interface MediaFile {
   expiresAt?: string; // For temporary storage
   thumbnailUrl?: string; // Optional - may be generated client-side for videos
   fileUrl?: string; // DEPRECATED: Will be removed in Phase 2B/C. Use s3Key with on-demand presigned URL generation instead.
+  folderId?: string; // Feature 0128: S3 folder ID (if file is in a folder)
+  folderPath?: string[]; // Feature 0128: Breadcrumb path array for folder navigation
+}
+
+/**
+ * Media folder metadata for S3 folder structure
+ * Feature 0128: S3 Folder Support
+ */
+export interface MediaFolder {
+  folderId: string;
+  userId: string;
+  screenplayId: string;
+  parentFolderId?: string;
+  folderName: string;
+  folderPath: string[]; // Breadcrumb path array, e.g., ['Characters', 'Detective_Smith']
+  createdAt: string;
+  updatedAt: string;
+  fileCount?: number;
+}
+
+/**
+ * Folder tree node (with nested children)
+ * Feature 0128: S3 Folder Support
+ */
+export interface FolderTreeNode extends MediaFolder {
+  children?: FolderTreeNode[];
 }
 
 /**
@@ -125,6 +152,18 @@ export const mediaCacheKeys = {
    * Storage quota query key
    */
   storageQuota: () => ['storage', 'quota'] as const,
+
+  /**
+   * Media folders query key
+   * @param screenplayId - Screenplay ID
+   */
+  folders: (screenplayId: string) => ['media', 'folders', screenplayId] as const,
+
+  /**
+   * Media folder tree query key
+   * @param screenplayId - Screenplay ID
+   */
+  folderTree: (screenplayId: string) => ['media', 'folders', 'tree', screenplayId] as const,
 } as const;
 
 // ============================================================================
@@ -151,12 +190,12 @@ export interface BulkPresignedUrlRequest {
  * Request body for registering a media file
  */
 export interface RegisterMediaFileRequest {
-  screenplayId?: string;
-  projectId?: string; // Fallback for backward compatibility
+  screenplayId: string; // Feature 0125/0130: Use screenplayId only
   fileName: string;
   fileType: string;
   fileSize: number;
   s3Key: string;
+  folderId?: string; // Feature 0128: Optional folder ID
 }
 
 /**
@@ -166,5 +205,43 @@ export interface RegisterMediaFileResponse {
   success: boolean;
   fileId: string;
   message: string;
+}
+
+/**
+ * Request body for creating a media folder
+ * Feature 0128: S3 Folder Support
+ */
+export interface CreateMediaFolderRequest {
+  screenplayId: string;
+  folderName: string;
+  parentFolderId?: string;
+}
+
+/**
+ * Response from folder operations
+ * Feature 0128: S3 Folder Support
+ */
+export interface MediaFolderResponse {
+  success: boolean;
+  folder: MediaFolder;
+}
+
+/**
+ * Response from folder list/tree operations
+ * Feature 0128: S3 Folder Support
+ */
+export interface MediaFolderListResponse {
+  success: boolean;
+  folders: MediaFolder[];
+  count: number;
+}
+
+/**
+ * Response from folder tree operation
+ * Feature 0128: S3 Folder Support
+ */
+export interface MediaFolderTreeResponse {
+  success: boolean;
+  tree: FolderTreeNode[];
 }
 

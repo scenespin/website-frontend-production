@@ -20,6 +20,12 @@ import type {
   CloudStorageConnection,
   StorageQuota,
   MediaFileListResponse,
+  MediaFolder,
+  FolderTreeNode,
+  CreateMediaFolderRequest,
+  MediaFolderResponse,
+  MediaFolderListResponse,
+  MediaFolderTreeResponse,
   mediaCacheKeys
 } from '@/types/media';
 
@@ -44,19 +50,27 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 
 /**
  * Query hook for fetching media files list
+ * Feature 0128: Added optional folderId parameter for folder filtering
  */
-export function useMediaFiles(screenplayId: string, enabled: boolean = true) {
+export function useMediaFiles(screenplayId: string, folderId?: string, enabled: boolean = true) {
   const { getToken } = useAuth();
 
   return useQuery<MediaFile[], Error>({
-    queryKey: ['media', 'files', screenplayId],
+    queryKey: ['media', 'files', screenplayId, folderId || 'root'],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/list?screenplayId=${screenplayId}&projectId=${screenplayId}`, {
+      const params = new URLSearchParams({
+        screenplayId,
+      });
+      if (folderId) {
+        params.append('folderId', folderId);
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/list?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -74,8 +88,8 @@ export function useMediaFiles(screenplayId: string, enabled: boolean = true) {
       const backendFiles = data.files || [];
 
       // Map backend format to frontend MediaFile format
-      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, createdAt }
-      // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt }
+      // Backend returns: { fileId, fileName, fileType (MIME), fileSize, s3Key, folderId, folderPath, createdAt }
+      // Frontend expects: { id, fileName, s3Key, fileType (enum), fileSize, storageType, uploadedAt, folderId, folderPath }
       return backendFiles.map((file) => ({
         id: file.fileId,
         fileName: file.fileName,
@@ -86,6 +100,8 @@ export function useMediaFiles(screenplayId: string, enabled: boolean = true) {
         uploadedAt: file.createdAt,
         expiresAt: undefined,
         thumbnailUrl: undefined,
+        folderId: file.folderId, // Feature 0128: S3 folder support
+        folderPath: file.folderPath, // Feature 0128: Breadcrumb path
       }));
     },
     enabled: enabled && !!screenplayId,
@@ -292,6 +308,7 @@ export function useStorageQuota(enabled: boolean = true) {
 
 /**
  * Mutation hook for uploading a media file
+ * Feature 0128: Added optional folderId parameter
  */
 export function useUploadMedia(screenplayId: string) {
   const queryClient = useQueryClient();
@@ -300,7 +317,7 @@ export function useUploadMedia(screenplayId: string) {
   return useMutation<
     RegisterMediaFileResponse,
     Error,
-    { fileName: string; fileType: string; fileSize: number; s3Key: string }
+    { fileName: string; fileType: string; fileSize: number; s3Key: string; folderId?: string }
   >({
     mutationFn: async (fileData) => {
       const token = await getAuthToken(getToken);
@@ -310,11 +327,11 @@ export function useUploadMedia(screenplayId: string) {
 
       const requestBody: RegisterMediaFileRequest = {
         screenplayId,
-        projectId: screenplayId, // Fallback for backward compatibility
         fileName: fileData.fileName,
         fileType: fileData.fileType,
         fileSize: fileData.fileSize,
         s3Key: fileData.s3Key,
+        folderId: fileData.folderId, // Feature 0128: Optional folder ID
       };
 
       const response = await fetch(`${BACKEND_API_URL}/api/media/register`, {
@@ -369,6 +386,242 @@ export function useDeleteMedia(screenplayId: string) {
       // Invalidate and refetch files list
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       queryClient.invalidateQueries({ queryKey: ['storage', 'quota'] });
+    },
+  });
+}
+
+// ============================================================================
+// FOLDER QUERY HOOKS (Feature 0128: S3 Folder Support)
+// ============================================================================
+
+/**
+ * Query hook for fetching media folders list
+ */
+export function useMediaFolders(screenplayId: string, parentFolderId?: string, enabled: boolean = true) {
+  const { getToken } = useAuth();
+
+  return useQuery<MediaFolder[], Error>({
+    queryKey: ['media', 'folders', screenplayId, parentFolderId || 'root'],
+    queryFn: async () => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const params = new URLSearchParams({
+        screenplayId,
+      });
+      if (parentFolderId) {
+        params.append('parentFolderId', parentFolderId);
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/folders?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch folders: ${response.status} ${response.statusText}`);
+      }
+
+      const data: MediaFolderListResponse = await response.json();
+      return data.folders || [];
+    },
+    enabled: enabled && !!screenplayId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+}
+
+/**
+ * Query hook for fetching folder tree structure
+ */
+export function useMediaFolderTree(screenplayId: string, enabled: boolean = true) {
+  const { getToken } = useAuth();
+
+  return useQuery<FolderTreeNode[], Error>({
+    queryKey: mediaCacheKeys.folderTree(screenplayId),
+    queryFn: async () => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/tree?screenplayId=${screenplayId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch folder tree: ${response.status} ${response.statusText}`);
+      }
+
+      const data: MediaFolderTreeResponse = await response.json();
+      return data.tree || [];
+    },
+    enabled: enabled && !!screenplayId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+}
+
+// ============================================================================
+// FOLDER MUTATION HOOKS (Feature 0128: S3 Folder Support)
+// ============================================================================
+
+/**
+ * Mutation hook for creating a media folder
+ */
+export function useCreateFolder(screenplayId: string) {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation<MediaFolder, Error, CreateMediaFolderRequest>({
+    mutationFn: async (params) => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/folders`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || `Failed to create folder: ${response.status} ${response.statusText}`);
+      }
+
+      const data: MediaFolderResponse = await response.json();
+      return data.folder;
+    },
+    onSuccess: () => {
+      // Invalidate folder queries
+      queryClient.invalidateQueries({ queryKey: ['media', 'folders', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: mediaCacheKeys.folderTree(screenplayId) });
+    },
+  });
+}
+
+/**
+ * Mutation hook for renaming a media folder
+ */
+export function useRenameFolder(screenplayId: string) {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation<MediaFolder, Error, { folderId: string; folderName: string }>({
+    mutationFn: async ({ folderId, folderName }) => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/${folderId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ folderName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || `Failed to rename folder: ${response.status} ${response.statusText}`);
+      }
+
+      const data: MediaFolderResponse = await response.json();
+      return data.folder;
+    },
+    onSuccess: () => {
+      // Invalidate folder queries and file list (files may have updated folder paths)
+      queryClient.invalidateQueries({ queryKey: ['media', 'folders', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: mediaCacheKeys.folderTree(screenplayId) });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook for deleting a media folder
+ */
+export function useDeleteFolder(screenplayId: string) {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (folderId) => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/${folderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || `Failed to delete folder: ${response.status} ${response.statusText}`);
+      }
+    },
+    onSuccess: () => {
+      // Invalidate folder queries and file list
+      queryClient.invalidateQueries({ queryKey: ['media', 'folders', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: mediaCacheKeys.folderTree(screenplayId) });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook for initializing default folder structure
+ */
+export function useInitializeFolders(screenplayId: string) {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation<MediaFolder[], Error, void>({
+    mutationFn: async () => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/initialize`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ screenplayId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || `Failed to initialize folders: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.folders || [];
+    },
+    onSuccess: () => {
+      // Invalidate folder queries
+      queryClient.invalidateQueries({ queryKey: ['media', 'folders', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: mediaCacheKeys.folderTree(screenplayId) });
     },
   });
 }

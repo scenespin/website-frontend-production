@@ -228,13 +228,21 @@ export default function MediaLibrary({
   // REACT QUERY HOOKS (Phase 2B: React Query Integration)
   // ============================================================================
   
-  // Load media files - only when no folder is selected (folder files handled separately for now)
+  // Load media files - Feature 0128: Support folder filtering
+  // If selectedFolderId is set and it's an S3 folder, filter by folderId
+  // If it's a cloud storage folder, use existing cloud storage logic
+  const [selectedStorageType, setSelectedStorageType] = useState<'s3' | 'cloud' | null>(null);
+  
   const { 
     data: files = [], 
     isLoading, 
     error: filesError,
     refetch: refetchFiles 
-  } = useMediaFiles(projectId, !selectedFolderId);
+  } = useMediaFiles(
+    projectId, 
+    selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : undefined,
+    !selectedFolderId || selectedStorageType === 's3' // Only load S3 files when S3 folder selected or no folder
+  );
   
   // Load cloud storage connections
   const { 
@@ -450,19 +458,20 @@ export default function MediaLibrary({
     }
   };
   
-  // Load folder files when folderId changes
+  // Load folder files when folderId changes (only for cloud storage)
   useEffect(() => {
-    if (selectedFolderId) {
+    if (selectedFolderId && selectedStorageType === 'cloud') {
       loadFolderFiles(selectedFolderId);
     } else {
       setFolderFiles([]);
     }
-  }, [selectedFolderId, projectId]);
+  }, [selectedFolderId, selectedStorageType, projectId]);
 
-  const handleFolderSelect = (folderId: string, path: string[]) => {
+  const handleFolderSelect = (folderId: string, path: string[], storageType: 's3' | 'cloud') => {
     setSelectedFolderId(folderId || null);
     setSelectedFolderPath(path);
-    // loadFolderFiles will be called by useEffect when selectedFolderId changes
+    setSelectedStorageType(folderId ? storageType : null);
+    // loadFolderFiles will be called by useEffect when selectedFolderId changes (for cloud storage)
   };
 
   const handleBreadcrumbClick = (index: number) => {
@@ -479,8 +488,13 @@ export default function MediaLibrary({
   };
   
   // Determine which files to display
-  const displayFiles: MediaFile[] = selectedFolderId ? folderFiles : (files as MediaFile[]);
-  const displayLoading = selectedFolderId ? folderFilesLoading : isLoading;
+  // Feature 0128: S3 folders use React Query (files), cloud storage uses folderFiles
+  const displayFiles: MediaFile[] = (selectedFolderId && selectedStorageType === 'cloud') 
+    ? folderFiles 
+    : (files as MediaFile[]);
+  const displayLoading = (selectedFolderId && selectedStorageType === 'cloud') 
+    ? folderFilesLoading 
+    : isLoading;
   const displayError = mutationError || filesError?.message || null;
   
   // Phase 2C: Generate bulk presigned URLs for grid view thumbnails (S3 files only)
@@ -671,6 +685,7 @@ export default function MediaLibrary({
           fileType: file.type,
           fileSize: file.size,
           s3Key,
+          folderId: selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : undefined, // Feature 0128: Include folderId if S3 folder selected
         });
         console.log('[MediaLibrary] File registered, cache invalidated');
         
@@ -1304,7 +1319,7 @@ export default function MediaLibrary({
           <FolderTreeSidebar
             screenplayId={projectId}
             onFolderSelect={handleFolderSelect}
-            selectedFolderId={selectedFolderId}
+            selectedFolderId={selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : null}
           />
         )}
         
