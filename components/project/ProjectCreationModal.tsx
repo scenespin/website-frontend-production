@@ -43,6 +43,14 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
       }, getToken);
       
       console.log('[ProjectCreationModal] Screenplay created:', screenplay);
+      console.log('[ProjectCreationModal] Screenplay ID:', screenplay?.screenplay_id);
+      console.log('[ProjectCreationModal] Full screenplay object keys:', Object.keys(screenplay || {}));
+      
+      // CRITICAL: Validate that screenplay_id exists
+      if (!screenplay?.screenplay_id) {
+        console.error('[ProjectCreationModal] ❌ Screenplay created but screenplay_id is missing!', screenplay);
+        throw new Error('Failed to create screenplay - missing screenplay ID in response');
+      }
       
       // If description or genre were provided, update the screenplay with metadata
       if (description.trim() || genre) {
@@ -74,6 +82,9 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
         updated_at: screenplay.updated_at,
         status: screenplay.status || 'active'
       };
+      
+      console.log('[ProjectCreationModal] Transformed project for onSuccess:', transformedProject);
+      console.log('[ProjectCreationModal] Will navigate to:', `/write?project=${transformedProject.screenplay_id}`);
       
       toast.success(`Screenplay "${projectName}" created!`);
       onSuccess(transformedProject);

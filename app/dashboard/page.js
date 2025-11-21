@@ -285,11 +285,16 @@ export default function Dashboard() {
     }
     
     console.log('[Dashboard] Project received:', project);
+    console.log('[Dashboard] Project keys:', Object.keys(project));
+    console.log('[Dashboard] Project.screenplay_id:', project.screenplay_id);
+    console.log('[Dashboard] Project.id:', project.id);
     
     // Feature 0130: Only use screenplay_id - no project_id fallback
     const screenplayId = project.screenplay_id || project.id;
+    console.log('[Dashboard] Extracted screenplayId:', screenplayId);
+    
     if (!screenplayId) {
-      console.error('[Dashboard] No screenplay_id found in project:', project);
+      console.error('[Dashboard] ❌ No screenplay_id found in project:', project);
       toast.error('Failed to create project - missing screenplay ID');
       return;
     }
@@ -298,6 +303,14 @@ export default function Dashboard() {
     if (screenplayId.startsWith('proj_')) {
       console.warn('[Dashboard] ⚠️ Rejected proj_ ID (legacy format):', screenplayId);
       toast.error('Invalid screenplay ID format. Legacy project IDs are no longer supported.');
+      return;
+    }
+    
+    // Validate screenplay_ prefix
+    if (!screenplayId.startsWith('screenplay_')) {
+      console.error('[Dashboard] ❌ Invalid screenplay ID format:', screenplayId);
+      console.error('[Dashboard] Expected screenplay_* but got:', screenplayId);
+      toast.error(`Invalid screenplay ID format: ${screenplayId}`);
       return;
     }
     
@@ -314,6 +327,7 @@ export default function Dashboard() {
     };
     
     console.log('[Dashboard] Transformed project:', transformedProject);
+    console.log('[Dashboard] Will navigate to:', `/write?project=${screenplayId}`);
     
     // Following the pattern from characters/locations: update local state immediately
     // Add new project to list immediately for instant UI feedback
@@ -335,11 +349,13 @@ export default function Dashboard() {
     }, 2000);
     
     // Navigate to the editor with the new screenplay
-    if (screenplayId) {
+    // CRITICAL: Ensure screenplayId is valid before navigation
+    if (screenplayId && screenplayId.startsWith('screenplay_')) {
+      console.log('[Dashboard] ✅ Navigating to editor with screenplay:', screenplayId);
       router.push(`/write?project=${screenplayId}`);
     } else {
-      console.error('[Dashboard] No screenplay ID found in transformed project');
-      toast.error('Failed to navigate to screenplay - missing ID');
+      console.error('[Dashboard] ❌ Cannot navigate - invalid screenplay ID:', screenplayId);
+      toast.error(`Failed to navigate to screenplay - invalid ID: ${screenplayId}`);
     }
   };
 

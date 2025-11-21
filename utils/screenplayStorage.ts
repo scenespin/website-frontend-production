@@ -149,6 +149,8 @@ export async function createScreenplay(
 ): Promise<Screenplay> {
   // Note: Next.js API route handles auth server-side via Clerk middleware
   // No need to send Authorization header - the route uses auth() to get token
+  console.log('[screenplayStorage] Creating screenplay with params:', { title: params.title, author: params.author });
+  
   const response = await fetch('/api/screenplays', {
     method: 'POST',
     headers: {
@@ -159,10 +161,30 @@ export async function createScreenplay(
 
   if (!response.ok) {
     const error = await response.json();
+    console.error('[screenplayStorage] Failed to create screenplay:', response.status, error);
     throw new Error(error.message || 'Failed to create screenplay');
   }
 
   const data = await response.json();
+  console.log('[screenplayStorage] Create response structure:', {
+    hasData: !!data.data,
+    hasSuccess: 'success' in data,
+    keys: Object.keys(data),
+    dataKeys: data.data ? Object.keys(data.data) : null,
+    screenplayId: data.data?.screenplay_id
+  });
+  
+  if (!data.data) {
+    console.error('[screenplayStorage] ❌ Response missing data.data:', data);
+    throw new Error('Invalid response format - missing screenplay data');
+  }
+  
+  if (!data.data.screenplay_id) {
+    console.error('[screenplayStorage] ❌ Response missing screenplay_id:', data.data);
+    throw new Error('Invalid response format - missing screenplay_id');
+  }
+  
+  console.log('[screenplayStorage] ✅ Screenplay created successfully:', data.data.screenplay_id);
   return data.data;
 }
 
