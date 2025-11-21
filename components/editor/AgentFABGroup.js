@@ -18,6 +18,7 @@ export default function AgentFABGroup({
   onLaunchDialogue,
   onLaunchRewrite,
   hasSelection,
+  selectedText, // Add selectedText prop to validate actual text selection
   isDrawerOpen,
   isMobile
 }) {
@@ -41,8 +42,8 @@ export default function AgentFABGroup({
           right: rightOffset
         }}
       >
-        {/* Rewrite FAB - Only show when text is selected, pulses when visible */}
-        {hasSelection && (
+        {/* Rewrite FAB - Only show when text is actually selected (not just cursor position) */}
+        {hasSelection && selectedText && selectedText.trim().length > 0 && (
           <motion.button
             onClick={onLaunchRewrite}
             className={`${buttonSize} rounded-full flex items-center justify-center text-white ${

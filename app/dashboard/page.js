@@ -53,6 +53,35 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Refresh dashboard when user navigates back to it (e.g., from editor)
+  // This ensures newly created screenplays appear even if they weren't in the list when user left
+  useEffect(() => {
+    if (!user) return;
+
+    const handleFocus = () => {
+      // Refresh when window regains focus (user came back to tab)
+      if (document.visibilityState === 'visible') {
+        console.log('[Dashboard] Window focused, refreshing data');
+        fetchDashboardData();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[Dashboard] Page became visible, refreshing data');
+        fetchDashboardData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Check first visit ONCE on mount (not every time user changes)
   useEffect(() => {
     if (user) {
@@ -298,11 +327,12 @@ export default function Dashboard() {
       return [transformedProject, ...prev];
     });
     
-    // Refresh the list after a short delay to account for DynamoDB eventual consistency
-    // This ensures the new screenplay appears on next page load
+    // Refresh the list after a longer delay to account for DynamoDB eventual consistency
+    // DynamoDB eventual consistency can take 1-2 seconds, so we wait longer
+    // This ensures the new screenplay appears when user navigates back to dashboard
     setTimeout(() => {
       fetchDashboardData();
-    }, 1000);
+    }, 2000);
     
     // Navigate to the editor with the new screenplay
     if (screenplayId) {

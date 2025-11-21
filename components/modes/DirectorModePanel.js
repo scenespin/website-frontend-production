@@ -64,7 +64,9 @@ function cleanFountainOutput(text) {
     /^#?\s*REVISED\s+SCENE\s*$/i,
     /^#?\s*REVISION\s*$/i,
     /^\s*---\s*$/,
-    /^\s*\*\s*$/
+    /^\s*\*\s*$/,
+    /^FADE OUT\.?\s*$/i,  // Skip "FADE OUT" lines (shouldn't be in middle of screenplay)
+    /^THE END\.?\s*$/i    // Skip "THE END" lines (shouldn't be in middle of screenplay)
   ];
   
   // Patterns for lines that are clearly explanations (stop here)
@@ -147,6 +149,12 @@ function cleanFountainOutput(text) {
   }
   
   cleaned = screenplayLines.join('\n');
+  
+  // Remove duplicate "FADE OUT. THE END" patterns
+  // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
+  cleaned = cleaned.replace(/(FADE OUT\.?\s*\n\s*THE END\.?\s*\n\s*)+/gi, ''); // Remove all instances
+  // Also remove standalone "FADE OUT" or "THE END" at the end
+  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
   
   // Whitespace normalization
   // 1. Trim trailing whitespace from each line
@@ -676,7 +684,9 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
               <div>
                 <h3 className="text-lg font-semibold text-base-content mb-2">Director Agent</h3>
                 <p className="text-sm text-base-content/70 mb-4">
-                  Build complete scenes with dialogue, action, and cinematic direction. Generates longer, more thorough content than the Screenwriter agent.
+                  <strong>Purpose:</strong> Creates NEW scenes that continue your story forward. Does NOT continue the current scene (use Screenwriter agent for that).<br/>
+                  <strong>Single Scene Mode:</strong> Creates 1 NEW scene (5-30 lines) with its own scene heading that comes AFTER your current scene.<br/>
+                  <strong>Multiple Scenes Mode:</strong> Creates 2-10 NEW scenes, each with its own scene heading, that come AFTER your current scene.
                 </p>
                 <div className="text-xs text-base-content/50 space-y-1 mb-4">
                   <p>Try: "Write a full confrontation scene between Sarah and John"</p>

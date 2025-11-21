@@ -326,9 +326,9 @@ DIRECTOR MODE - SCENE DEVELOPMENT:
 - NO "Consider..." or "Think about..." statements
 - NO lists of options or alternatives
 - NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers
-- NO repeating content that already exists before the cursor
-- NO rewriting the beginning of the scene - ${generationLength !== 'multiple' ? 'CONTINUE from cursor position' : 'Generate complete new scenes'}
-- ${generationLength !== 'multiple' ? '🚫 NO scene headings (INT./EXT.) - You are CONTINUING the current scene from the cursor position. The scene heading already exists above. Do NOT add scene headings.' : ''}
+- 🚫 CRITICAL: Do NOT continue the current scene. The Director agent creates NEW scenes, not continuations. The Screenwriter agent handles scene continuation.
+- 🚫 CRITICAL: Do NOT repeat or revise the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". Create NEW scenes that come AFTER it.
+- ✅ Scene headings ARE REQUIRED - Each new scene MUST start with INT./EXT. LOCATION - TIME with a DIFFERENT location/time than the current scene
 
 ✅ YOU MUST RESPOND WITH VALID JSON ONLY:
 
@@ -340,8 +340,9 @@ DIRECTOR MODE - SCENE DEVELOPMENT:
 JSON SCHEMA REQUIREMENTS:
 - "content": Array of ${minLines}-${maxLines} strings (screenplay lines)
 - "lineCount": Number matching content.length
-- Each line in content array is a string (action, dialogue, scene heading if multiple scenes)
-- ${generationLength === 'multiple' ? 'Scene headings (INT./EXT.) ARE ALLOWED for multiple scenes mode - each new scene needs its own heading' : '🚫 CRITICAL: NO scene headings (INT./EXT.) - You are CONTINUING from the cursor position in the current scene. Do NOT add scene headings. Continue the existing scene without any scene heading.'}
+- Each line in content array is a string (action, dialogue, scene heading)
+- ✅ Scene headings (INT./EXT.) ARE REQUIRED - Each new scene MUST start with its own scene heading
+- Each scene heading must have a DIFFERENT location/time than the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}"
 - NO markdown formatting in JSON strings
 - NO explanations outside JSON
 - NO "REVISED SCENE" or "NEW SCENE ADDITION" headers - just the screenplay content
@@ -349,7 +350,8 @@ JSON SCHEMA REQUIREMENTS:
 SCENE REQUIREMENTS:
 - SCENE LENGTH: ${lengthInstruction}
 - SCENE COUNT: ${sceneCountInstruction}
-${generationLength === 'multiple' ? `🔥 CRITICAL FOR MULTIPLE SCENES:\n- Generate EXACTLY ${sceneCount} complete scenes\n- Each scene MUST start with its own scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- Each scene should be 15-30 lines long\n- Connect scenes narratively if appropriate\n- Example structure for ${sceneCount} scenes:\n  INT. LOCATION 1 - TIME\n  [Scene 1 content - 15-30 lines]\n  \n  INT. LOCATION 2 - TIME\n  [Scene 2 content - 15-30 lines]\n  ${sceneCount > 2 ? `\n  INT. LOCATION 3 - TIME\n  [Scene 3 content - 15-30 lines]${sceneCount > 3 ? `\n  \n  ... (continue for all ${sceneCount} scenes)` : ''}` : ''}` : ''}
+🔥 CRITICAL: The Director agent ALWAYS creates NEW scenes that come AFTER the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". It does NOT continue the current scene - that's what the Screenwriter agent does.
+${generationLength === 'multiple' ? `- Generate EXACTLY ${sceneCount} COMPLETELY NEW scenes\n- Each scene MUST start with its own scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- Each scene heading must have a DIFFERENT location/time than "${sceneContext?.heading || 'INT. LOCATION - TIME'}"\n- Each scene should be 15-30 lines long\n- Connect scenes narratively to advance the story forward\n- Do NOT repeat or revise the current scene\n- Example structure for ${sceneCount} NEW scenes:\n  INT. NEW LOCATION 1 - TIME\n  [Scene 1 content - 15-30 lines]\n  \n  INT. NEW LOCATION 2 - TIME\n  [Scene 2 content - 15-30 lines]\n  ${sceneCount > 2 ? `\n  INT. NEW LOCATION 3 - TIME\n  [Scene 3 content - 15-30 lines]${sceneCount > 3 ? `\n  \n  ... (continue for all ${sceneCount} scenes with NEW locations)` : ''}` : ''}` : `- Generate EXACTLY 1 NEW scene that comes AFTER the current scene\n- The scene MUST start with a scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- The scene heading must have a DIFFERENT location/time than "${sceneContext?.heading || 'INT. LOCATION - TIME'}"\n- The scene should be ${generationLength === 'short' ? '5-10' : '15-30'} lines long\n- This is a NEW scene that continues the story forward, NOT a continuation of the current scene`}
 
 INCLUDE ELEMENTS:
 - Action lines that set the mood and visual
@@ -370,11 +372,17 @@ FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
 - Scene headings in ALL CAPS: INT. LOCATION - TIME
 
 CONTEXT AWARENESS:
-- Current scene: ${sceneContext?.heading || 'current scene'}
+- Current scene (DO NOT REPEAT): ${sceneContext?.heading || 'current scene'}
 - Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
-- ${generationLength !== 'multiple' ? `🔥 CRITICAL: You are CONTINUING from the cursor position in the current scene. The scene heading "${sceneContext?.heading || 'INT. LOCATION - TIME'}" already exists. Do NOT repeat it. Continue with action/dialogue only.` : 'Generate multiple complete scenes, each starting with its own scene heading.'}
+- 🔥 CRITICAL: You are creating ${generationLength === 'multiple' ? `${sceneCount} NEW scenes` : '1 NEW scene'} that come AFTER the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". These are NEW scenes that continue the story forward. Each scene must have its own unique scene heading with a DIFFERENT location/time. Do NOT repeat, revise, or continue the current scene - create NEW scenes.
 
 THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
+
+🚫 DO NOT INCLUDE:
+- NO "FADE OUT." or "THE END" - These are only for the final scene of the entire screenplay, not individual scenes
+- NO screenplay endings unless the user specifically requests an ending
+- NO duplicate endings
+- NO "The cycle continues" or similar meta-commentary
 
 EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
 {
@@ -398,13 +406,13 @@ EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generation
 CRITICAL INSTRUCTIONS:
 1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks, no markdown code block wrappers
 2. content array must have ${minLines}-${maxLines} items
-3. Each item is a screenplay line (action, dialogue, scene heading if multiple scenes)
-4. ${generationLength === 'multiple' ? 'Scene headings ARE allowed for multiple scenes - each new scene needs its own heading' : '🚫 CRITICAL: NO scene headings (INT./EXT.) - You are CONTINUING from the cursor position. The scene heading already exists. Continue the scene content without adding any scene heading.'}
-5. NO repeating content before cursor
-6. NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers - just the screenplay content
-7. lineCount must exactly match content.length
-8. Empty strings in content array are allowed for spacing (screenplay formatting)
-9. ${generationLength !== 'multiple' ? 'CONTINUE from cursor position - do NOT add scene headings, do NOT restart the scene' : 'Generate multiple complete scenes, each with its own scene heading'}
+3. Each item is a screenplay line (action, dialogue, scene heading)
+4. 🔥 CRITICAL: Scene headings ARE REQUIRED - ${generationLength === 'multiple' ? `Each of the ${sceneCount} new scenes` : 'The new scene'} MUST start with its own scene heading (INT./EXT. LOCATION - TIME). Do NOT repeat the current scene heading "${sceneContext?.heading || 'INT. LOCATION - TIME'}". Create NEW scenes with NEW locations/times.
+5. 🚫 ABSOLUTELY FORBIDDEN: Do NOT continue the current scene. The Director agent creates NEW scenes, not continuations. The Screenwriter agent handles scene continuation.
+6. 🚫 ABSOLUTELY FORBIDDEN: Do NOT repeat or revise the current scene. Create ${generationLength === 'multiple' ? `${sceneCount} COMPLETELY NEW scenes` : '1 COMPLETELY NEW scene'} that come AFTER the current scene and advance the story forward.
+7. NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers - just the screenplay content
+8. lineCount must exactly match content.length
+9. Empty strings in content array are allowed for spacing (screenplay formatting)
 10. 🔥 CRITICAL: Output ONLY the raw JSON object. Do NOT wrap it in markdown code blocks. Do NOT add any text before or after the JSON.
 
 OUTPUT: Only valid JSON object. Nothing else. No markdown. No explanations. Just JSON.`;

@@ -255,7 +255,24 @@ export default function EditorWorkspace() {
     };
     
     const handleLaunchRewrite = () => {
-        if (!selectedText || !selectionRange) return;
+        // 🔥 CRITICAL: Only allow rewrite if text is actually selected (not just cursor position)
+        if (!selectedText || !selectionRange) {
+            toast.error('Please select text to rewrite');
+            return;
+        }
+        
+        // Check if selection has actual content (not just whitespace)
+        const trimmedText = selectedText.trim();
+        if (!trimmedText || trimmedText.length === 0) {
+            toast.error('Please select text to rewrite');
+            return;
+        }
+        
+        // Check if selection range has meaningful length (not just cursor position)
+        if (selectionRange.start === selectionRange.end) {
+            toast.error('Please select text to rewrite');
+            return;
+        }
         
         // Open rewrite modal instead of drawer
         setIsRewriteModalOpen(true);
@@ -478,6 +495,7 @@ Tip:
                 onLaunchDialogue={handleLaunchDialogue}
                 onLaunchRewrite={handleLaunchRewrite}
                 hasSelection={hasSelection}
+                selectedText={selectedText}
                 isDrawerOpen={isDrawerOpen}
                 isMobile={isMobile}
             />

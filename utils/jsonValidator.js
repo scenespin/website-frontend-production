@@ -264,12 +264,35 @@ export function validateDirectorContent(jsonResponse, contextBeforeCursor = null
 
   // Step 5: Check for duplicate content (if context provided)
   // For director agent, we're more lenient - only check for exact duplicates of substantial content
+  // BUT: For multiple scenes mode, we're more strict - don't allow repeating scene headings
   if (contextBeforeCursor && parsedJson.content && Array.isArray(parsedJson.content)) {
     const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     parsedJson.content.forEach((line, index) => {
       const normalizedLine = line.trim().toLowerCase().replace(/\s+/g, ' ');
-      // Only flag as duplicate if it's a substantial line (more than 20 chars) and exact match
-      if (normalizedLine.length > 20) {
+      
+      // Check for scene heading duplicates (always flag these)
+      if (/^(int\.|ext\.|i\/e\.)/i.test(normalizedLine)) {
+        const isDuplicateHeading = contextLines.some(contextLine => {
+          const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
+          // Check if this scene heading matches any scene heading in context
+          if (/^(int\.|ext\.|i\/e\.)/i.test(normalizedContext)) {
+            // Compare location and time parts (ignore exact formatting)
+            const lineParts = normalizedLine.split(/\s+-\s+/);
+            const contextParts = normalizedContext.split(/\s+-\s+/);
+            if (lineParts.length >= 2 && contextParts.length >= 2) {
+              // If location matches, it's likely a duplicate
+              return lineParts[0] === contextParts[0];
+            }
+          }
+          return normalizedContext === normalizedLine;
+        });
+        if (isDuplicateHeading) {
+          errors.push(`Content item ${index} is a duplicate scene heading from content before cursor`);
+        }
+      }
+      
+      // For other content, only flag as duplicate if it's substantial (more than 20 chars) and exact match
+      if (normalizedLine.length > 20 && !/^(int\.|ext\.|i\/e\.)/i.test(normalizedLine)) {
         const isDuplicate = contextLines.some(contextLine => {
           const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
           return normalizedContext === normalizedLine;
