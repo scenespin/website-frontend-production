@@ -117,6 +117,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [qualityTier, setQualityTier] = useState<'professional' | 'premium'>('professional');
   const [duration, setDuration] = useState('5s');
   const [enableSound, setEnableSound] = useState(false);
+  const [hasDialogue, setHasDialogue] = useState(false);
+  
+  // Dialogue system state (Feature 0130)
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [characters, setCharacters] = useState<any[]>([]);
+  const [voiceProfileStatus, setVoiceProfileStatus] = useState<{
+    hasVoice: boolean;
+    voiceName?: string;
+    voiceType?: string;
+  } | null>(null);
+  const [dialogueMode, setDialogueMode] = useState<'talking-head' | 'user-video'>('talking-head');
+  const [dialogueText, setDialogueText] = useState('');
+  const [drivingVideoUrl, setDrivingVideoUrl] = useState<string | null>(null);
   
   // Wizard flow state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
