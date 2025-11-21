@@ -5,7 +5,7 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import apiClient from '@/lib/api';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import WelcomeModal from '@/components/WelcomeModal';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
@@ -30,6 +30,7 @@ export default function Dashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -81,6 +82,20 @@ export default function Dashboard() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh dashboard when pathname changes to /dashboard (user navigated back)
+  // This catches navigation from other pages even if component doesn't remount
+  useEffect(() => {
+    if (!user || pathname !== '/dashboard') return;
+    
+    // Small delay to ensure navigation is complete
+    const timeoutId = setTimeout(() => {
+      console.log('[Dashboard] Pathname changed to /dashboard, refreshing data');
+      fetchDashboardData();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [pathname, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check first visit ONCE on mount (not every time user changes)
   useEffect(() => {

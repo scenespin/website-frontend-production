@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -47,8 +47,10 @@ export default function EditorWorkspace() {
     const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
     
     // Get projectId and sceneId from URL params (for collaboration and scene navigation)
-    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const projectId = searchParams?.get('project') || 'default';
+    // Feature 0130: Use useSearchParams() for reactive URL parameter reading
+    // Remove 'default' fallback - EditorContext handles loading from Clerk metadata if no URL param
+    const searchParams = useSearchParams();
+    const projectId = searchParams?.get('project'); // No fallback - let EditorContext handle it
     const sceneIdFromUrl = searchParams?.get('sceneId');
     
     // Get GitHub config from localStorage
@@ -464,8 +466,8 @@ Tip:
                             </div>
 
                             {/* Collaboration Management */}
-                            {projectId && projectId !== 'default' && (
-                                <CollaborationPanel 
+                            {projectId && projectId.startsWith('screenplay_') && (
+                                <CollaborationPanel
                                     projectId={projectId}
                                     isOwner={true}
                                 />
