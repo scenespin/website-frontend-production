@@ -7,7 +7,7 @@
  * Feature 0128: S3 Folder Support
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,10 +36,18 @@ export function FolderActionsMenu({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Close dropdown when any modal opens
+  useEffect(() => {
+    if (showCreateModal || showRenameModal || showDeleteModal) {
+      setDropdownOpen(false);
+    }
+  }, [showCreateModal, showRenameModal, showDeleteModal]);
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <button
             className="p-1 hover:bg-[#1F1F1F] rounded opacity-0 group-hover:opacity-100 transition-opacity"
@@ -49,13 +57,17 @@ export function FolderActionsMenu({
             <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-[#141414] border border-[#3F3F46]">
+        <DropdownMenuContent 
+          align="end" 
+          className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+          style={{ backgroundColor: '#0A0A0A' }}
+        >
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
               setShowCreateModal(true);
             }}
-            className="text-[#FFFFFF] hover:bg-[#1F1F1F] cursor-pointer"
+            className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
           >
             <FolderPlus className="w-4 h-4 mr-2 text-[#808080]" />
             Create Subfolder
@@ -65,7 +77,7 @@ export function FolderActionsMenu({
               e.stopPropagation();
               setShowRenameModal(true);
             }}
-            className="text-[#FFFFFF] hover:bg-[#1F1F1F] cursor-pointer"
+            className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
           >
             <Edit className="w-4 h-4 mr-2 text-[#808080]" />
             Rename
@@ -75,7 +87,7 @@ export function FolderActionsMenu({
               e.stopPropagation();
               setShowDeleteModal(true);
             }}
-            className="text-[#DC143C] hover:bg-[#DC143C]/10 cursor-pointer"
+            className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete

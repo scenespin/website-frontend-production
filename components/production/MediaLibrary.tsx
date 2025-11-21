@@ -168,6 +168,7 @@ import type {
   StorageQuota, 
   CloudStorageConnection 
 } from '@/types/media';
+import { mediaCacheKeys } from '@/types/media';
 
 // Re-export types for component use
 // Note: MediaFile no longer includes fileUrl - presigned URLs are generated on-demand
@@ -727,6 +728,13 @@ export default function MediaLibrary({
       }
 
       // ✅ Upload and registration successful
+      // Feature 0128: Invalidate folder tree query to update folder counts
+      if (selectedFolderId && selectedStorageType === 's3') {
+        queryClient.invalidateQueries({ 
+          queryKey: mediaCacheKeys.folderTree(projectId) 
+        });
+      }
+      
       toast.success(`✅ File uploaded: ${file.name}`, {
         description: 'File is now available in your library',
       });
