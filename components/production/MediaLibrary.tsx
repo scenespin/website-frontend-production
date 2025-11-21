@@ -1375,34 +1375,23 @@ export default function MediaLibrary({
                     <div
                       key={file.id}
                       // TEMPORARILY DISABLED: Testing if parent onClick is interfering with dropdown menu items
-                      // onClick={(e) => {
-                      //   // Don't trigger file click if clicking on dropdown menu area or menu items
-                      //   const target = e.target as HTMLElement;
-                      //   // Check if click originated from dropdown trigger or menu
-                      //   if (
-                      //     target.closest('button[aria-haspopup="menu"]') ||
-                      //     target.closest('[data-radix-dropdown-menu-trigger]') || 
-                      //     target.closest('[data-radix-dropdown-menu-content]') ||
-                      //     target.closest('[data-slot="dropdown-menu-content"]') ||
-                      //     target.closest('[data-slot="dropdown-menu-item"]') ||
-                      //     target.closest('[data-radix-dropdown-menu-item]') ||
-                      //     target.closest('[role="menuitem"]')
-                      //   ) {
-                      //     return;
-                      //   }
-                      //   handleFileClick(file);
-                      // }}
-                      // TEMPORARILY DISABLED: Testing if parent onMouseDown is interfering
-                      // onMouseDown={(e) => {
-                      //   // Don't trigger file click if mousedown originated from dropdown
-                      //   const target = e.target as HTMLElement;
-                      //   if (
-                      //     target.closest('button[aria-haspopup="menu"]') ||
-                      //     target.closest('[data-radix-dropdown-menu-trigger]')
-                      //   ) {
-                      //     return;
-                      //   }
-                      // }}
+                      onClick={(e) => {
+                        // Don't trigger file click if clicking on dropdown menu area or menu items
+                        const target = e.target as HTMLElement;
+                        // Check if click originated from dropdown trigger or menu
+                        if (
+                          target.closest('button[aria-haspopup="menu"]') ||
+                          target.closest('[data-radix-dropdown-menu-trigger]') || 
+                          target.closest('[data-radix-dropdown-menu-content]') ||
+                          target.closest('[data-slot="dropdown-menu-content"]') ||
+                          target.closest('[data-slot="dropdown-menu-item"]') ||
+                          target.closest('[data-radix-dropdown-menu-item]') ||
+                          target.closest('[role="menuitem"]')
+                        ) {
+                          return;
+                        }
+                        handleFileClick(file);
+                      }}
                       className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
                         selectedFiles.has(file.id)
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
