@@ -28,10 +28,14 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   const inputRef = useRef<HTMLInputElement>(null);
   const lastScreenplayIdRef = useRef<string | null>(null); // Track last valid screenplayId to prevent unnecessary resets
 
-  // Fetch screenplay title when screenplayId changes or when updated
+  // Fetch screenplay title when URL param changes or when explicitly updated
+  // NOTE: We only depend on the URL param, not the context's screenplayId, because:
+  // 1. The URL is the source of truth for which screenplay is being edited
+  // 2. The context's screenplayId can change independently (e.g., from Clerk metadata) and shouldn't trigger refetches
+  // 3. This prevents the title from resetting when clicking through characters/locations
   useEffect(() => {
     const fetchTitle = async () => {
-      // Priority: URL param > ScreenplayContext
+      // Priority: URL param > ScreenplayContext (fallback only)
       const urlProjectId = searchParams?.get('project');
       const screenplayId = urlProjectId || screenplay?.screenplayId;
       console.log('[EditableScreenplayTitle] Fetching title for screenplay:', screenplayId, '(from URL:', urlProjectId, ', from context:', screenplay?.screenplayId, ')');
@@ -53,16 +57,19 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
         return;
       }
 
-      // If the screenplayId hasn't changed, don't refetch (unless we're explicitly updating)
-      // This prevents unnecessary API calls and title resets
-      if (screenplayId === lastScreenplayIdRef.current) {
-        console.log('[EditableScreenplayTitle] ScreenplayId unchanged, skipping refetch');
+      // CRITICAL: Only refetch when the URL param changes, not when context changes
+      // This prevents the title from resetting when clicking through characters/locations
+      // The URL param is the source of truth for which screenplay is being edited
+      const currentUrlParam = urlProjectId || null;
+      if (currentUrlParam === lastScreenplayIdRef.current) {
+        console.log('[EditableScreenplayTitle] URL param unchanged, skipping refetch');
         setIsLoading(false);
         return;
       }
 
-      // Update the ref to track this screenplayId
-      lastScreenplayIdRef.current = screenplayId;
+      // Update the ref to track the URL param (source of truth)
+      // Note: We only track the URL param, not the context ID, to prevent refetches when context changes
+      lastScreenplayIdRef.current = currentUrlParam;
 
       try {
         setIsLoading(true);
@@ -97,7 +104,7 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
     };
     window.addEventListener('screenplayUpdated', handleUpdate);
     return () => window.removeEventListener('screenplayUpdated', handleUpdate);
-  }, [searchParams, screenplay?.screenplayId, getToken]); // Depend on URL params and screenplay.screenplayId to refetch when it changes
+  }, [searchParams, getToken]); // Only depend on URL params - context changes shouldn't trigger refetches
 
   const handleClick = () => {
     const urlProjectId = searchParams?.get('project');
