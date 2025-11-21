@@ -1531,27 +1531,10 @@ export default function MediaLibrary({
                             }}
                           >
                             <DropdownMenuItem 
-                              onSelect={(e) => {
-                                console.log('[MediaLibrary] onSelect fired!', Date.now(), file.id);
-                                // Radix UI onSelect receives an Event, but we need to prevent default behavior
-                                if (e) {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                                console.log('[MediaLibrary] View onSelect - file:', file.id);
-                                setOpenMenuId(null); // Close menu manually
-                                // Use setTimeout to ensure menu closes before action
-                                setTimeout(() => {
-                                  console.log('[MediaLibrary] View onSelect - executing handleViewFile');
-                                  handleViewFile(file);
-                                }, 0);
-                              }}
                               onClick={(e) => {
-                                console.log('[MediaLibrary] onClick fired!', Date.now(), file.id);
-                                e.preventDefault();
                                 e.stopPropagation();
-                                console.log('[MediaLibrary] View onClick - file:', file.id);
-                                setOpenMenuId(null); // Close menu manually
+                                console.log('[MediaLibrary] View clicked for file:', file.id);
+                                setOpenMenuId(null);
                                 handleViewFile(file);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -1560,24 +1543,10 @@ export default function MediaLibrary({
                               View
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={(e) => {
-                                // Radix UI onSelect receives an Event, but we need to prevent default behavior
-                                if (e) {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                                console.log('[MediaLibrary] Download clicked for file:', file.id);
-                                setOpenMenuId(null); // Close menu manually
-                                // Use setTimeout to ensure menu closes before action
-                                setTimeout(() => {
-                                  handleDownloadFile(file);
-                                }, 0);
-                              }}
                               onClick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
-                                console.log('[MediaLibrary] Download onClick for file:', file.id);
-                                setOpenMenuId(null); // Close menu manually
+                                console.log('[MediaLibrary] Download clicked for file:', file.id);
+                                setOpenMenuId(null);
                                 handleDownloadFile(file);
                               }}
                               className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -1586,24 +1555,10 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onSelect={(e) => {
-                                // Radix UI onSelect receives an Event, but we need to prevent default behavior
-                                if (e) {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }
-                                console.log('[MediaLibrary] Delete clicked for file:', file.id);
-                                setOpenMenuId(null); // Close menu manually
-                                // Use setTimeout to ensure menu closes before action
-                                setTimeout(() => {
-                                  deleteFile(file.id);
-                                }, 0);
-                              }}
                               onClick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
-                                console.log('[MediaLibrary] Delete onClick for file:', file.id);
-                                setOpenMenuId(null); // Close menu manually
+                                console.log('[MediaLibrary] Delete clicked for file:', file.id);
+                                setOpenMenuId(null);
                                 deleteFile(file.id);
                               }}
                               className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"

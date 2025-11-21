@@ -13,11 +13,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { FileText, Users, MapPin, ChevronDown, Settings } from 'lucide-react';
+import { FileText, Users, MapPin, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditableScreenplayTitle from './EditableScreenplayTitle';
-import ScreenplaySettingsModal from './ScreenplaySettingsModal';
-import ScreenplaySwitcher from './ScreenplaySwitcher';
 
 export type EditorTab = 'write' | 'characters' | 'locations';
 
@@ -61,7 +59,6 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   
   // Auto-determine active tab from pathname if not provided
   const determineActiveTab = (): EditorTab => {
@@ -83,20 +80,8 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
         className
       )}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between gap-3 py-2 border-b border-base-300">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <EditableScreenplayTitle />
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <ScreenplaySwitcher />
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="p-2 hover:bg-base-300 rounded transition-colors flex-shrink-0"
-                title="Screenplay settings"
-              >
-                <Settings className="w-4 h-4 text-base-content/60 hover:text-base-content" />
-              </button>
-            </div>
+          <div className="flex items-center gap-3 py-2 border-b border-base-300">
+            <EditableScreenplayTitle />
           </div>
           <div className="flex gap-1">
             {TABS.map((tab) => {
@@ -149,20 +134,8 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
         "md:hidden border-b border-base-300 bg-base-200",
         className
       )}>
-        <div className="px-4 py-2 border-b border-base-300 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <EditableScreenplayTitle />
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <ScreenplaySwitcher />
-            <button
-              onClick={() => setShowSettingsModal(true)}
-              className="p-2 hover:bg-base-300 rounded transition-colors flex-shrink-0"
-              title="Screenplay settings"
-            >
-              <Settings className="w-4 h-4 text-base-content/60 hover:text-base-content" />
-            </button>
-          </div>
+        <div className="px-4 py-2 border-b border-base-300">
+          <EditableScreenplayTitle />
         </div>
         <div className="px-4 py-2">
           <div className="dropdown w-full">
@@ -216,12 +189,6 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
           </div>
         </div>
       </div>
-
-      {/* Settings Modal */}
-      <ScreenplaySettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-      />
     </>
   );
 }
