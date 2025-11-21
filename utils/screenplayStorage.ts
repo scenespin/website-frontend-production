@@ -272,23 +272,41 @@ export async function updateScreenplay(
 
 /**
  * Delete screenplay (soft delete)
+ * Feature 0130: Uses screenplay_id only - no project_id fallback
  */
 export async function deleteScreenplay(
   screenplayId: string,
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<void> {
-  const token = await getToken({ template: 'wryda-backend' });
+  // Feature 0130: Validate ID format - reject proj_ IDs
+  if (screenplayId.startsWith('proj_')) {
+    console.warn('[screenplayStorage] ⚠️ Rejected proj_ ID (legacy format):', screenplayId);
+    throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplayId}`);
+  }
   
+  if (!screenplayId.startsWith('screenplay_')) {
+    console.warn('[screenplayStorage] ⚠️ Invalid ID format:', screenplayId);
+    throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplayId}`);
+  }
+  
+  // Note: Next.js API route handles auth server-side, so we don't need to send token
   const response = await fetch(`/api/screenplays/${screenplayId}`, {
     method: 'DELETE',
     headers: {
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json'
     }
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete screenplay');
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorMessage = 'Failed to delete screenplay';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.message || error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+    }
+    throw new Error(errorMessage);
   }
 }
 

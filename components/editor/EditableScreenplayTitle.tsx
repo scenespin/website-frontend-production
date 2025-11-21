@@ -26,6 +26,7 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastScreenplayIdRef = useRef<string | null>(null); // Track last valid screenplayId to prevent unnecessary resets
 
   // Fetch screenplay title when screenplayId changes or when updated
   useEffect(() => {
@@ -35,11 +36,33 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
       const screenplayId = urlProjectId || screenplay?.screenplayId;
       console.log('[EditableScreenplayTitle] Fetching title for screenplay:', screenplayId, '(from URL:', urlProjectId, ', from context:', screenplay?.screenplayId, ')');
       
+      // If we have a valid title and the screenplayId hasn't actually changed, don't reset
+      // This prevents the title from resetting when the context temporarily becomes undefined during navigation
       if (!screenplayId) {
-        setTitle('Untitled Screenplay');
+        // Only reset to "Untitled" if we don't have a last known screenplayId
+        // This means we're truly on a new page without a screenplay, not just a temporary context reset
+        if (!lastScreenplayIdRef.current) {
+          setTitle('Untitled Screenplay');
+          setIsLoading(false);
+        } else {
+          // Keep the current title - the screenplayId will come back
+          // This prevents the title from resetting during temporary context changes
+          console.log('[EditableScreenplayTitle] ScreenplayId temporarily unavailable, keeping current title');
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // If the screenplayId hasn't changed, don't refetch (unless we're explicitly updating)
+      // This prevents unnecessary API calls and title resets
+      if (screenplayId === lastScreenplayIdRef.current) {
+        console.log('[EditableScreenplayTitle] ScreenplayId unchanged, skipping refetch');
         setIsLoading(false);
         return;
       }
+
+      // Update the ref to track this screenplayId
+      lastScreenplayIdRef.current = screenplayId;
 
       try {
         setIsLoading(true);
@@ -48,11 +71,16 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
         if (screenplayData?.title) {
           setTitle(screenplayData.title);
         } else {
+          // Only set to "Untitled" if we truly don't have a title from the API
           setTitle('Untitled Screenplay');
         }
       } catch (error) {
         console.error('[EditableScreenplayTitle] Failed to fetch screenplay:', error);
-        setTitle('Untitled Screenplay');
+        // Don't reset the title on error - keep what we have if it's valid
+        // Only reset if we don't have a valid title yet
+        if (title === 'Untitled Screenplay' || !lastScreenplayIdRef.current) {
+          // Keep as is or set to Untitled if we truly don't have one
+        }
       } finally {
         setIsLoading(false);
       }
@@ -63,6 +91,8 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
     // Listen for screenplay updates
     const handleUpdate = () => {
       console.log('[EditableScreenplayTitle] Screenplay updated event received, refetching title');
+      // Force refetch on explicit update events
+      lastScreenplayIdRef.current = null;
       fetchTitle();
     };
     window.addEventListener('screenplayUpdated', handleUpdate);

@@ -268,7 +268,7 @@ export default function Dashboard() {
     console.log('[Dashboard] Transformed project:', transformedProject);
     
     // Following the pattern from characters/locations: update local state immediately
-    // Add new project to list immediately for instant UI feedback - don't refresh
+    // Add new project to list immediately for instant UI feedback
     setProjects(prev => {
       // Check if it already exists (avoid duplicates)
       const exists = prev.some(p => p.id === screenplayId || p.screenplay_id === screenplayId);
@@ -278,6 +278,12 @@ export default function Dashboard() {
       }
       return [transformedProject, ...prev];
     });
+    
+    // Refresh the list after a short delay to account for DynamoDB eventual consistency
+    // This ensures the new screenplay appears on next page load
+    setTimeout(() => {
+      fetchDashboardData();
+    }, 1000);
     
     // Navigate to the editor with the new screenplay
     if (screenplayId) {
@@ -347,7 +353,7 @@ export default function Dashboard() {
       const responseData = await response.json().catch(() => ({}));
       console.log('[Dashboard] Delete response:', responseData);
       
-      // Optimistically remove from UI immediately - don't refresh
+      // Optimistically remove from UI immediately
       // Following the pattern from characters/locations: update local state only
       // The backend filters by status='active', so deleted items won't appear on next page load
       setProjects(prev => prev.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
@@ -359,6 +365,12 @@ export default function Dashboard() {
       if (currentScreenplayId === projectId) {
         setCurrentScreenplayId(null);
       }
+      
+      // Refresh the list after a short delay to account for DynamoDB eventual consistency
+      // This ensures the deleted item doesn't reappear on next page load
+      setTimeout(() => {
+        fetchDashboardData();
+      }, 500);
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
@@ -421,6 +433,12 @@ export default function Dashboard() {
               console.error('[Dashboard] Error fetching updated screenplay:', error);
               // Don't fail the whole flow - the update was successful, just refresh failed
             }
+            
+            // Refresh the list after a short delay to account for DynamoDB eventual consistency
+            // This ensures the updated data appears on next page load
+            setTimeout(() => {
+              fetchDashboardData();
+            }, 500);
           }}
           screenplayId={editingProjectId}
         />
