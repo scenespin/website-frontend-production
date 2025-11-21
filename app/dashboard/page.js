@@ -267,7 +267,8 @@ export default function Dashboard() {
     
     console.log('[Dashboard] Transformed project:', transformedProject);
     
-    // Add new project to list immediately for instant UI feedback
+    // Following the pattern from characters/locations: update local state immediately
+    // Add new project to list immediately for instant UI feedback - don't refresh
     setProjects(prev => {
       // Check if it already exists (avoid duplicates)
       const exists = prev.some(p => p.id === screenplayId || p.screenplay_id === screenplayId);
@@ -277,48 +278,6 @@ export default function Dashboard() {
       }
       return [transformedProject, ...prev];
     });
-    
-    // Wait a moment for DynamoDB eventual consistency, then refresh from backend
-    // This ensures the project appears even if user navigates back
-    setTimeout(async () => {
-      try {
-        const screenplaysRes = await fetch('/api/screenplays/list?status=active&limit=100');
-        
-        if (screenplaysRes.ok) {
-          const screenplaysData = await screenplaysRes.json();
-          const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
-          // Transform screenplays to match the projects format
-          // Filter out deleted/archived items
-          const refreshedProjects = screenplays
-            .filter(s => {
-              // Only include active screenplays
-              if ((s.status && s.status !== 'active') || s.is_archived) {
-                return false;
-              }
-              return true;
-            })
-            .map(s => ({
-              id: s.screenplay_id,
-              name: s.title,
-              created_at: s.created_at,
-              updated_at: s.updated_at,
-              screenplay_id: s.screenplay_id,
-              description: s.description,
-              genre: s.metadata?.genre,
-              storage_provider: s.storage_provider,
-              status: s.status || 'active'
-            }))
-            .filter(Boolean);
-          
-          // Update projects list with fresh data from backend
-          setProjects(refreshedProjects);
-          console.log('[Dashboard] Refreshed projects list from backend:', refreshedProjects.length, 'projects');
-        }
-      } catch (error) {
-        console.error('[Dashboard] Error refreshing projects after creation:', error);
-        // Don't fail the whole flow if refresh fails - we already added it to state
-      }
-    }, 2000); // 2 second delay for DynamoDB eventual consistency (increased from 1s)
     
     // Navigate to the editor with the new screenplay
     if (screenplayId) {
@@ -388,14 +347,10 @@ export default function Dashboard() {
       const responseData = await response.json().catch(() => ({}));
       console.log('[Dashboard] Delete response:', responseData);
       
-      // Optimistically remove from UI immediately
+      // Optimistically remove from UI immediately - don't refresh
+      // Following the pattern from characters/locations: update local state only
+      // The backend filters by status='active', so deleted items won't appear on next page load
       setProjects(prev => prev.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
-      
-      // Wait a moment for DynamoDB eventual consistency, then refresh
-      // Increased delay to ensure delete has propagated
-      setTimeout(async () => {
-        await fetchDashboardData();
-      }, 1500); // 1.5 second delay for DynamoDB eventual consistency (increased from 500ms)
       
       setShowDeleteConfirm(null);
       toast.success('Deleted successfully');
@@ -437,11 +392,35 @@ export default function Dashboard() {
         <ScreenplaySettingsModal
           isOpen={!!editingProjectId}
           onClose={async () => {
+            const screenplayId = editingProjectId;
             setEditingProjectId(null);
-            // Wait a moment for DynamoDB eventual consistency, then refresh
-            setTimeout(async () => {
-              await fetchDashboardData(); // Refresh to show updated data
-            }, 1000); // 1 second delay for DynamoDB eventual consistency
+            
+            // Following the pattern from characters/locations: update local state immediately
+            // Fetch the updated screenplay and update local state optimistically
+            try {
+              const response = await fetch(`/api/screenplays/${screenplayId}`);
+              if (response.ok) {
+                const data = await response.json();
+                const updatedScreenplay = data.data || data;
+                
+                // Update local state immediately (optimistic UI)
+                setProjects(prev => prev.map(p => {
+                  if (p.id === screenplayId || p.screenplay_id === screenplayId) {
+                    return {
+                      ...p,
+                      name: updatedScreenplay.title || p.name,
+                      description: updatedScreenplay.description || p.description,
+                      genre: updatedScreenplay.metadata?.genre || p.genre,
+                      updated_at: updatedScreenplay.updated_at || p.updated_at
+                    };
+                  }
+                  return p;
+                }));
+              }
+            } catch (error) {
+              console.error('[Dashboard] Error fetching updated screenplay:', error);
+              // Don't fail the whole flow - the update was successful, just refresh failed
+            }
           }}
           screenplayId={editingProjectId}
         />

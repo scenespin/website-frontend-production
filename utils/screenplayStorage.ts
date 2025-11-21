@@ -147,13 +147,12 @@ export async function createScreenplay(
   params: CreateScreenplayParams,
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay> {
-  const token = await getToken({ template: 'wryda-backend' });
-  
+  // Note: Next.js API route handles auth server-side via Clerk middleware
+  // No need to send Authorization header - the route uses auth() to get token
   const response = await fetch('/api/screenplays', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(params)
   });
