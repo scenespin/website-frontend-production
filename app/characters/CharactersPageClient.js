@@ -19,15 +19,18 @@ export default function CharactersPageClient() {
     console.log('[CharacterPage] AI Interview triggered:', entityContext);
     
     if (entityContext?.workflow === 'interview') {
-      // Set mode to the entity type (character) so the correct agent panel is shown
-      setMode(entityContext.type || 'character');
+      const agentMode = entityContext.type || 'character';
       
       // Set entity context banner so the mode panel knows what entity we're creating
       setEntityContextBanner(entityContext);
       
-      // Open the drawer - the CharacterModePanel will auto-start the workflow
-      openDrawer('chat');
-      console.log('[CharacterPage] Opened AI Interview drawer with character agent');
+      // Open drawer with the correct agent mode (like FAB buttons do)
+      // Pass mode as first parameter AND in trigger object for consistency
+      openDrawer(agentMode, {
+        mode: agentMode,
+        entityContext: entityContext
+      });
+      console.log('[CharacterPage] Opened AI Interview drawer with', agentMode, 'agent');
     }
   };
 

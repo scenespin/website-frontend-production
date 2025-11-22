@@ -613,31 +613,60 @@ function EditorProviderInner({ children, screenplayId }: { children: ReactNode; 
     useEffect(() => {
         // Get the previous screenplayId from the ref before it's cleared
         const previousScreenplayId = screenplayIdRef.current;
-        const currentContent = stateRef.current.content;
+        const currentState = stateRef.current;
+        const currentContent = currentState.content;
         const hasContent = currentContent && currentContent.trim().length > 0;
         
         console.log('[EditorContext] screenplayId changed:', {
             from: previousScreenplayId,
             to: screenplayId,
             hasContent,
-            contentLength: currentContent?.length || 0
+            contentLength: currentContent?.length || 0,
+            isDirty: currentState.isDirty
         });
         
         // Save current content before switching (if there's content and a previous screenplay)
-        if (hasContent && previousScreenplayId && previousScreenplayId.startsWith('screenplay_')) {
-            console.log('[EditorContext] 💾 Saving current content before switching screenplays...');
-            
-            // Save immediately to prevent data loss
-            saveNow().catch(error => {
-                console.error('[EditorContext] ⚠️ Failed to save before switching screenplays:', error);
-                // Still continue with switch - localStorage backup should preserve content
-            });
-        }
+        // Use async IIFE with cleanup handling
+        let isMounted = true;
+        (async () => {
+            if (hasContent && previousScreenplayId && previousScreenplayId.startsWith('screenplay_')) {
+                console.log('[EditorContext] 💾 Saving current content before switching screenplays...');
+                
+                try {
+                    // CRITICAL: Temporarily restore screenplayIdRef so saveNow can use it
+                    screenplayIdRef.current = previousScreenplayId;
+                    
+                    // Save immediately and wait for it to complete
+                    await saveNow();
+                    
+                    if (isMounted) {
+                        console.log('[EditorContext] ✅ Saved content before switching');
+                    }
+                } catch (error) {
+                    if (isMounted) {
+                        console.error('[EditorContext] ⚠️ Failed to save before switching screenplays:', error);
+                        // Still continue with switch - localStorage backup should preserve content
+                    }
+                } finally {
+                    if (isMounted) {
+                        // Reset flags and state for new screenplay
+                        hasRunAutoImportRef.current = false;
+                        screenplayIdRef.current = null; // Clear to force a fresh load
+                        setState(defaultState); // Reset editor state for new screenplay
+                    }
+                }
+            } else {
+                // No content to save - just reset for new screenplay
+                hasRunAutoImportRef.current = false;
+                screenplayIdRef.current = null;
+                setState(defaultState);
+            }
+        })();
         
-        // Reset flags and state for new screenplay
-        hasRunAutoImportRef.current = false;
-        screenplayIdRef.current = null; // Clear to force a fresh load
-        setState(defaultState); // Reset editor state for new screenplay
+        // Cleanup function to prevent state updates if component unmounts
+        return () => {
+            isMounted = false;
+        };
     }, [screenplayId, saveNow]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount

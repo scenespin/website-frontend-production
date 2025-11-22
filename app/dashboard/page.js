@@ -325,12 +325,17 @@ export default function Dashboard() {
           const localUpdatedAt = new Date(optimisticEdit.updated_at).getTime();
           const backendUpdatedAt = new Date(screenplay.updated_at || screenplay.created_at || 0).getTime();
           
+          // Preserve optimistic edit if local timestamp is newer or equal
+          // This handles eventual consistency: backend might not have processed update yet
           if (localUpdatedAt >= backendUpdatedAt) {
             // Local edit is more recent or same - preserve it
-            console.log('[Dashboard] Preserving optimistic edit for:', screenplayId);
+            console.log('[Dashboard] Preserving optimistic edit for:', screenplayId, {
+              localUpdatedAt: new Date(localUpdatedAt).toISOString(),
+              backendUpdatedAt: new Date(backendUpdatedAt).toISOString()
+            });
             Object.assign(screenplay, optimisticEdit.data);
           } else {
-            // Backend has newer data - remove optimistic edit
+            // Backend has newer data - remove optimistic edit and trust backend
             console.log('[Dashboard] Backend has newer data, removing optimistic edit:', screenplayId);
             editsToRemove.add(screenplayId);
           }
@@ -558,13 +563,10 @@ export default function Dashboard() {
         setCurrentScreenplayId(null);
       }
       
-      // Explicit refresh after delete to ensure persistence
-      // Longer delay to allow backend to fully process the deletion
-      // The deleted ID is tracked in deletedScreenplayIdsRef, so it won't reappear
-      setTimeout(() => {
-        console.log('[Dashboard] Refreshing after delete to ensure persistence');
-        fetchDashboardData();
-      }, 1500);
+      // Don't refresh immediately - let optimistic update handle UI
+      // The deleted ID is tracked in deletedScreenplayIdsRef, so it won't reappear on next refresh
+      // Existing refresh mechanisms (window focus, pathname change) will pick up the change
+      console.log('[Dashboard] Delete complete - optimistic update applied, will refresh on next navigation');
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
@@ -629,13 +631,10 @@ export default function Dashboard() {
                 return p;
               }));
               
-              // Explicit refresh after rename to ensure persistence
-              // Longer delay to allow backend to fully process the update
-              // The optimistic edit is tracked in optimisticEditsRef, so it won't be overwritten
-              setTimeout(() => {
-                console.log('[Dashboard] Refreshing after rename to ensure persistence');
-                fetchDashboardData();
-              }, 1500);
+              // Don't refresh immediately - let optimistic update handle UI
+              // The optimistic edit is tracked in optimisticEditsRef, so it won't be overwritten on next refresh
+              // Existing refresh mechanisms (window focus, pathname change) will pick up the change
+              console.log('[Dashboard] Rename complete - optimistic update applied, will refresh on next navigation');
             }
           }}
           screenplayId={editingScreenplayId}

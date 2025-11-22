@@ -19,15 +19,18 @@ export default function LocationsPageClient() {
     console.log('[LocationPage] AI Interview triggered:', entityContext);
     
     if (entityContext?.workflow === 'interview') {
-      // Set mode to the entity type (location) so the correct agent panel is shown
-      setMode(entityContext.type || 'location');
+      const agentMode = entityContext.type || 'location';
       
       // Set entity context banner so the mode panel knows what entity we're creating
       setEntityContextBanner(entityContext);
       
-      // Open the drawer - the LocationModePanel will auto-start the workflow
-      openDrawer('chat');
-      console.log('[LocationPage] Opened AI Interview drawer with location agent');
+      // Open drawer with the correct agent mode (like FAB buttons do)
+      // Pass mode as first parameter AND in trigger object for consistency
+      openDrawer(agentMode, {
+        mode: agentMode,
+        entityContext: entityContext
+      });
+      console.log('[LocationPage] Opened AI Interview drawer with', agentMode, 'agent');
     }
   };
 
