@@ -109,7 +109,8 @@ const defaultState: EditorState = {
 export const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
 // Inner component that uses useSearchParams (must be wrapped in Suspense)
-function EditorProviderInner({ children, projectId }: { children: ReactNode; projectId: string | null }) {
+// Feature 0130: Use screenplayId (not projectId) - URL param name stays as 'project' for compatibility
+function EditorProviderInner({ children, screenplayId }: { children: ReactNode; screenplayId: string | null }) {
     const [state, setState] = useState<EditorState>(defaultState);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -385,29 +386,29 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
         
         try {
-            // Feature 0130: Use projectId from URL as source of truth (must be screenplay_ ID)
-            // Priority: projectId from URL > screenplayIdRef.current
+            // Feature 0130: Use screenplayId from URL as source of truth (must be screenplay_ ID)
+            // Priority: screenplayId from URL > screenplayIdRef.current
             // This ensures we always save to the correct screenplay when switching
             let activeScreenplayId: string | null = null;
             
-            if (projectId) {
+            if (screenplayId) {
                 // Feature 0130: Only accept screenplay_ IDs - reject proj_ IDs
-                if (projectId.startsWith('screenplay_')) {
-                    activeScreenplayId = projectId;
+                if (screenplayId.startsWith('screenplay_')) {
+                    activeScreenplayId = screenplayId;
                     console.log('[EditorContext] Using screenplay_id from URL:', activeScreenplayId);
-                } else if (projectId.startsWith('proj_')) {
-                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', projectId);
+                } else if (screenplayId.startsWith('proj_')) {
+                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', screenplayId);
                     // Use ref as fallback, but log warning
                     activeScreenplayId = screenplayIdRef.current;
                     console.warn('[EditorContext] ⚠️ Using screenplay_id from ref instead:', activeScreenplayId);
                 } else {
-                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
+                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', screenplayId);
                     activeScreenplayId = screenplayIdRef.current;
                 }
             } else {
-                // No projectId in URL - use ref (fallback for when no URL param)
+                // No screenplayId in URL - use ref (fallback for when no URL param)
                 activeScreenplayId = screenplayIdRef.current;
-                console.log('[EditorContext] No projectId in URL, using screenplay_id from ref:', activeScreenplayId);
+                console.log('[EditorContext] No screenplayId in URL, using screenplay_id from ref:', activeScreenplayId);
             }
             
             // Save to localStorage immediately
@@ -482,7 +483,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             console.error('[EditorContext] Manual save failed:', error);
             throw error; // Let the caller handle the error
         }
-    }, [getToken, screenplay, projectId, user]);
+    }, [getToken, screenplay, screenplayId, user]);
     
     // Utility
     const reset = useCallback(() => {
@@ -607,14 +608,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     //     }
     // }, [state.content, screenplay]);
     
-    // Reset hasRunAutoImportRef when projectId changes to re-trigger loadContent
+    // Reset hasRunAutoImportRef when screenplayId changes to re-trigger loadContent
     useEffect(() => {
-        console.log('[EditorContext] projectId changed:', projectId, 'Resetting hasRunAutoImportRef.');
+        console.log('[EditorContext] screenplayId changed:', screenplayId, 'Resetting hasRunAutoImportRef.');
         hasRunAutoImportRef.current = false;
         screenplayIdRef.current = null; // Also clear the screenplayIdRef to force a fresh load
         // Optionally, reset editor state to default or loading state here
         setState(defaultState);
-    }, [projectId]);
+    }, [screenplayId]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
@@ -633,27 +634,27 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         async function loadContent() {
             try {
                 // Feature 0130: If a screenplay ID is specified in URL, load it directly
-                if (projectId) {
+                if (screenplayId) {
                     try {
-                        console.log('[EditorContext] 🎬 Screenplay specified in URL:', projectId);
+                        console.log('[EditorContext] 🎬 Screenplay specified in URL:', screenplayId);
                         
                         // Feature 0130: Only accept screenplay_ IDs - reject proj_ IDs
-                        if (projectId.startsWith('proj_')) {
-                            console.warn('[EditorContext] ⚠️ Rejected proj_ ID (legacy format):', projectId);
+                        if (screenplayId.startsWith('proj_')) {
+                            console.warn('[EditorContext] ⚠️ Rejected proj_ ID (legacy format):', screenplayId);
                             console.warn('[EditorContext] ⚠️ Please use screenplay_ ID instead. Legacy project IDs are no longer supported.');
                             // Continue with normal load flow (don't throw - let user see empty editor)
-                        } else if (projectId.startsWith('screenplay_')) {
+                        } else if (screenplayId.startsWith('screenplay_')) {
                             // It's a screenplay ID - load it directly
-                            console.log('[EditorContext] Loading screenplay directly from URL...', projectId);
-                            const screenplay = await getScreenplay(projectId, getToken);
+                            console.log('[EditorContext] Loading screenplay directly from URL...', screenplayId);
+                            const screenplay = await getScreenplay(screenplayId, getToken);
                             
                             if (screenplay) {
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
-                                screenplayIdRef.current = projectId;
+                                screenplayIdRef.current = screenplayId;
                                 
                                 // Save to Clerk metadata
                                 try {
-                                    await setCurrentScreenplayId(user, projectId);
+                                    await setCurrentScreenplayId(user, screenplayId);
                                 } catch (error) {
                                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
                                 }
@@ -667,14 +668,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                     isDirty: false
                                 }));
                                 
-                                console.log('[EditorContext] ✅ Loaded screenplay from URL:', projectId);
+                                console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplayId);
                                 isInitialLoadRef.current = false;
                                 return; // Success - screenplay loaded!
                             } else {
-                                console.warn('[EditorContext] ⚠️ Screenplay not found:', projectId);
+                                console.warn('[EditorContext] ⚠️ Screenplay not found:', screenplayId);
                             }
                         } else {
-                            console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
+                            console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', screenplayId);
                             console.warn('[EditorContext] ⚠️ Expected screenplay_* format');
                         }
                     } catch (error) {
@@ -764,7 +765,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         
         loadContent();
-    }, [screenplay, getToken, user, projectId]); // Depend on screenplay, getToken, user, and projectId
+    }, [screenplay, getToken, user, screenplayId]); // Depend on screenplay, getToken, user, and screenplayId
     
     return (
         <EditorContext.Provider value={value}>
@@ -774,10 +775,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
 }
 
 // Wrapper component that handles useSearchParams with Suspense
-function ProjectIdReader({ children }: { children: ReactNode }) {
+// Feature 0130: Renamed from ProjectIdReader to ScreenplayIdReader
+function ScreenplayIdReader({ children }: { children: ReactNode }) {
     const searchParams = useSearchParams();
-    const projectId = searchParams?.get('project');
-    return <EditorProviderInner projectId={projectId}>{children}</EditorProviderInner>;
+    // URL param name stays as 'project' for compatibility, but we use screenplayId internally
+    const screenplayId = searchParams?.get('project');
+    return <EditorProviderInner screenplayId={screenplayId}>{children}</EditorProviderInner>;
 }
 
 // Create a minimal context value for Suspense fallback
@@ -814,7 +817,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 {children}
             </EditorContext.Provider>
         }>
-            <ProjectIdReader>{children}</ProjectIdReader>
+            <ScreenplayIdReader>{children}</ScreenplayIdReader>
         </Suspense>
     );
 }

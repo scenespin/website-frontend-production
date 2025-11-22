@@ -46,11 +46,12 @@ export default function EditorWorkspace() {
     // Rewrite modal state
     const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
     
-    // Get projectId and sceneId from URL params (for collaboration and scene navigation)
+    // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
     // Remove 'default' fallback - EditorContext handles loading from Clerk metadata if no URL param
+    // URL param name stays as 'project' for compatibility, but we use screenplayId internally
     const searchParams = useSearchParams();
-    const projectId = searchParams?.get('project'); // No fallback - let EditorContext handle it
+    const screenplayId = searchParams?.get('project'); // No fallback - let EditorContext handle it
     const sceneIdFromUrl = searchParams?.get('sceneId');
     
     // Get GitHub config from localStorage
@@ -466,9 +467,9 @@ Tip:
                             </div>
 
                             {/* Collaboration Management */}
-                            {projectId && projectId.startsWith('screenplay_') && (
+                            {screenplayId && screenplayId.startsWith('screenplay_') && (
                                 <CollaborationPanel
-                                    projectId={projectId}
+                                    projectId={screenplayId}
                                     isOwner={true}
                                 />
                             )}

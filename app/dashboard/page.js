@@ -38,9 +38,10 @@ export default function Dashboard() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
-  const [deletingProjectId, setDeletingProjectId] = useState(null);
+  // Feature 0130: Use screenplayId (not projectId) for consistency
+  const [deletingScreenplayId, setDeletingScreenplayId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [editingScreenplayId, setEditingScreenplayId] = useState(null);
   // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
   const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(new Set());
 
@@ -374,30 +375,31 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeleteProject = async (projectId, projectName) => {
-    if (!showDeleteConfirm || showDeleteConfirm !== projectId) {
+  const handleDeleteProject = async (screenplayId, projectName) => {
+    // Feature 0130: Parameter is actually screenplayId (not projectId)
+    if (!showDeleteConfirm || showDeleteConfirm !== screenplayId) {
       // First click - show confirmation
-      setShowDeleteConfirm(projectId);
+      setShowDeleteConfirm(screenplayId);
       return;
     }
 
     // Second click - actually delete
-    setDeletingProjectId(projectId);
+    setDeletingScreenplayId(screenplayId);
     try {
       // Feature 0130: Only use screenplays API - no project API fallback
       // Validate ID format - reject proj_ IDs
-      if (projectId.startsWith('proj_')) {
-        console.warn('[Dashboard] ⚠️ Rejected proj_ ID (legacy format):', projectId);
+      if (screenplayId.startsWith('proj_')) {
+        console.warn('[Dashboard] ⚠️ Rejected proj_ ID (legacy format):', screenplayId);
         throw new Error(`Invalid screenplay ID format. Legacy project IDs (proj_*) are no longer supported.`);
       }
       
-      if (!projectId.startsWith('screenplay_')) {
-        console.warn('[Dashboard] ⚠️ Invalid ID format:', projectId);
-        throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${projectId}`);
+      if (!screenplayId.startsWith('screenplay_')) {
+        console.warn('[Dashboard] ⚠️ Invalid ID format:', screenplayId);
+        throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplayId}`);
       }
       
       // Note: Next.js API route handles auth server-side
-      const response = await fetch(`/api/screenplays/${projectId}`, {
+      const response = await fetch(`/api/screenplays/${screenplayId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
@@ -422,7 +424,7 @@ export default function Dashboard() {
           status: response.status,
           statusText: response.statusText,
           error: errorDetails,
-          projectId: projectId,
+          screenplayId: screenplayId,
           errorMessage: errorMessage
         });
         
@@ -434,12 +436,12 @@ export default function Dashboard() {
       console.log('[Dashboard] Delete response:', responseData);
       
       // Track this ID as deleted to prevent it from reappearing due to DynamoDB eventual consistency
-      setDeletedScreenplayIds(prev => new Set([...prev, projectId]));
+      setDeletedScreenplayIds(prev => new Set([...prev, screenplayId]));
       
       // Optimistically remove from UI immediately
       // Following the pattern from characters/locations: update local state only
       // The backend filters by status='active', so deleted items won't appear on next page load
-      setProjects(prev => prev.filter(p => p.id !== projectId && p.screenplay_id !== projectId));
+      setProjects(prev => prev.filter(p => p.id !== screenplayId && p.screenplay_id !== screenplayId));
       
       setShowDeleteConfirm(null);
       toast.success('Deleted successfully');
@@ -459,7 +461,7 @@ export default function Dashboard() {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
     } finally {
-      setDeletingProjectId(null);
+      setDeletingScreenplayId(null);
     }
   };
 
@@ -484,12 +486,12 @@ export default function Dashboard() {
       />
       
       {/* Settings Modal */}
-      {editingProjectId && (
+      {editingScreenplayId && (
         <ScreenplaySettingsModal
-          isOpen={!!editingProjectId}
+          isOpen={!!editingScreenplayId}
           onClose={async () => {
-            const screenplayId = editingProjectId;
-            setEditingProjectId(null);
+            const screenplayId = editingScreenplayId;
+            setEditingScreenplayId(null);
             
             // Following the pattern from characters/locations: update local state immediately
             // Fetch the updated screenplay and update local state optimistically
@@ -524,7 +526,7 @@ export default function Dashboard() {
               fetchDashboardData();
             }, 500);
           }}
-          screenplayId={editingProjectId}
+          screenplayId={editingScreenplayId}
         />
       )}
 
@@ -661,22 +663,22 @@ export default function Dashboard() {
           {projects.length > 0 ? (
             <div className="space-y-3">
               {projects.filter(project => project != null).map((project) => {
-                // Check if this project's screenplay_id matches the current screenplay
-                // Screenplays are now the primary entity
-                const projectId = project?.id || project?.screenplay_id; // Use id (which is screenplay_id)
+                // Feature 0130: Use screenplayId (not projectId) - projects are actually screenplays
+                // Check if this screenplay's screenplay_id matches the current screenplay
+                const screenplayId = project?.id || project?.screenplay_id; // Use id (which is screenplay_id)
                 const projectScreenplayId = project?.screenplay_id || project?.id;
                 const isCurrent = currentScreenplayId === projectScreenplayId || 
                                  (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
-                const isDeleting = deletingProjectId === projectId;
-                const showConfirm = showDeleteConfirm === projectId;
+                const isDeleting = deletingScreenplayId === screenplayId;
+                const showConfirm = showDeleteConfirm === screenplayId;
                 
                 return (
                   <div
-                    key={projectId}
+                    key={screenplayId}
                     className="flex items-center justify-between p-5 bg-base-200 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/50 group"
                   >
                     <Link
-                      href={`/write?project=${projectId}`}
+                      href={`/write?project=${screenplayId}`}
                       className="flex items-center gap-4 flex-1 min-w-0"
                     >
                       <div className="p-3 bg-cinema-red/10 rounded-lg group-hover:bg-cinema-red/20 transition-colors flex-shrink-0">
@@ -711,7 +713,7 @@ export default function Dashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingProjectId(projectId);
+                              setEditingScreenplayId(screenplayId);
                             }}
                             className="p-2 rounded-lg hover:bg-primary/20 text-base-content/60 hover:text-primary transition-colors"
                             title="Edit screenplay settings"
@@ -721,7 +723,7 @@ export default function Dashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteProject(projectId, project.name || project.title || 'Untitled Project');
+                              handleDeleteProject(screenplayId, project.name || project.title || 'Untitled Project');
                             }}
                             disabled={isDeleting}
                             className="p-2 rounded-lg hover:bg-red-500/20 text-base-content/60 hover:text-red-500 transition-colors disabled:opacity-50"
@@ -740,7 +742,7 @@ export default function Dashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteProject(projectId, project.name || project.title || 'Untitled Project');
+                              handleDeleteProject(screenplayId, project.name || project.title || 'Untitled Project');
                             }}
                             disabled={isDeleting}
                             className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"

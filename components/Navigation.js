@@ -44,8 +44,13 @@ export default function Navigation() {
   const [loadingCredits, setLoadingCredits] = useState(true);
 
   const handleProjectCreated = (project) => {
-    // Navigate to the editor with the new project
-    router.push(`/write?project=${project.project_id}`);
+    // Feature 0130: Use screenplay_id (not project_id)
+    const screenplayId = project.screenplay_id || project.id;
+    if (screenplayId && screenplayId.startsWith('screenplay_')) {
+      router.push(`/write?project=${screenplayId}`);
+    } else {
+      console.error('[Navigation] Invalid screenplay ID:', screenplayId);
+    }
   };
   
   // Use ref to track if we've fetched credits to prevent infinite loops

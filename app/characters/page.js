@@ -9,7 +9,9 @@ import { useChatContext } from '@/contexts/ChatContext';
 
 function CharactersPageContent() {
   const searchParams = useSearchParams();
-  const projectId = searchParams.get('projectId') || 'default';
+  // Feature 0130: Use 'project' URL parameter (query param name stays as 'project' for compatibility)
+  // No 'default' fallback - matches write/page.js
+  const screenplayId = searchParams.get('project');
   const { openDrawer } = useDrawer();
   const { setMode, setWorkflow } = useChatContext();
 
@@ -31,7 +33,7 @@ function CharactersPageContent() {
   return (
     <div className="min-h-screen bg-slate-900 text-base-content">
       {/* Editor Sub-Navigation */}
-      <EditorSubNav activeTab="characters" projectId={projectId} />
+      <EditorSubNav activeTab="characters" screenplayId={screenplayId} />
 
       {/* Use existing CharacterBoard component with AI Interview integration */}
       <div className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-8">

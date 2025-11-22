@@ -16,13 +16,14 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { FileText, Users, MapPin, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditableScreenplayTitle from './EditableScreenplayTitle';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 export type EditorTab = 'write' | 'characters' | 'locations';
 
 interface EditorSubNavProps {
   activeTab?: EditorTab;
   className?: string;
-  projectId?: string; // For context navigation
+  screenplayId?: string; // Feature 0130: Use screenplayId (not projectId)
 }
 
 const TABS = [
@@ -55,10 +56,11 @@ const TABS = [
   }
 ] as const;
 
-export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavProps) {
+export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
+  const { screenplayId: contextScreenplayId } = useScreenplay();
   
   // Auto-determine active tab from pathname if not provided
   const determineActiveTab = (): EditorTab => {
@@ -69,7 +71,28 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
   };
 
   const currentTab = determineActiveTab();
-  const currentProjectId = projectId || searchParams?.get('project') || searchParams?.get('projectId');
+  
+  // Feature 0130: Get screenplayId with fallback priority:
+  // 1. Explicit prop (from parent component)
+  // 2. URL parameter 'project' (primary URL param - query param name stays as 'project')
+  // 3. URL parameter 'projectId' (legacy fallback - will be removed)
+  // 4. ScreenplayContext screenplayId (persistent state)
+  // Reject 'default' and 'proj_' IDs - only accept 'screenplay_' IDs
+  const urlScreenplayId = searchParams?.get('project') || searchParams?.get('projectId');
+  let currentScreenplayId = screenplayId || urlScreenplayId || contextScreenplayId;
+  
+  // Feature 0130: Validate and reject invalid IDs
+  if (currentScreenplayId === 'default' || (currentScreenplayId && currentScreenplayId.startsWith('proj_'))) {
+    console.warn('[EditorSubNav] ⚠️ Rejected invalid screenplayId:', currentScreenplayId);
+    currentScreenplayId = contextScreenplayId; // Fall back to context if URL has invalid ID
+  }
+  
+  // Only use screenplay_ IDs
+  if (currentScreenplayId && !currentScreenplayId.startsWith('screenplay_')) {
+    console.warn('[EditorSubNav] ⚠️ Invalid ID format, using context fallback:', currentScreenplayId);
+    currentScreenplayId = contextScreenplayId;
+  }
+  
   const activeTabData = TABS.find(tab => tab.id === currentTab);
 
   return (
@@ -88,9 +111,9 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
               const Icon = tab.icon;
               const isActive = currentTab === tab.id;
               
-              // Build href with projectId context
-              const href = currentProjectId 
-                ? `${tab.href}?project=${currentProjectId}`
+              // Build href with screenplayId context (URL param name stays as 'project' for compatibility)
+              const href = currentScreenplayId 
+                ? `${tab.href}?project=${currentScreenplayId}`
                 : tab.href;
 
               return (
@@ -161,8 +184,8 @@ export function EditorSubNav({ activeTab, className, projectId }: EditorSubNavPr
                 {TABS.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = currentTab === tab.id;
-                  const href = currentProjectId 
-                    ? `${tab.href}?project=${currentProjectId}`
+                  const href = currentScreenplayId 
+                    ? `${tab.href}?project=${currentScreenplayId}`
                     : tab.href;
 
                   return (
