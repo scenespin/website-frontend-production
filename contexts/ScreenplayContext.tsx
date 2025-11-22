@@ -689,9 +689,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // This prevents the 26-beat bug caused by multiple effect executions
         const initKey = screenplayId || 'no-id';
         
-        // REVERTED: Removed immediate clear - let the initialization logic handle clearing
-        // The original code didn't clear immediately, it just checked if already initialized
-        
         // 🔥 FIX: Prevent concurrent initialization runs
         if (isInitializingRef.current) {
             console.log('[ScreenplayContext] ⏸️ Initialization already in progress - skipping');
