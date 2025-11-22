@@ -689,21 +689,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // This prevents the 26-beat bug caused by multiple effect executions
         const initKey = screenplayId || 'no-id';
         
-        // 🔥 FIX: If screenplayId changed, clear old data immediately to prevent showing stale scenes/characters/locations
-        if (hasInitializedRef.current !== false && hasInitializedRef.current !== initKey) {
-            console.log('[ScreenplayContext] 🔄 Screenplay ID changed - clearing old data immediately');
-            setBeats([]);
-            setScenes([]);
-            setCharacters([]);
-            setLocations([]);
-            setRelationships({
-                beats: {},
-                scenes: {},
-                characters: {},
-                locations: {},
-                props: {}
-            });
-        }
+        // REVERTED: Removed immediate clear - let the initialization logic handle clearing
+        // The original code didn't clear immediately, it just checked if already initialized
         
         // 🔥 FIX: Prevent concurrent initialization runs
         if (isInitializingRef.current) {

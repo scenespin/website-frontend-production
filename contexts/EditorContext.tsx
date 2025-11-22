@@ -608,68 +608,17 @@ function EditorProviderInner({ children, screenplayId }: { children: ReactNode; 
     //     }
     // }, [state.content, screenplay]);
     
-    // Reset hasRunAutoImportRef when screenplayId changes to re-trigger loadContent
-    // CRITICAL: Save current content before switching screenplays
-    useEffect(() => {
-        // Get the previous screenplayId from the ref before it's cleared
-        const previousScreenplayId = screenplayIdRef.current;
-        const currentState = stateRef.current;
-        const currentContent = currentState.content;
-        const hasContent = currentContent && currentContent.trim().length > 0;
-        
-        console.log('[EditorContext] screenplayId changed:', {
-            from: previousScreenplayId,
-            to: screenplayId,
-            hasContent,
-            contentLength: currentContent?.length || 0,
-            isDirty: currentState.isDirty
-        });
-        
-        // Save current content before switching (if there's content and a previous screenplay)
-        // Use async IIFE with cleanup handling
-        let isMounted = true;
-        (async () => {
-            if (hasContent && previousScreenplayId && previousScreenplayId.startsWith('screenplay_')) {
-                console.log('[EditorContext] 💾 Saving current content before switching screenplays...');
-                
-                try {
-                    // CRITICAL: Temporarily restore screenplayIdRef so saveNow can use it
-                    screenplayIdRef.current = previousScreenplayId;
-                    
-                    // Save immediately and wait for it to complete
-                    await saveNow();
-                    
-                    if (isMounted) {
-                        console.log('[EditorContext] ✅ Saved content before switching');
-                    }
-                } catch (error) {
-                    if (isMounted) {
-                        console.error('[EditorContext] ⚠️ Failed to save before switching screenplays:', error);
-                        // Still continue with switch - localStorage backup should preserve content
-                    }
-                } finally {
-                    if (isMounted) {
-                        // Reset flags to allow fresh load - DO NOT reset state (let loadContent handle it)
-                        hasRunAutoImportRef.current = false;
-                        screenplayIdRef.current = null; // Clear to force a fresh load
-                        // State will be updated by loadContent effect using spread pattern (preserves existing state)
-                    }
-                }
-            } else {
-                // No content to save - just reset flags to allow fresh load
-                hasRunAutoImportRef.current = false;
-                screenplayIdRef.current = null;
-                // State will be updated by loadContent effect using spread pattern (preserves existing state)
-            }
-        })();
-        
-        // Cleanup function to prevent state updates if component unmounts
-        return () => {
-            isMounted = false;
-        };
-    }, [screenplayId, saveNow]);
+    // REVERTED: Removed complex screenplayId change effect that was causing issues
+    // The original code didn't have this - it just loaded from URL/Clerk metadata
+    // Auto-save will handle saving content, no need for explicit save-before-switch
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
+    // REVERTED: Reset hasRunAutoImportRef when screenplayId changes to allow reload
+    useEffect(() => {
+        // Reset flag when screenplayId changes to allow fresh load
+        hasRunAutoImportRef.current = false;
+    }, [screenplayId]);
+    
     useEffect(() => {
         // Only run once per projectId change (controlled by hasRunAutoImportRef)
         if (hasRunAutoImportRef.current) {
