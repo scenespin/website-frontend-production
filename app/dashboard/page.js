@@ -43,33 +43,13 @@ export default function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
   // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
-  // Load from sessionStorage on mount to persist across remounts (F5 refresh)
-  const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('deleted_screenplay_ids');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          return new Set(parsed);
-        } catch (e) {
-          console.error('[Dashboard] Failed to parse deleted screenplay IDs from sessionStorage:', e);
-        }
-      }
-    }
-    return new Set();
-  });
+  // REVERTED: Removed sessionStorage persistence - it was causing deleted screenplays to persist incorrectly
+  // Deleted IDs are now tracked in-memory only (per session)
+  const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(new Set());
   // Use ref to track deleted screenplays so fetchDashboardData always has latest values
   const deletedScreenplayIdsRef = useRef(deletedScreenplayIds);
   useEffect(() => {
     deletedScreenplayIdsRef.current = deletedScreenplayIds;
-  }, [deletedScreenplayIds]);
-  
-  // Persist deleted screenplay IDs to sessionStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const serialized = Array.from(deletedScreenplayIds);
-      sessionStorage.setItem('deleted_screenplay_ids', JSON.stringify(serialized));
-    }
   }, [deletedScreenplayIds]);
   
   // Track optimistically created screenplays to preserve them across remounts
