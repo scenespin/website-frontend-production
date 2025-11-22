@@ -459,6 +459,14 @@ export default function Dashboard() {
     // CRITICAL: Ensure screenplayId is valid before navigation
     if (screenplayId && screenplayId.startsWith('screenplay_')) {
       console.log('[Dashboard] ✅ Navigating to editor with screenplay:', screenplayId);
+      
+      // Explicit refresh after create to ensure persistence
+      // Small delay to allow backend to process the creation
+      setTimeout(() => {
+        console.log('[Dashboard] Refreshing after create to ensure persistence');
+        fetchDashboardData();
+      }, 500);
+      
       router.push(`/write?project=${screenplayId}`);
     } else {
       console.error('[Dashboard] ❌ Cannot navigate - invalid screenplay ID:', screenplayId);
@@ -542,8 +550,12 @@ export default function Dashboard() {
         setCurrentScreenplayId(null);
       }
       
-      // NO refetch - optimistic update only (backend will be consistent on next page load)
-      // The deletedScreenplayIds Set will ensure deleted items don't reappear even if backend returns them
+      // Explicit refresh after delete to ensure persistence
+      // Small delay to allow backend to process the deletion
+      setTimeout(() => {
+        console.log('[Dashboard] Refreshing after delete to ensure persistence');
+        fetchDashboardData();
+      }, 500);
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
@@ -607,8 +619,14 @@ export default function Dashboard() {
                 }
                 return p;
               }));
+              
+              // Explicit refresh after rename to ensure persistence
+              // Small delay to allow backend to process the update
+              setTimeout(() => {
+                console.log('[Dashboard] Refreshing after rename to ensure persistence');
+                fetchDashboardData();
+              }, 500);
             }
-            // NO refetch - optimistic update only (backend will be consistent on next page load)
           }}
           screenplayId={editingScreenplayId}
         />
