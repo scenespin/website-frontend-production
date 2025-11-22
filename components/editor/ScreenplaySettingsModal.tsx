@@ -118,7 +118,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
             <h2 className="text-2xl font-bold text-white">Screenplay Settings</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => onClose()}
             className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
             disabled={isSaving}
           >
@@ -211,7 +211,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-900/50">
           <button
-            onClick={onClose}
+            onClick={() => onClose()}
             className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
             disabled={isSaving || isLoading}
           >
