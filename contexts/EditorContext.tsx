@@ -109,7 +109,8 @@ const defaultState: EditorState = {
 export const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
 // Inner component that uses useSearchParams (must be wrapped in Suspense)
-function EditorProviderInner({ children, projectId }: { children: ReactNode; projectId: string | null }) {
+// Note: URL parameter is 'project' for backward compatibility, but value is always a screenplay_id
+function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { children: ReactNode; screenplayId: string | null }) {
     const [state, setState] = useState<EditorState>(defaultState);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -385,29 +386,29 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
         
         try {
-            // Feature 0130: Use projectId from URL as source of truth (must be screenplay_ ID)
-            // Priority: projectId from URL > screenplayIdRef.current
+            // Feature 0130: Use screenplayId from URL as source of truth (must be screenplay_ ID)
+            // Priority: screenplayId from URL > screenplayIdRef.current
             // This ensures we always save to the correct screenplay when switching
             let activeScreenplayId: string | null = null;
             
-            if (projectId) {
-                // Feature 0130: Only accept screenplay_ IDs - reject proj_ IDs
-                if (projectId.startsWith('screenplay_')) {
-                    activeScreenplayId = projectId;
-                    console.log('[EditorContext] Using screenplay_id from URL:', activeScreenplayId);
-                } else if (projectId.startsWith('proj_')) {
-                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', projectId);
-                    // Use ref as fallback, but log warning
-                    activeScreenplayId = screenplayIdRef.current;
-                    console.warn('[EditorContext] ⚠️ Using screenplay_id from ref instead:', activeScreenplayId);
-                } else {
-                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
-                    activeScreenplayId = screenplayIdRef.current;
-                }
-            } else {
-                // No projectId in URL - use ref (fallback for when no URL param)
+            // Always prefer screenplayId from URL (most reliable)
+            if (screenplayIdFromUrl && screenplayIdFromUrl.startsWith('screenplay_')) {
+                activeScreenplayId = screenplayIdFromUrl;
+                console.log('[EditorContext] Using screenplay_id from URL:', activeScreenplayId);
+            } else if (screenplayIdRef.current) {
                 activeScreenplayId = screenplayIdRef.current;
-                console.log('[EditorContext] No projectId in URL, using screenplay_id from ref:', activeScreenplayId);
+                console.log('[EditorContext] Using screenplay_id from ref:', activeScreenplayId);
+            } else if (screenplayIdFromUrl) {
+                // Invalid format in URL - log warning
+                if (screenplayIdFromUrl.startsWith('proj_')) {
+                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', screenplayIdFromUrl);
+                } else {
+                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', screenplayIdFromUrl);
+                }
+                // Will create new screenplay below
+            } else {
+                // No screenplayId available - will create new screenplay below
+                console.log('[EditorContext] No screenplayId available - will create new screenplay');
             }
             
             // Save to localStorage immediately
@@ -418,7 +419,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             
             // Save to DynamoDB immediately
             if (!activeScreenplayId) {
-                // Create new screenplay in DynamoDB
+                // Only create new if we truly have no ID
+                // But log warning - this shouldn't happen in normal flow
+                console.warn('[EditorContext] ⚠️ No screenplay ID available - creating new screenplay');
                 console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
                 const newScreenplay = await createScreenplay({
                     title: currentState.title,
@@ -437,7 +440,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     // setCurrentScreenplayId already saved to localStorage as fallback
                 }
                 
-                // Trigger storage event manually for ScreenplayContext to pick it up
+                // Sync ScreenplayContext via storage event
                 window.dispatchEvent(new StorageEvent('storage', {
                     key: 'current_screenplay_id',
                     newValue: activeScreenplayId,
@@ -445,6 +448,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     storageArea: localStorage,
                     url: window.location.href
                 }));
+                // Also update localStorage directly
+                localStorage.setItem('current_screenplay_id', activeScreenplayId);
                 
                 console.log('[EditorContext] ✅ Created NEW screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
                 
@@ -482,7 +487,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             console.error('[EditorContext] Manual save failed:', error);
             throw error; // Let the caller handle the error
         }
-    }, [getToken, screenplay, projectId, user]);
+    }, [getToken, screenplay, screenplayIdFromUrl, user]);
     
     // Utility
     const reset = useCallback(() => {
@@ -607,18 +612,23 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     //     }
     // }, [state.content, screenplay]);
     
-    // Reset hasRunAutoImportRef when projectId changes to re-trigger loadContent
+    // Reset hasRunAutoImportRef when screenplayId changes to re-trigger loadContent
     useEffect(() => {
-        console.log('[EditorContext] projectId changed:', projectId, 'Resetting hasRunAutoImportRef.');
+        console.log('[EditorContext] screenplayId changed:', screenplayIdFromUrl, 'Resetting hasRunAutoImportRef.');
         hasRunAutoImportRef.current = false;
-        screenplayIdRef.current = null; // Also clear the screenplayIdRef to force a fresh load
-        // Optionally, reset editor state to default or loading state here
-        setState(defaultState);
-    }, [projectId]);
+        // If screenplayId is valid, set it immediately so saveNow() can use it
+        if (screenplayIdFromUrl && screenplayIdFromUrl.startsWith('screenplay_')) {
+            screenplayIdRef.current = screenplayIdFromUrl; // Set it immediately
+        } else {
+            screenplayIdRef.current = null;
+        }
+        // Don't reset state here - let the load effect handle it
+        // Only show loading indicator if needed
+    }, [screenplayIdFromUrl]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
-        // Only run once per projectId change (controlled by hasRunAutoImportRef)
+        // Only run once per screenplayId change (controlled by hasRunAutoImportRef)
         if (hasRunAutoImportRef.current) {
             return;
         }
@@ -633,30 +643,41 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         async function loadContent() {
             try {
                 // Feature 0130: If a screenplay ID is specified in URL, load it directly
-                if (projectId) {
+                if (screenplayIdFromUrl) {
                     try {
-                        console.log('[EditorContext] 🎬 Screenplay specified in URL:', projectId);
+                        console.log('[EditorContext] 🎬 Screenplay specified in URL:', screenplayIdFromUrl);
                         
                         // Feature 0130: Only accept screenplay_ IDs - reject proj_ IDs
-                        if (projectId.startsWith('proj_')) {
-                            console.warn('[EditorContext] ⚠️ Rejected proj_ ID (legacy format):', projectId);
+                        if (screenplayIdFromUrl.startsWith('proj_')) {
+                            console.warn('[EditorContext] ⚠️ Rejected proj_ ID (legacy format):', screenplayIdFromUrl);
                             console.warn('[EditorContext] ⚠️ Please use screenplay_ ID instead. Legacy project IDs are no longer supported.');
                             // Continue with normal load flow (don't throw - let user see empty editor)
-                        } else if (projectId.startsWith('screenplay_')) {
+                        } else if (screenplayIdFromUrl.startsWith('screenplay_')) {
                             // It's a screenplay ID - load it directly
-                            console.log('[EditorContext] Loading screenplay directly from URL...', projectId);
-                            const screenplay = await getScreenplay(projectId, getToken);
+                            console.log('[EditorContext] Loading screenplay directly from URL...', screenplayIdFromUrl);
+                            const screenplay = await getScreenplay(screenplayIdFromUrl, getToken);
                             
                             if (screenplay) {
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
-                                screenplayIdRef.current = projectId;
+                                screenplayIdRef.current = screenplayIdFromUrl;
                                 
                                 // Save to Clerk metadata
                                 try {
-                                    await setCurrentScreenplayId(user, projectId);
+                                    await setCurrentScreenplayId(user, screenplayIdFromUrl);
                                 } catch (error) {
                                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
                                 }
+                                
+                                // Sync ScreenplayContext via storage event
+                                window.dispatchEvent(new StorageEvent('storage', {
+                                    key: 'current_screenplay_id',
+                                    newValue: screenplayIdFromUrl,
+                                    oldValue: screenplayIdRef.current,
+                                    storageArea: localStorage,
+                                    url: window.location.href
+                                }));
+                                // Also update localStorage directly
+                                localStorage.setItem('current_screenplay_id', screenplayIdFromUrl);
                                 
                                 // Update state with screenplay data
                                 setState(prev => ({
@@ -667,14 +688,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                     isDirty: false
                                 }));
                                 
-                                console.log('[EditorContext] ✅ Loaded screenplay from URL:', projectId);
+                                console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplayIdFromUrl);
                                 isInitialLoadRef.current = false;
                                 return; // Success - screenplay loaded!
                             } else {
-                                console.warn('[EditorContext] ⚠️ Screenplay not found:', projectId);
+                                console.warn('[EditorContext] ⚠️ Screenplay not found:', screenplayIdFromUrl);
                             }
                         } else {
-                            console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
+                            console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', screenplayIdFromUrl);
                             console.warn('[EditorContext] ⚠️ Expected screenplay_* format');
                         }
                     } catch (error) {
@@ -764,7 +785,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         
         loadContent();
-    }, [screenplay, getToken, user, projectId]); // Depend on screenplay, getToken, user, and projectId
+    }, [screenplay, getToken, user, screenplayIdFromUrl]); // Depend on screenplay, getToken, user, and screenplayId
     
     return (
         <EditorContext.Provider value={value}>
@@ -774,10 +795,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
 }
 
 // Wrapper component that handles useSearchParams with Suspense
+// Note: URL parameter is 'project' for backward compatibility, but value is always a screenplay_id
 function ProjectIdReader({ children }: { children: ReactNode }) {
     const searchParams = useSearchParams();
-    const projectId = searchParams?.get('project');
-    return <EditorProviderInner projectId={projectId}>{children}</EditorProviderInner>;
+    const screenplayId = searchParams?.get('project'); // URL param is 'project' but contains screenplay_id
+    return <EditorProviderInner screenplayId={screenplayId}>{children}</EditorProviderInner>;
 }
 
 // Create a minimal context value for Suspense fallback
