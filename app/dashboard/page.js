@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import apiClient from '@/lib/api';
@@ -60,6 +60,16 @@ export default function Dashboard() {
     }
     return new Map();
   });
+  
+  // Use ref to track optimistic screenplays so fetchDashboardData always has latest values
+  const optimisticScreenplaysRef = useRef(optimisticScreenplays);
+  useEffect(() => {
+    optimisticScreenplaysRef.current = optimisticScreenplays;
+  }, [optimisticScreenplays]);
+  
+  // Track optimistically edited screenplays (by ID) with their updated timestamps
+  // This prevents fetchDashboardData from overwriting recent edits with stale backend data
+  const optimisticEditsRef = useRef(new Map()); // Map<screenplayId, { updated_at: string, data: {...} }>
   
   // Persist optimistic screenplays to sessionStorage whenever they change
   useEffect(() => {
@@ -290,24 +300,61 @@ export default function Dashboard() {
       }
       
       // Merge with optimistic screenplays (preserve optimistically created items)
+      // Use ref to get latest optimistic screenplays (state might be stale in closure)
+      const currentOptimisticScreenplays = optimisticScreenplaysRef.current;
+      const currentOptimisticEdits = optimisticEditsRef.current;
       const mergedScreenplays = [...allScreenplays];
       const confirmedIds = new Set(allScreenplays.map(p => p.id || p.screenplay_id));
+      const toRemove = new Set();
+      const editsToRemove = new Set();
       
-      optimisticScreenplays.forEach((optimisticProject, id) => {
+      // First, apply optimistic edits to fetched screenplays
+      mergedScreenplays.forEach(screenplay => {
+        const screenplayId = screenplay.id || screenplay.screenplay_id;
+        const optimisticEdit = currentOptimisticEdits.get(screenplayId);
+        if (optimisticEdit) {
+          // Check if local edit is more recent than backend data
+          const localUpdatedAt = new Date(optimisticEdit.updated_at).getTime();
+          const backendUpdatedAt = new Date(screenplay.updated_at || screenplay.created_at || 0).getTime();
+          
+          if (localUpdatedAt >= backendUpdatedAt) {
+            // Local edit is more recent or same - preserve it
+            console.log('[Dashboard] Preserving optimistic edit for:', screenplayId);
+            Object.assign(screenplay, optimisticEdit.data);
+          } else {
+            // Backend has newer data - remove optimistic edit
+            console.log('[Dashboard] Backend has newer data, removing optimistic edit:', screenplayId);
+            editsToRemove.add(screenplayId);
+          }
+        }
+      });
+      
+      // Add optimistic screenplays (newly created items not yet in backend)
+      currentOptimisticScreenplays.forEach((optimisticProject, id) => {
         // Only add if not already in the list (avoid duplicates)
         // If it's now in the backend, we can remove it from optimistic storage
         if (confirmedIds.has(id)) {
           console.log('[Dashboard] Optimistic screenplay confirmed in backend, removing from optimistic storage:', id);
-          setOptimisticScreenplays(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(id);
-            return newMap;
-          });
+          toRemove.add(id);
         } else {
           console.log('[Dashboard] Adding optimistic screenplay to list:', id);
           mergedScreenplays.push(optimisticProject);
         }
       });
+      
+      // Batch remove confirmed optimistic screenplays
+      if (toRemove.size > 0) {
+        setOptimisticScreenplays(prev => {
+          const newMap = new Map(prev);
+          toRemove.forEach(id => newMap.delete(id));
+          return newMap;
+        });
+      }
+      
+      // Batch remove confirmed optimistic edits
+      if (editsToRemove.size > 0) {
+        editsToRemove.forEach(id => currentOptimisticEdits.delete(id));
+      }
       
       // Sort by updated_at (most recent first)
       mergedScreenplays.sort((a, b) => {
@@ -536,14 +583,26 @@ export default function Dashboard() {
             // Following the pattern from characters/locations: update local state immediately
             // Update local state optimistically with the data passed from the modal
             if (updatedData && screenplayId) {
+              const updatedTimestamp = new Date().toISOString();
+              const updatedProject = {
+                name: updatedData.title,
+                description: updatedData.description,
+                genre: updatedData.genre,
+                updated_at: updatedTimestamp
+              };
+              
+              // Track this optimistic edit so fetchDashboardData doesn't overwrite it
+              optimisticEditsRef.current.set(screenplayId, {
+                updated_at: updatedTimestamp,
+                data: updatedProject
+              });
+              
               setProjects(prev => prev.map(p => {
                 if (p.id === screenplayId || p.screenplay_id === screenplayId) {
                   return {
                     ...p,
-                    name: updatedData.title || p.name,
-                    description: updatedData.description !== undefined ? updatedData.description : p.description,
-                    genre: updatedData.genre !== undefined ? updatedData.genre : p.genre,
-                    updated_at: new Date().toISOString() // Update timestamp
+                    ...updatedProject,
+                    name: updatedData.title || p.name
                   };
                 }
                 return p;

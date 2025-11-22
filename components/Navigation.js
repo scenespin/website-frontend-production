@@ -29,6 +29,7 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import { useRouter } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 
 export default function Navigation() {
   const { user } = useUser();
@@ -46,8 +47,11 @@ export default function Navigation() {
   const [credits, setCredits] = useState(null);
   const [loadingCredits, setLoadingCredits] = useState(true);
   
-  // Get current screenplay ID from URL or context
-  const currentScreenplayId = searchParams?.get('project') || contextScreenplayId;
+  // Get current screenplay ID from URL, context, or Clerk metadata/localStorage
+  // Priority: URL > Context > Clerk metadata > localStorage
+  const urlScreenplayId = searchParams?.get('project');
+  const clerkScreenplayId = getCurrentScreenplayId(user);
+  const currentScreenplayId = urlScreenplayId || contextScreenplayId || clerkScreenplayId;
 
   const handleProjectCreated = (project) => {
     // Feature 0130: Use screenplay_id (not project_id)
