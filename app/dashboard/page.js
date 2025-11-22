@@ -98,7 +98,7 @@ export default function Dashboard() {
   // Track optimistically edited screenplays (by ID) with their updated timestamps
   // This prevents fetchDashboardData from overwriting recent edits with stale backend data
   // Load from sessionStorage on mount to persist across remounts (F5 refresh)
-  const optimisticEditsRef = useRef(() => {
+  const optimisticEditsRef = useRef((() => {
     if (typeof window !== 'undefined') {
       const stored = sessionStorage.getItem('optimistic_edits');
       if (stored) {
@@ -111,7 +111,7 @@ export default function Dashboard() {
       }
     }
     return new Map();
-  }());
+  })());
   
   // Helper function to persist optimistic edits to sessionStorage
   const persistOptimisticEdits = useCallback(() => {
