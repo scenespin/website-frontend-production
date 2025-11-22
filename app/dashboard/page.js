@@ -347,6 +347,7 @@ export default function Dashboard() {
     
     // Following the pattern from characters/locations: update local state immediately
     // Add new project to list immediately for instant UI feedback
+    // NO refetch - optimistic update only (backend will be consistent on next page load)
     setProjects(prev => {
       // Check if it already exists (avoid duplicates)
       const exists = prev.some(p => p.id === screenplayId || p.screenplay_id === screenplayId);
@@ -356,13 +357,6 @@ export default function Dashboard() {
       }
       return [transformedProject, ...prev];
     });
-    
-    // Refresh the list after a longer delay to account for DynamoDB eventual consistency
-    // DynamoDB eventual consistency can take 1-2 seconds, so we wait longer
-    // This ensures the new screenplay appears when user navigates back to dashboard
-    setTimeout(() => {
-      fetchDashboardData();
-    }, 2000);
     
     // Navigate to the editor with the new screenplay
     // CRITICAL: Ensure screenplayId is valid before navigation
@@ -451,12 +445,8 @@ export default function Dashboard() {
         setCurrentScreenplayId(null);
       }
       
-      // Refresh the list after a longer delay to account for DynamoDB eventual consistency
-      // DynamoDB eventual consistency can take 1-2 seconds, so we wait longer
+      // NO refetch - optimistic update only (backend will be consistent on next page load)
       // The deletedScreenplayIds Set will ensure deleted items don't reappear even if backend returns them
-      setTimeout(() => {
-        fetchDashboardData();
-      }, 2000);
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
@@ -495,6 +485,7 @@ export default function Dashboard() {
             
             // Following the pattern from characters/locations: update local state immediately
             // Fetch the updated screenplay and update local state optimistically
+            // NO refetch - optimistic update only (backend will be consistent on next page load)
             try {
               const response = await fetch(`/api/screenplays/${screenplayId}`);
               if (response.ok) {
@@ -519,12 +510,6 @@ export default function Dashboard() {
               console.error('[Dashboard] Error fetching updated screenplay:', error);
               // Don't fail the whole flow - the update was successful, just refresh failed
             }
-            
-            // Refresh the list after a short delay to account for DynamoDB eventual consistency
-            // This ensures the updated data appears on next page load
-            setTimeout(() => {
-              fetchDashboardData();
-            }, 500);
           }}
           screenplayId={editingScreenplayId}
         />
