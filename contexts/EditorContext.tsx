@@ -660,11 +660,12 @@ function EditorProviderInner({ children, screenplayId }: { children: ReactNode; 
                                 }
                                 
                                 // Update state with screenplay data
+                                // Preserve existing title/content if they exist and are more recent (prevent overwriting unsaved changes)
                                 setState(prev => ({
                                     ...prev,
-                                    title: screenplay.title || prev.title,
-                                    content: screenplay.content || prev.content,
-                                    author: screenplay.author || prev.author,
+                                    title: screenplay.title || prev.title || 'Untitled Screenplay',
+                                    content: screenplay.content || prev.content || '',
+                                    author: screenplay.author || prev.author || '',
                                     isDirty: false
                                 }));
                                 

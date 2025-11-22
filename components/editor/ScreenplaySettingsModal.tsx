@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 interface ScreenplaySettingsModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (updatedData?: { title: string; description?: string; genre?: string }) => void;
   screenplayId?: string; // Optional: allows use without ScreenplayContext (e.g., from dashboard)
 }
 
@@ -88,7 +88,12 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
       );
       
       toast.success('Screenplay settings updated');
-      onClose();
+      // Pass updated data to onClose for optimistic UI update
+      onClose({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        genre: genre.trim() || undefined
+      });
       // Trigger a custom event to refresh the title component
       window.dispatchEvent(new CustomEvent('screenplayUpdated'));
     } catch (error) {

@@ -44,6 +44,30 @@ export default function Dashboard() {
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
   // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
   const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(new Set());
+  // Track optimistically created screenplays to preserve them across remounts
+  // Load from sessionStorage on mount to persist across remounts
+  const [optimisticScreenplays, setOptimisticScreenplays] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('optimistic_screenplays');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          return new Map(Object.entries(parsed));
+        } catch (e) {
+          console.error('[Dashboard] Failed to parse optimistic screenplays from sessionStorage:', e);
+        }
+      }
+    }
+    return new Map();
+  });
+  
+  // Persist optimistic screenplays to sessionStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const serialized = Object.fromEntries(optimisticScreenplays);
+      sessionStorage.setItem('optimistic_screenplays', JSON.stringify(serialized));
+    }
+  }, [optimisticScreenplays]);
 
   useEffect(() => {
     // Auth guaranteed by wrapper, fetch data immediately
@@ -265,15 +289,35 @@ export default function Dashboard() {
         });
       }
       
+      // Merge with optimistic screenplays (preserve optimistically created items)
+      const mergedScreenplays = [...allScreenplays];
+      const confirmedIds = new Set(allScreenplays.map(p => p.id || p.screenplay_id));
+      
+      optimisticScreenplays.forEach((optimisticProject, id) => {
+        // Only add if not already in the list (avoid duplicates)
+        // If it's now in the backend, we can remove it from optimistic storage
+        if (confirmedIds.has(id)) {
+          console.log('[Dashboard] Optimistic screenplay confirmed in backend, removing from optimistic storage:', id);
+          setOptimisticScreenplays(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(id);
+            return newMap;
+          });
+        } else {
+          console.log('[Dashboard] Adding optimistic screenplay to list:', id);
+          mergedScreenplays.push(optimisticProject);
+        }
+      });
+      
       // Sort by updated_at (most recent first)
-      allScreenplays.sort((a, b) => {
+      mergedScreenplays.sort((a, b) => {
         const dateA = new Date(a.updated_at || a.created_at || 0);
         const dateB = new Date(b.updated_at || b.created_at || 0);
         return dateB - dateA;
       });
       
-      setProjects(allScreenplays);
-      console.log('[Dashboard] Screenplays (screenplay_id only):', allScreenplays.length, 'total');
+      setProjects(mergedScreenplays);
+      console.log('[Dashboard] Screenplays (screenplay_id only):', mergedScreenplays.length, 'total (', allScreenplays.length, 'from API,', optimisticScreenplays.size, 'optimistic)');
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
@@ -347,7 +391,13 @@ export default function Dashboard() {
     
     // Following the pattern from characters/locations: update local state immediately
     // Add new project to list immediately for instant UI feedback
-    // NO refetch - optimistic update only (backend will be consistent on next page load)
+    // Also store in optimisticScreenplays Map to preserve across remounts
+    setOptimisticScreenplays(prev => {
+      const newMap = new Map(prev);
+      newMap.set(screenplayId, transformedProject);
+      return newMap;
+    });
+    
     setProjects(prev => {
       // Check if it already exists (avoid duplicates)
       const exists = prev.some(p => p.id === screenplayId || p.screenplay_id === screenplayId);
@@ -479,37 +529,27 @@ export default function Dashboard() {
       {editingScreenplayId && (
         <ScreenplaySettingsModal
           isOpen={!!editingScreenplayId}
-          onClose={async () => {
+          onClose={(updatedData) => {
             const screenplayId = editingScreenplayId;
             setEditingScreenplayId(null);
             
             // Following the pattern from characters/locations: update local state immediately
-            // Fetch the updated screenplay and update local state optimistically
-            // NO refetch - optimistic update only (backend will be consistent on next page load)
-            try {
-              const response = await fetch(`/api/screenplays/${screenplayId}`);
-              if (response.ok) {
-                const data = await response.json();
-                const updatedScreenplay = data.data || data;
-                
-                // Update local state immediately (optimistic UI)
-                setProjects(prev => prev.map(p => {
-                  if (p.id === screenplayId || p.screenplay_id === screenplayId) {
-                    return {
-                      ...p,
-                      name: updatedScreenplay.title || p.name,
-                      description: updatedScreenplay.description || p.description,
-                      genre: updatedScreenplay.metadata?.genre || p.genre,
-                      updated_at: updatedScreenplay.updated_at || p.updated_at
-                    };
-                  }
-                  return p;
-                }));
-              }
-            } catch (error) {
-              console.error('[Dashboard] Error fetching updated screenplay:', error);
-              // Don't fail the whole flow - the update was successful, just refresh failed
+            // Update local state optimistically with the data passed from the modal
+            if (updatedData && screenplayId) {
+              setProjects(prev => prev.map(p => {
+                if (p.id === screenplayId || p.screenplay_id === screenplayId) {
+                  return {
+                    ...p,
+                    name: updatedData.title || p.name,
+                    description: updatedData.description !== undefined ? updatedData.description : p.description,
+                    genre: updatedData.genre !== undefined ? updatedData.genre : p.genre,
+                    updated_at: new Date().toISOString() // Update timestamp
+                  };
+                }
+                return p;
+              }));
             }
+            // NO refetch - optimistic update only (backend will be consistent on next page load)
           }}
           screenplayId={editingScreenplayId}
         />

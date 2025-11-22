@@ -2,7 +2,7 @@
 
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { 
   MessageSquare,
   Video,
@@ -28,20 +28,26 @@ import { useState, useEffect, useRef } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import { useRouter } from 'next/navigation';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 export default function Navigation() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // Track which mobile accordion is open
   const { openDrawer } = useDrawer();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const { screenplayId: contextScreenplayId } = useScreenplay();
   
   // Credit balance state
   const [credits, setCredits] = useState(null);
   const [loadingCredits, setLoadingCredits] = useState(true);
+  
+  // Get current screenplay ID from URL or context
+  const currentScreenplayId = searchParams?.get('project') || contextScreenplayId;
 
   const handleProjectCreated = (project) => {
     // Feature 0130: Use screenplay_id (not project_id)
@@ -126,16 +132,24 @@ export default function Navigation() {
 
   // Navigation structure - Desktop: flat links, Mobile: hierarchical accordions
   // VERIFIED ROUTES - All pages exist in /app directory
+  // Helper function to build href with screenplay ID
+  const buildEditorHref = (basePath) => {
+    if (currentScreenplayId && currentScreenplayId.startsWith('screenplay_')) {
+      return `${basePath}?project=${currentScreenplayId}`;
+    }
+    return basePath;
+  };
+  
   const navigation = [
     {
       name: 'Editor',
       icon: FileText,
-      href: '/write',
+      href: buildEditorHref('/write'),
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Write', href: '/write', icon: FileText, description: 'Screenplay editor' },
-        { name: 'Characters', href: '/characters', icon: Users, description: 'Cast management' },
-        { name: 'Locations', href: '/locations', icon: MapPin, description: 'Scene settings' },
+        { name: 'Write', href: buildEditorHref('/write'), icon: FileText, description: 'Screenplay editor' },
+        { name: 'Characters', href: buildEditorHref('/characters'), icon: Users, description: 'Cast management' },
+        { name: 'Locations', href: buildEditorHref('/locations'), icon: MapPin, description: 'Scene settings' },
       ]
     },
     {
