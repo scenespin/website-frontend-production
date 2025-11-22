@@ -649,17 +649,17 @@ function EditorProviderInner({ children, screenplayId }: { children: ReactNode; 
                     }
                 } finally {
                     if (isMounted) {
-                        // Reset flags and state for new screenplay
+                        // Reset flags to allow fresh load - DO NOT reset state (let loadContent handle it)
                         hasRunAutoImportRef.current = false;
                         screenplayIdRef.current = null; // Clear to force a fresh load
-                        setState(defaultState); // Reset editor state for new screenplay
+                        // State will be updated by loadContent effect using spread pattern (preserves existing state)
                     }
                 }
             } else {
-                // No content to save - just reset for new screenplay
+                // No content to save - just reset flags to allow fresh load
                 hasRunAutoImportRef.current = false;
                 screenplayIdRef.current = null;
-                setState(defaultState);
+                // State will be updated by loadContent effect using spread pattern (preserves existing state)
             }
         })();
         

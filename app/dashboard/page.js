@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import apiClient from '@/lib/api';
@@ -43,11 +43,33 @@ export default function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
   // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
-  const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(new Set());
+  // Load from sessionStorage on mount to persist across remounts (F5 refresh)
+  const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('deleted_screenplay_ids');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          return new Set(parsed);
+        } catch (e) {
+          console.error('[Dashboard] Failed to parse deleted screenplay IDs from sessionStorage:', e);
+        }
+      }
+    }
+    return new Set();
+  });
   // Use ref to track deleted screenplays so fetchDashboardData always has latest values
-  const deletedScreenplayIdsRef = useRef(new Set());
+  const deletedScreenplayIdsRef = useRef(deletedScreenplayIds);
   useEffect(() => {
     deletedScreenplayIdsRef.current = deletedScreenplayIds;
+  }, [deletedScreenplayIds]);
+  
+  // Persist deleted screenplay IDs to sessionStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const serialized = Array.from(deletedScreenplayIds);
+      sessionStorage.setItem('deleted_screenplay_ids', JSON.stringify(serialized));
+    }
   }, [deletedScreenplayIds]);
   
   // Track optimistically created screenplays to preserve them across remounts
@@ -75,7 +97,29 @@ export default function Dashboard() {
   
   // Track optimistically edited screenplays (by ID) with their updated timestamps
   // This prevents fetchDashboardData from overwriting recent edits with stale backend data
-  const optimisticEditsRef = useRef(new Map()); // Map<screenplayId, { updated_at: string, data: {...} }>
+  // Load from sessionStorage on mount to persist across remounts (F5 refresh)
+  const optimisticEditsRef = useRef(() => {
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('optimistic_edits');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          return new Map(Object.entries(parsed));
+        } catch (e) {
+          console.error('[Dashboard] Failed to parse optimistic edits from sessionStorage:', e);
+        }
+      }
+    }
+    return new Map();
+  }());
+  
+  // Helper function to persist optimistic edits to sessionStorage
+  const persistOptimisticEdits = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const serialized = Object.fromEntries(optimisticEditsRef.current);
+      sessionStorage.setItem('optimistic_edits', JSON.stringify(serialized));
+    }
+  }, []);
   
   // Persist optimistic screenplays to sessionStorage whenever they change
   useEffect(() => {
@@ -367,6 +411,7 @@ export default function Dashboard() {
       // Batch remove confirmed optimistic edits
       if (editsToRemove.size > 0) {
         editsToRemove.forEach(id => currentOptimisticEdits.delete(id));
+        persistOptimisticEdits(); // Persist to sessionStorage after removal
       }
       
       // Sort by updated_at (most recent first)
@@ -619,6 +664,7 @@ export default function Dashboard() {
                 updated_at: updatedTimestamp,
                 data: updatedProject
               });
+              persistOptimisticEdits(); // Persist to sessionStorage
               
               setProjects(prev => prev.map(p => {
                 if (p.id === screenplayId || p.screenplay_id === screenplayId) {
