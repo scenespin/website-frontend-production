@@ -10,9 +10,6 @@ import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import AgentDrawer from "@/components/AgentDrawer";
 import UnifiedChatPanel from "@/components/UnifiedChatPanel";
 
-// Force dynamic rendering for this route
-export const dynamic = 'force-dynamic';
-
 export default function CompositionLayout({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();

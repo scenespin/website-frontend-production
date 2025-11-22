@@ -7,9 +7,6 @@ import LocationBoard from '@/components/screenplay/LocationBoard';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatContext } from '@/contexts/ChatContext';
 
-// Force dynamic rendering since we use useSearchParams
-export const dynamic = 'force-dynamic';
-
 function LocationsPageContent() {
   const searchParams = useSearchParams();
   // Feature 0130: Use 'project' URL parameter (query param name stays as 'project' for compatibility)
