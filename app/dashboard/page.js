@@ -447,7 +447,7 @@ export default function Dashboard() {
       toast.success('Deleted successfully');
       
       // If this was the current screenplay, clear it
-      if (currentScreenplayId === projectId) {
+      if (currentScreenplayId === screenplayId) {
         setCurrentScreenplayId(null);
       }
       
