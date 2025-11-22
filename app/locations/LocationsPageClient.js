@@ -12,20 +12,22 @@ export default function LocationsPageClient() {
   // No 'default' fallback - matches write/page.js
   const screenplayId = searchParams.get('project');
   const { openDrawer } = useDrawer();
-  const { setMode, setWorkflow } = useChatContext();
+  const { setMode, setEntityContextBanner } = useChatContext();
 
   // Handler for AI Interview workflow
   const handleSwitchToChatImageMode = (modelId, entityContext) => {
     console.log('[LocationPage] AI Interview triggered:', entityContext);
     
     if (entityContext?.workflow === 'interview') {
-      // Set mode and workflow context
-      setMode('chat'); // Set to 'chat' mode (interview is a workflow, not a mode)
-      setWorkflow(entityContext); // Set the workflow context
+      // Set mode to the entity type (location) so the correct agent panel is shown
+      setMode(entityContext.type || 'location');
       
-      // Open the drawer
+      // Set entity context banner so the mode panel knows what entity we're creating
+      setEntityContextBanner(entityContext);
+      
+      // Open the drawer - the LocationModePanel will auto-start the workflow
       openDrawer('chat');
-      console.log('[LocationPage] Opened AI Interview drawer');
+      console.log('[LocationPage] Opened AI Interview drawer with location agent');
     }
   };
 

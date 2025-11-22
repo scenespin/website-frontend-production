@@ -44,6 +44,12 @@ export default function Dashboard() {
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
   // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
   const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(new Set());
+  // Use ref to track deleted screenplays so fetchDashboardData always has latest values
+  const deletedScreenplayIdsRef = useRef(new Set());
+  useEffect(() => {
+    deletedScreenplayIdsRef.current = deletedScreenplayIds;
+  }, [deletedScreenplayIds]);
+  
   // Track optimistically created screenplays to preserve them across remounts
   // Load from sessionStorage on mount to persist across remounts
   const [optimisticScreenplays, setOptimisticScreenplays] = useState(() => {
@@ -257,7 +263,9 @@ export default function Dashboard() {
           
           // CRITICAL: Filter out screenplays that we've deleted locally
           // This prevents deleted items from reappearing due to DynamoDB eventual consistency
-          if (deletedScreenplayIds.has(screenplayId)) {
+          // Use ref to get latest deleted IDs (state might be stale in closure)
+          const currentDeletedIds = deletedScreenplayIdsRef.current;
+          if (currentDeletedIds.has(screenplayId)) {
             console.log('[Dashboard] Filtering out locally deleted screenplay:', screenplayId);
             return;
           }
@@ -461,11 +469,11 @@ export default function Dashboard() {
       console.log('[Dashboard] ✅ Navigating to editor with screenplay:', screenplayId);
       
       // Explicit refresh after create to ensure persistence
-      // Small delay to allow backend to process the creation
+      // Longer delay to allow backend to fully process the creation
       setTimeout(() => {
         console.log('[Dashboard] Refreshing after create to ensure persistence');
         fetchDashboardData();
-      }, 500);
+      }, 1500);
       
       router.push(`/write?project=${screenplayId}`);
     } else {
@@ -551,11 +559,12 @@ export default function Dashboard() {
       }
       
       // Explicit refresh after delete to ensure persistence
-      // Small delay to allow backend to process the deletion
+      // Longer delay to allow backend to fully process the deletion
+      // The deleted ID is tracked in deletedScreenplayIdsRef, so it won't reappear
       setTimeout(() => {
         console.log('[Dashboard] Refreshing after delete to ensure persistence');
         fetchDashboardData();
-      }, 500);
+      }, 1500);
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
@@ -621,11 +630,12 @@ export default function Dashboard() {
               }));
               
               // Explicit refresh after rename to ensure persistence
-              // Small delay to allow backend to process the update
+              // Longer delay to allow backend to fully process the update
+              // The optimistic edit is tracked in optimisticEditsRef, so it won't be overwritten
               setTimeout(() => {
                 console.log('[Dashboard] Refreshing after rename to ensure persistence');
                 fetchDashboardData();
-              }, 500);
+              }, 1500);
             }
           }}
           screenplayId={editingScreenplayId}

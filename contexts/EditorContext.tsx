@@ -609,13 +609,36 @@ function EditorProviderInner({ children, screenplayId }: { children: ReactNode; 
     // }, [state.content, screenplay]);
     
     // Reset hasRunAutoImportRef when screenplayId changes to re-trigger loadContent
+    // CRITICAL: Save current content before switching screenplays
     useEffect(() => {
-        console.log('[EditorContext] screenplayId changed:', screenplayId, 'Resetting hasRunAutoImportRef.');
+        // Get the previous screenplayId from the ref before it's cleared
+        const previousScreenplayId = screenplayIdRef.current;
+        const currentContent = stateRef.current.content;
+        const hasContent = currentContent && currentContent.trim().length > 0;
+        
+        console.log('[EditorContext] screenplayId changed:', {
+            from: previousScreenplayId,
+            to: screenplayId,
+            hasContent,
+            contentLength: currentContent?.length || 0
+        });
+        
+        // Save current content before switching (if there's content and a previous screenplay)
+        if (hasContent && previousScreenplayId && previousScreenplayId.startsWith('screenplay_')) {
+            console.log('[EditorContext] 💾 Saving current content before switching screenplays...');
+            
+            // Save immediately to prevent data loss
+            saveNow().catch(error => {
+                console.error('[EditorContext] ⚠️ Failed to save before switching screenplays:', error);
+                // Still continue with switch - localStorage backup should preserve content
+            });
+        }
+        
+        // Reset flags and state for new screenplay
         hasRunAutoImportRef.current = false;
-        screenplayIdRef.current = null; // Also clear the screenplayIdRef to force a fresh load
-        // Optionally, reset editor state to default or loading state here
-        setState(defaultState);
-    }, [screenplayId]);
+        screenplayIdRef.current = null; // Clear to force a fresh load
+        setState(defaultState); // Reset editor state for new screenplay
+    }, [screenplayId, saveNow]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
