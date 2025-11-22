@@ -316,6 +316,8 @@ export function buildDirectorPrompt(message, sceneContext, generationLength = 'f
 
 DIRECTOR MODE - SCENE DEVELOPMENT:
 
+🔥 CRITICAL: The user has given you a request. IMMEDIATELY write the scene. Do NOT ask questions. Do NOT provide options. Do NOT ask what they want. Just write the screenplay content in JSON format.
+
 🚫 ABSOLUTELY FORBIDDEN:
 - NO analysis, critique, or feedback about the story
 - NO suggestions or alternatives
@@ -377,6 +379,8 @@ CONTEXT AWARENESS:
 - 🔥 CRITICAL: You are creating ${generationLength === 'multiple' ? `${sceneCount} NEW scenes` : '1 NEW scene'} that come AFTER the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". These are NEW scenes that continue the story forward. Each scene must have its own unique scene heading with a DIFFERENT location/time. Do NOT repeat, revise, or continue the current scene - create NEW scenes.
 
 THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
+
+🔥 REMEMBER: When the user says "new story about a heist" or "museum heist" or any story concept, you MUST IMMEDIATELY write a scene about that. Do NOT ask what type of museum, what angle, what tone, etc. Just write the scene. Take creative license and make it compelling.
 
 🚫 DO NOT INCLUDE:
 - NO "FADE OUT." or "THE END" - These are only for the final scene of the entire screenplay, not individual scenes

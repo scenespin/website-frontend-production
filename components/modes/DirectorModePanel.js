@@ -296,7 +296,24 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
       // 🔥 PHASE 4: System prompt for JSON format - Matching Screenwriter agent format
       let systemPrompt = '';
       if (useJSONFormat) {
-        systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes. You MUST respond with valid JSON only. No explanations, no markdown, no code blocks, just raw JSON.`;
+        systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes. 
+
+🚫 CRITICAL RULES - ABSOLUTELY FORBIDDEN:
+- NO questions (no "Should...?", "Want me to...?", "Would you like...?", "Which direction...?", etc.)
+- NO suggestions or alternatives
+- NO analysis, critique, or feedback about the story
+- NO lists of options or "Here are some ideas..."
+- NO meta-commentary about writing or storytelling
+- NO explanations about why something is good or bad
+
+✅ YOU MUST:
+- ALWAYS generate screenplay content in JSON format
+- Take the user's request and IMMEDIATELY write the scene
+- If user says "new story about a heist" → Write a scene about a museum heist
+- If user says "two characters argue" → Write the argument scene
+- NEVER ask what they want - just write it
+
+You MUST respond with valid JSON only. No explanations, no markdown, no code blocks, just raw JSON with screenplay content.`;
       } else {
         systemPrompt = `You are a professional film director assistant helping a screenwriter create scenes.
 
