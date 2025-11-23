@@ -453,7 +453,20 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 
                 console.log('[EditorContext] ✅ Created NEW screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
                 
-                // Feature 0117: No setTimeout or structure save needed - caller will handle it with explicit ID
+                // 🔥 FIX 1: Add delay for DynamoDB consistency (like Media Library pattern)
+                // This ensures the screenplay is fully created before we try to update it
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 🔥 FIX 1: Now save the content to the newly created screenplay
+                // This ensures content is saved even if the screenplay was just created
+                console.log('[EditorContext] Saving content to newly created screenplay...');
+                await updateScreenplay({
+                    screenplay_id: activeScreenplayId,
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                }, getToken);
+                console.log('[EditorContext] ✅ Content saved to newly created screenplay');
             } else {
                 // Update existing screenplay - use the activeScreenplayId we determined above
                 console.log('[EditorContext] Updating EXISTING screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');

@@ -87,6 +87,10 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         getToken
       );
       
+      // 🔥 FIX 3: Add delay for DynamoDB consistency (like Media Library pattern)
+      // This ensures the update is fully processed before we dispatch the event
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       toast.success('Screenplay settings updated');
       // Pass updated data to onClose for optimistic UI update
       onClose({
@@ -95,7 +99,10 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         genre: genre.trim() || undefined
       });
       // Trigger a custom event to refresh the title component
-      window.dispatchEvent(new CustomEvent('screenplayUpdated'));
+      // Dispatch event AFTER backend confirms and delay completes
+      window.dispatchEvent(new CustomEvent('screenplayUpdated', {
+        detail: { screenplayId, title: title.trim(), author: author.trim() }
+      }));
     } catch (error) {
       console.error('[ScreenplaySettingsModal] Failed to update screenplay:', error);
       toast.error('Failed to update settings. Please try again.');

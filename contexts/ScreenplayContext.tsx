@@ -3042,9 +3042,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // 🔥 FIX: Allow rescan with minimal/empty content
             // If content is empty or minimal, clear all scenes (but keep characters/locations as they might be reference cards)
             if (!content || content.trim().length === 0) {
-                console.log('[ScreenplayContext] 🔍 Rescan with empty content - clearing all scenes');
-                // Clear all scenes (characters/locations might be reference cards, so keep them)
+                console.log('[ScreenplayContext] 🔍 Rescan with empty content - clearing all scenes, characters, and locations');
+                // 🔥 FIX 4: Clear all scenes, characters, and locations when content is empty
                 setScenes([]);
+                setCharacters([]);
+                setLocations([]);
                 // Clear relationships
                 setRelationships({
                     beats: {},
@@ -3056,10 +3058,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Save to DynamoDB if screenplay ID exists
                 if (screenplayId) {
                     try {
-                        await saveScenes([], screenplayId);
-                        console.log('[ScreenplayContext] ✅ Cleared all scenes from DynamoDB');
+                        const { deleteAllCharacters, deleteAllLocations } = await import('@/utils/screenplayStorage');
+                        // Clear all scenes, characters, and locations from DB
+                        await Promise.all([
+                            saveScenes([], screenplayId), // Delete all scenes from DB
+                            deleteAllCharacters(screenplayId, getToken), // Delete all characters from DB
+                            deleteAllLocations(screenplayId, getToken) // Delete all locations from DB
+                        ]);
+                        console.log('[ScreenplayContext] ✅ Cleared all scenes, characters, and locations from DynamoDB');
                     } catch (error) {
-                        console.error('[ScreenplayContext] Failed to clear scenes from DynamoDB:', error);
+                        console.error('[ScreenplayContext] Failed to clear data from DynamoDB during empty rescan:', error);
+                        // Don't block, continue with local state update
                     }
                 }
                 isRescanningRef.current = false;

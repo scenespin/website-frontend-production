@@ -89,6 +89,12 @@ export default function Dashboard() {
   const optimisticScreenplaysRef = useRef(optimisticScreenplays);
   useEffect(() => {
     optimisticScreenplaysRef.current = optimisticScreenplays;
+    // 🔥 FIX 2: Persist optimisticScreenplays to sessionStorage whenever it changes
+    // This ensures newly created screenplays are tracked even after refresh
+    if (typeof window !== 'undefined') {
+      const serialized = Object.fromEntries(optimisticScreenplays);
+      sessionStorage.setItem('optimistic_screenplays', JSON.stringify(serialized));
+    }
   }, [optimisticScreenplays]);
   
   // Track optimistically edited screenplays (by ID) with their updated timestamps
@@ -590,6 +596,17 @@ export default function Dashboard() {
       
       // Track this ID as deleted to prevent it from reappearing due to DynamoDB eventual consistency
       setDeletedScreenplayIds(prev => new Set([...prev, screenplayId]));
+      
+      // 🔥 FIX 2: Remove from optimisticScreenplays if it exists there
+      // This ensures newly created screenplays are properly tracked when deleted
+      setOptimisticScreenplays(prev => {
+        const newMap = new Map(prev);
+        if (newMap.has(screenplayId)) {
+          console.log('[Dashboard] Removing deleted screenplay from optimisticScreenplays:', screenplayId);
+          newMap.delete(screenplayId);
+        }
+        return newMap;
+      });
       
       // Optimistically remove from UI immediately
       // Following the pattern from characters/locations: update local state only
