@@ -114,7 +114,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
-    const hasRunAutoImportRef = useRef(false); // Prevent infinite import loop
+    
+    // 🔥 FIX 1: Guard pattern - track which screenplay_id we've loaded (like ScreenplayContext)
+    // Stores the last screenplay_id (or 'no-id') that we initialized for
+    const hasInitializedRef = useRef<string | false>(false);
+    
+    // 🔥 FIX 2: Track previous projectId to only reset when it actually changes
+    const previousProjectIdRef = useRef<string | null>(null);
     
     // Feature 0111: DynamoDB Storage
     const { getToken } = useAuth();
@@ -637,20 +643,45 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     //     }
     // }, [state.content, screenplay]);
     
-    // Reset hasRunAutoImportRef when projectId changes to re-trigger loadContent
+    // 🔥 FIX 2: Only reset when projectId actually changes (not on every effect run)
     useEffect(() => {
-        console.log('[EditorContext] projectId changed:', projectId, 'Resetting hasRunAutoImportRef.');
-        hasRunAutoImportRef.current = false;
-        screenplayIdRef.current = null; // Also clear the screenplayIdRef to force a fresh load
-        // Optionally, reset editor state to default or loading state here
-        setState(defaultState);
+        const previousProjectId = previousProjectIdRef.current;
+        const currentProjectId = projectId;
+        
+        // Only reset if projectId actually changed
+        if (previousProjectId !== currentProjectId) {
+            console.log('[EditorContext] projectId changed:', previousProjectId, '→', currentProjectId);
+            
+            // Reset initialization guard to allow loading new screenplay
+            hasInitializedRef.current = false;
+            screenplayIdRef.current = null;
+            
+            // Only reset state if we're switching to a different screenplay
+            // If projectId is null, keep current state (might be navigating away temporarily)
+            if (currentProjectId !== null) {
+                setState(defaultState);
+            }
+            
+            // Update previous ref
+            previousProjectIdRef.current = currentProjectId;
+        }
     }, [projectId]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
-        // Only run once per projectId change (controlled by hasRunAutoImportRef)
-        if (hasRunAutoImportRef.current) {
-            return;
+        // 🔥 FIX 1: Guard pattern - check if already initialized for this screenplay (like ScreenplayContext)
+        const initKey = projectId || screenplayIdRef.current || 'no-id';
+        
+        // If we previously initialized with 'no-id' but now have a real ID, reset the guard
+        if (hasInitializedRef.current === 'no-id' && (projectId || screenplayIdRef.current)) {
+            console.log('[EditorContext] 🔄 Screenplay ID became available - resetting initialization guard');
+            hasInitializedRef.current = false; // Reset to allow initialization
+        }
+        
+        // 🔥 FIX 1: Check guard BEFORE any async operations to prevent duplicate loads
+        if (hasInitializedRef.current === initKey) {
+            console.log('[EditorContext] ⏭️ Already initialized for:', initKey, '- skipping load');
+            return; // Already loaded for this screenplay - don't reload!
         }
         
         // Wait for screenplay context and user to be ready
@@ -658,7 +689,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             return;
         }
         
-        hasRunAutoImportRef.current = true; // Mark as run
+        // 🔥 FIX 1: Set guard IMMEDIATELY to prevent re-entry during async operations
+        console.log('[EditorContext] 🚀 Starting initialization for:', initKey);
+        hasInitializedRef.current = initKey;
         
         async function loadContent() {
             try {
@@ -790,6 +823,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             } catch (err) {
                 console.error('[EditorContext] Failed to load content:', err);
                 isInitialLoadRef.current = false;
+                // 🔥 FIX 1: On error, reset guard so we can retry
+                hasInitializedRef.current = false;
             }
         }
         
