@@ -122,9 +122,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // 🔥 FIX 2: Track previous projectId to only reset when it actually changes
     const previousProjectIdRef = useRef<string | null>(null);
     
-    // 🔥 FIX 3: Sync-after-save flag - allows one-time reload after save to sync UI with DB
-    const needsSyncAfterSaveRef = useRef(false);
-    
     // Feature 0111: DynamoDB Storage
     const { getToken } = useAuth();
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
@@ -240,10 +237,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 isDirty: false
             }));
             
-            // 🔥 FIX 3: After successful save, allow one-time reload to sync UI with DB
-            // This ensures the UI reflects the saved state, especially after saves from other sessions
-            needsSyncAfterSaveRef.current = true;
-            console.log('[EditorContext] ✅ Save complete - will sync with DB on next load check');
+            // 🔥 FIX: No sync-after-save needed - guard pattern prevents unnecessary reloads
+            // Immediate save pattern ensures data is saved, and guard pattern prevents
+            // overwriting recent edits with stale DB data (like characters/locations pattern)
             
             // Reset the auto-save counter since we just saved manually
             localSaveCounterRef.current = 0;
@@ -687,17 +683,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         
         // 🔥 FIX 1: Check guard BEFORE any async operations to prevent duplicate loads
-        // 🔥 FIX 3: Allow reload if we need to sync after save (one-time sync)
-        if (hasInitializedRef.current === initKey && !needsSyncAfterSaveRef.current) {
+        // Guard pattern prevents unnecessary reloads that would overwrite recent edits
+        // (Same pattern as characters/locations - no sync-after-save needed)
+        if (hasInitializedRef.current === initKey) {
             console.log('[EditorContext] ⏭️ Already initialized for:', initKey, '- skipping load');
             return; // Already loaded for this screenplay - don't reload!
-        }
-        
-        // 🔥 FIX 3: If we need to sync after save, reset the guard to allow reload
-        if (needsSyncAfterSaveRef.current) {
-            console.log('[EditorContext] 🔄 Sync-after-save requested - allowing reload to sync UI with DB');
-            hasInitializedRef.current = false; // Reset guard to allow reload
-            needsSyncAfterSaveRef.current = false; // Reset flag (one-time sync)
         }
         
         // Wait for screenplay context and user to be ready
