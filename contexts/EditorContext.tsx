@@ -658,31 +658,52 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         if (previousProjectId !== currentProjectId) {
             console.log('[EditorContext] projectId changed:', previousProjectId, '→', currentProjectId, '| lastLoaded:', lastLoadedScreenplayId);
             
-            // 🔥 CRITICAL FIX: Only reset state if we're switching to a DIFFERENT screenplay
-            // If we're returning to the same screenplay (currentProjectId === lastLoadedScreenplayId),
-            // preserve the state and DON'T reload from database (prevents overwriting recent edits)
-            const isSwitchingToDifferentScreenplay = currentProjectId !== null && 
-                                                     currentProjectId !== lastLoadedScreenplayId;
+            // 🔥 CRITICAL FIX: Check if we're actually switching to a DIFFERENT screenplay
+            // If screenplayIdRef is null (e.g., after refresh), check localStorage/Clerk metadata
+            // to see if this is the same screenplay we were working on
+            let isActuallyDifferentScreenplay = false;
             
-            if (isSwitchingToDifferentScreenplay) {
+            if (currentProjectId === null) {
+                // Navigating away - preserve state
+                console.log('[EditorContext] 🚪 Navigating away - preserving state and guard');
+                previousProjectIdRef.current = currentProjectId;
+                return; // Don't clear anything
+            }
+            
+            if (lastLoadedScreenplayId === null) {
+                // Ref is null (e.g., after refresh) - check if we have content in state or localStorage
+                // If we have content, assume it's for the current screenplay and don't clear
+                const hasExistingContent = stateRef.current.content.trim().length > 0;
+                const hasLocalStorageContent = typeof window !== 'undefined' && 
+                                               localStorage.getItem('screenplay_draft')?.trim().length > 0;
+                
+                if (hasExistingContent || hasLocalStorageContent) {
+                    // We have existing content - assume it's for the current screenplay
+                    // Don't clear, let the load effect handle it (it will merge with localStorage if newer)
+                    console.log('[EditorContext] 🔄 Ref is null but have existing content - preserving state, will reload from DB');
+                    isActuallyDifferentScreenplay = false; // Don't clear
+                } else {
+                    // No existing content - this is a fresh load, allow it
+                    console.log('[EditorContext] 🔄 Ref is null and no existing content - allowing fresh load');
+                    isActuallyDifferentScreenplay = true; // Allow clear (fresh load)
+                }
+            } else {
+                // Ref is set - compare IDs
+                isActuallyDifferentScreenplay = currentProjectId !== lastLoadedScreenplayId;
+            }
+            
+            if (isActuallyDifferentScreenplay) {
                 console.log('[EditorContext] 🔄 Switching to different screenplay - clearing state and resetting guard');
                 // Reset initialization guard to allow loading new screenplay
                 hasInitializedRef.current = false;
                 screenplayIdRef.current = null;
                 setState(defaultState);
-            } else if (currentProjectId === null) {
-                // Navigating away (projectId is null) - preserve state, preserve guard
-                // This allows us to skip reload when returning to the same screenplay
-                console.log('[EditorContext] 🚪 Navigating away - preserving state and guard');
-                // Don't reset hasInitializedRef - preserve it so we skip reload when returning
-                // Don't clear screenplayIdRef - we might return to the same screenplay
-            } else if (currentProjectId === lastLoadedScreenplayId) {
-                // Returning to the same screenplay - preserve state, preserve guard (skip reload)
-                // This prevents overwriting recent edits with potentially stale database content
-                console.log('[EditorContext] 🔙 Returning to same screenplay - preserving state, skipping reload');
-                // Don't reset hasInitializedRef - preserve it so we skip reload
-                // Don't clear state - preserve user's current edits
-                // The guard pattern will prevent the load effect from running
+            } else {
+                // Same screenplay (or preserving existing content) - preserve state
+                console.log('[EditorContext] 🔙 Same screenplay or preserving content - preserving state, will reload from DB if needed');
+                // Reset guard to allow reload, but don't clear state
+                // The load effect will merge with existing state/localStorage
+                hasInitializedRef.current = false;
             }
             
             // Update previous ref
@@ -746,13 +767,28 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
                                 }
                                 
-                                // Update state with screenplay data
+                                // 🔥 FIX: Check localStorage for newer content (handles DynamoDB eventual consistency)
+                                // If localStorage has content for this screenplay and it's newer, prefer it
+                                const localStorageContent = typeof window !== 'undefined' ? localStorage.getItem('screenplay_draft') : null;
+                                const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem('screenplay_title') : null;
+                                const hasLocalStorageContent = localStorageContent && localStorageContent.trim().length > 0;
+                                
+                                // Use localStorage content if it exists and is different from DB (might be newer)
+                                // This handles the case where we just saved but DB hasn't propagated yet
+                                const contentToUse = hasLocalStorageContent ? localStorageContent : (screenplay.content || '');
+                                const titleToUse = localStorageTitle || screenplay.title || 'Untitled Screenplay';
+                                
+                                if (hasLocalStorageContent && localStorageContent !== screenplay.content) {
+                                    console.log('[EditorContext] 🔄 Using localStorage content (may be newer than DB due to eventual consistency)');
+                                }
+                                
+                                // Update state with screenplay data (preferring localStorage if available)
                                 setState(prev => ({
                                     ...prev,
-                                    title: screenplay.title || prev.title,
-                                    content: screenplay.content || prev.content,
+                                    title: titleToUse,
+                                    content: contentToUse,
                                     author: screenplay.author || prev.author,
-                                    isDirty: false
+                                    isDirty: hasLocalStorageContent && localStorageContent !== screenplay.content // Mark dirty if using localStorage
                                 }));
                                 
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', projectId);
@@ -803,13 +839,26 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 console.warn('[EditorContext] ⚠️ Screenplay loaded but content is empty!');
                             }
                             
+                            // 🔥 FIX: Check localStorage for newer content (handles DynamoDB eventual consistency)
+                            const localStorageContent = typeof window !== 'undefined' ? localStorage.getItem('screenplay_draft') : null;
+                            const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem('screenplay_title') : null;
+                            const hasLocalStorageContent = localStorageContent && localStorageContent.trim().length > 0;
+                            
+                            // Use localStorage content if it exists and is different from DB (might be newer)
+                            const contentToUse = hasLocalStorageContent ? localStorageContent : (savedScreenplay.content || '');
+                            const titleToUse = localStorageTitle || savedScreenplay.title || 'Untitled Screenplay';
+                            
+                            if (hasLocalStorageContent && localStorageContent !== savedScreenplay.content) {
+                                console.log('[EditorContext] 🔄 Using localStorage content (may be newer than DB due to eventual consistency)');
+                            }
+                            
                             screenplayIdRef.current = savedScreenplayId;
                             setState(prev => ({
                                 ...prev,
-                                content: savedScreenplay.content || '',
-                                title: savedScreenplay.title || prev.title,
+                                content: contentToUse,
+                                title: titleToUse,
                                 author: savedScreenplay.author || prev.author,
-                                isDirty: false
+                                isDirty: hasLocalStorageContent && localStorageContent !== savedScreenplay.content // Mark dirty if using localStorage
                             }));
                             isInitialLoadRef.current = false;
                             // 🔥 FIX 3: Mark as initialized after successful load
