@@ -2571,6 +2571,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return;
         }
         
+        // 🔥 FIX: If scenes array is empty, delete all scenes instead of creating 0 scenes
+        if (scenes.length === 0) {
+            console.log('[ScreenplayContext] 💾 Empty scenes array - deleting all scenes from wryda-scenes table...');
+            try {
+                const { deleteAllScenes } = await import('@/utils/screenplayStorage');
+                await deleteAllScenes(idToUse, getToken);
+                console.log('[ScreenplayContext] ✅ Deleted all scenes');
+            } catch (err) {
+                console.error('[ScreenplayContext] ❌ Failed to delete all scenes:', err);
+                throw err;
+            }
+            return;
+        }
+        
         console.log('[ScreenplayContext] 💾 Saving', scenes.length, 'scenes to wryda-scenes table...');
         
         try {

@@ -8,6 +8,7 @@ import { saveToGitHub } from '@/utils/github';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
+import { toast } from 'sonner';
 
 interface EditorState {
     // Current document content
@@ -383,9 +384,16 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
         const contentLength = currentState.content.length;
         const contentTrimmed = currentState.content.trim();
         
-        console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
-        
-        try {
+            console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
+            console.log('[EditorContext] 📊 Save state:', {
+                screenplayIdFromUrl,
+                screenplayIdRef: screenplayIdRef.current,
+                isDirty: currentState.isDirty,
+                contentLength,
+                title: currentState.title
+            });
+            
+            try {
             // Feature 0130: Use screenplayId from URL as source of truth (must be screenplay_ ID)
             // Priority: screenplayId from URL > screenplayIdRef.current
             // This ensures we always save to the correct screenplay when switching
@@ -766,11 +774,29 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                         const savedScreenplay = await getScreenplay(savedScreenplayId, getToken);
                         
                         if (savedScreenplay) {
+                            // 🔥 FIX: Check if screenplay is deleted before loading
+                            if (savedScreenplay.status === 'deleted' || savedScreenplay.is_archived) {
+                                console.warn('[EditorContext] ⚠️ Screenplay is deleted or archived:', savedScreenplayId);
+                                // Don't load deleted screenplays - redirect to dashboard or show error
+                                setState(prev => ({
+                                    ...prev,
+                                    content: '',
+                                    title: 'Screenplay Deleted',
+                                    author: '',
+                                    isDirty: false
+                                }));
+                                // Show error toast
+                                toast.error('This screenplay has been deleted');
+                                isInitialLoadRef.current = false;
+                                return;
+                            }
+                            
                             console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB:', {
                                 screenplayId: savedScreenplay.screenplay_id,
                                 title: savedScreenplay.title,
                                 contentLength: savedScreenplay.content?.length || 0,
-                                hasContent: !!savedScreenplay.content
+                                hasContent: !!savedScreenplay.content,
+                                status: savedScreenplay.status
                             });
                             
                             if (!savedScreenplay.content || savedScreenplay.content.trim().length === 0) {
