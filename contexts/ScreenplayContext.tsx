@@ -3039,9 +3039,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         isRescanningRef.current = true;
         
         try {
-            // 🔥 SAFEGUARD #2: Content validation before proceeding
+            // 🔥 FIX: Allow rescan with minimal/empty content
+            // If content is empty or minimal, clear all scenes (but keep characters/locations as they might be reference cards)
             if (!content || content.trim().length === 0) {
-                throw new Error('Script is empty');
+                console.log('[ScreenplayContext] 🔍 Rescan with empty content - clearing all scenes');
+                // Clear all scenes (characters/locations might be reference cards, so keep them)
+                setScenes([]);
+                // Clear relationships
+                setRelationships({});
+                // Save to DynamoDB if screenplay ID exists
+                if (screenplayId) {
+                    try {
+                        await saveScenes([], screenplayId);
+                        console.log('[ScreenplayContext] ✅ Cleared all scenes from DynamoDB');
+                    } catch (error) {
+                        console.error('[ScreenplayContext] Failed to clear scenes from DynamoDB:', error);
+                    }
+                }
+                isRescanningRef.current = false;
+                return {
+                    newCharacters: 0,
+                    newLocations: 0,
+                    updatedScenes: 0,
+                    preservedMetadata: 0
+                };
             }
             
             console.log('[ScreenplayContext] 🔍 Re-scanning script for new entities...');
@@ -3049,9 +3070,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Parse the content
             const parseResult = parseContentForImport(content);
             
-            // Validate parsing result
+            // 🔥 FIX: Handle case where parsing returns no scenes (minimal text)
+            // If no scenes found, clear all scenes but keep characters/locations that might be reference cards
             if (!parseResult || parseResult.scenes.length === 0) {
-                throw new Error('Failed to parse script or no scenes found');
+                console.log('[ScreenplayContext] 🔍 No scenes found in content - clearing scenes only');
+                // Clear all scenes
+                setScenes([]);
+                // Save to DynamoDB if screenplay ID exists
+                if (screenplayId) {
+                    try {
+                        await saveScenes([], screenplayId);
+                        console.log('[ScreenplayContext] ✅ Cleared scenes from DynamoDB');
+                    } catch (error) {
+                        console.error('[ScreenplayContext] Failed to clear scenes from DynamoDB:', error);
+                    }
+                }
+                isRescanningRef.current = false;
+                return {
+                    newCharacters: 0,
+                    newLocations: 0,
+                    updatedScenes: 0,
+                    preservedMetadata: 0
+                };
             }
             
             console.log('[ScreenplayContext] Parsed content:', {

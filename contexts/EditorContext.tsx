@@ -564,6 +564,13 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 return;
             }
             
+            // Ensure we have a screenplay ID before attempting save
+            const activeId = screenplayIdFromUrl || screenplayIdRef.current;
+            if (!activeId) {
+                console.warn('[EditorContext] ⚠️ Auto-save skipped - no screenplay ID available');
+                return;
+            }
+            
             console.log('[EditorContext] 🤖 Auto-save triggered (60-second interval)');
             
             try {
@@ -577,7 +584,30 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
         }, 60000); // Every 60 seconds
         
         return () => clearInterval(autoSaveInterval);
-    }, [state.isDirty, saveNow]);
+    }, [state.isDirty, saveNow, screenplayIdFromUrl]);
+    
+    // Save on unmount/navigation - ensure content is saved before leaving
+    useEffect(() => {
+        return () => {
+            // Cleanup: save on unmount if there are unsaved changes
+            const currentState = stateRef.current;
+            if (currentState.isDirty && currentState.content.trim().length > 0) {
+                const activeId = screenplayIdFromUrl || screenplayIdRef.current;
+                if (activeId) {
+                    console.log('[EditorContext] 💾 Saving on unmount (navigation/close)...');
+                    // Use a synchronous approach - saveNow is async but we can't await in cleanup
+                    // Save to localStorage as backup
+                    localStorage.setItem('screenplay_draft', currentState.content);
+                    localStorage.setItem('screenplay_title', currentState.title);
+                    localStorage.setItem('screenplay_author', currentState.author);
+                    // Attempt async save (fire and forget)
+                    saveNow().catch(err => {
+                        console.error('[EditorContext] ⚠️ Save on unmount failed:', err);
+                    });
+                }
+            }
+        };
+    }, [saveNow, screenplayIdFromUrl]);
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss
@@ -786,6 +816,39 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
         
         loadContent();
     }, [screenplay, getToken, user, screenplayIdFromUrl]); // Depend on screenplay, getToken, user, and screenplayId
+    
+    // Listen for screenplay updates from dashboard/modal and reload the screenplay
+    useEffect(() => {
+        const handleScreenplayUpdated = async () => {
+            const activeId = screenplayIdFromUrl || screenplayIdRef.current;
+            if (!activeId) {
+                console.log('[EditorContext] Screenplay updated event received but no screenplay ID available');
+                return;
+            }
+            
+            console.log('[EditorContext] Screenplay updated event received, reloading screenplay:', activeId);
+            try {
+                const updatedScreenplay = await getScreenplay(activeId, getToken);
+                if (updatedScreenplay) {
+                    console.log('[EditorContext] ✅ Reloaded screenplay after update:', updatedScreenplay.title);
+                    setState(prev => ({
+                        ...prev,
+                        title: updatedScreenplay.title || prev.title,
+                        author: updatedScreenplay.author || prev.author,
+                        // Don't update content - preserve current editor content
+                        // Only update title and author which are metadata
+                    }));
+                }
+            } catch (error) {
+                console.error('[EditorContext] Failed to reload screenplay after update:', error);
+            }
+        };
+        
+        window.addEventListener('screenplayUpdated', handleScreenplayUpdated);
+        return () => {
+            window.removeEventListener('screenplayUpdated', handleScreenplayUpdated);
+        };
+    }, [screenplayIdFromUrl, getToken]);
     
     return (
         <EditorContext.Provider value={value}>

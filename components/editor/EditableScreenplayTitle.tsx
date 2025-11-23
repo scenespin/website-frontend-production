@@ -40,6 +40,22 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
       setTitle('Untitled Screenplay');
     }
   }, [editorState.title]); // Only sync when EditorContext title changes
+  
+  // Listen for screenplay updates from dashboard/modal
+  useEffect(() => {
+    const handleScreenplayUpdated = () => {
+      console.log('[EditableScreenplayTitle] Screenplay updated event received, syncing with EditorContext');
+      // Sync with EditorContext title (which should be updated by the modal or reloaded)
+      if (editorState.title && editorState.title !== title) {
+        setTitle(editorState.title);
+      }
+    };
+    
+    window.addEventListener('screenplayUpdated', handleScreenplayUpdated);
+    return () => {
+      window.removeEventListener('screenplayUpdated', handleScreenplayUpdated);
+    };
+  }, [editorState.title, title]);
 
   const handleClick = () => {
     const urlProjectId = searchParams?.get('project');
