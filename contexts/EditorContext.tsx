@@ -822,8 +822,8 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                         const savedScreenplay = await getScreenplay(savedScreenplayId, getToken);
                         
                         if (savedScreenplay) {
-                            // 🔥 FIX: Check if screenplay is deleted before loading
-                            if (savedScreenplay.status === 'deleted' || savedScreenplay.is_archived) {
+                            // 🔥 FIX: Check if screenplay is deleted or archived before loading
+                            if (savedScreenplay.status === 'deleted' || savedScreenplay.status === 'archived') {
                                 console.warn('[EditorContext] ⚠️ Screenplay is deleted or archived:', savedScreenplayId);
                                 // Don't load deleted screenplays - redirect to dashboard or show error
                                 setState(prev => ({
