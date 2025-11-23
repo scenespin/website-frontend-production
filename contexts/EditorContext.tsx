@@ -647,23 +647,42 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     //     }
     // }, [state.content, screenplay]);
     
-    // 🔥 FIX 2: Only reset when projectId actually changes (not on every effect run)
+    // 🔥 FIX 2: Only reset when projectId actually changes to a DIFFERENT screenplay
+    // Don't reset when returning to the same screenplay (preserves state during navigation)
     useEffect(() => {
         const previousProjectId = previousProjectIdRef.current;
         const currentProjectId = projectId;
+        const lastLoadedScreenplayId = screenplayIdRef.current;
         
         // Only reset if projectId actually changed
         if (previousProjectId !== currentProjectId) {
-            console.log('[EditorContext] projectId changed:', previousProjectId, '→', currentProjectId);
+            console.log('[EditorContext] projectId changed:', previousProjectId, '→', currentProjectId, '| lastLoaded:', lastLoadedScreenplayId);
             
-            // Reset initialization guard to allow loading new screenplay
-            hasInitializedRef.current = false;
-            screenplayIdRef.current = null;
+            // 🔥 CRITICAL FIX: Only reset state if we're switching to a DIFFERENT screenplay
+            // If we're returning to the same screenplay (currentProjectId === lastLoadedScreenplayId),
+            // preserve the state and DON'T reload from database (prevents overwriting recent edits)
+            const isSwitchingToDifferentScreenplay = currentProjectId !== null && 
+                                                     currentProjectId !== lastLoadedScreenplayId;
             
-            // Only reset state if we're switching to a different screenplay
-            // If projectId is null, keep current state (might be navigating away temporarily)
-            if (currentProjectId !== null) {
+            if (isSwitchingToDifferentScreenplay) {
+                console.log('[EditorContext] 🔄 Switching to different screenplay - clearing state and resetting guard');
+                // Reset initialization guard to allow loading new screenplay
+                hasInitializedRef.current = false;
+                screenplayIdRef.current = null;
                 setState(defaultState);
+            } else if (currentProjectId === null) {
+                // Navigating away (projectId is null) - preserve state, preserve guard
+                // This allows us to skip reload when returning to the same screenplay
+                console.log('[EditorContext] 🚪 Navigating away - preserving state and guard');
+                // Don't reset hasInitializedRef - preserve it so we skip reload when returning
+                // Don't clear screenplayIdRef - we might return to the same screenplay
+            } else if (currentProjectId === lastLoadedScreenplayId) {
+                // Returning to the same screenplay - preserve state, preserve guard (skip reload)
+                // This prevents overwriting recent edits with potentially stale database content
+                console.log('[EditorContext] 🔙 Returning to same screenplay - preserving state, skipping reload');
+                // Don't reset hasInitializedRef - preserve it so we skip reload
+                // Don't clear state - preserve user's current edits
+                // The guard pattern will prevent the load effect from running
             }
             
             // Update previous ref
