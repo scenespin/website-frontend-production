@@ -709,10 +709,12 @@ export default function Dashboard() {
               
               // 🔥 FIX: Trigger a refresh after a delay to pick up backend changes
               // But optimistic edit will preserve the rename if backend hasn't updated yet
+              // Use longer delay (2 seconds) to ensure backend has processed the update
+              // The future timestamp (1 second ahead) ensures optimistic edit is preserved
               setTimeout(() => {
                 console.log('[Dashboard] Rename - refreshing after delay to sync with backend');
                 fetchDashboardData();
-              }, 1000); // 1 second delay to allow backend to process
+              }, 2000); // 2 second delay to allow backend to process (increased from 1s)
             }
           }}
           screenplayId={editingScreenplayId}

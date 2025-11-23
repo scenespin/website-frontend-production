@@ -194,7 +194,7 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 }
             }, 3000); // 3-second debounce (balance between responsiveness and API calls)
         }
-    }, [screenplayIdFromUrl]);
+    }, [screenplayIdFromUrl, getToken]); // 🔥 FIX: Add getToken to dependencies for fallback save
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
@@ -774,6 +774,22 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                             // It's a screenplay ID - load it directly
                             console.log('[EditorContext] Loading screenplay directly from URL...', screenplayIdFromUrl);
                             const screenplay = await getScreenplay(screenplayIdFromUrl, getToken);
+                            
+                            // 🔥 FIX 3: Check if screenplay is deleted or archived before loading
+                            if (screenplay && (screenplay.status === 'deleted' || screenplay.status === 'archived')) {
+                                console.warn('[EditorContext] ⚠️ Screenplay is deleted or archived:', screenplayIdFromUrl);
+                                // Don't load deleted screenplays - show error and clear editor
+                                setState(prev => ({
+                                    ...prev,
+                                    content: '',
+                                    title: 'Screenplay Deleted',
+                                    author: '',
+                                    isDirty: false
+                                }));
+                                toast.error('This screenplay has been deleted');
+                                isInitialLoadRef.current = false;
+                                return;
+                            }
                             
                             if (screenplay) {
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
