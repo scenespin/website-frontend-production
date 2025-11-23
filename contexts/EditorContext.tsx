@@ -136,13 +136,42 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
     const githubConfig = githubConfigStr ? JSON.parse(githubConfigStr) : null;
     
     // Content operations
+    // 🔥 FIX 1: Save immediately like characters/locations (debounced to avoid too many API calls)
+    const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
+    
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
         setState(prev => ({
             ...prev,
             content,
             isDirty: markDirty ? true : prev.isDirty
         }));
-    }, []);
+        
+        // 🔥 FIX 1: Save immediately after content change (like characters/locations pattern)
+        // Debounce to avoid too many API calls (3 seconds)
+        if (markDirty && content.trim().length > 0) {
+            // Clear existing debounce timer
+            if (saveDebounceRef.current) {
+                clearTimeout(saveDebounceRef.current);
+            }
+            
+            // Set new debounce timer
+            saveDebounceRef.current = setTimeout(async () => {
+                const activeId = screenplayIdFromUrl || screenplayIdRef.current;
+                if (activeId && activeId.startsWith('screenplay_')) {
+                    console.log('[EditorContext] 💾 Immediate save triggered (content changed)');
+                    try {
+                        await saveNow();
+                        console.log('[EditorContext] ✅ Immediate save complete');
+                    } catch (err) {
+                        console.error('[EditorContext] ⚠️ Immediate save failed:', err);
+                        // Don't show error toast - autosave will retry
+                    }
+                } else {
+                    console.log('[EditorContext] ⏸️ Immediate save skipped - no screenplay ID yet');
+                }
+            }, 3000); // 3-second debounce (balance between responsiveness and API calls)
+        }
+    }, [screenplayIdFromUrl, saveNow]);
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
@@ -667,14 +696,24 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
     useEffect(() => {
         console.log('[EditorContext] screenplayId changed:', screenplayIdFromUrl, 'Resetting hasRunAutoImportRef.');
         hasRunAutoImportRef.current = false;
+        
+        // 🔥 FIX 2: Clear editor state immediately when screenplayId changes
+        // This prevents old screenplay content from showing when creating new screenplay
+        setState(prev => ({
+            ...prev,
+            content: '',
+            title: 'Untitled Screenplay',
+            author: '',
+            isDirty: false
+        }));
+        
         // If screenplayId is valid, set it immediately so saveNow() can use it
         if (screenplayIdFromUrl && screenplayIdFromUrl.startsWith('screenplay_')) {
             screenplayIdRef.current = screenplayIdFromUrl; // Set it immediately
         } else {
             screenplayIdRef.current = null;
         }
-        // Don't reset state here - let the load effect handle it
-        // Only show loading indicator if needed
+        // Load effect will populate the state with new screenplay content
     }, [screenplayIdFromUrl]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
@@ -883,9 +922,30 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
             }
         };
         
+        // 🔥 FIX 3: Listen for screenplay deleted event and clear editor
+        const handleScreenplayDeleted = (event: CustomEvent) => {
+            const deletedId = event.detail?.screenplayId;
+            const activeId = screenplayIdFromUrl || screenplayIdRef.current;
+            
+            // Only clear if the deleted screenplay is the one currently loaded
+            if (deletedId && activeId && deletedId === activeId) {
+                console.log('[EditorContext] Screenplay deleted event received, clearing editor:', deletedId);
+                setState(prev => ({
+                    ...prev,
+                    content: '',
+                    title: 'Screenplay Deleted',
+                    author: '',
+                    isDirty: false
+                }));
+                toast.error('This screenplay has been deleted');
+            }
+        };
+        
         window.addEventListener('screenplayUpdated', handleScreenplayUpdated);
+        window.addEventListener('screenplayDeleted', handleScreenplayDeleted as EventListener);
         return () => {
             window.removeEventListener('screenplayUpdated', handleScreenplayUpdated);
+            window.removeEventListener('screenplayDeleted', handleScreenplayDeleted as EventListener);
         };
     }, [screenplayIdFromUrl, getToken]);
     

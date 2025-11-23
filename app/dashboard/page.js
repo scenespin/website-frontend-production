@@ -616,6 +616,11 @@ export default function Dashboard() {
       setShowDeleteConfirm(null);
       toast.success('Deleted successfully');
       
+      // 🔥 FIX 3: Dispatch screenplayDeleted event to notify editor
+      window.dispatchEvent(new CustomEvent('screenplayDeleted', {
+        detail: { screenplayId }
+      }));
+      
       // If this was the current screenplay, clear it
       if (currentScreenplayId === screenplayId) {
         setCurrentScreenplayId(null);

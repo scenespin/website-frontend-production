@@ -47,23 +47,36 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
       const urlProjectId = searchParams?.get('project');
       if (!urlProjectId) return;
       
+      // 🔥 FIX 4: Check if this update is for the current screenplay
+      const eventDetail = (event as CustomEvent)?.detail;
+      if (eventDetail?.screenplayId && eventDetail.screenplayId !== urlProjectId) {
+        console.log('[EditableScreenplayTitle] Update event is for different screenplay, ignoring');
+        return;
+      }
+      
       console.log('[EditableScreenplayTitle] Screenplay updated event received, reloading from database');
       
-      // 🔥 FIX: Reload screenplay from database to get updated title
-      // EditorContext will also reload, but we reload here too to ensure we get the latest data
-      try {
-        const updatedScreenplay = await getScreenplay(urlProjectId, getToken);
-        if (updatedScreenplay && updatedScreenplay.title) {
-          console.log('[EditableScreenplayTitle] ✅ Reloaded title from database:', updatedScreenplay.title);
-          setTitle(updatedScreenplay.title);
-          // Also update EditorContext title to keep them in sync
-          setEditorTitle(updatedScreenplay.title);
-        }
-      } catch (error) {
-        console.error('[EditableScreenplayTitle] Failed to reload screenplay:', error);
-        // Fallback: sync with EditorContext title if available
-        if (editorState.title && editorState.title !== title) {
-          setTitle(editorState.title);
+      // 🔥 FIX 4: Reload screenplay from database to get updated title
+      // Use event detail if available (faster), otherwise reload from DB
+      if (eventDetail?.title) {
+        console.log('[EditableScreenplayTitle] ✅ Using title from event detail:', eventDetail.title);
+        setTitle(eventDetail.title);
+        setEditorTitle(eventDetail.title);
+      } else {
+        // Fallback: reload from database
+        try {
+          const updatedScreenplay = await getScreenplay(urlProjectId, getToken);
+          if (updatedScreenplay && updatedScreenplay.title) {
+            console.log('[EditableScreenplayTitle] ✅ Reloaded title from database:', updatedScreenplay.title);
+            setTitle(updatedScreenplay.title);
+            setEditorTitle(updatedScreenplay.title);
+          }
+        } catch (error) {
+          console.error('[EditableScreenplayTitle] Failed to reload screenplay:', error);
+          // Fallback: sync with EditorContext title if available
+          if (editorState.title && editorState.title !== title) {
+            setTitle(editorState.title);
+          }
         }
       }
     };
