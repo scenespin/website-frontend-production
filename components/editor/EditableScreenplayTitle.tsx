@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useSearchParams } from 'next/navigation';
-import { updateScreenplay } from '@/utils/screenplayStorage';
+import { updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { useEditor } from '@/contexts/EditorContext';
 import { Pencil, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,19 +43,36 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
   
   // Listen for screenplay updates from dashboard/modal
   useEffect(() => {
-    const handleScreenplayUpdated = () => {
-      console.log('[EditableScreenplayTitle] Screenplay updated event received, syncing with EditorContext');
-      // Sync with EditorContext title (which should be updated by the modal or reloaded)
-      if (editorState.title && editorState.title !== title) {
-        setTitle(editorState.title);
+    const handleScreenplayUpdated = async (event?: CustomEvent) => {
+      const urlProjectId = searchParams?.get('project');
+      if (!urlProjectId) return;
+      
+      console.log('[EditableScreenplayTitle] Screenplay updated event received, reloading from database');
+      
+      // 🔥 FIX: Reload screenplay from database to get updated title
+      // EditorContext will also reload, but we reload here too to ensure we get the latest data
+      try {
+        const updatedScreenplay = await getScreenplay(urlProjectId, getToken);
+        if (updatedScreenplay && updatedScreenplay.title) {
+          console.log('[EditableScreenplayTitle] ✅ Reloaded title from database:', updatedScreenplay.title);
+          setTitle(updatedScreenplay.title);
+          // Also update EditorContext title to keep them in sync
+          setEditorTitle(updatedScreenplay.title);
+        }
+      } catch (error) {
+        console.error('[EditableScreenplayTitle] Failed to reload screenplay:', error);
+        // Fallback: sync with EditorContext title if available
+        if (editorState.title && editorState.title !== title) {
+          setTitle(editorState.title);
+        }
       }
     };
     
-    window.addEventListener('screenplayUpdated', handleScreenplayUpdated);
+    window.addEventListener('screenplayUpdated', handleScreenplayUpdated as EventListener);
     return () => {
-      window.removeEventListener('screenplayUpdated', handleScreenplayUpdated);
+      window.removeEventListener('screenplayUpdated', handleScreenplayUpdated as EventListener);
     };
-  }, [editorState.title, title]);
+  }, [searchParams, getToken, setEditorTitle, editorState.title, title]);
 
   const handleClick = () => {
     const urlProjectId = searchParams?.get('project');
