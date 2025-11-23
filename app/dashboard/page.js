@@ -677,28 +677,42 @@ export default function Dashboard() {
                 updated_at: updatedTimestamp
               };
               
-              // Track this optimistic edit so fetchDashboardData doesn't overwrite it
+              // 🔥 FIX: Track this optimistic edit so fetchDashboardData doesn't overwrite it
+              // Use a timestamp slightly in the future to ensure it's always considered "newer" than backend
+              // This handles eventual consistency where backend might not have processed update yet
+              const futureTimestamp = new Date(Date.now() + 1000).toISOString(); // 1 second in future
               optimisticEditsRef.current.set(screenplayId, {
-                updated_at: updatedTimestamp,
+                updated_at: futureTimestamp, // Use future timestamp to ensure it's always newer
                 data: updatedProject
               });
               persistOptimisticEdits(); // Persist to sessionStorage
               
+              console.log('[Dashboard] Rename - optimistic edit set:', {
+                screenplayId,
+                title: updatedData.title,
+                timestamp: futureTimestamp
+              });
+              
               setProjects(prev => prev.map(p => {
                 if (p.id === screenplayId || p.screenplay_id === screenplayId) {
-                  return {
+                  const updated = {
                     ...p,
                     ...updatedProject,
-                    name: updatedData.title || p.name
+                    name: updatedData.title || p.name,
+                    updated_at: futureTimestamp // Use future timestamp
                   };
+                  console.log('[Dashboard] Rename - updated project in state:', updated.name);
+                  return updated;
                 }
                 return p;
               }));
               
-              // Don't refresh immediately - let optimistic update handle UI
-              // The optimistic edit is tracked in optimisticEditsRef, so it won't be overwritten on next refresh
-              // Existing refresh mechanisms (window focus, pathname change) will pick up the change
-              console.log('[Dashboard] Rename complete - optimistic update applied, will refresh on next navigation');
+              // 🔥 FIX: Trigger a refresh after a delay to pick up backend changes
+              // But optimistic edit will preserve the rename if backend hasn't updated yet
+              setTimeout(() => {
+                console.log('[Dashboard] Rename - refreshing after delay to sync with backend');
+                fetchDashboardData();
+              }, 1000); // 1 second delay to allow backend to process
             }
           }}
           screenplayId={editingScreenplayId}

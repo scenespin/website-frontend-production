@@ -160,11 +160,30 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 const activeId = screenplayIdFromUrl || screenplayIdRef.current;
                 if (activeId && activeId.startsWith('screenplay_')) {
                     console.log('[EditorContext] 💾 Immediate save triggered (content changed)');
+                    console.log('[EditorContext] 📊 Save state:', {
+                        screenplayId: activeId,
+                        saveNowRefExists: !!saveNowRef.current,
+                        contentLength: stateRef.current.content.length
+                    });
                     try {
                         // Use ref to access saveNow to avoid dependency issues
                         if (saveNowRef.current) {
-                            await saveNowRef.current();
-                            console.log('[EditorContext] ✅ Immediate save complete');
+                            const result = await saveNowRef.current();
+                            console.log('[EditorContext] ✅ Immediate save complete, result:', result);
+                        } else {
+                            console.error('[EditorContext] ⚠️ saveNowRef.current is null - saveNow not initialized yet');
+                            // Fallback: try to save directly using updateScreenplay
+                            const currentState = stateRef.current;
+                            if (currentState.content.trim().length > 0) {
+                                console.log('[EditorContext] 🔄 Fallback: Saving directly via updateScreenplay...');
+                                await updateScreenplay({
+                                    screenplay_id: activeId,
+                                    title: currentState.title,
+                                    author: currentState.author,
+                                    content: currentState.content
+                                }, getToken);
+                                console.log('[EditorContext] ✅ Fallback save complete');
+                            }
                         }
                     } catch (err) {
                         console.error('[EditorContext] ⚠️ Immediate save failed:', err);
