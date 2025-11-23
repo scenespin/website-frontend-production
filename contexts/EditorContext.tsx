@@ -974,9 +974,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         };
     }, [projectId]);
     
-    // 🔥 FIX 3: Listen for screenplay updated event (rename/edit) and reload title/content
+    // 🔥 FIX 3: Listen for screenplay updated event (rename/edit) and update title/author only
+    // CRITICAL: Never reload content from DB - it would overwrite recent edits due to eventual consistency
     useEffect(() => {
-        const handleScreenplayUpdated = async (event?: CustomEvent) => {
+        const handleScreenplayUpdated = (event?: CustomEvent) => {
             const eventDetail = (event as CustomEvent)?.detail;
             const activeId = projectId || screenplayIdRef.current;
             
@@ -986,26 +987,21 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 return;
             }
             
-            console.log('[EditorContext] Screenplay updated event received, reloading from database');
+            console.log('[EditorContext] Screenplay updated event received, updating title/author from event detail');
             
-            // Reload screenplay from database to get updated data
-            if (activeId && activeId.startsWith('screenplay_')) {
-                try {
-                    const updatedScreenplay = await getScreenplay(activeId, getToken);
-                    if (updatedScreenplay) {
-                        console.log('[EditorContext] ✅ Reloaded screenplay after update:', updatedScreenplay.title);
-                        setState(prev => ({
-                            ...prev,
-                            title: updatedScreenplay.title || prev.title,
-                            author: updatedScreenplay.author || prev.author,
-                            // Don't overwrite content if user is actively editing
-                            // Only update if content hasn't changed since last save
-                            content: prev.isDirty ? prev.content : (updatedScreenplay.content || prev.content)
-                        }));
-                    }
-                } catch (error) {
-                    console.error('[EditorContext] Failed to reload screenplay after update:', error);
-                }
+            // 🔥 CRITICAL: Only update title/author from event detail - NEVER reload content from DB
+            // Reloading content would overwrite recent edits due to DynamoDB eventual consistency
+            // Content should only be loaded on initial load, not on updates
+            if (eventDetail) {
+                setState(prev => ({
+                    ...prev,
+                    // Update title/author from event detail if available
+                    title: eventDetail.title || prev.title,
+                    author: eventDetail.author || prev.author,
+                    // NEVER update content - preserve user's current edits
+                    // Content is only loaded on initial load, not on updates
+                }));
+                console.log('[EditorContext] ✅ Updated title/author from event detail (content preserved)');
             }
         };
         
@@ -1013,7 +1009,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         return () => {
             window.removeEventListener('screenplayUpdated', handleScreenplayUpdated as EventListener);
         };
-    }, [projectId, getToken]);
+    }, [projectId]);
     
     return (
         <EditorContext.Provider value={value}>
