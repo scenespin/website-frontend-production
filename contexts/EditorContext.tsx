@@ -122,6 +122,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // 🔥 FIX 2: Track previous projectId to only reset when it actually changes
     const previousProjectIdRef = useRef<string | null>(null);
     
+    // 🔥 FIX 3: Sync-after-save flag - allows one-time reload after save to sync UI with DB
+    const needsSyncAfterSaveRef = useRef(false);
+    
     // Feature 0111: DynamoDB Storage
     const { getToken } = useAuth();
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
@@ -236,6 +239,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 lastSaved: new Date(),
                 isDirty: false
             }));
+            
+            // 🔥 FIX 3: After successful save, allow one-time reload to sync UI with DB
+            // This ensures the UI reflects the saved state, especially after saves from other sessions
+            needsSyncAfterSaveRef.current = true;
+            console.log('[EditorContext] ✅ Save complete - will sync with DB on next load check');
             
             // Reset the auto-save counter since we just saved manually
             localSaveCounterRef.current = 0;
@@ -679,9 +687,17 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         
         // 🔥 FIX 1: Check guard BEFORE any async operations to prevent duplicate loads
-        if (hasInitializedRef.current === initKey) {
+        // 🔥 FIX 3: Allow reload if we need to sync after save (one-time sync)
+        if (hasInitializedRef.current === initKey && !needsSyncAfterSaveRef.current) {
             console.log('[EditorContext] ⏭️ Already initialized for:', initKey, '- skipping load');
             return; // Already loaded for this screenplay - don't reload!
+        }
+        
+        // 🔥 FIX 3: If we need to sync after save, reset the guard to allow reload
+        if (needsSyncAfterSaveRef.current) {
+            console.log('[EditorContext] 🔄 Sync-after-save requested - allowing reload to sync UI with DB');
+            hasInitializedRef.current = false; // Reset guard to allow reload
+            needsSyncAfterSaveRef.current = false; // Reset flag (one-time sync)
         }
         
         // Wait for screenplay context and user to be ready
@@ -732,6 +748,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', projectId);
                                 isInitialLoadRef.current = false;
+                                // 🔥 FIX 3: Mark as initialized after successful load
+                                hasInitializedRef.current = initKey;
                                 return; // Success - screenplay loaded!
                             } else {
                                 console.warn('[EditorContext] ⚠️ Screenplay not found:', projectId);
@@ -785,6 +803,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 isDirty: false
                             }));
                             isInitialLoadRef.current = false;
+                            // 🔥 FIX 3: Mark as initialized after successful load
+                            hasInitializedRef.current = initKey;
                             return; // Success!
                         } else {
                             console.warn('[EditorContext] ⚠️ getScreenplay returned null for:', savedScreenplayId);
@@ -820,6 +840,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 }
                 
                 isInitialLoadRef.current = false;
+                // 🔥 FIX 3: Mark as initialized after load completes (even if empty)
+                hasInitializedRef.current = initKey;
             } catch (err) {
                 console.error('[EditorContext] Failed to load content:', err);
                 isInitialLoadRef.current = false;
