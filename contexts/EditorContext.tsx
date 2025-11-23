@@ -123,7 +123,6 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
-    const saveNowRef = useRef<(() => Promise<boolean>) | null>(null); // Ref for saveNow to avoid dependency issues
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -160,31 +159,9 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 const activeId = screenplayIdFromUrl || screenplayIdRef.current;
                 if (activeId && activeId.startsWith('screenplay_')) {
                     console.log('[EditorContext] 💾 Immediate save triggered (content changed)');
-                    console.log('[EditorContext] 📊 Save state:', {
-                        screenplayId: activeId,
-                        saveNowRefExists: !!saveNowRef.current,
-                        contentLength: stateRef.current.content.length
-                    });
                     try {
-                        // Use ref to access saveNow to avoid dependency issues
-                        if (saveNowRef.current) {
-                            const result = await saveNowRef.current();
-                            console.log('[EditorContext] ✅ Immediate save complete, result:', result);
-                        } else {
-                            console.error('[EditorContext] ⚠️ saveNowRef.current is null - saveNow not initialized yet');
-                            // Fallback: try to save directly using updateScreenplay
-                            const currentState = stateRef.current;
-                            if (currentState.content.trim().length > 0) {
-                                console.log('[EditorContext] 🔄 Fallback: Saving directly via updateScreenplay...');
-                                await updateScreenplay({
-                                    screenplay_id: activeId,
-                                    title: currentState.title,
-                                    author: currentState.author,
-                                    content: currentState.content
-                                }, getToken);
-                                console.log('[EditorContext] ✅ Fallback save complete');
-                            }
-                        }
+                        await saveNow();
+                        console.log('[EditorContext] ✅ Immediate save complete');
                     } catch (err) {
                         console.error('[EditorContext] ⚠️ Immediate save failed:', err);
                         // Don't show error toast - autosave will retry
@@ -194,7 +171,7 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 }
             }, 3000); // 3-second debounce (balance between responsiveness and API calls)
         }
-    }, [screenplayIdFromUrl, getToken]); // 🔥 FIX: Add getToken to dependencies for fallback save
+    }, [screenplayIdFromUrl, saveNow]); // 🔥 RESTORED: saveNow in dependencies (working pattern from 75dc638)
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
@@ -562,11 +539,6 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
         }
     }, [getToken, screenplay, screenplayIdFromUrl, user]);
     
-    // Update saveNowRef whenever saveNow changes (so setContent can access it via ref)
-    useEffect(() => {
-        saveNowRef.current = saveNow;
-    }, [saveNow]);
-    
     // Utility
     const reset = useCallback(() => {
         setState(defaultState);
@@ -727,13 +699,18 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
         
         // 🔥 FIX 2: Clear editor state immediately when screenplayId changes
         // This prevents old screenplay content from showing when creating new screenplay
-        setState(prev => ({
-            ...prev,
-            content: '',
-            title: 'Untitled Screenplay',
-            author: '',
-            isDirty: false
-        }));
+        // Only clear if screenplayId is null or different from current
+        const currentId = screenplayIdRef.current;
+        if (!screenplayIdFromUrl || screenplayIdFromUrl !== currentId) {
+            console.log('[EditorContext] Clearing editor state - screenplayId changed or is null');
+            setState(prev => ({
+                ...prev,
+                content: '',
+                title: 'Untitled Screenplay',
+                author: '',
+                isDirty: false
+            }));
+        }
         
         // If screenplayId is valid, set it immediately so saveNow() can use it
         if (screenplayIdFromUrl && screenplayIdFromUrl.startsWith('screenplay_')) {
@@ -971,9 +948,16 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
             const deletedId = event.detail?.screenplayId;
             const activeId = screenplayIdFromUrl || screenplayIdRef.current;
             
-            // Only clear if the deleted screenplay is the one currently loaded
+            console.log('[EditorContext] Screenplay deleted event received:', {
+                deletedId,
+                activeId,
+                screenplayIdFromUrl,
+                screenplayIdRef: screenplayIdRef.current
+            });
+            
+            // Clear if the deleted screenplay is the one currently loaded
             if (deletedId && activeId && deletedId === activeId) {
-                console.log('[EditorContext] Screenplay deleted event received, clearing editor:', deletedId);
+                console.log('[EditorContext] Clearing editor - deleted screenplay is currently loaded:', deletedId);
                 setState(prev => ({
                     ...prev,
                     content: '',
@@ -981,7 +965,10 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                     author: '',
                     isDirty: false
                 }));
+                screenplayIdRef.current = null; // Clear the ref too
                 toast.error('This screenplay has been deleted');
+            } else if (deletedId) {
+                console.log('[EditorContext] Deleted screenplay is not currently loaded, ignoring:', deletedId);
             }
         };
         

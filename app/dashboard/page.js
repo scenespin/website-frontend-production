@@ -707,6 +707,17 @@ export default function Dashboard() {
                 return p;
               }));
               
+              // 🔥 FIX: Dispatch screenplayUpdated event to notify editor (like modal does)
+              // This ensures editor title updates immediately
+              window.dispatchEvent(new CustomEvent('screenplayUpdated', {
+                detail: { 
+                  screenplayId, 
+                  title: updatedData.title,
+                  description: updatedData.description,
+                  genre: updatedData.genre
+                }
+              }));
+              
               // 🔥 FIX: Trigger a refresh after a delay to pick up backend changes
               // But optimistic edit will preserve the rename if backend hasn't updated yet
               // Use longer delay (2 seconds) to ensure backend has processed the update
