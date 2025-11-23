@@ -8,6 +8,7 @@ import { saveToGitHub } from '@/utils/github';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
+import { toast } from 'sonner';
 
 interface EditorState {
     // Current document content
@@ -782,11 +783,17 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         } else if (projectId.startsWith('screenplay_')) {
                             // It's a screenplay ID - load it directly
                             console.log('[EditorContext] Loading screenplay directly from URL...', projectId);
+                            
+                            // 🔥 FIX 1: Set screenplayIdRef IMMEDIATELY (before async load)
+                            // This ensures saveNow() can find the ID even if load is still in progress
+                            screenplayIdRef.current = projectId;
+                            console.log('[EditorContext] ✅ Set screenplayIdRef immediately:', projectId);
+                            
                             const screenplay = await getScreenplay(projectId, getToken);
                             
                             if (screenplay) {
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
-                                screenplayIdRef.current = projectId;
+                                // screenplayIdRef already set above
                                 
                                 // Save to Clerk metadata
                                 try {
@@ -938,6 +945,75 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         loadContent();
     }, [screenplay, getToken, user, projectId]); // Depend on screenplay, getToken, user, and projectId
+    
+    // 🔥 FIX 2: Listen for screenplay deleted event and clear editor if current screenplay is deleted
+    useEffect(() => {
+        const handleScreenplayDeleted = (event: CustomEvent) => {
+            const deletedId = event.detail?.screenplayId;
+            const activeId = projectId || screenplayIdRef.current;
+            
+            // Only clear if the deleted screenplay is the one currently loaded
+            if (deletedId && activeId && deletedId === activeId) {
+                console.log('[EditorContext] Screenplay deleted event received, clearing editor:', deletedId);
+                setState(defaultState);
+                screenplayIdRef.current = null;
+                hasInitializedRef.current = false;
+                // Clear localStorage to prevent loading stale content
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('screenplay_draft');
+                    localStorage.removeItem('screenplay_title');
+                    localStorage.removeItem('screenplay_author');
+                }
+                toast.error('This screenplay has been deleted');
+            }
+        };
+        
+        window.addEventListener('screenplayDeleted', handleScreenplayDeleted as EventListener);
+        return () => {
+            window.removeEventListener('screenplayDeleted', handleScreenplayDeleted as EventListener);
+        };
+    }, [projectId]);
+    
+    // 🔥 FIX 3: Listen for screenplay updated event (rename/edit) and reload title/content
+    useEffect(() => {
+        const handleScreenplayUpdated = async (event?: CustomEvent) => {
+            const eventDetail = (event as CustomEvent)?.detail;
+            const activeId = projectId || screenplayIdRef.current;
+            
+            // Check if this update is for the current screenplay
+            if (eventDetail?.screenplayId && eventDetail.screenplayId !== activeId) {
+                console.log('[EditorContext] Update event is for different screenplay, ignoring');
+                return;
+            }
+            
+            console.log('[EditorContext] Screenplay updated event received, reloading from database');
+            
+            // Reload screenplay from database to get updated data
+            if (activeId && activeId.startsWith('screenplay_')) {
+                try {
+                    const updatedScreenplay = await getScreenplay(activeId, getToken);
+                    if (updatedScreenplay) {
+                        console.log('[EditorContext] ✅ Reloaded screenplay after update:', updatedScreenplay.title);
+                        setState(prev => ({
+                            ...prev,
+                            title: updatedScreenplay.title || prev.title,
+                            author: updatedScreenplay.author || prev.author,
+                            // Don't overwrite content if user is actively editing
+                            // Only update if content hasn't changed since last save
+                            content: prev.isDirty ? prev.content : (updatedScreenplay.content || prev.content)
+                        }));
+                    }
+                } catch (error) {
+                    console.error('[EditorContext] Failed to reload screenplay after update:', error);
+                }
+            }
+        };
+        
+        window.addEventListener('screenplayUpdated', handleScreenplayUpdated as EventListener);
+        return () => {
+            window.removeEventListener('screenplayUpdated', handleScreenplayUpdated as EventListener);
+        };
+    }, [projectId, getToken]);
     
     return (
         <EditorContext.Provider value={value}>

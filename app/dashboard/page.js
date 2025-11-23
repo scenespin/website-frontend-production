@@ -170,6 +170,25 @@ export default function Dashboard() {
     };
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 🔥 FIX 3: Listen for screenplayUpdated events (from modal or editor) and refresh dashboard
+  useEffect(() => {
+    const handleScreenplayUpdated = (event) => {
+      const eventDetail = event.detail;
+      if (eventDetail?.screenplayId) {
+        console.log('[Dashboard] Screenplay updated event received, refreshing data:', eventDetail.screenplayId);
+        // Refresh after a short delay to allow backend to process
+        setTimeout(() => {
+          fetchDashboardData();
+        }, 500);
+      }
+    };
+    
+    window.addEventListener('screenplayUpdated', handleScreenplayUpdated);
+    return () => {
+      window.removeEventListener('screenplayUpdated', handleScreenplayUpdated);
+    };
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  
   // Refresh dashboard when pathname changes to /dashboard (user navigated back)
   // This catches navigation from other pages even if component doesn't remount
   useEffect(() => {
