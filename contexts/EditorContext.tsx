@@ -139,6 +139,138 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
     // 🔥 FIX 1: Save immediately like characters/locations (debounced to avoid too many API calls)
     const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
     
+    // Manual save function - defined before setContent so it can be used in dependencies
+    const saveNow = useCallback(async () => {
+        const currentState = stateRef.current;
+        const contentLength = currentState.content.length;
+        const contentTrimmed = currentState.content.trim();
+        
+            console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
+            console.log('[EditorContext] 📊 Save state:', {
+                screenplayIdFromUrl,
+                screenplayIdRef: screenplayIdRef.current,
+                isDirty: currentState.isDirty,
+                contentLength,
+                title: currentState.title
+            });
+            
+            try {
+            // Feature 0130: Use screenplayId from URL as source of truth (must be screenplay_ ID)
+            // Priority: screenplayId from URL > screenplayIdRef.current
+            // This ensures we always save to the correct screenplay when switching
+            let activeScreenplayId: string | null = null;
+            
+            // Always prefer screenplayId from URL (most reliable)
+            if (screenplayIdFromUrl && screenplayIdFromUrl.startsWith('screenplay_')) {
+                activeScreenplayId = screenplayIdFromUrl;
+                console.log('[EditorContext] Using screenplay_id from URL:', activeScreenplayId);
+            } else if (screenplayIdRef.current) {
+                activeScreenplayId = screenplayIdRef.current;
+                console.log('[EditorContext] Using screenplay_id from ref:', activeScreenplayId);
+            } else if (screenplayIdFromUrl) {
+                // Invalid format in URL - log warning
+                if (screenplayIdFromUrl.startsWith('proj_')) {
+                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', screenplayIdFromUrl);
+                } else {
+                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', screenplayIdFromUrl);
+                }
+                // Will create new screenplay below
+            } else {
+                // No screenplayId available - will create new screenplay below
+                console.log('[EditorContext] No screenplayId available - will create new screenplay');
+            }
+            
+            // Save to localStorage immediately
+            localStorage.setItem('screenplay_draft', currentState.content);
+            localStorage.setItem('screenplay_title', currentState.title);
+            localStorage.setItem('screenplay_author', currentState.author);
+            console.log('[EditorContext] ✅ Saved to localStorage');
+            
+            // Save to DynamoDB immediately
+            if (!activeScreenplayId) {
+                // Only create new if we truly have no ID
+                // But log warning - this shouldn't happen in normal flow
+                console.warn('[EditorContext] ⚠️ No screenplay ID available - creating new screenplay');
+                console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
+                const newScreenplay = await createScreenplay({
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                }, getToken);
+                
+                activeScreenplayId = newScreenplay.screenplay_id;
+                screenplayIdRef.current = activeScreenplayId; // Update ref to keep in sync
+                
+                // Feature 0119: Save to Clerk metadata (also saves to localStorage for backward compatibility)
+                try {
+                    await setCurrentScreenplayId(user, activeScreenplayId);
+                } catch (error) {
+                    console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata, using localStorage fallback:', error);
+                    // setCurrentScreenplayId already saved to localStorage as fallback
+                }
+                
+                // Sync ScreenplayContext via storage event
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'current_screenplay_id',
+                    newValue: activeScreenplayId,
+                    oldValue: null,
+                    storageArea: localStorage,
+                    url: window.location.href
+                }));
+                // Also update localStorage directly
+                localStorage.setItem('current_screenplay_id', activeScreenplayId);
+                
+                console.log('[EditorContext] ✅ Created NEW screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
+                
+                // 🔥 FIX 1: Add delay for DynamoDB consistency (like Media Library pattern)
+                // This ensures the screenplay is fully created before we try to update it
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 🔥 FIX 1: Now save the content to the newly created screenplay
+                // This ensures content is saved even if the screenplay was just created
+                console.log('[EditorContext] Saving content to newly created screenplay...');
+                await updateScreenplay({
+                    screenplay_id: activeScreenplayId,
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                }, getToken);
+                console.log('[EditorContext] ✅ Content saved to newly created screenplay');
+            } else {
+                // Update existing screenplay - use the activeScreenplayId we determined above
+                console.log('[EditorContext] Updating EXISTING screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
+                await updateScreenplay({
+                    screenplay_id: activeScreenplayId,
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                }, getToken);
+                
+                // Update ref to keep in sync (in case it was different)
+                screenplayIdRef.current = activeScreenplayId;
+                
+                console.log('[EditorContext] ✅ Updated screenplay content:', activeScreenplayId, '| Saved', contentLength, 'chars');
+                
+                // Feature 0117: No structure save needed here - handled separately by callers
+            }
+            
+            // Mark as saved
+            setState(prev => ({
+                ...prev,
+                lastSaved: new Date(),
+                isDirty: false
+            }));
+            
+            // Reset the auto-save counter since we just saved manually
+            localSaveCounterRef.current = 0;
+            
+            return true;
+        } catch (error: any) {
+            console.error('[EditorContext] Manual save failed:', error);
+            throw error; // Let the caller handle the error
+        }
+    }, [getToken, screenplay, screenplayIdFromUrl, user]);
+    
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
         setState(prev => ({
             ...prev,
@@ -406,138 +538,6 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
     const clearHighlight = useCallback(() => {
         setState(prev => ({ ...prev, highlightRange: null }));
     }, []);
-    
-    // Manual save function - for save button and paste trigger
-    const saveNow = useCallback(async () => {
-        const currentState = stateRef.current;
-        const contentLength = currentState.content.length;
-        const contentTrimmed = currentState.content.trim();
-        
-            console.log('[EditorContext] 💾 Manual save triggered (content length:', contentLength, 'chars)');
-            console.log('[EditorContext] 📊 Save state:', {
-                screenplayIdFromUrl,
-                screenplayIdRef: screenplayIdRef.current,
-                isDirty: currentState.isDirty,
-                contentLength,
-                title: currentState.title
-            });
-            
-            try {
-            // Feature 0130: Use screenplayId from URL as source of truth (must be screenplay_ ID)
-            // Priority: screenplayId from URL > screenplayIdRef.current
-            // This ensures we always save to the correct screenplay when switching
-            let activeScreenplayId: string | null = null;
-            
-            // Always prefer screenplayId from URL (most reliable)
-            if (screenplayIdFromUrl && screenplayIdFromUrl.startsWith('screenplay_')) {
-                activeScreenplayId = screenplayIdFromUrl;
-                console.log('[EditorContext] Using screenplay_id from URL:', activeScreenplayId);
-            } else if (screenplayIdRef.current) {
-                activeScreenplayId = screenplayIdRef.current;
-                console.log('[EditorContext] Using screenplay_id from ref:', activeScreenplayId);
-            } else if (screenplayIdFromUrl) {
-                // Invalid format in URL - log warning
-                if (screenplayIdFromUrl.startsWith('proj_')) {
-                    console.warn('[EditorContext] ⚠️ Rejected proj_ ID in saveNow (legacy format):', screenplayIdFromUrl);
-                } else {
-                    console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', screenplayIdFromUrl);
-                }
-                // Will create new screenplay below
-            } else {
-                // No screenplayId available - will create new screenplay below
-                console.log('[EditorContext] No screenplayId available - will create new screenplay');
-            }
-            
-            // Save to localStorage immediately
-            localStorage.setItem('screenplay_draft', currentState.content);
-            localStorage.setItem('screenplay_title', currentState.title);
-            localStorage.setItem('screenplay_author', currentState.author);
-            console.log('[EditorContext] ✅ Saved to localStorage');
-            
-            // Save to DynamoDB immediately
-            if (!activeScreenplayId) {
-                // Only create new if we truly have no ID
-                // But log warning - this shouldn't happen in normal flow
-                console.warn('[EditorContext] ⚠️ No screenplay ID available - creating new screenplay');
-                console.log('[EditorContext] Creating NEW screenplay in DynamoDB...');
-                const newScreenplay = await createScreenplay({
-                    title: currentState.title,
-                    author: currentState.author,
-                    content: currentState.content
-                }, getToken);
-                
-                activeScreenplayId = newScreenplay.screenplay_id;
-                screenplayIdRef.current = activeScreenplayId; // Update ref to keep in sync
-                
-                // Feature 0119: Save to Clerk metadata (also saves to localStorage for backward compatibility)
-                try {
-                    await setCurrentScreenplayId(user, activeScreenplayId);
-                } catch (error) {
-                    console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata, using localStorage fallback:', error);
-                    // setCurrentScreenplayId already saved to localStorage as fallback
-                }
-                
-                // Sync ScreenplayContext via storage event
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: 'current_screenplay_id',
-                    newValue: activeScreenplayId,
-                    oldValue: null,
-                    storageArea: localStorage,
-                    url: window.location.href
-                }));
-                // Also update localStorage directly
-                localStorage.setItem('current_screenplay_id', activeScreenplayId);
-                
-                console.log('[EditorContext] ✅ Created NEW screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
-                
-                // 🔥 FIX 1: Add delay for DynamoDB consistency (like Media Library pattern)
-                // This ensures the screenplay is fully created before we try to update it
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // 🔥 FIX 1: Now save the content to the newly created screenplay
-                // This ensures content is saved even if the screenplay was just created
-                console.log('[EditorContext] Saving content to newly created screenplay...');
-                await updateScreenplay({
-                    screenplay_id: activeScreenplayId,
-                    title: currentState.title,
-                    author: currentState.author,
-                    content: currentState.content
-                }, getToken);
-                console.log('[EditorContext] ✅ Content saved to newly created screenplay');
-            } else {
-                // Update existing screenplay - use the activeScreenplayId we determined above
-                console.log('[EditorContext] Updating EXISTING screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
-                await updateScreenplay({
-                    screenplay_id: activeScreenplayId,
-                    title: currentState.title,
-                    author: currentState.author,
-                    content: currentState.content
-                }, getToken);
-                
-                // Update ref to keep in sync (in case it was different)
-                screenplayIdRef.current = activeScreenplayId;
-                
-                console.log('[EditorContext] ✅ Updated screenplay content:', activeScreenplayId, '| Saved', contentLength, 'chars');
-                
-                // Feature 0117: No structure save needed here - handled separately by callers
-            }
-            
-            // Mark as saved
-            setState(prev => ({
-                ...prev,
-                lastSaved: new Date(),
-                isDirty: false
-            }));
-            
-            // Reset the auto-save counter since we just saved manually
-            localSaveCounterRef.current = 0;
-            
-            return true;
-        } catch (error: any) {
-            console.error('[EditorContext] Manual save failed:', error);
-            throw error; // Let the caller handle the error
-        }
-    }, [getToken, screenplay, screenplayIdFromUrl, user]);
     
     // Utility
     const reset = useCallback(() => {
