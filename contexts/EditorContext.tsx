@@ -123,6 +123,7 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
+    const saveNowRef = useRef<(() => Promise<boolean>) | null>(null); // Ref for saveNow to avoid dependency issues
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -160,8 +161,11 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 if (activeId && activeId.startsWith('screenplay_')) {
                     console.log('[EditorContext] 💾 Immediate save triggered (content changed)');
                     try {
-                        await saveNow();
-                        console.log('[EditorContext] ✅ Immediate save complete');
+                        // Use ref to access saveNow to avoid dependency issues
+                        if (saveNowRef.current) {
+                            await saveNowRef.current();
+                            console.log('[EditorContext] ✅ Immediate save complete');
+                        }
                     } catch (err) {
                         console.error('[EditorContext] ⚠️ Immediate save failed:', err);
                         // Don't show error toast - autosave will retry
@@ -171,7 +175,7 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
                 }
             }, 3000); // 3-second debounce (balance between responsiveness and API calls)
         }
-    }, [screenplayIdFromUrl, saveNow]);
+    }, [screenplayIdFromUrl]);
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
@@ -538,6 +542,11 @@ function EditorProviderInner({ children, screenplayId: screenplayIdFromUrl }: { 
             throw error; // Let the caller handle the error
         }
     }, [getToken, screenplay, screenplayIdFromUrl, user]);
+    
+    // Update saveNowRef whenever saveNow changes (so setContent can access it via ref)
+    useEffect(() => {
+        saveNowRef.current = saveNow;
+    }, [saveNow]);
     
     // Utility
     const reset = useCallback(() => {
