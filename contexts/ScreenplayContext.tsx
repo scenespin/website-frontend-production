@@ -3046,7 +3046,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Clear all scenes (characters/locations might be reference cards, so keep them)
                 setScenes([]);
                 // Clear relationships
-                setRelationships({});
+                setRelationships({
+                    beats: {},
+                    scenes: {},
+                    characters: {},
+                    locations: {},
+                    props: {}
+                });
                 // Save to DynamoDB if screenplay ID exists
                 if (screenplayId) {
                     try {
