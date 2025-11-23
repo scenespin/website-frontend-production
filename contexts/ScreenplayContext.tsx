@@ -3066,6 +3066,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 return {
                     newCharacters: 0,
                     newLocations: 0,
+                    newScenes: 0,
                     updatedScenes: 0,
                     preservedMetadata: 0
                 };
@@ -3095,6 +3096,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 return {
                     newCharacters: 0,
                     newLocations: 0,
+                    newScenes: 0,
                     updatedScenes: 0,
                     preservedMetadata: 0
                 };
