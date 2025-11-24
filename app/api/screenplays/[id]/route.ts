@@ -3,6 +3,11 @@ import { auth } from '@clerk/nextjs/server';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
+// 🔥 CRITICAL: Disable Next.js caching for screenplay GET requests
+// This ensures fresh data is always fetched from the backend
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/screenplays/[id]
  * Proxy to backend to get a screenplay by ID
@@ -52,7 +57,16 @@ export async function GET(
     }
 
     const data = await backendResponse.json();
-    return NextResponse.json(data);
+    
+    // 🔥 CRITICAL: Set cache headers to prevent browser/Next.js caching
+    // This ensures fresh data is always loaded, especially after saves
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   } catch (error: any) {
     console.error('[Screenplay Get API] Error:', error);
     return NextResponse.json(

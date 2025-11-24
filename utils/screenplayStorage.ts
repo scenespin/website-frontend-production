@@ -210,7 +210,14 @@ export async function getScreenplay(
   console.log('[screenplayStorage] GET /api/screenplays/' + screenplayId);
   
   // Note: Next.js API route handles auth server-side, so we don't need to send token
-  const response = await fetch(`/api/screenplays/${screenplayId}`);
+  // 🔥 CRITICAL: Disable browser caching to ensure fresh data is always fetched
+  const response = await fetch(`/api/screenplays/${screenplayId}`, {
+    cache: 'no-store', // Prevent browser from caching the response
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Pragma': 'no-cache'
+    }
+  });
 
   if (response.status === 404) {
     return null;
