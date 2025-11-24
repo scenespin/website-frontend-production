@@ -290,6 +290,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // Debounce to avoid too many API calls (3 seconds)
     const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
     
+    // 🔥 FIX: Store saveNow in a ref so it doesn't trigger useEffect re-runs
+    // This prevents the debounce timer from being cleared when saveNow is recreated
+    const saveNowRef = useRef<typeof saveNow | null>(null);
+    
+    // 🔥 FIX: Update ref whenever saveNow changes (so debounce can use latest version)
+    useEffect(() => {
+        saveNowRef.current = saveNow;
+    }, [saveNow]);
+    
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
         setState(prev => ({
             ...prev,
@@ -316,32 +325,59 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 
                 // Clear existing debounce timer
                 if (saveDebounceRef.current) {
+                    console.log('[EditorContext] 🧹 Clearing existing debounce timer');
                     clearTimeout(saveDebounceRef.current);
+                    saveDebounceRef.current = null;
                 }
                 
                 // Debounce database save (3 seconds - best practice, balances API calls vs responsiveness)
                 // This matches Google Docs/VS Code: debounce cloud saves, immediate local cache
                 // Use saveNow() for normal saves (has proper error handling and state updates)
+                console.log('[EditorContext] ⏱️ Setting debounce timer (3 seconds) for screenplay:', activeId);
                 saveDebounceRef.current = setTimeout(async () => {
+                    console.log('[EditorContext] ⏰ Debounce timer fired! Checking if save is needed...');
                     const currentState = stateRef.current;
                     const activeId = projectId || screenplayIdRef.current;
+                    console.log('[EditorContext] 🔍 Debounce check:', {
+                        activeId,
+                        isDirty: currentState.isDirty,
+                        contentLength: currentState.content.trim().length,
+                        isValidId: activeId && activeId.startsWith('screenplay_'),
+                        saveNowRefExists: !!saveNowRef.current
+                    });
+                    
                     if (activeId && activeId.startsWith('screenplay_') && currentState.isDirty && currentState.content.trim().length > 0) {
                         console.log('[EditorContext] 💾 Debounced save triggered (3-second interval)');
                         try {
-                            await saveNow();
-                            console.log('[EditorContext] ✅ Debounced save complete');
+                            // 🔥 FIX: Use saveNowRef.current instead of saveNow directly
+                            // This ensures we use the latest version without triggering useEffect re-runs
+                            if (saveNowRef.current) {
+                                await saveNowRef.current();
+                                console.log('[EditorContext] ✅ Debounced save complete');
+                            } else {
+                                console.error('[EditorContext] ⚠️ saveNowRef.current is null - cannot save');
+                            }
                         } catch (err) {
                             console.error('[EditorContext] ⚠️ Debounced save failed:', err);
                             // localStorage already saved, so data is preserved
                             // Unmount handler will retry with fetch keepalive if needed
                         }
+                    } else {
+                        console.log('[EditorContext] ⏭️ Debounce save skipped:', {
+                            reason: !activeId ? 'no activeId' : 
+                                   !activeId.startsWith('screenplay_') ? 'invalid ID format' :
+                                   !currentState.isDirty ? 'not dirty' :
+                                   currentState.content.trim().length === 0 ? 'empty content' : 'unknown'
+                        });
                     }
+                    saveDebounceRef.current = null; // Clear ref after timer fires
                 }, 3000); // 3-second debounce (best practice: balances API calls vs responsiveness)
+                console.log('[EditorContext] ✅ Debounce timer set, ID:', saveDebounceRef.current);
             } else {
                 console.log('[EditorContext] ⏸️ Save skipped - no screenplay ID yet');
             }
         }
-    }, [projectId, saveNow, getScreenplayStorageKey]);
+    }, [projectId, getScreenplayStorageKey]); // 🔥 FIX: Removed saveNow from dependencies - using saveNowRef instead
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
@@ -795,6 +831,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
+            console.log('[EditorContext] 🧹 useEffect cleanup running - removing event listeners');
             window.removeEventListener('beforeunload', handleBeforeUnload);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             
@@ -806,6 +843,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             
             // Clear any pending debounce (we're saving now if needed)
             if (saveDebounceRef.current) {
+                console.log('[EditorContext] ⚠️ Clearing debounce timer in useEffect cleanup (timer ID:', saveDebounceRef.current, ')');
                 clearTimeout(saveDebounceRef.current);
                 saveDebounceRef.current = null;
             }
@@ -820,7 +858,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 attemptAsyncSave(activeId, currentState);
             }
         };
-    }, [projectId, saveNow, getScreenplayStorageKey]);
+    }, [projectId, getScreenplayStorageKey]); // 🔥 FIX: Removed saveNow from dependencies - using saveNowRef instead
     
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss
