@@ -563,6 +563,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         setState(defaultState);
     }, []);
     
+    // Feature 0132: Check if there are unsaved changes (for logout/tab close warnings)
+    const hasUnsavedChanges = useCallback(() => {
+        const currentState = stateRef.current;
+        return currentState.isDirty && currentState.content.trim().length > 0;
+    }, []);
+    
     const value: EditorContextType = {
         state,
         setContent,
