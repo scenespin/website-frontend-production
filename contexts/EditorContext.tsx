@@ -334,19 +334,37 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // This matches Google Docs/VS Code: debounce cloud saves, immediate local cache
                 // Use saveNow() for normal saves (has proper error handling and state updates)
                 console.log('[EditorContext] ⏱️ Setting debounce timer (3 seconds) for screenplay:', activeId);
+                // 🔥 FIX: Capture content and timestamp when timer is set, not when it fires
+                // This ensures we save the content that triggered the debounce, even if isDirty is cleared
+                const contentToSave = content;
+                const titleToSave = stateRef.current.title;
+                const authorToSave = stateRef.current.author;
+                
                 saveDebounceRef.current = setTimeout(async () => {
                     console.log('[EditorContext] ⏰ Debounce timer fired! Checking if save is needed...');
                     const currentState = stateRef.current;
                     const activeId = projectId || screenplayIdRef.current;
+                    
+                    // 🔥 FIX: Check if content has changed since timer was set
+                    // If content is different, user kept typing - don't save old content
+                    // If content matches, save it (even if isDirty was cleared by something else)
+                    const contentChanged = currentState.content !== contentToSave;
+                    
                     console.log('[EditorContext] 🔍 Debounce check:', {
                         activeId,
                         isDirty: currentState.isDirty,
                         contentLength: currentState.content.trim().length,
+                        capturedContentLength: contentToSave.trim().length,
+                        contentChanged,
                         isValidId: activeId && activeId.startsWith('screenplay_'),
                         saveNowRefExists: !!saveNowRef.current
                     });
                     
-                    if (activeId && activeId.startsWith('screenplay_') && currentState.isDirty && currentState.content.trim().length > 0) {
+                    // Save if:
+                    // 1. Valid screenplay ID
+                    // 2. Content hasn't changed (user stopped typing)
+                    // 3. Content is not empty
+                    if (activeId && activeId.startsWith('screenplay_') && !contentChanged && contentToSave.trim().length > 0) {
                         console.log('[EditorContext] 💾 Debounced save triggered (3-second interval)');
                         try {
                             // 🔥 FIX: Use saveNowRef.current instead of saveNow directly
@@ -366,8 +384,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         console.log('[EditorContext] ⏭️ Debounce save skipped:', {
                             reason: !activeId ? 'no activeId' : 
                                    !activeId.startsWith('screenplay_') ? 'invalid ID format' :
-                                   !currentState.isDirty ? 'not dirty' :
-                                   currentState.content.trim().length === 0 ? 'empty content' : 'unknown'
+                                   contentChanged ? 'content changed (user kept typing)' :
+                                   contentToSave.trim().length === 0 ? 'empty content' : 'unknown'
                         });
                     }
                     saveDebounceRef.current = null; // Clear ref after timer fires
