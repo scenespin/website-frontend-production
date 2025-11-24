@@ -1273,6 +1273,7 @@ const createMinimalContextValue = (): EditorContextType => ({
     setHighlightRange: () => {},
     clearHighlight: () => {},
     reset: () => {},
+    hasUnsavedChanges: () => false,
 });
 
 // Public EditorProvider that wraps the search params logic in Suspense
