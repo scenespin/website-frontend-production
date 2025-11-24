@@ -135,6 +135,30 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         stateRef.current = state;
     }, [state]);
     
+    // Feature 0132: Per-screenplay localStorage helper functions
+    // Generate per-screenplay localStorage key (e.g., 'screenplay_draft_${screenplayId}')
+    // Falls back to global key if screenplayId is null (backward compatibility)
+    const getScreenplayStorageKey = useCallback((key: string, screenplayId: string | null): string => {
+        if (!screenplayId) {
+            return key; // Backward compatibility for legacy data
+        }
+        return `${key}_${screenplayId}`;
+    }, []);
+    
+    // Clear all localStorage keys for a specific screenplay
+    const clearScreenplayStorage = useCallback((screenplayId: string | null): void => {
+        if (!screenplayId || typeof window === 'undefined') {
+            return;
+        }
+        
+        // Clear per-screenplay keys
+        localStorage.removeItem(getScreenplayStorageKey('screenplay_draft', screenplayId));
+        localStorage.removeItem(getScreenplayStorageKey('screenplay_title', screenplayId));
+        localStorage.removeItem(getScreenplayStorageKey('screenplay_author', screenplayId));
+        
+        console.log('[EditorContext] 🗑️ Cleared localStorage for screenplay:', screenplayId);
+    }, [getScreenplayStorageKey]);
+    
     // Get GitHub config from localStorage (optional export feature)
     const screenplay = useScreenplay();
     const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
@@ -174,11 +198,17 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 console.log('[EditorContext] No projectId in URL, using screenplay_id from ref:', activeScreenplayId);
             }
             
-            // Save to localStorage immediately
-            localStorage.setItem('screenplay_draft', currentState.content);
-            localStorage.setItem('screenplay_title', currentState.title);
-            localStorage.setItem('screenplay_author', currentState.author);
-            console.log('[EditorContext] ✅ Saved to localStorage');
+            // Feature 0132: Save to per-screenplay localStorage
+            // Use activeScreenplayId if available, otherwise use null (backward compatibility)
+            const storageId = activeScreenplayId || screenplayIdRef.current;
+            const draftKey = getScreenplayStorageKey('screenplay_draft', storageId);
+            const titleKey = getScreenplayStorageKey('screenplay_title', storageId);
+            const authorKey = getScreenplayStorageKey('screenplay_author', storageId);
+            
+            localStorage.setItem(draftKey, currentState.content);
+            localStorage.setItem(titleKey, currentState.title);
+            localStorage.setItem(authorKey, currentState.author);
+            console.log('[EditorContext] ✅ Saved to localStorage (key:', draftKey, ')');
             
             // Save to DynamoDB immediately
             if (!activeScreenplayId) {
@@ -570,23 +600,29 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     //
     // ========================================================================
     
-    // Tier 1: Draft recovery - Save content to localStorage with 2-second debounce
+    // Tier 1: Draft recovery - Save content to per-screenplay localStorage with 2-second debounce
     useEffect(() => {
         if (state.content.length === 0) return; // Don't save empty content
         
         const debounceTimer = setTimeout(() => {
             try {
-                localStorage.setItem('screenplay_draft', state.content);
-                localStorage.setItem('screenplay_title', state.title);
-                localStorage.setItem('screenplay_author', state.author);
-                console.log('[EditorContext] 💾 Draft saved to localStorage (crash protection)');
+                // Feature 0132: Use per-screenplay localStorage keys
+                const storageId = screenplayIdRef.current || projectId;
+                const draftKey = getScreenplayStorageKey('screenplay_draft', storageId);
+                const titleKey = getScreenplayStorageKey('screenplay_title', storageId);
+                const authorKey = getScreenplayStorageKey('screenplay_author', storageId);
+                
+                localStorage.setItem(draftKey, state.content);
+                localStorage.setItem(titleKey, state.title);
+                localStorage.setItem(authorKey, state.author);
+                console.log('[EditorContext] 💾 Draft saved to localStorage (crash protection, key:', draftKey, ')');
             } catch (err) {
                 console.error('[EditorContext] localStorage draft save failed:', err);
             }
         }, 2000); // 2-second debounce (crash protection only)
         
         return () => clearTimeout(debounceTimer);
-    }, [state.content, state.title, state.author]);
+    }, [state.content, state.title, state.author, getScreenplayStorageKey, projectId]);
     
     // Tier 2: Auto-save to DynamoDB every 60 seconds
     useEffect(() => {
@@ -675,8 +711,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Ref is null (e.g., after refresh) - check if we have content in state or localStorage
                 // If we have content, assume it's for the current screenplay and don't clear
                 const hasExistingContent = stateRef.current.content.trim().length > 0;
+                // Feature 0132: Check per-screenplay localStorage for current projectId
+                const currentDraftKey = getScreenplayStorageKey('screenplay_draft', currentProjectId);
                 const hasLocalStorageContent = typeof window !== 'undefined' && 
-                                               localStorage.getItem('screenplay_draft')?.trim().length > 0;
+                                               localStorage.getItem(currentDraftKey)?.trim().length > 0;
                 
                 if (hasExistingContent || hasLocalStorageContent) {
                     // We have existing content - assume it's for the current screenplay
@@ -695,6 +733,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             
             if (isActuallyDifferentScreenplay) {
                 console.log('[EditorContext] 🔄 Switching to different screenplay - clearing state and resetting guard');
+                // Feature 0132: Clear old screenplay's localStorage before switching
+                if (lastLoadedScreenplayId) {
+                    clearScreenplayStorage(lastLoadedScreenplayId);
+                }
                 // Reset initialization guard to allow loading new screenplay
                 hasInitializedRef.current = false;
                 screenplayIdRef.current = null;
@@ -710,7 +752,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             // Update previous ref
             previousProjectIdRef.current = currentProjectId;
         }
-    }, [projectId]);
+    }, [projectId, getScreenplayStorageKey, clearScreenplayStorage]);
     
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
@@ -774,10 +816,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
                                 }
                                 
-                                // 🔥 FIX: Check localStorage for newer content (handles DynamoDB eventual consistency)
+                                // Feature 0132: Check per-screenplay localStorage for newer content (handles DynamoDB eventual consistency)
                                 // If localStorage has content for this screenplay and it's newer, prefer it
-                                const localStorageContent = typeof window !== 'undefined' ? localStorage.getItem('screenplay_draft') : null;
-                                const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem('screenplay_title') : null;
+                                const draftKey = getScreenplayStorageKey('screenplay_draft', projectId);
+                                const titleKey = getScreenplayStorageKey('screenplay_title', projectId);
+                                const localStorageContent = typeof window !== 'undefined' ? localStorage.getItem(draftKey) : null;
+                                const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem(titleKey) : null;
                                 const hasLocalStorageContent = localStorageContent && localStorageContent.trim().length > 0;
                                 
                                 // Use localStorage content if it exists and is different from DB (might be newer)
@@ -786,7 +830,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 const titleToUse = localStorageTitle || screenplay.title || 'Untitled Screenplay';
                                 
                                 if (hasLocalStorageContent && localStorageContent !== screenplay.content) {
-                                    console.log('[EditorContext] 🔄 Using localStorage content (may be newer than DB due to eventual consistency)');
+                                    console.log('[EditorContext] 🔄 Using localStorage content (may be newer than DB due to eventual consistency, key:', draftKey, ')');
                                 }
                                 
                                 // Update state with screenplay data (preferring localStorage if available)
@@ -846,17 +890,22 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 console.warn('[EditorContext] ⚠️ Screenplay loaded but content is empty!');
                             }
                             
-                            // 🔥 FIX: Check localStorage for newer content (handles DynamoDB eventual consistency)
-                            const localStorageContent = typeof window !== 'undefined' ? localStorage.getItem('screenplay_draft') : null;
-                            const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem('screenplay_title') : null;
+                            // Feature 0132: Check per-screenplay localStorage for newer content (handles DynamoDB eventual consistency)
+                            const draftKey = getScreenplayStorageKey('screenplay_draft', savedScreenplayId);
+                            const titleKey = getScreenplayStorageKey('screenplay_title', savedScreenplayId);
+                            const authorKey = getScreenplayStorageKey('screenplay_author', savedScreenplayId);
+                            const localStorageContent = typeof window !== 'undefined' ? localStorage.getItem(draftKey) : null;
+                            const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem(titleKey) : null;
+                            const localStorageAuthor = typeof window !== 'undefined' ? localStorage.getItem(authorKey) : null;
                             const hasLocalStorageContent = localStorageContent && localStorageContent.trim().length > 0;
                             
                             // Use localStorage content if it exists and is different from DB (might be newer)
                             const contentToUse = hasLocalStorageContent ? localStorageContent : (savedScreenplay.content || '');
                             const titleToUse = localStorageTitle || savedScreenplay.title || 'Untitled Screenplay';
+                            const authorToUse = localStorageAuthor || savedScreenplay.author || '';
                             
                             if (hasLocalStorageContent && localStorageContent !== savedScreenplay.content) {
-                                console.log('[EditorContext] 🔄 Using localStorage content (may be newer than DB due to eventual consistency)');
+                                console.log('[EditorContext] 🔄 Using localStorage content (may be newer than DB due to eventual consistency, key:', draftKey, ')');
                             }
                             
                             screenplayIdRef.current = savedScreenplayId;
@@ -864,7 +913,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 ...prev,
                                 content: contentToUse,
                                 title: titleToUse,
-                                author: savedScreenplay.author || prev.author,
+                                author: authorToUse || prev.author,
                                 isDirty: hasLocalStorageContent && localStorageContent !== savedScreenplay.content // Mark dirty if using localStorage
                             }));
                             isInitialLoadRef.current = false;
@@ -881,12 +930,26 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 }
                 
                 // Priority 2: Fallback to localStorage (crash recovery)
-                const savedContent = localStorage.getItem('screenplay_draft');
-                const savedTitle = localStorage.getItem('screenplay_title');
-                const savedAuthor = localStorage.getItem('screenplay_author');
+                // Feature 0132: Try per-screenplay localStorage first, then fall back to global keys (backward compatibility)
+                const fallbackScreenplayId = savedScreenplayId || screenplayIdRef.current;
+                const fallbackDraftKey = getScreenplayStorageKey('screenplay_draft', fallbackScreenplayId);
+                const fallbackTitleKey = getScreenplayStorageKey('screenplay_title', fallbackScreenplayId);
+                const fallbackAuthorKey = getScreenplayStorageKey('screenplay_author', fallbackScreenplayId);
+                
+                // Try per-screenplay keys first
+                let savedContent = typeof window !== 'undefined' ? localStorage.getItem(fallbackDraftKey) : null;
+                let savedTitle = typeof window !== 'undefined' ? localStorage.getItem(fallbackTitleKey) : null;
+                let savedAuthor = typeof window !== 'undefined' ? localStorage.getItem(fallbackAuthorKey) : null;
+                
+                // Fallback to global keys for backward compatibility (legacy data)
+                if (!savedContent && typeof window !== 'undefined') {
+                    savedContent = localStorage.getItem('screenplay_draft');
+                    savedTitle = localStorage.getItem('screenplay_title');
+                    savedAuthor = localStorage.getItem('screenplay_author');
+                }
                 
                 if (savedContent && savedContent.trim().length > 0) {
-                    console.log('[EditorContext] Recovered draft from localStorage');
+                    console.log('[EditorContext] Recovered draft from localStorage (key:', fallbackDraftKey || 'screenplay_draft', ')');
                     setState(prev => ({
                         ...prev,
                         content: savedContent,
@@ -916,7 +979,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         
         loadContent();
-    }, [screenplay, getToken, user, projectId]); // Depend on screenplay, getToken, user, and projectId
+    }, [screenplay, getToken, user, projectId, getScreenplayStorageKey]); // Depend on screenplay, getToken, user, projectId, and getScreenplayStorageKey
     
     // 🔥 FIX 2: Listen for screenplay deleted event and clear editor if current screenplay is deleted
     useEffect(() => {
@@ -927,16 +990,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             // Only clear if the deleted screenplay is the one currently loaded
             if (deletedId && activeId && deletedId === activeId) {
                 console.log('[EditorContext] Screenplay deleted event received, clearing editor:', deletedId);
+                // Feature 0132: Clear per-screenplay localStorage
+                clearScreenplayStorage(deletedId);
                 setState(defaultState);
                 screenplayIdRef.current = null;
                 hasInitializedRef.current = false;
-                // Clear localStorage to prevent loading stale content
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('screenplay_draft');
-                    localStorage.removeItem('screenplay_title');
-                    localStorage.removeItem('screenplay_author');
-                }
                 toast.error('This screenplay has been deleted');
+            } else if (deletedId) {
+                // Feature 0132: Clear localStorage for deleted screenplay even if not currently loaded
+                clearScreenplayStorage(deletedId);
             }
         };
         
@@ -944,7 +1006,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         return () => {
             window.removeEventListener('screenplayDeleted', handleScreenplayDeleted as EventListener);
         };
-    }, [projectId]);
+    }, [projectId, clearScreenplayStorage]);
     
     // 🔥 FIX 3: Listen for screenplay updated event (rename/edit) and update title/author only
     // CRITICAL: Never reload content from DB - it would overwrite recent edits due to eventual consistency
