@@ -676,16 +676,40 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         };
 
         // Helper: Attempt async save to DynamoDB (best effort)
+        // Uses direct fetch with keepalive (same pattern as handleBeforeUnload)
+        // This ensures the request continues even after page unloads
         const attemptAsyncSave = (activeId: string, currentState: EditorState) => {
             if (activeId && activeId.startsWith('screenplay_')) {
-                console.log('[EditorContext] 💾 Attempting async save to DynamoDB...');
-                // Use sendBeacon for guaranteed delivery (if supported)
-                // Note: sendBeacon can't send auth headers, so we'll use regular fetch with keepalive
-                // Keepalive ensures the request continues even after page unloads
-                saveNow().catch(err => {
-                    console.error('[EditorContext] ⚠️ Async save failed:', err);
-                    // Already saved to localStorage above, so data is preserved
+                console.log('[EditorContext] 💾 Attempting async save to DynamoDB via /api/screenplays/autosave...', {
+                    screenplay_id: activeId,
+                    contentLength: currentState.content.length,
+                    title: currentState.title
                 });
+                const saveData = {
+                    screenplay_id: activeId,
+                    title: currentState.title,
+                    author: currentState.author,
+                    content: currentState.content
+                };
+                
+                // Use fetch with keepalive for guaranteed delivery
+                // This will continue even after the page unloads
+                // Note: keepalive has a 64KB limit, but screenplay content should be fine
+                fetch('/api/screenplays/autosave', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(saveData),
+                    keepalive: true // Critical: ensures request continues after page unloads
+                }).then(() => {
+                    console.log('[EditorContext] ✅ Async save request sent (keepalive)');
+                }).catch((err) => {
+                    console.error('[EditorContext] ⚠️ Async save failed (localStorage backup preserved):', err);
+                    // Silent fail - localStorage already saved, so data is preserved
+                });
+            } else {
+                console.warn('[EditorContext] ⚠️ Cannot save - invalid or missing screenplay ID:', activeId);
             }
         };
 
