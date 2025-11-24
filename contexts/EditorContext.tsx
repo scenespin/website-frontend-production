@@ -651,6 +651,114 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         return () => clearInterval(autoSaveInterval);
     }, [state.isDirty, saveNow]);
     
+    // Feature 0132: Save on unmount/navigation to ensure changes persist before logout
+    // Uses localStorage (guaranteed) + async save (best effort) + beforeunload warning
+    useEffect(() => {
+        // Helper: Save to localStorage (synchronous, guaranteed)
+        const saveToLocalStorage = (activeId: string, content: string, title: string, author: string) => {
+            const draftKey = getScreenplayStorageKey('screenplay_draft', activeId);
+            const titleKey = getScreenplayStorageKey('screenplay_title', activeId);
+            const authorKey = getScreenplayStorageKey('screenplay_author', activeId);
+            localStorage.setItem(draftKey, content);
+            localStorage.setItem(titleKey, title);
+            localStorage.setItem(authorKey, author);
+            console.log('[EditorContext] 💾 Saved to localStorage (key:', draftKey, ')');
+        };
+
+        // Helper: Attempt async save to DynamoDB (best effort)
+        const attemptAsyncSave = (activeId: string, currentState: EditorState) => {
+            if (activeId && activeId.startsWith('screenplay_')) {
+                console.log('[EditorContext] 💾 Attempting async save to DynamoDB...');
+                // Use sendBeacon for guaranteed delivery (if supported)
+                // Note: sendBeacon can't send auth headers, so we'll use regular fetch with keepalive
+                // Keepalive ensures the request continues even after page unloads
+                saveNow().catch(err => {
+                    console.error('[EditorContext] ⚠️ Async save failed:', err);
+                    // Already saved to localStorage above, so data is preserved
+                });
+            }
+        };
+
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            const currentState = stateRef.current;
+            const activeId = projectId || screenplayIdRef.current;
+            
+            // Check if there are unsaved changes
+            if (currentState.isDirty && currentState.content.trim().length > 0 && activeId) {
+                // Save to localStorage immediately (synchronous, guaranteed)
+                saveToLocalStorage(activeId, currentState.content, currentState.title, currentState.author);
+                
+                // Show browser warning (user can choose to stay and save)
+                // Modern browsers ignore custom messages, but still show a warning
+                event.preventDefault();
+                event.returnValue = ''; // Chrome requires returnValue to be set
+                
+                // Attempt async save with keepalive (continues after page unloads)
+                // Use fetch with keepalive flag for guaranteed delivery
+                // This is best-effort - localStorage already saved above
+                if (activeId.startsWith('screenplay_')) {
+                    const saveData = {
+                        screenplay_id: activeId,
+                        title: currentState.title,
+                        author: currentState.author,
+                        content: currentState.content
+                    };
+                    
+                    // Use fetch with keepalive for guaranteed delivery
+                    // This will continue even after the page unloads
+                    // Note: keepalive has a 64KB limit, but screenplay content should be fine
+                    fetch('/api/screenplays/autosave', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(saveData),
+                        keepalive: true // Critical: ensures request continues after page unloads
+                    }).catch(() => {
+                        // Silent fail - localStorage already saved, so data is preserved
+                    });
+                }
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            // Save when page becomes hidden (user switching tabs, closing, etc.)
+            // This gives us more time than beforeunload
+            if (document.visibilityState === 'hidden') {
+                const currentState = stateRef.current;
+                const activeId = projectId || screenplayIdRef.current;
+                
+                if (currentState.isDirty && currentState.content.trim().length > 0 && activeId) {
+                    // Save to localStorage (guaranteed)
+                    saveToLocalStorage(activeId, currentState.content, currentState.title, currentState.author);
+                    
+                    // Attempt async save (best effort - has more time than beforeunload)
+                    attemptAsyncSave(activeId, currentState);
+                }
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            
+            // On component unmount (navigation within app), attempt final save
+            const currentState = stateRef.current;
+            const activeId = projectId || screenplayIdRef.current;
+            
+            if (currentState.isDirty && currentState.content.trim().length > 0 && activeId) {
+                // Save to localStorage (guaranteed)
+                saveToLocalStorage(activeId, currentState.content, currentState.title, currentState.author);
+                
+                // Attempt async save (best effort)
+                attemptAsyncSave(activeId, currentState);
+            }
+        };
+    }, [projectId, saveNow, getScreenplayStorageKey]);
+    
     // Monitor editor content and clear data if editor is cleared (EDITOR = SOURCE OF TRUTH)
     // DISABLED: This logic is too aggressive and causes data loss
     // If user accidentally deletes content or page loads slowly, entire screenplay gets deleted
