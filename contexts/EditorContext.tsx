@@ -733,10 +733,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             
             if (isActuallyDifferentScreenplay) {
                 console.log('[EditorContext] 🔄 Switching to different screenplay - clearing state and resetting guard');
-                // Feature 0132: Clear old screenplay's localStorage before switching
-                if (lastLoadedScreenplayId) {
-                    clearScreenplayStorage(lastLoadedScreenplayId);
-                }
+                // Feature 0132: DON'T clear old screenplay's localStorage when switching away
+                // localStorage preserves unsaved changes - only clear on delete or when loading new screenplay
+                // The old screenplay's localStorage will be preserved for when user returns
+                
                 // Reset initialization guard to allow loading new screenplay
                 hasInitializedRef.current = false;
                 screenplayIdRef.current = null;
