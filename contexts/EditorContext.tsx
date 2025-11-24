@@ -297,32 +297,51 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             isDirty: markDirty ? true : prev.isDirty
         }));
         
-        // 🔥 FIX 1: Save immediately after content change (like characters/locations pattern)
-        // Debounce to avoid too many API calls (3 seconds)
+        // 🔥 BEST PRACTICE: Save to localStorage immediately, debounce database saves (3 seconds)
+        // This matches Google Docs/VS Code pattern: immediate local cache, debounced cloud save
         if (markDirty && content.trim().length > 0) {
-            // Clear existing debounce timer
-            if (saveDebounceRef.current) {
-                clearTimeout(saveDebounceRef.current);
-            }
-            
-            // Set new debounce timer
-            saveDebounceRef.current = setTimeout(async () => {
-                const activeId = projectId || screenplayIdRef.current;
-                if (activeId && activeId.startsWith('screenplay_')) {
-                    console.log('[EditorContext] 💾 Immediate save triggered (content changed)');
-                    try {
-                        await saveNow();
-                        console.log('[EditorContext] ✅ Immediate save complete');
-                    } catch (err) {
-                        console.error('[EditorContext] ⚠️ Immediate save failed:', err);
-                        // Don't show error toast - autosave will retry
-                    }
-                } else {
-                    console.log('[EditorContext] ⏸️ Immediate save skipped - no screenplay ID yet');
+            const activeId = projectId || screenplayIdRef.current;
+            if (activeId && activeId.startsWith('screenplay_')) {
+                // Save to localStorage immediately (synchronous, guaranteed - like Google Docs local cache)
+                const draftKey = getScreenplayStorageKey('screenplay_draft', activeId);
+                const titleKey = getScreenplayStorageKey('screenplay_title', activeId);
+                const authorKey = getScreenplayStorageKey('screenplay_author', activeId);
+                try {
+                    localStorage.setItem(draftKey, content);
+                    localStorage.setItem(titleKey, stateRef.current.title);
+                    localStorage.setItem(authorKey, stateRef.current.author);
+                } catch (err) {
+                    console.error('[EditorContext] localStorage save failed:', err);
                 }
-            }, 3000); // 3-second debounce (balance between responsiveness and API calls)
+                
+                // Clear existing debounce timer
+                if (saveDebounceRef.current) {
+                    clearTimeout(saveDebounceRef.current);
+                }
+                
+                // Debounce database save (3 seconds - best practice, balances API calls vs responsiveness)
+                // This matches Google Docs/VS Code: debounce cloud saves, immediate local cache
+                // Use saveNow() for normal saves (has proper error handling and state updates)
+                saveDebounceRef.current = setTimeout(async () => {
+                    const currentState = stateRef.current;
+                    const activeId = projectId || screenplayIdRef.current;
+                    if (activeId && activeId.startsWith('screenplay_') && currentState.isDirty && currentState.content.trim().length > 0) {
+                        console.log('[EditorContext] 💾 Debounced save triggered (3-second interval)');
+                        try {
+                            await saveNow();
+                            console.log('[EditorContext] ✅ Debounced save complete');
+                        } catch (err) {
+                            console.error('[EditorContext] ⚠️ Debounced save failed:', err);
+                            // localStorage already saved, so data is preserved
+                            // Unmount handler will retry with fetch keepalive if needed
+                        }
+                    }
+                }, 3000); // 3-second debounce (best practice: balances API calls vs responsiveness)
+            } else {
+                console.log('[EditorContext] ⏸️ Save skipped - no screenplay ID yet');
+            }
         }
-    }, [projectId, saveNow]);
+    }, [projectId, saveNow, getScreenplayStorageKey]);
     
     const insertText = useCallback((text: string, position?: number) => {
         setState(prev => {
@@ -779,15 +798,25 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             window.removeEventListener('beforeunload', handleBeforeUnload);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             
-            // On component unmount (navigation within app), attempt final save
+            // 🔥 BEST PRACTICE (per Stack Overflow articles): Always check for unsaved changes on unmount
+            // Don't just check if debounce is pending - check if there are actual unsaved changes
+            // The debounce might have fired but not completed, or might not have fired yet
             const currentState = stateRef.current;
             const activeId = projectId || screenplayIdRef.current;
             
-            if (currentState.isDirty && currentState.content.trim().length > 0 && activeId) {
-                // Save to localStorage (guaranteed)
+            // Clear any pending debounce (we're saving now if needed)
+            if (saveDebounceRef.current) {
+                clearTimeout(saveDebounceRef.current);
+                saveDebounceRef.current = null;
+            }
+            
+            // Always save if there are unsaved changes (matches best practices from articles)
+            if (activeId && activeId.startsWith('screenplay_') && currentState.isDirty && currentState.content.trim().length > 0) {
+                console.log('[EditorContext] 🚨 Unmount: Saving unsaved changes (flushing debounce if pending)');
+                // Save to localStorage (guaranteed - synchronous)
                 saveToLocalStorage(activeId, currentState.content, currentState.title, currentState.author);
-                
-                // Attempt async save (best effort)
+                // Save to database using fetch keepalive (ensures completion even after page unloads)
+                // This matches best practices: use fetch keepalive for beforeunload/unmount saves
                 attemptAsyncSave(activeId, currentState);
             }
         };
