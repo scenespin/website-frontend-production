@@ -660,7 +660,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             console.log('[EditorContext] projectId changed:', previousProjectId, '→', currentProjectId, '| lastLoaded:', lastLoadedScreenplayId);
             
             // 🔥 CRITICAL FIX: Check if we're actually switching to a DIFFERENT screenplay
-            // If screenplayIdRef is null (e.g., after refresh), check localStorage/Clerk metadata
+            // If screenplayIdRef is null (e.g., after refresh), check if we have content
             // to see if this is the same screenplay we were working on
             let isActuallyDifferentScreenplay = false;
             
@@ -672,42 +672,21 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             }
             
             if (lastLoadedScreenplayId === null) {
-                // Ref is null (e.g., after refresh or initial load) - check if currentProjectId matches stored ID
-                // Get stored screenplay ID from Clerk metadata or localStorage
-                const storedScreenplayId = user ? getCurrentScreenplayId(user) : null;
+                // Ref is null (e.g., after refresh) - check if we have content in state or localStorage
+                // If we have content, assume it's for the current screenplay and don't clear
+                const hasExistingContent = stateRef.current.content.trim().length > 0;
+                const hasLocalStorageContent = typeof window !== 'undefined' && 
+                                               localStorage.getItem('screenplay_draft')?.trim().length > 0;
                 
-                // Compare currentProjectId with stored ID to determine if we're switching screenplays
-                if (storedScreenplayId && currentProjectId === storedScreenplayId) {
-                    // Same screenplay - preserve state (might be returning after refresh)
-                    console.log('[EditorContext] 🔄 Ref is null but currentProjectId matches stored ID - preserving state');
+                if (hasExistingContent || hasLocalStorageContent) {
+                    // We have existing content - assume it's for the current screenplay
+                    // Don't clear, let the load effect handle it (it will merge with localStorage if newer)
+                    console.log('[EditorContext] 🔄 Ref is null but have existing content - preserving state, will reload from DB');
                     isActuallyDifferentScreenplay = false; // Don't clear
-                } else if (currentProjectId && storedScreenplayId && currentProjectId !== storedScreenplayId) {
-                    // Different screenplay - clear state to load new one
-                    console.log('[EditorContext] 🔄 Ref is null and currentProjectId differs from stored ID - switching screenplays');
-                    isActuallyDifferentScreenplay = true; // Clear state
                 } else {
-                    // No stored ID or no currentProjectId - check if we have content
-                    // If we have content but no stored ID match, we might be switching, so clear
-                    const hasExistingContent = stateRef.current.content.trim().length > 0;
-                    const hasLocalStorageContent = typeof window !== 'undefined' && 
-                                                   localStorage.getItem('screenplay_draft')?.trim().length > 0;
-                    
-                    if (hasExistingContent || hasLocalStorageContent) {
-                        // We have content but can't verify if it's for currentProjectId
-                        // If currentProjectId is set, assume we're switching and clear
-                        // This ensures we load the correct screenplay from the URL
-                        if (currentProjectId) {
-                            console.log('[EditorContext] 🔄 Ref is null, have content, but currentProjectId is set - clearing to load from URL');
-                            isActuallyDifferentScreenplay = true; // Clear to load from URL
-                        } else {
-                            console.log('[EditorContext] 🔄 Ref is null, have content, no currentProjectId - preserving state');
-                            isActuallyDifferentScreenplay = false; // Preserve
-                        }
-                    } else {
-                        // No existing content - this is a fresh load, allow it
-                        console.log('[EditorContext] 🔄 Ref is null and no existing content - allowing fresh load');
-                        isActuallyDifferentScreenplay = true; // Allow clear (fresh load)
-                    }
+                    // No existing content - this is a fresh load, allow it
+                    console.log('[EditorContext] 🔄 Ref is null and no existing content - allowing fresh load');
+                    isActuallyDifferentScreenplay = true; // Allow clear (fresh load)
                 }
             } else {
                 // Ref is set - compare IDs directly
@@ -719,13 +698,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Reset initialization guard to allow loading new screenplay
                 hasInitializedRef.current = false;
                 screenplayIdRef.current = null;
-                // Clear localStorage to prevent loading stale content from previous screenplay
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('screenplay_draft');
-                    localStorage.removeItem('screenplay_title');
-                    localStorage.removeItem('screenplay_author');
-                    console.log('[EditorContext] 🗑️ Cleared localStorage to prevent loading stale content');
-                }
                 setState(defaultState);
             } else {
                 // Same screenplay (or preserving existing content) - preserve state
