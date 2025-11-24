@@ -42,31 +42,9 @@ export default function Dashboard() {
   const [deletingScreenplayId, setDeletingScreenplayId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingScreenplayId, setEditingScreenplayId] = useState(null);
-  // Track deleted screenplay IDs to filter them out even if backend returns them due to eventual consistency
-  // Persist to sessionStorage so deleted items stay filtered across page refreshes
-  const [deletedScreenplayIds, setDeletedScreenplayIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('deleted_screenplay_ids');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          return new Set(parsed);
-        } catch (e) {
-          console.error('[Dashboard] Failed to parse deleted screenplay IDs from sessionStorage:', e);
-        }
-      }
-    }
-    return new Set();
-  });
-  // Use ref to track deleted screenplays so fetchDashboardData always has latest values
-  const deletedScreenplayIdsRef = useRef(deletedScreenplayIds);
-  useEffect(() => {
-    deletedScreenplayIdsRef.current = deletedScreenplayIds;
-    // Persist to sessionStorage whenever deleted IDs change
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('deleted_screenplay_ids', JSON.stringify(Array.from(deletedScreenplayIds)));
-    }
-  }, [deletedScreenplayIds]);
+  // 🔥 FIX: Removed sessionStorage tracking for deleted screenplays
+  // Backend filters by status='active', so deleted items won't appear on next page load
+  // No need for client-side tracking - database is source of truth
   
   // Track optimistically created screenplays to preserve them across remounts
   // Load from sessionStorage on mount to persist across remounts
@@ -97,31 +75,9 @@ export default function Dashboard() {
     }
   }, [optimisticScreenplays]);
   
-  // Track optimistically edited screenplays (by ID) with their updated timestamps
-  // This prevents fetchDashboardData from overwriting recent edits with stale backend data
-  // Load from sessionStorage on mount to persist across remounts (F5 refresh)
-  const optimisticEditsRef = useRef((() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('optimistic_edits');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          return new Map(Object.entries(parsed));
-        } catch (e) {
-          console.error('[Dashboard] Failed to parse optimistic edits from sessionStorage:', e);
-        }
-      }
-    }
-    return new Map();
-  })());
-  
-  // Helper function to persist optimistic edits to sessionStorage
-  const persistOptimisticEdits = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      const serialized = Object.fromEntries(optimisticEditsRef.current);
-      sessionStorage.setItem('optimistic_edits', JSON.stringify(serialized));
-    }
-  }, []);
+  // 🔥 FIX: Removed sessionStorage tracking for optimistic edits
+  // Database is source of truth - always load from backend on refresh
+  // Optimistic updates are fine for immediate UI feedback, but we don't persist them
   
   // Persist optimistic screenplays to sessionStorage whenever they change
   useEffect(() => {
@@ -326,28 +282,16 @@ export default function Dashboard() {
         screenplays.forEach(s => {
           const screenplayId = s.screenplay_id;
           
-          // CRITICAL: Filter out screenplays that we've deleted locally
-          // This prevents deleted items from reappearing due to DynamoDB eventual consistency
-          // Use ref to get latest deleted IDs (state might be stale in closure)
-          const currentDeletedIds = deletedScreenplayIdsRef.current;
-          if (currentDeletedIds.has(screenplayId)) {
-            console.log('[Dashboard] Filtering out locally deleted screenplay:', screenplayId);
+          // 🔥 FIX: Backend filters by status='active', so we only get active screenplays
+          // Additional safety check: filter out any non-active status (defensive programming)
+          if (s.status && s.status !== 'active') {
+            console.log('[Dashboard] Filtering out screenplay with non-active status:', screenplayId, 'status:', s.status);
             return;
           }
           
-          // Only include active screenplays (filter out deleted/archived)
-          // Check both status field and is_archived field
-          // CRITICAL: This client-side filter is a backup in case DynamoDB eventual consistency
-          // returns deleted items before the status update has propagated
-          if ((s.status && s.status !== 'active') || s.is_archived) {
-            console.log('[Dashboard] Filtering out screenplay:', screenplayId, 'status:', s.status, 'is_archived:', s.is_archived);
-            return;
-          }
-          
-          // Additional safety check: if status is explicitly 'deleted', filter it out
-          // This handles cases where DynamoDB eventual consistency returns deleted items
-          if (s.status === 'deleted') {
-            console.log('[Dashboard] Filtering out deleted screenplay (eventual consistency catch):', screenplayId);
+          // Filter out archived screenplays
+          if (s.is_archived) {
+            console.log('[Dashboard] Filtering out archived screenplay:', screenplayId);
             return;
           }
           allScreenplays.push({
@@ -375,37 +319,12 @@ export default function Dashboard() {
       // Merge with optimistic screenplays (preserve optimistically created items)
       // Use ref to get latest optimistic screenplays (state might be stale in closure)
       const currentOptimisticScreenplays = optimisticScreenplaysRef.current;
-      const currentOptimisticEdits = optimisticEditsRef.current;
       const mergedScreenplays = [...allScreenplays];
       const confirmedIds = new Set(allScreenplays.map(p => p.id || p.screenplay_id));
       const toRemove = new Set();
-      const editsToRemove = new Set();
       
-      // First, apply optimistic edits to fetched screenplays
-      mergedScreenplays.forEach(screenplay => {
-        const screenplayId = screenplay.id || screenplay.screenplay_id;
-        const optimisticEdit = currentOptimisticEdits.get(screenplayId);
-        if (optimisticEdit) {
-          // Check if local edit is more recent than backend data
-          const localUpdatedAt = new Date(optimisticEdit.updated_at).getTime();
-          const backendUpdatedAt = new Date(screenplay.updated_at || screenplay.created_at || 0).getTime();
-          
-          // Preserve optimistic edit if local timestamp is newer or equal
-          // This handles eventual consistency: backend might not have processed update yet
-          if (localUpdatedAt >= backendUpdatedAt) {
-            // Local edit is more recent or same - preserve it
-            console.log('[Dashboard] Preserving optimistic edit for:', screenplayId, {
-              localUpdatedAt: new Date(localUpdatedAt).toISOString(),
-              backendUpdatedAt: new Date(backendUpdatedAt).toISOString()
-            });
-            Object.assign(screenplay, optimisticEdit.data);
-          } else {
-            // Backend has newer data - remove optimistic edit and trust backend
-            console.log('[Dashboard] Backend has newer data, removing optimistic edit:', screenplayId);
-            editsToRemove.add(screenplayId);
-          }
-        }
-      });
+      // 🔥 FIX: Removed optimistic edits - database is source of truth
+      // Always use backend data on refresh (no sessionStorage persistence)
       
       // Add optimistic screenplays (newly created items not yet in backend)
       currentOptimisticScreenplays.forEach((optimisticProject, id) => {
@@ -427,12 +346,6 @@ export default function Dashboard() {
           toRemove.forEach(id => newMap.delete(id));
           return newMap;
         });
-      }
-      
-      // Batch remove confirmed optimistic edits
-      if (editsToRemove.size > 0) {
-        editsToRemove.forEach(id => currentOptimisticEdits.delete(id));
-        persistOptimisticEdits(); // Persist to sessionStorage after removal
       }
       
       // Sort by updated_at (most recent first)
@@ -613,10 +526,7 @@ export default function Dashboard() {
       const responseData = await response.json().catch(() => ({}));
       console.log('[Dashboard] Delete response:', responseData);
       
-      // Track this ID as deleted to prevent it from reappearing due to DynamoDB eventual consistency
-      setDeletedScreenplayIds(prev => new Set([...prev, screenplayId]));
-      
-      // 🔥 FIX 2: Remove from optimisticScreenplays if it exists there
+      // 🔥 FIX: Remove from optimisticScreenplays if it exists there
       // This ensures newly created screenplays are properly tracked when deleted
       setOptimisticScreenplays(prev => {
         const newMap = new Map(prev);
@@ -628,27 +538,26 @@ export default function Dashboard() {
       });
       
       // Optimistically remove from UI immediately
-      // Following the pattern from characters/locations: update local state only
-      // The backend filters by status='active', so deleted items won't appear on next page load
+      // Backend filters by status='active', so deleted items won't appear on next page load
       setProjects(prev => prev.filter(p => p.id !== screenplayId && p.screenplay_id !== screenplayId));
       
       setShowDeleteConfirm(null);
       toast.success('Deleted successfully');
       
-      // 🔥 FIX 3: Dispatch screenplayDeleted event to notify editor
+      // Dispatch screenplayDeleted event to notify editor
       window.dispatchEvent(new CustomEvent('screenplayDeleted', {
         detail: { screenplayId }
       }));
       
-      // If this was the current screenplay, clear it
+      // 🔥 FIX: If this was the current screenplay, redirect to dashboard or first available screenplay
       if (currentScreenplayId === screenplayId) {
         setCurrentScreenplayId(null);
+        // Redirect to dashboard (will show first available screenplay or empty state)
+        router.push('/dashboard');
       }
       
-      // Don't refresh immediately - let optimistic update handle UI
-      // The deleted ID is tracked in deletedScreenplayIdsRef, so it won't reappear on next refresh
-      // Existing refresh mechanisms (window focus, pathname change) will pick up the change
-      console.log('[Dashboard] Delete complete - optimistic update applied, will refresh on next navigation');
+      // Backend filters by status='active', so deleted items won't appear on next refresh
+      console.log('[Dashboard] Delete complete - backend will filter deleted items on next load');
     } catch (error) {
       console.error('Error deleting screenplay:', error);
       toast.error(error.message || 'Failed to delete screenplay');
@@ -688,46 +597,24 @@ export default function Dashboard() {
             // Following the pattern from characters/locations: update local state immediately
             // Update local state optimistically with the data passed from the modal
             if (updatedData && screenplayId) {
-              const updatedTimestamp = new Date().toISOString();
-              const updatedProject = {
-                name: updatedData.title,
-                description: updatedData.description,
-                genre: updatedData.genre,
-                updated_at: updatedTimestamp
-              };
-              
-              // 🔥 FIX: Track this optimistic edit so fetchDashboardData doesn't overwrite it
-              // Use a timestamp slightly in the future to ensure it's always considered "newer" than backend
-              // This handles eventual consistency where backend might not have processed update yet
-              const futureTimestamp = new Date(Date.now() + 1000).toISOString(); // 1 second in future
-              optimisticEditsRef.current.set(screenplayId, {
-                updated_at: futureTimestamp, // Use future timestamp to ensure it's always newer
-                data: updatedProject
-              });
-              persistOptimisticEdits(); // Persist to sessionStorage
-              
-              console.log('[Dashboard] Rename - optimistic edit set:', {
-                screenplayId,
-                title: updatedData.title,
-                timestamp: futureTimestamp
-              });
-              
+              // 🔥 FIX: Optimistic UI update for immediate feedback
+              // Database is source of truth - will be loaded correctly on next refresh
               setProjects(prev => prev.map(p => {
                 if (p.id === screenplayId || p.screenplay_id === screenplayId) {
                   const updated = {
                     ...p,
-                    ...updatedProject,
                     name: updatedData.title || p.name,
-                    updated_at: futureTimestamp // Use future timestamp
+                    description: updatedData.description,
+                    genre: updatedData.genre
                   };
-                  console.log('[Dashboard] Rename - updated project in state:', updated.name);
+                  console.log('[Dashboard] Rename - optimistic UI update:', updated.name);
                   return updated;
                 }
                 return p;
               }));
               
-              // 🔥 FIX: Dispatch screenplayUpdated event to notify editor (like modal does)
-              // This ensures editor title updates immediately
+              // 🔥 FIX: Dispatch screenplayUpdated event to notify editor
+              // This ensures editor title updates immediately (bidirectional sync)
               window.dispatchEvent(new CustomEvent('screenplayUpdated', {
                 detail: { 
                   screenplayId, 
@@ -737,14 +624,11 @@ export default function Dashboard() {
                 }
               }));
               
-              // 🔥 FIX: Trigger a refresh after a delay to pick up backend changes
-              // But optimistic edit will preserve the rename if backend hasn't updated yet
-              // Use longer delay (2 seconds) to ensure backend has processed the update
-              // The future timestamp (1 second ahead) ensures optimistic edit is preserved
+              // 🔥 FIX: Refresh after delay to sync with backend (database is source of truth)
               setTimeout(() => {
                 console.log('[Dashboard] Rename - refreshing after delay to sync with backend');
                 fetchDashboardData();
-              }, 2000); // 2 second delay to allow backend to process (increased from 1s)
+              }, 500); // Short delay to allow backend to process
             }
           }}
           screenplayId={editingScreenplayId}

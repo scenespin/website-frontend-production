@@ -1032,6 +1032,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             
                             const screenplay = await getScreenplay(projectId, getToken);
                             
+                            // 🔥 FIX: Check if screenplay is deleted before loading
+                            if (screenplay && screenplay.status === 'deleted') {
+                                console.error('[EditorContext] ⚠️ Attempted to load deleted screenplay:', projectId);
+                                // Redirect to dashboard
+                                if (typeof window !== 'undefined') {
+                                    window.location.href = '/dashboard';
+                                }
+                                return;
+                            }
+                            
                             if (screenplay) {
                                 const dbContentLength = screenplay.content?.length || 0;
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', {

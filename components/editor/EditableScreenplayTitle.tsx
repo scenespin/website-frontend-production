@@ -142,8 +142,14 @@ export default function EditableScreenplayTitle({ className = '' }: EditableScre
       setIsEditing(false);
       toast.success('Screenplay title updated');
       
-      // Notify other components of the update
-      window.dispatchEvent(new CustomEvent('screenplayUpdated'));
+      // 🔥 FIX: Notify dashboard of the update (bidirectional sync)
+      // Include screenplayId so dashboard can identify which screenplay was updated
+      window.dispatchEvent(new CustomEvent('screenplayUpdated', {
+        detail: {
+          screenplayId: urlProjectId,
+          title: trimmedValue
+        }
+      }));
     } catch (error) {
       console.error('[EditableScreenplayTitle] Failed to update title:', error);
       toast.error('Failed to update title. Please try again.');
