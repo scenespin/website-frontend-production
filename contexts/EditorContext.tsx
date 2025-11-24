@@ -84,6 +84,9 @@ interface EditorContextType {
     
     // Utility
     reset: () => void;
+    
+    // Feature 0132: Check if there are unsaved changes (for logout/tab close warnings)
+    hasUnsavedChanges: () => boolean;
 }
 
 const defaultState: EditorState = {
@@ -582,7 +585,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         setFontSize,
         setHighlightRange,
         clearHighlight,
-        reset
+        reset,
+        hasUnsavedChanges
     };
     
     // ========================================================================
@@ -690,8 +694,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 
                 // Show browser warning (user can choose to stay and save)
                 // Modern browsers ignore custom messages, but still show a warning
+                // IMPORTANT: Both preventDefault() and returnValue are required for modern browsers
                 event.preventDefault();
-                event.returnValue = ''; // Chrome requires returnValue to be set
+                // Chrome/Edge require returnValue to be set to a non-empty string
+                // Firefox/Safari will show the warning if preventDefault() is called
+                event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
                 
                 // Attempt async save with keepalive (continues after page unloads)
                 // Use fetch with keepalive flag for guaranteed delivery
@@ -914,6 +921,26 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             const screenplay = await getScreenplay(projectId, getToken);
                             
                             if (screenplay) {
+                                // Feature 0132: Check if screenplay is deleted before loading
+                                if (screenplay.status === 'deleted') {
+                                    console.warn('[EditorContext] ⚠️ Screenplay is deleted:', projectId);
+                                    setState(prev => ({
+                                        ...prev,
+                                        content: '',
+                                        title: 'Screenplay Deleted',
+                                        author: '',
+                                        isDirty: false
+                                    }));
+                                    screenplayIdRef.current = null;
+                                    hasInitializedRef.current = initKey;
+                                    toast.error('This screenplay has been deleted');
+                                    // Redirect to dashboard after a short delay
+                                    setTimeout(() => {
+                                        window.location.href = '/dashboard';
+                                    }, 2000);
+                                    return;
+                                }
+                                
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
                                 // screenplayIdRef already set above
                                 
@@ -987,6 +1014,26 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         const savedScreenplay = await getScreenplay(savedScreenplayId, getToken);
                         
                         if (savedScreenplay) {
+                            // Feature 0132: Check if screenplay is deleted before loading
+                            if (savedScreenplay.status === 'deleted') {
+                                console.warn('[EditorContext] ⚠️ Screenplay is deleted:', savedScreenplayId);
+                                setState(prev => ({
+                                    ...prev,
+                                    content: '',
+                                    title: 'Screenplay Deleted',
+                                    author: '',
+                                    isDirty: false
+                                }));
+                                screenplayIdRef.current = null;
+                                hasInitializedRef.current = initKey;
+                                toast.error('This screenplay has been deleted');
+                                // Redirect to dashboard after a short delay
+                                setTimeout(() => {
+                                    window.location.href = '/dashboard';
+                                }, 2000);
+                                return;
+                            }
+                            
                             console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB:', {
                                 screenplayId: savedScreenplay.screenplay_id,
                                 title: savedScreenplay.title,
@@ -1103,7 +1150,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 setState(defaultState);
                 screenplayIdRef.current = null;
                 hasInitializedRef.current = false;
-                toast.error('This screenplay has been deleted');
+                // Don't show toast here - dashboard already shows success toast
+                // Only show if editor is actually open and user is viewing the deleted screenplay
             } else if (deletedId) {
                 // Feature 0132: Clear localStorage for deleted screenplay even if not currently loaded
                 clearScreenplayStorage(deletedId);
@@ -1152,6 +1200,34 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             window.removeEventListener('screenplayUpdated', handleScreenplayUpdated as EventListener);
         };
     }, [projectId]);
+    
+    // Feature 0132: Listen for unsaved changes check (for logout handler)
+    useEffect(() => {
+        const handleCheckUnsavedChanges = (event: CustomEvent) => {
+            const hasUnsaved = hasUnsavedChanges();
+            // Dispatch response event
+            window.dispatchEvent(new CustomEvent('unsavedChangesResponse', {
+                detail: { hasUnsaved }
+            }));
+        };
+        
+        const handleSaveBeforeLogout = async () => {
+            console.log('[EditorContext] 💾 Save before logout triggered');
+            try {
+                await saveNow();
+                console.log('[EditorContext] ✅ Saved before logout');
+            } catch (err) {
+                console.error('[EditorContext] ⚠️ Failed to save before logout:', err);
+            }
+        };
+        
+        window.addEventListener('checkUnsavedChanges', handleCheckUnsavedChanges as EventListener);
+        window.addEventListener('saveBeforeLogout', handleSaveBeforeLogout as EventListener);
+        return () => {
+            window.removeEventListener('checkUnsavedChanges', handleCheckUnsavedChanges as EventListener);
+            window.removeEventListener('saveBeforeLogout', handleSaveBeforeLogout as EventListener);
+        };
+    }, [hasUnsavedChanges, saveNow]);
     
     return (
         <EditorContext.Provider value={value}>

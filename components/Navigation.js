@@ -433,10 +433,54 @@ export default function Navigation() {
 
               {/* Sign Out Button */}
               <button
-                onClick={() => {
+                onClick={async () => {
                   setMobileMenuOpen(false);
-                  // Clerk sign out
-                  window.Clerk?.signOut();
+                  
+                  // Feature 0132: Check for unsaved changes before logout
+                  let hasUnsaved = false;
+                  
+                  // Check via custom event
+                  const checkPromise = new Promise((resolve) => {
+                    const handleResponse = (event) => {
+                      hasUnsaved = event.detail?.hasUnsaved || false;
+                      window.removeEventListener('unsavedChangesResponse', handleResponse);
+                      resolve(hasUnsaved);
+                    };
+                    
+                    window.addEventListener('unsavedChangesResponse', handleResponse);
+                    window.dispatchEvent(new CustomEvent('checkUnsavedChanges'));
+                    
+                    // Timeout after 500ms
+                    setTimeout(() => {
+                      window.removeEventListener('unsavedChangesResponse', handleResponse);
+                      resolve(false);
+                    }, 500);
+                  });
+                  
+                  const hasUnsavedChanges = await checkPromise;
+                  
+                  if (hasUnsavedChanges) {
+                    // Show confirmation dialog
+                    const shouldSave = window.confirm(
+                      'You have unsaved changes. Would you like to save before logging out?\n\n' +
+                      'Click "OK" to save and logout, or "Cancel" to stay on the page.'
+                    );
+                    
+                    if (shouldSave) {
+                      // Trigger save via custom event
+                      window.dispatchEvent(new CustomEvent('saveBeforeLogout'));
+                      // Wait a moment for save to complete, then logout
+                      setTimeout(() => {
+                        window.Clerk?.signOut();
+                      }, 1500);
+                    } else {
+                      // User cancelled - don't logout
+                      return;
+                    }
+                  } else {
+                    // No unsaved changes, proceed with logout
+                    window.Clerk?.signOut();
+                  }
                 }}
                 className="btn btn-block gap-2 btn-ghost justify-start text-left text-error hover:bg-error/10"
               >
