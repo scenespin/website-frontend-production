@@ -676,30 +676,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         };
 
         // Helper: Attempt async save to DynamoDB (best effort)
-        // Use direct fetch with keepalive (same pattern as handleBeforeUnload)
-        // This is more reliable than calling saveNow() which requires auth tokens
         const attemptAsyncSave = (activeId: string, currentState: EditorState) => {
             if (activeId && activeId.startsWith('screenplay_')) {
                 console.log('[EditorContext] 💾 Attempting async save to DynamoDB...');
-                const saveData = {
-                    screenplay_id: activeId,
-                    title: currentState.title,
-                    author: currentState.author,
-                    content: currentState.content
-                };
-                
-                // Use fetch with keepalive for guaranteed delivery
-                // This will continue even after the page unloads
-                fetch('/api/screenplays/autosave', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(saveData),
-                    keepalive: true // Critical: ensures request continues after page unloads
-                }).catch(() => {
-                    // Silent fail - localStorage already saved, so data is preserved
-                    console.error('[EditorContext] ⚠️ Async save failed (localStorage backup preserved)');
+                // Use sendBeacon for guaranteed delivery (if supported)
+                // Note: sendBeacon can't send auth headers, so we'll use regular fetch with keepalive
+                // Keepalive ensures the request continues even after page unloads
+                saveNow().catch(err => {
+                    console.error('[EditorContext] ⚠️ Async save failed:', err);
+                    // Already saved to localStorage above, so data is preserved
                 });
             }
         };
@@ -715,11 +700,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 
                 // Show browser warning (user can choose to stay and save)
                 // Modern browsers ignore custom messages, but still show a warning
-                // IMPORTANT: Both preventDefault() and returnValue are required for modern browsers
                 event.preventDefault();
-                // Chrome/Edge require returnValue to be set to a non-empty string
-                // Firefox/Safari will show the warning if preventDefault() is called
-                event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                event.returnValue = ''; // Chrome requires returnValue to be set
                 
                 // Attempt async save with keepalive (continues after page unloads)
                 // Use fetch with keepalive flag for guaranteed delivery
@@ -942,26 +924,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             const screenplay = await getScreenplay(projectId, getToken);
                             
                             if (screenplay) {
-                                // Feature 0132: Check if screenplay is deleted before loading
-                                if (screenplay.status === 'deleted') {
-                                    console.warn('[EditorContext] ⚠️ Screenplay is deleted:', projectId);
-                                    setState(prev => ({
-                                        ...prev,
-                                        content: '',
-                                        title: 'Screenplay Deleted',
-                                        author: '',
-                                        isDirty: false
-                                    }));
-                                    screenplayIdRef.current = null;
-                                    hasInitializedRef.current = initKey;
-                                    toast.error('This screenplay has been deleted');
-                                    // Redirect to dashboard after a short delay
-                                    setTimeout(() => {
-                                        window.location.href = '/dashboard';
-                                    }, 2000);
-                                    return;
-                                }
-                                
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', screenplay.title);
                                 // screenplayIdRef already set above
                                 
@@ -1035,26 +997,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         const savedScreenplay = await getScreenplay(savedScreenplayId, getToken);
                         
                         if (savedScreenplay) {
-                            // Feature 0132: Check if screenplay is deleted before loading
-                            if (savedScreenplay.status === 'deleted') {
-                                console.warn('[EditorContext] ⚠️ Screenplay is deleted:', savedScreenplayId);
-                                setState(prev => ({
-                                    ...prev,
-                                    content: '',
-                                    title: 'Screenplay Deleted',
-                                    author: '',
-                                    isDirty: false
-                                }));
-                                screenplayIdRef.current = null;
-                                hasInitializedRef.current = initKey;
-                                toast.error('This screenplay has been deleted');
-                                // Redirect to dashboard after a short delay
-                                setTimeout(() => {
-                                    window.location.href = '/dashboard';
-                                }, 2000);
-                                return;
-                            }
-                            
                             console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB:', {
                                 screenplayId: savedScreenplay.screenplay_id,
                                 title: savedScreenplay.title,
@@ -1171,8 +1113,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 setState(defaultState);
                 screenplayIdRef.current = null;
                 hasInitializedRef.current = false;
-                // Don't show toast here - dashboard already shows success toast
-                // Only show if editor is actually open and user is viewing the deleted screenplay
+                toast.error('This screenplay has been deleted');
             } else if (deletedId) {
                 // Feature 0132: Clear localStorage for deleted screenplay even if not currently loaded
                 clearScreenplayStorage(deletedId);
@@ -1222,34 +1163,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         };
     }, [projectId]);
     
-    // Feature 0132: Listen for unsaved changes check (for logout handler)
-    useEffect(() => {
-        const handleCheckUnsavedChanges = (event: CustomEvent) => {
-            const hasUnsaved = hasUnsavedChanges();
-            // Dispatch response event
-            window.dispatchEvent(new CustomEvent('unsavedChangesResponse', {
-                detail: { hasUnsaved }
-            }));
-        };
-        
-        const handleSaveBeforeLogout = async () => {
-            console.log('[EditorContext] 💾 Save before logout triggered');
-            try {
-                await saveNow();
-                console.log('[EditorContext] ✅ Saved before logout');
-            } catch (err) {
-                console.error('[EditorContext] ⚠️ Failed to save before logout:', err);
-            }
-        };
-        
-        window.addEventListener('checkUnsavedChanges', handleCheckUnsavedChanges as EventListener);
-        window.addEventListener('saveBeforeLogout', handleSaveBeforeLogout as EventListener);
-        return () => {
-            window.removeEventListener('checkUnsavedChanges', handleCheckUnsavedChanges as EventListener);
-            window.removeEventListener('saveBeforeLogout', handleSaveBeforeLogout as EventListener);
-        };
-    }, [hasUnsavedChanges, saveNow]);
-    
     return (
         <EditorContext.Provider value={value}>
             {children}
@@ -1283,12 +1196,12 @@ const createMinimalContextValue = (): EditorContextType => ({
     markDirty: () => {},
     saveNow: async () => false,
     toggleFocusMode: () => {},
+    hasUnsavedChanges: () => false,
     toggleLineNumbers: () => {},
     setFontSize: () => {},
     setHighlightRange: () => {},
     clearHighlight: () => {},
     reset: () => {},
-    hasUnsavedChanges: () => false,
 });
 
 // Public EditorProvider that wraps the search params logic in Suspense
