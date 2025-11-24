@@ -126,16 +126,28 @@ export default function Dashboard() {
     };
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 🔥 FIX 3: Listen for screenplayUpdated events (from modal or editor) and refresh dashboard
+  // 🔥 FIX: Listen for screenplayUpdated events and update state directly (don't refresh)
   useEffect(() => {
     const handleScreenplayUpdated = (event) => {
       const eventDetail = event.detail;
       if (eventDetail?.screenplayId) {
-        console.log('[Dashboard] Screenplay updated event received, refreshing data:', eventDetail.screenplayId);
-        // Refresh after a short delay to allow backend to process
-        setTimeout(() => {
-          fetchDashboardData();
-        }, 500);
+        console.log('[Dashboard] Screenplay updated event received, updating state directly:', eventDetail.screenplayId);
+        
+        // Update state directly instead of refreshing (avoids overwriting optimistic updates)
+        setProjects(prev => prev.map(p => {
+          const screenplayId = p.id || p.screenplay_id;
+          if (screenplayId === eventDetail.screenplayId) {
+            const updated = {
+              ...p,
+              ...(eventDetail.title && { name: eventDetail.title }),
+              ...(eventDetail.description !== undefined && { description: eventDetail.description }),
+              ...(eventDetail.genre !== undefined && { genre: eventDetail.genre })
+            };
+            console.log('[Dashboard] Updated screenplay in state:', updated.name);
+            return updated;
+          }
+          return p;
+        }));
       }
     };
     
@@ -143,7 +155,7 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener('screenplayUpdated', handleScreenplayUpdated);
     };
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - event handler doesn't need to recreate
   
   // Refresh dashboard when pathname changes to /dashboard (user navigated back)
   // This catches navigation from other pages even if component doesn't remount
@@ -227,7 +239,12 @@ export default function Dashboard() {
       // Note: Next.js API routes handle auth server-side, so we don't need to send token
       const [creditsRes, screenplaysRes, videosRes] = await Promise.allSettled([
         api.user.getCredits(),
-        fetch('/api/screenplays/list?status=active&limit=100')
+        fetch('/api/screenplays/list?status=active&limit=100', {
+          cache: 'no-store', // 🔥 FIX: Prevent browser caching
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
           .then(async r => {
             if (!r.ok) {
               const errorText = await r.text().catch(() => 'Unknown error');
@@ -278,20 +295,35 @@ export default function Dashboard() {
         console.log('[Dashboard] Screenplays API response:', screenplaysData);
         // API returns { success: true, data: { screenplays: [...], count: number } }
         const screenplays = screenplaysData?.data?.screenplays || screenplaysData?.screenplays || [];
-        console.log('[Dashboard] Parsed screenplays:', screenplays.length);
+        console.log('[Dashboard] Parsed screenplays from API:', screenplays.length);
+        console.log('[Dashboard] Screenplay statuses:', screenplays.map(s => ({ 
+          id: s.screenplay_id, 
+          status: s.status || 'undefined', 
+          title: s.title,
+          is_archived: s.is_archived 
+        })));
+        
         screenplays.forEach(s => {
           const screenplayId = s.screenplay_id;
           
-          // 🔥 FIX: Backend filters by status='active', so we only get active screenplays
-          // Additional safety check: filter out any non-active status (defensive programming)
+          // 🔥 FIX: Backend filters by status='active', but add client-side filter as backup
+          // This handles DynamoDB eventual consistency where deleted items might still appear
+          // Check status explicitly - if it exists and is not 'active', filter it out
           if (s.status && s.status !== 'active') {
-            console.log('[Dashboard] Filtering out screenplay with non-active status:', screenplayId, 'status:', s.status);
+            console.log('[Dashboard] ⚠️ Filtering out screenplay with non-active status (eventual consistency catch):', screenplayId, 'status:', s.status, 'title:', s.title);
             return;
           }
           
           // Filter out archived screenplays
           if (s.is_archived) {
-            console.log('[Dashboard] Filtering out archived screenplay:', screenplayId);
+            console.log('[Dashboard] Filtering out archived screenplay:', screenplayId, 'title:', s.title);
+            return;
+          }
+          
+          // 🔥 FIX: Explicit check for deleted status (defensive programming)
+          // Even if status is 'deleted', filter it out (shouldn't happen if backend filter works)
+          if (s.status === 'deleted') {
+            console.log('[Dashboard] ⚠️ Filtering out deleted screenplay (explicit check):', screenplayId, 'title:', s.title);
             return;
           }
           allScreenplays.push({
@@ -598,7 +630,7 @@ export default function Dashboard() {
             // Update local state optimistically with the data passed from the modal
             if (updatedData && screenplayId) {
               // 🔥 FIX: Optimistic UI update for immediate feedback
-              // Database is source of truth - will be loaded correctly on next refresh
+              // State is updated directly, no need to refresh (avoids overwriting with stale data)
               setProjects(prev => prev.map(p => {
                 if (p.id === screenplayId || p.screenplay_id === screenplayId) {
                   const updated = {
@@ -624,11 +656,8 @@ export default function Dashboard() {
                 }
               }));
               
-              // 🔥 FIX: Refresh after delay to sync with backend (database is source of truth)
-              setTimeout(() => {
-                console.log('[Dashboard] Rename - refreshing after delay to sync with backend');
-                fetchDashboardData();
-              }, 500); // Short delay to allow backend to process
+              // 🔥 FIX: No refresh needed - state updated directly, database will sync on next page load
+              // Refreshing here would overwrite optimistic update with potentially stale API data
             }
           }}
           screenplayId={editingScreenplayId}

@@ -3,6 +3,10 @@ import { auth } from '@clerk/nextjs/server';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
+// 🔥 FIX: Disable Next.js caching for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/screenplays/list
  * Proxy to backend to list user's screenplays
@@ -61,7 +65,13 @@ export async function GET(request: NextRequest) {
       count: data?.data?.count || data?.count,
       screenplaysCount: data?.data?.screenplays?.length || data?.screenplays?.length 
     });
-    return NextResponse.json(data);
+    
+    // 🔥 FIX: Add cache control headers to prevent stale data
+    const response = NextResponse.json(data);
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    return response;
   } catch (error: any) {
     console.error('[Screenplay List API] Error:', error);
     return NextResponse.json(
