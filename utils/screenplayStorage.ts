@@ -1040,3 +1040,245 @@ export function clearFromLocalStorage(screenplayId: string): void {
   }
 }
 
+// ============================================================================
+// COLLABORATION API FUNCTIONS
+// Feature 0122: Screenplay Role-Based Collaboration System
+// ============================================================================
+
+export interface Collaborator {
+  user_id?: string;
+  email: string;
+  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+  added_at: string;
+  added_by?: string;
+}
+
+export interface RolePreset {
+  id: string;
+  name: string;
+  description: string;
+  capabilities: {
+    canEditScript: boolean;
+    canViewScript: boolean;
+    canManageAssets: boolean;
+    canManageOwnAssets: boolean;
+    canGenerateAssets: boolean;
+    canUploadAssets: boolean;
+    canViewAssets: boolean;
+    canUseAI: boolean;
+    canEditComposition: boolean;
+    canEditTimeline: boolean;
+    canViewComposition: boolean;
+    canViewTimeline: boolean;
+  };
+}
+
+/**
+ * List all collaborators for a screenplay
+ */
+export async function listScreenplayCollaborators(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Collaborator[]> {
+  try {
+    const token = await getToken({ template: 'wryda-backend' });
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('You do not have permission to view collaborators');
+      }
+      throw new Error(`Failed to list collaborators: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data?.collaborators || [];
+  } catch (error: any) {
+    console.error('[ScreenplayStorage] Error listing collaborators:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add a collaborator to a screenplay
+ */
+export async function addScreenplayCollaborator(
+  screenplayId: string,
+  email: string,
+  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer',
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Screenplay> {
+  try {
+    const token = await getToken({ template: 'wryda-backend' });
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, role }),
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('You do not have permission to add collaborators');
+      }
+      if (response.status === 400) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Invalid request');
+      }
+      throw new Error(`Failed to add collaborator: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data?.screenplay;
+  } catch (error: any) {
+    console.error('[ScreenplayStorage] Error adding collaborator:', error);
+    throw error;
+  }
+}
+
+/**
+ * Remove a collaborator from a screenplay
+ */
+export async function removeScreenplayCollaborator(
+  screenplayId: string,
+  identifier: string, // email or user_id
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Screenplay> {
+  try {
+    const token = await getToken({ template: 'wryda-backend' });
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators/${encodeURIComponent(identifier)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('You do not have permission to remove collaborators');
+      }
+      throw new Error(`Failed to remove collaborator: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data?.screenplay;
+  } catch (error: any) {
+    console.error('[ScreenplayStorage] Error removing collaborator:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a collaborator's role
+ */
+export async function updateCollaboratorRole(
+  screenplayId: string,
+  identifier: string, // email or user_id
+  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer',
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<Screenplay> {
+  try {
+    const token = await getToken({ template: 'wryda-backend' });
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators/${encodeURIComponent(identifier)}/role`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role }),
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('You do not have permission to update collaborator roles');
+      }
+      if (response.status === 400) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Invalid request');
+      }
+      throw new Error(`Failed to update collaborator role: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data?.screenplay;
+  } catch (error: any) {
+    console.error('[ScreenplayStorage] Error updating collaborator role:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get available role presets
+ */
+export async function getAvailableRoles(
+  screenplayId: string,
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<RolePreset[]> {
+  try {
+    const token = await getToken({ template: 'wryda-backend' });
+    const response = await fetch(`/api/screenplays/${screenplayId}/collaborators/roles`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get available roles: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.data?.roles || [];
+  } catch (error: any) {
+    console.error('[ScreenplayStorage] Error getting available roles:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check a specific permission for a screenplay
+ * Note: This is a convenience function that calls the test-permissions endpoint
+ */
+export async function checkScreenplayPermission(
+  screenplayId: string,
+  permission: 'canViewScript' | 'canEditScript' | 'canManageAssets' | 'canManageOwnAssets' | 'canUseAI' | 'canUploadAssets' | 'canEditComposition' | 'canEditTimeline' | 'canViewComposition' | 'canViewTimeline',
+  getToken: ReturnType<typeof useAuth>['getToken']
+): Promise<boolean> {
+  try {
+    const token = await getToken({ template: 'wryda-backend' });
+    const response = await fetch(`/api/screenplays/test-permissions/${screenplayId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+    return data.permissions?.[permission] === true;
+  } catch (error: any) {
+    console.error('[ScreenplayStorage] Error checking permission:', error);
+    return false;
+  }
+}
+

@@ -37,7 +37,15 @@ import {
     deleteAllScenes,
     // Feature 0117: Beat API functions removed - beats are frontend-only UI templates
     updateRelationships as apiUpdateRelationships,
-    updateScreenplay as apiUpdateScreenplay
+    updateScreenplay as apiUpdateScreenplay,
+    // Feature 0122: Collaboration functions
+    listScreenplayCollaborators,
+    addScreenplayCollaborator,
+    removeScreenplayCollaborator,
+    updateCollaboratorRole,
+    getAvailableRoles,
+    checkScreenplayPermission,
+    getScreenplay
 } from '@/utils/screenplayStorage';
 import {
     updateScriptTags
@@ -149,6 +157,43 @@ interface ScreenplayContextType {
     // Phase 2: Reference-only manual creation
     // Check if a character or location appears in the script content
     isEntityInScript: (scriptContent: string, entityName: string, entityType: 'character' | 'location') => boolean;
+    
+    // Feature 0122: Role-Based Collaboration System - Phase 3B
+    // Permission State
+    currentUserRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null;
+    isOwner: boolean;
+    canEditScript: boolean;
+    canViewScript: boolean;
+    canManageAssets: boolean;
+    canManageOwnAssets: boolean;
+    canGenerateAssets: boolean;
+    canUploadAssets: boolean;
+    canViewAssets: boolean;
+    canUseAI: boolean;
+    canEditComposition: boolean;
+    canEditTimeline: boolean;
+    canViewComposition: boolean;
+    canViewTimeline: boolean;
+    collaborators: Array<{
+        user_id?: string;
+        email: string;
+        role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+        added_at: string;
+        added_by?: string;
+    }>;
+    
+    // Collaboration Management Functions
+    loadCollaboratorPermissions: (screenplayId: string) => Promise<void>;
+    loadCollaborators: (screenplayId: string) => Promise<void>;
+    addCollaborator: (email: string, role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => Promise<void>;
+    removeCollaborator: (identifier: string) => Promise<void>;
+    updateCollaboratorRole: (identifier: string, newRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => Promise<void>;
+    getAvailableRoles: () => Promise<Array<{
+        id: string;
+        name: string;
+        description: string;
+        capabilities: Record<string, boolean>;
+    }>>;
 }
 
 const ScreenplayContext = createContext<ScreenplayContextType | undefined>(undefined);
@@ -234,6 +279,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     const [isLoading, setIsLoading] = useState(true); // Start true until DynamoDB loads
     const [error, setError] = useState<string | null>(null);
+    
+    // Feature 0122: Role-Based Collaboration System - Phase 3B
+    // Permission State
+    const [currentUserRole, setCurrentUserRole] = useState<'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null>(null);
+    const [isOwner, setIsOwner] = useState(false);
+    const [canEditScript, setCanEditScript] = useState(false);
+    const [canViewScript, setCanViewScript] = useState(false);
+    const [canManageAssets, setCanManageAssets] = useState(false);
+    const [canManageOwnAssets, setCanManageOwnAssets] = useState(false);
+    const [canGenerateAssets, setCanGenerateAssets] = useState(false);
+    const [canUploadAssets, setCanUploadAssets] = useState(false);
+    const [canViewAssets, setCanViewAssets] = useState(false);
+    const [canUseAI, setCanUseAI] = useState(false);
+    const [canEditComposition, setCanEditComposition] = useState(false);
+    const [canEditTimeline, setCanEditTimeline] = useState(false);
+    const [canViewComposition, setCanViewComposition] = useState(false);
+    const [canViewTimeline, setCanViewTimeline] = useState(false);
+    const [collaborators, setCollaborators] = useState<Array<{
+        user_id?: string;
+        email: string;
+        role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+        added_at: string;
+        added_by?: string;
+    }>>([]);
     
     // Track if we've auto-created the 8-Sequence Structure to prevent duplicates
     const hasAutoCreated = useRef(false);
@@ -3579,6 +3648,264 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, []);
     
     // ========================================================================
+    // Feature 0122: Role-Based Collaboration System - Phase 3B
+    // Permission Management Functions
+    // ========================================================================
+    
+    /**
+     * Load collaborator permissions for the current user
+     * Algorithm: Check if user is owner (set all permissions to true, role to 'director'),
+     * else fetch collaborator permissions from API, update state accordingly
+     */
+    const loadCollaboratorPermissions = useCallback(async (screenplayId: string) => {
+        if (!screenplayId || !user?.id) {
+            console.log('[ScreenplayContext] ⏭️ Skipping permission load - no screenplayId or user');
+            return;
+        }
+        
+        try {
+            // First, get the screenplay to check ownership
+            const screenplay = await getScreenplay(screenplayId, getToken);
+            
+            if (!screenplay) {
+                console.error('[ScreenplayContext] ⚠️ Screenplay not found for permission check');
+                return;
+            }
+            
+            // Check if user is owner
+            const userIsOwner = screenplay.user_id === user.id;
+            setIsOwner(userIsOwner);
+            
+            if (userIsOwner) {
+                // Owner has all permissions (director role)
+                console.log('[ScreenplayContext] ✅ User is owner - granting all permissions (director)');
+                setCurrentUserRole('director');
+                setCanEditScript(true);
+                setCanViewScript(true);
+                setCanManageAssets(true);
+                setCanManageOwnAssets(true);
+                setCanGenerateAssets(true);
+                setCanUploadAssets(true);
+                setCanViewAssets(true);
+                setCanUseAI(true);
+                setCanEditComposition(true);
+                setCanEditTimeline(true);
+                setCanViewComposition(true);
+                setCanViewTimeline(true);
+            } else {
+                // Check permissions via API using test-permissions endpoint (returns all permissions at once)
+                console.log('[ScreenplayContext] 🔍 User is not owner - checking collaborator permissions');
+                
+                try {
+                    const token = await getToken({ template: 'wryda-backend' });
+                    const response = await fetch(`/api/screenplays/test-permissions/${screenplayId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        cache: 'no-store'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const perms = data.permissions || {};
+                        const role = data.role || null;
+                        
+                        setCanViewScript(perms.canViewScript === true);
+                        setCanEditScript(perms.canEditScript === true);
+                        setCanManageAssets(perms.canManageAssets === true);
+                        setCanManageOwnAssets(perms.canManageOwnAssets === true);
+                        setCanUseAI(perms.canUseAI === true);
+                        setCanUploadAssets(perms.canUploadAssets === true);
+                        setCanEditComposition(perms.canEditComposition === true);
+                        setCanEditTimeline(perms.canEditTimeline === true);
+                        setCanViewComposition(perms.canViewComposition === true);
+                        setCanViewTimeline(perms.canViewTimeline === true);
+                        
+                        // canViewAssets and canGenerateAssets are derived from other permissions
+                        setCanViewAssets(perms.canViewScript === true || perms.canManageAssets === true || perms.canManageOwnAssets === true || perms.canUploadAssets === true);
+                        setCanGenerateAssets(perms.canManageAssets === true);
+                        
+                        // Set role from API response
+                        if (role && ['director', 'writer', 'asset-manager', 'contributor', 'viewer'].includes(role)) {
+                            setCurrentUserRole(role as 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer');
+                        } else {
+                            // Fallback: determine role from permissions
+                            if (perms.canEditScript === true) {
+                                setCurrentUserRole('writer');
+                            } else if (perms.canManageAssets === true) {
+                                setCurrentUserRole('asset-manager');
+                            } else if (perms.canManageOwnAssets === true || perms.canUploadAssets === true) {
+                                setCurrentUserRole('contributor');
+                            } else {
+                                setCurrentUserRole('viewer');
+                            }
+                        }
+                        
+                        console.log('[ScreenplayContext] ✅ Collaborator permissions loaded:', {
+                            role: role || currentUserRole,
+                            canEditScript: perms.canEditScript,
+                            canManageAssets: perms.canManageAssets
+                        });
+                    } else {
+                        throw new Error(`Failed to fetch permissions: ${response.statusText}`);
+                    }
+                } catch (permError: any) {
+                    console.error('[ScreenplayContext] ⚠️ Error fetching permissions:', permError);
+                    throw permError;
+                }
+            }
+        } catch (error: any) {
+            console.error('[ScreenplayContext] ⚠️ Error loading permissions:', error);
+            // On error, default to no permissions
+            setCurrentUserRole(null);
+            setIsOwner(false);
+            setCanEditScript(false);
+            setCanViewScript(false);
+            setCanManageAssets(false);
+            setCanManageOwnAssets(false);
+            setCanGenerateAssets(false);
+            setCanUploadAssets(false);
+            setCanViewAssets(false);
+            setCanUseAI(false);
+            setCanEditComposition(false);
+            setCanEditTimeline(false);
+            setCanViewComposition(false);
+            setCanViewTimeline(false);
+        }
+    }, [user?.id, getToken, currentUserRole]);
+    
+    /**
+     * Load list of collaborators for the screenplay
+     */
+    const loadCollaborators = useCallback(async (screenplayId: string) => {
+        if (!screenplayId) {
+            return;
+        }
+        
+        try {
+            const collaboratorList = await listScreenplayCollaborators(screenplayId, getToken);
+            setCollaborators(collaboratorList);
+            console.log('[ScreenplayContext] ✅ Loaded collaborators:', collaboratorList.length);
+        } catch (error: any) {
+            console.error('[ScreenplayContext] ⚠️ Error loading collaborators:', error);
+            // If user is not owner, they can't view collaborators - this is expected
+            if (error.message?.includes('permission')) {
+                console.log('[ScreenplayContext] ℹ️ User does not have permission to view collaborators (expected for non-owners)');
+            }
+        }
+    }, [getToken]);
+    
+    /**
+     * Add a collaborator to the screenplay
+     */
+    const addCollaborator = useCallback(async (email: string, role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => {
+        if (!screenplayId) {
+            throw new Error('No screenplay selected');
+        }
+        
+        try {
+            await addScreenplayCollaborator(screenplayId, email, role, getToken);
+            toast.success(`Added ${email} as ${role}`);
+            // Reload collaborators list
+            await loadCollaborators(screenplayId);
+        } catch (error: any) {
+            console.error('[ScreenplayContext] ⚠️ Error adding collaborator:', error);
+            toast.error(error.message || 'Failed to add collaborator');
+            throw error;
+        }
+    }, [screenplayId, getToken, loadCollaborators]);
+    
+    /**
+     * Remove a collaborator from the screenplay
+     */
+    const removeCollaborator = useCallback(async (identifier: string) => {
+        if (!screenplayId) {
+            throw new Error('No screenplay selected');
+        }
+        
+        try {
+            await removeScreenplayCollaborator(screenplayId, identifier, getToken);
+            toast.success('Collaborator removed');
+            // Reload collaborators list
+            await loadCollaborators(screenplayId);
+        } catch (error: any) {
+            console.error('[ScreenplayContext] ⚠️ Error removing collaborator:', error);
+            toast.error(error.message || 'Failed to remove collaborator');
+            throw error;
+        }
+    }, [screenplayId, getToken, loadCollaborators]);
+    
+    /**
+     * Update a collaborator's role
+     */
+    const updateCollaboratorRoleFn = useCallback(async (identifier: string, newRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer') => {
+        if (!screenplayId) {
+            throw new Error('No screenplay selected');
+        }
+        
+        try {
+            await updateCollaboratorRole(screenplayId, identifier, newRole, getToken);
+            toast.success(`Updated role to ${newRole}`);
+            // Reload collaborators list
+            await loadCollaborators(screenplayId);
+        } catch (error: any) {
+            console.error('[ScreenplayContext] ⚠️ Error updating collaborator role:', error);
+            toast.error(error.message || 'Failed to update collaborator role');
+            throw error;
+        }
+    }, [screenplayId, getToken, loadCollaborators]);
+    
+    /**
+     * Get available role presets
+     */
+    const getAvailableRolesFn = useCallback(async () => {
+        if (!screenplayId) {
+            return [];
+        }
+        
+        try {
+            return await getAvailableRoles(screenplayId, getToken);
+        } catch (error: any) {
+            console.error('[ScreenplayContext] ⚠️ Error getting available roles:', error);
+            return [];
+        }
+    }, [screenplayId, getToken]);
+    
+    // Load permissions when screenplayId changes
+    useEffect(() => {
+        if (screenplayId) {
+            // Load permissions first (this will set isOwner asynchronously)
+            loadCollaboratorPermissions(screenplayId).then(() => {
+                // After permissions load, try to load collaborators
+                // This will fail gracefully (403) if user is not owner
+                loadCollaborators(screenplayId).catch(() => {
+                    // Silently fail - user is not owner or doesn't have permission
+                    console.log('[ScreenplayContext] ℹ️ Cannot load collaborators (not owner or no permission)');
+                });
+            });
+        } else {
+            // Reset permissions when no screenplay is selected
+            setCurrentUserRole(null);
+            setIsOwner(false);
+            setCanEditScript(false);
+            setCanViewScript(false);
+            setCanManageAssets(false);
+            setCanManageOwnAssets(false);
+            setCanGenerateAssets(false);
+            setCanUploadAssets(false);
+            setCanViewAssets(false);
+            setCanUseAI(false);
+            setCanEditComposition(false);
+            setCanEditTimeline(false);
+            setCanViewComposition(false);
+            setCanViewTimeline(false);
+            setCollaborators([]);
+        }
+    }, [screenplayId, loadCollaboratorPermissions, loadCollaborators]);
+    
+    // ========================================================================
     // Context Value
     // ========================================================================
     
@@ -3656,7 +3983,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         clearAllData,
         
         // Phase 2: Reference-only manual creation
-        isEntityInScript
+        isEntityInScript,
+        
+        // Feature 0122: Role-Based Collaboration System - Phase 3B
+        // Permission State
+        currentUserRole,
+        isOwner,
+        canEditScript,
+        canViewScript,
+        canManageAssets,
+        canManageOwnAssets,
+        canGenerateAssets,
+        canUploadAssets,
+        canViewAssets,
+        canUseAI,
+        canEditComposition,
+        canEditTimeline,
+        canViewComposition,
+        canViewTimeline,
+        collaborators,
+        
+        // Collaboration Management Functions
+        loadCollaboratorPermissions,
+        loadCollaborators,
+        addCollaborator,
+        removeCollaborator,
+        updateCollaboratorRole: updateCollaboratorRoleFn,
+        getAvailableRoles: getAvailableRolesFn
     };
     
     return (
