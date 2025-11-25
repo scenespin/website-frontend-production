@@ -284,7 +284,7 @@ Write-Host "  [Screenplay Get API] User authenticated: user_3545Ycy3iNFJ50UmZhHS
 Write-Host "  [Screenplay Get API] Fetching screenplay: $ScreenplayId" -ForegroundColor Gray
 Write-Host "  [Screenplay Get API] Proxying to backend: https://api.wryda.ai/api/screenplays/$ScreenplayId" -ForegroundColor Gray
 Write-Host "  [Screenplay Get API] Backend response status: 200 for screenplay: $ScreenplayId" -ForegroundColor Green
-    Write-Host "  [Screenplay Get API] [OK] Backend success response: 200 Data preview: {...}" -ForegroundColor Green
+Write-Host "  [Screenplay Get API] [OK] Backend success response: 200 Data preview: {...}" -ForegroundColor Green
 Write-Host ""
 Write-Host "Failed Request (404):" -ForegroundColor Yellow
 Write-Host "  [Screenplay Get API] Request received" -ForegroundColor Gray
