@@ -219,10 +219,6 @@ export async function getScreenplay(
     }
   });
 
-  if (response.status === 404) {
-    return null;
-  }
-
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
     let errorMessage = 'Failed to get screenplay';
