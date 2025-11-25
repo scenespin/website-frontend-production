@@ -31,7 +31,7 @@ Write-Host ""
 $isLocal = $false
 if ($LocalOnly -or (Test-Path ".next")) {
     $isLocal = $true
-    Write-Host "✅ Detected local Next.js development environment" -ForegroundColor Green
+    Write-Host "[OK] Detected local Next.js development environment" -ForegroundColor Green
     Write-Host "   Checking for local server logs..." -ForegroundColor Gray
     Write-Host ""
 }
@@ -43,11 +43,11 @@ if (-not $LocalOnly) {
         $vercelVersion = vercel --version 2>&1
         if ($LASTEXITCODE -eq 0) {
             $vercelCliAvailable = $true
-            Write-Host "✅ Vercel CLI is available" -ForegroundColor Green
+            Write-Host "[OK] Vercel CLI is available" -ForegroundColor Green
             Write-Host "   Version: $vercelVersion" -ForegroundColor Gray
         }
     } catch {
-        Write-Host "⚠️  Vercel CLI is not available" -ForegroundColor Yellow
+        Write-Host "[WARN] Vercel CLI is not available" -ForegroundColor Yellow
         Write-Host "   Install with: npm i -g vercel" -ForegroundColor Gray
     }
     Write-Host ""
@@ -66,10 +66,10 @@ if ($isLocal) {
         $response = Invoke-WebRequest -Uri "http://localhost:$LocalPort" -Method Get -TimeoutSec 2 -ErrorAction SilentlyContinue
         if ($response.StatusCode -eq 200) {
             $devServerRunning = $true
-            Write-Host "✅ Next.js dev server is running on port $LocalPort" -ForegroundColor Green
+            Write-Host "[OK] Next.js dev server is running on port $LocalPort" -ForegroundColor Green
         }
     } catch {
-        Write-Host "⚠️  Next.js dev server is not running on port $LocalPort" -ForegroundColor Yellow
+        Write-Host "[WARN] Next.js dev server is not running on port $LocalPort" -ForegroundColor Yellow
         Write-Host "   Start it with: npm run dev" -ForegroundColor Gray
     }
     Write-Host ""
@@ -91,32 +91,35 @@ if ($isLocal) {
             
             $logContent = Get-Content $logFile -Tail 1000 -ErrorAction SilentlyContinue
             if ($logContent) {
-                $relevantLogs = $logContent | Select-String -Pattern "Screenplay Get API|$ScreenplayId|screenplay_b236a087" -CaseSensitive:$false
+                $escapedId = [regex]::Escape($ScreenplayId)
+                $pattern = "Screenplay Get API|$escapedId|screenplay_b236a087"
+                $relevantLogs = $logContent | Select-String -Pattern $pattern -CaseSensitive:$false
                 
                 if ($relevantLogs) {
-                    Write-Host "✅ Found relevant log entries:" -ForegroundColor Green
+                    Write-Host "[OK] Found relevant log entries:" -ForegroundColor Green
                     Write-Host ""
                     foreach ($log in $relevantLogs) {
                         $color = "Gray"
-                        if ($log -match "ERROR|❌|FAILED|404|401") {
+                        $logText = $log.ToString()
+                        if ($logText -match "ERROR|FAILED|404|401") {
                             $color = "Red"
-                        } elseif ($log -match "WARN|⚠️|warning") {
+                        } elseif ($logText -match "WARN|warning") {
                             $color = "Yellow"
-                        } elseif ($log -match "✅|SUCCESS|200") {
+                        } elseif ($logText -match "SUCCESS|200") {
                             $color = "Green"
                         }
-                        Write-Host "  $log" -ForegroundColor $color
+                        Write-Host "  $logText" -ForegroundColor $color
                     }
                     Write-Host ""
                 } else {
-                    Write-Host "⚠️  No relevant logs found in file" -ForegroundColor Yellow
+                    Write-Host "[WARN] No relevant logs found in file" -ForegroundColor Yellow
                 }
             }
         }
     }
     
     if (-not $foundLogFile) {
-        Write-Host "ℹ️  No log files found. Next.js logs are typically output to the console." -ForegroundColor Gray
+        Write-Host "[INFO] No log files found. Next.js logs are typically output to the console." -ForegroundColor Gray
         Write-Host "   To capture logs:" -ForegroundColor Yellow
         Write-Host "     1. Run: npm run dev > logs/nextjs.log 2>&1" -ForegroundColor Gray
         Write-Host "     2. Or check the terminal where 'npm run dev' is running" -ForegroundColor Gray
@@ -135,9 +138,9 @@ if ($isLocal) {
     Write-Host "  [Screenplay Get API] Backend response status: ..." -ForegroundColor Gray
     Write-Host ""
     Write-Host "Error patterns to look for:" -ForegroundColor Yellow
-    Write-Host "  [Screenplay Get API] ❌ Backend error for screenplay: $ScreenplayId" -ForegroundColor Red
-    Write-Host "  [Screenplay Get API] ❌ Status: 404" -ForegroundColor Red
-    Write-Host "  [Screenplay Get API] ❌ Error data: {...}" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Backend error for screenplay: $ScreenplayId" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Status: 404" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Error data: {...}" -ForegroundColor Red
     Write-Host ""
 }
 
@@ -152,14 +155,14 @@ if ($vercelCliAvailable -and -not $LocalOnly) {
     try {
         $whoami = vercel whoami 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Logged in to Vercel as: $whoami" -ForegroundColor Green
+            Write-Host "[OK] Logged in to Vercel as: $whoami" -ForegroundColor Green
         } else {
-            Write-Host "⚠️  Not logged in to Vercel" -ForegroundColor Yellow
+            Write-Host "[WARN] Not logged in to Vercel" -ForegroundColor Yellow
             Write-Host "   Run: vercel login" -ForegroundColor Gray
             $vercelCliAvailable = $false
         }
     } catch {
-        Write-Host "⚠️  Could not check Vercel login status" -ForegroundColor Yellow
+        Write-Host "[WARN] Could not check Vercel login status" -ForegroundColor Yellow
         $vercelCliAvailable = $false
     }
     Write-Host ""
@@ -201,37 +204,39 @@ if ($vercelCliAvailable -and -not $LocalOnly) {
                     }
                 } catch {
                     # Not JSON, treat as text
-                    $relevantLogs = $logs | Select-String -Pattern "Screenplay Get API|$ScreenplayId|screenplay_b236a087" -CaseSensitive:$false
+                    $escapedId = [regex]::Escape($ScreenplayId)
+                    $pattern = "Screenplay Get API|$escapedId|screenplay_b236a087"
+                    $relevantLogs = $logs | Select-String -Pattern $pattern -CaseSensitive:$false
                 }
                 
                 if ($relevantLogs) {
-                    Write-Host "✅ Found relevant log entries:" -ForegroundColor Green
+                    Write-Host "[OK] Found relevant log entries:" -ForegroundColor Green
                     Write-Host ""
                     foreach ($log in $relevantLogs) {
                         $color = "Gray"
                         $logText = if ($log -is [PSCustomObject]) { $log.message } else { $log.ToString() }
-                        if ($logText -match "ERROR|❌|FAILED|404|401") {
+                        if ($logText -match "(ERROR|FAILED|404|401)") {
                             $color = "Red"
-                        } elseif ($logText -match "WARN|⚠️|warning") {
+                        } elseif ($logText -match "(WARN|warning)") {
                             $color = "Yellow"
-                        } elseif ($logText -match "✅|SUCCESS|200") {
+                        } elseif ($logText -match "(SUCCESS|200)") {
                             $color = "Green"
                         }
                         Write-Host "  $logText" -ForegroundColor $color
                     }
                     Write-Host ""
                 } else {
-                    Write-Host "⚠️  No relevant logs found in the last $Hours hours" -ForegroundColor Yellow
+                    Write-Host "[WARN] No relevant logs found in the last $Hours hours" -ForegroundColor Yellow
                     Write-Host "   This could mean:" -ForegroundColor Gray
                     Write-Host "     - No requests were made for this screenplay" -ForegroundColor Gray
                     Write-Host "     - Logs are older than $Hours hours" -ForegroundColor Gray
                     Write-Host "     - Logs are in a different format" -ForegroundColor Gray
                 }
             } else {
-                Write-Host "⚠️  No logs returned from Vercel" -ForegroundColor Yellow
+                Write-Host "[WARN] No logs returned from Vercel" -ForegroundColor Yellow
             }
         } catch {
-            Write-Host "❌ Error fetching Vercel logs: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "[ERROR] Error fetching Vercel logs: $($_.Exception.Message)" -ForegroundColor Red
             Write-Host ""
             Write-Host "Alternative: Check Vercel Dashboard" -ForegroundColor Yellow
             Write-Host "  1. Go to: https://vercel.com/dashboard" -ForegroundColor Gray
@@ -279,7 +284,7 @@ Write-Host "  [Screenplay Get API] User authenticated: user_3545Ycy3iNFJ50UmZhHS
 Write-Host "  [Screenplay Get API] Fetching screenplay: $ScreenplayId" -ForegroundColor Gray
 Write-Host "  [Screenplay Get API] Proxying to backend: https://api.wryda.ai/api/screenplays/$ScreenplayId" -ForegroundColor Gray
 Write-Host "  [Screenplay Get API] Backend response status: 200 for screenplay: $ScreenplayId" -ForegroundColor Green
-Write-Host "  [Screenplay Get API] ✅ Backend success response: 200 Data preview: {...}" -ForegroundColor Green
+    Write-Host "  [Screenplay Get API] [OK] Backend success response: 200 Data preview: {...}" -ForegroundColor Green
 Write-Host ""
 Write-Host "Failed Request (404):" -ForegroundColor Yellow
 Write-Host "  [Screenplay Get API] Request received" -ForegroundColor Gray
@@ -287,11 +292,11 @@ Write-Host "  [Screenplay Get API] User authenticated: user_3545Ycy3iNFJ50UmZhHS
 Write-Host "  [Screenplay Get API] Fetching screenplay: $ScreenplayId" -ForegroundColor Gray
 Write-Host "  [Screenplay Get API] Proxying to backend: https://api.wryda.ai/api/screenplays/$ScreenplayId" -ForegroundColor Gray
 Write-Host "  [Screenplay Get API] Backend response status: 404 for screenplay: $ScreenplayId" -ForegroundColor Red
-Write-Host "  [Screenplay Get API] ❌ Backend error for screenplay: $ScreenplayId" -ForegroundColor Red
-Write-Host "  [Screenplay Get API] ❌ Status: 404" -ForegroundColor Red
-Write-Host "  [Screenplay Get API] ❌ Error data: {...}" -ForegroundColor Red
-Write-Host "  [Screenplay Get API] ❌ Backend URL called: https://api.wryda.ai/api/screenplays/$ScreenplayId" -ForegroundColor Red
-Write-Host "  [Screenplay Get API] ❌ User ID: user_3545Ycy3iNFJ50UmZhHSYw3K8cU" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Backend error for screenplay: $ScreenplayId" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Status: 404" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Error data: {...}" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] Backend URL called: https://api.wryda.ai/api/screenplays/$ScreenplayId" -ForegroundColor Red
+    Write-Host "  [Screenplay Get API] [ERROR] User ID: user_3545Ycy3iNFJ50UmZhHSYw3K8cU" -ForegroundColor Red
 Write-Host ""
 Write-Host "Authentication Error (401):" -ForegroundColor Yellow
 Write-Host "  [Screenplay Get API] Request received" -ForegroundColor Gray
