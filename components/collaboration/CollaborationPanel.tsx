@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Mail, Trash2, Edit2, Check, X as XIcon, Loader2, Users } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import RoleBadge, { type ScreenplayRole } from './RoleBadge';
 
@@ -16,6 +17,7 @@ interface CollaborationPanelProps {
  * Only visible to screenplay owners
  */
 export default function CollaborationPanel({ isOpen, onClose }: CollaborationPanelProps) {
+  const { user } = useUser();
   const {
     screenplayId,
     isOwner,
@@ -27,6 +29,10 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
     updateCollaboratorRole,
     getAvailableRoles
   } = useScreenplay();
+
+  // Get current user's email and user_id for owner check
+  const currentUserEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const currentUserId = user?.id;
 
   const [availableRoles, setAvailableRoles] = useState<Array<{
     id: string;
@@ -271,85 +277,113 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
               </div>
             ) : (
               <div className="space-y-2">
-                {collaborators.map((collaborator, index) => (
-                  <div
-                    key={collaborator.email || collaborator.user_id || index}
-                    className="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Mail className="w-5 h-5 text-primary" />
+                {collaborators.map((collaborator, index) => {
+                  // 🔥 PROTECTION: Check if this collaborator is the owner
+                  const isOwnerCollaborator = isOwner && (
+                    (collaborator.user_id && collaborator.user_id === currentUserId) ||
+                    (collaborator.email && currentUserEmail && collaborator.email.toLowerCase() === currentUserEmail)
+                  );
+
+                  return (
+                    <div
+                      key={collaborator.email || collaborator.user_id || index}
+                      className="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Mail className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium truncate">{collaborator.email}</p>
+                            {isOwnerCollaborator && (
+                              <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
+                                Owner
+                              </span>
+                            )}
+                          </div>
+                          {collaborator.user_id && (
+                            <p className="text-xs text-base-content/50 truncate">
+                              {collaborator.user_id}
+                            </p>
+                          )}
+                          {editingRole === (collaborator.user_id || collaborator.email) ? (
+                            <div className="flex items-center gap-2 mt-2">
+                              <select
+                                value={editingRoleValue}
+                                onChange={(e) => setEditingRoleValue(e.target.value as ScreenplayRole)}
+                                className="px-2 py-1 bg-base-100 border border-base-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                disabled={isOwnerCollaborator}
+                              >
+                                {availableRoles.map(role => (
+                                  <option key={role.id} value={role.id}>
+                                    {role.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => handleSaveRole(collaborator.user_id || collaborator.email)}
+                                className="p-1 hover:bg-success/20 rounded transition-colors"
+                                title="Save"
+                                disabled={isOwnerCollaborator}
+                              >
+                                <Check className="w-4 h-4 text-success" />
+                              </button>
+                              <button
+                                onClick={handleCancelEditRole}
+                                className="p-1 hover:bg-error/20 rounded transition-colors"
+                                title="Cancel"
+                              >
+                                <XIcon className="w-4 h-4 text-error" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="mt-1">
+                              {isOwnerCollaborator ? (
+                                <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
+                                  Owner (Director)
+                                </span>
+                              ) : (
+                                <RoleBadge role={collaborator.role} size="sm" />
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{collaborator.email}</p>
-                        {collaborator.user_id && (
-                          <p className="text-xs text-base-content/50 truncate">
-                            {collaborator.user_id}
-                          </p>
-                        )}
-                        {editingRole === (collaborator.user_id || collaborator.email) ? (
-                          <div className="flex items-center gap-2 mt-2">
-                            <select
-                              value={editingRoleValue}
-                              onChange={(e) => setEditingRoleValue(e.target.value as ScreenplayRole)}
-                              className="px-2 py-1 bg-base-100 border border-base-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                            >
-                              {availableRoles.map(role => (
-                                <option key={role.id} value={role.id}>
-                                  {role.name}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              onClick={() => handleSaveRole(collaborator.user_id || collaborator.email)}
-                              className="p-1 hover:bg-success/20 rounded transition-colors"
-                              title="Save"
-                            >
-                              <Check className="w-4 h-4 text-success" />
-                            </button>
-                            <button
-                              onClick={handleCancelEditRole}
-                              className="p-1 hover:bg-error/20 rounded transition-colors"
-                              title="Cancel"
-                            >
-                              <XIcon className="w-4 h-4 text-error" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="mt-1">
-                            <RoleBadge role={collaborator.role} size="sm" />
-                          </div>
+                      <div className="flex items-center gap-2">
+                        {editingRole !== (collaborator.user_id || collaborator.email) && (
+                          <>
+                            {/* 🔥 PROTECTION: Hide edit/remove buttons for owner */}
+                            {!isOwnerCollaborator && (
+                              <>
+                                <button
+                                  onClick={() => handleStartEditRole(
+                                    collaborator.user_id || collaborator.email,
+                                    collaborator.role
+                                  )}
+                                  className="p-2 hover:bg-base-300 rounded transition-colors"
+                                  title="Edit role"
+                                >
+                                  <Edit2 className="w-4 h-4 text-base-content/70" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveCollaborator(
+                                    collaborator.user_id || collaborator.email,
+                                    collaborator.email
+                                  )}
+                                  className="p-2 hover:bg-error/20 rounded transition-colors"
+                                  title="Remove collaborator"
+                                >
+                                  <Trash2 className="w-4 h-4 text-error" />
+                                </button>
+                              </>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {editingRole !== (collaborator.user_id || collaborator.email) && (
-                        <>
-                          <button
-                            onClick={() => handleStartEditRole(
-                              collaborator.user_id || collaborator.email,
-                              collaborator.role
-                            )}
-                            className="p-2 hover:bg-base-300 rounded transition-colors"
-                            title="Edit role"
-                          >
-                            <Edit2 className="w-4 h-4 text-base-content/70" />
-                          </button>
-                          <button
-                            onClick={() => handleRemoveCollaborator(
-                              collaborator.user_id || collaborator.email,
-                              collaborator.email
-                            )}
-                            className="p-2 hover:bg-error/20 rounded transition-colors"
-                            title="Remove collaborator"
-                          >
-                            <Trash2 className="w-4 h-4 text-error" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
