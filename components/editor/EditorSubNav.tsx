@@ -13,10 +13,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { FileText, Users, MapPin, ChevronDown } from 'lucide-react';
+import { FileText, Users, MapPin, ChevronDown, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditableScreenplayTitle from './EditableScreenplayTitle';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import CollaborationPanel from '@/components/collaboration/CollaborationPanel';
+import RoleBadge from '@/components/collaboration/RoleBadge';
 
 export type EditorTab = 'write' | 'characters' | 'locations';
 
@@ -60,7 +62,8 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
-  const { screenplayId: contextScreenplayId } = useScreenplay();
+  const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
+  const { screenplayId: contextScreenplayId, isOwner, currentUserRole, collaborators } = useScreenplay();
   
   // Auto-determine active tab from pathname if not provided
   const determineActiveTab = (): EditorTab => {
@@ -103,8 +106,28 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
         className
       )}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center gap-3 py-2 border-b border-base-300">
+          <div className="flex items-center justify-between gap-3 py-2 border-b border-base-300">
             <EditableScreenplayTitle />
+            <div className="flex items-center gap-2">
+              {currentUserRole && (
+                <RoleBadge role={currentUserRole} size="sm" />
+              )}
+              {isOwner && (
+                <button
+                  onClick={() => setIsCollaborationPanelOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
+                  title="Manage collaborators"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Collaborate</span>
+                  {collaborators.length > 0 && (
+                    <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-content rounded-full">
+                      {collaborators.length}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex gap-1">
             {TABS.map((tab) => {
@@ -212,6 +235,12 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
           </div>
         </div>
       </div>
+
+      {/* Collaboration Panel */}
+      <CollaborationPanel
+        isOpen={isCollaborationPanelOpen}
+        onClose={() => setIsCollaborationPanelOpen(false)}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { ChatProvider } from '@/contexts/ChatContext';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatMode } from '@/hooks/useChatMode';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { ChatModePanel } from './modes/ChatModePanel';
 import { DirectorModePanel } from './modes/DirectorModePanel';
 import { CharacterModePanel } from './modes/CharacterModePanel';
@@ -261,6 +262,7 @@ function UnifiedChatPanelInner({
   const { state, setMode, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
+  const { canUseAI } = useScreenplay();
   const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -918,6 +920,25 @@ function UnifiedChatPanelInner({
   // ============================================================================
   // RENDER
   // ============================================================================
+
+  // Check if user has AI access (for script work - Writer/Director only)
+  // Note: Asset generation (canGenerateAssets) is separate and handled in production pages
+  if (!canUseAI && MODE_CONFIG[state.activeMode]?.isAgent) {
+    return (
+      <div className="flex flex-col h-full bg-base-100 items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <MessageSquare className="w-16 h-16 text-base-content/30 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">AI Access Required</h3>
+          <p className="text-base-content/70 mb-4">
+            You need Writer or Director role to use AI chat for script work.
+          </p>
+          <p className="text-sm text-base-content/50">
+            Contact the screenplay owner to request access.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-base-100" onClick={closeMenus}>

@@ -27,7 +27,21 @@ interface CharacterBoardProps {
 }
 
 export default function CharacterBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: CharacterBoardProps) {
-    const { characters, updateCharacter, createCharacter, deleteCharacter, getCharacterScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript, addImageToEntity } = useScreenplay();
+    const { 
+        characters, 
+        updateCharacter, 
+        createCharacter, 
+        deleteCharacter, 
+        getCharacterScenes, 
+        beats, 
+        relationships, 
+        isLoading, 
+        hasInitializedFromDynamoDB, 
+        isEntityInScript, 
+        addImageToEntity,
+        canEditScript,
+        canUseAI
+    } = useScreenplay();
     const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<CharacterColumn[]>([]);
     const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
@@ -166,17 +180,24 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                         Track character arcs throughout your screenplay
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => setIsCreating(true)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
-                                    style={{
-                                        backgroundColor: '#DC143C',
-                                        color: 'white',
-                                    }}
-                                >
-                                    <Plus size={18} />
-                                    Add Character
-                                </button>
+                                {canEditScript && (
+                                    <button
+                                        onClick={() => setIsCreating(true)}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                                        style={{
+                                            backgroundColor: '#DC143C',
+                                            color: 'white',
+                                        }}
+                                    >
+                                        <Plus size={18} />
+                                        Add Character
+                                    </button>
+                                )}
+                                {!canEditScript && (
+                                    <span className="text-sm text-base-content/50">
+                                        Read-only access
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}
@@ -253,6 +274,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                             isInScript={isInScriptMap.get(character.id) || false}
                                             onClick={() => setSelectedCharacter(character)}
                                             onEdit={() => openEditForm(character)}
+                                            canEdit={canEditScript}
                                         />
                                     </motion.div>
                                 ))}
@@ -340,6 +362,7 @@ interface CharacterCardContentProps {
     isInScript: boolean;
     onClick: () => void;
     onEdit: () => void;
+    canEdit: boolean;
 }
 
 function CharacterCardContent({
@@ -349,6 +372,7 @@ function CharacterCardContent({
     isInScript,
     onClick,
     onEdit,
+    canEdit,
 }: CharacterCardContentProps) {
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -425,16 +449,18 @@ function CharacterCardContent({
                     >
                         <Copy size={14} style={{ color: '#9CA3AF' }} />
                     </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit();
-                        }}
-                        className="p-1 rounded hover:bg-gray-700/50 transition-colors"
-                        title="Edit character"
-                    >
-                        <MoreVertical size={14} style={{ color: '#9CA3AF' }} />
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit();
+                            }}
+                            className="p-1 rounded hover:bg-gray-700/50 transition-colors"
+                            title="Edit character"
+                        >
+                            <MoreVertical size={14} style={{ color: '#9CA3AF' }} />
+                        </button>
+                    )}
                 </div>
             </div>
 

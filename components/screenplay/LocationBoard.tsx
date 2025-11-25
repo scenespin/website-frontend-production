@@ -27,7 +27,21 @@ interface LocationBoardProps {
 }
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
-    const { locations, updateLocation, createLocation, deleteLocation, getLocationScenes, beats, relationships, isLoading, hasInitializedFromDynamoDB, isEntityInScript, addImageToEntity } = useScreenplay();
+    const { 
+        locations, 
+        updateLocation, 
+        createLocation, 
+        deleteLocation, 
+        getLocationScenes, 
+        beats, 
+        relationships, 
+        isLoading, 
+        hasInitializedFromDynamoDB, 
+        isEntityInScript, 
+        addImageToEntity,
+        canEditScript,
+        canUseAI
+    } = useScreenplay();
     const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<LocationColumn[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -177,21 +191,27 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                             View and manage all locations from your screenplay
                         </p>
                     </div>
-                    <button
-                        onClick={() => {
-                            setSelectedColumnType(null); // No specific column selected
-                            setIsCreating(true);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
-                        style={{
-                            backgroundColor: '#8B5CF6',
-                            color: 'white'
-                        }}
-                    >
-                        <Plus size={18} />
-                        <span className="hidden sm:inline">Add Location</span>
-                        <span className="sm:hidden">Add</span>
-                    </button>
+                    {canEditScript ? (
+                        <button
+                            onClick={() => {
+                                setSelectedColumnType(null); // No specific column selected
+                                setIsCreating(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
+                            style={{
+                                backgroundColor: '#8B5CF6',
+                                color: 'white'
+                            }}
+                        >
+                            <Plus size={18} />
+                            <span className="hidden sm:inline">Add Location</span>
+                            <span className="sm:hidden">Add</span>
+                        </button>
+                    ) : (
+                        <span className="text-sm text-base-content/50">
+                            Read-only access
+                        </span>
+                    )}
                 </div>
             )}
 
@@ -394,6 +414,7 @@ interface LocationCardContentProps {
     sceneCount: number;
     isInScript: boolean;
     openEditForm?: (location: Location) => void;
+    canEdit: boolean;
 }
 
 function LocationCardContent({
@@ -402,6 +423,7 @@ function LocationCardContent({
     sceneCount,
     isInScript,
     openEditForm,
+    canEdit,
 }: LocationCardContentProps) {
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -469,17 +491,19 @@ function LocationCardContent({
                         >
                             <Copy size={14} />
                         </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                openEditForm(location);
-                            }}
-                            className="p-1 rounded hover:bg-base-content/20 transition-colors"
-                            style={{ color: '#9CA3AF' }}
-                            title="Edit location"
-                        >
-                            <MoreVertical size={14} />
-                        </button>
+                        {canEdit && openEditForm && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditForm(location);
+                                }}
+                                className="p-1 rounded hover:bg-base-content/20 transition-colors"
+                                style={{ color: '#9CA3AF' }}
+                                title="Edit location"
+                            >
+                                <MoreVertical size={14} />
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
