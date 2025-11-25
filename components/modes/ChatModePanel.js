@@ -33,7 +33,10 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
     // Remove markdown code blocks
     .replace(/```[a-z]*\n/g, '')
-    .replace(/```/g, '');
+    .replace(/```/g, '')
+    // 🔥 NEW: Remove "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
+    .replace(/^\[SCREENWRITING ASSISTANT\]\s*$/gim, '')
+    .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '');
   
   // Remove common AI response patterns that aren't screenplay content
   const unwantedPatterns = [
@@ -152,6 +155,11 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       // This won't match character names like "REPORTER #1" because # is not at the start
       if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
         continue; // Skip markdown headers
+      }
+      
+      // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
+      if (/^\[?SCREENWRITING ASSISTANT\]?\s*$/i.test(line)) {
+        continue; // Skip assistant headers
       }
       
       // If we find a scene heading, skip it (but continue processing - don't break)

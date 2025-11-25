@@ -237,16 +237,28 @@ CRITICAL INSTRUCTIONS:
 6. Do NOT repeat existing scene content - write ONLY the new content requested
 7. Be DESCRIPTIVE and VISUAL for action
 8. Include dialogue ONLY if user mentions speaking/talking/saying
-9. Character names in ALL CAPS when they speak
-10. Use active verbs and cinematic language
-11. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'} (for context only - do NOT include in output)
-12. Each request is standalone - write ONLY what they asked for
-13. NO analysis, NO critique, NO suggestions, NO alternatives, NO "this would" or "this could"
-14. NO meta-commentary, NO questions, NO explanations
-15. NO notes like "This adds..." or "This creates..." - just write the content
-16. If the user says "her computer explodes", write the explosion - do NOT analyze whether it's a good idea
-17. If the user says "the computer freezes", write ONLY the freezing action - do NOT write the whole scene
-18. 🔥 CRITICAL: The cursor is positioned AFTER existing content. Write ONLY what comes NEXT, not what came before.${continuationContext}
+9. FOUNTAIN FORMAT - PROPER NEWLINES REQUIRED:
+   - Character names MUST be on their own line (ALL CAPS)
+   - Parentheticals MUST be on their own line below character name: (in parentheses)
+   - Dialogue MUST be on its own line below character name (or parenthetical if present)
+   - Action lines are separate paragraphs (each on its own line or lines)
+   - Empty line after dialogue blocks
+   - Example format:
+     SARAH
+     (under her breath)
+     Another cat stuck in a tree.
+     
+     [empty line here]
+10. Character names in ALL CAPS when they speak
+11. Use active verbs and cinematic language
+12. Current scene: ${sceneContext?.heading || 'INT. LOCATION - DAY'} (for context only - do NOT include in output)
+13. Each request is standalone - write ONLY what they asked for
+14. NO analysis, NO critique, NO suggestions, NO alternatives, NO "this would" or "this could"
+15. NO meta-commentary, NO questions, NO explanations
+16. NO notes like "This adds..." or "This creates..." - just write the content
+17. If the user says "her computer explodes", write the explosion - do NOT analyze whether it's a good idea
+18. If the user says "the computer freezes", write ONLY the freezing action - do NOT write the whole scene
+19. 🔥 CRITICAL: The cursor is positioned AFTER existing content. Write ONLY what comes NEXT, not what came before.${continuationContext}
 
 OUTPUT: Only the screenplay content they requested - nothing before, nothing after, no headers, no questions, no analysis, no scene headings, no meta-commentary, no repeating existing content.
 
@@ -370,6 +382,18 @@ FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
 - Dialogue in plain text below character name
 - Action lines in normal case
 - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
+- PROPER NEWLINES REQUIRED:
+  - Character names MUST be on their own line (ALL CAPS)
+  - Parentheticals MUST be on their own line below character name: (in parentheses)
+  - Dialogue MUST be on its own line below character name (or parenthetical if present)
+  - Action lines are separate paragraphs (each on its own line or lines)
+  - Empty line after dialogue blocks
+  - Example format:
+    SARAH
+    (under her breath)
+    Another cat stuck in a tree.
+    
+    [empty line here]
 - Proper spacing between elements
 - Scene headings in ALL CAPS: INT. LOCATION - TIME
 
@@ -553,7 +577,18 @@ CRITICAL INSTRUCTIONS:
 2. If they say "make this more dramatic", intensify the existing content without adding new elements
 3. If they say "make this concise", shorten it without changing the meaning
 4. If they say "add dialogue", add ONLY dialogue - no extra action
-5. Maintain Fountain screenplay format
+5. Maintain Fountain screenplay format with PROPER NEWLINES:
+   - Character names MUST be on their own line (ALL CAPS)
+   - Parentheticals MUST be on their own line below character name: (in parentheses)
+   - Dialogue MUST be on its own line below character name (or parenthetical if present)
+   - Action lines are separate paragraphs (each on its own line or lines)
+   - Empty line after dialogue blocks
+   - Example format:
+     SARAH
+     (under her breath)
+     Another cat stuck in a tree.
+     
+     [empty line here]
 6. Keep the same scene location: ${sceneContext?.heading || 'current scene'} - NO scene headings
 7. Use ONLY these characters: ${sceneContext?.characters?.join(', ') || 'existing characters'}
 8. Match the length of the original text unless specifically asked to expand/shorten
@@ -564,8 +599,9 @@ CRITICAL INSTRUCTIONS:
 13. Character names in ALL CAPS only when speaking
 14. This is STANDALONE - ignore previous responses
 15. Output only screenplay content - no explanations or suggestions
+16. If generating more content than the original line length, use proper line breaks
 
-Format: Pure Fountain screenplay text matching the user's specific request.`;
+Format: Pure Fountain screenplay text matching the user's specific request with proper newlines.`;
   
   return fullPrompt;
 }

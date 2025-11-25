@@ -20,6 +20,13 @@ function cleanFountainOutput(text) {
   
   let cleaned = text;
   
+  // 🔥 CRITICAL: Remove "[SCREENWRITING ASSISTANT]" headers FIRST (before other processing)
+  // This ensures they don't interfere with content extraction
+  cleaned = cleaned
+    .replace(/^\[SCREENWRITING ASSISTANT\]\s*$/gim, '')
+    .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '')
+    .replace(/\[SCREENWRITING ASSISTANT\]\s*/gi, ''); // Also remove if it appears in the middle of a line
+  
   // Remove markdown formatting
   cleaned = cleaned
     .replace(/\*\*([^*]+)\*\*/g, '$1')
@@ -66,7 +73,9 @@ function cleanFountainOutput(text) {
     /^\s*---\s*$/,
     /^\s*\*\s*$/,
     /^FADE OUT\.?\s*$/i,  // Skip "FADE OUT" lines (shouldn't be in middle of screenplay)
-    /^THE END\.?\s*$/i    // Skip "THE END" lines (shouldn't be in middle of screenplay)
+    /^THE END\.?\s*$/i,    // Skip "THE END" lines (shouldn't be in middle of screenplay)
+    /^\[SCREENWRITING ASSISTANT\]\s*$/i,  // Skip "[SCREENWRITING ASSISTANT]" headers
+    /^SCREENWRITING ASSISTANT\s*$/i        // Skip "SCREENWRITING ASSISTANT" headers
   ];
   
   // Patterns for lines that are clearly explanations (stop here)
@@ -97,12 +106,24 @@ function cleanFountainOutput(text) {
       continue; // Skip this line but keep processing
     }
     
+    // 🔥 CRITICAL FIX: Check for scene headings (INT./EXT.) even if we haven't found content yet
+    // This handles cases where "[SCREENWRITING ASSISTANT]" appears before actual screenplay content
+    if (!foundFirstScreenplayContent && /^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
+      foundFirstScreenplayContent = true;
+      // Include this scene heading
+      screenplayLines.push(line);
+      continue;
+    }
+    
     // Check if we should stop processing (end of screenplay content)
+    // BUT: Don't stop if we haven't found screenplay content yet - keep looking
     let shouldStop = false;
-    for (const pattern of stopPatterns) {
-      if (pattern.test(trimmedLine)) {
-        shouldStop = true;
-        break;
+    if (foundFirstScreenplayContent) {
+      for (const pattern of stopPatterns) {
+        if (pattern.test(trimmedLine)) {
+          shouldStop = true;
+          break;
+        }
       }
     }
     if (shouldStop) {
@@ -110,15 +131,18 @@ function cleanFountainOutput(text) {
     }
     
     // Check if this is an explanation (stop here)
+    // BUT: Don't stop if we haven't found screenplay content yet - keep looking for it
     let isExplanation = false;
-    for (const pattern of explanationPatterns) {
-      if (pattern.test(trimmedLine)) {
-        isExplanation = true;
-        break;
+    if (foundFirstScreenplayContent) {
+      for (const pattern of explanationPatterns) {
+        if (pattern.test(trimmedLine)) {
+          isExplanation = true;
+          break;
+        }
       }
     }
-    if (isExplanation && !foundFirstScreenplayContent) {
-      break; // Stop if we haven't found screenplay content yet
+    if (isExplanation && foundFirstScreenplayContent) {
+      break; // Stop if we've already found screenplay content and now see explanation
     }
     
     // Check if this looks like dialogue or character name
@@ -140,12 +164,73 @@ function cleanFountainOutput(text) {
     }
     
     // Mark that we've found screenplay content
-    if (/^(INT\.|EXT\.|I\/E\.|[A-Z][A-Z\s#0-9']+$)/.test(trimmedLine) && trimmedLine.length > 2) {
+    // Look for scene headings, character names, or substantial action lines
+    if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
+      foundFirstScreenplayContent = true;
+    } else if (/^[A-Z][A-Z\s#0-9']+$/.test(trimmedLine) && trimmedLine.length > 2 && trimmedLine.length < 50) {
+      // Character name (ALL CAPS, reasonable length)
+      foundFirstScreenplayContent = true;
+    } else if (trimmedLine.length > 10 && !/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure|Great|Perfect|Excellent|Good|Nice|Sure|Okay|OK)/i.test(trimmedLine)) {
+      // Substantial action line (not an explanation)
       foundFirstScreenplayContent = true;
     }
     
-    // Include this line
-    screenplayLines.push(line);
+    // Include this line if we've found screenplay content, or if it looks like screenplay content
+    if (foundFirstScreenplayContent || /^(INT\.|EXT\.|I\/E\.|[A-Z][A-Z\s#0-9']+$)/.test(trimmedLine)) {
+      screenplayLines.push(line);
+    }
+  }
+  
+  // 🔥 CRITICAL FIX: If we didn't find any screenplay content, try a more aggressive extraction
+  // Look for scene headings anywhere in the text, even after explanation text
+  if (screenplayLines.length === 0 || !foundFirstScreenplayContent) {
+    console.warn('[DirectorModePanel] No screenplay content found with standard extraction, trying aggressive extraction...');
+    screenplayLines = [];
+    foundFirstScreenplayContent = false;
+    
+    // Find the first scene heading or character name
+    let firstContentIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const trimmedLine = lines[i].trim();
+      if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine) || 
+          (/^[A-Z][A-Z\s#0-9']+$/.test(trimmedLine) && trimmedLine.length > 2 && trimmedLine.length < 50)) {
+        firstContentIndex = i;
+        foundFirstScreenplayContent = true;
+        break;
+      }
+    }
+    
+    // If we found screenplay content, extract everything from that point forward
+    if (firstContentIndex >= 0) {
+      for (let i = firstContentIndex; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+        
+        // Stop on clear explanation patterns (but only after we've found content)
+        if (foundFirstScreenplayContent) {
+          let shouldStop = false;
+          for (const pattern of stopPatterns) {
+            if (pattern.test(trimmedLine)) {
+              shouldStop = true;
+              break;
+            }
+          }
+          if (shouldStop) break;
+        }
+        
+        // Skip explanation patterns
+        let shouldSkip = false;
+        for (const pattern of skipPatterns) {
+          if (pattern.test(trimmedLine)) {
+            shouldSkip = true;
+            break;
+          }
+        }
+        if (shouldSkip) continue;
+        
+        screenplayLines.push(line);
+      }
+    }
   }
   
   cleaned = screenplayLines.join('\n');
@@ -447,10 +532,25 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 
                 // If retry failed or we've already retried, fall back to cleaning the raw response
                 console.warn('[DirectorModePanel] Falling back to cleaning raw response');
+                console.log('[DirectorModePanel] Full content length:', fullContent.length);
+                console.log('[DirectorModePanel] Full content preview:', fullContent.substring(0, 500));
                 const cleanedContent = cleanFountainOutput(fullContent);
+                console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
+                console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
+                
+                // If cleaned content is empty or too short, use the raw content (user can see what AI generated)
+                const finalContent = (cleanedContent && cleanedContent.trim().length > 10) 
+                  ? cleanedContent 
+                  : fullContent;
+                
+                if (!finalContent || finalContent.trim().length < 3) {
+                  console.error('[DirectorModePanel] ❌ Both cleaned and raw content are empty or too short');
+                  toast.error('AI response was empty. Please try again.');
+                }
+                
                 addMessage({
                   role: 'assistant',
-                  content: cleanedContent || fullContent,
+                  content: finalContent || '❌ No valid content extracted. Please try again.',
                   mode: 'director'
                 });
                 setTimeout(() => {
@@ -598,17 +698,32 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 {showInsertButton && onInsert && (
                   <button
                     onClick={() => {
-                      console.log('[DirectorModePanel] Insert button clicked, message content length:', message.content?.length);
+                      console.log('[DirectorModePanel] Insert button clicked');
+                      console.log('[DirectorModePanel] Message content length:', message.content?.length);
+                      console.log('[DirectorModePanel] Message content preview:', message.content?.substring(0, 300));
                       
                       // Content should already be clean (extracted from JSON), but clean again as safeguard
                       const cleanedContent = cleanFountainOutput(message.content);
                       
+                      console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
+                      console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 300) || '(empty)');
+                      
                       // Validate content before inserting
                       if (!cleanedContent || cleanedContent.trim().length < 3) {
                         console.error('[DirectorModePanel] ❌ Cannot insert: cleaned content is empty or too short');
-                        console.error('[DirectorModePanel] Original content:', message.content?.substring(0, 200));
+                        console.error('[DirectorModePanel] Original content full:', message.content);
                         console.error('[DirectorModePanel] Original content length:', message.content?.length);
+                        console.error('[DirectorModePanel] Cleaned content:', cleanedContent);
                         console.error('[DirectorModePanel] Cleaned content length:', cleanedContent?.length);
+                        
+                        // Try using raw content if cleaned is empty
+                        if (message.content && message.content.trim().length > 10) {
+                          console.warn('[DirectorModePanel] Using raw content as fallback');
+                          onInsert(message.content);
+                          closeDrawer();
+                          return;
+                        }
+                        
                         toast.error('Content is empty after cleaning. Please try again or use the original response.');
                         return; // Don't insert empty content
                       }

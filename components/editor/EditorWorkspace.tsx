@@ -288,19 +288,40 @@ export default function EditorWorkspace() {
         // Clean the text (should already be cleaned by modal, but double-check)
         let cleaned = rewrittenText.trim();
         
-        // Smart newline detection: If original was single line but rewrite is multi-line,
-        // and there's text after that doesn't start with newline, add a newline after rewrite
+        // Smart newline detection: Add newlines when rewrite generates more content than original
         if (selectedText) {
+            const originalLength = selectedText.length;
             const originalWasSingleLine = !selectedText.includes('\n');
             const rewriteIsMultiLine = cleaned.includes('\n');
+            const rewriteLength = cleaned.length;
             const textAfter = state.content.substring(selectionRange.end);
             const hasTextAfter = textAfter.trim().length > 0;
             const textAfterStartsWithNewline = textAfter.startsWith('\n');
             
-            // If original was single line, rewrite is multi-line, and there's text after without newline
+            // Case 1: Original was single line, rewrite is multi-line, and there's text after without newline
             if (originalWasSingleLine && rewriteIsMultiLine && hasTextAfter && !textAfterStartsWithNewline) {
                 // Add a newline after the rewritten text to separate it from following content
                 cleaned = cleaned + '\n';
+            }
+            
+            // Case 2: Rewrite is significantly longer than original (even if still single line)
+            // This handles cases where a short line expands into a much longer line
+            // Threshold: if rewrite is 50% longer than original, it likely needs a newline
+            const lengthIncrease = rewriteLength / originalLength;
+            if (lengthIncrease > 1.5 && originalWasSingleLine && !rewriteIsMultiLine && hasTextAfter && !textAfterStartsWithNewline) {
+                // Add a newline after the expanded text
+                cleaned = cleaned + '\n';
+            }
+            
+            // Case 3: If rewrite contains multiple lines and original was single line,
+            // ensure proper spacing before the rewrite (if there's text before)
+            const textBefore = state.content.substring(0, selectionRange.start);
+            const hasTextBefore = textBefore.trim().length > 0;
+            const textBeforeEndsWithNewline = textBefore.endsWith('\n');
+            
+            if (originalWasSingleLine && rewriteIsMultiLine && hasTextBefore && !textBeforeEndsWithNewline) {
+                // Add a newline before the rewritten text to separate it from preceding content
+                cleaned = '\n' + cleaned;
             }
         }
         
