@@ -90,7 +90,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
       await addCollaborator(newCollaboratorEmail.trim(), newCollaboratorRole);
       setNewCollaboratorEmail('');
       setNewCollaboratorRole('viewer');
-      toast.success('Collaborator added successfully');
+      // Toast is handled by addCollaborator function in ScreenplayContext
     } catch (error: any) {
       console.error('[CollaborationPanel] Error adding collaborator:', error);
       // Error toast is handled by addCollaborator function
@@ -106,7 +106,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
 
     try {
       await removeCollaborator(identifier);
-      toast.success('Collaborator removed');
+      // Toast is handled by removeCollaborator function in ScreenplayContext
     } catch (error: any) {
       console.error('[CollaborationPanel] Error removing collaborator:', error);
       // Error toast is handled by removeCollaborator function
@@ -128,7 +128,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
       await updateCollaboratorRole(identifier, editingRoleValue);
       setEditingRole(null);
       setEditingRoleValue('viewer');
-      toast.success('Role updated successfully');
+      // Toast is handled by updateCollaboratorRole function in ScreenplayContext
     } catch (error: any) {
       console.error('[CollaborationPanel] Error updating role:', error);
       // Error toast is handled by updateCollaboratorRole function
@@ -237,11 +237,16 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                     disabled={isAdding}
                   >
                     {availableRoles.map(role => (
-                      <option key={role.id} value={role.id}>
-                        {role.name} - {role.description}
+                      <option key={role.id} value={role.id} title={role.description}>
+                        {role.name}
                       </option>
                     ))}
                   </select>
+                  {newCollaboratorRole && (
+                    <p className="text-xs text-base-content/60 mt-1">
+                      {availableRoles.find(r => r.id === newCollaboratorRole)?.description}
+                    </p>
+                  )}
                 )}
               </div>
               <button

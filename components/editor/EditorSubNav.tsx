@@ -112,7 +112,9 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
               {currentUserRole && (
                 <RoleBadge role={currentUserRole} size="sm" />
               )}
-              {isOwner && (
+              {/* Show collaboration button if user is owner (permissions are loaded) */}
+              {/* Only hide if we're certain user is NOT owner (permissions loaded and isOwner is false) */}
+              {currentScreenplayId && (isOwner || currentUserRole === 'director') && (
                 <button
                   onClick={() => setIsCollaborationPanelOpen(true)}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
