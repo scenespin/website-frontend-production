@@ -308,6 +308,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                 sceneCount={getLocationScenes(location.id).length}
                                                 isInScript={isInScriptMap.get(location.id) || false}
                                                 openEditForm={openEditForm}
+                                                canEdit={canEditScript}
                                             />
                                         </motion.div>
                                     ))}
