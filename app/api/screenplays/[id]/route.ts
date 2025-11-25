@@ -56,11 +56,27 @@ export async function GET(
     console.log('[Screenplay Get API] Backend response status:', backendResponse.status, 'for screenplay:', id);
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
-      console.error('[Screenplay Get API] Backend error for screenplay:', id, 'Status:', backendResponse.status, 'Error:', errorData);
+      console.error('[Screenplay Get API] ❌ Backend error for screenplay:', id);
+      console.error('[Screenplay Get API] ❌ Status:', backendResponse.status);
+      console.error('[Screenplay Get API] ❌ Error data:', JSON.stringify(errorData, null, 2));
+      console.error('[Screenplay Get API] ❌ Backend URL called:', backendUrl);
+      console.error('[Screenplay Get API] ❌ User ID:', userId);
+      // Log response headers for debugging
+      const responseHeaders: Record<string, string> = {};
+      backendResponse.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+      console.error('[Screenplay Get API] ❌ Response headers:', JSON.stringify(responseHeaders, null, 2));
       return NextResponse.json(errorData, { status: backendResponse.status });
     }
 
     const data = await backendResponse.json();
+    console.log('[Screenplay Get API] ✅ Backend success response:', backendResponse.status, 'Data preview:', {
+      screenplay_id: data?.data?.screenplay_id,
+      title: data?.data?.title,
+      status: data?.data?.status,
+      user_id: data?.data?.user_id
+    });
     
     // 🔥 CRITICAL: Set cache headers to prevent browser/Next.js caching
     // This ensures fresh data is always loaded, especially after saves
