@@ -226,13 +226,24 @@ export async function getScreenplay(
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
     let errorMessage = 'Failed to get screenplay';
+    
     try {
       const error = JSON.parse(errorText);
       errorMessage = error.message || error.error || errorMessage;
     } catch {
       errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
     }
-    throw new Error(errorMessage);
+    
+    // 🔥 FIX: Provide user-friendly error messages
+    if (response.status === 403) {
+      errorMessage = 'You don\'t have access to this screenplay. Please contact the owner.';
+    } else if (response.status === 404) {
+      errorMessage = 'Screenplay not found. It may have been deleted.';
+    }
+    
+    const error = new Error(errorMessage);
+    (error as any).response = response; // Attach response for better error handling
+    throw error;
   }
 
   const data = await response.json();

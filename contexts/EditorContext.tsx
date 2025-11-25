@@ -1118,8 +1118,45 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             console.warn('[EditorContext] ⚠️ Expected screenplay_* format');
                         }
                     } catch (error) {
-                        console.error('[EditorContext] ⚠️ Error loading screenplay from URL:', error);
-                        // Continue with normal load flow
+                        console.error('[EditorContext] ❌ Error loading screenplay from URL:', error);
+                        
+                        // 🔥 FIX: If URL parameter is present, don't fall back to Clerk metadata
+                        // Show error instead - user explicitly requested this screenplay
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        const errorResponse = (error as any)?.response;
+                        const statusCode = errorResponse?.status;
+                        
+                        const isPermissionError = statusCode === 403 || 
+                                                  errorMessage.includes('403') || 
+                                                  errorMessage.includes('Forbidden') || 
+                                                  errorMessage.includes('access') ||
+                                                  errorMessage.includes('permission');
+                        
+                        if (isPermissionError) {
+                            toast.error('You don\'t have access to this screenplay. Please contact the owner.');
+                            console.error('[EditorContext] ❌ Permission denied for screenplay:', projectId);
+                            // Don't load anything - show empty editor with error
+                            hasInitializedRef.current = initKey;
+                            return; // Exit early - don't fall back to Clerk metadata
+                        }
+                        
+                        // For other errors (network, 404, etc.), show error but allow fallback
+                        const isNotFoundError = statusCode === 404 || 
+                                                errorMessage.includes('404') || 
+                                                errorMessage.includes('not found');
+                        
+                        if (isNotFoundError) {
+                            toast.error('Screenplay not found. It may have been deleted.');
+                            console.error('[EditorContext] ❌ Screenplay not found:', projectId);
+                            // Don't load anything - show empty editor
+                            hasInitializedRef.current = initKey;
+                            return; // Exit early - don't fall back to Clerk metadata
+                        }
+                        
+                        // For network errors, show warning but allow fallback
+                        toast.error('Failed to load screenplay from URL. Loading your default screenplay instead.');
+                        console.error('[EditorContext] ⚠️ Network/other error loading from URL, will fall back to Clerk metadata');
+                        // Continue with normal load flow (fallback to Clerk metadata)
                     }
                 }
                 
