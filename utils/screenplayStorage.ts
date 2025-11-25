@@ -211,7 +211,9 @@ export async function getScreenplay(
   
   // Note: Next.js API route handles auth server-side, so we don't need to send token
   // 🔥 CRITICAL: Disable browser caching to ensure fresh data is always fetched
-  const response = await fetch(`/api/screenplays/${screenplayId}`, {
+  // Add cache-busting query parameter to force fresh request
+  const cacheBuster = `?t=${Date.now()}`;
+  const response = await fetch(`/api/screenplays/${screenplayId}${cacheBuster}`, {
     cache: 'no-store', // Prevent browser from caching the response
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',
