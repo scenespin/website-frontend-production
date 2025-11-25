@@ -1111,7 +1111,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 hasInitializedRef.current = initKey;
                                 return; // Success - screenplay loaded!
                             } else {
-                                console.warn('[EditorContext] ⚠️ Screenplay not found:', projectId);
+                                // 🔥 FIX: getScreenplay returned null (404) - treat as error and prevent fallback
+                                console.error('[EditorContext] ❌ Screenplay not found (404):', projectId);
+                                toast.error('Screenplay not found. It may have been deleted.');
+                                // Don't load anything - show empty editor
+                                hasInitializedRef.current = initKey;
+                                return; // Exit early - don't fall back to Clerk metadata
                             }
                         } else {
                             console.warn('[EditorContext] ⚠️ Invalid ID format in URL:', projectId);
