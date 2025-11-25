@@ -132,7 +132,7 @@ function ExportToGitHubButton() {
  */
 export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
-    const { canEditScript } = useScreenplay();
+    const { canEditScript, rescanScript } = useScreenplay();
     const [isSaving, setIsSaving] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
@@ -186,7 +186,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
             }
             
             // Call rescanScript from ScreenplayContext
-            const result = await screenplay.rescanScript(content);
+            const result = await rescanScript(content);
             
             const parts: string[] = [];
             if (result.newCharacters > 0) {
