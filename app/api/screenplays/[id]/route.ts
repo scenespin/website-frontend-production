@@ -43,7 +43,9 @@ export async function GET(
     console.log('[Screenplay Get API] Fetching screenplay:', id);
 
     // Proxy to backend
-    const backendResponse = await fetch(`${BACKEND_API_URL}/api/screenplays/${id}`, {
+    const backendUrl = `${BACKEND_API_URL}/api/screenplays/${id}`;
+    console.log('[Screenplay Get API] Proxying to backend:', backendUrl);
+    const backendResponse = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -51,8 +53,10 @@ export async function GET(
       },
     });
 
+    console.log('[Screenplay Get API] Backend response status:', backendResponse.status, 'for screenplay:', id);
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
+      console.error('[Screenplay Get API] Backend error for screenplay:', id, 'Status:', backendResponse.status, 'Error:', errorData);
       return NextResponse.json(errorData, { status: backendResponse.status });
     }
 
