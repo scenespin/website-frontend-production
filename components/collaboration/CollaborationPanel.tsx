@@ -230,23 +230,25 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                     Loading roles...
                   </div>
                 ) : (
-                  <select
-                    value={newCollaboratorRole}
-                    onChange={(e) => setNewCollaboratorRole(e.target.value as ScreenplayRole)}
-                    className="w-full px-3 py-2 bg-base-200 border border-base-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                    disabled={isAdding}
-                  >
-                    {availableRoles.map(role => (
-                      <option key={role.id} value={role.id} title={role.description}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
-                  {newCollaboratorRole && (
-                    <p className="text-xs text-base-content/60 mt-1">
-                      {availableRoles.find(r => r.id === newCollaboratorRole)?.description}
-                    </p>
-                  )}
+                  <>
+                    <select
+                      value={newCollaboratorRole}
+                      onChange={(e) => setNewCollaboratorRole(e.target.value as ScreenplayRole)}
+                      className="w-full px-3 py-2 bg-base-200 border border-base-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={isAdding}
+                    >
+                      {availableRoles.map(role => (
+                        <option key={role.id} value={role.id} title={role.description}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                    {newCollaboratorRole && (
+                      <p className="text-xs text-base-content/60 mt-1">
+                        {availableRoles.find(r => r.id === newCollaboratorRole)?.description}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
               <button
