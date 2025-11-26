@@ -193,11 +193,23 @@ export default function CursorOverlay({
 
       // Use offsetLeft/offsetTop for positioning relative to offset parent
       // This matches the textarea's position within the container
+      // Use clientHeight instead of offsetHeight to get the visible height (excludes scrollbar)
       setOverlayStyle({
         left: textarea.offsetLeft,
         top: textarea.offsetTop,
-        width: textarea.offsetWidth,
-        height: textarea.offsetHeight,
+        width: textarea.clientWidth, // Use clientWidth to exclude scrollbar
+        height: textarea.clientHeight, // Use clientHeight to get visible height only
+      });
+      
+      console.log('[CursorOverlay] Overlay position updated', {
+        left: textarea.offsetLeft,
+        top: textarea.offsetTop,
+        width: textarea.clientWidth,
+        height: textarea.clientHeight,
+        offsetWidth: textarea.offsetWidth,
+        offsetHeight: textarea.offsetHeight,
+        scrollHeight: textarea.scrollHeight,
+        scrollWidth: textarea.scrollWidth
       });
     };
 
@@ -263,6 +275,9 @@ export default function CursorOverlay({
         height: `${overlayStyle.height}px`,
         zIndex: 10,
         overflow: 'hidden', // Prevent cursors from showing outside textarea bounds
+        // Ensure overlay doesn't affect layout
+        margin: 0,
+        padding: 0,
       }}
     >
       {cursors.map(cursor => {

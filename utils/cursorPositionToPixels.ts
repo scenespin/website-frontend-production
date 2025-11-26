@@ -48,9 +48,12 @@ export function getCursorPixelPosition(
       boxSizing,
     } = styles;
 
+    // Get textarea's position relative to viewport
+    const textareaRect = textarea.getBoundingClientRect();
+
     // Create a hidden div with same styling
     const measureDiv = document.createElement('div');
-    measureDiv.style.position = 'absolute';
+    measureDiv.style.position = 'fixed'; // Use fixed to position relative to viewport
     measureDiv.style.visibility = 'hidden';
     measureDiv.style.whiteSpace = 'pre-wrap';
     measureDiv.style.wordWrap = 'break-word';
@@ -68,6 +71,10 @@ export function getCursorPixelPosition(
     measureDiv.style.borderTopWidth = borderTopWidth;
     measureDiv.style.width = `${textarea.offsetWidth}px`;
     measureDiv.style.boxSizing = boxSizing;
+    
+    // Position the div at the same location as the textarea
+    measureDiv.style.left = `${textareaRect.left}px`;
+    measureDiv.style.top = `${textareaRect.top}px`;
 
     // Split content at cursor position
     const beforeCursor = content.substring(0, position);
@@ -87,18 +94,17 @@ export function getCursorPixelPosition(
     }
 
     // Get marker position
-    // getBoundingClientRect() returns viewport-relative coordinates
-    // The hidden div shows content from the top (not scrolled), so markerRect gives us
-    // the position in the full content relative to the viewport
+    // Since the hidden div is positioned at the same location as the textarea (using fixed positioning),
+    // getBoundingClientRect() returns viewport-relative coordinates for both
     const markerRect = marker.getBoundingClientRect();
-    const textareaRect = textarea.getBoundingClientRect();
+    const currentTextareaRect = textarea.getBoundingClientRect();
 
     // Calculate position relative to textarea's top-left corner
-    // Since the hidden div is positioned at the top of the content (not scrolled),
-    // these coordinates represent the position in the FULL CONTENT, not the viewport.
+    // Since the hidden div shows content from the top (not scrolled), these coordinates
+    // represent the position in the FULL CONTENT, not the viewport.
     // The overlay will need to subtract scroll to get the viewport position.
-    const x = markerRect.left - textareaRect.left;
-    const y = markerRect.top - textareaRect.top;
+    const x = markerRect.left - currentTextareaRect.left;
+    const y = markerRect.top - currentTextareaRect.top;
     
     // Debug logging to understand coordinate calculation
     console.log('[cursorPositionToPixels] Calculated position', {
@@ -106,10 +112,12 @@ export function getCursorPixelPosition(
       contentLength: content.length,
       x,
       y,
-      markerRect: { left: markerRect.left, top: markerRect.top },
-      textareaRect: { left: textareaRect.left, top: textareaRect.top },
+      markerRect: { left: markerRect.left, top: markerRect.top, width: markerRect.width, height: markerRect.height },
+      textareaRect: { left: currentTextareaRect.left, top: currentTextareaRect.top, width: currentTextareaRect.width, height: currentTextareaRect.height },
       textareaScrollTop: textarea.scrollTop,
-      textareaScrollLeft: textarea.scrollLeft
+      textareaScrollLeft: textarea.scrollLeft,
+      textareaOffsetWidth: textarea.offsetWidth,
+      textareaOffsetHeight: textarea.offsetHeight
     });
 
     // Cleanup
