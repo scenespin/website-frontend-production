@@ -357,8 +357,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         
                         // Fetch latest screenplay to get "their" content
                         let theirContent: string | undefined;
+                        let latestScreenplay: any = null;
                         try {
-                            const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
+                            latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
                             theirContent = latestScreenplay?.content;
                             
                             // Feature 0133: Validate screenplay ID matches before showing conflict
@@ -381,7 +382,163 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             }
                         } catch (fetchError) {
                             console.error('[EditorContext] Failed to fetch latest screenplay for conflict:', fetchError);
-                            // If fetch fails, still show conflict modal but with limited info
+                            // If fetch fails, fall through to conflict modal with limited info
+                        }
+                        
+                        // Feature 0133: Smart conflict detection - only show conflict if edits overlap
+                        // If edits are in different areas (far apart), auto-merge silently
+                        if (theirContent && latestScreenplay) {
+                            const yourContent = currentState.content || '';
+                            const yourLines = yourContent.split('\n');
+                            const theirLines = theirContent.split('\n');
+                            
+                            // Find which lines changed in each version
+                            const maxLines = Math.max(yourLines.length, theirLines.length);
+                            const yourChangedLines: number[] = [];
+                            const theirChangedLines: number[] = [];
+                            
+                            for (let i = 0; i < maxLines; i++) {
+                                const yourLine = yourLines[i] || '';
+                                const theirLine = theirLines[i] || '';
+                                if (yourLine !== theirLine) {
+                                    // Line is different - check if it's a real change or just added/removed
+                                    if (i < yourLines.length && i < theirLines.length) {
+                                        // Both versions have this line, but content differs
+                                        yourChangedLines.push(i);
+                                        theirChangedLines.push(i);
+                                    } else if (i < yourLines.length) {
+                                        // Line exists in yours but not theirs
+                                        yourChangedLines.push(i);
+                                    } else if (i < theirLines.length) {
+                                        // Line exists in theirs but not yours
+                                        theirChangedLines.push(i);
+                                    }
+                                }
+                            }
+                            
+                            // Check if changed lines overlap (within 3 lines of each other)
+                            const CONFLICT_THRESHOLD = 3; // Lines apart to consider a conflict
+                            let hasOverlap = false;
+                            
+                            for (const yourLine of yourChangedLines) {
+                                for (const theirLine of theirChangedLines) {
+                                    if (Math.abs(yourLine - theirLine) <= CONFLICT_THRESHOLD) {
+                                        hasOverlap = true;
+                                        break;
+                                    }
+                                }
+                                if (hasOverlap) break;
+                            }
+                            
+                            // If no overlap (edits are far apart), auto-merge silently
+                            // This matches Google Docs behavior - no conflict modal for far-apart edits
+                            if (!hasOverlap && yourChangedLines.length > 0 && theirChangedLines.length > 0) {
+                                console.log('[EditorContext] ✅ Smart merge: Edits are in different areas, auto-merging silently');
+                                console.log('[EditorContext] Your changed lines:', yourChangedLines, '| Their changed lines:', theirChangedLines);
+                                
+                                // Auto-merge strategy: Merge both versions intelligently
+                                // Start with server version (has their changes), then apply user's changes where they edited
+                                let mergedContent = theirContent;
+                                
+                                // Apply user's changes: replace lines where user edited
+                                const mergedLines = mergedContent.split('\n');
+                                for (const lineNum of yourChangedLines) {
+                                    if (lineNum < yourLines.length && lineNum < mergedLines.length) {
+                                        // User edited this line - use their version
+                                        mergedLines[lineNum] = yourLines[lineNum];
+                                    } else if (lineNum < yourLines.length) {
+                                        // Line exists in user's version but not merged - add it
+                                        mergedLines.push(yourLines[lineNum]);
+                                    }
+                                }
+                                
+                                // Handle lines that exist in user's version but not in merged (new lines added)
+                                if (yourLines.length > mergedLines.length) {
+                                    const additionalLines = yourLines.slice(mergedLines.length);
+                                    mergedLines.push(...additionalLines);
+                                }
+                                
+                                const finalMergedContent = mergedLines.join('\n');
+                                
+                                // Update version to match server so future saves work
+                                if (latestScreenplay?.version !== undefined) {
+                                    let version: number;
+                                    if (typeof latestScreenplay.version === 'string') {
+                                        version = parseFloat(latestScreenplay.version) || 1;
+                                    } else {
+                                        version = latestScreenplay.version || 1;
+                                    }
+                                    screenplayVersionRef.current = version;
+                                }
+                                
+                                // Save merged content with force=true (bypass version check since we already merged)
+                                try {
+                                    const mergedUpdateParams: any = {
+                                        screenplay_id: activeScreenplayId,
+                                        title: latestScreenplay.title || currentState.title,
+                                        author: latestScreenplay.author || currentState.author,
+                                        content: finalMergedContent,
+                                        force: true // Bypass version check (we already handled the merge)
+                                    };
+                                    
+                                    const updated = await updateScreenplay(mergedUpdateParams, getToken);
+                                    if (updated && updated.version !== undefined) {
+                                        let newVersion: number;
+                                        if (typeof updated.version === 'string') {
+                                            newVersion = parseFloat(updated.version) || 1;
+                                        } else {
+                                            newVersion = updated.version || 1;
+                                        }
+                                        screenplayVersionRef.current = newVersion;
+                                    }
+                                    
+                                    // Update editor state with merged content
+                                    setState(prev => ({
+                                        ...prev,
+                                        content: finalMergedContent,
+                                        title: latestScreenplay.title || prev.title,
+                                        author: latestScreenplay.author || prev.author,
+                                        lastSaved: new Date(),
+                                        isDirty: false
+                                    }));
+                                    
+                                    toast.success('Changes saved (edits were in different areas, auto-merged)');
+                                    return true; // Save succeeded (auto-merged)
+                                } catch (mergeError) {
+                                    console.error('[EditorContext] Failed to save merged content:', mergeError);
+                                    // Fall through to conflict modal if merge save fails
+                                }
+                            }
+                            
+                            // If content is identical but versions differ, it's a metadata-only conflict
+                            // Auto-merge this too (no real conflict)
+                            if (yourContent === theirContent) {
+                                console.log('[EditorContext] ✅ Content identical, auto-merging metadata changes');
+                                if (latestScreenplay?.version !== undefined) {
+                                    let version: number;
+                                    if (typeof latestScreenplay.version === 'string') {
+                                        version = parseFloat(latestScreenplay.version) || 1;
+                                    } else {
+                                        version = latestScreenplay.version || 1;
+                                    }
+                                    screenplayVersionRef.current = version;
+                                }
+                                
+                                setState(prev => ({
+                                    ...prev,
+                                    title: latestScreenplay.title || prev.title,
+                                    author: latestScreenplay.author || prev.author,
+                                    lastSaved: new Date(),
+                                    isDirty: false
+                                }));
+                                
+                                toast.success('Changes saved (metadata-only conflict, auto-merged)');
+                                return true; // Save succeeded (auto-merged)
+                            }
+                            
+                            // If overlap exists, continue to conflict resolution
+                            console.log('[EditorContext] ⚠️ Conflict detected: Edits overlap or are close together');
+                            console.log('[EditorContext] Your changed lines:', yourChangedLines, '| Their changed lines:', theirChangedLines);
                         }
                         
                         // Feature 0133: Store conflict state (but don't show blocking modal immediately)
