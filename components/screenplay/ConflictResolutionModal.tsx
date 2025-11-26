@@ -112,21 +112,39 @@ export default function ConflictResolutionModal({
               </button>
               
               {showDiff && (
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-white mb-2">Your Version</h3>
-                    <pre className="text-xs text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                      {yourContent?.substring(0, 500) || '(empty)'}
-                      {yourContent && yourContent.length > 500 && '...'}
-                    </pre>
+                <div className="mt-4 space-y-4">
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                    <p className="text-xs text-yellow-200">
+                      💡 <strong>Tip:</strong> Compare the two versions below. If content appears identical, the conflict may be in metadata (title, author) or the versions differ but content is the same.
+                    </p>
                   </div>
-                  <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-white mb-2">Their Version</h3>
-                    <pre className="text-xs text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto">
-                      {theirContent?.substring(0, 500) || '(empty)'}
-                      {theirContent && theirContent.length > 500 && '...'}
-                    </pre>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        Your Version ({yourContent?.length || 0} chars)
+                      </h3>
+                      <pre className="text-xs text-gray-300 whitespace-pre-wrap max-h-64 overflow-y-auto font-mono">
+                        {yourContent || '(empty)'}
+                      </pre>
+                    </div>
+                    <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
+                      <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        Their Version ({theirContent?.length || 0} chars)
+                      </h3>
+                      <pre className="text-xs text-gray-300 whitespace-pre-wrap max-h-64 overflow-y-auto font-mono">
+                        {theirContent || '(empty)'}
+                      </pre>
+                    </div>
                   </div>
+                  {yourContent === theirContent && (
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                      <p className="text-xs text-blue-200">
+                        ℹ️ <strong>Note:</strong> Content appears identical. The conflict may be due to version mismatch or metadata changes (title/author). You can safely choose "Keep My Changes" or "Keep Their Changes".
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

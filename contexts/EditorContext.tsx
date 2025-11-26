@@ -375,8 +375,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             // If fetch fails, still show conflict modal but with limited info
                         }
                         
-                        // Store conflict state to show modal
-                        setConflictState({
+                        // Feature 0133: Store conflict state (but don't show blocking modal immediately)
+                        // Show non-blocking toast notification instead - user can continue editing
+                        // TODO: Fetch user name from user ID for lastEditedByName
+                        const lastEditedByName = undefined; // TODO: Implement user name lookup
+                        const conflictStateData = {
                             details: {
                                 currentVersion: conflictDetails.currentVersion || screenplayVersionRef.current || 1,
                                 yourVersion: conflictDetails.yourVersion || screenplayVersionRef.current || 1,
@@ -386,11 +389,34 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             },
                             yourContent: currentState.content,
                             theirContent: theirContent,
-                            lastEditedByName: undefined // TODO: Fetch user name from user ID
+                            lastEditedByName: lastEditedByName
+                        };
+                        
+                        // Store conflict state for modal (but don't show it yet)
+                        setConflictState(conflictStateData);
+                        
+                        // Show non-blocking toast notification with action buttons
+                        // Toast persists until user dismisses it (no auto-dismiss for important conflicts)
+                        const lastEditedByDisplay = lastEditedByName || conflictDetails.lastEditedBy || 'Another user';
+                        toast.warning('Conflict detected: Another user saved changes', {
+                            description: `${lastEditedByDisplay} saved changes while you were editing. Your changes are preserved. Click "View Changes" to resolve, or dismiss to continue editing.`,
+                            duration: Infinity, // Persist until user dismisses (X button) or clicks action
+                            action: {
+                                label: 'View Changes',
+                                onClick: () => {
+                                    // Show modal when user clicks "View Changes"
+                                    // Modal is already set up via conflictState, just ensure it's visible
+                                    setConflictState(conflictStateData);
+                                }
+                            },
+                            onDismiss: () => {
+                                // User dismissed toast (clicked X) - clear conflict state
+                                // Their changes are still preserved in editor, they just chose not to resolve now
+                                setConflictState(null);
+                            }
                         });
                         
-                        // Don't mark as saved - user needs to resolve conflict
-                        toast.error('Conflict detected: Another user has saved changes. Please resolve the conflict.');
+                        // Don't mark as saved - user can continue editing and resolve conflict later
                         return false; // Save failed
                     }
                     throw error;
@@ -1697,25 +1723,39 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     }
                     screenplayVersionRef.current = version;
                     
-                    // Reload content from server
-                    // Feature 0133: Preserve undo/redo stack when resolving conflicts
-                    setState(prev => ({
-                        ...prev,
-                        content: latestScreenplay.content || '',
-                        title: latestScreenplay.title || prev.title,
-                        author: latestScreenplay.author || prev.author,
-                        lastSaved: new Date(),
-                        isDirty: false
-                        // Note: undoStack and redoStack are preserved (not reset)
-                    }));
+                    // Feature 0133: Push current state to undo stack BEFORE changing content
+                    // This allows user to undo the conflict resolution if needed
+                    const currentSnapshot = {
+                        content: state.content,
+                        cursorPosition: state.cursorPosition
+                    };
+                    pushToUndoStack(currentSnapshot);
                     
-                    toast.success('Reloaded latest version (your changes were discarded)');
+                    // Reload content from server
+                    setState(prev => {
+                        const newUndoStack = [...prev.undoStack, { ...currentSnapshot, timestamp: Date.now() }].slice(-10);
+                        return {
+                            ...prev,
+                            content: latestScreenplay.content || '',
+                            title: latestScreenplay.title || prev.title,
+                            author: latestScreenplay.author || prev.author,
+                            lastSaved: new Date(),
+                            isDirty: false,
+                            undoStack: newUndoStack,
+                            canUndo: newUndoStack.length > 0,
+                            redoStack: [], // Clear redo stack
+                            canRedo: false
+                        };
+                    });
+                    
+                    toast.success('Reloaded latest version (your changes were discarded). You can undo to restore your version.');
                 }
                 
             } else if (choice === 'merge-manually') {
-                // Feature 0133: Merge manually - keep user's content, update version, show instructions
-                // We don't duplicate the entire screenplay - user can view differences in the conflict modal
-                console.log('[EditorContext] Resolving conflict: Merge manually (keeping user content, updating version)');
+                // Feature 0133: Merge manually - insert their content as Fountain comments
+                // Since conflicts are rare (same line/block edits), insert their entire content as comments
+                // User can review and uncomment what they want to keep
+                console.log('[EditorContext] Resolving conflict: Merge manually (inserting their content as comments)');
                 const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
                 
                 if (latestScreenplay) {
@@ -1728,25 +1768,46 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     }
                     screenplayVersionRef.current = version;
                     
-                    // Keep user's current content (don't duplicate their version)
-                    // User can view the conflict modal again or use the diff view to see what changed
-                    // Feature 0133: Preserve undo/redo stack when resolving conflicts
-                    setState(prev => ({
-                        ...prev,
-                        // Keep user's content - don't modify it
-                        // title and author from server (in case they changed)
-                        title: latestScreenplay.title || prev.title,
-                        author: latestScreenplay.author || prev.author,
-                        lastSaved: null, // Don't mark as saved - user needs to review and save manually
-                        isDirty: true // Mark as dirty so user knows to save after merging
-                        // Note: undoStack and redoStack are preserved (not reset)
-                    }));
+                    // Feature 0133: Push current state to undo stack before inserting comments
+                    // This allows user to undo the comment insertion if needed
+                    const currentSnapshot = {
+                        content: state.content,
+                        cursorPosition: state.cursorPosition
+                    };
+                    pushToUndoStack(currentSnapshot);
                     
-                    toast.info('Your content preserved. Version updated. Review changes in the conflict modal if needed, then save when ready.');
+                    // Insert their content as Fountain comments at the end of user's content
+                    // Format: /* ===== CONFLICT RESOLUTION - Their Version ===== */\n/* their content */\n/* ===== END CONFLICT RESOLUTION ===== */
+                    const theirContent = latestScreenplay.content || '';
+                    const conflictCommentBlock = `\n\n/* ======================================== CONFLICT RESOLUTION - Their Version ======================================== */\n/*\n${theirContent}\n*/\n/* ======================================== END CONFLICT RESOLUTION ======================================== */`;
+                    
+                    const mergedContent = state.content + conflictCommentBlock;
+                    const newCursorPosition = mergedContent.length; // Place cursor at end
+                    
+                    // Update state with merged content
+                    setState(prev => {
+                        const newUndoStack = [...prev.undoStack, { ...currentSnapshot, timestamp: Date.now() }].slice(-10);
+                        return {
+                            ...prev,
+                            content: mergedContent,
+                            cursorPosition: newCursorPosition,
+                            title: latestScreenplay.title || prev.title,
+                            author: latestScreenplay.author || prev.author,
+                            lastSaved: null, // Don't mark as saved - user needs to review and save manually
+                            isDirty: true, // Mark as dirty so user knows to save after merging
+                            undoStack: newUndoStack,
+                            canUndo: newUndoStack.length > 0,
+                            redoStack: [], // Clear redo stack
+                            canRedo: false
+                        };
+                    });
+                    
+                    toast.info('Their changes inserted as comments at the end. Review the commented section, uncomment what you want to keep, then save.');
+                    // Clear conflict state - modal can close, content is now in editor
                 }
             }
             
-            // Clear conflict state
+            // Clear conflict state (only if not merge-manually, which returns early)
             setConflictState(null);
             
         } catch (error: any) {
