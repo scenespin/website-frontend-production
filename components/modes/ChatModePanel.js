@@ -139,12 +139,24 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         break; // Stop on questions like "Should the footsteps enter, or pass by? Want me to keep going?"
       }
       
-      if (!isLikelyDialogue && /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
-          !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
-          !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
-          line.length > 15) { // Only if it's a longer explanation
-        break;
+      // 🔥 FIX: Only stop on explanation patterns if we HAVEN'T found screenplay content yet
+      // Once we've found screenplay content (character names, action lines), be more lenient
+      // This prevents stopping on legitimate narrative action lines like "This is what she became a journalist for."
+      if (!foundFirstScreenplayContent) {
+        // Before finding screenplay content, be strict about stopping on explanation patterns
+        const isMetaCommentary = /^(This|That)\s+(adds|creates|raises|builds|establishes|introduces|sets up|develops|enhances|improves|strengthens|deepens|expands|explores|reveals|highlights|emphasizes|underscores|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i.test(line);
+        
+        // Only stop on explanation words if they're clearly meta-commentary OR if they're questions/instructions
+        if (!isLikelyDialogue && !isMetaCommentary &&
+            /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
+            !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
+            !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
+            line.length > 15 && // Only if it's a longer explanation
+            /(should|would|could|might|may|can|will|shall|want|need|must|try|use|do|make|think|consider|remember|keep|ensure|make sure)/i.test(line)) { // Must contain instruction/analysis words
+          break;
+        }
       }
+      // After finding screenplay content, only stop on clear meta-commentary patterns (already handled above)
       
       // Skip "REVISED SCENE:" or "REVISION:" headers (with or without colon, with or without markdown)
       if (/^#?\s*REVISED\s+SCENE\s*:?\s*$/i.test(line) || /^#?\s*REVISION\s*:?\s*$/i.test(line)) {
@@ -279,7 +291,17 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       }
       
       // If we find a character name in ALL CAPS, we're in screenplay content
-      if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2) {
+      if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2 && line.length < 50) {
+        foundFirstScreenplayContent = true;
+      }
+      
+      // 🔥 FIX: Also mark screenplay content when we find substantial action lines
+      // Action lines are typically longer, contain action verbs, and don't start with explanation words
+      if (!foundFirstScreenplayContent && line.length > 10 && 
+          !/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure|Note|NOTE)/i.test(line) &&
+          !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // Not a scene heading
+          !/^[A-Z][A-Z\s#0-9']+$/.test(line) && // Not a character name
+          /[.!?]$/.test(line)) { // Ends with punctuation (typical of action lines)
         foundFirstScreenplayContent = true;
       }
       
@@ -726,6 +748,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             } else {
               console.warn('[ChatModePanel] ❌ JSON validation failed:', validation.errors);
               console.warn('[ChatModePanel] Raw JSON:', validation.rawJson);
+              console.warn('[ChatModePanel] Full content (first 1000 chars):', fullContent.substring(0, 1000));
+              console.warn('[ChatModePanel] Full content length:', fullContent.length);
               
               // Retry with more explicit instructions if we haven't retried yet
               if (retryState.attempts < maxRetries) {
@@ -739,7 +763,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               
               // If retry failed or we've already retried, fallback to text cleaning
               console.warn('[ChatModePanel] Falling back to text cleaning...');
+              console.warn('[ChatModePanel] Full content before cleaning:', fullContent.substring(0, 500));
               const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
+              console.warn('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
+              console.warn('[ChatModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
               
               if (!cleanedContent || cleanedContent.trim().length < 3) {
                 toast.error('Failed to generate valid content. Please try again.');
@@ -1034,16 +1061,34 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                         <div className="flex items-center gap-2 flex-wrap">
                           <button
                             onClick={() => {
+                              console.log('[ChatModePanel] Insert button clicked');
+                              console.log('[ChatModePanel] Message content length:', message.content?.length);
+                              console.log('[ChatModePanel] Message content preview:', message.content?.substring(0, 500));
+                              
                               // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
                               // Get scene context for duplicate detection
                               const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
                               const cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null);
                               
+                              console.log('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
+                              console.log('[ChatModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
+                              
                               // 🔥 PHASE 1 FIX: Validate content before inserting
                               if (!cleanedContent || cleanedContent.trim().length < 3) {
                                 console.error('[ChatModePanel] ❌ Cannot insert: cleaned content is empty or too short');
+                                console.error('[ChatModePanel] Original content full:', message.content);
                                 console.error('[ChatModePanel] Original content length:', message.content?.length);
+                                console.error('[ChatModePanel] Cleaned content:', cleanedContent);
                                 console.error('[ChatModePanel] Cleaned content length:', cleanedContent?.length);
+                                
+                                // Try using raw content if cleaned is empty
+                                if (message.content && message.content.trim().length > 10) {
+                                  console.warn('[ChatModePanel] Using raw content as fallback');
+                                  onInsert(message.content);
+                                  closeDrawer();
+                                  return;
+                                }
+                                
                                 toast.error('Content is empty after cleaning. Please try again or use the original response.');
                                 return; // Don't insert empty content
                               }
