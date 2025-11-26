@@ -293,11 +293,30 @@ export default function CursorOverlay({
                          adjustedX <= overlayStyle.width + margin && 
                          adjustedY <= overlayStyle.height + margin;
 
+        console.log('[CursorOverlay] Cursor visibility check', {
+          userId: cursor.userId,
+          rawX: position.x,
+          rawY: position.y,
+          adjustedX,
+          adjustedY,
+          scrollX,
+          scrollY,
+          overlayWidth: overlayStyle.width,
+          overlayHeight: overlayStyle.height,
+          isVisible,
+          textareaScrollTop: textarea.scrollTop,
+          textareaScrollLeft: textarea.scrollLeft,
+          textareaClientHeight: textarea.clientHeight,
+          textareaClientWidth: textarea.clientWidth
+        });
+
         if (!isVisible) {
-          console.debug('[CursorOverlay] Cursor outside viewport', { 
+          console.warn('[CursorOverlay] Cursor outside viewport - NOT RENDERING', { 
             userId: cursor.userId, 
             x: adjustedX, 
             y: adjustedY,
+            rawX: position.x,
+            rawY: position.y,
             scrollY,
             overlayWidth: overlayStyle.width,
             overlayHeight: overlayStyle.height
@@ -305,12 +324,15 @@ export default function CursorOverlay({
           return null;
         }
 
-        console.log('[CursorOverlay] Rendering cursor', { 
+        console.log('[CursorOverlay] ✅ Rendering cursor', { 
           userId: cursor.userId, 
           x: adjustedX, 
           y: adjustedY,
+          rawX: position.x,
+          rawY: position.y,
           color,
-          scrollY
+          scrollY,
+          willRenderAt: `left: ${adjustedX}px, top: ${adjustedY}px`
         });
 
         // Adjust selection positions for scroll as well

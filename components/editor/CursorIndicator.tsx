@@ -65,6 +65,9 @@ export default function CursorIndicator({
           zIndex: 2,
           boxShadow: `0 0 4px ${color}80`,
         }}
+        data-cursor-user-id={cursor.userId}
+        data-cursor-x={x}
+        data-cursor-y={y}
       />
       
       {/* User badge */}
