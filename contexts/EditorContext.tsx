@@ -133,6 +133,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
     // Feature 0133: Track screenplay version for optimistic locking
+    // Using a ref (not state) because:
+    // 1. Version doesn't need to trigger re-renders (performance optimization)
+    // 2. It's metadata tied to the screenplay, not UI state
+    // 3. Follows the same pattern as screenplayIdRef and other metadata refs
+    // 4. Must be reset when switching screenplays (each screenplay has its own version)
     const screenplayVersionRef = useRef<number | null>(null);
     
     // Feature 0133: Conflict state for conflict resolution modal
@@ -298,13 +303,62 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     if (error.isConflict || error.message?.includes('Conflict') || error.statusCode === 409 || (typeof error === 'object' && 'conflictDetails' in error)) {
                         console.error('[EditorContext] ❌ Conflict detected:', error);
                         
+                        // Feature 0133: Validate that we're comparing the same screenplay
+                        // This prevents false conflicts when switching between screenplays
                         const conflictDetails = error.conflictDetails || {};
+                        const conflictScreenplayId = conflictDetails.screenplay_id || conflictDetails.screenplayId;
+                        
+                        if (conflictScreenplayId && conflictScreenplayId !== activeScreenplayId) {
+                            console.error('[EditorContext] ⚠️ Conflict detected for different screenplay! Ignoring conflict.');
+                            console.error('[EditorContext] ⚠️ Active screenplay:', activeScreenplayId, '| Conflict screenplay:', conflictScreenplayId);
+                            // This is a stale conflict from a different screenplay - ignore it and retry save
+                            // The version ref should have been reset when switching screenplays
+                            console.log('[EditorContext] 🔄 Retrying save after ignoring stale conflict from different screenplay');
+                            // Force save to bypass version check (since version ref was reset)
+                            const forceUpdateParams: any = {
+                                screenplay_id: activeScreenplayId,
+                                title: currentState.title,
+                                author: currentState.author,
+                                content: currentState.content,
+                                force: true // Bypass version check
+                            };
+                            try {
+                                const updated = await updateScreenplay(forceUpdateParams, getToken);
+                                if (updated && updated.version !== undefined) {
+                                    let newVersion: number;
+                                    if (typeof updated.version === 'string') {
+                                        newVersion = parseFloat(updated.version) || 1;
+                                    } else {
+                                        newVersion = updated.version || 1;
+                                    }
+                                    screenplayVersionRef.current = newVersion;
+                                }
+                                setState(prev => ({
+                                    ...prev,
+                                    lastSaved: new Date(),
+                                    isDirty: false
+                                }));
+                                console.log('[EditorContext] ✅ Successfully saved after ignoring stale conflict');
+                                return true;
+                            } catch (retryError) {
+                                console.error('[EditorContext] ❌ Retry save failed:', retryError);
+                                throw retryError;
+                            }
+                        }
                         
                         // Fetch latest screenplay to get "their" content
                         let theirContent: string | undefined;
                         try {
                             const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
                             theirContent = latestScreenplay?.content;
+                            
+                            // Feature 0133: Validate screenplay ID matches before showing conflict
+                            if (latestScreenplay && latestScreenplay.screenplay_id !== activeScreenplayId) {
+                                console.error('[EditorContext] ⚠️ Fetched screenplay ID mismatch! Ignoring conflict.');
+                                console.error('[EditorContext] ⚠️ Active screenplay:', activeScreenplayId, '| Fetched screenplay:', latestScreenplay.screenplay_id);
+                                // This shouldn't happen, but if it does, ignore the conflict
+                                throw new Error('Screenplay ID mismatch in conflict resolution');
+                            }
                             
                             // Update version ref to current version
                             if (latestScreenplay?.version !== undefined) {
@@ -318,6 +372,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             }
                         } catch (fetchError) {
                             console.error('[EditorContext] Failed to fetch latest screenplay for conflict:', fetchError);
+                            // If fetch fails, still show conflict modal but with limited info
                         }
                         
                         // Store conflict state to show modal
@@ -1047,6 +1102,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Reset initialization guard to allow loading new screenplay
                 hasInitializedRef.current = false;
                 screenplayIdRef.current = null;
+                // Feature 0133: Reset version ref when switching screenplays (each screenplay has its own version)
+                screenplayVersionRef.current = null;
                 setState(defaultState);
             } else {
                 // Same screenplay (or preserving existing content) - preserve state
@@ -1054,6 +1111,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Reset guard to allow reload, but don't clear state
                 // The load effect will merge with existing state/localStorage
                 hasInitializedRef.current = false;
+                // Feature 0133: Reset version ref to ensure it gets re-initialized from DB (handles stale version refs)
+                screenplayVersionRef.current = null;
             }
             
             // Update previous ref
@@ -1124,10 +1183,22 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             
                             if (screenplay) {
                                 const dbContentLength = screenplay.content?.length || 0;
+                                // Feature 0133: Store version for optimistic locking (same pattern as Clerk metadata path)
+                                // Handle backward compatibility: convert string version to number if needed
+                                let version: number;
+                                if (typeof screenplay.version === 'string') {
+                                    version = parseFloat(screenplay.version) || 1;
+                                    console.log(`[EditorContext] ⚠️ Converting legacy string version '${screenplay.version}' to number ${version}`);
+                                } else {
+                                    version = screenplay.version || 1;
+                                }
+                                screenplayVersionRef.current = version;
+                                
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', {
                                     screenplayId: screenplay.screenplay_id,
                                     title: screenplay.title,
                                     contentLength: dbContentLength,
+                                    version: version,
                                     hasContent: !!screenplay.content,
                                     contentPreview: screenplay.content?.substring(0, 100) || '(empty)'
                                 });
