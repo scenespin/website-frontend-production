@@ -135,6 +135,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // Feature 0133: Track screenplay version for optimistic locking
     const screenplayVersionRef = useRef<number | null>(null);
     
+    // Feature 0133: Conflict state for conflict resolution modal
+    const [conflictState, setConflictState] = useState<{
+        details: ConflictDetails;
+        yourContent: string;
+        theirContent?: string;
+        lastEditedByName?: string;
+    } | null>(null);
+    
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
     useEffect(() => {
