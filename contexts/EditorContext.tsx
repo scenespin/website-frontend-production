@@ -150,6 +150,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const lastBroadcastedCursorRef = useRef<{ position: number; selectionStart?: number; selectionEnd?: number; timestamp: number } | null>(null);
     const cursorBroadcastTimerRef = useRef<NodeJS.Timeout | null>(null);
     const cursorIdleTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const cursorHeartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const isBroadcastingRef = useRef(false);
     
     // Feature 0134: Store other users' cursor positions (for rendering)
@@ -1700,17 +1701,37 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         selectionEnd: currentSelectionEnd !== currentPosition ? currentSelectionEnd : undefined,
                         timestamp: Date.now()
                     };
+                    
+                    // Start heartbeat interval to keep cursor alive even when idle
+                    // This ensures cursors remain visible for 30+ seconds even if user stops typing
+                    if (!cursorHeartbeatIntervalRef.current) {
+                        cursorHeartbeatIntervalRef.current = setInterval(async () => {
+                            // Only broadcast if we have a valid position and screenplay
+                            if (activeScreenplayId && activeScreenplayId.startsWith('screenplay_') && getToken && lastBroadcastedCursorRef.current) {
+                                try {
+                                    await broadcastCursorPosition(
+                                        activeScreenplayId,
+                                        lastBroadcastedCursorRef.current.position,
+                                        lastBroadcastedCursorRef.current.selectionStart,
+                                        lastBroadcastedCursorRef.current.selectionEnd,
+                                        getToken
+                                    );
+                                    // Update timestamp to keep it fresh
+                                    lastBroadcastedCursorRef.current.timestamp = Date.now();
+                                } catch (error) {
+                                    console.error('[EditorContext] Error in cursor heartbeat:', error);
+                                }
+                            }
+                        }, 5000); // Heartbeat every 5 seconds to keep cursor alive
+                        console.log('[EditorContext] Started cursor heartbeat interval');
+                    }
                 }
             } catch (error) {
                 console.error('[EditorContext] Error broadcasting cursor position:', error);
             }
         }, 500); // 500ms debounce
         
-        // Set idle timer: Stop broadcasting after 5 seconds of no cursor movement
-        cursorIdleTimerRef.current = setTimeout(() => {
-            isBroadcastingRef.current = false;
-            console.log('[EditorContext] User idle - stopped broadcasting cursor position');
-        }, 5000); // 5 seconds idle timeout
+        // Note: Removed idle timer - cursors now stay visible via heartbeat until user leaves the screenplay
         
         // Cleanup on unmount or screenplay change
         return () => {
@@ -1721,6 +1742,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             if (cursorIdleTimerRef.current) {
                 clearTimeout(cursorIdleTimerRef.current);
                 cursorIdleTimerRef.current = null;
+            }
+            if (cursorHeartbeatIntervalRef.current) {
+                clearInterval(cursorHeartbeatIntervalRef.current);
+                cursorHeartbeatIntervalRef.current = null;
+                console.log('[EditorContext] Stopped cursor heartbeat interval');
             }
         };
     }, [state.cursorPosition, state.selectionStart, state.selectionEnd, projectId, getToken]);
@@ -1745,6 +1771,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             if (cursorIdleTimerRef.current) {
                 clearTimeout(cursorIdleTimerRef.current);
                 cursorIdleTimerRef.current = null;
+            }
+            if (cursorHeartbeatIntervalRef.current) {
+                clearInterval(cursorHeartbeatIntervalRef.current);
+                cursorHeartbeatIntervalRef.current = null;
             }
             
             // Reset state
@@ -1780,7 +1810,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 
                 // Filter out:
                 // 1. Own cursor (userId matches current user)
-                // 2. Stale cursors (older than 10 seconds - backend already filters, but double-check)
+                // 2. Stale cursors (older than 30 seconds - backend already filters, but double-check)
                 const now = Date.now();
                 const activeOtherCursors = cursors.filter(cursor => {
                     // Filter out own cursor
@@ -1788,8 +1818,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         return false;
                     }
                     
-                    // Filter out stale cursors (older than 10 seconds)
-                    if (now - cursor.lastSeen > 10000) {
+                    // Filter out stale cursors (older than 30 seconds - matches backend timeout)
+                    if (now - cursor.lastSeen > 30000) {
                         return false;
                     }
                     
