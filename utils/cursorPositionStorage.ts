@@ -7,6 +7,7 @@
  */
 
 import { CursorPosition, UpdateCursorPositionRequest, CursorPositionResponse } from '@/types/collaboration';
+import { useAuth } from '@clerk/nextjs';
 
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
@@ -24,7 +25,7 @@ export async function broadcastCursorPosition(
   position: number,
   selectionStart?: number,
   selectionEnd?: number,
-  getToken?: () => Promise<string | null>
+  getToken?: ReturnType<typeof useAuth>['getToken']
 ): Promise<boolean> {
   if (!screenplayId || typeof position !== 'number' || position < 0) {
     console.warn('[cursorPositionStorage] Invalid parameters for broadcastCursorPosition');
@@ -82,7 +83,7 @@ export async function broadcastCursorPosition(
  */
 export async function getCursorPositions(
   screenplayId: string,
-  getToken?: () => Promise<string | null>
+  getToken?: ReturnType<typeof useAuth>['getToken']
 ): Promise<CursorPosition[]> {
   if (!screenplayId) {
     return [];
@@ -136,7 +137,7 @@ export async function getCursorPositions(
  */
 export async function clearCursorPosition(
   screenplayId: string,
-  getToken?: () => Promise<string | null>
+  getToken?: ReturnType<typeof useAuth>['getToken']
 ): Promise<boolean> {
   if (!screenplayId) {
     return false;
