@@ -31,10 +31,23 @@ export default function CursorOverlay({
   // Update cursor positions when content or cursors change
   useEffect(() => {
     const textarea = textareaRef.current;
-    if (!textarea || cursors.length === 0) {
+    if (!textarea) {
+      console.log('[CursorOverlay] Textarea ref is null, clearing positions');
       setCursorPositions(new Map());
       return;
     }
+
+    if (cursors.length === 0) {
+      console.log('[CursorOverlay] No cursors, clearing positions');
+      setCursorPositions(new Map());
+      return;
+    }
+
+    console.log('[CursorOverlay] Calculating positions for', cursors.length, 'cursor(s)', {
+      contentLength: content.length,
+      textareaExists: !!textarea,
+      textareaValueLength: textarea.value?.length || 0
+    });
 
     // Debounce position calculations (recalculate every 100ms max)
     if (updateTimerRef.current) {
@@ -42,39 +55,60 @@ export default function CursorOverlay({
     }
 
     updateTimerRef.current = setTimeout(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) {
+        console.warn('[CursorOverlay] Textarea ref became null during calculation');
+        return;
+      }
+
       const newPositions = new Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>();
 
       for (const cursor of cursors) {
-        const position = getCursorPixelPosition(textarea, content, cursor.position);
-        
-        if (position) {
-          let selectionStart: { x: number; y: number } | undefined;
-          let selectionEnd: { x: number; y: number } | undefined;
+        try {
+          const position = getCursorPixelPosition(textarea, content, cursor.position);
+          
+          if (position) {
+            let selectionStart: { x: number; y: number } | undefined;
+            let selectionEnd: { x: number; y: number } | undefined;
 
-          // Calculate selection range if selection exists
-          if (cursor.selectionStart !== undefined && cursor.selectionEnd !== undefined &&
-              cursor.selectionStart !== cursor.selectionEnd) {
-            const selectionRange = getSelectionPixelRange(
-              textarea,
-              content,
-              cursor.selectionStart,
-              cursor.selectionEnd
-            );
-            
-            if (selectionRange) {
-              selectionStart = selectionRange.start;
-              selectionEnd = selectionRange.end;
+            // Calculate selection range if selection exists
+            if (cursor.selectionStart !== undefined && cursor.selectionEnd !== undefined &&
+                cursor.selectionStart !== cursor.selectionEnd) {
+              const selectionRange = getSelectionPixelRange(
+                textarea,
+                content,
+                cursor.selectionStart,
+                cursor.selectionEnd
+              );
+              
+              if (selectionRange) {
+                selectionStart = selectionRange.start;
+                selectionEnd = selectionRange.end;
+              }
             }
-          }
 
-          newPositions.set(cursor.userId, {
-            ...position,
-            selectionStart,
-            selectionEnd
-          });
+            newPositions.set(cursor.userId, {
+              ...position,
+              selectionStart,
+              selectionEnd
+            });
+            
+            console.log('[CursorOverlay] Calculated position for cursor', cursor.userId, position);
+          } else {
+            console.warn('[CursorOverlay] Failed to calculate position for cursor', cursor.userId, {
+              position: cursor.position,
+              contentLength: content.length
+            });
+          }
+        } catch (error) {
+          console.error('[CursorOverlay] Error calculating position for cursor', cursor.userId, error);
         }
       }
 
+      console.log('[CursorOverlay] Position calculation complete', {
+        cursorsProcessed: cursors.length,
+        positionsCalculated: newPositions.size
+      });
       setCursorPositions(newPositions);
     }, 100); // 100ms debounce
 
