@@ -9,6 +9,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
+import ConflictResolutionModal, { ConflictDetails } from '@/components/screenplay/ConflictResolutionModal';
 
 interface EditorState {
     // Current document content
@@ -131,6 +132,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
+    // Feature 0133: Track screenplay version for optimistic locking
+    const screenplayVersionRef = useRef<number | null>(null);
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -249,17 +252,86 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             } else {
                 // Update existing screenplay - use the activeScreenplayId we determined above
                 console.log('[EditorContext] Updating EXISTING screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
-                await updateScreenplay({
+                
+                // Feature 0133: Include expectedVersion for optimistic locking
+                const updateParams: any = {
                     screenplay_id: activeScreenplayId,
                     title: currentState.title,
                     author: currentState.author,
                     content: currentState.content
-                }, getToken);
+                };
                 
-                // Update ref to keep in sync (in case it was different)
-                screenplayIdRef.current = activeScreenplayId;
+                if (screenplayVersionRef.current !== null) {
+                    updateParams.expectedVersion = screenplayVersionRef.current;
+                    console.log('[EditorContext] 🔒 Sending expectedVersion:', screenplayVersionRef.current);
+                }
                 
-                console.log('[EditorContext] ✅ Updated screenplay content:', activeScreenplayId, '| Saved', contentLength, 'chars');
+                try {
+                    const updated = await updateScreenplay(updateParams, getToken);
+                    
+                    // Feature 0133: Update version ref after successful save
+                    if (updated && updated.version !== undefined) {
+                        let newVersion: number;
+                        if (typeof updated.version === 'string') {
+                            newVersion = parseFloat(updated.version) || 1;
+                        } else {
+                            newVersion = updated.version || 1;
+                        }
+                        screenplayVersionRef.current = newVersion;
+                        console.log('[EditorContext] ✅ Version updated to:', newVersion);
+                    }
+                    
+                    // Update ref to keep in sync (in case it was different)
+                    screenplayIdRef.current = activeScreenplayId;
+                    
+                    console.log('[EditorContext] ✅ Updated screenplay content:', activeScreenplayId, '| Saved', contentLength, 'chars');
+                } catch (error: any) {
+                    // Feature 0133: Handle conflict errors (409)
+                    if (error.isConflict || error.message?.includes('Conflict') || error.statusCode === 409 || (typeof error === 'object' && 'conflictDetails' in error)) {
+                        console.error('[EditorContext] ❌ Conflict detected:', error);
+                        
+                        const conflictDetails = error.conflictDetails || {};
+                        
+                        // Fetch latest screenplay to get "their" content
+                        let theirContent: string | undefined;
+                        try {
+                            const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
+                            theirContent = latestScreenplay?.content;
+                            
+                            // Update version ref to current version
+                            if (latestScreenplay?.version !== undefined) {
+                                let version: number;
+                                if (typeof latestScreenplay.version === 'string') {
+                                    version = parseFloat(latestScreenplay.version) || 1;
+                                } else {
+                                    version = latestScreenplay.version || 1;
+                                }
+                                screenplayVersionRef.current = version;
+                            }
+                        } catch (fetchError) {
+                            console.error('[EditorContext] Failed to fetch latest screenplay for conflict:', fetchError);
+                        }
+                        
+                        // Store conflict state to show modal
+                        setConflictState({
+                            details: {
+                                currentVersion: conflictDetails.currentVersion || screenplayVersionRef.current || 1,
+                                yourVersion: conflictDetails.yourVersion || screenplayVersionRef.current || 1,
+                                lastEditedBy: conflictDetails.lastEditedBy,
+                                lastEditedAt: conflictDetails.lastEditedAt,
+                                fieldChanges: conflictDetails.fieldChanges || []
+                            },
+                            yourContent: currentState.content,
+                            theirContent: theirContent,
+                            lastEditedByName: undefined // TODO: Fetch user name from user ID
+                        });
+                        
+                        // Don't mark as saved - user needs to resolve conflict
+                        toast.error('Conflict detected: Another user has saved changes. Please resolve the conflict.');
+                        return false; // Save failed
+                    }
+                    throw error;
+                }
                 
                 // Feature 0117: No structure save needed here - handled separately by callers
             }
@@ -1185,10 +1257,22 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         
                         if (savedScreenplay) {
                             const dbContentLength = savedScreenplay.content?.length || 0;
+                            // Feature 0133: Store version for optimistic locking
+                            // Handle backward compatibility: convert string version to number if needed
+                            let version: number;
+                            if (typeof savedScreenplay.version === 'string') {
+                                version = parseFloat(savedScreenplay.version) || 1;
+                                console.log(`[EditorContext] ⚠️ Converting legacy string version '${savedScreenplay.version}' to number ${version}`);
+                            } else {
+                                version = savedScreenplay.version || 1;
+                            }
+                            screenplayVersionRef.current = version;
+                            
                             console.log('[EditorContext] ✅ Loaded screenplay from DynamoDB:', {
                                 screenplayId: savedScreenplay.screenplay_id,
                                 title: savedScreenplay.title,
                                 contentLength: dbContentLength,
+                                version: version,
                                 hasContent: !!savedScreenplay.content,
                                 contentPreview: savedScreenplay.content?.substring(0, 100) || '(empty)'
                             });
@@ -1374,9 +1458,234 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         };
     }, [projectId]);
     
+    // Feature 0133: Polling for real-time updates (check for version changes)
+    useEffect(() => {
+        const activeScreenplayId = projectId || screenplayIdRef.current;
+        if (!activeScreenplayId || !activeScreenplayId.startsWith('screenplay_')) {
+            return; // Don't poll if no screenplay loaded
+        }
+        
+        // Only poll if collaboration feature is enabled (check via environment or assume enabled for now)
+        // Poll every 30 seconds
+        const pollInterval = setInterval(async () => {
+            try {
+                const currentVersion = screenplayVersionRef.current;
+                if (currentVersion === null) {
+                    return; // No version tracked yet
+                }
+                
+                // Fetch current screenplay to check version
+                const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
+                if (!latestScreenplay) {
+                    return;
+                }
+                
+                // Handle backward compatibility
+                let latestVersion: number;
+                if (typeof latestScreenplay.version === 'string') {
+                    latestVersion = parseFloat(latestScreenplay.version) || 1;
+                } else {
+                    latestVersion = latestScreenplay.version || 1;
+                }
+                
+                // Check if version changed
+                if (latestVersion !== currentVersion) {
+                    console.log(`[EditorContext] 🔔 Version changed: ${currentVersion} → ${latestVersion}`);
+                    
+                    // Update version ref
+                    screenplayVersionRef.current = latestVersion;
+                    
+                    // Show notification if user has unsaved changes
+                    const hasUnsavedChanges = stateRef.current.isDirty && stateRef.current.content.trim().length > 0;
+                    
+                    if (hasUnsavedChanges) {
+                        // Don't auto-reload if user has unsaved changes - show notification instead
+                        toast.info('New changes available from another user. Save your changes first, then reload.', {
+                            duration: 5000,
+                            action: {
+                                label: 'Reload',
+                                onClick: async () => {
+                                    // Reload screenplay
+                                    const reloaded = await getScreenplay(activeScreenplayId, getToken);
+                                    if (reloaded) {
+                                        let version: number;
+                                        if (typeof reloaded.version === 'string') {
+                                            version = parseFloat(reloaded.version) || 1;
+                                        } else {
+                                            version = reloaded.version || 1;
+                                        }
+                                        screenplayVersionRef.current = version;
+                                        
+                                        setState(prev => ({
+                                            ...prev,
+                                            content: reloaded.content || prev.content,
+                                            title: reloaded.title || prev.title,
+                                            author: reloaded.author || prev.author
+                                        }));
+                                        
+                                        toast.success('Reloaded latest version');
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        // Auto-reload if no unsaved changes
+                        let version: number;
+                        if (typeof latestScreenplay.version === 'string') {
+                            version = parseFloat(latestScreenplay.version) || 1;
+                        } else {
+                            version = latestScreenplay.version || 1;
+                        }
+                        screenplayVersionRef.current = version;
+                        
+                        setState(prev => ({
+                            ...prev,
+                            content: latestScreenplay.content || prev.content,
+                            title: latestScreenplay.title || prev.title,
+                            author: latestScreenplay.author || prev.author
+                        }));
+                        
+                        toast.success('Screenplay updated with latest changes');
+                    }
+                }
+            } catch (error) {
+                console.error('[EditorContext] Error polling for updates:', error);
+                // Silent fail - don't spam user with errors
+            }
+        }, 30000); // Poll every 30 seconds
+        
+        return () => {
+            clearInterval(pollInterval);
+        };
+    }, [projectId, getToken]);
+    
+    // Feature 0133: Conflict resolution handler
+    const handleConflictResolution = useCallback(async (choice: 'keep-mine' | 'keep-theirs' | 'merge-manually') => {
+        if (!conflictState) return;
+        
+        const activeScreenplayId = projectId || screenplayIdRef.current;
+        if (!activeScreenplayId) {
+            console.error('[EditorContext] No active screenplay ID for conflict resolution');
+            setConflictState(null);
+            return;
+        }
+        
+        try {
+            if (choice === 'keep-mine') {
+                // Force save (bypasses version check)
+                console.log('[EditorContext] Resolving conflict: Keep my changes (force save)');
+                const updateParams: any = {
+                    screenplay_id: activeScreenplayId,
+                    title: state.title,
+                    author: state.author,
+                    content: state.content,
+                    force: true  // Bypass version check
+                };
+                
+                const updated = await updateScreenplay(updateParams, getToken);
+                
+                // Update version ref
+                if (updated && updated.version !== undefined) {
+                    let newVersion: number;
+                    if (typeof updated.version === 'string') {
+                        newVersion = parseFloat(updated.version) || 1;
+                    } else {
+                        newVersion = updated.version || 1;
+                    }
+                    screenplayVersionRef.current = newVersion;
+                }
+                
+                setState(prev => ({
+                    ...prev,
+                    lastSaved: new Date(),
+                    isDirty: false
+                }));
+                
+                toast.success('Your changes have been saved (overwrote conflicting changes)');
+                
+            } else if (choice === 'keep-theirs') {
+                // Reload from server (discard local changes)
+                console.log('[EditorContext] Resolving conflict: Keep their changes (reload from server)');
+                const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
+                
+                if (latestScreenplay) {
+                    // Update version ref
+                    let version: number;
+                    if (typeof latestScreenplay.version === 'string') {
+                        version = parseFloat(latestScreenplay.version) || 1;
+                    } else {
+                        version = latestScreenplay.version || 1;
+                    }
+                    screenplayVersionRef.current = version;
+                    
+                    // Reload content from server
+                    setState(prev => ({
+                        ...prev,
+                        content: latestScreenplay.content || '',
+                        title: latestScreenplay.title || prev.title,
+                        author: latestScreenplay.author || prev.author,
+                        lastSaved: new Date(),
+                        isDirty: false
+                    }));
+                    
+                    toast.success('Reloaded latest version (your changes were discarded)');
+                }
+                
+            } else if (choice === 'merge-manually') {
+                // For now, just reload and let user edit manually
+                // TODO: Future enhancement - show side-by-side diff editor
+                console.log('[EditorContext] Resolving conflict: Merge manually (reload and edit)');
+                const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
+                
+                if (latestScreenplay) {
+                    // Update version ref
+                    let version: number;
+                    if (typeof latestScreenplay.version === 'string') {
+                        version = parseFloat(latestScreenplay.version) || 1;
+                    } else {
+                        version = latestScreenplay.version || 1;
+                    }
+                    screenplayVersionRef.current = version;
+                    
+                    // Show their content, but keep user's content in a comment or separate area
+                    // For now, just reload their content and let user manually merge
+                    setState(prev => ({
+                        ...prev,
+                        content: latestScreenplay.content || '',
+                        title: latestScreenplay.title || prev.title,
+                        author: latestScreenplay.author || prev.author,
+                        lastSaved: new Date(),
+                        isDirty: false
+                    }));
+                    
+                    toast.info('Loaded their version. You can now manually merge your changes.');
+                }
+            }
+            
+            // Clear conflict state
+            setConflictState(null);
+            
+        } catch (error: any) {
+            console.error('[EditorContext] Error resolving conflict:', error);
+            toast.error('Failed to resolve conflict. Please try again.');
+        }
+    }, [conflictState, projectId, state, getToken]);
+    
     return (
         <EditorContext.Provider value={value}>
             {children}
+            {/* Feature 0133: Conflict Resolution Modal */}
+            {conflictState && (
+                <ConflictResolutionModal
+                    isOpen={!!conflictState}
+                    conflictDetails={conflictState.details}
+                    yourContent={conflictState.yourContent}
+                    theirContent={conflictState.theirContent}
+                    lastEditedByName={conflictState.lastEditedByName}
+                    onResolve={handleConflictResolution}
+                    onCancel={() => setConflictState(null)}
+                />
+            )}
         </EditorContext.Provider>
     );
 }

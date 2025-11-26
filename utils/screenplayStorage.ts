@@ -134,6 +134,9 @@ export interface UpdateScreenplayParams {
   relationships?: Relationships;
   github_config?: GitHubConfig;
   status?: 'active' | 'archived' | 'deleted';
+  // Feature 0133: Optimistic Locking
+  expectedVersion?: number;  // Version number expected when saving (for conflict detection)
+  force?: boolean;  // Force save (bypass version check) - for conflict resolution "Keep My Changes"
 }
 
 // ============================================================================
@@ -292,20 +295,38 @@ export async function updateScreenplay(
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Unknown error');
     let errorMessage = 'Failed to update screenplay';
+    let errorData: any = {};
     try {
-      const error = JSON.parse(errorText);
-      errorMessage = error.message || error.error || errorMessage;
+      const parsed = JSON.parse(errorText);
+      errorMessage = parsed.message || parsed.error || errorMessage;
+      errorData = parsed;
     } catch {
       errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
     }
-    console.error('[screenplayStorage] ❌ API ERROR:', errorMessage);
-    throw new Error(errorMessage);
+    
+    // Feature 0133: Preserve conflict details for conflict resolution UI
+    const error: any = new Error(errorMessage);
+    if (response.status === 409) {
+      error.isConflict = true;
+      error.conflictDetails = errorData.conflictDetails || errorData;
+      error.statusCode = 409;
+    }
+    
+    console.error('[screenplayStorage] ❌ API ERROR:', errorMessage, response.status === 409 ? '(Conflict)' : '');
+    throw error;
   }
 
   const data = await response.json();
   console.log('[screenplayStorage] ✅ API SUCCESS:', Object.keys(data));
   // Handle different response structures: { data: {...} } or { success: true, data: {...} }
-  return data.data || data;
+  const result = data.data || data;
+  
+  // Feature 0133: Ensure version is a number (handle backward compatibility)
+  if (result && typeof result.version === 'string') {
+    result.version = parseFloat(result.version) || 1;
+  }
+  
+  return result;
 }
 
 /**

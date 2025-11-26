@@ -28,13 +28,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { screenplay_id, title, author, content } = body;
+    const { screenplay_id, title, author, content, expectedVersion, force } = body;
 
     if (!screenplay_id || !screenplay_id.startsWith('screenplay_')) {
       return NextResponse.json(
         { error: 'Invalid screenplay ID' },
         { status: 400 }
       );
+    }
+
+    // Feature 0133: Include expectedVersion and force in request body for optimistic locking
+    const updateBody: any = {
+      title: title || 'Untitled Screenplay',
+      author: author || 'Anonymous',
+      content: content || ''
+    };
+    
+    if (expectedVersion !== undefined) {
+      updateBody.expectedVersion = expectedVersion;
+    }
+    if (force !== undefined) {
+      updateBody.force = force;
     }
 
     // Proxy to backend update endpoint
@@ -44,17 +58,14 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        title: title || 'Untitled Screenplay',
-        author: author || 'Anonymous',
-        content: content || ''
-      }),
+      body: JSON.stringify(updateBody),
     });
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
+      // Feature 0133: Forward conflict errors (409) with full details
       return NextResponse.json(
-        { error: errorData.error || 'Failed to autosave' },
+        errorData,
         { status: backendResponse.status }
       );
     }

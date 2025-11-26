@@ -149,6 +149,7 @@ export async function PUT(
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json().catch(() => ({ error: 'Backend error' }));
       console.error('[Screenplay Update API] Backend error:', backendResponse.status, errorData);
+      // Feature 0133: Forward conflict errors (409) with full details for conflict resolution UI
       return NextResponse.json(errorData, { status: backendResponse.status });
     }
 
