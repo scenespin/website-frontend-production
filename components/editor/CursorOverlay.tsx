@@ -274,17 +274,25 @@ export default function CursorOverlay({
 
         const color = cursor.color || getUserColor(cursor.userId);
 
-        // getCursorPixelPosition returns coordinates relative to textarea's bounding box
-        // The hidden div used for measurement doesn't account for scroll, so coordinates
-        // represent the position in the full content, not the viewport
-        // We need to adjust for scroll to show the cursor in the correct position in the viewport
+        // getCursorPixelPosition returns coordinates relative to the top of the CONTENT
+        // (not the viewport). The hidden div shows content from the top, so position.y
+        // represents where the cursor is in the full content.
+        // We need to subtract scroll to get the position relative to the visible viewport.
         const scrollY = textarea.scrollTop;
         const scrollX = textarea.scrollLeft;
         
-        // The position from getCursorPixelPosition is relative to the top of the content
-        // Subtract scroll to get the position relative to the visible viewport
+        // Adjust coordinates for scroll: position is in content space, subtract scroll to get viewport space
         const adjustedX = position.x - scrollX;
         const adjustedY = position.y - scrollY;
+        
+        // Debug: Log if scroll adjustment seems wrong
+        if (Math.abs(adjustedX - position.x) > 0.1 || Math.abs(adjustedY - position.y) > 0.1) {
+          console.log('[CursorOverlay] Scroll adjustment applied', {
+            raw: { x: position.x, y: position.y },
+            adjusted: { x: adjustedX, y: adjustedY },
+            scroll: { x: scrollX, y: scrollY }
+          });
+        }
 
         // Check if cursor is visible (within viewport bounds)
         // Allow a small margin for cursors just outside viewport (they might be partially visible)
@@ -293,7 +301,8 @@ export default function CursorOverlay({
                          adjustedX <= overlayStyle.width + margin && 
                          adjustedY <= overlayStyle.height + margin;
 
-        console.log('[CursorOverlay] Cursor visibility check', {
+        // Expand the visibility check to see the full log object
+        const visibilityDetails = {
           userId: cursor.userId,
           rawX: position.x,
           rawY: position.y,
@@ -307,8 +316,11 @@ export default function CursorOverlay({
           textareaScrollTop: textarea.scrollTop,
           textareaScrollLeft: textarea.scrollLeft,
           textareaClientHeight: textarea.clientHeight,
-          textareaClientWidth: textarea.clientWidth
-        });
+          textareaClientWidth: textarea.clientWidth,
+          textareaScrollHeight: textarea.scrollHeight,
+          textareaScrollWidth: textarea.scrollWidth
+        };
+        console.log('[CursorOverlay] Cursor visibility check', visibilityDetails);
 
         if (!isVisible) {
           console.warn('[CursorOverlay] Cursor outside viewport - NOT RENDERING', { 
