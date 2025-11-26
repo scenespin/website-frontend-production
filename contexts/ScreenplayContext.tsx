@@ -286,6 +286,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [currentUserRole, setCurrentUserRole] = useState<'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null>(null);
     const [isOwner, setIsOwner] = useState(false);
     const [permissionsLoading, setPermissionsLoading] = useState(false); // Track if permissions are being loaded
+    const permissionsLoadingRef = useRef<string | null>(null); // Track which screenplayId is currently loading permissions
     const [canEditScript, setCanEditScript] = useState(false);
     const [canViewScript, setCanViewScript] = useState(false);
     const [canManageAssets, setCanManageAssets] = useState(false);
@@ -3665,6 +3666,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return;
         }
         
+        // Prevent multiple simultaneous loads for the same screenplay
+        if (permissionsLoadingRef.current === screenplayId) {
+            console.log('[ScreenplayContext] ⏭️ Permission load already in progress for:', screenplayId);
+            return;
+        }
+        
+        permissionsLoadingRef.current = screenplayId; // Mark as loading
         setPermissionsLoading(true); // Mark as loading
         
         try {
@@ -3731,8 +3739,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         
                         // Set role FIRST (before permissions) to prevent button flashing for viewers
                         // This ensures UI updates immediately based on role
-                        if (role && ['director', 'writer', 'asset-manager', 'contributor', 'viewer'].includes(role)) {
-                            setCurrentUserRole(role as 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer');
+                        // Strip "(inferred)" suffix if present (from backend fallback)
+                        const cleanRole = role ? role.replace(/\s*\(inferred\)$/i, '') : null;
+                        if (cleanRole && ['director', 'writer', 'asset-manager', 'contributor', 'viewer'].includes(cleanRole)) {
+                            setCurrentUserRole(cleanRole as 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer');
                         } else {
                             // Fallback: determine role from permissions (check canEditScript first for speed)
                             if (perms.canEditScript === true) {
@@ -3804,8 +3814,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setCanViewTimeline(false);
         } finally {
             setPermissionsLoading(false); // Mark as done loading
+            permissionsLoadingRef.current = null; // Clear loading ref
         }
-    }, [user?.id, getToken, currentUserRole]);
+    }, [user?.id, getToken]); // Removed currentUserRole from deps to prevent infinite loops
     
     /**
      * Load list of collaborators for the screenplay
@@ -3934,6 +3945,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setCanViewComposition(false);
             setCanViewTimeline(false);
             setCollaborators([]);
+            permissionsLoadingRef.current = null; // Clear loading ref when screenplayId changes
         }
     }, [screenplayId, loadCollaboratorPermissions, loadCollaborators]);
     

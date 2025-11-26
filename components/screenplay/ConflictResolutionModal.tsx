@@ -170,7 +170,7 @@ export default function ConflictResolutionModal({
             </div>
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
               <p className="text-xs text-blue-200">
-                ℹ️ <strong>Merge Manually:</strong> Your content will be preserved at the top, their version will be appended in a comment block below. Review both versions and merge manually, then save.
+                ℹ️ <strong>Merge Manually:</strong> Your content will be preserved. The version will be updated to match the server. Use the diff view above to see what changed, then manually incorporate any changes you want to keep before saving.
               </p>
             </div>
           </div>

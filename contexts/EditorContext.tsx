@@ -1642,12 +1642,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 }
                 
             } else if (choice === 'merge-manually') {
-                // Feature 0133: Actually merge changes - preserve user's content and append theirs as a comment
-                console.log('[EditorContext] Resolving conflict: Merge manually (preserve both versions)');
+                // Feature 0133: Merge manually - keep user's content, update version, show instructions
+                // We don't duplicate the entire screenplay - user can view differences in the conflict modal
+                console.log('[EditorContext] Resolving conflict: Merge manually (keeping user content, updating version)');
                 const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
                 
                 if (latestScreenplay) {
-                    // Update version ref
+                    // Update version ref to current version
                     let version: number;
                     if (typeof latestScreenplay.version === 'string') {
                         version = parseFloat(latestScreenplay.version) || 1;
@@ -1656,23 +1657,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     }
                     screenplayVersionRef.current = version;
                     
-                    // Preserve user's content from when conflict was detected (not current state which might be stale)
-                    // Use conflictState.yourContent which was captured at conflict detection time
-                    const theirContent = latestScreenplay.content || '';
-                    const userContent = conflictState.yourContent || stateRef.current.content;
-                    
-                    console.log('[EditorContext] Merge manually - preserving user content length:', userContent.length, 'their content length:', theirContent.length);
-                    
-                    // Create merged content: user's content first, then their version in a comment block
-                    const mergeSeparator = '\n\n/* ========================================\n';
-                    const mergeHeader = '   CONFLICT RESOLUTION - Their Version\n';
-                    const mergeFooter = '   ======================================== */\n\n';
-                    const mergedContent = userContent + mergeSeparator + mergeHeader + mergeFooter + theirContent;
-                    
+                    // Keep user's current content (don't duplicate their version)
+                    // User can view the conflict modal again or use the diff view to see what changed
                     // Feature 0133: Preserve undo/redo stack when resolving conflicts
                     setState(prev => ({
                         ...prev,
-                        content: mergedContent,
+                        // Keep user's content - don't modify it
+                        // title and author from server (in case they changed)
                         title: latestScreenplay.title || prev.title,
                         author: latestScreenplay.author || prev.author,
                         lastSaved: null, // Don't mark as saved - user needs to review and save manually
@@ -1680,7 +1671,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         // Note: undoStack and redoStack are preserved (not reset)
                     }));
                     
-                    toast.info('Both versions preserved. Your content is at the top, their version is in a comment block below. Review and merge manually, then save.');
+                    toast.info('Your content preserved. Version updated. Review changes in the conflict modal if needed, then save when ready.');
                 }
             }
             
