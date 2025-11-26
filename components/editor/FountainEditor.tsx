@@ -21,6 +21,7 @@ import EditorHeader from './EditorHeader';
 import EditorFooter from './EditorFooter';
 import EntityAutocomplete from './EntityAutocomplete';
 import TextComparisonModal from './TextComparisonModal';
+import CursorOverlay from './CursorOverlay';
 
 interface FountainEditorProps {
     className?: string;
@@ -48,7 +49,7 @@ export default function FountainEditor({
     onSelectionStateChange
 }: FountainEditorProps) {
     // Context hooks
-    const { state, setContent, setCursorPosition, setCurrentLine, replaceSelection, markSaved, clearHighlight } = useEditor();
+    const { state, setContent, setCursorPosition, setCurrentLine, replaceSelection, markSaved, clearHighlight, otherUsersCursors } = useEditor();
     const screenplay = useScreenplay();
     
     // Contextual Navigation - Update global context as user moves cursor
@@ -286,7 +287,7 @@ export default function FountainEditor({
             />
             
             {/* Main Textarea Editor */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', position: 'relative' }}>
                 <textarea
                     ref={textareaRef}
                     className="fountain-editor-textarea editor-textarea-clean min-h-[calc(100vh-10rem)] sm:min-h-[70vh]"
@@ -317,6 +318,14 @@ export default function FountainEditor({
                     readOnly={readonly}
                     spellCheck={true}
                 />
+                {/* Feature 0134: Cursor Overlay - Shows other users' cursor positions */}
+                {otherUsersCursors && otherUsersCursors.length > 0 && (
+                    <CursorOverlay
+                        textareaRef={textareaRef}
+                        content={displayContent}
+                        cursors={otherUsersCursors}
+                    />
+                )}
             </div>
             
             {/* Entity Autocomplete - @ mentions */}

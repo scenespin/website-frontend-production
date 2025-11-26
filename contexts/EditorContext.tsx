@@ -9,6 +9,8 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
+import { broadcastCursorPosition, clearCursorPosition, getCursorPositions } from '@/utils/cursorPositionStorage';
+import { CursorPosition } from '@/types/collaboration';
 // ConflictResolutionModal removed - using "last write wins" strategy instead
 
 interface EditorState {
@@ -88,6 +90,9 @@ interface EditorContextType {
     
     // Feature 0132: Check if there are unsaved changes (for logout/tab close warnings)
     hasUnsavedChanges: () => boolean;
+    
+    // Feature 0134: Other users' cursor positions (for collaborative editing)
+    otherUsersCursors: CursorPosition[];
 }
 
 const defaultState: EditorState = {
@@ -141,7 +146,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const screenplayVersionRef = useRef<number | null>(null);
     
     // Conflict state removed - using "last write wins" strategy
-    // Future: Will implement cursor position sharing to prevent conflicts naturally
+    // Feature 0134: Cursor position broadcasting for collaborative editing
+    const lastBroadcastedCursorRef = useRef<{ position: number; selectionStart?: number; selectionEnd?: number; timestamp: number } | null>(null);
+    const cursorBroadcastTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const cursorIdleTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const isBroadcastingRef = useRef(false);
+    
+    // Feature 0134: Store other users' cursor positions (for rendering)
+    const [otherUsersCursors, setOtherUsersCursors] = useState<CursorPosition[]>([]);
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -748,7 +760,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         setHighlightRange,
         clearHighlight,
         reset,
-        hasUnsavedChanges
+        hasUnsavedChanges,
+        otherUsersCursors // Feature 0134: Expose other users' cursor positions
     };
     
     // ========================================================================
@@ -1587,7 +1600,183 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     }, [projectId, getToken]);
     
     // Conflict resolution handler removed - using "last write wins" strategy
-    // Future: Will implement cursor position sharing to prevent conflicts naturally
+    
+    // Feature 0134: Cursor Position Broadcasting
+    // Broadcast cursor position when user is actively editing (debounced to avoid spam)
+    useEffect(() => {
+        const activeScreenplayId = projectId || screenplayIdRef.current;
+        
+        // Only broadcast if:
+        // 1. Screenplay is loaded (has screenplay ID)
+        // 2. User is authenticated (has getToken)
+        // 3. Screenplay ID is valid (starts with 'screenplay_')
+        if (!activeScreenplayId || !activeScreenplayId.startsWith('screenplay_') || !getToken) {
+            // Clear any pending broadcasts
+            if (cursorBroadcastTimerRef.current) {
+                clearTimeout(cursorBroadcastTimerRef.current);
+                cursorBroadcastTimerRef.current = null;
+            }
+            if (cursorIdleTimerRef.current) {
+                clearTimeout(cursorIdleTimerRef.current);
+                cursorIdleTimerRef.current = null;
+            }
+            isBroadcastingRef.current = false;
+            return;
+        }
+        
+        const currentPosition = state.cursorPosition;
+        const currentSelectionStart = state.selectionStart;
+        const currentSelectionEnd = state.selectionEnd;
+        
+        // Check if cursor position actually changed
+        const lastBroadcasted = lastBroadcastedCursorRef.current;
+        const positionChanged = !lastBroadcasted || 
+            lastBroadcasted.position !== currentPosition ||
+            lastBroadcasted.selectionStart !== currentSelectionStart ||
+            lastBroadcasted.selectionEnd !== currentSelectionEnd;
+        
+        if (!positionChanged) {
+            return; // No change, don't broadcast
+        }
+        
+        // Clear existing debounce timer
+        if (cursorBroadcastTimerRef.current) {
+            clearTimeout(cursorBroadcastTimerRef.current);
+        }
+        
+        // Clear idle timer (user is active)
+        if (cursorIdleTimerRef.current) {
+            clearTimeout(cursorIdleTimerRef.current);
+            cursorIdleTimerRef.current = null;
+        }
+        
+        // Mark as broadcasting
+        isBroadcastingRef.current = true;
+        
+        // Debounce cursor broadcast (500ms) to avoid excessive API calls
+        cursorBroadcastTimerRef.current = setTimeout(async () => {
+            try {
+                const success = await broadcastCursorPosition(
+                    activeScreenplayId,
+                    currentPosition,
+                    currentSelectionStart !== currentPosition ? currentSelectionStart : undefined,
+                    currentSelectionEnd !== currentPosition ? currentSelectionEnd : undefined,
+                    getToken
+                );
+                
+                if (success) {
+                    // Update last broadcasted position
+                    lastBroadcastedCursorRef.current = {
+                        position: currentPosition,
+                        selectionStart: currentSelectionStart !== currentPosition ? currentSelectionStart : undefined,
+                        selectionEnd: currentSelectionEnd !== currentPosition ? currentSelectionEnd : undefined,
+                        timestamp: Date.now()
+                    };
+                }
+            } catch (error) {
+                console.error('[EditorContext] Error broadcasting cursor position:', error);
+            }
+        }, 500); // 500ms debounce
+        
+        // Set idle timer: Stop broadcasting after 5 seconds of no cursor movement
+        cursorIdleTimerRef.current = setTimeout(() => {
+            isBroadcastingRef.current = false;
+            console.log('[EditorContext] User idle - stopped broadcasting cursor position');
+        }, 5000); // 5 seconds idle timeout
+        
+        // Cleanup on unmount or screenplay change
+        return () => {
+            if (cursorBroadcastTimerRef.current) {
+                clearTimeout(cursorBroadcastTimerRef.current);
+                cursorBroadcastTimerRef.current = null;
+            }
+            if (cursorIdleTimerRef.current) {
+                clearTimeout(cursorIdleTimerRef.current);
+                cursorIdleTimerRef.current = null;
+            }
+        };
+    }, [state.cursorPosition, state.selectionStart, state.selectionEnd, projectId, getToken]);
+    
+    // Feature 0134: Clear cursor position on unmount or screenplay change
+    useEffect(() => {
+        const activeScreenplayId = projectId || screenplayIdRef.current;
+        
+        return () => {
+            // Clear cursor position when component unmounts or screenplay changes
+            if (activeScreenplayId && activeScreenplayId.startsWith('screenplay_') && getToken) {
+                clearCursorPosition(activeScreenplayId, getToken).catch(error => {
+                    console.error('[EditorContext] Error clearing cursor position on cleanup:', error);
+                });
+            }
+            
+            // Clear timers
+            if (cursorBroadcastTimerRef.current) {
+                clearTimeout(cursorBroadcastTimerRef.current);
+                cursorBroadcastTimerRef.current = null;
+            }
+            if (cursorIdleTimerRef.current) {
+                clearTimeout(cursorIdleTimerRef.current);
+                cursorIdleTimerRef.current = null;
+            }
+            
+            // Reset state
+            lastBroadcastedCursorRef.current = null;
+            isBroadcastingRef.current = false;
+            setOtherUsersCursors([]); // Clear other users' cursors when switching screenplays
+        };
+    }, [projectId, getToken]);
+    
+    // Feature 0134: Poll for other users' cursor positions (every 2 seconds)
+    useEffect(() => {
+        const activeScreenplayId = projectId || screenplayIdRef.current;
+        if (!activeScreenplayId || !activeScreenplayId.startsWith('screenplay_') || !getToken || !user) {
+            // Clear cursors if no screenplay loaded
+            setOtherUsersCursors([]);
+            return;
+        }
+        
+        const currentUserId = user.id;
+        
+        // Poll every 2 seconds (faster than content polling for real-time feel)
+        const pollInterval = setInterval(async () => {
+            try {
+                // Fetch all active cursor positions
+                const cursors = await getCursorPositions(activeScreenplayId, getToken);
+                
+                // Filter out:
+                // 1. Own cursor (userId matches current user)
+                // 2. Stale cursors (older than 10 seconds - backend already filters, but double-check)
+                const now = Date.now();
+                const activeOtherCursors = cursors.filter(cursor => {
+                    // Filter out own cursor
+                    if (cursor.userId === currentUserId) {
+                        return false;
+                    }
+                    
+                    // Filter out stale cursors (older than 10 seconds)
+                    if (now - cursor.lastSeen > 10000) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                // Update state with active cursors
+                setOtherUsersCursors(activeOtherCursors);
+                
+                if (activeOtherCursors.length > 0) {
+                    console.log(`[EditorContext] Found ${activeOtherCursors.length} other user(s) with active cursors`);
+                }
+            } catch (error) {
+                console.error('[EditorContext] Error polling for cursor positions:', error);
+                // Silent fail - don't spam user with errors
+            }
+        }, 2000); // Poll every 2 seconds
+        
+        return () => {
+            clearInterval(pollInterval);
+        };
+    }, [projectId, getToken, user]);
     
     return (
         <EditorContext.Provider value={value}>
