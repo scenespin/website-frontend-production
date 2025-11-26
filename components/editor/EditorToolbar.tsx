@@ -132,7 +132,11 @@ function ExportToGitHubButton() {
  */
 export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
-    const { canEditScript, rescanScript } = useScreenplay();
+    const { canEditScript, rescanScript, currentUserRole } = useScreenplay();
+    
+    // Feature 0133: Fix writer role save buttons - ensure canEditScript is true for writer role
+    // Fallback: if user has writer role, assume they can edit (permissions might not be loaded yet)
+    const effectiveCanEditScript = canEditScript || currentUserRole === 'writer' || currentUserRole === 'director';
     const [isSaving, setIsSaving] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
@@ -416,7 +420,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
                 {/* Import Script Button - Icon only */}
-                {canEditScript && (
+                {effectiveCanEditScript && (
                     <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
                         <button
                             onClick={handleOpenImport}
@@ -430,7 +434,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 )}
                 
                 {/* 🔥 FEATURE 0117: Re-Scan Script Button - Icon only */}
-                {canEditScript && (
+                {effectiveCanEditScript && (
                     <div className="tooltip tooltip-bottom" data-tip="Scan script for new characters/locations (keeps existing data)">
                         <button
                             onClick={handleRescan}

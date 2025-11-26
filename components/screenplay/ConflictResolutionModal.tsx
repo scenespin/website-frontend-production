@@ -157,15 +157,22 @@ export default function ConflictResolutionModal({
               className="w-full bg-[#3F3F46] hover:bg-[#52525B] text-white px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
-              Merge Manually (Open Editor)
+              Merge Manually (Preserve Both Versions)
             </button>
           </div>
 
-          {/* Warning */}
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-            <p className="text-xs text-yellow-200">
-              ⚠️ <strong>Warning:</strong> "Keep My Changes" will overwrite their changes. Make sure you want to discard their work.
-            </p>
+          {/* Warnings */}
+          <div className="space-y-2">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+              <p className="text-xs text-yellow-200">
+                ⚠️ <strong>Warning:</strong> "Keep My Changes" will overwrite their changes. Make sure you want to discard their work.
+              </p>
+            </div>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+              <p className="text-xs text-blue-200">
+                ℹ️ <strong>Merge Manually:</strong> Your content will be preserved at the top, their version will be appended in a comment block below. Review both versions and merge manually, then save.
+              </p>
+            </div>
           </div>
         </div>
 

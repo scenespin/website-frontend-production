@@ -1627,6 +1627,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     screenplayVersionRef.current = version;
                     
                     // Reload content from server
+                    // Feature 0133: Preserve undo/redo stack when resolving conflicts
                     setState(prev => ({
                         ...prev,
                         content: latestScreenplay.content || '',
@@ -1634,15 +1635,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         author: latestScreenplay.author || prev.author,
                         lastSaved: new Date(),
                         isDirty: false
+                        // Note: undoStack and redoStack are preserved (not reset)
                     }));
                     
                     toast.success('Reloaded latest version (your changes were discarded)');
                 }
                 
             } else if (choice === 'merge-manually') {
-                // For now, just reload and let user edit manually
-                // TODO: Future enhancement - show side-by-side diff editor
-                console.log('[EditorContext] Resolving conflict: Merge manually (reload and edit)');
+                // Feature 0133: Actually merge changes - preserve user's content and append theirs as a comment
+                console.log('[EditorContext] Resolving conflict: Merge manually (preserve both versions)');
                 const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
                 
                 if (latestScreenplay) {
@@ -1655,18 +1656,29 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     }
                     screenplayVersionRef.current = version;
                     
-                    // Show their content, but keep user's content in a comment or separate area
-                    // For now, just reload their content and let user manually merge
+                    // Preserve user's current content and append their version as a comment block
+                    // This way the user doesn't lose their work
+                    const theirContent = latestScreenplay.content || '';
+                    const userContent = state.content;
+                    
+                    // Create merged content: user's content first, then their version in a comment block
+                    const mergeSeparator = '\n\n/* ========================================\n';
+                    const mergeHeader = '   CONFLICT RESOLUTION - Their Version\n';
+                    const mergeFooter = '   ======================================== */\n\n';
+                    const mergedContent = userContent + mergeSeparator + mergeHeader + mergeFooter + theirContent;
+                    
+                    // Feature 0133: Preserve undo/redo stack when resolving conflicts
                     setState(prev => ({
                         ...prev,
-                        content: latestScreenplay.content || '',
+                        content: mergedContent,
                         title: latestScreenplay.title || prev.title,
                         author: latestScreenplay.author || prev.author,
                         lastSaved: new Date(),
-                        isDirty: false
+                        isDirty: true // Mark as dirty so user knows to save after merging
+                        // Note: undoStack and redoStack are preserved (not reset)
                     }));
                     
-                    toast.info('Loaded their version. You can now manually merge your changes.');
+                    toast.info('Both versions preserved. Your content is at the top, their version is in a comment block below. Review and merge manually, then save.');
                 }
             }
             
