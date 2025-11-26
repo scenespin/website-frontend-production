@@ -79,7 +79,15 @@ function cleanFountainOutput(text) {
     /^Adjust the tone/i,
     /^Change the tiger/i,
     /^Connect this more/i,
-    /^🎬 Generate complete scenes/i  // The prompt text at the end
+    /^🎬 Generate complete scenes/i,  // The prompt text at the end
+    // 🔥 NEW: Meta-commentary about the scenes (analysis, not screenplay content)
+    // Match even if not at start of line (may have leading whitespace or dashes)
+    /These scenes (escalate|build|develop|show|reveal|highlight|emphasize|underscore|reinforce|support|connect|link|tie|bridge|transition|move|shift|change|transform|evolve|progress|advance|drive|propel|push|pull|draw|bring|take|lead|guide|direct|steer|navigate|maneuver|position|place|situate|locate|anchor|ground|root|base|found|set|put|make|turn|convert|become)/i,
+    /while keeping.*character arc/i,
+    /this is her (redemption|journey|arc|transformation|development|growth|evolution)/i,
+    /captured through her (determination|instinct|skill|talent|ability|expertise)/i,
+    /^Here are the next/i,  // "Here are the next three scenes..."
+    /^Here are the/i  // "Here are the scenes..."
   ];
   
   // Patterns for lines to skip (but continue processing after them)
@@ -98,8 +106,11 @@ function cleanFountainOutput(text) {
     /^Based on your setup/i,
     /^Story Integration Notes?:/i,
     /^This tiger subplot serves/i,
-    /^Would you like me to:/i,
-    /^🎬 Generate complete scenes/i
+    /^🎬 Generate complete scenes/i,
+    // 🔥 NEW: Skip scene sequence headers (like "NEW SCENES: TIGER CHASE SEQUENCE")
+    /^NEW SCENES?:/i,
+    /^SCENE SEQUENCE:/i,
+    /^SEQUENCE:/i
   ];
   
   // Patterns for lines that are clearly explanations (stop here)
@@ -131,10 +142,11 @@ function cleanFountainOutput(text) {
     }
     
     // 🔥 CRITICAL FIX: Check for scene headings (INT./EXT.) even if we haven't found content yet
-    // This handles cases where "[SCREENWRITING ASSISTANT]" appears before actual screenplay content
+    // This handles cases where "[SCREENWRITING ASSISTANT]" or headers appear before actual screenplay content
+    // Scene headings can have "- CONTINUOUS", "- DAY", "- NIGHT", etc. after the location
     if (!foundFirstScreenplayContent && /^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
       foundFirstScreenplayContent = true;
-      // Include this scene heading
+      // Include this scene heading (even if it has "- CONTINUOUS" or other modifiers)
       screenplayLines.push(line);
       continue;
     }
@@ -143,10 +155,17 @@ function cleanFountainOutput(text) {
     // BUT: Don't stop if we haven't found screenplay content yet - keep looking
     let shouldStop = false;
     if (foundFirstScreenplayContent) {
-      for (const pattern of stopPatterns) {
-        if (pattern.test(trimmedLine)) {
-          shouldStop = true;
-          break;
+      // 🔥 NEW: Check for line of dashes (often precedes analysis text)
+      // If we see a line that's mostly dashes, stop before it (it's a separator before analysis)
+      if (/^-{10,}\s*$/.test(trimmedLine)) {
+        shouldStop = true;
+      } else {
+        // Check all stop patterns
+        for (const pattern of stopPatterns) {
+          if (pattern.test(trimmedLine)) {
+            shouldStop = true;
+            break;
+          }
         }
       }
     }
@@ -230,7 +249,18 @@ function cleanFountainOutput(text) {
         const line = lines[i];
         const trimmedLine = line.trim();
         
+        // Skip explanation patterns (headers, etc.)
+        let shouldSkip = false;
+        for (const pattern of skipPatterns) {
+          if (pattern.test(trimmedLine)) {
+            shouldSkip = true;
+            break;
+          }
+        }
+        if (shouldSkip) continue;
+        
         // Stop on clear explanation patterns (but only after we've found content)
+        // These indicate the end of screenplay content and start of analysis
         if (foundFirstScreenplayContent) {
           let shouldStop = false;
           for (const pattern of stopPatterns) {
@@ -242,16 +272,7 @@ function cleanFountainOutput(text) {
           if (shouldStop) break;
         }
         
-        // Skip explanation patterns
-        let shouldSkip = false;
-        for (const pattern of skipPatterns) {
-          if (pattern.test(trimmedLine)) {
-            shouldSkip = true;
-            break;
-          }
-        }
-        if (shouldSkip) continue;
-        
+        // Include this line (it's screenplay content)
         screenplayLines.push(line);
       }
     }
@@ -531,10 +552,16 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
               
               if (validation.valid) {
                 console.log('[DirectorModePanel] ✅ JSON validation passed');
-                // Use the extracted content from JSON
+                console.log('[DirectorModePanel] Extracted content length:', validation.content?.length || 0);
+                console.log('[DirectorModePanel] Extracted content preview:', validation.content?.substring(0, 500) || '(empty)');
+                // Clean the JSON-extracted content to remove any headers that might have slipped through
+                // (e.g., "NEW SCENES:" headers that the AI might have included in the JSON)
+                const cleanedJsonContent = cleanFountainOutput(validation.content);
+                console.log('[DirectorModePanel] Cleaned JSON content length:', cleanedJsonContent?.length || 0);
+                // Use the cleaned content from JSON
                 addMessage({
                   role: 'assistant',
-                  content: validation.content, // Use validated content, not raw JSON
+                  content: cleanedJsonContent || validation.content, // Use cleaned content, fallback to original if cleaning fails
                   mode: 'director'
                 });
                 setTimeout(() => {
@@ -747,13 +774,15 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                     onClick={() => {
                       console.log('[DirectorModePanel] Insert button clicked');
                       console.log('[DirectorModePanel] Message content length:', message.content?.length);
-                      console.log('[DirectorModePanel] Message content preview:', message.content?.substring(0, 300));
+                      console.log('[DirectorModePanel] Message content preview:', message.content?.substring(0, 500));
                       
-                      // Content should already be clean (extracted from JSON), but clean again as safeguard
+                      // Content should already be clean (extracted from JSON or cleaned on receipt)
+                      // Clean again as safeguard to remove any headers like "NEW SCENES:" that might have slipped through
                       const cleanedContent = cleanFountainOutput(message.content);
                       
                       console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
-                      console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 300) || '(empty)');
+                      console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
+                      console.log('[DirectorModePanel] Full cleaned content:', cleanedContent);
                       
                       // Validate content before inserting
                       if (!cleanedContent || cleanedContent.trim().length < 10) {
