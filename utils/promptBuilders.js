@@ -328,21 +328,27 @@ export function buildDirectorPrompt(message, sceneContext, generationLength = 'f
 
 DIRECTOR MODE - SCENE DEVELOPMENT:
 
-🔥 CRITICAL: The user has given you a request. IMMEDIATELY write the scene. Do NOT ask questions. Do NOT provide options. Do NOT ask what they want. Just write the screenplay content in JSON format.
+🔥🔥🔥 CRITICAL - READ THIS FIRST: The user has given you a request. IMMEDIATELY write the scene in JSON format. Do NOT provide analysis, outlines, descriptions, or explanations. ONLY write the actual screenplay content.
 
-🚫 ABSOLUTELY FORBIDDEN:
-- NO analysis, critique, or feedback about the story
-- NO suggestions or alternatives
-- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
-- NO explanations about why something is good or bad
-- NO meta-commentary about writing or storytelling
-- NO "This would..." or "This could..." statements
-- NO "Consider..." or "Think about..." statements
-- NO lists of options or alternatives
-- NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers
+🚫🚫🚫 ABSOLUTELY FORBIDDEN - YOUR RESPONSE WILL BE REJECTED IF YOU INCLUDE:
+- ❌ NO analysis, critique, or feedback about the story
+- ❌ NO structural outlines (NO "SCENE 2:", "SCENE 3:", "SCENE 4:" with descriptions)
+- ❌ NO "Key Beats:", "Setup & Discovery:", "The Chase & Escalating Chaos:" sections
+- ❌ NO "Story Integration Notes:" or "Would you like me to:" questions
+- ❌ NO suggestions or alternatives
+- ❌ NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
+- ❌ NO explanations about why something is good or bad
+- ❌ NO meta-commentary about writing or storytelling
+- ❌ NO "This would..." or "This could..." statements
+- ❌ NO "Consider..." or "Think about..." statements
+- ❌ NO lists of options or alternatives
+- ❌ NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers
+- ❌ NO "Screenplay Development" or "Based on your setup" introductions
 - 🚫 CRITICAL: Do NOT continue the current scene. The Director agent creates NEW scenes, not continuations. The Screenwriter agent handles scene continuation.
 - 🚫 CRITICAL: Do NOT repeat or revise the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". Create NEW scenes that come AFTER it.
 - ✅ Scene headings ARE REQUIRED - Each new scene MUST start with INT./EXT. LOCATION - TIME with a DIFFERENT location/time than the current scene
+
+🔥 IF YOU PROVIDE ANALYSIS OR OUTLINES INSTEAD OF JSON SCREENPLAY CONTENT, YOUR RESPONSE WILL BE REJECTED AND THE USER WILL SEE AN ERROR. ONLY PROVIDE VALID JSON WITH SCREENPLAY CONTENT.
 
 ✅ YOU MUST RESPOND WITH VALID JSON ONLY:
 

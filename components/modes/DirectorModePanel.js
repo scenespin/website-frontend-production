@@ -51,6 +51,7 @@ function cleanFountainOutput(text) {
   let foundFirstScreenplayContent = false;
   
   // Patterns that indicate we should stop processing (end of screenplay content)
+  // These are analysis/outline patterns that should NEVER be in screenplay content
   const stopPatterns = [
     /^NOTE:/i,
     /Would you like/i,
@@ -62,7 +63,23 @@ function cleanFountainOutput(text) {
     /ALTERNATIVE OPTIONS?:/i,
     /Option \d+[:\-]/i,
     /Which direction/i,
-    /Here are (some|a few) (suggestions|options|ideas|ways|things)/i
+    /Here are (some|a few) (suggestions|options|ideas|ways|things)/i,
+    // 🔥 NEW: Analysis/outline patterns from Director agent
+    /^SCENE \d+:/i,  // "SCENE 2:", "SCENE 3:", etc.
+    /^Setup & Discovery/i,
+    /^The Chase & Escalating/i,
+    /^The Capture/i,
+    /^Key Beats?:/i,
+    /^Story Integration Notes?:/i,
+    /^Screenplay Development/i,
+    /^Based on your setup/i,
+    /^This tiger subplot serves/i,
+    /^Would you like me to:/i,
+    /^Write out the full scene/i,
+    /^Adjust the tone/i,
+    /^Change the tiger/i,
+    /^Connect this more/i,
+    /^🎬 Generate complete scenes/i  // The prompt text at the end
   ];
   
   // Patterns for lines to skip (but continue processing after them)
@@ -75,7 +92,14 @@ function cleanFountainOutput(text) {
     /^FADE OUT\.?\s*$/i,  // Skip "FADE OUT" lines (shouldn't be in middle of screenplay)
     /^THE END\.?\s*$/i,    // Skip "THE END" lines (shouldn't be in middle of screenplay)
     /^\[SCREENWRITING ASSISTANT\]\s*$/i,  // Skip "[SCREENWRITING ASSISTANT]" headers
-    /^SCREENWRITING ASSISTANT\s*$/i        // Skip "SCREENWRITING ASSISTANT" headers
+    /^SCREENWRITING ASSISTANT\s*$/i,        // Skip "SCREENWRITING ASSISTANT" headers
+    // 🔥 NEW: Skip analysis/outline section headers
+    /^Screenplay Development/i,
+    /^Based on your setup/i,
+    /^Story Integration Notes?:/i,
+    /^This tiger subplot serves/i,
+    /^Would you like me to:/i,
+    /^🎬 Generate complete scenes/i
   ];
   
   // Patterns for lines that are clearly explanations (stop here)
@@ -533,26 +557,49 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 // If retry failed or we've already retried, fall back to cleaning the raw response
                 console.warn('[DirectorModePanel] Falling back to cleaning raw response');
                 console.log('[DirectorModePanel] Full content length:', fullContent.length);
-                console.log('[DirectorModePanel] Full content preview:', fullContent.substring(0, 500));
+                console.log('[DirectorModePanel] Full content preview:', fullContent.substring(0, 1000));
+                
+                // 🔥 NEW: Detect if response is analysis/outline before cleaning
+                const isAnalysisResponse = /(Screenplay Development|Based on your setup|SCENE \d+:|Key Beats|Story Integration Notes|Would you like me to|Setup & Discovery|The Chase & Escalating|The Capture)/i.test(fullContent);
+                const hasSceneHeadings = /^(INT\.|EXT\.|I\/E\.)/im.test(fullContent);
+                
+                if (isAnalysisResponse && !hasSceneHeadings) {
+                  console.error('[DirectorModePanel] ❌ Response is analysis/outline, not screenplay content');
+                  toast.error('AI generated analysis instead of screenplay content. Please try rephrasing your request to be more direct (e.g., "Write three scenes about..." instead of "In the next three scenes...").');
+                  addMessage({
+                    role: 'assistant',
+                    content: '❌ The AI generated analysis/outline instead of screenplay content. Please try rephrasing your request to be more direct. Example: "Write three scenes about a tiger chase" instead of "In the next three scenes a tiger...".',
+                    mode: 'director'
+                  });
+                  setTimeout(() => {
+                    setStreaming(false, '');
+                  }, 100);
+                  return; // Don't continue with cleaning
+                }
+                
                 const cleanedContent = cleanFountainOutput(fullContent);
                 console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
                 console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
                 
-                // If cleaned content is empty or too short, use the raw content (user can see what AI generated)
-                const finalContent = (cleanedContent && cleanedContent.trim().length > 10) 
-                  ? cleanedContent 
-                  : fullContent;
-                
-                if (!finalContent || finalContent.trim().length < 3) {
-                  console.error('[DirectorModePanel] ❌ Both cleaned and raw content are empty or too short');
-                  toast.error('AI response was empty. Please try again.');
+                // 🔥 FIX: Don't use raw content as fallback - it contains analysis/outline
+                // Only use cleaned content if it has substantial screenplay content
+                if (!cleanedContent || cleanedContent.trim().length < 10) {
+                  console.error('[DirectorModePanel] ❌ No valid screenplay content extracted from response');
+                  console.error('[DirectorModePanel] Response appears to be analysis/outline, not screenplay content');
+                  toast.error('No valid screenplay content found. The response may contain analysis instead of Fountain format content. Please try rephrasing your request to be more direct.');
+                  addMessage({
+                    role: 'assistant',
+                    content: '❌ No valid screenplay content could be extracted. The response may contain analysis/outline instead of Fountain format content. Please try rephrasing your request to be more direct. Example: "Write three scenes about a tiger chase" instead of "In the next three scenes a tiger...".',
+                    mode: 'director'
+                  });
+                } else {
+                  // Use cleaned content (Fountain format only)
+                  addMessage({
+                    role: 'assistant',
+                    content: cleanedContent,
+                    mode: 'director'
+                  });
                 }
-                
-                addMessage({
-                  role: 'assistant',
-                  content: finalContent || '❌ No valid content extracted. Please try again.',
-                  mode: 'director'
-                });
                 setTimeout(() => {
                   setStreaming(false, '');
                 }, 100);
@@ -709,23 +756,17 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                       console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 300) || '(empty)');
                       
                       // Validate content before inserting
-                      if (!cleanedContent || cleanedContent.trim().length < 3) {
+                      if (!cleanedContent || cleanedContent.trim().length < 10) {
                         console.error('[DirectorModePanel] ❌ Cannot insert: cleaned content is empty or too short');
-                        console.error('[DirectorModePanel] Original content full:', message.content);
+                        console.error('[DirectorModePanel] Original content preview:', message.content?.substring(0, 500));
                         console.error('[DirectorModePanel] Original content length:', message.content?.length);
                         console.error('[DirectorModePanel] Cleaned content:', cleanedContent);
                         console.error('[DirectorModePanel] Cleaned content length:', cleanedContent?.length);
                         
-                        // Try using raw content if cleaned is empty
-                        if (message.content && message.content.trim().length > 10) {
-                          console.warn('[DirectorModePanel] Using raw content as fallback');
-                          onInsert(message.content);
-                          closeDrawer();
-                          return;
-                        }
-                        
-                        toast.error('Content is empty after cleaning. Please try again or use the original response.');
-                        return; // Don't insert empty content
+                        // 🔥 FIX: Don't use raw content as fallback - it likely contains analysis
+                        // Show error message instead
+                        toast.error('No valid screenplay content found. The response may contain analysis instead of Fountain format content. Please try again with a more direct request.');
+                        return; // Don't insert empty or invalid content
                       }
                       
                       console.log('[DirectorModePanel] ✅ Inserting content, length:', cleanedContent.length);
@@ -783,12 +824,14 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                   }
                   
                   // Validate content before inserting
-                  if (!contentToInsert || contentToInsert.trim().length < 3) {
+                  if (!contentToInsert || contentToInsert.trim().length < 10) {
                     console.error('[DirectorModePanel] ❌ Cannot insert: content is empty or too short');
+                    console.error('[DirectorModePanel] Original content preview:', state.streamingText?.substring(0, 500));
                     console.error('[DirectorModePanel] Original content length:', state.streamingText?.length);
+                    console.error('[DirectorModePanel] Final content:', contentToInsert);
                     console.error('[DirectorModePanel] Final content length:', contentToInsert?.length);
-                    toast.error('Content is empty after processing. Please try again or use the original response.');
-                    return; // Don't insert empty content
+                    toast.error('No valid screenplay content found. The response may contain analysis instead of Fountain format content. Please wait for the response to complete or try again.');
+                    return; // Don't insert empty or invalid content
                   }
                   
                   onInsert(contentToInsert);
