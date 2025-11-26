@@ -275,7 +275,22 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Update existing screenplay - use the activeScreenplayId we determined above
                 console.log('[EditorContext] Updating EXISTING screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
                 
+                // 🔥 CRITICAL FIX: Validate version ref matches current screenplay before using it
+                // If screenplayIdRef doesn't match activeScreenplayId, the version ref is stale (from different screenplay)
+                // In this case, don't send expectedVersion - let the backend handle it (will auto-increment)
+                const versionRefIsValid = screenplayIdRef.current === activeScreenplayId;
+                
+                if (!versionRefIsValid) {
+                    console.warn('[EditorContext] ⚠️ Version ref is stale (different screenplay)!');
+                    console.warn('[EditorContext] ⚠️ screenplayIdRef.current:', screenplayIdRef.current, '| activeScreenplayId:', activeScreenplayId);
+                    console.warn('[EditorContext] ⚠️ Resetting version ref and not sending expectedVersion to prevent false conflicts');
+                    screenplayVersionRef.current = null; // Reset stale version ref
+                }
+                
                 // Feature 0133: Include expectedVersion for optimistic locking
+                // Only send expectedVersion if:
+                // 1. Version ref is not null
+                // 2. Version ref is valid (matches current screenplay)
                 const updateParams: any = {
                     screenplay_id: activeScreenplayId,
                     title: currentState.title,
@@ -283,9 +298,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     content: currentState.content
                 };
                 
-                if (screenplayVersionRef.current !== null) {
+                if (screenplayVersionRef.current !== null && versionRefIsValid) {
                     updateParams.expectedVersion = screenplayVersionRef.current;
-                    console.log('[EditorContext] 🔒 Sending expectedVersion:', screenplayVersionRef.current);
+                    console.log('[EditorContext] 🔒 Sending expectedVersion:', screenplayVersionRef.current, 'for screenplay:', activeScreenplayId);
+                } else {
+                    console.log('[EditorContext] ⚠️ Not sending expectedVersion (ref is null or stale)');
                 }
                 
                 try {
@@ -312,17 +329,28 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     if (error.isConflict || error.message?.includes('Conflict') || error.statusCode === 409 || (typeof error === 'object' && 'conflictDetails' in error)) {
                         console.error('[EditorContext] ❌ Conflict detected:', error);
                         
-                        // Feature 0133: Validate that we're comparing the same screenplay
+                        // 🔥 CRITICAL FIX: Validate that we're comparing the same screenplay
                         // This prevents false conflicts when switching between screenplays
                         const conflictDetails = error.conflictDetails || {};
                         const conflictScreenplayId = conflictDetails.screenplay_id || conflictDetails.screenplayId;
                         
-                        if (conflictScreenplayId && conflictScreenplayId !== activeScreenplayId) {
-                            console.error('[EditorContext] ⚠️ Conflict detected for different screenplay! Ignoring conflict.');
-                            console.error('[EditorContext] ⚠️ Active screenplay:', activeScreenplayId, '| Conflict screenplay:', conflictScreenplayId);
+                        // Additional check: If version ref doesn't match current screenplay, this is definitely a stale conflict
+                        const versionRefMatches = screenplayIdRef.current === activeScreenplayId;
+                        
+                        if ((conflictScreenplayId && conflictScreenplayId !== activeScreenplayId) || !versionRefMatches) {
+                            console.error('[EditorContext] ⚠️ Stale conflict detected! Ignoring conflict.');
+                            console.error('[EditorContext] ⚠️ Active screenplay:', activeScreenplayId);
+                            console.error('[EditorContext] ⚠️ Conflict screenplay:', conflictScreenplayId);
+                            console.error('[EditorContext] ⚠️ screenplayIdRef.current:', screenplayIdRef.current);
+                            console.error('[EditorContext] ⚠️ Version ref matches:', versionRefMatches);
+                            
                             // This is a stale conflict from a different screenplay - ignore it and retry save
-                            // The version ref should have been reset when switching screenplays
-                            console.log('[EditorContext] 🔄 Retrying save after ignoring stale conflict from different screenplay');
+                            // Reset version ref and force save to bypass version check
+                            console.log('[EditorContext] 🔄 Resetting version ref and retrying save after ignoring stale conflict');
+                            screenplayVersionRef.current = null; // Reset stale version ref
+                            conflictDataRef.current = null; // Clear any stale conflict data
+                            setConflictState(null); // Clear visible conflict modal
+                            
                             // Force save to bypass version check (since version ref was reset)
                             const forceUpdateParams: any = {
                                 screenplay_id: activeScreenplayId,
@@ -341,6 +369,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                         newVersion = updated.version || 1;
                                     }
                                     screenplayVersionRef.current = newVersion;
+                                    screenplayIdRef.current = activeScreenplayId; // Update ref to match
                                 }
                                 setState(prev => ({
                                     ...prev,
@@ -1317,6 +1346,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 screenplayIdRef.current = null;
                 // Feature 0133: Reset version ref when switching screenplays (each screenplay has its own version)
                 screenplayVersionRef.current = null;
+                // 🔥 CRITICAL FIX: Clear conflict state when switching screenplays (prevents stale conflicts)
+                conflictDataRef.current = null;
+                setConflictState(null);
                 setState(defaultState);
             } else {
                 // Same screenplay (or preserving existing content) - preserve state

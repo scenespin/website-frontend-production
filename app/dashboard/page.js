@@ -11,6 +11,7 @@ import { ProjectCreationModal } from '@/components/project/ProjectCreationModal'
 import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
+import RoleBadge from '@/components/collaboration/RoleBadge';
 // ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js
 import { 
   Film, 
@@ -34,6 +35,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
+  // Phase 4.5: Separate owned and collaborated screenplays
+  const [ownedScreenplays, setOwnedScreenplays] = useState([]);
+  const [collaboratedScreenplays, setCollaboratedScreenplays] = useState([]);
   const [recentVideos, setRecentVideos] = useState([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -303,6 +307,7 @@ export default function Dashboard() {
           is_archived: s.is_archived 
         })));
         
+        // Phase 4.5: Parse new response format with isOwner and userRole
         screenplays.forEach(s => {
           const screenplayId = s.screenplay_id;
           
@@ -326,7 +331,8 @@ export default function Dashboard() {
             console.log('[Dashboard] ⚠️ Filtering out deleted screenplay (explicit check):', screenplayId, 'title:', s.title);
             return;
           }
-          allScreenplays.push({
+          
+          const screenplayData = {
             id: screenplayId, // Primary identifier
             screenplay_id: screenplayId, // Primary identifier
             name: s.title,
@@ -335,8 +341,13 @@ export default function Dashboard() {
             description: s.description,
             genre: s.metadata?.genre,
             storage_provider: s.storage_provider,
-            status: s.status || 'active' // Include status from API
-          });
+            status: s.status || 'active', // Include status from API
+            // Phase 4.5: Include collaboration metadata
+            isOwner: s.isOwner !== undefined ? s.isOwner : true, // Default to true for backward compatibility
+            userRole: s.userRole || null
+          };
+          
+          allScreenplays.push(screenplayData);
         });
       } else {
         console.error('[Dashboard] Error fetching screenplays:', screenplaysRes.reason);
@@ -387,8 +398,21 @@ export default function Dashboard() {
         return dateB - dateA;
       });
       
-      setProjects(mergedScreenplays);
-      console.log('[Dashboard] Screenplays (screenplay_id only):', mergedScreenplays.length, 'total (', allScreenplays.length, 'from API,', optimisticScreenplays.size, 'optimistic)');
+      // Phase 4.5: Separate owned and collaborated screenplays
+      const owned = mergedScreenplays.filter(p => p.isOwner !== false); // Default to owned if not specified
+      const collaborated = mergedScreenplays.filter(p => p.isOwner === false);
+      
+      setProjects(mergedScreenplays); // Keep for backward compatibility
+      setOwnedScreenplays(owned);
+      setCollaboratedScreenplays(collaborated);
+      
+      console.log('[Dashboard] Screenplays:', {
+        total: mergedScreenplays.length,
+        owned: owned.length,
+        collaborated: collaborated.length,
+        fromAPI: allScreenplays.length,
+        optimistic: optimisticScreenplays.size
+      });
       
       // Handle videos (non-critical)
       if (videosRes.status === 'fulfilled') {
@@ -781,7 +805,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Projects Section */}
+        {/* Phase 4.5: My Screenplays Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-base-content">My Screenplays</h2>
@@ -794,9 +818,9 @@ export default function Dashboard() {
             </button>
           </div>
           
-          {projects.length > 0 ? (
+          {ownedScreenplays.length > 0 ? (
             <div className="space-y-3">
-              {projects.filter(project => project != null).map((project) => {
+              {ownedScreenplays.filter(project => project != null).map((project) => {
                 // Feature 0130: Use screenplayId (not projectId) - projects are actually screenplays
                 // Check if this screenplay's screenplay_id matches the current screenplay
                 const screenplayId = project?.id || project?.screenplay_id; // Use id (which is screenplay_id)
@@ -826,6 +850,7 @@ export default function Dashboard() {
                           {isCurrent && (
                             <span className="badge badge-sm badge-primary">Current</span>
                           )}
+                          <span className="badge badge-sm badge-primary/20 text-primary">Owner</span>
                         </div>
                         <p className="text-sm text-base-content/60">
                           {new Date(project.updated_at || project.created_at).toLocaleDateString()}
@@ -906,6 +931,59 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Phase 4.5: Shared with Me Section */}
+        {collaboratedScreenplays.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-base-content">Shared with Me</h2>
+            </div>
+            
+            <div className="space-y-3">
+              {collaboratedScreenplays.filter(project => project != null).map((project) => {
+                const screenplayId = project?.id || project?.screenplay_id;
+                const projectScreenplayId = project?.screenplay_id || project?.id;
+                const isCurrent = currentScreenplayId === projectScreenplayId || 
+                                 (typeof window !== 'undefined' && localStorage.getItem('current_screenplay_id') === projectScreenplayId);
+                
+                return (
+                  <div
+                    key={screenplayId}
+                    className="flex items-center justify-between p-5 bg-base-200/50 rounded-xl hover:shadow-md transition-all duration-300 border border-base-300/30 group"
+                  >
+                    <Link
+                      href={`/write?project=${screenplayId}`}
+                      className="flex items-center gap-4 flex-1 min-w-0"
+                    >
+                      <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors flex-shrink-0">
+                        <FileText className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-base text-base-content group-hover:text-primary transition-colors truncate">
+                            {project.name || project.title || 'Untitled Project'}
+                          </h3>
+                          {isCurrent && (
+                            <span className="badge badge-sm badge-primary">Current</span>
+                          )}
+                          {project.userRole && (
+                            <RoleBadge role={project.userRole} size="sm" />
+                          )}
+                        </div>
+                        <p className="text-sm text-base-content/60">
+                          {new Date(project.updated_at || project.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {/* Collaborators don't have edit/delete buttons - only view access */}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Recent Videos */}
         {recentVideos.length > 0 && (
           <div>
@@ -943,7 +1021,7 @@ export default function Dashboard() {
         )}
 
         {/* Empty State - Modern Minimal */}
-        {projects.length === 0 && (
+        {ownedScreenplays.length === 0 && collaboratedScreenplays.length === 0 && (
           <div className="relative overflow-hidden bg-base-200 rounded-2xl p-12 text-center border border-base-300/50">
             <div className="absolute top-0 left-0 w-64 h-64 bg-cinema-red/5 rounded-full -ml-32 -mt-32"></div>
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mb-32"></div>
