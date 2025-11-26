@@ -148,6 +148,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         lastEditedByName?: string;
     } | null>(null);
     
+    // Store conflict data in ref so we can access it when user clicks "View Changes"
+    // without showing the modal immediately
+    const conflictDataRef = useRef<{
+        details: ConflictDetails;
+        yourContent: string;
+        theirContent?: string;
+        lastEditedByName?: string;
+    } | null>(null);
+    
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
     useEffect(() => {
@@ -392,12 +401,31 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             lastEditedByName: lastEditedByName
                         };
                         
-                        // Store conflict state for modal (but don't show it yet)
-                        setConflictState(conflictStateData);
+                        // DON'T set conflict state yet - only show toast notification
+                        // Modal will only appear when user clicks "View Changes"
+                        // Store conflict data in ref for later use
+                        conflictDataRef.current = conflictStateData;
+                        
+                        // Fetch user email from user ID for better display
+                        // Try to get email from collaborators list if available
+                        let userEmail: string | undefined;
+                        try {
+                            if (conflictDetails.lastEditedBy) {
+                                // Try to get email from ScreenplayContext collaborators (already available via screenplay hook)
+                                const collaborator = screenplay.collaborators?.find(c => c.user_id === conflictDetails.lastEditedBy);
+                                if (collaborator?.email) {
+                                    userEmail = collaborator.email;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('[EditorContext] Failed to fetch user email from collaborators:', error);
+                        }
+                        
+                        // Use email if available, otherwise just say "Another user" (simpler UX)
+                        const lastEditedByDisplay = userEmail || 'Another user';
                         
                         // Show non-blocking toast notification with action buttons
                         // Toast persists until user dismisses it (no auto-dismiss for important conflicts)
-                        const lastEditedByDisplay = lastEditedByName || conflictDetails.lastEditedBy || 'Another user';
                         toast.warning('Conflict detected: Another user saved changes', {
                             description: `${lastEditedByDisplay} saved changes while you were editing. Your changes are preserved. Click "View Changes" to resolve, or dismiss to continue editing.`,
                             duration: Infinity, // Persist until user dismisses (X button) or clicks action
@@ -405,14 +433,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 label: 'View Changes',
                                 onClick: () => {
                                     // Show modal when user clicks "View Changes"
-                                    // Modal is already set up via conflictState, just ensure it's visible
-                                    setConflictState(conflictStateData);
+                                    // Get conflict data from ref and set state to show modal
+                                    if (conflictDataRef.current) {
+                                        setConflictState(conflictDataRef.current);
+                                    }
                                 }
                             },
                             onDismiss: () => {
-                                // User dismissed toast (clicked X) - clear conflict state
-                                // Their changes are still preserved in editor, they just chose not to resolve now
-                                setConflictState(null);
+                                // User dismissed toast (clicked X) - don't clear conflict state yet
+                                // Store it for later in case they want to resolve it
+                                // Conflict state will be cleared when they save successfully or navigate away
                             }
                         });
                         
@@ -1776,10 +1806,68 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     };
                     pushToUndoStack(currentSnapshot);
                     
-                    // Insert their content as Fountain comments at the end of user's content
-                    // Format: /* ===== CONFLICT RESOLUTION - Their Version ===== */\n/* their content */\n/* ===== END CONFLICT RESOLUTION ===== */
+                    // Calculate diff: only insert the parts that are different
+                    // Since conflicts are rare (usually same line/block), find differences and insert with context
+                    const yourContent = state.content || '';
                     const theirContent = latestScreenplay.content || '';
-                    const conflictCommentBlock = `\n\n/* ======================================== CONFLICT RESOLUTION - Their Version ======================================== */\n/*\n${theirContent}\n*/\n/* ======================================== END CONFLICT RESOLUTION ======================================== */`;
+                    
+                    // Simple diff algorithm: find first and last different lines
+                    // Then extract that section with context (2 lines before/after)
+                    const yourLines = yourContent.split('\n');
+                    const theirLines = theirContent.split('\n');
+                    
+                    let firstDiffLine = -1;
+                    let lastDiffLine = -1;
+                    
+                    // Find first and last different lines
+                    const maxLines = Math.max(yourLines.length, theirLines.length);
+                    for (let i = 0; i < maxLines; i++) {
+                        const yourLine = yourLines[i] || '';
+                        const theirLine = theirLines[i] || '';
+                        if (yourLine !== theirLine) {
+                            if (firstDiffLine === -1) firstDiffLine = i;
+                            lastDiffLine = i;
+                        }
+                    }
+                    
+                    // If content is identical, check if it's a metadata-only conflict
+                    if (firstDiffLine === -1) {
+                        // Content is identical - likely metadata conflict (title/author)
+                        // Insert a note instead of full content
+                        const conflictCommentBlock = `\n\n/* ======================================== CONFLICT RESOLUTION - Metadata Only ======================================== */\n/* Content is identical. Conflict may be in title/author or version mismatch. */\n/* ======================================== END CONFLICT RESOLUTION ======================================== */`;
+                        const mergedContent = state.content + conflictCommentBlock;
+                        const newCursorPosition = mergedContent.length;
+                        
+                        setState(prev => {
+                            const newUndoStack = [...prev.undoStack, { ...currentSnapshot, timestamp: Date.now() }].slice(-10);
+                            return {
+                                ...prev,
+                                content: mergedContent,
+                                cursorPosition: newCursorPosition,
+                                title: latestScreenplay.title || prev.title,
+                                author: latestScreenplay.author || prev.author,
+                                lastSaved: null,
+                                isDirty: true,
+                                undoStack: newUndoStack,
+                                canUndo: newUndoStack.length > 0,
+                                redoStack: [],
+                                canRedo: false
+                            };
+                        });
+                        
+                        toast.info('Content is identical. Conflict may be in metadata. Check title/author if needed.');
+                        setConflictState(null);
+                        return;
+                    }
+                    
+                    // Extract different section with context (2 lines before/after)
+                    const contextLines = 2;
+                    const startLine = Math.max(0, firstDiffLine - contextLines);
+                    const endLine = Math.min(theirLines.length, lastDiffLine + contextLines + 1);
+                    const diffSection = theirLines.slice(startLine, endLine).join('\n');
+                    
+                    // Insert only the different section as comments
+                    const conflictCommentBlock = `\n\n/* ======================================== CONFLICT RESOLUTION - Their Version (Lines ${startLine + 1}-${endLine}) ======================================== */\n/*\n${diffSection}\n*/\n/* ======================================== END CONFLICT RESOLUTION ======================================== */`;
                     
                     const mergedContent = state.content + conflictCommentBlock;
                     const newCursorPosition = mergedContent.length; // Place cursor at end
