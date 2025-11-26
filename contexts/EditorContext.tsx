@@ -1534,7 +1534,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     
                     // 🔥 FIX: Only show notifications if there are actually collaborators
                     // Also check if the change was from the current user (their own save)
-                    const hasCollaborators = screenplay.collaborators && screenplay.collaborators.length > 0;
+                    // Use latestScreenplay (the fetched screenplay) not the stale 'screenplay' variable
+                    const hasCollaborators = latestScreenplay.collaborators && latestScreenplay.collaborators.length > 0;
                     const lastEditedBy = latestScreenplay.last_edited_by; // Optional - may not exist on older screenplays
                     const isOwnChange = lastEditedBy !== undefined && lastEditedBy === user?.id;
                     

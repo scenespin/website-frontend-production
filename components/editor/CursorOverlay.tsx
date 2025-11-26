@@ -119,7 +119,23 @@ export default function CursorOverlay({
   }, [textareaRef]);
 
   const textarea = textareaRef.current;
-  if (!textarea || cursors.length === 0 || cursorPositions.size === 0) {
+  if (!textarea || cursors.length === 0) {
+    if (cursors.length > 0 && !textarea) {
+      console.warn('[CursorOverlay] Textarea ref is null but cursors exist');
+    }
+    return null;
+  }
+
+  // Debug logging
+  if (cursorPositions.size === 0 && cursors.length > 0) {
+    console.warn('[CursorOverlay] Cursors exist but positions not calculated yet', {
+      cursorCount: cursors.length,
+      positionsCount: cursorPositions.size,
+      contentLength: content.length
+    });
+  }
+
+  if (cursorPositions.size === 0) {
     return null;
   }
 
@@ -141,7 +157,10 @@ export default function CursorOverlay({
     >
       {cursors.map(cursor => {
         const position = cursorPositions.get(cursor.userId);
-        if (!position) return null;
+        if (!position) {
+          console.warn('[CursorOverlay] No position calculated for cursor', { userId: cursor.userId, position: cursor.position });
+          return null;
+        }
 
         const color = cursor.color || getUserColor(cursor.userId);
 
@@ -153,8 +172,22 @@ export default function CursorOverlay({
                          position.y <= textarea.offsetHeight + textarea.scrollHeight;
 
         if (!isVisible) {
+          console.debug('[CursorOverlay] Cursor outside viewport', { 
+            userId: cursor.userId, 
+            x: position.x, 
+            y: position.y,
+            textareaWidth: textarea.offsetWidth,
+            textareaHeight: textarea.offsetHeight
+          });
           return null;
         }
+
+        console.log('[CursorOverlay] Rendering cursor', { 
+          userId: cursor.userId, 
+          x: position.x, 
+          y: position.y,
+          color
+        });
 
         return (
           <CursorIndicator
