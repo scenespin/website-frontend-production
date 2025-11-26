@@ -1759,14 +1759,21 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         const activeScreenplayId = projectId || screenplayIdRef.current;
         if (!activeScreenplayId || !activeScreenplayId.startsWith('screenplay_') || !getToken || !user) {
             // Clear cursors if no screenplay loaded
+            console.log('[EditorContext] Cursor polling disabled:', {
+                activeScreenplayId,
+                hasToken: !!getToken,
+                hasUser: !!user,
+                startsWithScreenplay: activeScreenplayId?.startsWith('screenplay_')
+            });
             setOtherUsersCursors([]);
             return;
         }
         
         const currentUserId = user.id;
+        console.log('[EditorContext] Starting cursor polling', { activeScreenplayId, currentUserId });
         
-        // Poll every 2 seconds (faster than content polling for real-time feel)
-        const pollInterval = setInterval(async () => {
+        // Poll immediately on mount, then every 2 seconds
+        const pollCursors = async () => {
             try {
                 // Fetch all active cursor positions
                 const cursors = await getCursorPositions(activeScreenplayId, getToken);
@@ -1792,6 +1799,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Update state with active cursors
                 setOtherUsersCursors(activeOtherCursors);
                 
+                // Debug logging
+                console.log(`[EditorContext] Cursor polling: received ${cursors.length} cursor(s), filtered to ${activeOtherCursors.length} other user(s)`, {
+                    totalCursors: cursors.length,
+                    otherUsers: activeOtherCursors.length,
+                    currentUserId,
+                    cursorUserIds: cursors.map(c => c.userId),
+                    activeOtherUserIds: activeOtherCursors.map(c => c.userId)
+                });
+                
                 if (activeOtherCursors.length > 0) {
                     console.log(`[EditorContext] Found ${activeOtherCursors.length} other user(s) with active cursors`);
                 }
@@ -1799,7 +1815,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 console.error('[EditorContext] Error polling for cursor positions:', error);
                 // Silent fail - don't spam user with errors
             }
-        }, 2000); // Poll every 2 seconds
+        };
+        
+        // Poll immediately
+        pollCursors();
+        
+        // Then poll every 2 seconds
+        const pollInterval = setInterval(pollCursors, 2000);
         
         return () => {
             clearInterval(pollInterval);

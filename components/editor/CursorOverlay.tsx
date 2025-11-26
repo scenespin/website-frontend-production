@@ -103,23 +103,10 @@ export default function CursorOverlay({
     return () => window.removeEventListener('resize', handleResize);
   }, [textareaRef, cursors]);
 
-  // Recalculate on scroll (cursors need to move with content)
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const handleScroll = () => {
-      // Force re-render to update cursor positions with new scroll offset
-      // The positions are already relative to textarea, so we just need to trigger a re-render
-      setCursorPositions(prev => new Map(prev));
-    };
-
-    textarea.addEventListener('scroll', handleScroll, { passive: true });
-    return () => textarea.removeEventListener('scroll', handleScroll);
-  }, [textareaRef]);
+  // Note: Scroll handling is now in the overlay position effect to avoid duplicate handlers
 
   // Recalculate overlay position on resize or scroll
-  // Use offsetLeft/offsetTop for positioning relative to offset parent (the container)
+  // Position overlay to match textarea exactly
   const [overlayStyle, setOverlayStyle] = useState<{
     left: number;
     top: number;
@@ -135,8 +122,23 @@ export default function CursorOverlay({
     }
 
     const updateOverlayPosition = () => {
+      // Get textarea's position relative to its offset parent (the container div)
+      const container = textarea.offsetParent as HTMLElement;
+      if (!container) {
+        // Fallback: use getBoundingClientRect if no offset parent
+        const textareaRect = textarea.getBoundingClientRect();
+        const containerRect = document.body.getBoundingClientRect();
+        setOverlayStyle({
+          left: textareaRect.left - containerRect.left,
+          top: textareaRect.top - containerRect.top,
+          width: textareaRect.width,
+          height: textareaRect.height,
+        });
+        return;
+      }
+
       // Use offsetLeft/offsetTop for positioning relative to offset parent
-      // This is more reliable than getBoundingClientRect() which is viewport-relative
+      // This matches the textarea's position within the container
       setOverlayStyle({
         left: textarea.offsetLeft,
         top: textarea.offsetTop,
@@ -148,14 +150,30 @@ export default function CursorOverlay({
     // Initial calculation
     updateOverlayPosition();
 
-    // Update on resize and scroll
-    const handleResize = () => updateOverlayPosition();
-    const handleScroll = () => updateOverlayPosition();
+    // Debounce updates to avoid excessive recalculations
+    let resizeTimer: NodeJS.Timeout;
+    let scrollTimer: NodeJS.Timeout;
+
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateOverlayPosition, 50);
+    };
+
+    const handleScroll = () => {
+      // Don't update overlay position on scroll - just trigger cursor recalculation
+      // The overlay position doesn't change, only the cursor positions within it
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        setCursorPositions(prev => new Map(prev)); // Force recalculation
+      }, 16); // ~60fps
+    };
 
     window.addEventListener('resize', handleResize);
     textarea.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
+      clearTimeout(resizeTimer);
+      clearTimeout(scrollTimer);
       window.removeEventListener('resize', handleResize);
       textarea.removeEventListener('scroll', handleScroll);
     };
@@ -203,21 +221,24 @@ export default function CursorOverlay({
 
         const color = cursor.color || getUserColor(cursor.userId);
 
-        // Adjust position for textarea scroll offset
-        // getCursorPixelPosition returns coordinates relative to textarea's content area
-        // We need to account for scroll to position cursors correctly
+        // getCursorPixelPosition returns coordinates relative to textarea's bounding box
+        // The hidden div used for measurement doesn't account for scroll, so coordinates
+        // represent the position in the full content, not the viewport
+        // We need to adjust for scroll to show the cursor in the correct position in the viewport
         const scrollY = textarea.scrollTop;
+        const scrollX = textarea.scrollLeft;
         
-        // The position from getCursorPixelPosition is relative to the textarea's bounding box
-        // which includes the visible content. We need to adjust for scroll to show cursors
-        // in the correct position relative to the scrolled content
-        const adjustedX = position.x;
-        const adjustedY = position.y - scrollY; // Adjust for vertical scroll
+        // The position from getCursorPixelPosition is relative to the top of the content
+        // Subtract scroll to get the position relative to the visible viewport
+        const adjustedX = position.x - scrollX;
+        const adjustedY = position.y - scrollY;
 
-        // Check if cursor is visible (within viewport)
-        const isVisible = adjustedX >= 0 && adjustedY >= 0 && 
-                         adjustedX <= overlayStyle.width && 
-                         adjustedY <= overlayStyle.height;
+        // Check if cursor is visible (within viewport bounds)
+        // Allow a small margin for cursors just outside viewport (they might be partially visible)
+        const margin = 50; // pixels
+        const isVisible = adjustedX >= -margin && adjustedY >= -margin && 
+                         adjustedX <= overlayStyle.width + margin && 
+                         adjustedY <= overlayStyle.height + margin;
 
         if (!isVisible) {
           console.debug('[CursorOverlay] Cursor outside viewport', { 
@@ -241,12 +262,12 @@ export default function CursorOverlay({
 
         // Adjust selection positions for scroll as well
         const adjustedSelectionStart = position.selectionStart ? {
-          x: position.selectionStart.x,
+          x: position.selectionStart.x - scrollX,
           y: position.selectionStart.y - scrollY
         } : undefined;
         
         const adjustedSelectionEnd = position.selectionEnd ? {
-          x: position.selectionEnd.x,
+          x: position.selectionEnd.x - scrollX,
           y: position.selectionEnd.y - scrollY
         } : undefined;
 
