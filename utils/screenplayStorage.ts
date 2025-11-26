@@ -100,6 +100,8 @@ export interface Screenplay {
   word_count?: number;
   scene_count?: number;
   github_config?: GitHubConfig;
+  last_edited_by?: string; // Feature 0133: user_id of the person who last edited
+  last_edited_at?: string; // Feature 0133: ISO timestamp of last edit
 }
 
 export interface CreateScreenplayParams {
