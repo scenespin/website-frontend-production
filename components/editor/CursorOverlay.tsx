@@ -27,6 +27,7 @@ export default function CursorOverlay({
 }: CursorOverlayProps) {
   const [cursorPositions, setCursorPositions] = useState<Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>>(new Map());
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCalculatedCursorsRef = useRef<string>(''); // Track last cursor set to avoid unnecessary recalculations
 
   // Update cursor positions when content or cursors change
   useEffect(() => {
@@ -49,12 +50,9 @@ export default function CursorOverlay({
       textareaValueLength: textarea.value?.length || 0
     });
 
-    // Debounce position calculations (recalculate every 100ms max)
-    if (updateTimerRef.current) {
-      clearTimeout(updateTimerRef.current);
-    }
-
-    updateTimerRef.current = setTimeout(() => {
+    // Calculate positions immediately (no debounce) to avoid race conditions
+    // The calculation is fast enough that debouncing isn't necessary
+    const calculatePositions = () => {
       const textarea = textareaRef.current;
       if (!textarea) {
         console.warn('[CursorOverlay] Textarea ref became null during calculation');
@@ -110,14 +108,36 @@ export default function CursorOverlay({
         positionsCalculated: newPositions.size
       });
       setCursorPositions(newPositions);
-    }, 100); // 100ms debounce
+    };
+
+    // Create a stable key for the current cursor set to detect changes
+    const cursorsKey = cursors.map(c => `${c.userId}:${c.position}`).join('|');
+    const isFirstCalculation = lastCalculatedCursorsRef.current === '';
+    const cursorsChanged = lastCalculatedCursorsRef.current !== cursorsKey;
+
+    // Debounce rapid updates (e.g., during typing) but calculate immediately on first change or when cursors change
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current);
+    }
+
+    if (isFirstCalculation || cursorsChanged) {
+      // Calculate immediately for first calculation or when cursor set changes
+      calculatePositions();
+      lastCalculatedCursorsRef.current = cursorsKey;
+    } else {
+      // Debounce for content changes (typing, etc.)
+      updateTimerRef.current = setTimeout(() => {
+        calculatePositions();
+        lastCalculatedCursorsRef.current = cursorsKey;
+      }, 50); // 50ms debounce for content updates
+    }
 
     return () => {
       if (updateTimerRef.current) {
         clearTimeout(updateTimerRef.current);
       }
     };
-  }, [textareaRef, content, cursors]);
+  }, [textareaRef, content, cursors]); // Note: cursorPositions is NOT in deps to avoid infinite loop
 
   // Recalculate on window resize
   useEffect(() => {
@@ -196,10 +216,9 @@ export default function CursorOverlay({
     const handleScroll = () => {
       // Don't update overlay position on scroll - just trigger cursor recalculation
       // The overlay position doesn't change, only the cursor positions within it
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        setCursorPositions(prev => new Map(prev)); // Force recalculation
-      }, 16); // ~60fps
+      // Note: We don't need to do anything here - the main useEffect will recalculate
+      // positions when content or cursors change, and scroll is handled in the render
+      // by adjusting positions with scroll offset
     };
 
     window.addEventListener('resize', handleResize);
