@@ -1845,6 +1845,7 @@ const createMinimalContextValue = (): EditorContextType => ({
     setHighlightRange: () => {},
     clearHighlight: () => {},
     reset: () => {},
+    otherUsersCursors: [] // Feature 0134: Empty array for minimal context
 });
 
 // Public EditorProvider that wraps the search params logic in Suspense
