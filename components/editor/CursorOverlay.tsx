@@ -118,6 +118,49 @@ export default function CursorOverlay({
     return () => textarea.removeEventListener('scroll', handleScroll);
   }, [textareaRef]);
 
+  // Recalculate overlay position on resize or scroll
+  // Use offsetLeft/offsetTop for positioning relative to offset parent (the container)
+  const [overlayStyle, setOverlayStyle] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setOverlayStyle(null);
+      return;
+    }
+
+    const updateOverlayPosition = () => {
+      // Use offsetLeft/offsetTop for positioning relative to offset parent
+      // This is more reliable than getBoundingClientRect() which is viewport-relative
+      setOverlayStyle({
+        left: textarea.offsetLeft,
+        top: textarea.offsetTop,
+        width: textarea.offsetWidth,
+        height: textarea.offsetHeight,
+      });
+    };
+
+    // Initial calculation
+    updateOverlayPosition();
+
+    // Update on resize and scroll
+    const handleResize = () => updateOverlayPosition();
+    const handleScroll = () => updateOverlayPosition();
+
+    window.addEventListener('resize', handleResize);
+    textarea.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      textarea.removeEventListener('scroll', handleScroll);
+    };
+  }, [textareaRef]);
+
   const textarea = textareaRef.current;
   if (!textarea || cursors.length === 0) {
     if (cursors.length > 0 && !textarea) {
@@ -135,22 +178,18 @@ export default function CursorOverlay({
     });
   }
 
-  if (cursorPositions.size === 0) {
+  if (cursorPositions.size === 0 || !overlayStyle) {
     return null;
   }
-
-  // Note: getCursorPixelPosition returns positions relative to textarea's content area
-  // We don't need to adjust for scroll because the positions are already relative to the textarea element
-  // The overlay is positioned absolutely within the textarea container, so positions are correct as-is
 
   return (
     <div
       className="absolute pointer-events-none"
       style={{
-        left: 0,
-        top: 0,
-        width: '100%',
-        height: '100%',
+        left: `${overlayStyle.left}px`,
+        top: `${overlayStyle.top}px`,
+        width: `${overlayStyle.width}px`,
+        height: `${overlayStyle.height}px`,
         zIndex: 10,
         overflow: 'hidden', // Prevent cursors from showing outside textarea bounds
       }}
@@ -164,40 +203,62 @@ export default function CursorOverlay({
 
         const color = cursor.color || getUserColor(cursor.userId);
 
-        // Check if cursor is visible (rough check - within textarea bounds)
-        // Note: This is approximate since we don't account for scroll, but it's good enough
-        // Cursors outside viewport will be clipped by overflow: hidden
-        const isVisible = position.x >= 0 && position.y >= 0 && 
-                         position.x <= textarea.offsetWidth && 
-                         position.y <= textarea.offsetHeight + textarea.scrollHeight;
+        // Adjust position for textarea scroll offset
+        // getCursorPixelPosition returns coordinates relative to textarea's content area
+        // We need to account for scroll to position cursors correctly
+        const scrollY = textarea.scrollTop;
+        
+        // The position from getCursorPixelPosition is relative to the textarea's bounding box
+        // which includes the visible content. We need to adjust for scroll to show cursors
+        // in the correct position relative to the scrolled content
+        const adjustedX = position.x;
+        const adjustedY = position.y - scrollY; // Adjust for vertical scroll
+
+        // Check if cursor is visible (within viewport)
+        const isVisible = adjustedX >= 0 && adjustedY >= 0 && 
+                         adjustedX <= overlayStyle.width && 
+                         adjustedY <= overlayStyle.height;
 
         if (!isVisible) {
           console.debug('[CursorOverlay] Cursor outside viewport', { 
             userId: cursor.userId, 
-            x: position.x, 
-            y: position.y,
-            textareaWidth: textarea.offsetWidth,
-            textareaHeight: textarea.offsetHeight
+            x: adjustedX, 
+            y: adjustedY,
+            scrollY,
+            overlayWidth: overlayStyle.width,
+            overlayHeight: overlayStyle.height
           });
           return null;
         }
 
         console.log('[CursorOverlay] Rendering cursor', { 
           userId: cursor.userId, 
-          x: position.x, 
-          y: position.y,
-          color
+          x: adjustedX, 
+          y: adjustedY,
+          color,
+          scrollY
         });
+
+        // Adjust selection positions for scroll as well
+        const adjustedSelectionStart = position.selectionStart ? {
+          x: position.selectionStart.x,
+          y: position.selectionStart.y - scrollY
+        } : undefined;
+        
+        const adjustedSelectionEnd = position.selectionEnd ? {
+          x: position.selectionEnd.x,
+          y: position.selectionEnd.y - scrollY
+        } : undefined;
 
         return (
           <CursorIndicator
             key={cursor.userId}
             cursor={cursor}
-            x={position.x}
-            y={position.y}
+            x={adjustedX}
+            y={adjustedY}
             color={color}
-            selectionStart={position.selectionStart}
-            selectionEnd={position.selectionEnd}
+            selectionStart={adjustedSelectionStart}
+            selectionEnd={adjustedSelectionEnd}
           />
         );
       })}
