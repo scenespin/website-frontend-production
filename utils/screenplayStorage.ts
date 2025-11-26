@@ -71,6 +71,15 @@ export interface GitHubConfig {
   last_synced_at?: string;
 }
 
+// Feature 0122: Collaborator interface (defined early for use in Screenplay)
+export interface Collaborator {
+  user_id?: string;
+  email: string;
+  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
+  added_at: string;
+  added_by?: string;
+}
+
 export interface Screenplay {
   user_id: string;
   screenplay_id: string;
@@ -102,6 +111,7 @@ export interface Screenplay {
   github_config?: GitHubConfig;
   last_edited_by?: string; // Feature 0133: user_id of the person who last edited
   last_edited_at?: string; // Feature 0133: ISO timestamp of last edit
+  collaborators?: Collaborator[]; // Feature 0122: Array of collaborators with their roles
 }
 
 export interface CreateScreenplayParams {
@@ -1077,13 +1087,7 @@ export function clearFromLocalStorage(screenplayId: string): void {
 // Feature 0122: Screenplay Role-Based Collaboration System
 // ============================================================================
 
-export interface Collaborator {
-  user_id?: string;
-  email: string;
-  role: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer';
-  added_at: string;
-  added_by?: string;
-}
+// Note: Collaborator interface is defined earlier in the file (before Screenplay interface)
 
 export interface RolePreset {
   id: string;
