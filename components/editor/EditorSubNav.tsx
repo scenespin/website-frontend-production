@@ -63,7 +63,7 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
   const searchParams = useSearchParams();
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
   const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
-  const { screenplayId: contextScreenplayId, isOwner, currentUserRole, collaborators } = useScreenplay();
+  const { screenplayId: contextScreenplayId, isOwner, currentUserRole, collaborators, permissionsLoading } = useScreenplay();
   
   // Auto-determine active tab from pathname if not provided
   const determineActiveTab = (): EditorTab => {
@@ -109,9 +109,14 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
           <div className="flex items-center justify-between gap-3 py-2 border-b border-base-300">
             <EditableScreenplayTitle />
             <div className="flex items-center gap-2">
-              {currentUserRole && (
+              {/* Show role badge if we have a role, or show loading indicator while permissions load */}
+              {currentUserRole ? (
                 <RoleBadge role={currentUserRole} size="sm" />
-              )}
+              ) : permissionsLoading ? (
+                <div className="px-2 py-1 rounded border border-base-300 text-xs text-base-content/60">
+                  Loading...
+                </div>
+              ) : null}
               {/* Show collaboration button if user is owner (permissions are loaded) */}
               {/* Only hide if we're certain user is NOT owner (permissions loaded and isOwner is false) */}
               {currentScreenplayId && (isOwner || currentUserRole === 'director') && (

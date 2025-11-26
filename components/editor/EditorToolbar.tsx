@@ -132,11 +132,25 @@ function ExportToGitHubButton() {
  */
 export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
-    const { canEditScript, rescanScript, currentUserRole } = useScreenplay();
+    const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner } = useScreenplay();
     
     // Feature 0133: Fix writer role save buttons - ensure canEditScript is true for writer role
-    // Fallback: if user has writer role, assume they can edit (permissions might not be loaded yet)
-    const effectiveCanEditScript = canEditScript || currentUserRole === 'writer' || currentUserRole === 'director';
+    // Logic:
+    // 1. If permissions are loaded and canEditScript is true → show buttons
+    // 2. If we know the role is writer/director → show buttons
+    // 3. If we know the role is viewer/contributor/asset-manager (non-editing roles) → hide buttons immediately
+    // 4. If permissions are loading AND we don't know the role yet AND user is not owner → show buttons optimistically
+    // This prevents buttons from flashing for viewers - once role is known, we use it immediately
+    const isNonEditingRole = currentUserRole === 'viewer' || 
+                             currentUserRole === 'contributor' || 
+                             currentUserRole === 'asset-manager';
+    
+    const effectiveCanEditScript = !isNonEditingRole && (
+        canEditScript || 
+        currentUserRole === 'writer' || 
+        currentUserRole === 'director' ||
+        (permissionsLoading && !isOwner && !currentUserRole) // Only show optimistically if role is unknown (null)
+    );
     const [isSaving, setIsSaving] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state

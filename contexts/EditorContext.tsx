@@ -1656,10 +1656,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     }
                     screenplayVersionRef.current = version;
                     
-                    // Preserve user's current content and append their version as a comment block
-                    // This way the user doesn't lose their work
+                    // Preserve user's content from when conflict was detected (not current state which might be stale)
+                    // Use conflictState.yourContent which was captured at conflict detection time
                     const theirContent = latestScreenplay.content || '';
-                    const userContent = state.content;
+                    const userContent = conflictState.yourContent || stateRef.current.content;
+                    
+                    console.log('[EditorContext] Merge manually - preserving user content length:', userContent.length, 'their content length:', theirContent.length);
                     
                     // Create merged content: user's content first, then their version in a comment block
                     const mergeSeparator = '\n\n/* ========================================\n';
@@ -1673,7 +1675,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         content: mergedContent,
                         title: latestScreenplay.title || prev.title,
                         author: latestScreenplay.author || prev.author,
-                        lastSaved: new Date(),
+                        lastSaved: null, // Don't mark as saved - user needs to review and save manually
                         isDirty: true // Mark as dirty so user knows to save after merging
                         // Note: undoStack and redoStack are preserved (not reset)
                     }));

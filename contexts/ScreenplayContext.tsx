@@ -162,6 +162,7 @@ interface ScreenplayContextType {
     // Permission State
     currentUserRole: 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null;
     isOwner: boolean;
+    permissionsLoading: boolean; // Track if permissions are being loaded
     canEditScript: boolean;
     canViewScript: boolean;
     canManageAssets: boolean;
@@ -284,6 +285,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Permission State
     const [currentUserRole, setCurrentUserRole] = useState<'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer' | null>(null);
     const [isOwner, setIsOwner] = useState(false);
+    const [permissionsLoading, setPermissionsLoading] = useState(false); // Track if permissions are being loaded
     const [canEditScript, setCanEditScript] = useState(false);
     const [canViewScript, setCanViewScript] = useState(false);
     const [canManageAssets, setCanManageAssets] = useState(false);
@@ -3663,6 +3665,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             return;
         }
         
+        setPermissionsLoading(true); // Mark as loading
+        
         try {
             // First, get the screenplay to check ownership
             const screenplay = await getScreenplay(screenplayId, getToken);
@@ -3698,7 +3702,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 try {
                     const token = await getToken({ template: 'wryda-backend' });
-                    const response = await fetch(`/api/screenplays/test-permissions/${screenplayId}`, {
+                    if (!token) {
+                        throw new Error('Failed to get authentication token');
+                    }
+                    
+                    console.log('[ScreenplayContext] 🔍 Fetching permissions from API for screenplay:', screenplayId);
+                    const response = await fetch(`/api/screenplays/test-permissions/${screenplayId}?t=${Date.now()}`, {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -3707,11 +3716,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         cache: 'no-store'
                     });
                     
+                    console.log('[ScreenplayContext] 📡 Permission API response status:', response.status);
+                    
                     if (response.ok) {
                         const data = await response.json();
                         const perms = data.permissions || {};
                         const role = data.role || null;
                         
+                        console.log('[ScreenplayContext] 📋 Received permissions:', {
+                            role,
+                            canEditScript: perms.canEditScript,
+                            canViewScript: perms.canViewScript
+                        });
+                        
+                        // Set role FIRST (before permissions) to prevent button flashing for viewers
+                        // This ensures UI updates immediately based on role
+                        if (role && ['director', 'writer', 'asset-manager', 'contributor', 'viewer'].includes(role)) {
+                            setCurrentUserRole(role as 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer');
+                        } else {
+                            // Fallback: determine role from permissions (check canEditScript first for speed)
+                            if (perms.canEditScript === true) {
+                                setCurrentUserRole('writer');
+                            } else if (perms.canManageAssets === true) {
+                                setCurrentUserRole('asset-manager');
+                            } else if (perms.canManageOwnAssets === true || perms.canUploadAssets === true) {
+                                setCurrentUserRole('contributor');
+                            } else {
+                                setCurrentUserRole('viewer');
+                            }
+                        }
+                        
+                        // Then set all permissions
                         setCanViewScript(perms.canViewScript === true);
                         setCanEditScript(perms.canEditScript === true);
                         setCanManageAssets(perms.canManageAssets === true);
@@ -3727,32 +3762,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         setCanViewAssets(perms.canViewScript === true || perms.canManageAssets === true || perms.canManageOwnAssets === true || perms.canUploadAssets === true);
                         setCanGenerateAssets(perms.canManageAssets === true);
                         
-                        // Set role from API response
-                        if (role && ['director', 'writer', 'asset-manager', 'contributor', 'viewer'].includes(role)) {
-                            setCurrentUserRole(role as 'director' | 'writer' | 'asset-manager' | 'contributor' | 'viewer');
-                        } else {
-                            // Fallback: determine role from permissions
-                            if (perms.canEditScript === true) {
-                                setCurrentUserRole('writer');
-                            } else if (perms.canManageAssets === true) {
-                                setCurrentUserRole('asset-manager');
-                            } else if (perms.canManageOwnAssets === true || perms.canUploadAssets === true) {
-                                setCurrentUserRole('contributor');
-                            } else {
-                                setCurrentUserRole('viewer');
-                            }
-                        }
-                        
                         console.log('[ScreenplayContext] ✅ Collaborator permissions loaded:', {
                             role: role || currentUserRole,
                             canEditScript: perms.canEditScript,
                             canManageAssets: perms.canManageAssets
                         });
                     } else {
-                        throw new Error(`Failed to fetch permissions: ${response.statusText}`);
+                        const errorText = await response.text().catch(() => response.statusText);
+                        console.error('[ScreenplayContext] ❌ Permission API error:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            error: errorText
+                        });
+                        throw new Error(`Failed to fetch permissions: ${response.status} ${response.statusText}`);
                     }
                 } catch (permError: any) {
-                    console.error('[ScreenplayContext] ⚠️ Error fetching permissions:', permError);
+                    console.error('[ScreenplayContext] ⚠️ Error fetching permissions:', {
+                        message: permError.message,
+                        stack: permError.stack,
+                        screenplayId
+                    });
                     throw permError;
                 }
             }
@@ -3773,6 +3802,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setCanEditTimeline(false);
             setCanViewComposition(false);
             setCanViewTimeline(false);
+        } finally {
+            setPermissionsLoading(false); // Mark as done loading
         }
     }, [user?.id, getToken, currentUserRole]);
     
@@ -3889,6 +3920,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Reset permissions when no screenplay is selected
             setCurrentUserRole(null);
             setIsOwner(false);
+            setPermissionsLoading(false);
             setCanEditScript(false);
             setCanViewScript(false);
             setCanManageAssets(false);
@@ -3989,6 +4021,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Permission State
         currentUserRole,
         isOwner,
+        permissionsLoading,
         canEditScript,
         canViewScript,
         canManageAssets,
