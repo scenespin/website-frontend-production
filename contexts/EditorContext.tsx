@@ -1532,6 +1532,33 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 if (latestVersion !== currentVersion) {
                     console.log(`[EditorContext] 🔔 Version changed: ${currentVersion} → ${latestVersion}`);
                     
+                    // 🔥 FIX: Only show notifications if there are actually collaborators
+                    // Also check if the change was from the current user (their own save)
+                    const hasCollaborators = screenplay.collaborators && screenplay.collaborators.length > 0;
+                    const lastEditedBy = latestScreenplay.last_edited_by;
+                    const isOwnChange = lastEditedBy === user?.id;
+                    
+                    // Only show notification if:
+                    // 1. There are collaborators (someone else could have edited)
+                    // 2. The change was NOT from the current user (it's actually from another user)
+                    if (!hasCollaborators) {
+                        // No collaborators - this is a single-user screenplay
+                        // Version change is from user's own save - just update version ref silently
+                        console.log('[EditorContext] Version changed but no collaborators - updating version silently (own save)');
+                        screenplayVersionRef.current = latestVersion;
+                        return; // Don't show notification or reload
+                    }
+                    
+                    if (isOwnChange) {
+                        // Change was from current user's own save - just update version ref silently
+                        console.log('[EditorContext] Version changed from own save - updating version silently');
+                        screenplayVersionRef.current = latestVersion;
+                        return; // Don't show notification or reload
+                    }
+                    
+                    // Version changed from another user - show notification
+                    console.log('[EditorContext] Version changed from another user - showing notification');
+                    
                     // Update version ref
                     screenplayVersionRef.current = latestVersion;
                     
