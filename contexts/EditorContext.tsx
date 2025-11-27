@@ -1685,6 +1685,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         // Debounce cursor broadcast (500ms) to avoid excessive API calls
         cursorBroadcastTimerRef.current = setTimeout(async () => {
             try {
+                console.log(`[EditorContext] Broadcasting cursor position: screenplayId=${activeScreenplayId}, userId=${user?.id}, position=${currentPosition}`);
                 const success = await broadcastCursorPosition(
                     activeScreenplayId,
                     currentPosition,
@@ -1814,16 +1815,18 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 const now = Date.now();
                 const activeOtherCursors = cursors.filter(cursor => {
                     // Filter out own cursor
-                    if (cursor.userId === currentUserId) {
-                        return false;
+                    const isOwnCursor = cursor.userId === currentUserId;
+                    if (isOwnCursor) {
+                        console.warn(`[EditorContext] ⚠️ Filtering out own cursor: currentUserId=${currentUserId} (${typeof currentUserId}), cursor.userId=${cursor.userId} (${typeof cursor.userId}), match=${cursor.userId === currentUserId}, strictMatch=${cursor.userId === currentUserId}`);
                     }
                     
                     // Filter out stale cursors (older than 30 seconds - matches backend timeout)
-                    if (now - cursor.lastSeen > 30000) {
-                        return false;
+                    const isStale = now - cursor.lastSeen > 30000;
+                    if (isStale) {
+                        console.log(`[EditorContext] Filtering out stale cursor: userId=${cursor.userId}, age=${now - cursor.lastSeen}ms`);
                     }
                     
-                    return true;
+                    return !isOwnCursor && !isStale;
                 });
                 
                 // Update state with active cursors
@@ -1834,8 +1837,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     totalCursors: cursors.length,
                     otherUsers: activeOtherCursors.length,
                     currentUserId,
-                    cursorUserIds: cursors.map(c => c.userId),
-                    activeOtherUserIds: activeOtherCursors.map(c => c.userId)
+                    currentUserIdType: typeof currentUserId,
+                    cursorUserIds: cursors.map(c => ({ userId: c.userId, userIdType: typeof c.userId, position: c.position, lastSeen: c.lastSeen })),
+                    activeOtherUserIds: activeOtherCursors.map(c => ({ userId: c.userId, userIdType: typeof c.userId, position: c.position }))
                 });
                 
                 if (activeOtherCursors.length > 0) {
