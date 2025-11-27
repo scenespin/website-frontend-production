@@ -1559,127 +1559,127 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 // Start polling only if collaborators exist
                 // Poll every 15 seconds (optimized for faster content sync - reduces cursor position delay)
                 pollInterval = setInterval(async () => {
-            try {
-                const currentVersion = screenplayVersionRef.current;
-                if (currentVersion === null) {
-                    return; // No version tracked yet
-                }
-                
-                // Fetch current screenplay to check version
-                const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
-                if (!latestScreenplay) {
-                    return;
-                }
-                
-                // Handle backward compatibility
-                let latestVersion: number;
-                if (typeof latestScreenplay.version === 'string') {
-                    latestVersion = parseFloat(latestScreenplay.version) || 1;
-                } else {
-                    latestVersion = latestScreenplay.version || 1;
-                }
-                
-                // Check if version changed
-                if (latestVersion !== currentVersion) {
-                    console.log(`[EditorContext] 🔔 Version changed: ${currentVersion} → ${latestVersion}`);
-                    
-                    // 🔥 FIX: Only show notifications if there are actually collaborators
-                    // Also check if the change was from the current user (their own save)
-                    // Use latestScreenplay (the fetched screenplay) not the stale 'screenplay' variable
-                    const hasCollaborators = latestScreenplay.collaborators && latestScreenplay.collaborators.length > 0;
-                    const lastEditedBy = latestScreenplay.last_edited_by; // Optional - may not exist on older screenplays
-                    const isOwnChange = lastEditedBy !== undefined && lastEditedBy === user?.id;
-                    
-                    // Only show notification if:
-                    // 1. There are collaborators (someone else could have edited)
-                    // 2. The change was NOT from the current user (it's actually from another user)
-                    if (!hasCollaborators) {
-                        // No collaborators - this is a single-user screenplay
-                        // Version change is from user's own save - just update version ref silently
-                        console.log('[EditorContext] Version changed but no collaborators - updating version silently (own save)');
-                        screenplayVersionRef.current = latestVersion;
-                        return; // Don't show notification or reload
-                    }
-                    
-                    if (isOwnChange) {
-                        // Change was from current user's own save - just update version ref silently
-                        console.log('[EditorContext] Version changed from own save - updating version silently');
-                        screenplayVersionRef.current = latestVersion;
-                        return; // Don't show notification or reload
-                    }
-                    
-                    // Version changed from another user - show notification
-                    console.log('[EditorContext] Version changed from another user - showing notification');
-                    
-                    // Update version ref
-                    screenplayVersionRef.current = latestVersion;
-                    
-                    // Show notification if user has unsaved changes
-                    const hasUnsavedChanges = stateRef.current.isDirty && stateRef.current.content.trim().length > 0;
-                    
-                    if (hasUnsavedChanges) {
-                        // Don't auto-reload if user has unsaved changes - show notification instead
-                        toast.info('New changes available from another user. Save your changes first, then reload.', {
-                            duration: 5000,
-                            action: {
-                                label: 'Reload',
-                                onClick: async () => {
-                                    // Reload screenplay
-                                    const reloaded = await getScreenplay(activeScreenplayId, getToken);
-                                    if (reloaded) {
-                                        let version: number;
-                                        if (typeof reloaded.version === 'string') {
-                                            version = parseFloat(reloaded.version) || 1;
-                                        } else {
-                                            version = reloaded.version || 1;
-                                        }
-                                        screenplayVersionRef.current = version;
-                                        
-                                        const syncedContent = reloaded.content || stateRef.current.content;
-                                        setState(prev => ({
-                                            ...prev,
-                                            content: syncedContent,
-                                            title: reloaded.title || prev.title,
-                                            author: reloaded.author || prev.author
-                                        }));
-                                        
-                                        // 🔥 FIX: Update lastSyncedContent when manually reloading
-                                        setLastSyncedContent(syncedContent);
-                                        
-                                        toast.success('Reloaded latest version');
-                                    }
-                                }
-                            }
-                        });
-                    } else {
-                        // Auto-reload if no unsaved changes
-                        let version: number;
-                        if (typeof latestScreenplay.version === 'string') {
-                            version = parseFloat(latestScreenplay.version) || 1;
-                        } else {
-                            version = latestScreenplay.version || 1;
+                    try {
+                        const currentVersion = screenplayVersionRef.current;
+                        if (currentVersion === null) {
+                            return; // No version tracked yet
                         }
-                        screenplayVersionRef.current = version;
                         
-                        const syncedContent = latestScreenplay.content || stateRef.current.content;
-                        setState(prev => ({
-                            ...prev,
-                            content: syncedContent,
-                            title: latestScreenplay.title || prev.title,
-                            author: latestScreenplay.author || prev.author
-                        }));
+                        // Fetch current screenplay to check version
+                        const latestScreenplay = await getScreenplay(activeScreenplayId, getToken);
+                        if (!latestScreenplay) {
+                            return;
+                        }
                         
-                        // 🔥 FIX: Update lastSyncedContent when auto-reloading
-                        setLastSyncedContent(syncedContent);
+                        // Handle backward compatibility
+                        let latestVersion: number;
+                        if (typeof latestScreenplay.version === 'string') {
+                            latestVersion = parseFloat(latestScreenplay.version) || 1;
+                        } else {
+                            latestVersion = latestScreenplay.version || 1;
+                        }
                         
-                        toast.success('Screenplay updated with latest changes');
+                        // Check if version changed
+                        if (latestVersion !== currentVersion) {
+                            console.log(`[EditorContext] 🔔 Version changed: ${currentVersion} → ${latestVersion}`);
+                            
+                            // 🔥 FIX: Only show notifications if there are actually collaborators
+                            // Also check if the change was from the current user (their own save)
+                            // Use latestScreenplay (the fetched screenplay) not the stale 'screenplay' variable
+                            const hasCollaborators = latestScreenplay.collaborators && latestScreenplay.collaborators.length > 0;
+                            const lastEditedBy = latestScreenplay.last_edited_by; // Optional - may not exist on older screenplays
+                            const isOwnChange = lastEditedBy !== undefined && lastEditedBy === user?.id;
+                            
+                            // Only show notification if:
+                            // 1. There are collaborators (someone else could have edited)
+                            // 2. The change was NOT from the current user (it's actually from another user)
+                            if (!hasCollaborators) {
+                                // No collaborators - this is a single-user screenplay
+                                // Version change is from user's own save - just update version ref silently
+                                console.log('[EditorContext] Version changed but no collaborators - updating version silently (own save)');
+                                screenplayVersionRef.current = latestVersion;
+                                return; // Don't show notification or reload
+                            }
+                            
+                            if (isOwnChange) {
+                                // Change was from current user's own save - just update version ref silently
+                                console.log('[EditorContext] Version changed from own save - updating version silently');
+                                screenplayVersionRef.current = latestVersion;
+                                return; // Don't show notification or reload
+                            }
+                            
+                            // Version changed from another user - show notification
+                            console.log('[EditorContext] Version changed from another user - showing notification');
+                            
+                            // Update version ref
+                            screenplayVersionRef.current = latestVersion;
+                            
+                            // Show notification if user has unsaved changes
+                            const hasUnsavedChanges = stateRef.current.isDirty && stateRef.current.content.trim().length > 0;
+                            
+                            if (hasUnsavedChanges) {
+                                // Don't auto-reload if user has unsaved changes - show notification instead
+                                toast.info('New changes available from another user. Save your changes first, then reload.', {
+                                    duration: 5000,
+                                    action: {
+                                        label: 'Reload',
+                                        onClick: async () => {
+                                            // Reload screenplay
+                                            const reloaded = await getScreenplay(activeScreenplayId, getToken);
+                                            if (reloaded) {
+                                                let version: number;
+                                                if (typeof reloaded.version === 'string') {
+                                                    version = parseFloat(reloaded.version) || 1;
+                                                } else {
+                                                    version = reloaded.version || 1;
+                                                }
+                                                screenplayVersionRef.current = version;
+                                                
+                                                const syncedContent = reloaded.content || stateRef.current.content;
+                                                setState(prev => ({
+                                                    ...prev,
+                                                    content: syncedContent,
+                                                    title: reloaded.title || prev.title,
+                                                    author: reloaded.author || prev.author
+                                                }));
+                                                
+                                                // 🔥 FIX: Update lastSyncedContent when manually reloading
+                                                setLastSyncedContent(syncedContent);
+                                                
+                                                toast.success('Reloaded latest version');
+                                            }
+                                        }
+                                    }
+                                });
+                            } else {
+                                // Auto-reload if no unsaved changes
+                                let version: number;
+                                if (typeof latestScreenplay.version === 'string') {
+                                    version = parseFloat(latestScreenplay.version) || 1;
+                                } else {
+                                    version = latestScreenplay.version || 1;
+                                }
+                                screenplayVersionRef.current = version;
+                                
+                                const syncedContent = latestScreenplay.content || stateRef.current.content;
+                                setState(prev => ({
+                                    ...prev,
+                                    content: syncedContent,
+                                    title: latestScreenplay.title || prev.title,
+                                    author: latestScreenplay.author || prev.author
+                                }));
+                                
+                                // 🔥 FIX: Update lastSyncedContent when auto-reloading
+                                setLastSyncedContent(syncedContent);
+                                
+                                toast.success('Screenplay updated with latest changes');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[EditorContext] Error polling for updates:', error);
+                        // Silent fail - don't spam user with errors
                     }
-                }
-                } catch (error) {
-                    console.error('[EditorContext] Error polling for updates:', error);
-                    // Silent fail - don't spam user with errors
-                }
-            }, 15000); // Poll every 15 seconds (optimized for faster content sync)
+                }, 15000); // Poll every 15 seconds (optimized for faster content sync)
         };
         
         // Start checking and polling
