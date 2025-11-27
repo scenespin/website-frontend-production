@@ -13,12 +13,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { FileText, Users, MapPin, ChevronDown, UserPlus } from 'lucide-react';
+import { FileText, Users, MapPin, ChevronDown, UserPlus, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditableScreenplayTitle from './EditableScreenplayTitle';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import CollaborationPanel from '@/components/collaboration/CollaborationPanel';
 import RoleBadge from '@/components/collaboration/RoleBadge';
+import ChangeHistoryPanel from '@/components/screenplay/ChangeHistoryPanel';
 
 export type EditorTab = 'write' | 'characters' | 'locations';
 
@@ -63,6 +64,7 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
   const searchParams = useSearchParams();
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
   const [isCollaborationPanelOpen, setIsCollaborationPanelOpen] = useState(false);
+  const [isChangeHistoryPanelOpen, setIsChangeHistoryPanelOpen] = useState(false);
   const { screenplayId: contextScreenplayId, isOwner, currentUserRole, collaborators, permissionsLoading } = useScreenplay();
   
   // Auto-determine active tab from pathname if not provided
@@ -132,6 +134,17 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
                       {collaborators.length}
                     </span>
                   )}
+                </button>
+              )}
+              {/* Show change history button for all users with access */}
+              {currentScreenplayId && currentUserRole && (
+                <button
+                  onClick={() => setIsChangeHistoryPanelOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-300 rounded transition-colors"
+                  title="View change history"
+                >
+                  <History className="w-4 h-4" />
+                  <span className="hidden sm:inline">History</span>
                 </button>
               )}
             </div>
@@ -247,6 +260,12 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
       <CollaborationPanel
         isOpen={isCollaborationPanelOpen}
         onClose={() => setIsCollaborationPanelOpen(false)}
+      />
+
+      {/* Change History Panel */}
+      <ChangeHistoryPanel
+        isOpen={isChangeHistoryPanelOpen}
+        onClose={() => setIsChangeHistoryPanelOpen(false)}
       />
     </>
   );
