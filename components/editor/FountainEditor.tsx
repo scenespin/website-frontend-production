@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useMemo, ChangeEvent } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useMemo, ChangeEvent } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { stripTagsForDisplay, getVisibleLineNumber } from '@/utils/fountain';
@@ -82,6 +82,7 @@ export default function FountainEditor({
     // When React updates the textarea's value prop, the browser resets cursor to the end.
     // We need to preserve and restore the cursor position after programmatic content updates.
     const previousContentRef = useRef<string>(displayContent);
+    const savedCursorPositionRef = useRef<number | null>(null); // Save cursor position before content changes
     const isUserTypingRef = useRef(false);
     const lastTypingTimeRef = useRef<number>(0);
     
@@ -103,7 +104,31 @@ export default function FountainEditor({
         return () => textarea.removeEventListener('input', handleInput);
     }, []);
     
+    // Save cursor position on every selection change (so we have it before content updates)
     useEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        
+        const handleSelectionChange = () => {
+            if (textarea) {
+                savedCursorPositionRef.current = textarea.selectionStart;
+            }
+        };
+        
+        textarea.addEventListener('select', handleSelectionChange);
+        textarea.addEventListener('click', handleSelectionChange);
+        textarea.addEventListener('keyup', handleSelectionChange);
+        
+        return () => {
+            textarea.removeEventListener('select', handleSelectionChange);
+            textarea.removeEventListener('click', handleSelectionChange);
+            textarea.removeEventListener('keyup', handleSelectionChange);
+        };
+    }, []);
+    
+    // Use useLayoutEffect to restore cursor synchronously BEFORE browser paints
+    // This runs after DOM updates but before the browser paints, so we can restore cursor before user sees it reset
+    useLayoutEffect(() => {
         const textarea = textareaRef.current;
         if (!textarea) return;
         
@@ -112,6 +137,7 @@ export default function FountainEditor({
         
         // Skip if content hasn't changed
         if (previousContent === currentContent) {
+            previousContentRef.current = currentContent;
             return;
         }
         
@@ -120,10 +146,8 @@ export default function FountainEditor({
         const wasRecentlyTyping = isUserTypingRef.current || timeSinceLastTyping < 500;
         
         // Only preserve cursor if content changed programmatically (not from user typing)
-        if (!wasRecentlyTyping) {
-            // Get current cursor position before React updates the DOM
-            const savedCursorPos = textarea.selectionStart;
-            const savedSelectionEnd = textarea.selectionEnd;
+        if (!wasRecentlyTyping && savedCursorPositionRef.current !== null) {
+            const savedCursorPos = savedCursorPositionRef.current;
             
             // Always preserve cursor position (not just if not at end)
             // The adjustment logic will handle edge cases
@@ -150,28 +174,29 @@ export default function FountainEditor({
                     ));
                 }
                 
-                // Restore cursor position after React updates the DOM
-                // Use double requestAnimationFrame to ensure DOM has fully updated
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        if (textarea && textarea.value === currentContent) {
-                            textarea.selectionStart = adjustedCursorPos;
-                            textarea.selectionEnd = adjustedCursorPos;
-                            
-                            // Update state to reflect restored cursor position
-                            setCursorPosition(adjustedCursorPos);
-                            
-                            console.log('[FountainEditor] Preserved cursor position after programmatic content update', {
-                                previousLength: previousContent.length,
-                                currentLength: currentContent.length,
-                                savedCursorPos,
-                                adjustedCursorPos,
-                                commonPrefix,
-                                wasRecentlyTyping
-                            });
-                        }
+                // Restore cursor position synchronously (useLayoutEffect runs before paint)
+                if (textarea.value === currentContent) {
+                    textarea.selectionStart = adjustedCursorPos;
+                    textarea.selectionEnd = adjustedCursorPos;
+                    
+                    // Update state to reflect restored cursor position
+                    setCursorPosition(adjustedCursorPos);
+                    
+                    console.log('[FountainEditor] Preserved cursor position after programmatic content update', {
+                        previousLength: previousContent.length,
+                        currentLength: currentContent.length,
+                        savedCursorPos,
+                        adjustedCursorPos,
+                        commonPrefix,
+                        wasRecentlyTyping,
+                        textareaValueLength: textarea.value.length
                     });
-                });
+                } else {
+                    console.warn('[FountainEditor] Textarea value mismatch during cursor restoration', {
+                        expectedLength: currentContent.length,
+                        actualLength: textarea.value.length
+                    });
+                }
             }
         }
         
@@ -270,6 +295,9 @@ export default function FountainEditor({
         const newContent = e.target.value;
         const cursorPos = e.target.selectionStart;
         
+        // Save cursor position to ref for cursor preservation
+        savedCursorPositionRef.current = cursorPos;
+        
         // Clear highlight when user starts typing
         if (state.highlightRange) {
             clearHighlight();
@@ -309,6 +337,10 @@ export default function FountainEditor({
         if (!textareaRef.current) return;
         
         const cursorPos = textareaRef.current.selectionStart;
+        
+        // Save cursor position to ref for cursor preservation
+        savedCursorPositionRef.current = cursorPos;
+        
         setCursorPosition(cursorPos);
         
         const textBeforeCursor = state.content.substring(0, cursorPos);
