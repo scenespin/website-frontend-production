@@ -59,11 +59,16 @@ export default function CursorOverlay({
         return;
       }
 
+      // 🔥 FIX: Use textarea.value instead of content prop to get the actual displayed content
+      // This ensures we're calculating positions based on what's actually in the textarea,
+      // not the local state which may have unsaved changes
+      const actualContent = textarea.value || content;
+
       const newPositions = new Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>();
 
       for (const cursor of cursors) {
         try {
-          const position = getCursorPixelPosition(textarea, content, cursor.position);
+          const position = getCursorPixelPosition(textarea, actualContent, cursor.position);
           
           if (position) {
             let selectionStart: { x: number; y: number } | undefined;
@@ -74,7 +79,7 @@ export default function CursorOverlay({
                 cursor.selectionStart !== cursor.selectionEnd) {
               const selectionRange = getSelectionPixelRange(
                 textarea,
-                content,
+                actualContent,
                 cursor.selectionStart,
                 cursor.selectionEnd
               );
@@ -137,7 +142,7 @@ export default function CursorOverlay({
         clearTimeout(updateTimerRef.current);
       }
     };
-  }, [textareaRef, content, cursors]); // Note: cursorPositions is NOT in deps to avoid infinite loop
+  }, [textareaRef, cursors]); // 🔥 FIX: Removed 'content' from deps - only recalculate when cursors change, not when local content changes
 
   // Recalculate on window resize
   useEffect(() => {
