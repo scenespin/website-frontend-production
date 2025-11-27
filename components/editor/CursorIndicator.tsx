@@ -34,6 +34,13 @@ export default function CursorIndicator({
     (cursor.selectionStart !== undefined && cursor.selectionEnd !== undefined) &&
     cursor.selectionStart !== cursor.selectionEnd;
 
+  // 🔥 FIX: Position badge below cursor if cursor is near the top (to avoid being cut off by toolbar)
+  // Threshold: if cursor is within 40px of the top, show badge below instead
+  const BADGE_TOP_THRESHOLD = 40;
+  const BADGE_HEIGHT = 24; // Approximate height of badge (including padding)
+  const showBadgeBelow = y < BADGE_TOP_THRESHOLD;
+  const badgeTop = showBadgeBelow ? y + 20 + 4 : y - BADGE_HEIGHT; // 20px cursor height + 4px gap
+
   return (
     <>
       {/* Selection highlight (if text is selected) */}
@@ -75,7 +82,7 @@ export default function CursorIndicator({
         className="absolute pointer-events-auto"
         style={{
           left: `${x + 4}px`,
-          top: `${y - 24}px`,
+          top: `${badgeTop}px`,
           zIndex: 3,
         }}
       >
