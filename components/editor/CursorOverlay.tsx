@@ -59,10 +59,11 @@ export default function CursorOverlay({
         return;
       }
 
-      // 🔥 FIX: Use textarea.value instead of content prop to get the actual displayed content
-      // This ensures we're calculating positions based on what's actually in the textarea,
-      // not the local state which may have unsaved changes
-      const actualContent = textarea.value || content;
+      // 🔥 FIX: Use the synced content prop, not textarea.value
+      // Collaborator cursor positions are based on the synced content from the server,
+      // not the local textarea.value which may include unsaved changes from the current user.
+      // Using textarea.value would cause collaborator cursors to move incorrectly when the current user types.
+      const actualContent = content;
 
       const newPositions = new Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>();
 
