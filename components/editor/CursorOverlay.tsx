@@ -143,7 +143,7 @@ export default function CursorOverlay({
         clearTimeout(updateTimerRef.current);
       }
     };
-  }, [textareaRef, cursors]); // 🔥 FIX: Removed 'content' from deps - only recalculate when cursors change, not when local content changes
+  }, [textareaRef, cursors, content]); // 🔥 FIX: Include 'content' in deps - this is now lastSyncedContent, so we should recalculate when synced content changes
 
   // Recalculate on window resize
   useEffect(() => {

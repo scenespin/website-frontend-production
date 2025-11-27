@@ -49,7 +49,7 @@ export default function FountainEditor({
     onSelectionStateChange
 }: FountainEditorProps) {
     // Context hooks
-    const { state, setContent, setCursorPosition, setCurrentLine, replaceSelection, markSaved, clearHighlight, otherUsersCursors } = useEditor();
+    const { state, setContent, setCursorPosition, setCurrentLine, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent } = useEditor();
     const screenplay = useScreenplay();
     
     // Contextual Navigation - Update global context as user moves cursor
@@ -322,7 +322,7 @@ export default function FountainEditor({
                 {otherUsersCursors && otherUsersCursors.length > 0 && (
                     <CursorOverlay
                         textareaRef={textareaRef}
-                        content={displayContent}
+                        content={stripTagsForDisplay(lastSyncedContent)}
                         cursors={otherUsersCursors}
                     />
                 )}

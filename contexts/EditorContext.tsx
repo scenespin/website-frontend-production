@@ -93,6 +93,10 @@ interface EditorContextType {
     
     // Feature 0134: Other users' cursor positions (for collaborative editing)
     otherUsersCursors: CursorPosition[];
+    
+    // Feature 0134: Last synced content from server (for cursor position calculations)
+    // This is separate from state.content which includes unsaved local changes
+    lastSyncedContent: string;
 }
 
 const defaultState: EditorState = {
@@ -155,6 +159,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     
     // Feature 0134: Store other users' cursor positions (for rendering)
     const [otherUsersCursors, setOtherUsersCursors] = useState<CursorPosition[]>([]);
+    
+    // Feature 0134: Track last synced content from server (for cursor position calculations)
+    // This is separate from state.content which includes unsaved local changes
+    // When calculating collaborator cursor positions, we use this instead of state.content
+    // to prevent cursors from moving incorrectly when the current user types
+    const [lastSyncedContent, setLastSyncedContent] = useState<string>('');
     
     // Create refs to hold latest state values without causing interval restart
     const stateRef = useRef(state);
@@ -269,6 +279,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 
                 console.log('[EditorContext] ✅ Created NEW screenplay:', activeScreenplayId, '| Content:', contentLength, 'chars');
                 
+                // 🔥 FIX: Update lastSyncedContent when creating new screenplay
+                setLastSyncedContent(currentState.content);
+                
                 // Feature 0117: No setTimeout or structure save needed - caller will handle it with explicit ID
             } else {
                 // Update existing screenplay - use the activeScreenplayId we determined above
@@ -322,6 +335,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     // Update ref to keep in sync (in case it was different)
                     screenplayIdRef.current = activeScreenplayId;
                     
+                    // 🔥 FIX: Update lastSyncedContent after successful save
+                    setLastSyncedContent(currentState.content);
+                    
                     console.log('[EditorContext] ✅ Updated screenplay content:', activeScreenplayId, '| Saved', contentLength, 'chars');
                 } catch (error: any) {
                     // 🔥 SIMPLIFIED: "Last write wins" - if save fails, just log and retry with force
@@ -349,6 +365,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             screenplayVersionRef.current = newVersion;
                             screenplayIdRef.current = activeScreenplayId;
                         }
+                        
+                        // 🔥 FIX: Update lastSyncedContent after successful retry save
+                        setLastSyncedContent(currentState.content);
                         
                         console.log('[EditorContext] ✅ Successfully saved with force (last write wins)');
                     } catch (retryError) {
@@ -762,7 +781,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         clearHighlight,
         reset,
         hasUnsavedChanges,
-        otherUsersCursors // Feature 0134: Expose other users' cursor positions
+        otherUsersCursors, // Feature 0134: Expose other users' cursor positions
+        lastSyncedContent // Feature 0134: Last synced content from server (for cursor position calculations)
     };
     
     // ========================================================================
@@ -1066,6 +1086,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 screenplayIdRef.current = null;
                 // Feature 0133: Reset version ref when switching screenplays (each screenplay has its own version)
                 screenplayVersionRef.current = null;
+                // Feature 0134: Reset lastSyncedContent when switching screenplays
+                setLastSyncedContent('');
                 setState(defaultState);
             } else {
                 // Same screenplay (or preserving existing content) - preserve state
@@ -1217,6 +1239,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                     author: screenplay.author || prev.author,
                                     isDirty: hasLocalStorageContent && localStorageContent !== screenplay.content // Mark dirty if using localStorage
                                 }));
+                                
+                                // 🔥 FIX: Update lastSyncedContent with the database content (source of truth)
+                                // This is what we use for cursor position calculations, not the local state.content
+                                // Always use dbContent (synced from server), not contentToUse (which may include unsaved changes)
+                                setLastSyncedContent(dbContent);
                                 
                                 console.log('[EditorContext] ✅ Loaded screenplay from URL:', projectId);
                                 isInitialLoadRef.current = false;
@@ -1585,12 +1612,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                         }
                                         screenplayVersionRef.current = version;
                                         
+                                        const syncedContent = reloaded.content || stateRef.current.content;
                                         setState(prev => ({
                                             ...prev,
-                                            content: reloaded.content || prev.content,
+                                            content: syncedContent,
                                             title: reloaded.title || prev.title,
                                             author: reloaded.author || prev.author
                                         }));
+                                        
+                                        // 🔥 FIX: Update lastSyncedContent when manually reloading
+                                        setLastSyncedContent(syncedContent);
                                         
                                         toast.success('Reloaded latest version');
                                     }
@@ -1607,12 +1638,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         }
                         screenplayVersionRef.current = version;
                         
+                        const syncedContent = latestScreenplay.content || stateRef.current.content;
                         setState(prev => ({
                             ...prev,
-                            content: latestScreenplay.content || prev.content,
+                            content: syncedContent,
                             title: latestScreenplay.title || prev.title,
                             author: latestScreenplay.author || prev.author
                         }));
+                        
+                        // 🔥 FIX: Update lastSyncedContent when auto-reloading
+                        setLastSyncedContent(syncedContent);
                         
                         toast.success('Screenplay updated with latest changes');
                     }
@@ -1902,7 +1937,8 @@ const createMinimalContextValue = (): EditorContextType => ({
     setHighlightRange: () => {},
     clearHighlight: () => {},
     reset: () => {},
-    otherUsersCursors: [] // Feature 0134: Empty array for minimal context
+    otherUsersCursors: [], // Feature 0134: Empty array for minimal context
+    lastSyncedContent: '' // Feature 0134: Empty string for minimal context
 });
 
 // Public EditorProvider that wraps the search params logic in Suspense
