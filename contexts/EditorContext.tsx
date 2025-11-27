@@ -1507,7 +1507,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         
         // Only poll if collaboration feature is enabled (check via environment or assume enabled for now)
-        // Poll every 30 seconds
+        // Poll every 15 seconds (optimized for faster content sync - reduces cursor position delay)
         const pollInterval = setInterval(async () => {
             try {
                 const currentVersion = screenplayVersionRef.current;
@@ -1621,7 +1621,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 console.error('[EditorContext] Error polling for updates:', error);
                 // Silent fail - don't spam user with errors
             }
-        }, 30000); // Poll every 30 seconds
+        }, 15000); // Poll every 15 seconds (optimized for faster content sync)
         
         return () => {
             clearInterval(pollInterval);
