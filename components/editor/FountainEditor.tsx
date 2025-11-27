@@ -83,6 +83,7 @@ export default function FountainEditor({
     // We need to preserve and restore the cursor position after programmatic content updates.
     const previousContentRef = useRef<string>(displayContent);
     const isUserTypingRef = useRef(false);
+    const lastTypingTimeRef = useRef<number>(0);
     
     // Track when user is typing (to distinguish from programmatic updates)
     useEffect(() => {
@@ -91,10 +92,11 @@ export default function FountainEditor({
         
         const handleInput = () => {
             isUserTypingRef.current = true;
-            // Reset flag after a short delay
+            lastTypingTimeRef.current = Date.now();
+            // Reset flag after a longer delay to avoid false positives
             setTimeout(() => {
                 isUserTypingRef.current = false;
-            }, 100);
+            }, 500);
         };
         
         textarea.addEventListener('input', handleInput);
@@ -108,14 +110,24 @@ export default function FountainEditor({
         const previousContent = previousContentRef.current;
         const currentContent = displayContent;
         
+        // Skip if content hasn't changed
+        if (previousContent === currentContent) {
+            return;
+        }
+        
+        // Check if user was typing recently (within last 500ms)
+        const timeSinceLastTyping = Date.now() - lastTypingTimeRef.current;
+        const wasRecentlyTyping = isUserTypingRef.current || timeSinceLastTyping < 500;
+        
         // Only preserve cursor if content changed programmatically (not from user typing)
-        if (previousContent !== currentContent && !isUserTypingRef.current) {
+        if (!wasRecentlyTyping) {
             // Get current cursor position before React updates the DOM
             const savedCursorPos = textarea.selectionStart;
             const savedSelectionEnd = textarea.selectionEnd;
             
-            // Only preserve if cursor is not at the end (user is actively editing)
-            if (savedCursorPos < previousContent.length) {
+            // Always preserve cursor position (not just if not at end)
+            // The adjustment logic will handle edge cases
+            if (savedCursorPos >= 0 && savedCursorPos <= previousContent.length) {
                 // Find where content differs to adjust cursor position correctly
                 let commonPrefix = 0;
                 const minLength = Math.min(previousContent.length, currentContent.length);
@@ -126,16 +138,16 @@ export default function FountainEditor({
                 
                 // Adjust cursor position based on where content changed
                 let adjustedCursorPos = savedCursorPos;
-                if (savedCursorPos > commonPrefix) {
+                if (savedCursorPos <= commonPrefix) {
+                    // Cursor is before or at where content differs - keep same position
+                    adjustedCursorPos = Math.min(savedCursorPos, currentContent.length);
+                } else {
                     // Cursor is after where content differs - adjust by length difference
                     const lengthDiff = currentContent.length - previousContent.length;
                     adjustedCursorPos = Math.max(0, Math.min(
                         savedCursorPos + lengthDiff,
                         currentContent.length
                     ));
-                } else {
-                    // Cursor is before or at where content differs - keep same position
-                    adjustedCursorPos = Math.min(savedCursorPos, currentContent.length);
                 }
                 
                 // Restore cursor position after React updates the DOM
@@ -154,7 +166,8 @@ export default function FountainEditor({
                                 currentLength: currentContent.length,
                                 savedCursorPos,
                                 adjustedCursorPos,
-                                commonPrefix
+                                commonPrefix,
+                                wasRecentlyTyping
                             });
                         }
                     });
@@ -398,7 +411,6 @@ export default function FountainEditor({
                     <CursorOverlay
                         textareaRef={textareaRef}
                         content={stripTagsForDisplay(lastSyncedContent)}
-                        currentContent={displayContent}
                         cursors={otherUsersCursors}
                     />
                 )}
