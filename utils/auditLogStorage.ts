@@ -26,6 +26,9 @@ export interface AuditLogEntry {
   ip_address?: string;
   user_agent?: string;
   version?: number;
+  // Enriched fields (added by backend, similar to cursor positions)
+  edited_by_email?: string;
+  edited_by_name?: string;
 }
 
 export interface ChangeHistoryResponse {
