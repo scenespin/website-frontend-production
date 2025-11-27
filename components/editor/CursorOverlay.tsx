@@ -16,14 +16,16 @@ import CursorIndicator from './CursorIndicator';
 
 interface CursorOverlayProps {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
-  content: string;
+  content: string; // Synced content (lastSyncedContent)
   cursors: CursorPosition[];
+  currentContent?: string; // Current textarea content (with local edits) - optional for backward compatibility
 }
 
 export default function CursorOverlay({
   textareaRef,
   content,
-  cursors
+  cursors,
+  currentContent
 }: CursorOverlayProps) {
   const [cursorPositions, setCursorPositions] = useState<Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>>(new Map());
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -59,17 +61,62 @@ export default function CursorOverlay({
         return;
       }
 
-      // 🔥 FIX: Use the synced content prop, not textarea.value
-      // Collaborator cursor positions are based on the synced content from the server,
-      // not the local textarea.value which may include unsaved changes from the current user.
-      // Using textarea.value would cause collaborator cursors to move incorrectly when the current user types.
-      const actualContent = content;
+      // 🔥 FIX: Adjust collaborator cursor positions for local edits
+      // The collaborator's cursor position is relative to the synced content.
+      // If the current user has inserted/deleted text before the collaborator's cursor,
+      // we need to adjust the collaborator's cursor position accordingly.
+      // 
+      // Algorithm:
+      // 1. Find the longest common prefix between synced and current content
+      // 2. If cursor is after the common prefix, adjust by the length difference
+      // 3. Calculate pixel position using the current content (what's displayed in textarea)
+      
+      const syncedContent = content;
+      const displayedContent = currentContent || textarea.value || syncedContent;
+      
+      // Find the longest common prefix (where content starts to differ)
+      let commonPrefixLength = 0;
+      const minLength = Math.min(syncedContent.length, displayedContent.length);
+      while (commonPrefixLength < minLength && 
+             syncedContent[commonPrefixLength] === displayedContent[commonPrefixLength]) {
+        commonPrefixLength++;
+      }
+      
+      // Calculate the net change in content length
+      const lengthDiff = displayedContent.length - syncedContent.length;
+      
+      // Calculate position adjustments for each cursor based on content diff
+      const adjustCursorPosition = (cursorPos: number): number => {
+        // If content hasn't changed, no adjustment needed
+        if (syncedContent === displayedContent) {
+          return cursorPos;
+        }
+        
+        // If cursor is at or before the common prefix, no adjustment needed
+        // (edits happened after the cursor)
+        if (cursorPos <= commonPrefixLength) {
+          return cursorPos;
+        }
+        
+        // Cursor is after where content differs
+        // Adjust by the net length difference
+        // If text was inserted (lengthDiff > 0), shift cursor forward
+        // If text was deleted (lengthDiff < 0), shift cursor backward
+        const adjustedPos = cursorPos + lengthDiff;
+        
+        // Ensure adjusted position is valid (not negative, not beyond content)
+        return Math.max(0, Math.min(adjustedPos, displayedContent.length));
+      };
 
       const newPositions = new Map<string, { x: number; y: number; selectionStart?: { x: number; y: number }; selectionEnd?: { x: number; y: number } }>();
 
       for (const cursor of cursors) {
         try {
-          const position = getCursorPixelPosition(textarea, actualContent, cursor.position);
+          // Adjust cursor position for local edits
+          const adjustedPosition = adjustCursorPosition(cursor.position);
+          
+          // Calculate pixel position using the displayed content (what's in the textarea)
+          const position = getCursorPixelPosition(textarea, displayedContent, adjustedPosition);
           
           if (position) {
             let selectionStart: { x: number; y: number } | undefined;
@@ -78,11 +125,15 @@ export default function CursorOverlay({
             // Calculate selection range if selection exists
             if (cursor.selectionStart !== undefined && cursor.selectionEnd !== undefined &&
                 cursor.selectionStart !== cursor.selectionEnd) {
+              // Adjust selection positions too
+              const adjustedSelectionStart = adjustCursorPosition(cursor.selectionStart);
+              const adjustedSelectionEnd = adjustCursorPosition(cursor.selectionEnd);
+              
               const selectionRange = getSelectionPixelRange(
                 textarea,
-                actualContent,
-                cursor.selectionStart,
-                cursor.selectionEnd
+                displayedContent,
+                adjustedSelectionStart,
+                adjustedSelectionEnd
               );
               
               if (selectionRange) {
@@ -100,8 +151,10 @@ export default function CursorOverlay({
             console.log('[CursorOverlay] Calculated position for cursor', cursor.userId, position);
           } else {
             console.warn('[CursorOverlay] Failed to calculate position for cursor', cursor.userId, {
-              position: cursor.position,
-              contentLength: content.length
+              originalPosition: cursor.position,
+              adjustedPosition: adjustCursorPosition(cursor.position),
+              syncedContentLength: syncedContent.length,
+              displayedContentLength: displayedContent.length
             });
           }
         } catch (error) {
@@ -143,7 +196,7 @@ export default function CursorOverlay({
         clearTimeout(updateTimerRef.current);
       }
     };
-  }, [textareaRef, cursors, content]); // 🔥 FIX: Include 'content' in deps - this is now lastSyncedContent, so we should recalculate when synced content changes
+  }, [textareaRef, cursors, content, currentContent]); // Include both synced content and current content
 
   // Recalculate on window resize
   useEffect(() => {

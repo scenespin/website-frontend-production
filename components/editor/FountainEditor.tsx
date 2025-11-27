@@ -323,6 +323,7 @@ export default function FountainEditor({
                     <CursorOverlay
                         textareaRef={textareaRef}
                         content={stripTagsForDisplay(lastSyncedContent)}
+                        currentContent={displayContent}
                         cursors={otherUsersCursors}
                     />
                 )}
