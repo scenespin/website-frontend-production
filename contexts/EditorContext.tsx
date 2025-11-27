@@ -1680,6 +1680,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                         // Silent fail - don't spam user with errors
                     }
                 }, 15000); // Poll every 15 seconds (optimized for faster content sync)
+            } catch (error) {
+                console.error('[EditorContext] Error checking collaborators or starting polling:', error);
+                // Silent fail - don't spam user with errors
+            }
         };
         
         // Start checking and polling
