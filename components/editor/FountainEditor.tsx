@@ -78,17 +78,92 @@ export default function FountainEditor({
         [state.content]
     );
     
-    // 🔥 FIX: Log when content changes to debug editor updates
+    // 🔥 FIX: Preserve cursor position when content is updated from version polling
+    // When React updates the textarea's value prop, the browser resets cursor to the end.
+    // We need to preserve and restore the cursor position after programmatic content updates.
+    const previousContentRef = useRef<string>(displayContent);
+    const isUserTypingRef = useRef(false);
+    
+    // Track when user is typing (to distinguish from programmatic updates)
     useEffect(() => {
-        if (textareaRef.current) {
-            console.log('[FountainEditor] Content changed:', {
-                stateContentLength: state.content.length,
-                displayContentLength: displayContent.length,
-                textareaValueLength: textareaRef.current.value.length,
-                valuesMatch: textareaRef.current.value === displayContent
-            });
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        
+        const handleInput = () => {
+            isUserTypingRef.current = true;
+            // Reset flag after a short delay
+            setTimeout(() => {
+                isUserTypingRef.current = false;
+            }, 100);
+        };
+        
+        textarea.addEventListener('input', handleInput);
+        return () => textarea.removeEventListener('input', handleInput);
+    }, []);
+    
+    useEffect(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        
+        const previousContent = previousContentRef.current;
+        const currentContent = displayContent;
+        
+        // Only preserve cursor if content changed programmatically (not from user typing)
+        if (previousContent !== currentContent && !isUserTypingRef.current) {
+            // Get current cursor position before React updates the DOM
+            const savedCursorPos = textarea.selectionStart;
+            const savedSelectionEnd = textarea.selectionEnd;
+            
+            // Only preserve if cursor is not at the end (user is actively editing)
+            if (savedCursorPos < previousContent.length) {
+                // Find where content differs to adjust cursor position correctly
+                let commonPrefix = 0;
+                const minLength = Math.min(previousContent.length, currentContent.length);
+                while (commonPrefix < minLength && 
+                       previousContent[commonPrefix] === currentContent[commonPrefix]) {
+                    commonPrefix++;
+                }
+                
+                // Adjust cursor position based on where content changed
+                let adjustedCursorPos = savedCursorPos;
+                if (savedCursorPos > commonPrefix) {
+                    // Cursor is after where content differs - adjust by length difference
+                    const lengthDiff = currentContent.length - previousContent.length;
+                    adjustedCursorPos = Math.max(0, Math.min(
+                        savedCursorPos + lengthDiff,
+                        currentContent.length
+                    ));
+                } else {
+                    // Cursor is before or at where content differs - keep same position
+                    adjustedCursorPos = Math.min(savedCursorPos, currentContent.length);
+                }
+                
+                // Restore cursor position after React updates the DOM
+                // Use double requestAnimationFrame to ensure DOM has fully updated
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (textarea && textarea.value === currentContent) {
+                            textarea.selectionStart = adjustedCursorPos;
+                            textarea.selectionEnd = adjustedCursorPos;
+                            
+                            // Update state to reflect restored cursor position
+                            setCursorPosition(adjustedCursorPos);
+                            
+                            console.log('[FountainEditor] Preserved cursor position after programmatic content update', {
+                                previousLength: previousContent.length,
+                                currentLength: currentContent.length,
+                                savedCursorPos,
+                                adjustedCursorPos,
+                                commonPrefix
+                            });
+                        }
+                    });
+                });
+            }
         }
-    }, [state.content, displayContent]);
+        
+        previousContentRef.current = currentContent;
+    }, [displayContent, setCursorPosition]);
     
     // Memoized duration calculation
     const duration = useMemo(() => {
