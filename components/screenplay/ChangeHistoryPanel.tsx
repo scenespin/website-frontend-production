@@ -44,17 +44,12 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
     }
   }, [isOpen, screenplayId, getToken, limit]);
 
-  // Get display email/name for a user (from enriched audit log entry)
+  // Get display name/email for a user (from enriched audit log entry)
+  // Matches cursor position behavior: prefer name over email
   const getUserDisplay = (entry: AuditLogEntry): string => {
-    // Use enriched email/name from backend (similar to cursor positions)
-    if (entry.edited_by_email) {
-      return entry.edited_by_email;
-    }
-    if (entry.edited_by_name) {
-      return entry.edited_by_name;
-    }
-    // Fallback to userId if no email/name available
-    return entry.edited_by;
+    // Use enriched name/email from backend (same priority as cursor positions)
+    // Priority: name > email > userId
+    return entry.edited_by_name || entry.edited_by_email || entry.edited_by;
   };
 
   const toggleExpand = (changeId: string) => {
