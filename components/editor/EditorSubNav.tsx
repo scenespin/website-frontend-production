@@ -5,7 +5,7 @@
  * 
  * Horizontal tab bar for Editor section (Desktop)
  * Dropdown menu for Editor section (Mobile)
- * - Write (Screenplay Editor)
+ * - Write (Screenplay Editor - Fountain format)
  * - Characters
  * - Locations
  */
@@ -35,7 +35,7 @@ const TABS = [
     label: 'Write',
     href: '/write',
     icon: FileText,
-    description: 'Screenplay editor',
+    description: 'Screenplay editor (Fountain format)',
     color: 'text-blue-500',
     activeColor: 'text-blue-600 dark:text-blue-400'
   },

@@ -115,7 +115,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
             <div className="p-2 bg-[#DC143C]/10 rounded-lg">
               <Film className="w-6 h-6 text-[#DC143C]" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Create New Screenplay</h2>
+            <h2 className="text-2xl font-bold text-white">Create New Project</h2>
           </div>
           <button
             onClick={handleClose}
@@ -130,13 +130,13 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
           {/* Project Name */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Screenplay Title <span className="text-[#DC143C]">*</span>
+              Project Title <span className="text-[#DC143C]">*</span>
             </label>
             <input
               type="text"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="My Amazing Screenplay"
+              placeholder="My Amazing Project"
               className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
               disabled={isCreating}
               autoFocus
@@ -151,7 +151,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="A brief description of your screenplay..."
+              placeholder="A brief description of your project..."
               rows={3}
               className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
               disabled={isCreating}
@@ -207,7 +207,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
             ) : (
               <>
                 <FileText className="w-4 h-4" />
-                Create Screenplay
+                Create Project
               </>
             )}
           </button>

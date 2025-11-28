@@ -79,7 +79,7 @@ export default function ScreenplaySwitcher() {
         <div className="absolute top-full left-0 mt-2 w-[300px] bg-base-100 rounded-lg shadow-xl border border-base-300 z-50 max-h-[400px] overflow-y-auto">
           {/* Header */}
           <div className="p-3 border-b border-base-300">
-            <h3 className="font-semibold text-sm">Your Screenplays</h3>
+            <h3 className="font-semibold text-sm">Your Projects</h3>
             <p className="text-xs text-base-content/60 mt-1">
               {projects.length} {projects.length === 1 ? 'project' : 'projects'}
             </p>
@@ -91,7 +91,7 @@ export default function ScreenplaySwitcher() {
               <div className="px-4 py-8 text-center text-base-content/60">
                 <Film className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No projects yet</p>
-                <p className="text-xs mt-1">Create your first screenplay</p>
+                <p className="text-xs mt-1">Create your first project</p>
               </div>
             ) : (
               projects.map((project) => {
@@ -160,7 +160,7 @@ export default function ScreenplaySwitcher() {
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-base-200 transition-colors text-cinema-blue"
             >
               <Plus className="w-4 h-4" />
-              <span className="text-sm font-medium">New Screenplay</span>
+              <span className="text-sm font-medium">New Project</span>
             </button>
           </div>
         </div>

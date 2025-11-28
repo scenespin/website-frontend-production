@@ -146,12 +146,12 @@ export default function Navigation() {
   
   const navigation = [
     {
-      name: 'Editor',
+      name: 'Create',
       icon: FileText,
       href: buildEditorHref('/write'),
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Write', href: buildEditorHref('/write'), icon: FileText, description: 'Screenplay editor' },
+        { name: 'Write', href: buildEditorHref('/write'), icon: FileText, description: 'Screenplay editor (Fountain format)' },
         { name: 'Characters', href: buildEditorHref('/characters'), icon: Users, description: 'Cast management' },
         { name: 'Locations', href: buildEditorHref('/locations'), icon: MapPin, description: 'Scene settings' },
       ]
@@ -182,7 +182,7 @@ export default function Navigation() {
       href: '/assets',
       // Mobile-only sub-items (for accordion)
       subItems: [
-        { name: 'Projects', href: '/dashboard', icon: FileText, description: 'Your screenplays' },
+        { name: 'Projects', href: '/dashboard', icon: FileText, description: 'Your projects' },
         { name: 'Videos', href: '/assets?type=video', icon: Video, description: 'Generated clips' },
         { name: 'Music', href: '/assets?type=audio', icon: Music, description: 'Audio library' },
         { name: 'Assets', href: '/assets', icon: Image, description: 'All media files' },

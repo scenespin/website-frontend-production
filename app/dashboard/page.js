@@ -805,10 +805,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Phase 4.5: My Screenplays Section */}
+        {/* Phase 4.5: My Projects Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-base-content">My Screenplays</h2>
+            <h2 className="text-lg font-semibold text-base-content">My Projects</h2>
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm"
@@ -926,7 +926,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center py-8 text-base-content/60">
-              <p className="mb-4">No screenplays yet. Create your first screenplay to get started.</p>
+              <p className="mb-4">No projects yet. Create your first project to get started.</p>
             </div>
           )}
         </div>
