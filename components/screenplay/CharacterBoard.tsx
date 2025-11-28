@@ -305,11 +305,16 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                             });
                             
                             // Add pending images after character creation
+                            // Images are already uploaded to S3 via presigned URLs, just need to register them
                             if (pendingImages && pendingImages.length > 0 && newCharacter) {
                                 for (const img of pendingImages) {
+                                    // addImageToEntity accepts the presigned download URL
+                                    // The s3Key is stored in metadata for future reference
                                     await addImageToEntity('character', newCharacter.id, img.imageUrl, {
                                         prompt: img.prompt,
-                                        modelUsed: img.modelUsed
+                                        modelUsed: img.modelUsed,
+                                        angle: img.angle,
+                                        s3Key: img.s3Key
                                     });
                                 }
                             }

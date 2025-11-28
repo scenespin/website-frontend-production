@@ -18,6 +18,8 @@ import type {
     ArcStatus,
     LocationType
 } from '@/types/screenplay';
+import type { Asset, AssetCategory } from '@/types/asset';
+import { api } from '@/lib/api';
 import {
     listCharacters,
     createCharacter as apiCreateCharacter,
@@ -90,6 +92,13 @@ interface ScreenplayContextType {
     deleteLocation: (id: string, cascade: CascadeOption) => Promise<DeletionResult>;
     setSceneLocation: (sceneId: string, locationId: string) => Promise<void>;
     
+    // CRUD - Assets (Props)
+    assets: Asset[];
+    createAsset: (asset: { name: string; category: AssetCategory; description?: string; tags?: string[] }) => Promise<Asset>;
+    updateAsset: (id: string, updates: Partial<Asset>) => Promise<void>;
+    deleteAsset: (id: string) => Promise<void>;
+    getAssetScenes: (assetId: string) => string[];
+    
     // Bulk Import
     bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>, explicitScreenplayId?: string) => Promise<Character[]>;
     bulkImportLocations: (locationNames: string[], locationTypes?: Map<string, 'INT' | 'EXT' | 'INT/EXT'>, explicitScreenplayId?: string) => Promise<Location[]>;
@@ -155,8 +164,8 @@ interface ScreenplayContextType {
     clearAllData: () => Promise<void>;
     
     // Phase 2: Reference-only manual creation
-    // Check if a character or location appears in the script content
-    isEntityInScript: (scriptContent: string, entityName: string, entityType: 'character' | 'location') => boolean;
+    // Check if a character, location, or asset appears in the script content
+    isEntityInScript: (scriptContent: string, entityName: string, entityType: 'character' | 'location' | 'asset') => boolean;
     
     // Feature 0122: Role-Based Collaboration System - Phase 3B
     // Permission State
@@ -241,6 +250,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty locations array');
         return [];
     });
+    const [assets, setAssets] = useState<Asset[]>(() => {
+        console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty assets array');
+        return [];
+    });
     
     // 🔥 NEW: Refs to access current state without closure issues
     // These are updated in sync with state and can be read in callbacks without stale closures
@@ -267,6 +280,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             (window as any).__debug_locations = locations;
         }
     }, [locations]);
+    useEffect(() => { 
+        assetsRef.current = assets; 
+        console.log('[ScreenplayContext] 🔄 Assets state updated:', assets.length);
+        if (typeof window !== 'undefined') {
+            (window as any).__debug_assets = assets;
+        }
+    }, [assets]);
     
     // Relationships - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
@@ -796,17 +816,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 try {
                     console.log('[ScreenplayContext] 🔄 Loading structure from DynamoDB for:', screenplayId);
                     
-                    // Load scenes, characters, and locations in parallel
-                    const [scenesData, charactersData, locationsData] = await Promise.all([
+                    // Load scenes, characters, locations, and assets in parallel
+                    const [scenesData, charactersData, locationsData, assetsData] = await Promise.all([
                         listScenes(screenplayId, getToken),
                         listCharacters(screenplayId, getToken),
-                        listLocations(screenplayId, getToken)
+                        listLocations(screenplayId, getToken),
+                        api.assetBank.list(screenplayId).catch(() => ({ assets: [] })) // Load assets, default to empty on error
                     ]);
                     
                     console.log('[ScreenplayContext] 📦 Raw API response:', {
                         scenes: scenesData.length,
                         characters: charactersData.length,
-                        locations: locationsData.length
+                        locations: locationsData.length,
+                        assets: assetsData.assets?.length || 0
                     });
                     
                     // Transform API data to frontend format
@@ -900,6 +922,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     setLocations(transformedLocations);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
+                    
+                    // Load and set assets
+                    const assetsList = assetsData.assets || [];
+                    setAssets(assetsList);
+                    console.log('[ScreenplayContext] ✅ Loaded', assetsList.length, 'assets from API');
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
                     // Pass characters and locations for validation (beats are empty templates now)
@@ -1946,6 +1973,94 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }
     }, [relationships, screenplayId, getToken]);
+    
+    // ========================================================================
+    // CRUD - Assets (Props)
+    // ========================================================================
+    
+    const createAsset = useCallback(async (asset: { name: string; category: AssetCategory; description?: string; tags?: string[] }): Promise<Asset> => {
+        if (!screenplayId) {
+            throw new Error('No screenplay ID available');
+        }
+        
+        const now = new Date().toISOString();
+        
+        // Create asset via API
+        try {
+            const createdAsset = await api.assetBank.create({
+                screenplayId,
+                name: asset.name.trim(),
+                category: asset.category,
+                description: asset.description?.trim(),
+                tags: asset.tags || []
+            });
+            
+            // Add to local state
+            setAssets(prev => [...prev, createdAsset]);
+            
+            console.log('[ScreenplayContext] ✅ Created asset:', createdAsset.id);
+            return createdAsset;
+        } catch (error) {
+            console.error('[ScreenplayContext] Failed to create asset:', error);
+            throw error;
+        }
+    }, [screenplayId]);
+    
+    const updateAsset = useCallback(async (id: string, updates: Partial<Asset>) => {
+        // Optimistic UI update
+        const previousAssets = assets;
+        const updatedAssets = assets.map(asset => {
+            if (asset.id === id) {
+                return { ...asset, ...updates, updatedAt: new Date().toISOString() };
+            }
+            return asset;
+        });
+        setAssets(updatedAssets);
+        
+        // Update via API
+        if (screenplayId) {
+            try {
+                const updatedAsset = await api.assetBank.update(id, updates);
+                
+                // Sync with API response
+                setAssets(prev => prev.map(a => a.id === id ? updatedAsset : a));
+                console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
+            } catch (error) {
+                // Rollback on error
+                console.error('[ScreenplayContext] Failed to update asset, rolling back:', error);
+                setAssets(previousAssets);
+                throw error;
+            }
+        }
+    }, [screenplayId, assets]);
+    
+    const deleteAsset = useCallback(async (id: string) => {
+        const asset = assets.find(a => a.id === id);
+        if (!asset) {
+            throw new Error('Asset not found');
+        }
+        
+        // Remove from local state
+        setAssets(prev => prev.filter(a => a.id !== id));
+        
+        // Delete via API
+        try {
+            await api.assetBank.delete(id);
+            console.log('[ScreenplayContext] ✅ Deleted asset:', id);
+        } catch (error) {
+            // Restore on error
+            console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
+            setAssets(prev => [...prev, asset]);
+            throw error;
+        }
+    }, [assets]);
+    
+    const getAssetScenes = useCallback((assetId: string): string[] => {
+        // Find all scenes that reference this asset via props tag
+        return scenes
+            .filter(scene => scene.fountain?.tags?.props?.includes(assetId))
+            .map(scene => scene.id);
+    }, [scenes]);
     
     // ========================================================================
     // Relationship Queries
@@ -3587,7 +3702,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             beats: beatsRef.current,
             scenes: scenesRef.current,
             characters: charactersRef.current,
-            locations: locationsRef.current
+            locations: locationsRef.current,
+            assets: assetsRef.current
         };
     }, []); // No dependencies - always returns current ref values!
     
@@ -3599,7 +3715,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
      * Check if a character or location name appears in the script content.
      * Used to determine if an entity is "active" (in script) or "reference-only" (not in script).
      */
-    const isEntityInScript = useCallback((scriptContent: string, entityName: string, entityType: 'character' | 'location'): boolean => {
+    const isEntityInScript = useCallback((scriptContent: string, entityName: string, entityType: 'character' | 'location' | 'asset'): boolean => {
         if (!scriptContent || !entityName) {
             return false;
         }
@@ -3643,6 +3759,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             for (const line of lines) {
                 if (locationPattern.test(line)) {
                     return true;
+                }
+            }
+        } else if (entityType === 'asset') {
+            // Check for asset name in action lines (ALL CAPS words)
+            // Also check for @props: tags
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const upperLine = line.toUpperCase();
+                
+                // Check for @props: tag with asset ID (would need to match by name, not ID)
+                // For now, check if asset name appears in ALL CAPS in action lines
+                if (upperLine.includes(normalizedName)) {
+                    // Make sure it's not a scene heading or character name
+                    if (!line.match(/^(INT|EXT|INT\/EXT|INT\.\/EXT|I\/E)[.\s]/i) && 
+                        !line.match(/^@(location|characters?|props):/i)) {
+                        // Check if it's an action line (not dialogue, not empty)
+                        const isActionLine = line.length > 0 && 
+                                            !line.match(/^[A-Z\s]+$/) || // Not all caps (dialogue character names)
+                                            (line.includes('.') || line.includes(',') || line.includes('!') || line.includes('?'));
+                        
+                        if (isActionLine && upperLine.includes(normalizedName)) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
@@ -3986,6 +4126,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         updateLocation,
         deleteLocation,
         setSceneLocation,
+        
+        // Assets (Props)
+        assets,
+        createAsset,
+        updateAsset,
+        deleteAsset,
+        getAssetScenes,
         
         // Bulk Import
         bulkImportCharacters,

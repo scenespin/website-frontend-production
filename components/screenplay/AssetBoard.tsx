@@ -1,0 +1,607 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Package, MoreVertical, Copy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
+import type { Asset, AssetCategory } from '@/types/asset';
+import AssetDetailSidebar from './AssetDetailSidebar';
+import { toast } from 'sonner';
+import { api } from '@/lib/api';
+
+interface AssetColumn {
+    id: string;
+    title: string;
+    category: AssetCategory;
+    assets: Asset[];
+    color: string;
+}
+
+interface AssetBoardProps {
+    showHeader?: boolean;
+    triggerAdd?: boolean;
+    initialData?: any;
+    onSwitchToChatImageMode?: (modelId?: string, entityContext?: { type: string; id: string; name: string; workflow?: string }) => void;
+}
+
+export default function AssetBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: AssetBoardProps) {
+    const { 
+        assets, 
+        updateAsset, 
+        createAsset, 
+        deleteAsset, 
+        getAssetScenes, 
+        isLoading, 
+        hasInitializedFromDynamoDB, 
+        isEntityInScript, 
+        addImageToEntity,
+        canEditScript,
+        canUseAI
+    } = useScreenplay();
+    const { state: editorState } = useEditor();
+    const [columns, setColumns] = useState<AssetColumn[]>([]);
+    const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+    const [isCreating, setIsCreating] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [selectedColumnCategory, setSelectedColumnCategory] = useState<AssetCategory | null>(null);
+    
+    // Delete confirmation state
+    const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+    
+    // Memoize isInScript checks to prevent render loops
+    const scriptContent = editorState.content;
+    const isInScriptMap = useMemo(() => {
+        const map = new Map<string, boolean>();
+        assets.forEach(asset => {
+            map.set(asset.id, isEntityInScript(scriptContent, asset.name, 'asset'));
+        });
+        return map;
+    }, [assets, scriptContent, isEntityInScript]);
+    
+    // Listen for external trigger to add asset
+    useEffect(() => {
+        if (triggerAdd) {
+            setIsCreating(true);
+            setIsEditing(false);
+            setSelectedAsset(null);
+        }
+    }, [triggerAdd]);
+
+    // Initialize columns based on asset categories
+    useEffect(() => {
+        console.log('[AssetBoard] 🔄 Assets changed:', assets.length, 'total');
+        console.log('[AssetBoard] 🔍 Asset names:', assets.map(a => a.name));
+        console.log('[AssetBoard] 📊 Loading state:', { isLoading, hasInitializedFromDynamoDB });
+        
+        const props = assets.filter(a => a.category === 'prop');
+        const vehicles = assets.filter(a => a.category === 'vehicle');
+        const furniture = assets.filter(a => a.category === 'furniture');
+        const other = assets.filter(a => a.category === 'other');
+
+        const newColumns: AssetColumn[] = [
+            {
+                id: 'col-prop',
+                title: 'Props',
+                category: 'prop',
+                assets: props,
+                color: '#3B82F6' // Blue
+            },
+            {
+                id: 'col-vehicle',
+                title: 'Vehicles',
+                category: 'vehicle',
+                assets: vehicles,
+                color: '#10B981' // Green
+            },
+            {
+                id: 'col-furniture',
+                title: 'Furniture',
+                category: 'furniture',
+                assets: furniture,
+                color: '#F59E0B' // Orange
+            },
+            {
+                id: 'col-other',
+                title: 'Other',
+                category: 'other',
+                assets: other,
+                color: '#8B5CF6' // Purple
+            }
+        ];
+
+        setColumns(newColumns);
+    }, [assets, isLoading, hasInitializedFromDynamoDB]);
+
+    const handleDelete = async (assetId: string, assetName: string) => {
+        const asset = assets.find(a => a.id === assetId);
+        if (!asset) return;
+        
+        // Check if asset is used in scenes
+        const sceneIds = getAssetScenes(assetId);
+        
+        if (sceneIds.length > 0) {
+            const confirmMessage = `Asset "${assetName}" is used in ${sceneIds.length} scene(s). Are you sure you want to delete it?`;
+            if (!window.confirm(confirmMessage)) {
+                return;
+            }
+        }
+        
+        // Show delete confirmation
+        setAssetToDelete(asset);
+    };
+    
+    const confirmDelete = async () => {
+        if (!assetToDelete) return;
+        
+        try {
+            await deleteAsset(assetToDelete.id);
+            setAssetToDelete(null);
+            setSelectedAsset(null);
+            toast.success('Asset deleted successfully');
+        } catch (err: any) {
+            toast.error(`Error deleting asset: ${err.message}`);
+        }
+    };
+    
+    const cancelDelete = () => {
+        setAssetToDelete(null);
+    };
+
+    const openEditForm = (asset: Asset) => {
+        setSelectedAsset(asset);
+        setIsEditing(true);
+    };
+
+    return (
+        <div className="flex flex-col h-full" style={{ backgroundColor: '#1C1C1E' }}>
+            {/* Loading State */}
+            {isLoading && (
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto mb-4"></div>
+                        <p className="text-slate-400">Loading assets...</p>
+                    </div>
+                </div>
+            )}
+            
+            {/* Asset Board Content */}
+            {!isLoading && (
+                <>
+                    {/* Header */}
+                    {showHeader && (
+                        <div className="p-4 pl-16 sm:pl-4 border-b flex items-center justify-between" style={{ borderColor: '#2C2C2E' }}>
+                            <div>
+                                <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#E5E7EB' }}>
+                                    Props & Assets Board
+                                </h2>
+                                <p className="text-xs sm:text-sm mt-1" style={{ color: '#9CA3AF' }}>
+                                    View and manage all props and assets from your screenplay
+                                </p>
+                            </div>
+                            {canEditScript ? (
+                                <button
+                                    onClick={() => {
+                                        setSelectedColumnCategory(null);
+                                        setIsCreating(true);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:scale-105 shrink-0"
+                                    style={{
+                                        backgroundColor: '#DC143C',
+                                        color: 'white'
+                                    }}
+                                >
+                                    <Plus size={18} />
+                                    <span className="hidden sm:inline">Add Asset</span>
+                                    <span className="sm:hidden">Add</span>
+                                </button>
+                            ) : (
+                                <span className="text-sm text-base-content/50">
+                                    Read-only access
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Board - 4 Columns for Categories */}
+                    <div className="flex-1 overflow-x-auto p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
+                            {columns.map((column) => (
+                                <div key={column.id} className="flex flex-col min-w-0">
+                                    {/* Column Header */}
+                                    <div 
+                                        className="rounded-xl p-4 mb-3"
+                                        style={{ 
+                                            background: `linear-gradient(135deg, ${column.color}20, ${column.color}10)`,
+                                            borderLeft: `3px solid ${column.color}`,
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div 
+                                                    className="w-2 h-2 rounded-full animate-pulse"
+                                                    style={{ backgroundColor: column.color }}
+                                                />
+                                                <h3 className="font-bold text-base tracking-tight" style={{ color: '#E5E7EB' }}>
+                                                    {column.title}
+                                                </h3>
+                                            </div>
+                                            <span 
+                                                className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                                                style={{ 
+                                                    backgroundColor: column.color + '30',
+                                                    color: column.color
+                                                }}
+                                            >
+                                                {column.assets.length}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Assets List */}
+                                    <div className="flex-1 p-3 rounded-xl min-h-[400px] transition-all duration-200 border-2" style={{ backgroundColor: '#0A0A0B', borderColor: '#1C1C1E' }}>
+                                        {/* Empty State */}
+                                        {column.assets.length === 0 && (
+                                            <div className="flex flex-col items-center justify-center h-full py-12 px-4">
+                                                <div
+                                                    className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                                                    style={{
+                                                        backgroundColor: column.color + '15',
+                                                        border: `2px dashed ${column.color}40`,
+                                                    }}
+                                                >
+                                                    <Package size={28} style={{ color: column.color + '80' }} />
+                                                </div>
+                                                <p className="text-sm text-center" style={{ color: '#6B7280' }}>
+                                                    No {column.title.toLowerCase()} yet
+                                                </p>
+                                                <p className="text-xs text-center mt-1 mb-4" style={{ color: '#4B5563' }}>
+                                                    {column.title} appear based on your screenplay
+                                                </p>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedColumnCategory(column.category);
+                                                        setIsCreating(true);
+                                                        setIsEditing(false);
+                                                        setSelectedAsset(null);
+                                                    }}
+                                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                                                    style={{
+                                                        backgroundColor: column.color,
+                                                        color: 'white'
+                                                    }}
+                                                >
+                                                    <Plus size={14} />
+                                                    Add {column.title.slice(0, -1)}
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Asset Cards */}
+                                        <div className="space-y-2">
+                                            {column.assets.map((asset, index) => (
+                                                <motion.div
+                                                    key={asset.id}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    onClick={() => setSelectedAsset(asset)}
+                                                >
+                                                    <AssetCardContent
+                                                        asset={asset}
+                                                        color={column.color}
+                                                        sceneCount={getAssetScenes(asset.id).length}
+                                                        isInScript={isInScriptMap.get(asset.id) || false}
+                                                        openEditForm={openEditForm}
+                                                        canEdit={canEditScript}
+                                                    />
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Asset Detail Sidebar */}
+                    <AnimatePresence>
+                        {(isCreating || isEditing || selectedAsset) && (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="fixed inset-0 bg-background z-[9998] pointer-events-auto"
+                                    style={{ right: 'min(480px, 100vw)' }}
+                                    onClick={() => {
+                                        setIsCreating(false);
+                                        setIsEditing(false);
+                                        setSelectedAsset(null);
+                                    }}
+                                />
+                                
+                                <AssetDetailSidebar
+                                    key={isCreating ? `create-${selectedColumnCategory || 'default'}` : `edit-${selectedAsset?.id || 'none'}`}
+                                    asset={isEditing || (!isCreating && selectedAsset) ? selectedAsset : null}
+                                    isCreating={isCreating}
+                                    initialData={isCreating ? {
+                                        ...initialData,
+                                        category: selectedColumnCategory || initialData?.category || 'prop'
+                                    } : undefined}
+                                    onClose={() => {
+                                        setIsCreating(false);
+                                        setIsEditing(false);
+                                        setSelectedAsset(null);
+                                        setSelectedColumnCategory(null);
+                                    }}
+                                    onCreate={async (data) => {
+                                        try {
+                                            const { pendingImages, ...assetData } = data;
+                                            const newAsset = await createAsset({
+                                                name: assetData.name,
+                                                category: assetData.category,
+                                                description: assetData.description,
+                                                tags: assetData.tags || []
+                                            });
+                                            
+                                            // Add pending images after asset creation
+                                            // Images are already uploaded to S3 via presigned URLs, just need to register them
+                                            if (pendingImages && pendingImages.length > 0 && newAsset) {
+                                                const imageEntries = [];
+                                                
+                                                for (const img of pendingImages) {
+                                                    try {
+                                                        if (img.s3Key) {
+                                                            // Image already uploaded to S3, just register it
+                                                            imageEntries.push({
+                                                                id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                                                url: img.imageUrl, // This is the presigned download URL
+                                                                s3Key: img.s3Key,
+                                                                uploadedAt: new Date().toISOString()
+                                                            });
+                                                        } else {
+                                                            // AI-generated image (data URL) - needs to be uploaded to S3
+                                                            // This case should be rare now, but handle it for backward compatibility
+                                                            const response = await fetch(img.imageUrl);
+                                                            const blob = await response.blob();
+                                                            const file = new File([blob], 'asset-image.png', { type: 'image/png' });
+                                                            
+                                                            const formData = new FormData();
+                                                            formData.append('image', file);
+                                                            
+                                                            await api.assetBank.uploadImage(newAsset.id, formData);
+                                                        }
+                                                    } catch (uploadError: any) {
+                                                        console.error('Failed to process image:', uploadError);
+                                                        // Continue with other images even if one fails
+                                                    }
+                                                }
+                                                
+                                                // Register all images at once if we have s3Keys
+                                                if (imageEntries.length > 0) {
+                                                    const currentAsset = await api.assetBank.get(newAsset.id);
+                                                    await api.assetBank.update(newAsset.id, {
+                                                        images: [
+                                                            ...(currentAsset.images || []),
+                                                            ...imageEntries
+                                                        ]
+                                                    });
+                                                }
+                                            }
+                                            
+                                            setIsCreating(false);
+                                            toast.success('Asset created successfully');
+                                        } catch (err: any) {
+                                            toast.error(`Error creating asset: ${err.message}`);
+                                        }
+                                    }}
+                                    onUpdate={async (asset) => {
+                                        try {
+                                            await updateAsset(asset.id, asset);
+                                            toast.success('Asset updated successfully');
+                                        } catch (err: any) {
+                                            toast.error(`Error updating asset: ${err.message}`);
+                                        }
+                                    }}
+                                    onDelete={async (assetId) => {
+                                        const asset = assets.find(a => a.id === assetId);
+                                        if (asset) {
+                                            handleDelete(assetId, asset.name);
+                                        }
+                                    }}
+                                    onSwitchToChatImageMode={onSwitchToChatImageMode}
+                                />
+                            </>
+                        )}
+                    </AnimatePresence>
+                </>
+            )}
+            
+            {/* Delete Confirmation Dialog */}
+            {assetToDelete && (
+                <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center">
+                    <div className="bg-[#1C1C1E] rounded-lg p-6 max-w-md w-full mx-4 border border-[#2C2C2E]">
+                        <h3 className="text-lg font-bold mb-2" style={{ color: '#E5E7EB' }}>
+                            Delete Asset?
+                        </h3>
+                        <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
+                            Are you sure you want to delete "{assetToDelete.name}"? This action cannot be undone.
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={cancelDelete}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                style={{
+                                    backgroundColor: '#2C2C2E',
+                                    color: '#E5E7EB'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                style={{
+                                    backgroundColor: '#DC143C',
+                                    color: 'white'
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ============================================================================
+// AssetCardContent Component
+// ============================================================================
+
+interface AssetCardContentProps {
+    asset: Asset;
+    color: string;
+    sceneCount: number;
+    isInScript: boolean;
+    openEditForm?: (asset: Asset) => void;
+    canEdit: boolean;
+}
+
+function AssetCardContent({
+    asset,
+    color,
+    sceneCount,
+    isInScript,
+    openEditForm,
+    canEdit,
+}: AssetCardContentProps) {
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        
+        // Copy asset name in ALL CAPS (for screenplay format)
+        const fountainText = asset.name.toUpperCase();
+        
+        navigator.clipboard.writeText(fountainText).then(() => {
+            toast.success('Copied to clipboard!');
+        }).catch((err) => {
+            console.error('Failed to copy:', err);
+            toast.error('Failed to copy');
+        });
+    };
+
+    return (
+        <div
+            className="mb-2 p-3 rounded-lg border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
+            style={{
+                backgroundColor: '#1C1C1E',
+                borderColor: '#3F3F46',
+            }}
+        >
+            {/* Asset Info */}
+            <div className="flex items-start gap-2">
+                <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                        backgroundColor: color + '30',
+                        color: color,
+                    }}
+                >
+                    <Package size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <h4 className="font-medium truncate" style={{ color: '#E5E7EB' }}>
+                            {asset.name}
+                        </h4>
+                        {!isInScript && (
+                            <span
+                                className="px-1.5 py-0.5 rounded text-xs font-medium"
+                                style={{
+                                    backgroundColor: '#6B7280',
+                                    color: '#E5E7EB',
+                                }}
+                                title="This asset hasn't appeared in the script yet"
+                            >
+                                Not in script
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs truncate capitalize" style={{ color: '#9CA3AF' }}>
+                        {asset.category}
+                    </p>
+                </div>
+                {openEditForm && (
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={handleCopy}
+                            className="p-1 rounded hover:bg-base-content/20 transition-colors"
+                            style={{ color: '#9CA3AF' }}
+                            title="Copy asset name to clipboard"
+                        >
+                            <Copy size={14} />
+                        </button>
+                        {canEdit && openEditForm && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditForm(asset);
+                                }}
+                                className="p-1 rounded hover:bg-base-content/20 transition-colors"
+                                style={{ color: '#9CA3AF' }}
+                                title="Edit asset"
+                            >
+                                <MoreVertical size={14} />
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Description */}
+            {asset.description && (
+                <p className="text-xs mt-2 line-clamp-2" style={{ color: '#6B7280' }}>
+                    {asset.description}
+                </p>
+            )}
+
+            {/* Stats */}
+            <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: '#6B7280' }}>
+                <span className="flex items-center gap-1">
+                    📝 {sceneCount} {sceneCount === 1 ? 'scene' : 'scenes'}
+                </span>
+                {asset.images && asset.images.length > 0 && (
+                    <span className="text-blue-400">🖼️ {asset.images.length}</span>
+                )}
+            </div>
+
+            {/* Tags */}
+            {asset.tags && asset.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                    {asset.tags.slice(0, 3).map((tag, idx) => (
+                        <span
+                            key={idx}
+                            className="text-xs px-2 py-0.5 rounded"
+                            style={{
+                                backgroundColor: '#2C2C2E',
+                                color: '#9CA3AF',
+                            }}
+                        >
+                            {tag}
+                        </span>
+                    ))}
+                    {asset.tags.length > 3 && (
+                        <span className="text-xs" style={{ color: '#6B7280' }}>
+                            +{asset.tags.length - 3}
+                        </span>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+

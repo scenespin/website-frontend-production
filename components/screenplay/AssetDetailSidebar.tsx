@@ -1,0 +1,886 @@
+"use client"
+
+import { useState, useEffect, useMemo, useRef } from "react"
+import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles, Package } from "lucide-react"
+import { motion } from 'framer-motion'
+import type { Asset, AssetCategory } from '@/types/asset'
+import { useScreenplay } from '@/contexts/ScreenplayContext'
+import { useEditor } from '@/contexts/EditorContext'
+import { ImageGallery } from '@/components/images/ImageGallery'
+import { ImagePromptModal } from '@/components/images/ImagePromptModal'
+import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
+import { useAuth } from '@clerk/nextjs'
+import { api } from '@/lib/api'
+import { toast } from 'sonner'
+
+interface AssetDetailSidebarProps {
+  asset?: Asset | null
+  isCreating: boolean
+  initialData?: Partial<Asset>
+  onClose: () => void
+  onCreate: (data: any) => void
+  onUpdate: (asset: Asset) => void
+  onDelete: (assetId: string) => void
+  onSwitchToChatImageMode?: (modelId?: string, entityContext?: { type: string; id: string; name: string; workflow?: string; existingData?: { name?: string; description?: string; category?: string } }) => void
+}
+
+export default function AssetDetailSidebar({
+  asset,
+  isCreating,
+  initialData,
+  onClose,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onSwitchToChatImageMode
+}: AssetDetailSidebarProps) {
+  const { getAssetScenes, isEntityInScript, screenplayId } = useScreenplay()
+  const { state: editorState } = useEditor()
+  const { getToken } = useAuth()
+  
+  // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
+  const isInScript = useMemo(() => {
+    return asset ? isEntityInScript(editorState.content, asset.name, 'asset') : false;
+  }, [asset, editorState.content, isEntityInScript]);
+
+  const [showImagePromptModal, setShowImagePromptModal] = useState(false)
+  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; s3Key: string; prompt?: string; modelUsed?: string }>>([])
+  const [uploading, setUploading] = useState(false)
+  const [showStorageModal, setShowStorageModal] = useState(false)
+  const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const [formData, setFormData] = useState<any>(
+    asset ? { ...asset } : (initialData ? {
+      name: initialData.name || '',
+      category: initialData.category || 'prop',
+      description: initialData.description || '',
+      tags: initialData.tags || []
+    } : {
+      name: '',
+      category: 'prop',
+      description: '',
+      tags: []
+    })
+  )
+  
+  // Update form data when asset prop changes
+  useEffect(() => {
+    if (asset) {
+      setFormData({ ...asset })
+    } else if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        category: initialData.category || 'prop',
+        description: initialData.description || '',
+        tags: initialData.tags || []
+      })
+    } else if (isCreating) {
+      setFormData({
+        name: '',
+        category: 'prop',
+        description: '',
+        tags: []
+      })
+    }
+  }, [asset, initialData, isCreating])
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Please enter an asset name')
+      return
+    }
+    
+    if (isCreating) {
+      // Pass pending images with form data so parent can add them after asset creation
+      await onCreate({
+        ...formData,
+        pendingImages: pendingImages.length > 0 ? pendingImages : undefined
+      })
+      
+      // Clear pending images after creation
+      setPendingImages([])
+    } else {
+      onUpdate(formData)
+    }
+    
+    // Close the sidebar after successful save
+    onClose()
+  }
+
+  const handleDelete = () => {
+    if (asset) {
+      onClose()
+      onDelete(asset.id)
+    }
+  }
+
+  const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    if (!screenplayId) {
+      toast.error('Screenplay ID not found');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      // Step 1: Get presigned POST URL for S3 upload
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` + 
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&screenplayId=${encodeURIComponent(screenplayId)}` +
+        `&projectId=${encodeURIComponent(screenplayId)}`, // Keep for backward compatibility
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error(`File too large. Maximum size is 10MB.`);
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
+      }
+
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      if (!url || !fields || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
+      const formData = new FormData();
+      
+      Object.entries(fields).forEach(([key, value]) => {
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() !== 'bucket') {
+          formData.append(key, value as string);
+        }
+      });
+      
+      // Add the file last (must be last field in FormData per AWS requirements)
+      formData.append('file', file);
+      
+      // Use XMLHttpRequest for progress tracking
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            // Progress tracking (optional, can be enhanced with UI)
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('S3 upload failed: Network error'));
+        });
+        
+        xhr.open('POST', url);
+        xhr.send(formData);
+      });
+
+      // Step 3: Get presigned download URL for StorageDecisionModal (bucket is private)
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      
+      let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
+      try {
+        const downloadResponse = await fetch('/api/s3/download-url', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: s3Key,
+            expiresIn: 3600 // 1 hour
+          }),
+        });
+        
+        if (downloadResponse.ok) {
+          const downloadData = await downloadResponse.json();
+          if (downloadData.downloadUrl) {
+            downloadUrl = downloadData.downloadUrl;
+          }
+        }
+      } catch (error) {
+        console.warn('[AssetDetailSidebar] Failed to get presigned download URL, using direct S3 URL:', error);
+      }
+
+      if (asset) {
+        // Existing asset - register image with asset bank API
+        try {
+          // Register the image with the asset
+          await api.assetBank.update(asset.id, {
+            images: [
+              ...(asset.images || []),
+              {
+                id: `img_${Date.now()}`,
+                url: downloadUrl,
+                s3Key: s3Key,
+                uploadedAt: new Date().toISOString()
+              }
+            ]
+          });
+          
+          // Reload asset to get updated images
+          const updatedAsset = await api.assetBank.get(asset.id);
+          setFormData(updatedAsset);
+          
+          toast.success('Image uploaded successfully');
+        } catch (error: any) {
+          toast.error(`Failed to register image: ${error.message}`);
+        }
+      } else if (isCreating) {
+        // New asset - store temporarily with s3Key, will be uploaded after asset creation
+        setPendingImages(prev => [...prev, { 
+          imageUrl: downloadUrl, 
+          s3Key: s3Key 
+        }]);
+        toast.success('Image ready - will be added when asset is created');
+      }
+
+      // Step 4: Show StorageDecisionModal
+      setSelectedAsset({
+        url: downloadUrl,
+        s3Key: s3Key,
+        name: file.name,
+        type: 'image'
+      });
+      setShowStorageModal(true);
+
+    } catch (error: any) {
+      console.error('[AssetDetailSidebar] Upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }
+
+  const handleRemoveImage = async (index: number) => {
+    if (!asset) return;
+    
+    if (confirm('Remove this image from the asset?')) {
+      try {
+        // Note: Asset bank API may need a delete image endpoint
+        // For now, we'll update the asset without this image
+        const updatedImages = asset.images.filter((_, i) => i !== index);
+        await api.assetBank.update(asset.id, { images: updatedImages });
+        
+        // Reload asset
+        const updatedAsset = await api.assetBank.get(asset.id);
+        setFormData(updatedAsset);
+        
+        toast.success('Image removed');
+      } catch (error: any) {
+        toast.error(`Failed to remove image: ${error.message}`);
+      }
+    }
+  }
+
+  const handleAddTag = (tag: string) => {
+    if (!tag.trim()) return;
+    const trimmedTag = tag.trim();
+    if (!formData.tags.includes(trimmedTag)) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, trimmedTag]
+      });
+    }
+  }
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((t: string) => t !== tagToRemove)
+    });
+  }
+
+  // Get scenes where asset is used
+  const assetScenes = asset ? getAssetScenes(asset.id) : [];
+
+  return (
+    <>
+      {/* Backdrop - Click outside to close */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 z-[9998]"
+      />
+      
+      {/* Sidebar */}
+      <motion.div 
+        initial={{ x: 400, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 400, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed inset-y-0 right-0 w-full sm:w-[480px] flex flex-col shadow-2xl border-l-2 border-border z-[9999]"
+        style={{ 
+          backgroundColor: '#1e2229',
+          boxShadow: '-10px 0 40px rgba(0,0,0,0.5)' 
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b" style={{ borderColor: '#2C2C2E' }}>
+          <h2 className="text-base sm:text-lg font-semibold truncate pr-2" style={{ color: '#E5E7EB' }}>
+            {isCreating ? 'New Asset' : formData.name}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-base-content/20/50 transition-colors shrink-0"
+            style={{ color: '#9CA3AF' }}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          {/* Form Fields */}
+          <>
+            {/* Name */}
+            <div>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+                Name
+                {isInScript && (
+                  <span className="ml-2 text-xs" style={{ color: '#6B7280' }}>
+                    (locked - appears in script)
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                disabled={isInScript}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                placeholder="Asset name"
+                autoFocus={isCreating}
+              />
+              {isInScript && (
+                <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+                  Name cannot be changed because this asset appears in your script. Edit the script directly to change the name.
+                </p>
+              )}
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value as AssetCategory })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+              >
+                <option value="prop">Props & Small Items</option>
+                <option value="vehicle">Vehicles</option>
+                <option value="furniture">Furniture & Equipment</option>
+                <option value="other">Other Objects</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+                Description
+              </label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                rows={3}
+                placeholder="Brief asset description"
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {formData.tags.map((tag: string, idx: number) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-1 rounded text-xs flex items-center gap-1"
+                    style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                  >
+                    {tag}
+                    {!isInScript && (
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="hover:text-red-400"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+              {!isInScript && (
+                <input
+                  type="text"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag(e.currentTarget.value);
+                      e.currentTarget.value = '';
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                  placeholder="Press Enter to add tag"
+                />
+              )}
+            </div>
+
+            {/* Scenes Where Used (Read-only) */}
+            {!isCreating && asset && assetScenes.length > 0 && (
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
+                  Used in Scenes ({assetScenes.length})
+                </label>
+                <div className="p-3 rounded-lg" style={{ backgroundColor: '#2C2C2E' }}>
+                  <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                    This asset is referenced in {assetScenes.length} scene(s) via @props: tags
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Asset Images Section */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                  Asset Images
+                </label>
+              </div>
+              <div className="space-y-3">
+                {/* Upload Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    style={{ 
+                      backgroundColor: '#DC143C',
+                      color: 'white',
+                      border: '1px solid #DC143C'
+                    }}
+                  >
+                    {uploading ? 'Uploading...' : 'Upload Photo'}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleDirectFileUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => {
+                      if (isCreating && (!formData.name || !formData.description)) {
+                        toast.error('Please enter asset name and description first to generate an image')
+                        return
+                      }
+                      setShowImagePromptModal(true)
+                    }}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    style={{ 
+                      backgroundColor: '#8B5CF6',
+                      color: 'white',
+                      border: '1px solid #8B5CF6'
+                    }}
+                  >
+                    Create Photo with AI
+                  </button>
+                </div>
+                
+                {/* Image Gallery */}
+                {asset && asset.images && asset.images.length > 0 && (
+                  <ImageGallery
+                    images={asset.images.map((img, idx) => ({
+                      id: `asset-img-${idx}`,
+                      imageUrl: img.url,
+                      createdAt: img.uploadedAt,
+                      metadata: img.angle ? { angle: img.angle } : undefined
+                    }))}
+                    entityType="asset"
+                    entityId={asset.id}
+                    entityName={formData.name || 'Asset'}
+                    onDeleteImage={handleRemoveImage}
+                  />
+                )}
+                
+                {isCreating && pendingImages.length > 0 && (
+                  <ImageGallery
+                    images={pendingImages.map((img, idx) => ({
+                      id: `pending-${idx}`,
+                      imageUrl: img.imageUrl,
+                      createdAt: new Date().toISOString(),
+                      metadata: img.prompt ? { prompt: img.prompt, modelUsed: img.modelUsed, s3Key: img.s3Key } : { s3Key: img.s3Key }
+                    }))}
+                    entityType="asset"
+                    entityId="new"
+                    entityName={formData.name || 'New Asset'}
+                    onDeleteImage={(index: number) => {
+                      setPendingImages(prev => prev.filter((_, i) => i !== index))
+                    }}
+                  />
+                )}
+                
+                {(!asset || !asset.images || asset.images.length === 0) && pendingImages.length === 0 && (
+                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
+                    Add images to visualize this asset (2-10 required for 3D export)
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
+          {/* AI Interview Button - Always available when creating */}
+          {isCreating && (
+            <button
+              onClick={() => {
+                if (onSwitchToChatImageMode && typeof onSwitchToChatImageMode === 'function') {
+                  try {
+                    onSwitchToChatImageMode(undefined, {
+                      type: 'asset',
+                      id: 'new',
+                      name: formData.name || 'New Asset',
+                      workflow: 'interview',
+                      existingData: {
+                        name: formData.name || '',
+                        description: formData.description || '',
+                        category: formData.category || ''
+                      }
+                    });
+                  } catch (error) {
+                    console.error('[AssetDetailSidebar] Error calling onSwitchToChatImageMode:', error);
+                  }
+                }
+                onClose();
+              }}
+              className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg"
+              style={{ 
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                color: 'white' 
+              }}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              ✨ Create with AI Interview
+            </button>
+          )}
+          
+          {/* Create/Save Button */}
+          <button
+            onClick={handleSave}
+            disabled={!formData.name.trim()}
+            className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+            style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+          >
+            {isCreating ? 'Create Asset' : 'Save Changes'}
+          </button>
+          
+          {!isCreating && (
+            <button
+              onClick={handleDelete}
+              className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ backgroundColor: '#DC2626', color: 'white' }}
+            >
+              <Trash2 className="h-4 w-4 inline mr-2" />
+              Delete Asset
+            </button>
+          )}
+        </div>
+
+        {/* Image Prompt Modal - For AI Generation */}
+        {showImagePromptModal && (
+          <ImagePromptModal
+            isOpen={showImagePromptModal}
+            onClose={() => setShowImagePromptModal(false)}
+            entityType="asset"
+            entityData={{
+              name: formData.name || 'New Asset',
+              description: formData.description || '',
+              category: formData.category || 'prop'
+            }}
+            onImageGenerated={async (imageUrl, prompt, modelUsed) => {
+              // AI-generated images come as data URLs - we need to upload them to S3
+              // For now, store them temporarily and they'll be uploaded when asset is created
+              // or we can upload immediately if asset exists
+              if (asset) {
+                // Existing asset - upload generated image to S3
+                try {
+                  setUploading(true);
+                  // Convert data URL to blob
+                  const response = await fetch(imageUrl);
+                  const blob = await response.blob();
+                  const file = new File([blob], 'generated-image.png', { type: 'image/png' });
+                  
+                  // Use the same presigned upload flow
+                  const token = await getToken({ template: 'wryda-backend' });
+                  if (!token) throw new Error('Not authenticated');
+
+                  if (!screenplayId) {
+                    throw new Error('Screenplay ID not found');
+                  }
+
+                  // Get presigned URL
+                  const presignedResponse = await fetch(
+                    `/api/video/upload/get-presigned-url?` + 
+                    `fileName=${encodeURIComponent(file.name)}` +
+                    `&fileType=${encodeURIComponent(file.type)}` +
+                    `&fileSize=${file.size}` +
+                    `&screenplayId=${encodeURIComponent(screenplayId)}` +
+                    `&projectId=${encodeURIComponent(screenplayId)}`,
+                    {
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    }
+                  );
+
+                  if (!presignedResponse.ok) {
+                    throw new Error('Failed to get upload URL');
+                  }
+
+                  const { url, fields, s3Key } = await presignedResponse.json();
+                  
+                  // Upload to S3
+                  const formData = new FormData();
+                  Object.entries(fields).forEach(([key, value]) => {
+                    if (key.toLowerCase() !== 'bucket') {
+                      formData.append(key, value as string);
+                    }
+                  });
+                  formData.append('file', file);
+                  
+                  await fetch(url, { method: 'POST', body: formData });
+
+                  // Get presigned download URL
+                  let downloadUrl = imageUrl; // Fallback
+                  try {
+                    const downloadResponse = await fetch('/api/s3/download-url', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                    });
+                    if (downloadResponse.ok) {
+                      const downloadData = await downloadResponse.json();
+                      if (downloadData.downloadUrl) {
+                        downloadUrl = downloadData.downloadUrl;
+                      }
+                    }
+                  } catch (error) {
+                    console.warn('Failed to get presigned download URL:', error);
+                  }
+
+                  // Register with asset
+                  await api.assetBank.update(asset.id, {
+                    images: [
+                      ...(asset.images || []),
+                      {
+                        id: `img_${Date.now()}`,
+                        url: downloadUrl,
+                        s3Key: s3Key,
+                        uploadedAt: new Date().toISOString()
+                      }
+                    ]
+                  });
+                  
+                  const updatedAsset = await api.assetBank.get(asset.id);
+                  setFormData(updatedAsset);
+                  
+                  toast.success('Image generated and uploaded');
+                  
+                  // Show StorageDecisionModal
+                  setSelectedAsset({
+                    url: downloadUrl,
+                    s3Key: s3Key,
+                    name: 'generated-image.png',
+                    type: 'image'
+                  });
+                  setShowStorageModal(true);
+                } catch (error: any) {
+                  toast.error(`Failed to upload image: ${error.message}`);
+                } finally {
+                  setUploading(false);
+                }
+              } else if (isCreating) {
+                // New asset - upload generated image to S3 now, store s3Key for later registration
+                try {
+                  setUploading(true);
+                  // Convert data URL to blob
+                  const response = await fetch(imageUrl);
+                  const blob = await response.blob();
+                  const file = new File([blob], 'generated-image.png', { type: 'image/png' });
+                  
+                  if (!screenplayId) {
+                    throw new Error('Screenplay ID not found');
+                  }
+
+                  // Get presigned URL
+                  const presignedResponse = await fetch(
+                    `/api/video/upload/get-presigned-url?` + 
+                    `fileName=${encodeURIComponent(file.name)}` +
+                    `&fileType=${encodeURIComponent(file.type)}` +
+                    `&fileSize=${file.size}` +
+                    `&screenplayId=${encodeURIComponent(screenplayId)}` +
+                    `&projectId=${encodeURIComponent(screenplayId)}`,
+                    {
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    }
+                  );
+
+                  if (!presignedResponse.ok) {
+                    throw new Error('Failed to get upload URL');
+                  }
+
+                  const { url, fields, s3Key } = await presignedResponse.json();
+                  
+                  // Upload to S3
+                  const formData = new FormData();
+                  Object.entries(fields).forEach(([key, value]) => {
+                    if (key.toLowerCase() !== 'bucket') {
+                      formData.append(key, value as string);
+                    }
+                  });
+                  formData.append('file', file);
+                  
+                  await fetch(url, { method: 'POST', body: formData });
+
+                  // Get presigned download URL
+                  let downloadUrl = imageUrl; // Fallback
+                  try {
+                    const downloadResponse = await fetch('/api/s3/download-url', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                    });
+                    if (downloadResponse.ok) {
+                      const downloadData = await downloadResponse.json();
+                      if (downloadData.downloadUrl) {
+                        downloadUrl = downloadData.downloadUrl;
+                      }
+                    }
+                  } catch (error) {
+                    console.warn('Failed to get presigned download URL:', error);
+                  }
+
+                  // Store with s3Key for later registration when asset is created
+                  setPendingImages(prev => [...prev, { 
+                    imageUrl: downloadUrl, 
+                    s3Key: s3Key,
+                    prompt, 
+                    modelUsed 
+                  }]);
+                  
+                  toast.success('Image generated and ready - will be added when asset is created');
+                  
+                  // Show StorageDecisionModal
+                  setSelectedAsset({
+                    url: downloadUrl,
+                    s3Key: s3Key,
+                    name: 'generated-image.png',
+                    type: 'image'
+                  });
+                  setShowStorageModal(true);
+                } catch (error: any) {
+                  toast.error(`Failed to upload image: ${error.message}`);
+                } finally {
+                  setUploading(false);
+                }
+              }
+              setShowImagePromptModal(false);
+            }}
+          />
+        )}
+
+        {/* StorageDecisionModal */}
+        {showStorageModal && selectedAsset && (
+          <StorageDecisionModal
+            isOpen={showStorageModal}
+            onClose={() => {
+              setShowStorageModal(false);
+              setSelectedAsset(null);
+            }}
+            assetType="image"
+            assetName={selectedAsset.name}
+            s3TempUrl={selectedAsset.url}
+            s3Key={selectedAsset.s3Key}
+            fileSize={undefined}
+            metadata={{
+              entityType: 'asset',
+              entityId: asset?.id || 'new',
+              entityName: formData.name || 'Asset'
+            }}
+          />
+        )}
+      </motion.div>
+    </>
+  )
+}
+

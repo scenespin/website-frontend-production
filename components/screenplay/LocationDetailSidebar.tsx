@@ -9,6 +9,9 @@ import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
 import { ImagePromptModal } from '@/components/images/ImagePromptModal'
+import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
+import { useAuth } from '@clerk/nextjs'
+import { toast } from 'sonner'
 
 interface LocationDetailSidebarProps {
   location?: Location | null
@@ -31,8 +34,9 @@ export default function LocationDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: LocationDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, screenplayId } = useScreenplay()
   const { state: editorState } = useEditor()
+  const { getToken } = useAuth()
   
   // Check if location is in script (if editing existing location) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -40,7 +44,10 @@ export default function LocationDetailSidebar({
   }, [location, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [showImagePromptModal, setShowImagePromptModal] = useState(false)
-  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; prompt?: string; modelUsed?: string }>>([])
+  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; s3Key: string; prompt?: string; modelUsed?: string }>>([])
+  const [uploading, setUploading] = useState(false)
+  const [showStorageModal, setShowStorageModal] = useState(false)
+  const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
@@ -129,35 +136,151 @@ export default function LocationDetailSidebar({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+      toast.error('File size must be less than 10MB');
       return;
     }
 
-    // Read file as base64
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      
-      // Associate image with location
-      if (location) {
-        // Existing location - add image directly
-        await addImageToEntity('location', location.id, dataUrl);
-      } else if (isCreating) {
-        // New location - store temporarily, will be added after location creation
-        setPendingImages(prev => [...prev, { imageUrl: dataUrl }]);
+    if (!screenplayId) {
+      toast.error('Screenplay ID not found');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      // Step 1: Get presigned POST URL for S3 upload
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` + 
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&screenplayId=${encodeURIComponent(screenplayId)}` +
+        `&projectId=${encodeURIComponent(screenplayId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error(`File too large. Maximum size is 10MB.`);
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
       }
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      if (!url || !fields || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Step 2: Upload directly to S3 using FormData POST
+      const formData = new FormData();
+      
+      Object.entries(fields).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'bucket') {
+          formData.append(key, value as string);
+        }
+      });
+      
+      formData.append('file', file);
+      
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('S3 upload failed: Network error'));
+        });
+        
+        xhr.open('POST', url);
+        xhr.send(formData);
+      });
+
+      // Step 3: Get presigned download URL for StorageDecisionModal
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      
+      let downloadUrl = s3Url;
+      try {
+        const downloadResponse = await fetch('/api/s3/download-url', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: s3Key,
+            expiresIn: 3600
+          }),
+        });
+        
+        if (downloadResponse.ok) {
+          const downloadData = await downloadResponse.json();
+          if (downloadData.downloadUrl) {
+            downloadUrl = downloadData.downloadUrl;
+          }
+        }
+      } catch (error) {
+        console.warn('[LocationDetailSidebar] Failed to get presigned download URL:', error);
+      }
+
+      if (location) {
+        // Existing location - add image via addImageToEntity
+        await addImageToEntity('location', location.id, downloadUrl, {
+          s3Key: s3Key
+        });
+        toast.success('Image uploaded successfully');
+      } else if (isCreating) {
+        // New location - store temporarily with s3Key, will be added after location creation
+        setPendingImages(prev => [...prev, { 
+          imageUrl: downloadUrl, 
+          s3Key: s3Key
+        }]);
+        toast.success('Image ready - will be added when location is created');
+      }
+
+      // Step 4: Show StorageDecisionModal
+      setSelectedAsset({
+        url: downloadUrl,
+        s3Key: s3Key,
+        name: file.name,
+        type: 'image'
+      });
+      setShowStorageModal(true);
+
+    } catch (error: any) {
+      console.error('[LocationDetailSidebar] Upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }
 
@@ -315,6 +438,9 @@ export default function LocationDetailSidebar({
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
               Location Images
+              <span className="ml-2 text-xs font-normal" style={{ color: '#6B7280' }}>
+                (Upload multiple for better reference)
+              </span>
             </label>
           </div>
           {(() => {
@@ -322,23 +448,28 @@ export default function LocationDetailSidebar({
             const allImages = location ? images : pendingImages.map((img, idx) => ({
               id: `pending-${idx}`,
               imageUrl: img.imageUrl,
-              metadata: img.prompt ? { prompt: img.prompt, modelUsed: img.modelUsed } : undefined,
+              metadata: { 
+                s3Key: img.s3Key,
+                prompt: img.prompt, 
+                modelUsed: img.modelUsed 
+              },
               createdAt: new Date().toISOString()
             }))
             return (
               <div className="space-y-3">
-                {/* Two Small Buttons - Always visible */}
+                {/* Upload Buttons */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    disabled={uploading}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
                     style={{ 
                       backgroundColor: '#DC143C',
                       color: 'white',
                       border: '1px solid #DC143C'
                     }}
                   >
-                    Upload Photo
+                    {uploading ? 'Uploading...' : 'Upload Photo'}
                   </button>
                   {/* Hidden file input for direct upload */}
                   <input
@@ -352,7 +483,7 @@ export default function LocationDetailSidebar({
                     onClick={() => {
                       // Only allow AI generation if location has name/description
                       if (isCreating && (!formData.name || !formData.description)) {
-                        alert('Please enter location name and description first to generate an image')
+                        toast.error('Please enter location name and description first to generate an image')
                         return
                       }
                       setShowImagePromptModal(true)
@@ -390,7 +521,7 @@ export default function LocationDetailSidebar({
                 
                 {allImages.length === 0 && (
                   <p className="text-xs text-center" style={{ color: '#6B7280' }}>
-                    Add an image to visualize this location
+                    Add images to visualize this location (multiple angles recommended)
                   </p>
                 )}
               </div>
@@ -477,21 +608,141 @@ export default function LocationDetailSidebar({
             atmosphereNotes: formData.atmosphereNotes || ''
           }}
           onImageGenerated={async (imageUrl, prompt, modelUsed) => {
-            // Associate image with location
-            if (location) {
-              // Existing location - add image directly
-              await addImageToEntity('location', location.id, imageUrl, {
-                prompt,
-                modelUsed
+            // AI-generated images come as data URLs - we need to upload them to S3
+            try {
+              setUploading(true);
+              // Convert data URL to blob
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+              const file = new File([blob], 'generated-location.png', { type: 'image/png' });
+              
+              if (!screenplayId) {
+                throw new Error('Screenplay ID not found');
+              }
+
+              const token = await getToken({ template: 'wryda-backend' });
+              if (!token) throw new Error('Not authenticated');
+
+              // Get presigned URL
+              const presignedResponse = await fetch(
+                `/api/video/upload/get-presigned-url?` + 
+                `fileName=${encodeURIComponent(file.name)}` +
+                `&fileType=${encodeURIComponent(file.type)}` +
+                `&fileSize=${file.size}` +
+                `&screenplayId=${encodeURIComponent(screenplayId)}` +
+                `&projectId=${encodeURIComponent(screenplayId)}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+
+              if (!presignedResponse.ok) {
+                throw new Error('Failed to get upload URL');
+              }
+
+              const { url, fields, s3Key } = await presignedResponse.json();
+              
+              // Upload to S3
+              const formData = new FormData();
+              Object.entries(fields).forEach(([key, value]) => {
+                if (key.toLowerCase() !== 'bucket') {
+                  formData.append(key, value as string);
+                }
               });
-            } else if (isCreating) {
-              // New location - store temporarily, will be added after location creation
-              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
+              formData.append('file', file);
+              
+              await fetch(url, { method: 'POST', body: formData });
+
+              // Get presigned download URL
+              let downloadUrl = imageUrl; // Fallback
+              try {
+                const downloadResponse = await fetch('/api/s3/download-url', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                });
+                if (downloadResponse.ok) {
+                  const downloadData = await downloadResponse.json();
+                  if (downloadData.downloadUrl) {
+                    downloadUrl = downloadData.downloadUrl;
+                  }
+                }
+              } catch (error) {
+                console.warn('Failed to get presigned download URL:', error);
+              }
+
+              if (location) {
+                // Existing location - add image via addImageToEntity
+                await addImageToEntity('location', location.id, downloadUrl, {
+                  prompt,
+                  modelUsed,
+                  s3Key: s3Key
+                });
+                toast.success('Image generated and uploaded');
+                
+                // Show StorageDecisionModal
+                setSelectedAsset({
+                  url: downloadUrl,
+                  s3Key: s3Key,
+                  name: 'generated-location.png',
+                  type: 'image'
+                });
+                setShowStorageModal(true);
+              } else if (isCreating) {
+                // New location - store temporarily with s3Key
+                setPendingImages(prev => [...prev, { 
+                  imageUrl: downloadUrl, 
+                  s3Key: s3Key,
+                  prompt, 
+                  modelUsed 
+                }]);
+                toast.success('Image generated - will be uploaded when location is created');
+                
+                // Show StorageDecisionModal
+                setSelectedAsset({
+                  url: downloadUrl,
+                  s3Key: s3Key,
+                  name: 'generated-location.png',
+                  type: 'image'
+                });
+                setShowStorageModal(true);
+              }
+            } catch (error: any) {
+              toast.error(`Failed to upload image: ${error.message}`);
+            } finally {
+              setUploading(false);
             }
             setShowImagePromptModal(false);
           }}
         />
-      )}
+        )}
+
+        {/* StorageDecisionModal */}
+        {showStorageModal && selectedAsset && (
+          <StorageDecisionModal
+            isOpen={showStorageModal}
+            onClose={() => {
+              setShowStorageModal(false);
+              setSelectedAsset(null);
+            }}
+            assetType="image"
+            assetName={selectedAsset.name}
+            s3TempUrl={selectedAsset.url}
+            s3Key={selectedAsset.s3Key}
+            fileSize={undefined}
+            metadata={{
+              entityType: 'location',
+              entityId: location?.id || 'new',
+              entityName: formData.name || 'Location'
+            }}
+          />
+        )}
     </motion.div>
   )
 }

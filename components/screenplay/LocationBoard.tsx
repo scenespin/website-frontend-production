@@ -358,11 +358,15 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 const newLocation = await createLocation(locationData);
                                 
                                 // Add pending images after location creation
+                                // Images are already uploaded to S3 via presigned URLs, just need to register them
                                 if (pendingImages && pendingImages.length > 0 && newLocation) {
                                     for (const img of pendingImages) {
+                                        // addImageToEntity accepts the presigned download URL
+                                        // The s3Key is stored in metadata for future reference
                                         await addImageToEntity('location', newLocation.id, img.imageUrl, {
                                             prompt: img.prompt,
-                                            modelUsed: img.modelUsed
+                                            modelUsed: img.modelUsed,
+                                            s3Key: img.s3Key
                                         });
                                     }
                                 }

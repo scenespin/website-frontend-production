@@ -9,6 +9,9 @@ import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
 import { ImagePromptModal } from '@/components/images/ImagePromptModal'
+import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
+import { useAuth } from '@clerk/nextjs'
+import { toast } from 'sonner'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -33,8 +36,9 @@ export default function CharacterDetailSidebar({
   onSwitchToChatImageMode,
   onOpenCharacterBank
 }: CharacterDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, screenplayId } = useScreenplay()
   const { state: editorState } = useEditor()
+  const { getToken } = useAuth()
   
   // Check if character is in script (if editing existing character) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -42,8 +46,18 @@ export default function CharacterDetailSidebar({
   }, [character, editorState.content, isEntityInScript]);
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [showImagePromptModal, setShowImagePromptModal] = useState(false)
-  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; prompt?: string; modelUsed?: string }>>([])
+  const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; s3Key: string; angle?: string; prompt?: string; modelUsed?: string }>>([])
+  const [uploading, setUploading] = useState(false)
+  const [showStorageModal, setShowStorageModal] = useState(false)
+  const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Headshot angle labels for multiple headshots
+  const headshotAngles = [
+    { value: 'front', label: 'Front View' },
+    { value: 'side', label: 'Side Profile' },
+    { value: 'three-quarter', label: '3/4 Angle' }
+  ]
   const [formData, setFormData] = useState<any>(
     character ? { ...character } : (initialData ? {
       name: initialData.name || '',
@@ -116,41 +130,159 @@ export default function CharacterDetailSidebar({
     }
   }
 
-  const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, angle?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+      toast.error('File size must be less than 10MB');
       return;
     }
 
-    // Read file as base64
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      
-      // Associate image with character
-      if (character) {
-        // Existing character - add image directly
-        await addImageToEntity('character', character.id, dataUrl);
-      } else if (isCreating) {
-        // New character - store temporarily, will be added after character creation
-        setPendingImages(prev => [...prev, { imageUrl: dataUrl }]);
+    if (!screenplayId) {
+      toast.error('Screenplay ID not found');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      // Step 1: Get presigned POST URL for S3 upload
+      const presignedResponse = await fetch(
+        `/api/video/upload/get-presigned-url?` + 
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&screenplayId=${encodeURIComponent(screenplayId)}` +
+        `&projectId=${encodeURIComponent(screenplayId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!presignedResponse.ok) {
+        if (presignedResponse.status === 413) {
+          throw new Error(`File too large. Maximum size is 10MB.`);
+        } else if (presignedResponse.status === 401) {
+          throw new Error('Please sign in to upload files.');
+        } else {
+          const errorData = await presignedResponse.json();
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
       }
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      if (!url || !fields || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Step 2: Upload directly to S3 using FormData POST
+      const formData = new FormData();
+      
+      Object.entries(fields).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'bucket') {
+          formData.append(key, value as string);
+        }
+      });
+      
+      formData.append('file', file);
+      
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('S3 upload failed: Network error'));
+        });
+        
+        xhr.open('POST', url);
+        xhr.send(formData);
+      });
+
+      // Step 3: Get presigned download URL for StorageDecisionModal
+      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      
+      let downloadUrl = s3Url;
+      try {
+        const downloadResponse = await fetch('/api/s3/download-url', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: s3Key,
+            expiresIn: 3600
+          }),
+        });
+        
+        if (downloadResponse.ok) {
+          const downloadData = await downloadResponse.json();
+          if (downloadData.downloadUrl) {
+            downloadUrl = downloadData.downloadUrl;
+          }
+        }
+      } catch (error) {
+        console.warn('[CharacterDetailSidebar] Failed to get presigned download URL:', error);
+      }
+
+      if (character) {
+        // Existing character - add image via addImageToEntity
+        await addImageToEntity('character', character.id, downloadUrl, {
+          angle: angle,
+          s3Key: s3Key
+        });
+        toast.success('Headshot uploaded successfully');
+      } else if (isCreating) {
+        // New character - store temporarily with s3Key, will be added after character creation
+        setPendingImages(prev => [...prev, { 
+          imageUrl: downloadUrl, 
+          s3Key: s3Key,
+          angle: angle
+        }]);
+        toast.success('Headshot ready - will be added when character is created');
+      }
+
+      // Step 4: Show StorageDecisionModal
+      setSelectedAsset({
+        url: downloadUrl,
+        s3Key: s3Key,
+        name: file.name,
+        type: 'image'
+      });
+      setShowStorageModal(true);
+
+    } catch (error: any) {
+      console.error('[CharacterDetailSidebar] Upload error:', error);
+      toast.error(error.message || 'Failed to upload headshot');
+    } finally {
+      setUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }
 
@@ -501,11 +633,14 @@ export default function CharacterDetailSidebar({
           </div>
         )}
 
-        {/* Character Images Section - Show for both creating and editing */}
+        {/* Character Headshots Section - Show for both creating and editing */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
-              Character Images
+              Character Headshots
+              <span className="ml-2 text-xs font-normal" style={{ color: '#6B7280' }}>
+                (Upload up to 3 for better consistency)
+              </span>
             </label>
           </div>
           {(() => {
@@ -513,42 +648,108 @@ export default function CharacterDetailSidebar({
             const allImages = character ? images : pendingImages.map((img, idx) => ({
               id: `pending-${idx}`,
               imageUrl: img.imageUrl,
-              metadata: img.prompt ? { prompt: img.prompt, modelUsed: img.modelUsed } : undefined,
+              metadata: { 
+                angle: img.angle,
+                s3Key: img.s3Key,
+                prompt: img.prompt, 
+                modelUsed: img.modelUsed 
+              },
               createdAt: new Date().toISOString()
             }))
+            
+            // Group images by angle for display
+            const frontImages = allImages.filter(img => img.metadata?.angle === 'front' || !img.metadata?.angle)
+            const sideImages = allImages.filter(img => img.metadata?.angle === 'side')
+            const threeQuarterImages = allImages.filter(img => img.metadata?.angle === 'three-quarter')
+            const otherImages = allImages.filter(img => 
+              img.metadata?.angle && 
+              img.metadata.angle !== 'front' && 
+              img.metadata.angle !== 'side' && 
+              img.metadata.angle !== 'three-quarter'
+            )
+            
             return (
-              <div className="space-y-3">
-                {/* Two Small Buttons - Always visible */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
-                    style={{ 
-                      backgroundColor: '#DC143C',
-                      color: 'white',
-                      border: '1px solid #DC143C'
-                    }}
-                  >
-                    Upload Photo
-                  </button>
-                  {/* Hidden file input for direct upload */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleDirectFileUpload}
-                    className="hidden"
-                  />
+              <div className="space-y-4">
+                {/* Multiple Headshot Upload Buttons with Angle Labels */}
+                <div className="space-y-2">
+                  {headshotAngles.map((angle) => {
+                    const existingCount = allImages.filter(img => img.metadata?.angle === angle.value).length
+                    const isMaxReached = existingCount >= 1 // Allow 1 per angle for now, can be increased
+                    
+                    return (
+                      <div key={angle.value} className="flex items-center gap-2">
+                        <label className="text-xs font-medium w-24 shrink-0" style={{ color: '#9CA3AF' }}>
+                          {angle.label}:
+                        </label>
+                        <button
+                          onClick={() => {
+                            if (isMaxReached) {
+                              toast.info(`You already have a ${angle.label} headshot. Remove it first to upload a new one.`)
+                              return
+                            }
+                            // Create a temporary input for this angle
+                            const input = document.createElement('input')
+                            input.type = 'file'
+                            input.accept = 'image/*'
+                            input.onchange = (e) => {
+                              const target = e.target as HTMLInputElement
+                              if (target.files?.[0]) {
+                                handleDirectFileUpload({ target } as any, angle.value)
+                              }
+                            }
+                            input.click()
+                          }}
+                          disabled={uploading || isMaxReached}
+                          className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ 
+                            backgroundColor: isMaxReached ? '#2C2C2E' : '#DC143C',
+                            color: 'white',
+                            border: `1px solid ${isMaxReached ? '#3F3F46' : '#DC143C'}`
+                          }}
+                        >
+                          {uploading ? 'Uploading...' : isMaxReached ? `✓ ${angle.label}` : `Upload ${angle.label}`}
+                        </button>
+                      </div>
+                    )
+                  })}
+                  
+                  {/* Generic Upload (no angle specified) */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium w-24 shrink-0" style={{ color: '#9CA3AF' }}>
+                      Other:
+                    </label>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      style={{ 
+                        backgroundColor: '#DC143C',
+                        color: 'white',
+                        border: '1px solid #DC143C'
+                      }}
+                    >
+                      {uploading ? 'Uploading...' : 'Upload Photo'}
+                    </button>
+                    {/* Hidden file input for generic upload */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleDirectFileUpload(e)}
+                      className="hidden"
+                    />
+                  </div>
+                  
+                  {/* AI Generation Button */}
                   <button
                     onClick={() => {
-                      // Only allow AI generation if character has name/description
                       if (isCreating && (!formData.name || !formData.description)) {
-                        alert('Please enter character name and description first to generate an image')
+                        toast.error('Please enter character name and description first to generate an image')
                         return
                       }
                       setShowImagePromptModal(true)
                     }}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    className="w-full px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5"
                     style={{ 
                       backgroundColor: '#8B5CF6',
                       color: 'white',
@@ -561,27 +762,131 @@ export default function CharacterDetailSidebar({
                 
                 {/* Image Gallery - Show if images exist */}
                 {allImages.length > 0 && (
-                  <ImageGallery
-                    images={allImages}
-                    entityType="character"
-                    entityId={character?.id || 'new'}
-                    entityName={formData.name || 'New Character'}
-                    onDeleteImage={(index: number) => {
-                      if (character) {
-                        if (confirm('Remove this image from the character?')) {
-                          removeImageFromEntity('character', character.id, index)
-                        }
-                      } else {
-                        // Remove from pending images
-                        setPendingImages(prev => prev.filter((_, i) => i !== index))
-                      }
-                    }}
-                  />
+                  <div className="space-y-3">
+                    {frontImages.length > 0 && (
+                      <div>
+                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
+                          Front View
+                        </label>
+                        <ImageGallery
+                          images={frontImages}
+                          entityType="character"
+                          entityId={character?.id || 'new'}
+                          entityName={formData.name || 'New Character'}
+                          onDeleteImage={(index: number) => {
+                            if (character) {
+                              // Find the actual image in allImages array
+                              const imageToDelete = frontImages[index]
+                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              if (actualIndex >= 0 && confirm('Remove this headshot?')) {
+                                removeImageFromEntity('character', character.id, actualIndex)
+                              }
+                            } else {
+                              // Remove from pending images by finding the matching image
+                              const imageToDelete = frontImages[index]
+                              setPendingImages(prev => prev.filter((img) => {
+                                return !(img.imageUrl === imageToDelete.imageUrl && 
+                                        (img.angle === 'front' || !img.angle))
+                              }))
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    {sideImages.length > 0 && (
+                      <div>
+                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
+                          Side Profile
+                        </label>
+                        <ImageGallery
+                          images={sideImages}
+                          entityType="character"
+                          entityId={character?.id || 'new'}
+                          entityName={formData.name || 'New Character'}
+                          onDeleteImage={(index: number) => {
+                            if (character) {
+                              const imageToDelete = sideImages[index]
+                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              if (actualIndex >= 0 && confirm('Remove this headshot?')) {
+                                removeImageFromEntity('character', character.id, actualIndex)
+                              }
+                            } else {
+                              const imageToDelete = sideImages[index]
+                              setPendingImages(prev => prev.filter((img) => {
+                                return !(img.imageUrl === imageToDelete.imageUrl && img.angle === 'side')
+                              }))
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    {threeQuarterImages.length > 0 && (
+                      <div>
+                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
+                          3/4 Angle
+                        </label>
+                        <ImageGallery
+                          images={threeQuarterImages}
+                          entityType="character"
+                          entityId={character?.id || 'new'}
+                          entityName={formData.name || 'New Character'}
+                          onDeleteImage={(index: number) => {
+                            if (character) {
+                              const imageToDelete = threeQuarterImages[index]
+                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              if (actualIndex >= 0 && confirm('Remove this headshot?')) {
+                                removeImageFromEntity('character', character.id, actualIndex)
+                              }
+                            } else {
+                              const imageToDelete = threeQuarterImages[index]
+                              setPendingImages(prev => prev.filter((img) => {
+                                return !(img.imageUrl === imageToDelete.imageUrl && img.angle === 'three-quarter')
+                              }))
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    {otherImages.length > 0 && (
+                      <div>
+                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
+                          Other Images
+                        </label>
+                        <ImageGallery
+                          images={otherImages}
+                          entityType="character"
+                          entityId={character?.id || 'new'}
+                          entityName={formData.name || 'New Character'}
+                          onDeleteImage={(index: number) => {
+                            if (character) {
+                              const imageToDelete = otherImages[index]
+                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              if (actualIndex >= 0 && confirm('Remove this image?')) {
+                                removeImageFromEntity('character', character.id, actualIndex)
+                              }
+                            } else {
+                              const imageToDelete = otherImages[index]
+                              setPendingImages(prev => prev.filter((img) => {
+                                return !(img.imageUrl === imageToDelete.imageUrl && 
+                                        img.angle && 
+                                        img.angle !== 'front' && 
+                                        img.angle !== 'side' && 
+                                        img.angle !== 'three-quarter')
+                              }))
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
                 
                 {allImages.length === 0 && (
                   <p className="text-xs text-center" style={{ color: '#6B7280' }}>
-                    Add an image to visualize this character
+                    Upload headshots for better character consistency (front, side, 3/4 angle recommended)
                   </p>
                 )}
               </div>
@@ -669,21 +974,141 @@ export default function CharacterDetailSidebar({
             arcNotes: formData.arcNotes || ''
           }}
           onImageGenerated={async (imageUrl, prompt, modelUsed) => {
-            // Associate image with character
-            if (character) {
-              // Existing character - add image directly
-              await addImageToEntity('character', character.id, imageUrl, {
-                prompt,
-                modelUsed
+            // AI-generated images come as data URLs - we need to upload them to S3
+            try {
+              setUploading(true);
+              // Convert data URL to blob
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+              const file = new File([blob], 'generated-headshot.png', { type: 'image/png' });
+              
+              if (!screenplayId) {
+                throw new Error('Screenplay ID not found');
+              }
+
+              const token = await getToken({ template: 'wryda-backend' });
+              if (!token) throw new Error('Not authenticated');
+
+              // Get presigned URL
+              const presignedResponse = await fetch(
+                `/api/video/upload/get-presigned-url?` + 
+                `fileName=${encodeURIComponent(file.name)}` +
+                `&fileType=${encodeURIComponent(file.type)}` +
+                `&fileSize=${file.size}` +
+                `&screenplayId=${encodeURIComponent(screenplayId)}` +
+                `&projectId=${encodeURIComponent(screenplayId)}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+
+              if (!presignedResponse.ok) {
+                throw new Error('Failed to get upload URL');
+              }
+
+              const { url, fields, s3Key } = await presignedResponse.json();
+              
+              // Upload to S3
+              const formData = new FormData();
+              Object.entries(fields).forEach(([key, value]) => {
+                if (key.toLowerCase() !== 'bucket') {
+                  formData.append(key, value as string);
+                }
               });
-            } else if (isCreating) {
-              // New character - store temporarily, will be added after character creation
-              setPendingImages(prev => [...prev, { imageUrl, prompt, modelUsed }]);
+              formData.append('file', file);
+              
+              await fetch(url, { method: 'POST', body: formData });
+
+              // Get presigned download URL
+              let downloadUrl = imageUrl; // Fallback
+              try {
+                const downloadResponse = await fetch('/api/s3/download-url', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                });
+                if (downloadResponse.ok) {
+                  const downloadData = await downloadResponse.json();
+                  if (downloadData.downloadUrl) {
+                    downloadUrl = downloadData.downloadUrl;
+                  }
+                }
+              } catch (error) {
+                console.warn('Failed to get presigned download URL:', error);
+              }
+
+              if (character) {
+                // Existing character - add image via addImageToEntity
+                await addImageToEntity('character', character.id, downloadUrl, {
+                  prompt,
+                  modelUsed,
+                  s3Key: s3Key
+                });
+                toast.success('Image generated and uploaded');
+                
+                // Show StorageDecisionModal
+                setSelectedAsset({
+                  url: downloadUrl,
+                  s3Key: s3Key,
+                  name: 'generated-headshot.png',
+                  type: 'image'
+                });
+                setShowStorageModal(true);
+              } else if (isCreating) {
+                // New character - store temporarily with s3Key
+                setPendingImages(prev => [...prev, { 
+                  imageUrl: downloadUrl, 
+                  s3Key: s3Key,
+                  prompt, 
+                  modelUsed 
+                }]);
+                toast.success('Image generated - will be uploaded when character is created');
+                
+                // Show StorageDecisionModal
+                setSelectedAsset({
+                  url: downloadUrl,
+                  s3Key: s3Key,
+                  name: 'generated-headshot.png',
+                  type: 'image'
+                });
+                setShowStorageModal(true);
+              }
+            } catch (error: any) {
+              toast.error(`Failed to upload image: ${error.message}`);
+            } finally {
+              setUploading(false);
             }
             setShowImagePromptModal(false);
           }}
         />
-      )}
+        )}
+
+        {/* StorageDecisionModal */}
+        {showStorageModal && selectedAsset && (
+          <StorageDecisionModal
+            isOpen={showStorageModal}
+            onClose={() => {
+              setShowStorageModal(false);
+              setSelectedAsset(null);
+            }}
+            assetType="image"
+            assetName={selectedAsset.name}
+            s3TempUrl={selectedAsset.url}
+            s3Key={selectedAsset.s3Key}
+            fileSize={undefined}
+            metadata={{
+              entityType: 'character',
+              entityId: character?.id || 'new',
+              entityName: formData.name || 'Character'
+            }}
+          />
+        )}
       </motion.div>
     </>
   )
