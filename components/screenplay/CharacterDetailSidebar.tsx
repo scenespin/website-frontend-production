@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Camera, Upload } from "lucide-react"
 import { motion } from 'framer-motion'
-import type { Character } from '@/types/screenplay'
+import type { Character, ImageAsset } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
@@ -606,8 +606,9 @@ export default function CharacterDetailSidebar({
           </div>
           {(() => {
             const images = character ? getEntityImages('character', character.id) : []
-            const allImages = character ? images : pendingImages.map((img, idx) => ({
-              id: `pending-${idx}`,
+            // For existing characters, images come from getEntityImages (ImageAsset[])
+            // For new characters, we create ImageAsset objects from pendingImages
+            const allImages: ImageAsset[] = character ? images : pendingImages.map((img, idx) => ({
               imageUrl: img.imageUrl,
               metadata: { 
                 angle: img.angle,
@@ -736,9 +737,9 @@ export default function CharacterDetailSidebar({
                           entityName={formData.name || 'New Character'}
                           onDeleteImage={(index: number) => {
                             if (character) {
-                              // Find the actual image in allImages array
+                              // Find the actual image in allImages array by matching imageUrl
                               const imageToDelete = frontImages[index]
-                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this headshot?')) {
                                 removeImageFromEntity('character', character.id, actualIndex)
                               }
@@ -768,7 +769,7 @@ export default function CharacterDetailSidebar({
                           onDeleteImage={(index: number) => {
                             if (character) {
                               const imageToDelete = sideImages[index]
-                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this headshot?')) {
                                 removeImageFromEntity('character', character.id, actualIndex)
                               }
@@ -796,7 +797,7 @@ export default function CharacterDetailSidebar({
                           onDeleteImage={(index: number) => {
                             if (character) {
                               const imageToDelete = threeQuarterImages[index]
-                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this headshot?')) {
                                 removeImageFromEntity('character', character.id, actualIndex)
                               }
@@ -824,7 +825,7 @@ export default function CharacterDetailSidebar({
                           onDeleteImage={(index: number) => {
                             if (character) {
                               const imageToDelete = otherImages[index]
-                              const actualIndex = allImages.findIndex(img => img.id === imageToDelete.id)
+                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this image?')) {
                                 removeImageFromEntity('character', character.id, actualIndex)
                               }
