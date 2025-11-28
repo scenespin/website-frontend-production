@@ -266,6 +266,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const scenesRef = useRef<Scene[]>([]);
     const charactersRef = useRef<Character[]>([]);
     const locationsRef = useRef<Location[]>([]);
+    const assetsRef = useRef<Asset[]>([]);
     const updateScenePositionsRef = useRef<((content: string) => Promise<number>) | null>(null);
     
     // Keep refs in sync with state
