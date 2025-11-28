@@ -148,7 +148,12 @@ interface ScreenplayContextType {
         entityType: 'character' | 'location' | 'scene' | 'storybeat',
         entityId: string,
         imageUrl: string,
-        metadata?: { prompt?: string; modelUsed?: string }
+        metadata?: { 
+            prompt?: string; 
+            modelUsed?: string;
+            angle?: string; // For character headshots: 'front' | 'side' | 'three-quarter'
+            s3Key?: string; // S3 key for file management
+        }
     ) => Promise<void>;
     removeImageFromEntity: (
         entityType: 'character' | 'location' | 'scene' | 'storybeat',
@@ -2122,7 +2127,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         entityType: 'character' | 'location' | 'scene' | 'storybeat',
         entityId: string,
         imageUrl: string,
-        metadata?: { prompt?: string; modelUsed?: string }
+        metadata?: { 
+            prompt?: string; 
+            modelUsed?: string;
+            angle?: string; // For character headshots: 'front' | 'side' | 'three-quarter'
+            s3Key?: string; // S3 key for file management
+        }
     ) => {
         try {
             // Call backend API to associate image (skip in dev if no token)
