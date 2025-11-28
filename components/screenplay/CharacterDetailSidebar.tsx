@@ -36,7 +36,7 @@ export default function CharacterDetailSidebar({
   onSwitchToChatImageMode,
   onOpenCharacterBank
 }: CharacterDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, screenplayId } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateCharacter, screenplayId } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   
@@ -134,28 +134,28 @@ export default function CharacterDetailSidebar({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
-      return;
-    }
-
     if (!screenplayId) {
       toast.error('Screenplay ID not found');
       return;
     }
 
     setUploading(true);
+    
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
+      // Validate file
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB');
+        return;
+      }
+
+      // Upload file to S3
       // Step 1: Get presigned POST URL for S3 upload
       const presignedResponse = await fetch(
         `/api/video/upload/get-presigned-url?` + 
@@ -219,7 +219,7 @@ export default function CharacterDetailSidebar({
         xhr.send(formData);
       });
 
-      // Step 3: Get presigned download URL for StorageDecisionModal
+      // Step 3: Get presigned download URL
       const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
       const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
       const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
@@ -248,15 +248,30 @@ export default function CharacterDetailSidebar({
         console.warn('[CharacterDetailSidebar] Failed to get presigned download URL:', error);
       }
 
+      // Step 4: Persist image to character (or add to pending)
       if (character) {
-        // Existing character - add image via addImageToEntity
-        await addImageToEntity('character', character.id, downloadUrl, {
-          angle: angle,
-          s3Key: s3Key
+        // Existing character - update character's images array directly
+        const currentImages = character.images || [];
+        const newImage: ImageAsset = {
+          imageUrl: downloadUrl,
+          createdAt: new Date().toISOString(),
+          metadata: {
+            angle: angle,
+            s3Key: s3Key
+          }
+        };
+        
+        // Update character with new image - this persists to DynamoDB
+        await updateCharacter(character.id, {
+          images: [...currentImages, newImage]
         });
+        
+        // Force a small delay to ensure DynamoDB consistency
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         toast.success('Headshot uploaded successfully');
       } else if (isCreating) {
-        // New character - store temporarily with s3Key, will be added after character creation
+        // New character - store temporarily, will be added after character creation
         setPendingImages(prev => [...prev, { 
           imageUrl: downloadUrl, 
           s3Key: s3Key,
@@ -265,7 +280,7 @@ export default function CharacterDetailSidebar({
         toast.success('Headshot ready - will be added when character is created');
       }
 
-      // Step 4: Show StorageDecisionModal
+      // Step 5: Show StorageDecisionModal
       setSelectedAsset({
         url: downloadUrl,
         s3Key: s3Key,
@@ -276,7 +291,7 @@ export default function CharacterDetailSidebar({
 
     } catch (error: any) {
       console.error('[CharacterDetailSidebar] Upload error:', error);
-      toast.error(error.message || 'Failed to upload headshot');
+      toast.error(error.message || 'Failed to upload headshot(s)');
     } finally {
       setUploading(false);
       // Reset input

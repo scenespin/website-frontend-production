@@ -116,8 +116,11 @@ export default function AssetDetailSidebar({
   }
 
   const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // Support multiple files - process all selected files
+    const fileArray = Array.from(files);
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -521,6 +524,7 @@ export default function AssetDetailSidebar({
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleDirectFileUpload}
                     className="hidden"
                   />
