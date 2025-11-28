@@ -1442,34 +1442,77 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     // Don't create a new screenplay yet - wait for auto-save to create it
                     // This prevents orphaning screenplays when localStorage is cleared
                 } else {
-                    console.log('[EditorContext] No saved content found - checking if user needs one-time default project migration');
+                    console.log('[EditorContext] No saved content found - checking if user has screenplays to load');
                     
-                    // Feature 0136: One-time migration - Ensure default project exists for users with no owned screenplays
-                    // This is a ONE-TIME migration for existing users (like collaborators) who don't have owned screenplays
-                    // New users get a default project on signup via backend webhook
-                    // Only runs once per user (tracked in Clerk metadata)
+                    // Feature 0136: Auto-load first screenplay if user has screenplays but no saved current_screenplay_id
+                    // This fixes the issue where users with screenplays see empty editor when Clerk metadata is missing
                     // Only check if we don't have a projectId in URL (user is starting fresh)
                     if (!projectId && user) {
                         try {
-                            // Check if migration has already been completed for this user
-                            const migrationCompleted = user.unsafeMetadata?.default_project_migration_completed === true;
+                            // Check if user has any owned screenplays
+                            const screenplaysResponse = await fetch('/api/screenplays/list?status=active&limit=1', {
+                                cache: 'no-store',
+                                headers: {
+                                    'Cache-Control': 'no-cache'
+                                }
+                            });
                             
-                            if (migrationCompleted) {
-                                console.log('[EditorContext] Default project migration already completed for this user');
-                            } else {
-                                // Check if user has any owned screenplays
-                                const screenplaysResponse = await fetch('/api/screenplays/list?status=active&limit=1', {
-                                    cache: 'no-store',
-                                    headers: {
-                                        'Cache-Control': 'no-cache'
-                                    }
-                                });
+                            if (screenplaysResponse.ok) {
+                                const screenplaysData = await screenplaysResponse.json();
+                                const ownedScreenplays = screenplaysData.screenplays || [];
                                 
-                                if (screenplaysResponse.ok) {
-                                    const screenplaysData = await screenplaysResponse.json();
-                                    const ownedScreenplays = screenplaysData.screenplays || [];
+                                if (ownedScreenplays.length > 0) {
+                                    // User has screenplays - load the first one
+                                    const firstScreenplay = ownedScreenplays[0];
+                                    const firstScreenplayId = firstScreenplay.screenplay_id;
                                     
-                                    if (ownedScreenplays.length === 0) {
+                                    console.log('[EditorContext] User has screenplays but no saved ID - loading first screenplay:', firstScreenplayId);
+                                    
+                                    // Load the screenplay
+                                    const screenplay = await getScreenplay(firstScreenplayId, getToken);
+                                    
+                                    if (screenplay) {
+                                        // Save to Clerk metadata so it loads automatically next time
+                                        await setCurrentScreenplayId(user, firstScreenplayId);
+                                        screenplayIdRef.current = firstScreenplayId;
+                                        
+                                        // Update URL to include the screenplay ID
+                                        if (typeof window !== 'undefined') {
+                                            const newUrl = `/write?project=${firstScreenplayId}`;
+                                            window.history.replaceState({}, '', newUrl);
+                                        }
+                                        
+                                        // Load the screenplay content
+                                        const dbContent = screenplay.content || '';
+                                        const dbTitle = screenplay.title || 'Untitled Screenplay';
+                                        const dbAuthor = screenplay.author || '';
+                                        
+                                        setState(prev => ({
+                                            ...prev,
+                                            content: dbContent,
+                                            title: dbTitle,
+                                            author: dbAuthor || prev.author,
+                                            isDirty: false
+                                        }));
+                                        
+                                        // Store version for optimistic locking
+                                        if (typeof screenplay.version === 'string') {
+                                            screenplayVersionRef.current = parseFloat(screenplay.version) || 1;
+                                        } else {
+                                            screenplayVersionRef.current = screenplay.version || 1;
+                                        }
+                                        
+                                        console.log('[EditorContext] ✅ Auto-loaded first screenplay:', firstScreenplayId);
+                                        
+                                        isInitialLoadRef.current = false;
+                                        hasInitializedRef.current = initKey;
+                                        return; // Exit early - screenplay loaded
+                                    }
+                                } else {
+                                    // User has no owned screenplays - run one-time default project migration
+                                    const migrationCompleted = user.unsafeMetadata?.default_project_migration_completed === true;
+                                    
+                                    if (!migrationCompleted) {
                                         console.log('[EditorContext] Running one-time default project migration for user with no owned screenplays');
                                         // Create default project for user
                                         const defaultProject = await createScreenplay({
@@ -1512,26 +1555,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                         isInitialLoadRef.current = false;
                                         hasInitializedRef.current = initKey;
                                         return; // Exit early - project created
-                                    } else {
-                                        // User has owned screenplays - mark migration as completed (no need to run)
-                                        const userWithUpdate = user as any;
-                                        await userWithUpdate.update({
-                                            unsafeMetadata: {
-                                                ...user.unsafeMetadata,
-                                                default_project_migration_completed: true
-                                            }
-                                        });
-                                        console.log('[EditorContext] User has owned screenplays - marking migration as completed (no action needed)');
                                     }
                                 }
                             }
                         } catch (error) {
                             // Log error but don't fail - user can still use the editor
-                            console.error('[EditorContext] ⚠️ Failed to run default project migration (non-critical):', error);
+                            console.error('[EditorContext] ⚠️ Failed to check/load user screenplays (non-critical):', error);
                         }
                     }
                     
-                    // If we get here, either migration already ran, user has screenplays, or migration failed
+                    // If we get here, either user has no screenplays, or loading failed
                     // User will start with empty editor and can type to create a new screenplay
                     console.log('[EditorContext] User will start with empty editor');
                 }
