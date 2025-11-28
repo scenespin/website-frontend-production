@@ -7,7 +7,7 @@ import { downloadImage, copyImageUrlToClipboard, generateImageFilename } from '@
 
 interface ImageGalleryProps {
     images: ImageAsset[];
-    entityType: 'character' | 'location' | 'scene' | 'storybeat';
+    entityType: 'character' | 'location' | 'scene' | 'storybeat' | 'asset';
     entityId: string;
     entityName?: string;
     onAddImage?: () => void;

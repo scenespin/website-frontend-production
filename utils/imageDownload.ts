@@ -147,7 +147,7 @@ export function dataUrlToBlob(dataUrl: string): Blob {
  * Generate a filename for an entity's image
  */
 export function generateImageFilename(
-    entityType: 'character' | 'location' | 'scene' | 'storybeat',
+    entityType: 'character' | 'location' | 'scene' | 'storybeat' | 'asset',
     entityName: string,
     index?: number
 ): string {
