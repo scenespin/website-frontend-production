@@ -64,29 +64,41 @@ export default function AssetDetailSidebar({
     })
   )
   
-  // 🔥 FIX: Only update formData when asset prop actually changes (not when isCreating changes)
+  // 🔥 FIX: Only update formData when asset prop actually changes (not when isCreating or initialData changes)
   // This prevents resetting user input when uploading images during asset creation
+  // Use a ref to track the previous asset ID to detect actual changes
+  const prevAssetIdRef = useRef<string | undefined>(asset?.id);
+  
   useEffect(() => {
-    if (asset) {
-      // Only update if asset actually changed (by ID comparison)
-      setFormData(prev => {
-        if (prev.id !== asset.id) {
-          return { ...asset };
-        }
-        // Preserve user's current input if same asset
-        return prev;
-      });
-    } else if (initialData && !asset) {
-      // Only reset if we have initialData and no asset (switching to create mode)
-      setFormData({
-        name: initialData.name || '',
-        category: initialData.category || 'prop',
-        description: initialData.description || '',
-        tags: initialData.tags || []
-      });
+    // Only update if asset ID actually changed (switching between assets or create/edit mode)
+    if (asset?.id !== prevAssetIdRef.current) {
+      if (asset) {
+        // Switching to edit mode - load asset data
+        setFormData({ ...asset });
+        prevAssetIdRef.current = asset.id;
+      } else if (initialData) {
+        // Switching to create mode with initialData - use initialData
+        setFormData({
+          name: initialData.name || '',
+          category: initialData.category || 'prop',
+          description: initialData.description || '',
+          tags: initialData.tags || []
+        });
+        prevAssetIdRef.current = undefined;
+      } else {
+        // Switching to create mode without initialData - reset to defaults
+        setFormData({
+          name: '',
+          category: 'prop',
+          description: '',
+          tags: []
+        });
+        prevAssetIdRef.current = undefined;
+      }
     }
-    // Note: Don't reset formData when isCreating changes - preserve user input!
-  }, [asset?.id, initialData]) // Only depend on asset.id, not isCreating
+    // Note: Don't reset formData when isCreating or initialData changes - preserve user input!
+    // Only reset when asset.id actually changes (switching between assets or modes)
+  }, [asset?.id]) // Only depend on asset.id - ignore initialData and isCreating changes
 
   const handleSave = async () => {
     if (!formData.name.trim()) {

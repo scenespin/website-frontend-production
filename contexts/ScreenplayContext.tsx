@@ -1993,13 +1993,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // Create asset via API
         try {
-            const createdAsset = await api.assetBank.create({
+            const response = await api.assetBank.create({
                 screenplayId,
                 name: asset.name.trim(),
                 category: asset.category,
                 description: asset.description?.trim(),
                 tags: asset.tags || []
             });
+            
+            // Extract asset from response (API returns { success: true, asset })
+            const createdAsset = response.asset || response;
+            
+            if (!createdAsset || !createdAsset.id) {
+                throw new Error('Invalid response from asset creation API');
+            }
             
             // Add to local state
             setAssets(prev => [...prev, createdAsset]);
