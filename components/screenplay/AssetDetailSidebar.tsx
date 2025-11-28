@@ -37,6 +37,7 @@ export default function AssetDetailSidebar({
   const { getAssetScenes, isEntityInScript, screenplayId } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
+  const { assets, isEntityInScript } = useScreenplay()
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -278,6 +279,13 @@ export default function AssetDetailSidebar({
           // Reload asset to get updated images
           const updatedAsset = await api.assetBank.get(asset.id);
           setFormData(updatedAsset);
+          
+          // 🔥 FIX: Also sync from context if available (like MediaLibrary refetches)
+          // Get updated asset from context to ensure UI reflects the new images
+          const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+          if (updatedAssetFromContext) {
+            setFormData({ ...updatedAssetFromContext });
+          }
           
           toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
         } catch (error: any) {
@@ -775,6 +783,13 @@ export default function AssetDetailSidebar({
                   
                   const updatedAsset = await api.assetBank.get(asset.id);
                   setFormData(updatedAsset);
+                  
+                  // 🔥 FIX: Also sync from context if available (like MediaLibrary refetches)
+                  // Get updated asset from context to ensure UI reflects the new image
+                  const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+                  if (updatedAssetFromContext) {
+                    setFormData({ ...updatedAssetFromContext });
+                  }
                   
                   toast.success('Image generated and uploaded');
                   

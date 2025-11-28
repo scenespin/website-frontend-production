@@ -34,7 +34,7 @@ export default function LocationDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: LocationDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateLocation, screenplayId } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateLocation, screenplayId, locations } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   
@@ -280,6 +280,13 @@ export default function LocationDetailSidebar({
         
         // Force a small delay to ensure DynamoDB consistency
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 🔥 FIX: Sync location data from context after update (like MediaLibrary refetches)
+        // Get updated location from context to ensure UI reflects the new images
+        const updatedLocationFromContext = locations.find(l => l.id === location.id);
+        if (updatedLocationFromContext) {
+          setFormData({ ...updatedLocationFromContext });
+        }
         
         toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
       } else if (isCreating) {
@@ -714,6 +721,14 @@ export default function LocationDetailSidebar({
                   modelUsed,
                   s3Key: s3Key
                 });
+                
+                // 🔥 FIX: Sync location data from context after update (like MediaLibrary refetches)
+                // Get updated location from context to ensure UI reflects the new image
+                const updatedLocationFromContext = locations.find(l => l.id === location.id);
+                if (updatedLocationFromContext) {
+                  setFormData({ ...updatedLocationFromContext });
+                }
+                
                 toast.success('Image generated and uploaded');
                 
                 // Show StorageDecisionModal

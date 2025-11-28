@@ -36,7 +36,7 @@ export default function CharacterDetailSidebar({
   onSwitchToChatImageMode,
   onOpenCharacterBank
 }: CharacterDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateCharacter, screenplayId } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateCharacter, screenplayId, characters } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   
@@ -268,6 +268,13 @@ export default function CharacterDetailSidebar({
         
         // Force a small delay to ensure DynamoDB consistency
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 🔥 FIX: Sync character data from context after update (like MediaLibrary refetches)
+        // Get updated character from context to ensure UI reflects the new image
+        const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+        if (updatedCharacterFromContext) {
+          setFormData({ ...updatedCharacterFromContext });
+        }
         
         toast.success('Headshot uploaded successfully');
       } else if (isCreating) {
@@ -1027,6 +1034,14 @@ export default function CharacterDetailSidebar({
                   modelUsed,
                   s3Key: s3Key
                 });
+                
+                // 🔥 FIX: Sync character data from context after update (like MediaLibrary refetches)
+                // Get updated character from context to ensure UI reflects the new image
+                const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                if (updatedCharacterFromContext) {
+                  setFormData({ ...updatedCharacterFromContext });
+                }
+                
                 toast.success('Image generated and uploaded');
                 
                 // Show StorageDecisionModal

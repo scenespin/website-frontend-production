@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { saveToGitHub } from '@/utils/github';
@@ -139,6 +139,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // Feature 0111: DynamoDB Storage
     const { getToken } = useAuth();
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
+    const pathname = usePathname(); // Check if we're on the editor page
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
     // Feature 0133: Track screenplay version for optimistic locking
@@ -1975,8 +1976,18 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     }, [projectId, getToken]);
     
     // Feature 0134: Poll for other users' cursor positions (every 2 seconds)
+    // 🔥 FIX: Only poll on the /write page (editor), not on other pages like /props, /characters, /locations
     useEffect(() => {
         const activeScreenplayId = projectId || screenplayIdRef.current;
+        const isOnEditorPage = pathname === '/write';
+        
+        if (!isOnEditorPage) {
+            // Not on editor page - disable cursor polling
+            console.log('[EditorContext] Cursor polling disabled: not on /write page', { pathname });
+            setOtherUsersCursors([]);
+            return;
+        }
+        
         if (!activeScreenplayId || !activeScreenplayId.startsWith('screenplay_') || !getToken || !user) {
             // Clear cursors if no screenplay loaded
             console.log('[EditorContext] Cursor polling disabled:', {
@@ -2049,7 +2060,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         return () => {
             clearInterval(pollInterval);
         };
-    }, [projectId, getToken, user]);
+    }, [projectId, getToken, user, pathname]);
     
     return (
         <EditorContext.Provider value={value}>
