@@ -34,10 +34,9 @@ export default function AssetDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
-  const { getAssetScenes, isEntityInScript, screenplayId } = useScreenplay()
+  const { getAssetScenes, isEntityInScript, screenplayId, assets } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
-  const { assets, isEntityInScript } = useScreenplay()
   
   // Check if asset is in script (if editing existing asset) - memoized to prevent render loops
   const isInScript = useMemo(() => {
