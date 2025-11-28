@@ -772,6 +772,10 @@ export default function AssetDetailSidebar({
                   const blob = await response.blob();
                   const file = new File([blob], 'generated-image.png', { type: 'image/png' });
                   
+                  // Get token for authentication
+                  const token = await getToken({ template: 'wryda-backend' });
+                  if (!token) throw new Error('Not authenticated');
+                  
                   if (!screenplayId) {
                     throw new Error('Screenplay ID not found');
                   }
