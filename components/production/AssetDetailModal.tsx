@@ -334,13 +334,19 @@ export default function AssetDetailModal({
                     </label>
                     
                     {canExport3D && !asset.has3DModel && (
-                      <button
-                        onClick={() => onGenerate3D(asset)}
-                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors inline-flex items-center gap-2"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        Generate 3D Model ({categoryMeta.priceUSD})
-                      </button>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => onGenerate3D(asset)}
+                          className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center"
+                          title="Required: Generate 3D model to render multiple angles for consistent prop appearance in scenes"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Generate 3D Model for Scene Generation ({categoryMeta.priceUSD})
+                        </button>
+                        <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
+                          3D export required for scene generation. The model will be used to render reference images at different angles.
+                        </p>
+                      </div>
                     )}
                     
                     {!canExport3D && (

@@ -499,15 +499,22 @@ function CharacterCard({
           </button>
 
           {/* Export to 3D */}
-          <button
-            onClick={onExport3D}
-            disabled={!canExport3D}
-            className="btn btn-sm btn-accent col-span-2"
-            title={!canExport3D ? 'Need at least 2 images' : 'Export to 3D (GLB, OBJ, USDZ)'}
-          >
-            <Box className="w-4 h-4" />
-            Export to 3D {canExport3D ? '(500 cr)' : '(Need 2+ images)'}
-          </button>
+          <div className="col-span-2 space-y-1">
+            <button
+              onClick={onExport3D}
+              disabled={!canExport3D}
+              className="btn btn-sm btn-accent w-full"
+              title={!canExport3D ? 'Need at least 2 images' : 'Export 3D model for external use'}
+            >
+              <Box className="w-4 h-4" />
+              Export to 3D {canExport3D ? '(500 cr)' : '(Need 2+ images)'}
+            </button>
+            {canExport3D && (
+              <p className="text-xs text-center text-gray-400">
+                Use in AR/VR, game engines, 3D animation tools, and more
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Status Badges */}
