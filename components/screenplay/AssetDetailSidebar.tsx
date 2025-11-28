@@ -275,16 +275,15 @@ export default function AssetDetailSidebar({
             ]
           });
           
-          // Reload asset to get updated images
-          const updatedAsset = await api.assetBank.get(asset.id);
-          setFormData(updatedAsset);
-          
-          // 🔥 FIX: Also sync from context if available (like MediaLibrary refetches)
-          // Get updated asset from context to ensure UI reflects the new images
-          const updatedAssetFromContext = assets.find(a => a.id === asset.id);
-          if (updatedAssetFromContext) {
-            setFormData({ ...updatedAssetFromContext });
-          }
+          // 🔥 FIX: Only update images in formData, preserve user's current input (name, description, etc.)
+          // Don't overwrite the entire formData - user might be editing other fields
+          setFormData(prev => ({
+            ...prev,
+            images: [
+              ...(prev.images || []),
+              ...newImageObjects
+            ]
+          }));
           
           toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
         } catch (error: any) {
@@ -780,15 +779,20 @@ export default function AssetDetailSidebar({
                     ]
                   });
                   
-                  const updatedAsset = await api.assetBank.get(asset.id);
-                  setFormData(updatedAsset);
-                  
-                  // 🔥 FIX: Also sync from context if available (like MediaLibrary refetches)
-                  // Get updated asset from context to ensure UI reflects the new image
-                  const updatedAssetFromContext = assets.find(a => a.id === asset.id);
-                  if (updatedAssetFromContext) {
-                    setFormData({ ...updatedAssetFromContext });
-                  }
+                  // 🔥 FIX: Only update images in formData, preserve user's current input (name, description, etc.)
+                  // Don't overwrite the entire formData - user might be editing other fields
+                  setFormData(prev => ({
+                    ...prev,
+                    images: [
+                      ...(prev.images || []),
+                      {
+                        id: `img_${Date.now()}`,
+                        url: downloadUrl,
+                        s3Key: s3Key,
+                        uploadedAt: new Date().toISOString()
+                      }
+                    ]
+                  }));
                   
                   toast.success('Image generated and uploaded');
                   
