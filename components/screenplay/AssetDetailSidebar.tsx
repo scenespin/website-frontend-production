@@ -64,26 +64,29 @@ export default function AssetDetailSidebar({
     })
   )
   
-  // Update form data when asset prop changes
+  // 🔥 FIX: Only update formData when asset prop actually changes (not when isCreating changes)
+  // This prevents resetting user input when uploading images during asset creation
   useEffect(() => {
     if (asset) {
-      setFormData({ ...asset })
-    } else if (initialData) {
+      // Only update if asset actually changed (by ID comparison)
+      setFormData(prev => {
+        if (prev.id !== asset.id) {
+          return { ...asset };
+        }
+        // Preserve user's current input if same asset
+        return prev;
+      });
+    } else if (initialData && !asset) {
+      // Only reset if we have initialData and no asset (switching to create mode)
       setFormData({
         name: initialData.name || '',
         category: initialData.category || 'prop',
         description: initialData.description || '',
         tags: initialData.tags || []
-      })
-    } else if (isCreating) {
-      setFormData({
-        name: '',
-        category: 'prop',
-        description: '',
-        tags: []
-      })
+      });
     }
-  }, [asset, initialData, isCreating])
+    // Note: Don't reset formData when isCreating changes - preserve user input!
+  }, [asset?.id, initialData]) // Only depend on asset.id, not isCreating
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
