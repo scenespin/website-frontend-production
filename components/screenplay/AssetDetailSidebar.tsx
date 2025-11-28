@@ -550,7 +550,7 @@ export default function AssetDetailSidebar({
                       id: `asset-img-${idx}`,
                       imageUrl: img.url,
                       createdAt: img.uploadedAt,
-                      metadata: img.angle ? { angle: img.angle } : undefined
+                      metadata: undefined // ImageAsset metadata doesn't support angle, store it elsewhere if needed
                     }))}
                     entityType="asset"
                     entityId={asset.id}
