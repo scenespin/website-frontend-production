@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
-import type { Location } from '@/types/screenplay'
+import type { Location, ImageAsset } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
