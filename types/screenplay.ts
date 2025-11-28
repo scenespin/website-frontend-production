@@ -47,6 +47,8 @@ export interface ImageAsset {
         modelUsed?: string; // AI model ID used (e.g., "nano-banana")
         isEdited?: boolean; // True if this is an edited version
         originalImageUrl?: string; // If edited, reference to original
+        angle?: string; // For character headshots: 'front' | 'side' | 'three-quarter'
+        s3Key?: string; // S3 key for the uploaded file
     };
 }
 

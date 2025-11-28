@@ -313,8 +313,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                     await addImageToEntity('character', newCharacter.id, img.imageUrl, {
                                         prompt: img.prompt,
                                         modelUsed: img.modelUsed,
-                                        angle: img.angle,
-                                        s3Key: img.s3Key
+                                        angle: img.angle, // For character headshot angle
+                                        s3Key: img.s3Key // S3 key for file management
                                     });
                                 }
                             }
