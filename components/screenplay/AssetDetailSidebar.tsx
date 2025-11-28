@@ -581,9 +581,14 @@ export default function AssetDetailSidebar({
                 )}
                 
                 {(!asset || !asset.images || asset.images.length === 0) && pendingImages.length === 0 && (
-                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
-                    Add images to visualize this asset (2-10 required for 3D export)
-                  </p>
+                  <div className="text-xs text-center space-y-1" style={{ color: '#6B7280' }}>
+                    <p>Add images to visualize this asset</p>
+                    <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                      • Scene generation: 1+ image (more = better consistency)
+                      <br />
+                      • 3D export: 2-10 images required (5-8 recommended for best quality)
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
