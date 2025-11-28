@@ -1,8 +1,11 @@
 /**
  * Fountain Tagging System
  * 
- * Parses and injects @location, @characters, and @props tags into Fountain screenplay files
+ * Parses and injects @location and @characters tags into Fountain screenplay files
  * Tags are invisible in PDF but maintain relationships in relationships.json
+ * 
+ * Note: @props: tags are NOT injected into Fountain (not part of Fountain standard)
+ * Asset-scene relationships are stored in database only (Scene.fountain.tags.props)
  */
 
 import type { Scene, Character, Location, Relationships } from '@/types/screenplay';
@@ -84,15 +87,8 @@ export function extractTags(fountainContent: string): SceneTags[] {
             }
         }
         
-        // Extract @props tag (comma-separated asset UUIDs)
-        const propsMatch = line.match(/@props:\s*([a-f0-9-,\s]+)/i);
-        if (propsMatch && currentScene) {
-            const propIds = propsMatch[1]
-                .split(',')
-                .map(id => id.trim())
-                .filter(id => id.length > 0);
-            currentScene.props = propIds;
-        }
+        // Note: @props: tags are NOT extracted from Fountain (not part of Fountain standard)
+        // Asset-scene relationships are stored in database only, not in Fountain content
     }
     
     // Save last scene
@@ -111,7 +107,7 @@ export function extractTags(fountainContent: string): SceneTags[] {
  * @param scene Scene to inject tags for
  * @param characters Characters appearing in scene
  * @param location Location of scene
- * @param assets Assets (props) appearing in scene
+ * @param assets Assets (props) - DEPRECATED: Not injected into Fountain (not part of standard)
  * @returns Updated Fountain content
  */
 export function injectTags(
@@ -119,7 +115,7 @@ export function injectTags(
     scene: Scene,
     characters: Character[],
     location?: Location,
-    assets?: Asset[]
+    assets?: Asset[] // DEPRECATED: Kept for backward compatibility, not used
 ): string {
     const lines = fountainContent.split('\n');
     let result: string[] = [];
@@ -143,10 +139,8 @@ export function injectTags(
                     const charIds = characters.map(c => c.id).join(', ');
                     result.push(`@characters: ${charIds}`);
                 }
-                if (assets && assets.length > 0) {
-                    const assetIds = assets.map(a => a.id).join(', ');
-                    result.push(`@props: ${assetIds}`);
-                }
+                // Note: @props: tags are NOT injected (not part of Fountain standard)
+                // Asset-scene relationships are stored in database only
                 tagsInjected = true;
             }
             continue;
@@ -156,8 +150,8 @@ export function injectTags(
         if (inTargetScene && (
             line.match(/@location:/) ||
             line.match(/@characters:/) ||
-            line.match(/@character:/) ||
-            line.match(/@props:/)
+            line.match(/@character:/)
+            // Note: @props: tags are NOT removed (if they exist, they're ignored)
         )) {
             continue; // Remove old tags
         }
@@ -181,7 +175,7 @@ export function injectTags(
  * @param characters All characters
  * @param locations All locations
  * @param relationships Relationships data
- * @param assets All assets (props) - optional
+ * @param assets All assets (props) - DEPRECATED: Not injected into Fountain (not part of standard)
  * @returns Updated Fountain content
  */
 export function updateScriptTags(
@@ -190,7 +184,7 @@ export function updateScriptTags(
     characters: Character[],
     locations: Location[],
     relationships: Relationships,
-    assets?: Asset[]
+    assets?: Asset[] // DEPRECATED: Kept for backward compatibility, not used
 ): string {
     let updatedContent = content;
     
@@ -209,20 +203,17 @@ export function updateScriptTags(
             ? locations.find(l => l.id === sceneRelations.location)
             : undefined;
         
-        // Get assets (props) for this scene
-        const sceneAssets = sceneRelations.props && assets
-            ? sceneRelations.props
-                .map((propId: string) => assets.find((a: Asset) => a.id === propId))
-                .filter((a): a is Asset => a !== undefined)
-            : undefined;
+        // Note: Assets (props) are NOT injected into Fountain (not part of Fountain standard)
+        // Asset-scene relationships are stored in database only (Scene.fountain.tags.props)
+        // Scene Analyzer reads from database relationships, not Fountain tags
         
-        // Inject tags
+        // Inject tags (characters and location only)
         updatedContent = injectTags(
             updatedContent,
             scene,
             sceneCharacters,
-            sceneLocation,
-            sceneAssets
+            sceneLocation
+            // assets parameter removed - not injected into Fountain
         );
     }
     
@@ -239,7 +230,8 @@ export function updateScriptTags(
 export function removeTags(fountainContent: string): string {
     return fountainContent
         .split('\n')
-        .filter(line => !line.match(/@(location|characters?|props|scene):/))
+        .filter(line => !line.match(/@(location|characters?|scene):/))
+        // Note: @props: tags are not removed (if they exist, they're ignored)
         .join('\n');
 }
 
