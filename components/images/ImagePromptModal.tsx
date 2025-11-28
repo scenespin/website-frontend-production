@@ -7,13 +7,15 @@ import { useImageGenerator } from '@/hooks/useAgentCall';
 interface ImagePromptModalProps {
     isOpen: boolean;
     onClose: () => void;
-    entityType: 'character' | 'location';
+    entityType: 'character' | 'location' | 'asset';
     entityData: {
         name: string;
         description?: string;
-        type?: string; // For character: 'lead' | 'supporting' | 'minor', for location: 'INT' | 'EXT' | 'INT/EXT'
+        type?: string; // For character: 'lead' | 'supporting' | 'minor', for location: 'INT' | 'EXT' | 'INT/EXT', for asset: category
         arcNotes?: string; // For characters
         atmosphereNotes?: string; // For locations
+        category?: string; // For assets: 'prop' | 'vehicle' | 'furniture' | 'other'
+        tags?: string[]; // For assets
     };
     onImageGenerated: (imageUrl: string, prompt: string, modelUsed: string) => void;
 }
@@ -43,7 +45,7 @@ export function ImagePromptModal({
     }, [isOpen, entityType, entityData]);
 
     const buildPromptFromEntityData = (
-        type: 'character' | 'location',
+        type: 'character' | 'location' | 'asset',
         data: ImagePromptModalProps['entityData']
     ): string => {
         if (type === 'character') {
@@ -74,7 +76,7 @@ export function ImagePromptModal({
             parts.push('Professional character portrait, cinematic lighting, high quality, photorealistic');
             
             return parts.join('. ') + '.';
-        } else {
+        } else if (type === 'location') {
             // Location
             const parts: string[] = [];
             
@@ -98,6 +100,32 @@ export function ImagePromptModal({
             
             // Add quality/style instructions
             parts.push('Professional location photo, cinematic composition, high quality, photorealistic');
+            
+            return parts.join('. ') + '.';
+        } else {
+            // Asset
+            const parts: string[] = [];
+            
+            // Name and category
+            if (data.name) {
+                parts.push(data.name);
+            }
+            if (data.category) {
+                parts.push(`${data.category} asset`);
+            }
+            
+            // Description
+            if (data.description) {
+                parts.push(data.description);
+            }
+            
+            // Tags (if available)
+            if (data.tags && data.tags.length > 0) {
+                parts.push(`Tags: ${data.tags.join(', ')}`);
+            }
+            
+            // Add quality/style instructions
+            parts.push('Professional product photo, cinematic lighting, high quality, photorealistic');
             
             return parts.join('. ') + '.';
         }
@@ -138,7 +166,7 @@ export function ImagePromptModal({
                 <div className="px-6 py-4 border-b border-base-content/20 flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-semibold text-base-content">
-                            Generate {entityType === 'character' ? 'Character' : 'Location'} Image
+                            Generate {entityType === 'character' ? 'Character' : entityType === 'location' ? 'Location' : 'Asset'} Image
                         </h2>
                         <p className="text-sm text-base-content/60 mt-1">
                             AI will generate an image based on {entityData.name || 'this ' + entityType}
