@@ -1,0 +1,172 @@
+﻿2025-11-11T00:28:57.435000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:04.211000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:09.016000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:09.136000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:09.205000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:10.868000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:10.893000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:11.116000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:13.537000+00:00 ecs/api-backend/53209f7561104ccf93f54a190e347a2e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:27.434000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:34.210000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:39.038000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:39.163000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:39.208000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:40.869000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:40.895000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:41.118000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:43.521000+00:00 ecs/api-backend/53209f7561104ccf93f54a190e347a2e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:29:57.435000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:04.211000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:09.065000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:09.193000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:09.237000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:10.870000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:10.898000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:11.120000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:13.544000+00:00 ecs/api-backend/53209f7561104ccf93f54a190e347a2e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:27.434000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:34.211000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:39.072000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:39.221000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:39.252000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:40.877000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:40.900000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:41.122000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:43.521000+00:00 ecs/api-backend/53209f7561104ccf93f54a190e347a2e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:30:57.435000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:04.210000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:09.076000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:09.223000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:09.276000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:10.875000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:10.923000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:11.125000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:13.520000+00:00 ecs/api-backend/53209f7561104ccf93f54a190e347a2e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:27.452000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:34.209000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:39.086000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:39.250000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:39.300000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:40.877000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:40.903000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:41.127000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:31:57.435000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:04.212000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:09.112000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:09.280000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:09.328000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:10.879000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:10.907000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:11.129000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:27.440000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:34.227000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:39.142000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:39.293000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:39.352000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:40.882000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:40.909000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:41.132000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:32:57.434000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:04.210000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:09.164000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:09.305000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:09.381000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:10.885000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:10.911000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:11.134000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:27.439000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:34.211000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:39.186000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:39.331000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:39.411000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:40.886000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:40.915000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:41.136000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:33:57.434000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:04.211000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:09.219000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:09.359000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:09.436000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:10.207000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.207000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:10.207000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.208000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:10.208000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.209000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:10.209000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.209000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:10.209000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.210000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.210000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:9efe781548a7768c
+2025-11-11T00:34:10.211000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: credits:user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:10.893000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:10.917000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:11.139000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:27.451000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:34.211000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:39.242000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:39.375000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:39.465000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:40.893000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:40.922000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:41.142000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:52.093000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.094000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.100000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: credits:user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.636000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.637000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.637000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.638000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.638000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.638000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.639000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:52.639000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:52.639000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:57.435000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Server:Health] DynamoDB connectivity check succeeded
+2025-11-11T00:34:58.652000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.653000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.653000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.653000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.653000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.654000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.654000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.655000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.655000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.655000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.656000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.656000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.657000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.798000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.799000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.799000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.799000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.799000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.800000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.800000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.801000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:34:58.801000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.801000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.802000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.802000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:34:58.803000+00:00 ecs/api-backend/2f35eb3ee1ff46e99fe80301a422df6e [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.629000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.630000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:35:01.630000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.631000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:35:01.631000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.631000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:35:01.631000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.632000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [ApiRoutes:Auth] Authenticated user: user_3545Ycy3iNFJ50UmZhHSYw3K8cU
+2025-11-11T00:35:01.632000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.633000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a
+2025-11-11T00:35:01.633000+00:00 ecs/api-backend/726e7122cf4447418db0901abb97a5c9 [Cache] Redis unavailable, fetching directly: jwt:40b7359811a9b58a

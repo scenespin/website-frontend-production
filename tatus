@@ -1,0 +1,26 @@
+[33mcommit 30be1c59bb4debe3c7362cb3858ccff76341d6a7[m
+Author: GardenSC <jeffrey.posner@gmail.com>
+Date:   Fri Nov 21 20:36:28 2025 -0500
+
+    Feature 0130: Rename all projectId to screenplayId for consistency
+    
+    - Renamed all projectId/project_id variables to screenplayId/screenplay_id
+    - Updated EditorSubNav to use screenplayId prop and ScreenplayContext fallback
+    - Updated EditorContext: renamed ProjectIdReader to ScreenplayIdReader
+    - Updated all editor pages (write, characters, locations) to use screenplayId
+    - Updated dashboard to use screenplayId for state variables and function parameters
+    - Updated Navigation.js to use screenplay_id instead of project_id
+    - URL query parameter name stays as 'project' for backward compatibility
+    - All internal variable names now consistently use screenplayId
+    - Removed 'default' fallback from characters/locations pages
+    - Added validation to reject 'default' and 'proj_' IDs in EditorSubNav
+
+ app/characters/page.js                |  6 [32m++[m[31m--[m
+ app/dashboard/page.js                 | 64 [32m+++++++++++++++++[m[31m----------------[m
+ app/locations/page.js                 |  6 [32m++[m[31m--[m
+ app/write/page.js                     |  5 [32m+[m[31m--[m
+ components/Navigation.js              |  9 [32m+++[m[31m--[m
+ components/editor/EditorSubNav.tsx    | 39 [32m+++++++++++++++[m[31m-----[m
+ components/editor/EditorWorkspace.tsx |  9 [32m++[m[31m---[m
+ contexts/EditorContext.tsx            | 67 [32m++++++++++++++++++[m[31m-----------------[m
+ 8 files changed, 122 insertions(+), 83 deletions(-)

@@ -122,16 +122,16 @@ export default function AssetDetailSidebar({
     // Support multiple files - process all selected files
     const fileArray = Array.from(files);
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
-      return;
+    // Validate all files
+    for (const file of fileArray) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image file`);
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+        return;
+      }
     }
 
     if (!screenplayId) {
@@ -140,124 +140,138 @@ export default function AssetDetailSidebar({
     }
 
     setUploading(true);
+    const uploadedImages: Array<{ imageUrl: string; s3Key: string }> = [];
+    
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      // Step 1: Get presigned POST URL for S3 upload
-      const presignedResponse = await fetch(
-        `/api/video/upload/get-presigned-url?` + 
-        `fileName=${encodeURIComponent(file.name)}` +
-        `&fileType=${encodeURIComponent(file.type)}` +
-        `&fileSize=${file.size}` +
-        `&screenplayId=${encodeURIComponent(screenplayId)}` +
-        `&projectId=${encodeURIComponent(screenplayId)}`, // Keep for backward compatibility
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+      // Upload all files to S3
+      for (const file of fileArray) {
+        // Step 1: Get presigned POST URL for S3 upload
+        const presignedResponse = await fetch(
+          `/api/video/upload/get-presigned-url?` + 
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&screenplayId=${encodeURIComponent(screenplayId)}` +
+          `&projectId=${encodeURIComponent(screenplayId)}`, // Keep for backward compatibility
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
+        );
 
-      if (!presignedResponse.ok) {
-        if (presignedResponse.status === 413) {
-          throw new Error(`File too large. Maximum size is 10MB.`);
-        } else if (presignedResponse.status === 401) {
-          throw new Error('Please sign in to upload files.');
-        } else {
-          const errorData = await presignedResponse.json();
-          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
-        }
-      }
-
-      const { url, fields, s3Key } = await presignedResponse.json();
-      
-      if (!url || !fields || !s3Key) {
-        throw new Error('Invalid response from server');
-      }
-
-      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-      const formData = new FormData();
-      
-      Object.entries(fields).forEach(([key, value]) => {
-        // Skip 'bucket' field - it's only used in the policy, not in FormData
-        if (key.toLowerCase() !== 'bucket') {
-          formData.append(key, value as string);
-        }
-      });
-      
-      // Add the file last (must be last field in FormData per AWS requirements)
-      formData.append('file', file);
-      
-      // Use XMLHttpRequest for progress tracking
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            // Progress tracking (optional, can be enhanced with UI)
-          }
-        });
-        
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
+        if (!presignedResponse.ok) {
+          if (presignedResponse.status === 413) {
+            throw new Error(`${file.name} is too large. Maximum size is 10MB.`);
+          } else if (presignedResponse.status === 401) {
+            throw new Error('Please sign in to upload files.');
           } else {
-            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
-          }
-        });
-        
-        xhr.addEventListener('error', () => {
-          reject(new Error('S3 upload failed: Network error'));
-        });
-        
-        xhr.open('POST', url);
-        xhr.send(formData);
-      });
-
-      // Step 3: Get presigned download URL for StorageDecisionModal (bucket is private)
-      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-      
-      let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
-      try {
-        const downloadResponse = await fetch('/api/s3/download-url', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            s3Key: s3Key,
-            expiresIn: 3600 // 1 hour
-          }),
-        });
-        
-        if (downloadResponse.ok) {
-          const downloadData = await downloadResponse.json();
-          if (downloadData.downloadUrl) {
-            downloadUrl = downloadData.downloadUrl;
+            const errorData = await presignedResponse.json();
+            throw new Error(errorData.error || `Failed to get upload URL for ${file.name}: ${presignedResponse.status}`);
           }
         }
-      } catch (error) {
-        console.warn('[AssetDetailSidebar] Failed to get presigned download URL, using direct S3 URL:', error);
+
+        const { url, fields, s3Key } = await presignedResponse.json();
+        
+        if (!url || !fields || !s3Key) {
+          throw new Error('Invalid response from server');
+        }
+
+        // Step 2: Upload directly to S3 using FormData POST (presigned POST)
+        const formData = new FormData();
+        
+        Object.entries(fields).forEach(([key, value]) => {
+          // Skip 'bucket' field - it's only used in the policy, not in FormData
+          if (key.toLowerCase() !== 'bucket') {
+            formData.append(key, value as string);
+          }
+        });
+        
+        // Add the file last (must be last field in FormData per AWS requirements)
+        formData.append('file', file);
+        
+        // Use XMLHttpRequest for progress tracking
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              // Progress tracking (optional, can be enhanced with UI)
+            }
+          });
+          
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+            }
+          });
+          
+          xhr.addEventListener('error', () => {
+            reject(new Error('S3 upload failed: Network error'));
+          });
+          
+          xhr.open('POST', url);
+          xhr.send(formData);
+        });
+
+        // Step 3: Get presigned download URL for StorageDecisionModal (bucket is private)
+        const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+        const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+        const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+        
+        let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
+        try {
+          const downloadResponse = await fetch('/api/s3/download-url', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600 // 1 hour
+            }),
+          });
+          
+          if (downloadResponse.ok) {
+            const downloadData = await downloadResponse.json();
+            if (downloadData.downloadUrl) {
+              downloadUrl = downloadData.downloadUrl;
+            }
+          }
+        } catch (error) {
+          console.warn('[AssetDetailSidebar] Failed to get presigned download URL, using direct S3 URL:', error);
+        }
+
+        // Store uploaded image info
+        uploadedImages.push({
+          imageUrl: downloadUrl,
+          s3Key: s3Key
+        });
       }
 
+      // After all files uploaded, update asset or store pending images
       if (asset) {
-        // Existing asset - register image with asset bank API
+        // Existing asset - register all images with asset bank API
         try {
-          // Register the image with the asset
+          const newImageObjects = uploadedImages.map(img => ({
+            id: `img_${Date.now()}_${Math.random()}`,
+            url: img.imageUrl,
+            s3Key: img.s3Key,
+            uploadedAt: new Date().toISOString()
+          }));
+
+          // Register all images with the asset
           await api.assetBank.update(asset.id, {
             images: [
               ...(asset.images || []),
-              {
-                id: `img_${Date.now()}`,
-                url: downloadUrl,
-                s3Key: s3Key,
-                uploadedAt: new Date().toISOString()
-              }
+              ...newImageObjects
             ]
           });
           
@@ -265,27 +279,28 @@ export default function AssetDetailSidebar({
           const updatedAsset = await api.assetBank.get(asset.id);
           setFormData(updatedAsset);
           
-          toast.success('Image uploaded successfully');
+          toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
         } catch (error: any) {
-          toast.error(`Failed to register image: ${error.message}`);
+          toast.error(`Failed to register images: ${error.message}`);
         }
       } else if (isCreating) {
         // New asset - store temporarily with s3Key, will be uploaded after asset creation
-        setPendingImages(prev => [...prev, { 
-          imageUrl: downloadUrl, 
-          s3Key: s3Key 
-        }]);
-        toast.success('Image ready - will be added when asset is created');
+        setPendingImages(prev => [...prev, ...uploadedImages]);
+        toast.success(`${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''} ready - will be added when asset is created`);
       }
 
-      // Step 4: Show StorageDecisionModal
-      setSelectedAsset({
-        url: downloadUrl,
-        s3Key: s3Key,
-        name: file.name,
-        type: 'image'
-      });
-      setShowStorageModal(true);
+      // Step 4: Show StorageDecisionModal for all uploaded images
+      // Show modal once after all uploads complete - user can choose storage location
+      if (uploadedImages.length > 0) {
+        // For now, show modal for first image (can be enhanced to batch all images)
+        setSelectedAsset({
+          url: uploadedImages[0].imageUrl,
+          s3Key: uploadedImages[0].s3Key,
+          name: fileArray[0].name,
+          type: 'image'
+        });
+        setShowStorageModal(true);
+      }
 
     } catch (error: any) {
       console.error('[AssetDetailSidebar] Upload error:', error);
