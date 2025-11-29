@@ -35,6 +35,11 @@ export default function AssetDetailSidebar({
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
   const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset } = useScreenplay()
+  // 🔥 FIX: Use ref to track latest assets to avoid stale closures in async functions
+  const assetsRef = useRef(assets);
+  useEffect(() => {
+    assetsRef.current = assets;
+  }, [assets]);
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   
@@ -136,14 +141,19 @@ export default function AssetDetailSidebar({
       // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
       const syncAsset = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
-        const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+        // 🔥 FIX: Use ref to get latest assets to avoid stale closures
+        const updatedAssetFromContext = assetsRef.current.find(a => a.id === asset.id);
         if (updatedAssetFromContext) {
+          console.log('[AssetDetailSidebar] 📸 Syncing from context after modal close:', {
+            imageCount: updatedAssetFromContext.images?.length || 0,
+            imageUrls: updatedAssetFromContext.images?.map(img => img.url) || []
+          });
           setFormData({ ...updatedAssetFromContext });
         }
       };
       syncAsset();
     }
-  }, [showStorageModal, asset?.id, assets])
+  }, [showStorageModal, asset?.id]) // Remove assets from deps, use ref instead
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -331,8 +341,15 @@ export default function AssetDetailSidebar({
             // Note: angle can be added later if needed
           }));
 
-          // 🔥 FIX: Get latest asset from context (not prop) to ensure we have current images
-          const currentAsset = assets.find(a => a.id === asset.id) || asset;
+          // 🔥 FIX: Get latest asset from context (using ref to avoid stale closures) to ensure we have current images
+          const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
+          
+          // 🔥 DEBUG: Log current state before update
+          console.log('[AssetDetailSidebar] 📸 Uploading images:', {
+            currentImageCount: currentAsset.images?.length || 0,
+            newImageCount: newImageObjects.length,
+            totalAfterUpdate: (currentAsset.images?.length || 0) + newImageObjects.length
+          });
           
           // 🔥 FIX: Optimistic UI update - add images immediately
           const updatedImages = [
@@ -350,10 +367,17 @@ export default function AssetDetailSidebar({
           });
           
           // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
+          // Use ref to get latest assets after update
           await new Promise(resolve => setTimeout(resolve, 500));
-          const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+          const updatedAssetFromContext = assetsRef.current.find(a => a.id === asset.id);
           if (updatedAssetFromContext) {
+            console.log('[AssetDetailSidebar] 📸 Syncing from context after upload:', {
+              imageCount: updatedAssetFromContext.images?.length || 0,
+              imageUrls: updatedAssetFromContext.images?.map(img => img.url) || []
+            });
             setFormData({ ...updatedAssetFromContext });
+          } else {
+            console.warn('[AssetDetailSidebar] ⚠️ Asset not found in context after upload:', asset.id);
           }
           
           toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);

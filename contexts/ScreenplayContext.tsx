@@ -2351,10 +2351,24 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updatedAssetImageUrls: updatedAsset?.images?.map(img => img.url) || []
                 });
                 
-                // 🔥 FIX: If response doesn't have images, refetch the asset to get complete data
-                // This ensures we have the latest images from DynamoDB
+                // 🔥 FIX: Always refetch after image updates to ensure we have complete data from DynamoDB
+                // This handles DynamoDB eventual consistency issues where the response might not include all images
                 let finalAsset = updatedAsset;
-                if (!updatedAsset.images || updatedAsset.images.length === 0) {
+                const wasImageUpdate = updates.images !== undefined;
+                if (wasImageUpdate) {
+                    // Image update - always refetch to ensure we have all images (handles eventual consistency)
+                    console.log('[ScreenplayContext] 📸 Image update detected, refetching asset to ensure complete data...');
+                    try {
+                        // Small delay to allow DynamoDB to be consistent
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        const refetched = await api.assetBank.get(id);
+                        finalAsset = refetched.asset || refetched;
+                        console.log('[ScreenplayContext] ✅ Refetched asset with', finalAsset.images?.length || 0, 'images after image update');
+                    } catch (refetchError) {
+                        console.warn('[ScreenplayContext] Failed to refetch asset after image update, using response:', refetchError);
+                    }
+                } else if (!updatedAsset.images || updatedAsset.images.length === 0) {
+                    // Non-image update but response missing images - refetch
                     console.log('[ScreenplayContext] ⚠️ Response missing images, refetching asset...');
                     try {
                         const refetched = await api.assetBank.get(id);
