@@ -95,10 +95,38 @@ export default function AssetDetailSidebar({
         });
         prevAssetIdRef.current = undefined;
       }
+    } else if (asset?.id && asset.id === prevAssetIdRef.current) {
+      // Same asset ID but asset object might have changed (e.g., images updated)
+      // Only update if images actually changed to avoid overwriting user input
+      const currentImages = (formData.images || []).map(img => img.url).sort().join(',');
+      const assetImages = (asset.images || []).map(img => img.url).sort().join(',');
+      if (currentImages !== assetImages) {
+        // Asset prop has newer images - update formData
+        setFormData({ ...asset });
+      }
     }
     // Note: Don't reset formData when isCreating or initialData changes - preserve user input!
     // Only reset when asset.id actually changes (switching between assets or modes)
-  }, [asset?.id]) // Only depend on asset.id - ignore initialData and isCreating changes
+  }, [asset, asset?.id, asset?.images]) // Watch full asset object and images to catch updates
+
+  // 🔥 FIX: Sync formData when asset in context changes (for immediate UI updates)
+  // This ensures the modal reflects changes immediately when images are added/removed
+  // Only sync if the asset prop is stale (not matching context)
+  useEffect(() => {
+    if (asset?.id) {
+      const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+      if (updatedAssetFromContext) {
+        // Only update if the asset from context is different from the prop
+        // This handles the case where selectedAsset in AssetBoard is stale
+        const assetImages = (asset.images || []).map(img => img.url).sort().join(',');
+        const contextImages = (updatedAssetFromContext.images || []).map(img => img.url).sort().join(',');
+        if (assetImages !== contextImages) {
+          // Context has newer data - update formData
+          setFormData({ ...updatedAssetFromContext });
+        }
+      }
+    }
+  }, [assets, asset?.id, asset?.images]) // Watch assets array, asset.id, and asset.images
 
   // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest asset data, including newly uploaded images
@@ -110,7 +138,7 @@ export default function AssetDetailSidebar({
         await new Promise(resolve => setTimeout(resolve, 500));
         const updatedAssetFromContext = assets.find(a => a.id === asset.id);
         if (updatedAssetFromContext) {
-          setFormData(updatedAssetFromContext);
+          setFormData({ ...updatedAssetFromContext });
         }
       };
       syncAsset();

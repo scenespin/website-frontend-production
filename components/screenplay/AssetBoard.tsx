@@ -46,6 +46,16 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     const [isEditing, setIsEditing] = useState(false);
     const [selectedColumnCategory, setSelectedColumnCategory] = useState<AssetCategory | null>(null);
     
+    // 🔥 FIX: Sync selectedAsset with latest asset from context (for immediate UI updates)
+    useEffect(() => {
+        if (selectedAsset?.id) {
+            const updatedAsset = assets.find(a => a.id === selectedAsset.id);
+            if (updatedAsset) {
+                setSelectedAsset(updatedAsset);
+            }
+        }
+    }, [assets, selectedAsset?.id])
+    
     // Delete confirmation state
     const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
     
