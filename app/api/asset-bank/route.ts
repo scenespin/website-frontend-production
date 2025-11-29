@@ -54,10 +54,12 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('[Asset Bank Proxy] ✅ Success - asset created');
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error('[Asset Bank] API error:', error);
+    console.error('[Asset Bank Proxy] ❌ POST API error:', error);
+    console.error('[Asset Bank Proxy] Error stack:', error.stack);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
@@ -67,9 +69,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Asset Bank Proxy] POST request received');
+    
     // Verify user is authenticated with Clerk and get backend token
     const { userId, getToken } = await auth();
+    console.log('[Asset Bank Proxy] Auth check - userId:', userId ? 'present' : 'missing');
+    
     if (!userId) {
+      console.error('[Asset Bank Proxy] ❌ No userId - user not authenticated');
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
@@ -77,7 +84,10 @@ export async function POST(request: NextRequest) {
     }
 
     const token = await getToken({ template: 'wryda-backend' });
+    console.log('[Asset Bank Proxy] Token check - token:', token ? `present (${token.length} chars)` : 'missing');
+    
     if (!token) {
+      console.error('[Asset Bank Proxy] ❌ No token - could not generate backend token');
       return NextResponse.json(
         { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
@@ -86,9 +96,15 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
+    console.log('[Asset Bank Proxy] Request body:', { 
+      hasName: !!body.name, 
+      hasCategory: !!body.category,
+      hasScreenplayId: !!body.screenplayId 
+    });
 
     // Forward request to backend
     const url = `${BACKEND_API_URL}/api/asset-bank`;
+    console.log('[Asset Bank Proxy] Forwarding to backend:', url);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -99,9 +115,11 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
+    console.log('[Asset Bank Proxy] Backend response status:', response.status);
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Backend error' }));
-      console.error('[Asset Bank] Backend error:', error);
+      console.error('[Asset Bank Proxy] ❌ Backend error:', error);
       return NextResponse.json(
         error,
         { status: response.status }
@@ -109,6 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('[Asset Bank Proxy] ✅ Success - asset created');
     return NextResponse.json(data);
 
   } catch (error: any) {
