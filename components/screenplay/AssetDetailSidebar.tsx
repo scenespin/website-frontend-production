@@ -299,16 +299,20 @@ export default function AssetDetailSidebar({
             // Note: angle can be added later if needed
           }));
 
+          // 🔥 FIX: Get latest asset from context (not prop) to ensure we have current images
+          const currentAsset = assets.find(a => a.id === asset.id) || asset;
+          
           // Register all images with the asset via ScreenplayContext (updates both API and local state)
           await updateAsset(asset.id, {
             images: [
-              ...(asset.images || []),
+              ...(currentAsset.images || []),
               ...newImageObjects
             ]
           });
           
           // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
-          // Get updated asset from context to ensure UI reflects the new images
+          // Wait a bit for DynamoDB consistency, then get updated asset from context
+          await new Promise(resolve => setTimeout(resolve, 500));
           const updatedAssetFromContext = assets.find(a => a.id === asset.id);
           if (updatedAssetFromContext) {
             setFormData({ ...updatedAssetFromContext });
@@ -797,11 +801,14 @@ export default function AssetDetailSidebar({
                     console.warn('Failed to get presigned download URL:', error);
                   }
 
+                  // 🔥 FIX: Get latest asset from context (not prop) to ensure we have current images
+                  const currentAsset = assets.find(a => a.id === asset.id) || asset;
+                  
                   // Register with asset via ScreenplayContext (updates both API and local state)
                   // AssetImage only has: url, angle?, uploadedAt (no id or s3Key)
                   await updateAsset(asset.id, {
                     images: [
-                      ...(asset.images || []),
+                      ...(currentAsset.images || []),
                       {
                         url: downloadUrl,
                         uploadedAt: new Date().toISOString()
@@ -810,7 +817,8 @@ export default function AssetDetailSidebar({
                   });
                   
                   // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
-                  // Get updated asset from context to ensure UI reflects the new image
+                  // Wait a bit for DynamoDB consistency, then get updated asset from context
+                  await new Promise(resolve => setTimeout(resolve, 500));
                   const updatedAssetFromContext = assets.find(a => a.id === asset.id);
                   if (updatedAssetFromContext) {
                     setFormData({ ...updatedAssetFromContext });

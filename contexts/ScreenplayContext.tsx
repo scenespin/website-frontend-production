@@ -2056,8 +2056,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updatedAssetImageUrls: updatedAsset?.images?.map(img => img.url) || []
                 });
                 
-                // Sync with API response
-                setAssets(prev => prev.map(a => a.id === id ? updatedAsset : a));
+                // 🔥 FIX: If response doesn't have images, refetch the asset to get complete data
+                // This ensures we have the latest images from DynamoDB
+                let finalAsset = updatedAsset;
+                if (!updatedAsset.images || updatedAsset.images.length === 0) {
+                    console.log('[ScreenplayContext] ⚠️ Response missing images, refetching asset...');
+                    try {
+                        const refetched = await api.assetBank.get(id);
+                        finalAsset = refetched.asset || refetched;
+                        console.log('[ScreenplayContext] ✅ Refetched asset with', finalAsset.images?.length || 0, 'images');
+                    } catch (refetchError) {
+                        console.warn('[ScreenplayContext] Failed to refetch asset, using response:', refetchError);
+                    }
+                }
+                
+                // Sync with API response (or refetched asset)
+                setAssets(prev => prev.map(a => a.id === id ? finalAsset : a));
                 console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
             } catch (error) {
                 // Rollback on error
