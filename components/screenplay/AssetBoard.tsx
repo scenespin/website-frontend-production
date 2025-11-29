@@ -378,17 +378,18 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                     }
                                                 }
                                                 
-                                                // 🔥 FIX: Use updateAsset from ScreenplayContext to ensure state sync
-                                                // Register all images at once if we have s3Keys
+                                                // 🔥 FIX: Use the real asset ID directly from createAsset return value
+                                                // Don't look it up in state - the state replacement is asynchronous
+                                                // newAsset is the real asset from DynamoDB with the correct ID
                                                 if (imageEntries.length > 0) {
-                                                    // Get current asset from context (should have the newly created asset)
-                                                    const currentAsset = assets.find(a => a.id === newAsset.id) || newAsset;
+                                                    console.log('[AssetBoard] 📸 Registering', imageEntries.length, 'images with asset:', newAsset.id);
                                                     await updateAsset(newAsset.id, {
                                                         images: [
-                                                            ...(currentAsset.images || []),
+                                                            ...(newAsset.images || []), // Use images from the real asset returned by createAsset
                                                             ...imageEntries
                                                         ]
                                                     });
+                                                    console.log('[AssetBoard] ✅ Images registered successfully');
                                                 }
                                             }
                                             
