@@ -1060,17 +1060,43 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         // Start with filtered API assets (source of truth, minus deleted ones)
                         const merged = [...filteredApiAssets];
                         
+                        // 🔥 CRITICAL FIX: Also merge with current state (prev) to preserve updated images
+                        // When images are uploaded/deleted, the asset's updatedAt is updated in the current state
+                        // But the API might return stale data due to eventual consistency
+                        // We need to compare and preserve the newer version (which has the updated images)
+                        const currentStateAssets = prev.filter(a => {
+                            // Only include assets that aren't deleted
+                            if (deletedAssetIdsRef.current.has(a.id)) {
+                                return false;
+                            }
+                            // Only include assets that have been updated recently (within last 5 minutes)
+                            // This ensures we preserve recent image updates even if API is stale
+                            const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                            const now = Date.now();
+                            const age = now - updatedAt;
+                            return age < 300000; // 5 minutes - same window as optimistic assets
+                        });
+                        
+                        // Add current state assets to merged list (will be deduplicated below)
+                        for (const currentAsset of currentStateAssets) {
+                            const alreadyInMerged = merged.some(a => a.id === currentAsset.id);
+                            if (!alreadyInMerged) {
+                                merged.push(currentAsset);
+                                console.log('[ScreenplayContext] 🔄 Adding current state asset to merge:', currentAsset.id, 'images:', currentAsset.images?.length || 0);
+                            }
+                        }
+                        
                         // Add optimistic assets that aren't in API yet
                         // 🔥 FIX: Only add optimistic assets that are NOT already in the API response
                         // This ensures API data (with images) takes precedence over optimistic data (without images)
                         for (const optimistic of uniqueOptimistic) {
-                            // Check if this asset is already in the merged list (from API)
+                            // Check if this asset is already in the merged list (from API or current state)
                             const alreadyInMerged = merged.some(a => a.id === optimistic.id);
                             if (!alreadyInMerged) {
                                 merged.push(optimistic);
                                 console.log('[ScreenplayContext] 🔄 Keeping optimistic asset (eventual consistency):', optimistic.id, 'age:', Math.round((Date.now() - new Date(optimistic.createdAt).getTime()) / 1000), 's');
                             } else {
-                                console.log('[ScreenplayContext] ⏭️ Skipping optimistic asset (already in API):', optimistic.id);
+                                console.log('[ScreenplayContext] ⏭️ Skipping optimistic asset (already in API/state):', optimistic.id);
                             }
                         }
                         
@@ -1090,6 +1116,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                         
                         // Remove duplicates - prefer newer version (by updatedAt timestamp, then by image count)
+                        // 🔥 CRITICAL: This ensures that current state assets with updated images are preserved
+                        // even if the API returns stale data due to eventual consistency
                         const unique = merged.reduce((acc, asset) => {
                             const existing = acc.find(a => a.id === asset.id);
                             if (!existing) {
@@ -1104,7 +1132,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 
                                 // 🔥 FIX: Prefer the version with the newer updatedAt timestamp
                                 // If timestamps are equal (within 1 second), prefer the one with more images
-                                // This prevents stale API data from overwriting recent updates
+                                // This prevents stale API data from overwriting recent updates (including image updates)
                                 const timeDiff = assetUpdatedAt - existingUpdatedAt;
                                 const shouldReplace = timeDiff > 1000 || // Asset is more than 1 second newer
                                     (Math.abs(timeDiff) <= 1000 && assetImageCount > existingImageCount); // Same time but more images
@@ -1112,6 +1140,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 if (shouldReplace) {
                                     acc[index] = asset; // Replace with newer/better version
                                     console.log('[ScreenplayContext] 🔄 Replacing asset with newer/better version:', asset.id, {
+                                        source: asset === existing ? 'same' : (filteredApiAssets.some(a => a.id === asset.id) ? 'API' : 'currentState'),
                                         existingUpdatedAt: new Date(existingUpdatedAt).toISOString(),
                                         assetUpdatedAt: new Date(assetUpdatedAt).toISOString(),
                                         timeDiff: timeDiff,
@@ -1122,6 +1151,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 } else {
                                     // Keep existing version (it's newer or has more images)
                                     console.log('[ScreenplayContext] ⏭️ Keeping existing asset (newer or better):', asset.id, {
+                                        source: existing === asset ? 'same' : (filteredApiAssets.some(a => a.id === existing.id) ? 'API' : 'currentState'),
                                         existingUpdatedAt: new Date(existingUpdatedAt).toISOString(),
                                         assetUpdatedAt: new Date(assetUpdatedAt).toISOString(),
                                         timeDiff: timeDiff,
@@ -2423,26 +2453,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     return updated;
                 });
                 
-                // 🔥 FIX: Update sessionStorage if this asset is stored there (to preserve images on refresh)
+                // 🔥 FIX: Update sessionStorage to preserve images on refresh (for both new and existing assets)
+                // This ensures that if the API returns stale data due to eventual consistency, we can restore the updated images
                 if (screenplayId && typeof window !== 'undefined') {
                     try {
                         const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
-                        if (stored) {
-                            const optimisticAssets = JSON.parse(stored) as Asset[];
-                            const index = optimisticAssets.findIndex(a => a.id === id);
-                            if (index >= 0) {
-                                // Update the asset in sessionStorage with the latest data (including images)
-                                optimisticAssets[index] = finalAsset;
-                                const now = Date.now();
-                                const recent = optimisticAssets.filter(a => {
-                                    const createdAt = new Date(a.createdAt).getTime();
-                                    const age = now - createdAt;
-                                    return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
-                                });
-                                sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recent));
-                                console.log('[ScreenplayContext] 🔄 Updated asset in sessionStorage with images');
-                            }
+                        let optimisticAssets: Asset[] = stored ? JSON.parse(stored) : [];
+                        
+                        // Find or add the asset to sessionStorage
+                        const index = optimisticAssets.findIndex(a => a.id === id);
+                        if (index >= 0) {
+                            // Update existing asset in sessionStorage with the latest data (including images)
+                            optimisticAssets[index] = finalAsset;
+                            console.log('[ScreenplayContext] 🔄 Updated existing asset in sessionStorage with images:', id, 'imageCount:', finalAsset.images?.length || 0);
+                        } else {
+                            // Add asset to sessionStorage if it's not there (for recently updated assets)
+                            optimisticAssets.push(finalAsset);
+                            console.log('[ScreenplayContext] 🔄 Added updated asset to sessionStorage:', id, 'imageCount:', finalAsset.images?.length || 0);
                         }
+                        
+                        // Clean up old assets (older than 5 minutes)
+                        const now = Date.now();
+                        const recent = optimisticAssets.filter(a => {
+                            const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+                            const age = now - updatedAt;
+                            return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
+                        });
+                        sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recent));
                     } catch (e) {
                         console.warn('[ScreenplayContext] Failed to update asset in sessionStorage:', e);
                     }
