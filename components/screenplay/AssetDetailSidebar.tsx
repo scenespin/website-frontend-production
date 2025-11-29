@@ -394,37 +394,38 @@ export default function AssetDetailSidebar({
   const handleRemoveImage = async (index: number) => {
     if (!asset) return;
     
-    if (confirm('Remove this image from the asset?')) {
-      try {
-        // Get current asset from context to ensure we have latest images
-        const currentAsset = assets.find(a => a.id === asset.id) || asset;
-        const updatedImages = (currentAsset.images || []).filter((_, i) => i !== index);
-        
-        // 🔥 FIX: Optimistic UI update - remove image immediately
-        setFormData(prev => ({
-          ...prev,
-          images: updatedImages
-        }));
-        
-        // Update via API
-        await updateAsset(asset.id, { images: updatedImages });
-        
-        // Sync from context after update (with delay for DynamoDB consistency)
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const updatedAssetFromContext = assets.find(a => a.id === asset.id);
-        if (updatedAssetFromContext) {
-          setFormData({ ...updatedAssetFromContext });
-        }
-        
-        toast.success('Image removed');
-      } catch (error: any) {
-        // Rollback on error
-        setFormData(prev => ({
-          ...prev,
-          images: asset.images || []
-        }));
-        toast.error(`Failed to remove image: ${error.message}`);
+    // 🔥 FIX: ImageGallery already shows a confirm dialog, so we don't need another one
+    // Just proceed with the deletion
+    try {
+      // Get current asset from context to ensure we have latest images
+      const currentAsset = assets.find(a => a.id === asset.id) || asset;
+      const updatedImages = (currentAsset.images || []).filter((_, i) => i !== index);
+      
+      // 🔥 FIX: Optimistic UI update - remove image immediately
+      setFormData(prev => ({
+        ...prev,
+        images: updatedImages
+      }));
+      
+      // Update via API
+      await updateAsset(asset.id, { images: updatedImages });
+      
+      // Sync from context after update (with delay for DynamoDB consistency)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+      if (updatedAssetFromContext) {
+        setFormData({ ...updatedAssetFromContext });
       }
+      
+      // 🔥 FIX: Only show one toast notification (ImageGallery doesn't show one)
+      toast.success('Image removed');
+    } catch (error: any) {
+      // Rollback on error
+      setFormData(prev => ({
+        ...prev,
+        images: asset.images || []
+      }));
+      toast.error(`Failed to remove image: ${error.message}`);
     }
   }
 
