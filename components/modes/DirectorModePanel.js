@@ -407,9 +407,9 @@ export function DirectorModePanel({ editorContent, cursorPosition, onInsert }) {
         console.warn('[DirectorModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
       }
       
-      // 🔥 PHASE 4: Use JSON format for Director agent (structured output)
-      const useJSONFormat = true; // Always use JSON for Director agent
+      // 🔥 SIMPLIFIED: Make JSON optional - use when it works, but text cleaning is primary
       const modelSupportsNativeJSON = supportsNativeJSON(selectedModel);
+      const useJSONFormat = modelSupportsNativeJSON; // Only use JSON for models that support it well
       
       // Build Director prompt using prompt builder (includes context and full scene instructions)
       // Pass generation length to control output size and useJSON flag
@@ -571,18 +571,9 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 console.warn('[DirectorModePanel] ❌ JSON validation failed:', validation.errors);
                 console.warn('[DirectorModePanel] Raw JSON:', validation.rawJson);
                 
-                // Retry with more explicit instructions if we haven't retried yet
-                if (retryState.attempts < maxRetries) {
-                  retryState.attempts++;
-                  console.log('[DirectorModePanel] Retrying with more explicit JSON instructions... (attempt', retryState.attempts, 'of', maxRetries, ')');
-                  setStreaming(true, '');
-                  accumulatedText = '';
-                  await makeApiCall(true, validation.errors);
-                  return; // Don't continue with error handling
-                }
-                
-                // If retry failed or we've already retried, fall back to cleaning the raw response
-                console.warn('[DirectorModePanel] Falling back to cleaning raw response');
+                // 🔥 SIMPLIFIED: Don't retry JSON - just fall back to text cleaning immediately
+                // JSON is optional, text cleaning is the reliable primary path
+                console.warn('[DirectorModePanel] JSON validation failed, using text cleaning (primary path)...');
                 console.log('[DirectorModePanel] Full content length:', fullContent.length);
                 console.log('[DirectorModePanel] Full content preview:', fullContent.substring(0, 1000));
                 

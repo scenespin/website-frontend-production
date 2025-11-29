@@ -163,10 +163,16 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip revision headers
       }
       
-      // Skip markdown headers like "# REVISED SCENE" (must start with #, have space, then REVISED/REVISION)
+      // Skip markdown headers like "# REVISED SCENE" or "# Revised Scene" (must start with #, have space, then REVISED/REVISION)
       // This won't match character names like "REPORTER #1" because # is not at the start
-      if (/^#+\s+(REVISED|REVISION)/i.test(line)) {
+      if (/^#+\s+(REVISED|REVISION|Revised Scene)/i.test(line)) {
         continue; // Skip markdown headers
+      }
+      
+      // Skip lines that are just "FADE OUT" or "THE END" if we've already seen screenplay content
+      // (prevents duplicate endings)
+      if (foundFirstScreenplayContent && /^(FADE OUT|THE END|FADE TO BLACK)\.?\s*$/i.test(line)) {
+        continue; // Skip duplicate endings
       }
       
       // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
@@ -608,10 +614,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
       });
       
-      // 🔥 PHASE 4: Use JSON format for content requests (structured output)
-      // Check if model supports native JSON (for OpenAI models)
-      const useJSONFormat = isContentRequest; // Always use JSON for content requests
+      // 🔥 SIMPLIFIED: Make JSON optional - use when it works, but text cleaning is primary
+      // Only use JSON if model supports it well (OpenAI models)
       const modelSupportsNativeJSON = supportsNativeJSON(selectedModel);
+      const useJSONFormat = isContentRequest && modelSupportsNativeJSON; // Only use JSON for models that support it well
       
       // Build appropriate prompt using prompt builders
       builtPrompt = isContentRequest 
@@ -751,18 +757,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               console.warn('[ChatModePanel] Full content (first 1000 chars):', fullContent.substring(0, 1000));
               console.warn('[ChatModePanel] Full content length:', fullContent.length);
               
-              // Retry with more explicit instructions if we haven't retried yet
-              if (retryState.attempts < maxRetries) {
-                retryState.attempts++;
-                console.log('[ChatModePanel] Retrying with more explicit JSON instructions... (attempt', retryState.attempts, 'of', maxRetries, ')');
-                setStreaming(true, '');
-                accumulatedText = '';
-                await makeApiCall(true, validation.errors);
-                return; // Don't continue with error handling
-              }
-              
-              // If retry failed or we've already retried, fallback to text cleaning
-              console.warn('[ChatModePanel] Falling back to text cleaning...');
+              // 🔥 SIMPLIFIED: Don't retry JSON - just fall back to text cleaning immediately
+              // JSON is optional, text cleaning is the reliable primary path
+              console.warn('[ChatModePanel] JSON validation failed, using text cleaning (primary path)...');
               console.warn('[ChatModePanel] Full content before cleaning:', fullContent.substring(0, 500));
               const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
               console.warn('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);

@@ -97,76 +97,36 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
     continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output. DO NOT repeat any of the text shown above the cursor marker.';
   }
 
-  // Phase 4: JSON Format Request
+  // Simplified prompt - JSON optional, text cleaning is primary
   if (useJSON) {
-    return `${contextInfo}User's request: "${message}"
+    return `${contextInfo}Continue the scene from the cursor. Write 1-5 lines of action or dialogue.
 
-YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
-
-SIMPLE INSTRUCTIONS:
-- Write 1-5 lines that CONTINUE the scene from where the cursor is
-- These are short bursts of contextual text that flow naturally from what's already written
-- Write action lines or dialogue that continues the story
-- Do NOT include scene headings (INT./EXT.) - the scene heading already exists
-- Do NOT repeat what's already written before the cursor
-- Do NOT use dashes (-- or -) in action lines
-
-✅ YOU MUST RESPOND WITH VALID JSON ONLY:
-
-{
-  "content": ["line 1", "line 2", "line 3"],
-  "lineCount": 3
-}
-
-JSON SCHEMA:
-- "content": Array of 1-5 strings (screenplay lines - action or dialogue)
-- "lineCount": Number matching content.length
-- Each line is a string (NO scene headings, NO markdown)
-- NO explanations outside JSON
-
-EXAMPLE:
-{
-  "content": [
-    "Her phone RINGS.",
-    "She glances at the caller ID - UNKNOWN NUMBER.",
-    "Hesitates, then answers."
-  ],
-  "lineCount": 3
-}
-
-CRITICAL:
-1. Respond with ONLY valid JSON - no markdown, no explanations
-2. Write what comes NEXT in the scene, not what came before
-3. NO scene headings (INT./EXT.)
-4. NO repeating content that exists before the cursor
-5. NO dashes (-- or -) in action lines
 ${continuationContext}
 
-OUTPUT: Only valid JSON object. Nothing else.`;
+Respond with JSON:
+{
+  "content": ["line 1", "line 2"],
+  "lineCount": 2
+}
+
+Rules:
+- NO scene headings (INT./EXT.)
+- NO repeating content before cursor
+- NO dashes (-- or -) in action lines
+- Just write what comes next`;
   }
   
-  // Fallback: Original text format (for backward compatibility)
-  return `${contextInfo}User's request: "${message}"
+  // Fallback: Simplified text format (primary reliable path)
+  return `${contextInfo}Continue the scene from the cursor. Write 1-5 lines of action or dialogue.
 
-YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
+${continuationContext}
 
-🚫 ABSOLUTELY FORBIDDEN:
-- NO analysis, critique, or feedback about the story
-- NO suggestions or alternatives
-- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
-- NO explanations about why something is good or bad
-- NO meta-commentary about writing or storytelling
-- NO "This would..." or "This could..." statements
-- NO "Consider..." or "Think about..." statements
-- NO lists of options or alternatives
-- NO scene headings (INT./EXT.) - NEVER include scene headings
-- NO repeating content that already exists before the cursor
-- NO rewriting the beginning of the scene - CONTINUE from where the cursor is
-
-✅ YOU MUST ONLY:
-Write 1-5 vivid screenplay elements in Fountain format. CONTINUE the scene from the cursor position - write ONLY what comes NEXT, not what came before.
-
-🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
+Rules:
+- NO scene headings (INT./EXT.)
+- NO repeating content before cursor
+- NO dashes (-- or -) in action lines
+- NO analysis, suggestions, or questions
+- Just write what comes next in the scene`;
 
 CONTINUATION EXAMPLE:
 User's cursor is after: "She starts downloading everything."
@@ -320,132 +280,24 @@ export function buildDirectorPrompt(message, sceneContext, generationLength = 'f
   if (useJSON) {
     return `${contextInfo}User's request: "${message}"
 
-DIRECTOR MODE - SCENE DEVELOPMENT:
+Write ${generationLength === 'multiple' ? `${sceneCount} new scenes` : '1 new scene'} that come after the current scene.
 
-🔥🔥🔥 CRITICAL - READ THIS FIRST: The user has given you a request. IMMEDIATELY write the scene in JSON format. Do NOT provide analysis, outlines, descriptions, or explanations. ONLY write the actual screenplay content.
+${generationLength === 'multiple' ? `Generate EXACTLY ${sceneCount} complete scenes. Each scene must have its own scene heading (INT./EXT. LOCATION - TIME).` : 'Generate 1 complete scene with a scene heading (INT./EXT. LOCATION - TIME).'}
 
-🚫🚫🚫 ABSOLUTELY FORBIDDEN - YOUR RESPONSE WILL BE REJECTED IF YOU INCLUDE:
-- ❌ NO analysis, critique, or feedback about the story
-- ❌ NO structural outlines (NO "SCENE 2:", "SCENE 3:", "SCENE 4:" with descriptions)
-- ❌ NO "Key Beats:", "Setup & Discovery:", "The Chase & Escalating Chaos:" sections
-- ❌ NO "Story Integration Notes:" or "Would you like me to:" questions
-- ❌ NO suggestions or alternatives
-- ❌ NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
-- ❌ NO explanations about why something is good or bad
-- ❌ NO meta-commentary about writing or storytelling
-- ❌ NO "This would..." or "This could..." statements
-- ❌ NO "Consider..." or "Think about..." statements
-- ❌ NO lists of options or alternatives
-- ❌ NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers
-- ❌ NO "Screenplay Development" or "Based on your setup" introductions
-- 🚫 CRITICAL: Do NOT continue the current scene. The Director agent creates NEW scenes, not continuations. The Screenwriter agent handles scene continuation.
-- 🚫 CRITICAL: Do NOT repeat or revise the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". Create NEW scenes that come AFTER it.
-- ✅ Scene headings ARE REQUIRED - Each new scene MUST start with INT./EXT. LOCATION - TIME with a DIFFERENT location/time than the current scene
-
-🔥 IF YOU PROVIDE ANALYSIS OR OUTLINES INSTEAD OF JSON SCREENPLAY CONTENT, YOUR RESPONSE WILL BE REJECTED AND THE USER WILL SEE AN ERROR. ONLY PROVIDE VALID JSON WITH SCREENPLAY CONTENT.
-
-✅ YOU MUST RESPOND WITH VALID JSON ONLY:
-
+${useJSON ? `Respond with JSON:
 {
-  "content": ["line 1", "line 2", "line 3", ...],
-  "lineCount": 3
-}
+  "content": ["INT. LOCATION - TIME", "action line", "dialogue", ...],
+  "lineCount": [number]
+}` : 'Write in Fountain format:'}
 
-JSON SCHEMA REQUIREMENTS:
-- "content": Array of ${minLines}-${maxLines} strings (screenplay lines)
-- "lineCount": Number matching content.length
-- Each line in content array is a string (action, dialogue, scene heading)
-- ✅ Scene headings (INT./EXT.) ARE REQUIRED - Each new scene MUST start with its own scene heading
-- Each scene heading must have a DIFFERENT location/time than the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}"
-- NO markdown formatting in JSON strings
-- NO explanations outside JSON
-- NO "REVISED SCENE" or "NEW SCENE ADDITION" headers - just the screenplay content
-
-SCENE REQUIREMENTS:
-- SCENE LENGTH: ${lengthInstruction}
-- SCENE COUNT: ${sceneCountInstruction}
-🔥 CRITICAL: The Director agent ALWAYS creates NEW scenes that come AFTER the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". It does NOT continue the current scene - that's what the Screenwriter agent does.
-
-${generationLength === 'multiple' ? `🔥🔥🔥 MULTIPLE SCENES MODE - CRITICAL INSTRUCTIONS:
-- You MUST generate EXACTLY ${sceneCount} COMPLETE scenes in your JSON content array
-- Each scene MUST be a separate, complete scene with its own scene heading
-- Scene 1: INT. [NEW LOCATION 1] - [TIME]
-  [15-30 lines of content for scene 1]
-  
-- Scene 2: INT. [NEW LOCATION 2] - [TIME]
-  [15-30 lines of content for scene 2]
-  ${sceneCount > 2 ? `\n- Scene 3: INT. [NEW LOCATION 3] - [TIME]\n  [15-30 lines of content for scene 3]${sceneCount > 3 ? `\n\n... (continue for all ${sceneCount} scenes)` : ''}` : ''}
-- Each scene heading must be DIFFERENT from "${sceneContext?.heading || 'INT. LOCATION - TIME'}"
-- Total content array should have ${minLines}-${maxLines} items (${sceneCount} scenes × 15-50 lines each)
-- DO NOT generate only 1 scene - you MUST generate ${sceneCount} scenes
-- Example JSON structure for ${sceneCount} scenes:
-{
-  "content": [
-    "INT. NEW LOCATION 1 - TIME",
-    "[Scene 1 line 1]",
-    "[Scene 1 line 2]",
-    "...",
-    "[Scene 1 line 15-30]",
-    "",
-    "INT. NEW LOCATION 2 - TIME",
-    "[Scene 2 line 1]",
-    "[Scene 2 line 2]",
-    "...",
-    "[Scene 2 line 15-30]"
-    ${sceneCount > 2 ? `,\n    "",\n    "INT. NEW LOCATION 3 - TIME",\n    "[Scene 3 line 1]",\n    "..."` : ''}
-  ],
-  "lineCount": [total number of lines]
-}` : `- Generate EXACTLY 1 NEW scene that comes AFTER the current scene
-- The scene MUST start with a scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME
-- The scene heading must have a DIFFERENT location/time than "${sceneContext?.heading || 'INT. LOCATION - TIME'}"
-- The scene should be ${generationLength === 'short' ? '5-10' : '15-30'} lines long
-- This is a NEW scene that continues the story forward, NOT a continuation of the current scene`}
-
-INCLUDE ELEMENTS:
-- Action lines that set the mood and visual
-- Character reactions and emotions
-- Dialogue when appropriate to the moment
-- Parentheticals for tone/delivery
-- Scene atmosphere and tension
-- Visual storytelling and cinematic direction
-
-FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
-- Character names in ALL CAPS (NOT bold/markdown like **SARAH**)
-- Example: SARAH (NOT **SARAH** or *SARAH*)
-- Parentheticals in parentheses: (examining the USB drive) (NOT italics/markdown)
-- Dialogue in plain text below character name
-- Action lines in normal case
-- NO markdown formatting (no **, no *, no ---, no markdown of any kind)
-- 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
-- PROPER NEWLINES REQUIRED:
-  - Character names MUST be on their own line (ALL CAPS)
-  - Parentheticals MUST be on their own line below character name: (in parentheses)
-  - Dialogue MUST be on its own line below character name (or parenthetical if present)
-  - Action lines are separate paragraphs (each on its own line or lines)
-  - Empty line after dialogue blocks
-  - Example format:
-    SARAH
-    (under her breath)
-    Another cat stuck in a tree.
-    
-    [empty line here]
-- Proper spacing between elements
-- Scene headings in ALL CAPS: INT. LOCATION - TIME
-
-CONTEXT AWARENESS:
-- Current scene (DO NOT REPEAT): ${sceneContext?.heading || 'current scene'}
-- Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
-- 🔥 CRITICAL: You are creating ${generationLength === 'multiple' ? `${sceneCount} NEW scenes` : '1 NEW scene'} that come AFTER the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". These are NEW scenes that continue the story forward. Each scene must have its own unique scene heading with a DIFFERENT location/time. Do NOT repeat, revise, or continue the current scene - create NEW scenes.
-
-THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
-
-🔥 REMEMBER: When the user says "new story about a heist" or "museum heist" or any story concept, you MUST IMMEDIATELY write a scene about that. Do NOT ask what type of museum, what angle, what tone, etc. Just write the scene. Take creative license and make it compelling.
-
-🚫 DO NOT INCLUDE:
-- NO "FADE OUT." or "THE END" - These are only for the final scene of the entire screenplay, not individual scenes
-- NO screenplay endings unless the user specifically requests an ending
-- NO duplicate endings
-- NO "The cycle continues" or similar meta-commentary
+Rules:
+- NO analysis, suggestions, or questions - just write scenes
+- NO markdown formatting (no **, no #, no ---)
+- NO dashes (-- or -) in action lines
+- NO "FADE OUT" or "THE END" unless user requests ending
+- NO "Revised Scene" or other headers
+- Each scene must have different location/time than "${sceneContext?.heading || 'current scene'}"
+- Write in Fountain format with proper newlines
 
 EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
 {
@@ -606,100 +458,40 @@ CRITICAL INSTRUCTIONS:
 Output: 3 distinct rewrite options in the format above.`;
   }
   
-  // JSON Format (Phase 4: Structured Output) - For specific rewrite requests
+  // Simplified rewrite prompt - JSON optional
   if (useJSON) {
-    return `${contextInfo}User's rewrite request: "${message}"
+    return `${contextInfo}Rewrite the selected text: "${message}"
 
-YOU ARE A SCREENPLAY REWRITE ASSISTANT - REWRITE THE SELECTED TEXT.
+${surroundingText?.before ? `Context before: "${surroundingText.before}"` : ''}
+${surroundingText?.after ? `Context after: "${surroundingText.after}"` : ''}
 
-🚫 ABSOLUTELY FORBIDDEN:
-- NO analysis, critique, or feedback about the story
-- NO suggestions or alternatives
-- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
-- NO explanations about why something is good or bad
-- NO meta-commentary about writing or storytelling
-- NO scene headings (INT./EXT.) - NEVER include scene headings
-- NO repeating information from surrounding text
-- NO adding excessive detail beyond the request
-- NO markdown formatting (no **, no *, no ---)
-- 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
-
-✅ YOU MUST RESPOND WITH VALID JSON ONLY:
-
+Respond with JSON:
 {
-  "rewrittenText": "the rewritten text in Fountain format"
+  "rewrittenText": "rewritten text here"
 }
 
-JSON SCHEMA REQUIREMENTS:
-- "rewrittenText": Single string containing the rewritten text in Fountain format
-- NO scene headings in the rewritten text
-- NO markdown formatting in JSON strings
-- NO explanations outside JSON
-- Maintain proper Fountain format with PROPER NEWLINES:
-  - Character names MUST be on their own line (ALL CAPS)
-  - Parentheticals MUST be on their own line below character name: (in parentheses)
-  - Dialogue MUST be on its own line below character name (or parenthetical if present)
-  - Action lines are separate paragraphs (each on its own line or lines)
-  - Empty line after dialogue blocks
-
-CRITICAL INSTRUCTIONS:
-1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
-2. Write ONLY what the user requested - be LITERAL
-3. If they say "make this more dramatic", intensify the existing content without adding new elements
-4. If they say "make this concise", shorten it without changing the meaning
-5. If they say "add dialogue", add ONLY dialogue - no extra action
-6. Keep the same scene location: ${sceneContext?.heading || 'current scene'} - NO scene headings
-7. Use ONLY these characters: ${sceneContext?.characters?.join(', ') || 'existing characters'}
-8. Match the length of the original text unless specifically asked to expand/shorten
-9. BLEND SEAMLESSLY with surrounding text (see before/after context above)
-10. Do NOT repeat information from surrounding text
-11. Do NOT add excessive detail beyond the request
-12. Output ONLY the rewritten selection - nothing before, nothing after
-13. Character names in ALL CAPS only when speaking
-14. If generating more content than the original line length, use proper line breaks
-
-EXAMPLE JSON RESPONSE:
-{
-  "rewrittenText": "SARAH CHEN (30s), razor-sharp eyes burning with exhausted fury, hunches at her desk like a caged predator. Awards crowd the wall behind her -- Journalist of the Year, Pulitzer finalist, two Press Freedom citations. But her face is carved from stone, hollow with soul-crushing boredom."
-}
-
-OUTPUT: Only valid JSON object. Nothing else.`;
+Rules:
+- NO scene headings
+- NO markdown (no **, no #)
+- NO dashes (-- or -) in action lines
+- Match Fountain format with proper newlines
+- Blend with surrounding text`;
   }
   
-  // Fallback: Original text format (for backward compatibility)
-  const fullPrompt = `${contextInfo}User's rewrite request: "${message}"
+  // Fallback: Simplified text format (primary reliable path)
+  return `${contextInfo}Rewrite the selected text: "${message}"
 
-CRITICAL INSTRUCTIONS:
-1. Write ONLY what the user requested - be LITERAL
-2. If they say "make this more dramatic", intensify the existing content without adding new elements
-3. If they say "make this concise", shorten it without changing the meaning
-4. If they say "add dialogue", add ONLY dialogue - no extra action
-5. Maintain Fountain screenplay format with PROPER NEWLINES:
-   - Character names MUST be on their own line (ALL CAPS)
-   - Parentheticals MUST be on their own line below character name: (in parentheses)
-   - Dialogue MUST be on its own line below character name (or parenthetical if present)
-   - Action lines are separate paragraphs (each on its own line or lines)
-   - Empty line after dialogue blocks
-   - Example format:
-     SARAH
-     (under her breath)
-     Another cat stuck in a tree.
-     
-     [empty line here]
-6. Keep the same scene location: ${sceneContext?.heading || 'current scene'} - NO scene headings
-7. Use ONLY these characters: ${sceneContext?.characters?.join(', ') || 'existing characters'}
-8. Match the length of the original text unless specifically asked to expand/shorten
-9. BLEND SEAMLESSLY with surrounding text (see before/after context above)
-10. Do NOT repeat information from surrounding text
-11. Do NOT add excessive detail beyond the request
-12. Output ONLY the rewritten selection - nothing before, nothing after
-13. Character names in ALL CAPS only when speaking
-14. This is STANDALONE - ignore previous responses
-15. Output only screenplay content - no explanations or suggestions
-16. If generating more content than the original line length, use proper line breaks
-17. 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
+${surroundingText?.before ? `Context before: "${surroundingText.before}"` : ''}
+${surroundingText?.after ? `Context after: "${surroundingText.after}"` : ''}
 
-Format: Pure Fountain screenplay text matching the user's specific request with proper newlines.`;
+Rules:
+- Write what the user requested
+- NO scene headings
+- NO markdown (no **, no #)
+- NO dashes (-- or -) in action lines
+- Match Fountain format with proper newlines
+- Blend with surrounding text
+- Output only the rewritten text`;
   
   return fullPrompt;
 }

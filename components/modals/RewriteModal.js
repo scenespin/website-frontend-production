@@ -277,7 +277,7 @@ export default function RewriteModal({
             if (validation.valid) {
               console.log('[RewriteModal] ✅ JSON validation passed');
               // Use the validated rewritten text
-              const cleaned = validation.rewrittenText;
+              let cleaned = validation.rewrittenText;
               
               if (!cleaned || cleaned.trim().length === 0) {
                 toast.error('No valid content returned from rewrite');
@@ -285,17 +285,46 @@ export default function RewriteModal({
                 return;
               }
               
+              // 🔥 FIX: Ensure newline is preserved - don't trim end, add newline if rewrite is longer
+              // Check if rewrite is longer than original (rough estimate)
+              const originalLength = selectedText?.length || 0;
+              const rewriteLength = cleaned.length;
+              const textAfter = editorContent.substring(selectionRange.end);
+              const hasTextAfter = textAfter.trim().length > 0;
+              const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+              
+              // If rewrite is 20%+ longer and there's text after without newline, add newline
+              if (originalLength > 0 && (rewriteLength / originalLength > 1.2) && hasTextAfter && !textAfterStartsWithNewline) {
+                if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+                  cleaned = cleaned + '\n';
+                }
+              }
+              
               // Replace the selected text
               onReplace(cleaned);
             } else {
               console.warn('[RewriteModal] ❌ JSON validation failed:', validation.errors);
               // Fallback to text cleaning
-              const cleaned = cleanFountainOutput(fullContent);
+              let cleaned = cleanFountainOutput(fullContent);
               
               if (!cleaned || cleaned.trim().length === 0) {
                 toast.error('No valid content returned from rewrite');
                 setIsLoading(false);
                 return;
+              }
+              
+              // 🔥 FIX: Ensure newline is preserved - don't trim end, add newline if rewrite is longer
+              const originalLength = selectedText?.length || 0;
+              const rewriteLength = cleaned.length;
+              const textAfter = editorContent.substring(selectionRange.end);
+              const hasTextAfter = textAfter.trim().length > 0;
+              const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+              
+              // If rewrite is 20%+ longer and there's text after without newline, add newline
+              if (originalLength > 0 && (rewriteLength / originalLength > 1.2) && hasTextAfter && !textAfterStartsWithNewline) {
+                if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+                  cleaned = cleaned + '\n';
+                }
               }
               
               // Replace the selected text
