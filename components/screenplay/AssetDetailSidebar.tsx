@@ -55,6 +55,9 @@ export default function AssetDetailSidebar({
   const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
+  // 🔥 FIX: Regenerate expired presigned URLs for images
+  const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
+  
   const [formData, setFormData] = useState<any>(
     asset ? { ...asset } : (initialData ? {
       name: initialData.name || '',
@@ -132,6 +135,54 @@ export default function AssetDetailSidebar({
       }
     }
   }, [assets, asset?.id, asset?.images]) // Watch assets array, asset.id, and asset.images
+
+  // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
+  useEffect(() => {
+    if (!asset || !asset.images || asset.images.length === 0) return;
+    
+    const regenerateUrls = async () => {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+      
+      const urlMap: Record<string, string> = {};
+      
+      for (const img of asset.images) {
+        // Regenerate URL if we have s3Key (regardless of whether URL looks expired)
+        // This ensures URLs are always fresh with 7-day expiration
+        if (img.s3Key) {
+          try {
+            const downloadResponse = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                s3Key: img.s3Key, 
+                expiresIn: 604800 // 7 days - matches S3 lifecycle
+              }),
+            });
+            
+            if (downloadResponse.ok) {
+              const downloadData = await downloadResponse.json();
+              if (downloadData.downloadUrl) {
+                urlMap[img.s3Key] = downloadData.downloadUrl;
+              }
+            }
+          } catch (error) {
+            console.warn('[AssetDetailSidebar] Failed to regenerate presigned URL for', img.s3Key, error);
+          }
+        }
+      }
+      
+      if (Object.keys(urlMap).length > 0) {
+        setRegeneratedImageUrls(prev => ({ ...prev, ...urlMap }));
+        console.log('[AssetDetailSidebar] 🔄 Regenerated', Object.keys(urlMap).length, 'presigned URLs for images with s3Key');
+      }
+    };
+    
+    regenerateUrls();
+  }, [asset?.id, asset?.images, getToken]);
 
   // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest asset data, including newly uploaded images
@@ -711,12 +762,19 @@ export default function AssetDetailSidebar({
                 {/* Image Gallery */}
                 {asset && asset.images && asset.images.length > 0 && (
                   <ImageGallery
-                    images={asset.images.map((img, idx) => ({
-                      id: `asset-img-${idx}`,
-                      imageUrl: img.url,
-                      createdAt: img.uploadedAt,
-                      metadata: undefined // ImageAsset metadata doesn't support angle, store it elsewhere if needed
-                    }))}
+                    images={asset.images.map((img, idx) => {
+                      // Use regenerated URL if available, otherwise use original URL
+                      const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
+                        ? regeneratedImageUrls[img.s3Key] 
+                        : img.url;
+                      
+                      return {
+                        id: `asset-img-${idx}`,
+                        imageUrl: imageUrl,
+                        createdAt: img.uploadedAt,
+                        metadata: img.s3Key ? { s3Key: img.s3Key } : undefined // Store s3Key in metadata for future regeneration
+                      };
+                    })}
                     entityType="asset"
                     entityId={asset.id}
                     entityName={formData.name || 'Asset'}
