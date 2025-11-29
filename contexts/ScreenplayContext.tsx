@@ -1060,9 +1060,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         const merged = [...filteredApiAssets];
                         
                         // Add optimistic assets that aren't in API yet
+                        // 🔥 FIX: Only add optimistic assets that are NOT already in the API response
+                        // This ensures API data (with images) takes precedence over optimistic data (without images)
                         for (const optimistic of uniqueOptimistic) {
-                            merged.push(optimistic);
-                            console.log('[ScreenplayContext] 🔄 Keeping optimistic asset (eventual consistency):', optimistic.id, 'age:', Math.round((Date.now() - new Date(optimistic.createdAt).getTime()) / 1000), 's');
+                            // Check if this asset is already in the merged list (from API)
+                            const alreadyInMerged = merged.some(a => a.id === optimistic.id);
+                            if (!alreadyInMerged) {
+                                merged.push(optimistic);
+                                console.log('[ScreenplayContext] 🔄 Keeping optimistic asset (eventual consistency):', optimistic.id, 'age:', Math.round((Date.now() - new Date(optimistic.createdAt).getTime()) / 1000), 's');
+                            } else {
+                                console.log('[ScreenplayContext] ⏭️ Skipping optimistic asset (already in API):', optimistic.id);
+                            }
                         }
                         
                         // Update sessionStorage with current optimistic assets
@@ -2307,19 +2315,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX: Save previous state for rollback BEFORE optimistic update
         // Use ref to get current state without closure issues
         const previousAsset = assetsRef.current.find(a => a.id === id);
-        if (!previousAsset) {
-            console.warn('[ScreenplayContext] ⚠️ Asset not found for update:', id);
-            // Asset not found - might be a race condition, try to continue anyway
-        }
         
         // 🔥 FIX: Use functional update to get latest state (not closure)
         // This prevents stale state issues when updateAsset is called right after createAsset
+        // Even if asset is not in state yet (race condition), we'll still update via API
+        let assetInState = false;
         setAssets(prev => {
             const assetIndex = prev.findIndex(a => a.id === id);
             if (assetIndex === -1) {
-                console.warn('[ScreenplayContext] ⚠️ Asset not found in state for update:', id);
-                return prev; // Asset not found, return unchanged
+                console.warn('[ScreenplayContext] ⚠️ Asset not found in state for update:', id, '- will update via API anyway (race condition)');
+                assetInState = false;
+                return prev; // Asset not found, return unchanged (but we'll still update via API)
             }
+            assetInState = true;
             // Update the asset optimistically
             const updated = [...prev];
             updated[assetIndex] = { ...updated[assetIndex], ...updates, updatedAt: new Date().toISOString() };
@@ -2370,6 +2378,32 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     updated[assetIndex] = finalAsset;
                     return updated;
                 });
+                
+                // 🔥 FIX: Update sessionStorage if this asset is stored there (to preserve images on refresh)
+                if (screenplayId && typeof window !== 'undefined') {
+                    try {
+                        const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
+                        if (stored) {
+                            const optimisticAssets = JSON.parse(stored) as Asset[];
+                            const index = optimisticAssets.findIndex(a => a.id === id);
+                            if (index >= 0) {
+                                // Update the asset in sessionStorage with the latest data (including images)
+                                optimisticAssets[index] = finalAsset;
+                                const now = Date.now();
+                                const recent = optimisticAssets.filter(a => {
+                                    const createdAt = new Date(a.createdAt).getTime();
+                                    const age = now - createdAt;
+                                    return age < 60000; // 60 seconds
+                                });
+                                sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recent));
+                                console.log('[ScreenplayContext] 🔄 Updated asset in sessionStorage with images');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[ScreenplayContext] Failed to update asset in sessionStorage:', e);
+                    }
+                }
+                
                 console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
                 
                 // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
