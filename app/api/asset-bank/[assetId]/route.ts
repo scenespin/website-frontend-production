@@ -15,8 +15,8 @@ export async function GET(
   { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
-    // Verify user is authenticated with Clerk and get backend token
-    const { userId, getToken } = await auth();
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
@@ -24,10 +24,23 @@ export async function GET(
       );
     }
 
-    const token = await getToken({ template: 'wryda-backend' });
+    // Try to get token from Authorization header first (client-side token)
+    const authHeader = request.headers.get('authorization');
+    let token = authHeader?.replace('Bearer ', '');
+    
+    // If no token in header, try to generate one server-side
+    if (!token) {
+      try {
+        const { getToken } = await auth();
+        token = await getToken({ template: 'wryda-backend' });
+      } catch (tokenError: any) {
+        console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
+      }
+    }
+    
     if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
+        { error: 'Unauthorized - Could not get authentication token' },
         { status: 401 }
       );
     }
@@ -72,8 +85,8 @@ export async function PUT(
   { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
-    // Verify user is authenticated with Clerk and get backend token
-    const { userId, getToken } = await auth();
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
@@ -81,10 +94,23 @@ export async function PUT(
       );
     }
 
-    const token = await getToken({ template: 'wryda-backend' });
+    // Try to get token from Authorization header first (client-side token)
+    const authHeader = request.headers.get('authorization');
+    let token = authHeader?.replace('Bearer ', '');
+    
+    // If no token in header, try to generate one server-side
+    if (!token) {
+      try {
+        const { getToken } = await auth();
+        token = await getToken({ template: 'wryda-backend' });
+      } catch (tokenError: any) {
+        console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
+      }
+    }
+    
     if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
+        { error: 'Unauthorized - Could not get authentication token' },
         { status: 401 }
       );
     }
@@ -131,8 +157,8 @@ export async function DELETE(
   { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
-    // Verify user is authenticated with Clerk and get backend token
-    const { userId, getToken } = await auth();
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
@@ -140,10 +166,23 @@ export async function DELETE(
       );
     }
 
-    const token = await getToken({ template: 'wryda-backend' });
+    // Try to get token from Authorization header first (client-side token)
+    const authHeader = request.headers.get('authorization');
+    let token = authHeader?.replace('Bearer ', '');
+    
+    // If no token in header, try to generate one server-side
+    if (!token) {
+      try {
+        const { getToken } = await auth();
+        token = await getToken({ template: 'wryda-backend' });
+      } catch (tokenError: any) {
+        console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
+      }
+    }
+    
     if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
+        { error: 'Unauthorized - Could not get authentication token' },
         { status: 401 }
       );
     }

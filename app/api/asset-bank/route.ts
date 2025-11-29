@@ -12,8 +12,8 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify user is authenticated with Clerk and get backend token
-    const { userId, getToken } = await auth();
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
@@ -21,10 +21,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const token = await getToken({ template: 'wryda-backend' });
+    // Try to get token from Authorization header first (client-side token)
+    const authHeader = request.headers.get('authorization');
+    let token = authHeader?.replace('Bearer ', '');
+    
+    // If no token in header, try to generate one server-side
+    if (!token) {
+      try {
+        const { getToken } = await auth();
+        token = await getToken({ template: 'wryda-backend' });
+      } catch (tokenError: any) {
+        console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
+      }
+    }
+    
     if (!token) {
       return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
+        { error: 'Unauthorized - Could not get authentication token' },
         { status: 401 }
       );
     }
@@ -71,24 +84,8 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Asset Bank Proxy] POST request received');
     
-    // Verify user is authenticated with Clerk and get backend token
-    let authResult;
-    try {
-      authResult = await auth();
-      console.log('[Asset Bank Proxy] Auth result:', { 
-        hasUserId: !!authResult.userId, 
-        hasGetToken: !!authResult.getToken,
-        userId: authResult.userId 
-      });
-    } catch (authError: any) {
-      console.error('[Asset Bank Proxy] ❌ Auth() failed:', authError.message);
-      return NextResponse.json(
-        { error: 'Unauthorized - Authentication failed' },
-        { status: 401 }
-      );
-    }
-    
-    const { userId, getToken } = authResult;
+    // Verify user is authenticated with Clerk
+    const { userId } = await auth();
     
     if (!userId) {
       console.error('[Asset Bank Proxy] ❌ No userId - user not authenticated');
@@ -98,23 +95,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let token;
-    try {
-      token = await getToken({ template: 'wryda-backend' });
-      console.log('[Asset Bank Proxy] Token generation result:', token ? `success (${token.length} chars)` : 'null/undefined');
-    } catch (tokenError: any) {
-      console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
-      console.error('[Asset Bank Proxy] Token error stack:', tokenError.stack);
-      return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token', details: tokenError.message },
-        { status: 401 }
-      );
+    // Try to get token from Authorization header first (client-side token)
+    const authHeader = request.headers.get('authorization');
+    let token = authHeader?.replace('Bearer ', '');
+    
+    // If no token in header, try to generate one server-side
+    if (!token) {
+      try {
+        const { getToken } = await auth();
+        token = await getToken({ template: 'wryda-backend' });
+        console.log('[Asset Bank Proxy] Generated server-side token:', token ? `success (${token.length} chars)` : 'null');
+      } catch (tokenError: any) {
+        console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
+      }
+    } else {
+      console.log('[Asset Bank Proxy] Using client-provided token:', token.length, 'chars');
     }
     
     if (!token) {
-      console.error('[Asset Bank Proxy] ❌ No token - getToken returned null/undefined');
+      console.error('[Asset Bank Proxy] ❌ No token available - neither from header nor generated');
       return NextResponse.json(
-        { error: 'Unauthorized - Could not generate token' },
+        { error: 'Unauthorized - Could not get authentication token' },
         { status: 401 }
       );
     }
