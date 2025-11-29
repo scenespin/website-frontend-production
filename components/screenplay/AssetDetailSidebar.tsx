@@ -100,6 +100,23 @@ export default function AssetDetailSidebar({
     // Only reset when asset.id actually changes (switching between assets or modes)
   }, [asset?.id]) // Only depend on asset.id - ignore initialData and isCreating changes
 
+  // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
+  // This ensures the UI reflects the latest asset data, including newly uploaded images
+  useEffect(() => {
+    if (!showStorageModal && asset?.id) {
+      // Modal just closed - sync from context (which should have been updated by the upload)
+      // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
+      const syncAsset = async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+        if (updatedAssetFromContext) {
+          setFormData(updatedAssetFromContext);
+        }
+      };
+      syncAsset();
+    }
+  }, [showStorageModal, asset?.id, assets])
+
   const handleSave = async () => {
     if (!formData.name.trim()) {
       toast.error('Please enter an asset name')
