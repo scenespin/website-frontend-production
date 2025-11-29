@@ -306,16 +306,22 @@ export default function AssetDetailSidebar({
           // 🔥 FIX: Get latest asset from context (not prop) to ensure we have current images
           const currentAsset = assets.find(a => a.id === asset.id) || asset;
           
+          // 🔥 FIX: Optimistic UI update - add images immediately
+          const updatedImages = [
+            ...(currentAsset.images || []),
+            ...newImageObjects
+          ];
+          setFormData(prev => ({
+            ...prev,
+            images: updatedImages
+          }));
+          
           // Register all images with the asset via ScreenplayContext (updates both API and local state)
           await updateAsset(asset.id, {
-            images: [
-              ...(currentAsset.images || []),
-              ...newImageObjects
-            ]
+            images: updatedImages
           });
           
-          // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
-          // Wait a bit for DynamoDB consistency, then get updated asset from context
+          // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
           await new Promise(resolve => setTimeout(resolve, 500));
           const updatedAssetFromContext = assets.find(a => a.id === asset.id);
           if (updatedAssetFromContext) {
@@ -362,12 +368,21 @@ export default function AssetDetailSidebar({
     
     if (confirm('Remove this image from the asset?')) {
       try {
-        // Remove image from asset via ScreenplayContext (updates both API and local state)
-        const updatedImages = asset.images.filter((_, i) => i !== index);
+        // Get current asset from context to ensure we have latest images
+        const currentAsset = assets.find(a => a.id === asset.id) || asset;
+        const updatedImages = (currentAsset.images || []).filter((_, i) => i !== index);
+        
+        // 🔥 FIX: Optimistic UI update - remove image immediately
+        setFormData(prev => ({
+          ...prev,
+          images: updatedImages
+        }));
+        
+        // Update via API
         await updateAsset(asset.id, { images: updatedImages });
         
-        // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
-        // Get updated asset from context to ensure UI reflects the removed image
+        // Sync from context after update (with delay for DynamoDB consistency)
+        await new Promise(resolve => setTimeout(resolve, 500));
         const updatedAssetFromContext = assets.find(a => a.id === asset.id);
         if (updatedAssetFromContext) {
           setFormData({ ...updatedAssetFromContext });
@@ -375,6 +390,11 @@ export default function AssetDetailSidebar({
         
         toast.success('Image removed');
       } catch (error: any) {
+        // Rollback on error
+        setFormData(prev => ({
+          ...prev,
+          images: asset.images || []
+        }));
         toast.error(`Failed to remove image: ${error.message}`);
       }
     }
@@ -808,21 +828,27 @@ export default function AssetDetailSidebar({
                   // 🔥 FIX: Get latest asset from context (not prop) to ensure we have current images
                   const currentAsset = assets.find(a => a.id === asset.id) || asset;
                   
+                  // 🔥 FIX: Optimistic UI update - add image immediately
+                  const newImageObject = {
+                    url: downloadUrl,
+                    uploadedAt: new Date().toISOString(),
+                    s3Key: s3Key // Store s3Key for URL regeneration
+                  };
+                  const updatedImages = [
+                    ...(currentAsset.images || []),
+                    newImageObject
+                  ];
+                  setFormData(prev => ({
+                    ...prev,
+                    images: updatedImages
+                  }));
+                  
                   // Register with asset via ScreenplayContext (updates both API and local state)
-                  // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
                   await updateAsset(asset.id, {
-                    images: [
-                      ...(currentAsset.images || []),
-                      {
-                        url: downloadUrl,
-                        uploadedAt: new Date().toISOString(),
-                        s3Key: s3Key // Store s3Key for URL regeneration
-                      }
-                    ]
+                    images: updatedImages
                   });
                   
-                  // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
-                  // Wait a bit for DynamoDB consistency, then get updated asset from context
+                  // 🔥 FIX: Sync asset data from context after update (with delay for DynamoDB consistency)
                   await new Promise(resolve => setTimeout(resolve, 500));
                   const updatedAssetFromContext = assets.find(a => a.id === asset.id);
                   if (updatedAssetFromContext) {

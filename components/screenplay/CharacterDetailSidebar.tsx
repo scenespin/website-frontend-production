@@ -774,13 +774,42 @@ export default function CharacterDetailSidebar({
                           entityType="character"
                           entityId={character?.id || 'new'}
                           entityName={formData.name || 'New Character'}
-                          onDeleteImage={(index: number) => {
+                          onDeleteImage={async (index: number) => {
                             if (character) {
                               // Find the actual image in allImages array by matching imageUrl
                               const imageToDelete = frontImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this headshot?')) {
-                                removeImageFromEntity('character', character.id, actualIndex)
+                                try {
+                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
+                                  // Get current character from context to ensure we have latest images
+                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
+                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
+                                  
+                                  // 🔥 FIX: Optimistic UI update - remove image immediately
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    images: updatedImages
+                                  }));
+                                  
+                                  await updateCharacter(character.id, { images: updatedImages });
+                                  
+                                  // Sync from context after update (with delay for DynamoDB consistency)
+                                  await new Promise(resolve => setTimeout(resolve, 500));
+                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                                  if (updatedCharacterFromContext) {
+                                    setFormData({ ...updatedCharacterFromContext });
+                                  }
+                                  
+                                  toast.success('Image removed');
+                                } catch (error: any) {
+                                  // Rollback on error
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    images: character.images || []
+                                  }));
+                                  toast.error(`Failed to remove image: ${error.message}`);
+                                }
                               }
                             } else {
                               // Remove from pending images by finding the matching image
@@ -805,12 +834,28 @@ export default function CharacterDetailSidebar({
                           entityType="character"
                           entityId={character?.id || 'new'}
                           entityName={formData.name || 'New Character'}
-                          onDeleteImage={(index: number) => {
+                          onDeleteImage={async (index: number) => {
                             if (character) {
                               const imageToDelete = sideImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this headshot?')) {
-                                removeImageFromEntity('character', character.id, actualIndex)
+                                try {
+                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
+                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
+                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
+                                  await updateCharacter(character.id, { images: updatedImages });
+                                  
+                                  // Sync from context after update
+                                  await new Promise(resolve => setTimeout(resolve, 500));
+                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                                  if (updatedCharacterFromContext) {
+                                    setFormData({ ...updatedCharacterFromContext });
+                                  }
+                                  
+                                  toast.success('Image removed');
+                                } catch (error: any) {
+                                  toast.error(`Failed to remove image: ${error.message}`);
+                                }
                               }
                             } else {
                               const imageToDelete = sideImages[index]
@@ -833,12 +878,28 @@ export default function CharacterDetailSidebar({
                           entityType="character"
                           entityId={character?.id || 'new'}
                           entityName={formData.name || 'New Character'}
-                          onDeleteImage={(index: number) => {
+                          onDeleteImage={async (index: number) => {
                             if (character) {
                               const imageToDelete = threeQuarterImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this headshot?')) {
-                                removeImageFromEntity('character', character.id, actualIndex)
+                                try {
+                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
+                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
+                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
+                                  await updateCharacter(character.id, { images: updatedImages });
+                                  
+                                  // Sync from context after update
+                                  await new Promise(resolve => setTimeout(resolve, 500));
+                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                                  if (updatedCharacterFromContext) {
+                                    setFormData({ ...updatedCharacterFromContext });
+                                  }
+                                  
+                                  toast.success('Image removed');
+                                } catch (error: any) {
+                                  toast.error(`Failed to remove image: ${error.message}`);
+                                }
                               }
                             } else {
                               const imageToDelete = threeQuarterImages[index]
@@ -861,12 +922,40 @@ export default function CharacterDetailSidebar({
                           entityType="character"
                           entityId={character?.id || 'new'}
                           entityName={formData.name || 'New Character'}
-                          onDeleteImage={(index: number) => {
+                          onDeleteImage={async (index: number) => {
                             if (character) {
                               const imageToDelete = otherImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
                               if (actualIndex >= 0 && confirm('Remove this image?')) {
-                                removeImageFromEntity('character', character.id, actualIndex)
+                                try {
+                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
+                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
+                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
+                                  
+                                  // 🔥 FIX: Optimistic UI update - remove image immediately
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    images: updatedImages
+                                  }));
+                                  
+                                  await updateCharacter(character.id, { images: updatedImages });
+                                  
+                                  // Sync from context after update (with delay for DynamoDB consistency)
+                                  await new Promise(resolve => setTimeout(resolve, 500));
+                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                                  if (updatedCharacterFromContext) {
+                                    setFormData({ ...updatedCharacterFromContext });
+                                  }
+                                  
+                                  toast.success('Image removed');
+                                } catch (error: any) {
+                                  // Rollback on error
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    images: character.images || []
+                                  }));
+                                  toast.error(`Failed to remove image: ${error.message}`);
+                                }
                               }
                             } else {
                               const imageToDelete = otherImages[index]

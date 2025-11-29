@@ -281,7 +281,9 @@ export default function LocationDetailSidebar({
       // Step 4: Persist images to location (or add to pending)
       if (location) {
         // Existing location - update location's images array directly
-        const currentImages = location.images || [];
+        // 🔥 FIX: Get latest location from context (not prop) to ensure we have current images
+        const currentLocation = locations.find(l => l.id === location.id) || location;
+        const currentImages = currentLocation.images || [];
         const newImages: ImageAsset[] = uploadedImages.map(img => ({
           imageUrl: img.imageUrl,
           createdAt: new Date().toISOString(),
@@ -290,9 +292,17 @@ export default function LocationDetailSidebar({
           }
         }));
         
+        const updatedImages = [...currentImages, ...newImages];
+        
+        // 🔥 FIX: Optimistic UI update - add images immediately
+        setFormData(prev => ({
+          ...prev,
+          images: updatedImages
+        }));
+        
         // Update location with new images array - this persists to DynamoDB
         await updateLocation(location.id, {
-          images: [...currentImages, ...newImages]
+          images: updatedImages
         });
         
         // Force a small delay to ensure DynamoDB consistency
@@ -560,10 +570,40 @@ export default function LocationDetailSidebar({
                     entityType="location"
                     entityId={location?.id || 'new'}
                     entityName={formData.name || 'New Location'}
-                    onDeleteImage={(index: number) => {
+                    onDeleteImage={async (index: number) => {
                       if (location) {
                         if (confirm('Remove this image from the location?')) {
-                          removeImageFromEntity('location', location.id, index)
+                          try {
+                            // 🔥 FIX: Use updateLocation directly (like assets/characters) instead of removeImageFromEntity
+                            // Get current location from context to ensure we have latest images
+                            const currentLocation = locations.find(l => l.id === location.id) || location;
+                            const updatedImages = (currentLocation.images || []).filter((_, i) => i !== index);
+                            
+                            // Optimistic UI update - remove image immediately
+                            setFormData(prev => ({
+                              ...prev,
+                              images: updatedImages
+                            }));
+                            
+                            // Update via API
+                            await updateLocation(location.id, { images: updatedImages });
+                            
+                            // Sync from context after update (with delay for DynamoDB consistency)
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            const updatedLocationFromContext = locations.find(l => l.id === location.id);
+                            if (updatedLocationFromContext) {
+                              setFormData({ ...updatedLocationFromContext });
+                            }
+                            
+                            toast.success('Image removed');
+                          } catch (error: any) {
+                            // Rollback on error
+                            setFormData(prev => ({
+                              ...prev,
+                              images: location.images || []
+                            }));
+                            toast.error(`Failed to remove image: ${error.message}`);
+                          }
                         }
                       } else {
                         // Remove from pending images
@@ -711,7 +751,10 @@ export default function LocationDetailSidebar({
               await fetch(url, { method: 'POST', body: formData });
 
               // Get presigned download URL
-              let downloadUrl = imageUrl; // Fallback
+              const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+              const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+              const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+              let downloadUrl = s3Url; // Fallback
               try {
                 const downloadResponse = await fetch('/api/s3/download-url', {
                   method: 'POST',
@@ -719,7 +762,7 @@ export default function LocationDetailSidebar({
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                  body: JSON.stringify({ s3Key, expiresIn: 604800 }), // 7 days - matches S3 lifecycle
                 });
                 if (downloadResponse.ok) {
                   const downloadData = await downloadResponse.json();
@@ -732,15 +775,32 @@ export default function LocationDetailSidebar({
               }
 
               if (location) {
-                // Existing location - add image via addImageToEntity
-                await addImageToEntity('location', location.id, downloadUrl, {
-                  prompt,
-                  modelUsed,
-                  s3Key: s3Key
+                // 🔥 FIX: Get latest location from context (not prop) to ensure we have current images
+                const currentLocation = locations.find(l => l.id === location.id) || location;
+                
+                // 🔥 FIX: Optimistic UI update - add image immediately
+                const newImage: ImageAsset = {
+                  imageUrl: downloadUrl,
+                  createdAt: new Date().toISOString(),
+                  metadata: {
+                    prompt,
+                    modelUsed,
+                    s3Key: s3Key
+                  }
+                };
+                const updatedImages = [...(currentLocation.images || []), newImage];
+                setFormData(prev => ({
+                  ...prev,
+                  images: updatedImages
+                }));
+                
+                // Existing location - update via updateLocation directly (like assets)
+                await updateLocation(location.id, {
+                  images: updatedImages
                 });
                 
-                // 🔥 FIX: Sync location data from context after update (like MediaLibrary refetches)
-                // Get updated location from context to ensure UI reflects the new image
+                // 🔥 FIX: Sync location data from context after update (with delay for DynamoDB consistency)
+                await new Promise(resolve => setTimeout(resolve, 500));
                 const updatedLocationFromContext = locations.find(l => l.id === location.id);
                 if (updatedLocationFromContext) {
                   setFormData({ ...updatedLocationFromContext });
