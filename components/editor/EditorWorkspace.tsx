@@ -285,52 +285,25 @@ export default function EditorWorkspace() {
     const handleRewriteReplace = (rewrittenText: string) => {
         if (!selectionRange) return;
         
-        // Clean the text (should already be cleaned by modal, but double-check)
-        // Don't trim end - we'll add newline if needed
+        // 🔥 CRITICAL: Don't trim the end - preserve any newline that was added
+        // The modal already adds newline if needed, so preserve it
         let cleaned = rewrittenText.trimStart();
         
-        // Smart newline detection: Add newlines when rewrite generates more content than original
-        if (selectedText) {
-            const originalLength = selectedText.length;
-            const originalWasSingleLine = !selectedText.includes('\n');
-            const rewriteIsMultiLine = cleaned.includes('\n');
-            const rewriteLength = cleaned.length;
-            const textAfter = state.content.substring(selectionRange.end);
-            const hasTextAfter = textAfter.trim().length > 0;
-            const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
-            
-            // Determine if we need a newline at the end
-            let needsNewlineAtEnd = false;
-            
-            // Case 1: Original was single line, rewrite is multi-line, and there's text after without newline
-            if (originalWasSingleLine && rewriteIsMultiLine && hasTextAfter && !textAfterStartsWithNewline) {
-                needsNewlineAtEnd = true;
-            }
-            
-            // Case 2: Always add newline if there's text after (regardless of length change)
-            // This ensures proper spacing whether rewrite is longer, shorter, or same length
-            if (hasTextAfter && !textAfterStartsWithNewline) {
-                needsNewlineAtEnd = true;
-            }
-            
-            // Add newline at end if needed (ensure it's not already there)
-            if (needsNewlineAtEnd && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+        // Check if there's text after the selection
+        const textAfter = state.content.substring(selectionRange.end);
+        const hasTextAfter = textAfter.trim().length > 0;
+        const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+        
+        // Always add newline if there's text after without newline
+        // This ensures proper spacing regardless of rewrite length
+        if (hasTextAfter && !textAfterStartsWithNewline) {
+            // Only add if not already there (modal might have added it)
+            if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                 cleaned = cleaned + '\n';
-            }
-            
-            // Case 3: If rewrite contains multiple lines and original was single line,
-            // ensure proper spacing before the rewrite (if there's text before)
-            const textBefore = state.content.substring(0, selectionRange.start);
-            const hasTextBefore = textBefore.trim().length > 0;
-            const textBeforeEndsWithNewline = textBefore.endsWith('\n') || textBefore.endsWith('\r\n');
-            
-            if (originalWasSingleLine && rewriteIsMultiLine && hasTextBefore && !textBeforeEndsWithNewline) {
-                // Add a newline before the rewritten text to separate it from preceding content
-                cleaned = '\n' + cleaned;
             }
         }
         
-        // Replace the selected text
+        // Replace the selected text (newline will be preserved)
         replaceSelection(cleaned, selectionRange.start, selectionRange.end);
         
         // Close modal

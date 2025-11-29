@@ -218,7 +218,21 @@ function cleanFountainOutput(text, sceneContext = null) {
     
     // Mark that we've found screenplay content
     // Look for scene headings, character names, or substantial action lines
+    // 🔥 CRITICAL: Skip duplicate scene headings that match the current scene
     if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
+      // Check if this matches the current scene (duplicate)
+      const currentSceneHeading = sceneContext?.heading || '';
+      if (currentSceneHeading) {
+        const currentLocation = currentSceneHeading.toLowerCase().split(' - ')[0].trim();
+        const newLocation = trimmedLine.toLowerCase().split(' - ')[0].trim();
+        const currentFull = currentSceneHeading.toLowerCase().trim();
+        const newFull = trimmedLine.toLowerCase().trim();
+        
+        if (currentLocation === newLocation || currentFull === newFull) {
+          console.log('[DirectorModePanel] Skipping duplicate scene heading in main loop:', trimmedLine);
+          continue; // Skip duplicate scene heading
+        }
+      }
       foundFirstScreenplayContent = true;
     } else if (/^[A-Z][A-Z\s#0-9']+$/.test(trimmedLine) && trimmedLine.length > 2 && trimmedLine.length < 50) {
       // Character name (ALL CAPS, reasonable length)
@@ -245,15 +259,23 @@ function cleanFountainOutput(text, sceneContext = null) {
     // 🔥 CRITICAL: Skip duplicate scene headings that match the current scene
     let firstContentIndex = -1;
     const currentSceneHeading = sceneContext?.heading || '';
+    let skippedDuplicateScene = false;
+    
     for (let i = 0; i < lines.length; i++) {
       const trimmedLine = lines[i].trim();
       // Check if it's a scene heading
       if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
         // Skip if it matches the current scene (duplicate)
         if (currentSceneHeading) {
-          const currentLocation = currentSceneHeading.toLowerCase().split(' - ')[0];
-          const newLocation = trimmedLine.toLowerCase().split(' - ')[0];
-          if (currentLocation === newLocation) {
+          const currentLocation = currentSceneHeading.toLowerCase().split(' - ')[0].trim();
+          const newLocation = trimmedLine.toLowerCase().split(' - ')[0].trim();
+          // Also check if the full scene heading matches (more accurate)
+          const currentFull = currentSceneHeading.toLowerCase().trim();
+          const newFull = trimmedLine.toLowerCase().trim();
+          
+          if (currentLocation === newLocation || currentFull === newFull) {
+            console.log('[DirectorModePanel] Skipping duplicate scene heading:', trimmedLine);
+            skippedDuplicateScene = true;
             continue; // Skip duplicate scene heading
           }
         }
@@ -261,10 +283,13 @@ function cleanFountainOutput(text, sceneContext = null) {
         foundFirstScreenplayContent = true;
         break;
       } else if (/^[A-Z][A-Z\s#0-9']+$/.test(trimmedLine) && trimmedLine.length > 2 && trimmedLine.length < 50) {
-        // Character name
-        firstContentIndex = i;
-        foundFirstScreenplayContent = true;
-        break;
+        // Character name - but only if we haven't skipped a duplicate scene
+        // (if we skipped a duplicate scene, we should find the next scene heading)
+        if (!skippedDuplicateScene) {
+          firstContentIndex = i;
+          foundFirstScreenplayContent = true;
+          break;
+        }
       }
     }
     
@@ -304,6 +329,23 @@ function cleanFountainOutput(text, sceneContext = null) {
   }
   
   cleaned = screenplayLines.join('\n');
+  
+  // 🔥 CRITICAL: Ensure 2 newlines between scenes (Fountain format standard)
+  // Pattern: scene heading should have 2 newlines before it (except the first one)
+  cleaned = cleaned.replace(/(\n)(INT\.|EXT\.|I\/E\.)/gi, (match, newline, heading) => {
+    // Check if this is the first scene heading (at start of content)
+    const beforeMatch = cleaned.substring(0, cleaned.indexOf(match));
+    if (beforeMatch.trim().length === 0) {
+      return heading; // First scene heading, no extra newline needed
+    }
+    // Check if there's already 2+ newlines before this scene heading
+    const beforeNewlines = beforeMatch.match(/\n+$/);
+    if (beforeNewlines && beforeNewlines[0].length >= 2) {
+      return match; // Already has 2+ newlines, keep as is
+    }
+    // Add extra newline to make it 2 newlines total before scene heading
+    return '\n\n' + heading;
+  });
   
   // Remove duplicate "FADE OUT. THE END" patterns
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)

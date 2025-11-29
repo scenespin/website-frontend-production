@@ -110,6 +110,12 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       // Skip empty lines at the start
       if (!foundFirstScreenplayContent && !line) continue;
       
+      // 🔥 CRITICAL: Stop immediately on options/suggestions patterns
+      // These indicate the AI is giving options instead of writing content
+      if (/^(Option \d+|Here are|Here's|I can help|I'll|Let me)/i.test(line)) {
+        break; // Stop on options/suggestions
+      }
+      
       // If line starts with "NOTE:" or explanation words, stop here
       if (/^NOTE:/i.test(line)) {
         break;
@@ -631,8 +637,20 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         if (useJSONFormat) {
           systemPrompt = `You are a professional screenwriting assistant. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
         } else {
-          // Fallback: Original text format
-          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. Write only the screenplay content they requested - no explanations, no suggestions, no alternatives.`;
+          // Fallback: Original text format - STRICT: NO OPTIONS, NO SUGGESTIONS
+          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. 
+
+🚫 ABSOLUTELY FORBIDDEN:
+- NO options or suggestions (no "Here are some options:", "Option 1:", "Option 2:")
+- NO questions (no "Which approach?", "Does this work?")
+- NO explanations or analysis
+- NO lists or alternatives
+
+✅ YOU MUST:
+- Write ONLY the screenplay content requested
+- Write 1-5 lines that continue from the cursor
+- NO scene headings
+- Just write what comes next`;
         }
         
         // Add scene context if available (minimal, just for context)
