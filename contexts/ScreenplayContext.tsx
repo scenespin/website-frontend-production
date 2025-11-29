@@ -258,27 +258,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [assets, setAssets] = useState<Asset[]>(() => {
         console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty assets array');
         // 🔥 FIX: Load recently created assets from sessionStorage to handle eventual consistency
-        if (typeof window !== 'undefined' && screenplayId) {
-            try {
-                const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
-                if (stored) {
-                    const optimisticAssets = JSON.parse(stored) as Asset[];
-                    // Only keep assets created within last 60 seconds
-                    const now = Date.now();
-                    const recent = optimisticAssets.filter(a => {
-                        const createdAt = new Date(a.createdAt).getTime();
-                        const age = now - createdAt;
-                        return age < 60000; // 60 seconds
-                    });
-                    if (recent.length > 0) {
-                        console.log('[ScreenplayContext] 🔄 Loaded', recent.length, 'optimistic assets from sessionStorage');
-                        return recent;
-                    }
-                }
-            } catch (e) {
-                console.warn('[ScreenplayContext] Failed to load optimistic assets from sessionStorage:', e);
-            }
-        }
+        // Note: screenplayId is not available in initializer, so we'll load from sessionStorage in useEffect
         return [];
     });
     
@@ -290,40 +270,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const locationsRef = useRef<Location[]>([]);
     const assetsRef = useRef<Asset[]>([]);
     // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
-    // Use sessionStorage to persist across remounts (refresh)
-    const getDeletedAssetIds = useCallback(() => {
-        if (typeof window === 'undefined' || !screenplayId) return new Set<string>();
-        try {
-            const stored = sessionStorage.getItem(`deleted-assets-${screenplayId}`);
-            if (stored) {
-                const ids = JSON.parse(stored) as string[];
-                console.log('[ScreenplayContext] 🔄 Loaded', ids.length, 'deleted asset IDs from sessionStorage');
-                return new Set(ids);
-            }
-        } catch (e) {
-            console.warn('[ScreenplayContext] Failed to load deleted asset IDs from sessionStorage:', e);
-        }
-        return new Set<string>();
-    }, [screenplayId]);
-    
-    const saveDeletedAssetIds = useCallback((ids: Set<string>) => {
-        if (typeof window === 'undefined' || !screenplayId) return;
-        try {
-            sessionStorage.setItem(`deleted-assets-${screenplayId}`, JSON.stringify(Array.from(ids)));
-        } catch (e) {
-            console.warn('[ScreenplayContext] Failed to save deleted asset IDs to sessionStorage:', e);
-        }
-    }, [screenplayId]);
-    
-    const deletedAssetIdsRef = useRef<Set<string>>(getDeletedAssetIds());
-    
-    // 🔥 FIX: Load deleted IDs when screenplayId changes
-    useEffect(() => {
-        if (screenplayId) {
-            deletedAssetIdsRef.current = getDeletedAssetIds();
-        }
-    }, [screenplayId, getDeletedAssetIds]);
-    
+    // Will be initialized after screenplayId is declared
+    const deletedAssetIdsRef = useRef<Set<string>>(new Set());
     const updateScenePositionsRef = useRef<((content: string) => Promise<number>) | null>(null);
     
     // Keep refs in sync with state
@@ -802,6 +750,42 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Track current screenplay_id (from Clerk metadata, falls back to localStorage)
     // Initialize to null - useEffect will set it from Clerk metadata
     const [screenplayId, setScreenplayId] = useState<string | null>(null);
+    
+    // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
+    // Use sessionStorage to persist across remounts (refresh)
+    // Must be declared after screenplayId
+    const getDeletedAssetIds = useCallback(() => {
+        if (typeof window === 'undefined' || !screenplayId) return new Set<string>();
+        try {
+            const stored = sessionStorage.getItem(`deleted-assets-${screenplayId}`);
+            if (stored) {
+                const ids = JSON.parse(stored) as string[];
+                console.log('[ScreenplayContext] 🔄 Loaded', ids.length, 'deleted asset IDs from sessionStorage');
+                return new Set(ids);
+            }
+        } catch (e) {
+            console.warn('[ScreenplayContext] Failed to load deleted asset IDs from sessionStorage:', e);
+        }
+        return new Set<string>();
+    }, [screenplayId]);
+    
+    const saveDeletedAssetIds = useCallback((ids: Set<string>) => {
+        if (typeof window === 'undefined' || !screenplayId) return;
+        try {
+            sessionStorage.setItem(`deleted-assets-${screenplayId}`, JSON.stringify(Array.from(ids)));
+        } catch (e) {
+            console.warn('[ScreenplayContext] Failed to save deleted asset IDs to sessionStorage:', e);
+        }
+    }, [screenplayId]);
+    
+    // 🔥 FIX: Initialize deleted IDs ref when screenplayId is available
+    useEffect(() => {
+        if (screenplayId) {
+            deletedAssetIdsRef.current = getDeletedAssetIds();
+        } else {
+            deletedAssetIdsRef.current = new Set();
+        }
+    }, [screenplayId, getDeletedAssetIds]);
     
     // Feature 0119: Update screenplay_id when Clerk metadata changes
     // Also listen to localStorage for backward compatibility (EditorContext still triggers storage events)
