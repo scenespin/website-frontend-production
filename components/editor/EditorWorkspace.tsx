@@ -285,14 +285,20 @@ export default function EditorWorkspace() {
     const handleRewriteReplace = (rewrittenText: string) => {
         if (!selectionRange) return;
         
+        console.log('[EditorWorkspace] 📝 handleRewriteReplace called - text length:', rewrittenText.length, 'endsWith newline:', rewrittenText.endsWith('\n'));
+        
         // 🔥 CRITICAL: Don't trim the end - preserve any newline that was added
         // The modal already adds newline if needed, so preserve it
         let cleaned = rewrittenText.trimStart();
+        
+        console.log('[EditorWorkspace] 📝 After trimStart - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
         
         // Check if there's text after the selection
         const textAfter = state.content.substring(selectionRange.end);
         const hasTextAfter = textAfter.trim().length > 0;
         const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+        
+        console.log('[EditorWorkspace] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline);
         
         // Always add newline if there's text after without newline
         // This ensures proper spacing regardless of rewrite length
@@ -300,11 +306,19 @@ export default function EditorWorkspace() {
             // Only add if not already there (modal might have added it)
             if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                 cleaned = cleaned + '\n';
+                console.log('[EditorWorkspace] ✅ Added newline - new length:', cleaned.length);
+            } else {
+                console.log('[EditorWorkspace] ℹ️ Newline already present');
             }
         }
         
+        console.log('[EditorWorkspace] 📝 Final text before replaceSelection - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+        console.log('[EditorWorkspace] 📝 Text preview (last 20 chars):', JSON.stringify(cleaned.slice(-20)));
+        
         // Replace the selected text (newline will be preserved)
         replaceSelection(cleaned, selectionRange.start, selectionRange.end);
+        
+        console.log('[EditorWorkspace] ✅ replaceSelection called with newline preserved');
         
         // Close modal
         setIsRewriteModalOpen(false);

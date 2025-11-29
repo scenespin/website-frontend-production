@@ -408,7 +408,9 @@ export function validateRewriteContent(jsonResponse) {
   }
 
   // Trim only leading/trailing whitespace, preserve internal structure
-  const rewrittenText = parsedJson.rewrittenText.trim();
+  // 🔥 FIX: Don't trim - preserve trailing newlines for proper spacing
+  // Only trim leading whitespace to clean up formatting
+  const rewrittenText = parsedJson.rewrittenText.trimStart();
 
   return {
     valid: true,

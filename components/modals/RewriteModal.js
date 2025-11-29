@@ -117,14 +117,19 @@ function cleanFountainOutput(text) {
   cleaned = screenplayLines.join('\n');
   
   // Whitespace normalization
-  // 1. Trim trailing whitespace from each line
+  // 1. Trim trailing whitespace from each line (but preserve newlines between lines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
   // 2. Normalize multiple consecutive newlines to single newline (but preserve structure)
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
   
-  // 3. Trim leading/trailing whitespace from entire block
-  cleaned = cleaned.trim();
+  // 3. 🔥 FIX: Only trim leading whitespace, preserve trailing newline if present
+  // This is critical for rewrite agent to maintain spacing after rewritten text
+  const hasTrailingNewline = cleaned.endsWith('\n') || cleaned.endsWith('\r\n');
+  cleaned = cleaned.trimStart(); // Only trim leading whitespace
+  if (hasTrailingNewline && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+    cleaned = cleaned + '\n'; // Restore trailing newline if it was removed
+  }
   
   return cleaned;
 }
@@ -279,31 +284,58 @@ export default function RewriteModal({
               // Use the validated rewritten text
               let cleaned = validation.rewrittenText;
               
+              console.log('[RewriteModal] 📝 After JSON validation - cleaned length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+              
               if (!cleaned || cleaned.trim().length === 0) {
                 toast.error('No valid content returned from rewrite');
                 setIsLoading(false);
                 return;
               }
               
-              // 🔥 FIX: Always add newline if there's text after (regardless of length change)
-              // This ensures proper spacing whether rewrite is longer, shorter, or same length
+              // 🔥 FIX: Add newline BEFORE any processing if there's text after
+              // This ensures the newline is part of the content being processed
               const textAfter = editorContent.substring(selectionRange.end);
               const hasTextAfter = textAfter.trim().length > 0;
               const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
               
-              // If there's text after without newline, always add newline
+              console.log('[RewriteModal] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline);
+              
+              // If there's text after without newline, add newline BEFORE any other processing
               if (hasTextAfter && !textAfterStartsWithNewline) {
                 if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                   cleaned = cleaned + '\n';
+                  console.log('[RewriteModal] ✅ Added newline after JSON validation - new length:', cleaned.length);
+                } else {
+                  console.log('[RewriteModal] ℹ️ Newline already present after JSON validation');
                 }
               }
+              
+              console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
               
               // Replace the selected text
               onReplace(cleaned);
             } else {
               console.warn('[RewriteModal] ❌ JSON validation failed:', validation.errors);
-              // Fallback to text cleaning
-              let cleaned = cleanFountainOutput(fullContent);
+              
+              // 🔥 FIX: Add newline BEFORE cleaning if there's text after
+              // This ensures the newline is preserved through the cleaning process
+              const textAfter = editorContent.substring(selectionRange.end);
+              const hasTextAfter = textAfter.trim().length > 0;
+              const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+              
+              console.log('[RewriteModal] 📝 Before cleaning - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline);
+              
+              // Add newline to raw content BEFORE cleaning if needed
+              let contentToClean = fullContent;
+              if (hasTextAfter && !textAfterStartsWithNewline && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
+                contentToClean = fullContent + '\n';
+                console.log('[RewriteModal] ✅ Added newline BEFORE cleaning - new length:', contentToClean.length);
+              }
+              
+              // Fallback to text cleaning (now with newline preserved if added)
+              let cleaned = cleanFountainOutput(contentToClean);
+              
+              console.log('[RewriteModal] 📝 After cleaning - cleaned length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
               
               if (!cleaned || cleaned.trim().length === 0) {
                 toast.error('No valid content returned from rewrite');
@@ -311,31 +343,53 @@ export default function RewriteModal({
                 return;
               }
               
-              // 🔥 FIX: Always add newline if there's text after (regardless of length change)
-              // This ensures proper spacing whether rewrite is longer, shorter, or same length
-              const textAfter = editorContent.substring(selectionRange.end);
-              const hasTextAfter = textAfter.trim().length > 0;
-              const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
-              
-              // If there's text after without newline, always add newline
+              // Double-check: ensure newline is still there after cleaning
               if (hasTextAfter && !textAfterStartsWithNewline) {
                 if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                   cleaned = cleaned + '\n';
+                  console.log('[RewriteModal] ✅ Added newline AFTER cleaning (fallback) - new length:', cleaned.length);
+                } else {
+                  console.log('[RewriteModal] ℹ️ Newline preserved through cleaning');
                 }
               }
+              
+              console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
               
               // Replace the selected text
               onReplace(cleaned);
             }
           } else {
             // Fallback: Original text format
-            const cleaned = cleanFountainOutput(fullContent);
+            // 🔥 FIX: Add newline BEFORE cleaning if there's text after
+            const textAfter = editorContent.substring(selectionRange.end);
+            const hasTextAfter = textAfter.trim().length > 0;
+            const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+            
+            console.log('[RewriteModal] 📝 Original format - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter);
+            
+            let contentToClean = fullContent;
+            if (hasTextAfter && !textAfterStartsWithNewline && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
+              contentToClean = fullContent + '\n';
+              console.log('[RewriteModal] ✅ Added newline BEFORE cleaning (original format)');
+            }
+            
+            let cleaned = cleanFountainOutput(contentToClean);
+            
+            console.log('[RewriteModal] 📝 After cleaning (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
             
             if (!cleaned || cleaned.trim().length === 0) {
               toast.error('No valid content returned from rewrite');
               setIsLoading(false);
               return;
             }
+            
+            // Double-check newline after cleaning
+            if (hasTextAfter && !textAfterStartsWithNewline && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+              cleaned = cleaned + '\n';
+              console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format fallback)');
+            }
+            
+            console.log('[RewriteModal] 📝 Final text before onReplace (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
             
             // Replace the selected text
             onReplace(cleaned);

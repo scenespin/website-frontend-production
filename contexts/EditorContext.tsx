@@ -547,6 +547,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     }, []);
     
     const replaceSelection = useCallback((text: string, start: number, end: number) => {
+        console.log('[EditorContext] 📝 replaceSelection called - text length:', text.length, 'endsWith newline:', text.endsWith('\n'));
+        console.log('[EditorContext] 📝 Text preview (last 20 chars):', JSON.stringify(text.slice(-20)));
+        
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -562,7 +565,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             const after = prev.content.substring(end);
             const newContent = before + text + after;
             
-            console.log('[EditorContext] replaceSelection - pushed to undo stack, setting highlightRange:', { start, end: start + text.length });
+            console.log('[EditorContext] 📝 New content length:', newContent.length);
+            console.log('[EditorContext] 📝 New content preview (around insertion):', JSON.stringify(newContent.substring(Math.max(0, start - 10), start + text.length + 10)));
+            console.log('[EditorContext] ✅ replaceSelection - pushed to undo stack, setting highlightRange:', { start, end: start + text.length });
             
             return {
                 ...prev,
