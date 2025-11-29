@@ -25,7 +25,7 @@ interface AssetDetailModalProps {
   onClose: () => void;
   asset: Asset;
   onUpdate: () => void;
-  onDelete: () => void;
+  onDelete?: () => void; // 🔥 Made optional - delete removed from Production Hub
   onGenerate3D: (asset: Asset) => void;
   isMobile?: boolean;
 }
@@ -91,31 +91,7 @@ export default function AssetDetailModal({
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm(`Delete "${asset.name}"? This cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/asset-bank/${asset.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (response.ok) {
-        onDelete();
-        onClose();
-        toast.success('Asset deleted successfully');
-      } else {
-        throw new Error('Failed to delete asset');
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      toast.error('Failed to delete asset');
-    }
-  };
+  // 🔥 REMOVED: handleDelete function - assets should only be deleted from Create page
 
   const handleCancel = () => {
     setName(asset.name);
@@ -191,13 +167,7 @@ export default function AssetDetailModal({
                     >
                       <Edit2 className="w-5 h-5" />
                     </button>
-                    <button
-                      onClick={handleDelete}
-                      className="p-2 hover:bg-[#DC143C]/20 rounded-lg transition-colors text-[#DC143C] hover:text-[#DC143C]"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    {/* 🔥 REMOVED: Delete button - assets should only be deleted from Create page */}
                   </>
                 )}
                 {editing && !isMobile && (
