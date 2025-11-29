@@ -267,21 +267,47 @@ export default function CharacterDetailSidebar({
 
       // Step 4: Persist image to character (or add to pending)
       if (character) {
-        // Existing character - update character's images array directly
-        const currentImages = character.images || [];
-        const newImage: ImageAsset = {
-          imageUrl: downloadUrl,
-          createdAt: new Date().toISOString(),
-          metadata: {
-            angle: angle,
-            s3Key: s3Key
-          }
-        };
+        // 🔥 FIX: Get latest character from context to avoid stale images (race condition)
+        // If multiple images are uploaded quickly, they all use the same stale character.images
+        // Get the latest from context to ensure we're appending to the most recent images array
+        const currentCharacter = characters.find(c => c.id === character.id) || character;
+        const currentImages = currentCharacter.images || [];
         
-        // Update character with new image - this persists to DynamoDB
-        await updateCharacter(character.id, {
-          images: [...currentImages, newImage]
-        });
+        // Check if image with same angle already exists (prevent duplicates)
+        const existingImageWithAngle = currentImages.find(img => img.metadata?.angle === angle);
+        if (existingImageWithAngle && angle) {
+          toast.warning(`An image with ${angle} angle already exists. Replacing it.`);
+          // Replace existing image with same angle
+          const updatedImages = currentImages.map(img => 
+            img.metadata?.angle === angle ? {
+              imageUrl: downloadUrl,
+              createdAt: new Date().toISOString(),
+              metadata: {
+                angle: angle,
+                s3Key: s3Key
+              }
+            } : img
+          );
+          
+          await updateCharacter(character.id, {
+            images: updatedImages
+          });
+        } else {
+          // Add new image (no existing image with this angle)
+          const newImage: ImageAsset = {
+            imageUrl: downloadUrl,
+            createdAt: new Date().toISOString(),
+            metadata: {
+              angle: angle,
+              s3Key: s3Key
+            }
+          };
+          
+          // Update character with new image - this persists to DynamoDB
+          await updateCharacter(character.id, {
+            images: [...currentImages, newImage]
+          });
+        }
         
         // Force a small delay to ensure DynamoDB consistency
         await new Promise(resolve => setTimeout(resolve, 500));

@@ -431,6 +431,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             type: (char.type as CharacterType) || 'lead', // 🔥 FIX: Read type from API, default to 'lead'
             arcStatus: (char.arcStatus as ArcStatus) || 'introduced' as ArcStatus, // 🔥 FIX: Read arcStatus from API, default to 'introduced' if missing
             arcNotes: char.arcNotes || '', // 🔥 FIX: Read arcNotes from API
+            physicalAttributes: char.physicalAttributes || undefined, // 🔥 FIX: Include physicalAttributes from API
             images: (char.referenceImages || []).map((url: string) => ({
                 imageUrl: url,
                 description: ''
@@ -1790,9 +1791,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.type !== undefined) apiUpdates.type = updates.type; // 🔥 FIX: Include type field
                 if (updates.arcStatus !== undefined) apiUpdates.arcStatus = updates.arcStatus; // 🔥 CRITICAL: Include arcStatus
                 if (updates.arcNotes !== undefined) apiUpdates.arcNotes = updates.arcNotes; // 🔥 FIX: Include arcNotes field
-                if (updates.physicalAttributes !== undefined) apiUpdates.physicalAttributes = updates.physicalAttributes; // 🔥 FIX: Include physicalAttributes
+                // 🔥 FIX: Include physicalAttributes - check both direct property and nested object
+                if (updates.physicalAttributes !== undefined) {
+                    apiUpdates.physicalAttributes = updates.physicalAttributes;
+                }
                 if (updates.images !== undefined) {
                     apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
+                }
+                
+                // 🔥 DEBUG: Log physicalAttributes to verify it's being sent
+                if (updates.physicalAttributes !== undefined) {
+                    console.log('[ScreenplayContext] 📤 Sending physicalAttributes to API:', updates.physicalAttributes);
                 }
                 
                 console.log('[ScreenplayContext] 📤 Sending character update to API:', { characterId: id, apiUpdates });
