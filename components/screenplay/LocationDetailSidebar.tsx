@@ -572,9 +572,9 @@ export default function LocationDetailSidebar({
                     entityName={formData.name || 'New Location'}
                     onDeleteImage={async (index: number) => {
                       if (location) {
-                        if (confirm('Remove this image from the location?')) {
-                          try {
-                            // 🔥 FIX: Use updateLocation directly (like assets/characters) instead of removeImageFromEntity
+                        // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
+                        try {
+                          // 🔥 FIX: Use updateLocation directly (like assets/characters) instead of removeImageFromEntity
                             // Get current location from context to ensure we have latest images
                             const currentLocation = locations.find(l => l.id === location.id) || location;
                             const updatedImages = (currentLocation.images || []).filter((_, i) => i !== index);

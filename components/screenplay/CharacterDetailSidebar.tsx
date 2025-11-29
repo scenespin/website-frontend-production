@@ -779,7 +779,8 @@ export default function CharacterDetailSidebar({
                               // Find the actual image in allImages array by matching imageUrl
                               const imageToDelete = frontImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0 && confirm('Remove this headshot?')) {
+                              if (actualIndex >= 0) {
+                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
                                 try {
                                   // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
                                   // Get current character from context to ensure we have latest images
@@ -838,7 +839,8 @@ export default function CharacterDetailSidebar({
                             if (character) {
                               const imageToDelete = sideImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0 && confirm('Remove this headshot?')) {
+                              if (actualIndex >= 0) {
+                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
                                 try {
                                   // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
                                   const currentCharacter = characters.find(c => c.id === character.id) || character;
@@ -882,7 +884,8 @@ export default function CharacterDetailSidebar({
                             if (character) {
                               const imageToDelete = threeQuarterImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0 && confirm('Remove this headshot?')) {
+                              if (actualIndex >= 0) {
+                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
                                 try {
                                   // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
                                   const currentCharacter = characters.find(c => c.id === character.id) || character;
@@ -926,7 +929,8 @@ export default function CharacterDetailSidebar({
                             if (character) {
                               const imageToDelete = otherImages[index]
                               const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0 && confirm('Remove this image?')) {
+                              if (actualIndex >= 0) {
+                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
                                 try {
                                   // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
                                   const currentCharacter = characters.find(c => c.id === character.id) || character;

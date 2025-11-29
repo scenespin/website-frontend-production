@@ -1790,6 +1790,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.type !== undefined) apiUpdates.type = updates.type; // 🔥 FIX: Include type field
                 if (updates.arcStatus !== undefined) apiUpdates.arcStatus = updates.arcStatus; // 🔥 CRITICAL: Include arcStatus
                 if (updates.arcNotes !== undefined) apiUpdates.arcNotes = updates.arcNotes; // 🔥 FIX: Include arcNotes field
+                if (updates.physicalAttributes !== undefined) apiUpdates.physicalAttributes = updates.physicalAttributes; // 🔥 FIX: Include physicalAttributes
                 if (updates.images !== undefined) {
                     apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
                 }
