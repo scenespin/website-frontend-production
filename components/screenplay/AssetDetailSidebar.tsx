@@ -391,11 +391,21 @@ export default function AssetDetailSidebar({
     }
   }
 
+  // 🔥 FIX: Track if deletion is in progress to prevent duplicate calls
+  const deletingImageRef = useRef<number | null>(null);
+  
   const handleRemoveImage = async (index: number) => {
     if (!asset) return;
     
+    // 🔥 FIX: Prevent duplicate calls
+    if (deletingImageRef.current === index) {
+      return; // Already deleting this image
+    }
+    
     // 🔥 FIX: ImageGallery already shows a confirm dialog, so we don't need another one
     // Just proceed with the deletion
+    deletingImageRef.current = index;
+    
     try {
       // Get current asset from context to ensure we have latest images
       const currentAsset = assets.find(a => a.id === asset.id) || asset;
@@ -417,7 +427,7 @@ export default function AssetDetailSidebar({
         setFormData({ ...updatedAssetFromContext });
       }
       
-      // 🔥 FIX: Only show one toast notification (ImageGallery doesn't show one)
+      // 🔥 FIX: Only show one toast notification
       toast.success('Image removed');
     } catch (error: any) {
       // Rollback on error
@@ -426,6 +436,8 @@ export default function AssetDetailSidebar({
         images: asset.images || []
       }));
       toast.error(`Failed to remove image: ${error.message}`);
+    } finally {
+      deletingImageRef.current = null;
     }
   }
 
