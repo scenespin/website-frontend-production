@@ -1088,16 +1088,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             }
                         }
                         
-                        // Remove duplicates (prioritize API response over optimistic)
+                        // Remove duplicates - prefer newer version (by updatedAt timestamp)
                         const unique = merged.reduce((acc, asset) => {
                             const existing = acc.find(a => a.id === asset.id);
                             if (!existing) {
                                 acc.push(asset);
                             } else {
-                                // If both exist, prefer API version (has real data)
+                                // If both exist, compare timestamps to determine which is newer
                                 const index = acc.indexOf(existing);
-                                if (apiAssetIds.has(asset.id)) {
-                                    acc[index] = asset; // Replace with API version
+                                const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                                const assetUpdatedAt = asset.updatedAt ? new Date(asset.updatedAt).getTime() : 0;
+                                
+                                // 🔥 FIX: Prefer the version with the newer updatedAt timestamp
+                                // This prevents stale API data from overwriting recent updates
+                                if (assetUpdatedAt > existingUpdatedAt) {
+                                    acc[index] = asset; // Replace with newer version
+                                    console.log('[ScreenplayContext] 🔄 Replacing asset with newer version:', asset.id, {
+                                        existingUpdatedAt: new Date(existingUpdatedAt).toISOString(),
+                                        assetUpdatedAt: new Date(assetUpdatedAt).toISOString(),
+                                        existingImages: existing.images?.length || 0,
+                                        assetImages: asset.images?.length || 0
+                                    });
+                                } else {
+                                    // Keep existing version (it's newer or same)
+                                    console.log('[ScreenplayContext] ⏭️ Keeping existing asset (newer or same):', asset.id, {
+                                        existingUpdatedAt: new Date(existingUpdatedAt).toISOString(),
+                                        assetUpdatedAt: new Date(assetUpdatedAt).toISOString()
+                                    });
                                 }
                             }
                             return acc;

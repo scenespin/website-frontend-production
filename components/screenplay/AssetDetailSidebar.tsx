@@ -431,9 +431,18 @@ export default function AssetDetailSidebar({
     deletingImageRef.current = index;
     
     try {
-      // Get current asset from context to ensure we have latest images
-      const currentAsset = assets.find(a => a.id === asset.id) || asset;
-      const updatedImages = (currentAsset.images || []).filter((_, i) => i !== index);
+      // 🔥 FIX: Use ref to get latest asset from context to avoid stale closures
+      const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
+      const currentImages = currentAsset.images || [];
+      
+      console.log('[AssetDetailSidebar] 🗑️ Deleting image:', {
+        assetId: asset.id,
+        currentImageCount: currentImages.length,
+        deletingIndex: index,
+        imageUrl: currentImages[index]?.url
+      });
+      
+      const updatedImages = currentImages.filter((_, i) => i !== index);
       
       // 🔥 FIX: Optimistic UI update - remove image immediately
       setFormData(prev => ({
@@ -446,15 +455,22 @@ export default function AssetDetailSidebar({
       
       // Sync from context after update (with delay for DynamoDB consistency)
       await new Promise(resolve => setTimeout(resolve, 500));
-      const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+      // 🔥 FIX: Use ref to get latest asset after update
+      const updatedAssetFromContext = assetsRef.current.find(a => a.id === asset.id);
       if (updatedAssetFromContext) {
+        console.log('[AssetDetailSidebar] 🗑️ Syncing from context after delete:', {
+          imageCount: updatedAssetFromContext.images?.length || 0
+        });
         setFormData({ ...updatedAssetFromContext });
+      } else {
+        console.warn('[AssetDetailSidebar] ⚠️ Asset not found in context after delete:', asset.id);
       }
       
       // 🔥 FIX: Only show one toast notification
       toast.success('Image removed');
     } catch (error: any) {
       // Rollback on error
+      console.error('[AssetDetailSidebar] Failed to remove image:', error);
       setFormData(prev => ({
         ...prev,
         images: asset.images || []
