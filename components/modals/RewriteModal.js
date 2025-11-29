@@ -238,10 +238,14 @@ export default function RewriteModal({
         after: textAfter
       };
       
-      const builtPrompt = buildRewritePrompt(prompt, selectedText, sceneContext, surroundingText);
+      // 🔥 PHASE 4: Use JSON format for rewrite (structured output)
+      const useJSONFormat = true;
+      const builtPrompt = buildRewritePrompt(prompt, selectedText, sceneContext, surroundingText, useJSONFormat);
       
       // System prompt for rewrite
-      const systemPrompt = "You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten text in Fountain format.";
+      const systemPrompt = useJSONFormat
+        ? "You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. You MUST respond with valid JSON only. No explanations, no markdown, just JSON with the rewritten text."
+        : "You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten text in Fountain format.";
       
       // Call API
       let accumulatedText = '';
@@ -264,18 +268,52 @@ export default function RewriteModal({
           accumulatedText += chunk;
         },
         // onComplete
-        (fullContent) => {
-          // Clean the response
-          const cleaned = cleanFountainOutput(fullContent);
-          
-          if (!cleaned || cleaned.trim().length === 0) {
-            toast.error('No valid content returned from rewrite');
-            setIsLoading(false);
-            return;
+        async (fullContent) => {
+          // 🔥 PHASE 4: Validate JSON for rewrite requests
+          if (useJSONFormat) {
+            const { validateRewriteContent } = await import('@/utils/jsonValidator');
+            const validation = validateRewriteContent(fullContent);
+            
+            if (validation.valid) {
+              console.log('[RewriteModal] ✅ JSON validation passed');
+              // Use the validated rewritten text
+              const cleaned = validation.rewrittenText;
+              
+              if (!cleaned || cleaned.trim().length === 0) {
+                toast.error('No valid content returned from rewrite');
+                setIsLoading(false);
+                return;
+              }
+              
+              // Replace the selected text
+              onReplace(cleaned);
+            } else {
+              console.warn('[RewriteModal] ❌ JSON validation failed:', validation.errors);
+              // Fallback to text cleaning
+              const cleaned = cleanFountainOutput(fullContent);
+              
+              if (!cleaned || cleaned.trim().length === 0) {
+                toast.error('No valid content returned from rewrite');
+                setIsLoading(false);
+                return;
+              }
+              
+              // Replace the selected text
+              onReplace(cleaned);
+            }
+          } else {
+            // Fallback: Original text format
+            const cleaned = cleanFountainOutput(fullContent);
+            
+            if (!cleaned || cleaned.trim().length === 0) {
+              toast.error('No valid content returned from rewrite');
+              setIsLoading(false);
+              return;
+            }
+            
+            // Replace the selected text
+            onReplace(cleaned);
           }
-          
-          // Replace the selected text
-          onReplace(cleaned);
           
           // Close modal
           onClose();

@@ -820,6 +820,8 @@ function UnifiedChatPanelInner({
           );
           
           if (selectionContext) {
+            // 🔥 PHASE 4: Use JSON format for rewrite (structured output)
+            const useJSONFormat = true;
             // Build rewrite prompt with surrounding text
             finalUserPrompt = buildRewritePrompt(
               message,
@@ -828,12 +830,18 @@ function UnifiedChatPanelInner({
               {
                 before: selectionContext.beforeContext,
                 after: selectionContext.afterContext
-              }
+              },
+              useJSONFormat
             );
             
             // System prompt for rewrite mode
-            systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
-            systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+            if (useJSONFormat) {
+              systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
+              systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. You MUST respond with valid JSON only. No explanations, no markdown, just JSON with the rewritten text.`;
+            } else {
+              systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
+              systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+            }
           }
         }
         

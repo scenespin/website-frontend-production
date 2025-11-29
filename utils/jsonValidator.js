@@ -98,16 +98,34 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
   }
 
   // Step 5: Check for duplicate content (if context provided)
+  // Simple but effective: Check if any generated line exactly matches or is a substantial substring of context
   if (contextBeforeCursor && parsedJson.content && Array.isArray(parsedJson.content)) {
     const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    // Also check the full context as a single string for multi-line duplicates
+    const normalizedFullContext = contextBeforeCursor.toLowerCase().replace(/\s+/g, ' ');
+    
     parsedJson.content.forEach((line, index) => {
       const normalizedLine = line.trim().toLowerCase().replace(/\s+/g, ' ');
-      const isDuplicate = contextLines.some(contextLine => {
+      
+      // Skip very short lines (likely just formatting)
+      if (normalizedLine.length < 5) return;
+      
+      // Check 1: Exact match with any context line
+      const exactMatch = contextLines.some(contextLine => {
         const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
-        return normalizedContext === normalizedLine || 
-               (normalizedContext.includes(normalizedLine) && normalizedLine.length > 10);
+        return normalizedContext === normalizedLine;
       });
-      if (isDuplicate) {
+      
+      // Check 2: If line is substantial (10+ chars), check if it's a substring of any context line
+      const isSubstring = normalizedLine.length >= 10 && contextLines.some(contextLine => {
+        const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
+        return normalizedContext.includes(normalizedLine);
+      });
+      
+      // Check 3: Check if the line appears in the full context (catches multi-line duplicates)
+      const appearsInFullContext = normalizedLine.length >= 10 && normalizedFullContext.includes(normalizedLine);
+      
+      if (exactMatch || isSubstring || appearsInFullContext) {
         errors.push(`Content item ${index} is a duplicate of content before cursor`);
       }
     });
@@ -173,7 +191,7 @@ export function supportsNativeJSON(modelId) {
  * @param {string} generationLength - 'short' (5-10), 'full' (15-30), 'multiple' (50+)
  * @returns {{ valid: boolean, content: string, errors: string[], rawJson?: object }}
  */
-export function validateDirectorContent(jsonResponse, contextBeforeCursor = null, generationLength = 'full') {
+export function validateDirectorContent(jsonResponse, contextBeforeCursor = null, generationLength = 'full', sceneCount = 3) {
   if (!jsonResponse || typeof jsonResponse !== 'string') {
     return {
       valid: false,
@@ -320,6 +338,91 @@ export function validateDirectorContent(jsonResponse, contextBeforeCursor = null
   return {
     valid: true,
     content,
+    errors: [],
+    rawJson: parsedJson
+  };
+}
+
+/**
+ * Validates and extracts rewrite content from JSON response
+ * @param {string} jsonResponse - Raw response from LLM (may be JSON or markdown-wrapped)
+ * @returns {{ valid: boolean, rewrittenText: string, errors: string[], rawJson?: object }}
+ */
+export function validateRewriteContent(jsonResponse) {
+  if (!jsonResponse || typeof jsonResponse !== 'string') {
+    return {
+      valid: false,
+      rewrittenText: '',
+      errors: ['Response is empty or not a string']
+    };
+  }
+
+  let parsedJson = null;
+  let rawJsonString = jsonResponse.trim();
+
+  // Step 1: Try to extract JSON from markdown code blocks
+  const jsonBlockMatch = rawJsonString.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (jsonBlockMatch) {
+    rawJsonString = jsonBlockMatch[1].trim();
+  }
+
+  // Also try generic code blocks
+  const codeBlockMatch = rawJsonString.match(/```\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1].trim().startsWith('{')) {
+    rawJsonString = codeBlockMatch[1].trim();
+  }
+
+  // Step 2: Try to find JSON object in the response
+  const jsonObjectMatch = rawJsonString.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    rawJsonString = jsonObjectMatch[0];
+  }
+
+  // Step 3: Parse JSON
+  try {
+    parsedJson = JSON.parse(rawJsonString);
+  } catch (error) {
+    return {
+      valid: false,
+      rewrittenText: '',
+      errors: [`JSON parsing failed: ${error.message}`, `Attempted to parse: ${rawJsonString.substring(0, 200)}...`]
+    };
+  }
+
+  // Step 4: Validate schema
+  const errors = [];
+
+  // Check if it's an object
+  if (typeof parsedJson !== 'object' || parsedJson === null || Array.isArray(parsedJson)) {
+    errors.push('Response must be a JSON object, not an array or primitive');
+    return { valid: false, rewrittenText: '', errors, rawJson: parsedJson };
+  }
+
+  // Check for required field
+  if (!parsedJson.rewrittenText) {
+    errors.push('Missing required field: "rewrittenText"');
+  } else if (typeof parsedJson.rewrittenText !== 'string') {
+    errors.push('Field "rewrittenText" must be a string');
+  } else if (parsedJson.rewrittenText.trim().length === 0) {
+    errors.push('Field "rewrittenText" cannot be empty');
+  }
+
+  // Step 5: Extract content if valid
+  if (errors.length > 0) {
+    return {
+      valid: false,
+      rewrittenText: '',
+      errors,
+      rawJson: parsedJson
+    };
+  }
+
+  // Trim only leading/trailing whitespace, preserve internal structure
+  const rewrittenText = parsedJson.rewrittenText.trim();
+
+  return {
+    valid: true,
+    rewrittenText,
     errors: [],
     rawJson: parsedJson
   };

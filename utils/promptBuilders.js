@@ -94,7 +94,7 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
       continuationContext += `${sceneContext.contextAfterCursor}...\n`;
     }
     
-    continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output.';
+    continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output. DO NOT repeat any of the text shown above the cursor marker.';
   }
 
   // Phase 4: JSON Format Request
@@ -148,7 +148,9 @@ CRITICAL INSTRUCTIONS:
 3. Each item is a screenplay line (action or dialogue)
 4. NO scene headings (INT./EXT.)
 5. NO repeating content before cursor
-6. lineCount must exactly match content.length${continuationContext}
+6. lineCount must exactly match content.length
+7. NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
+${continuationContext}
 
 OUTPUT: Only valid JSON object. Nothing else.`;
   }
@@ -173,6 +175,8 @@ YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
 
 ✅ YOU MUST ONLY:
 Write 1-5 vivid screenplay elements in Fountain format. CONTINUE the scene from the cursor position - write ONLY what comes NEXT, not what came before.
+
+🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
 
 CONTINUATION EXAMPLE:
 User's cursor is after: "She starts downloading everything."
@@ -287,7 +291,7 @@ Note: The user is asking for advice or discussion. Keep your response concise an
  * @param {boolean} useJSON - Whether to use JSON format (structured output)
  * @returns {string} Formatted prompt for Director mode
  */
-export function buildDirectorPrompt(message, sceneContext, generationLength = 'full', useJSON = true) {
+export function buildDirectorPrompt(message, sceneContext, generationLength = 'full', useJSON = true, sceneCount = 3) {
   const contextInfo = buildContextInfo(sceneContext);
   
   // Define length requirements based on generationLength
@@ -388,6 +392,7 @@ FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
 - Dialogue in plain text below character name
 - Action lines in normal case
 - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
+- 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
 - PROPER NEWLINES REQUIRED:
   - Character names MUST be on their own line (ALL CAPS)
   - Parentheticals MUST be on their own line below character name: (in parentheses)
@@ -513,7 +518,7 @@ Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes
  * @param {Object} surroundingText - { before: string, after: string } - Text before/after selection
  * @returns {string} Formatted prompt for rewrite
  */
-export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null) {
+export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null, useJSON = false) {
   let contextInfo = '';
   
   // Add surrounding text for seamless integration
@@ -572,10 +577,72 @@ CRITICAL INSTRUCTIONS:
 9. Character names in ALL CAPS only when speaking
 10. NO markdown formatting (no **, no *, no ---)
 11. Each option should be clearly separated and labeled
+12. 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
 
 Output: 3 distinct rewrite options in the format above.`;
   }
   
+  // JSON Format (Phase 4: Structured Output) - For specific rewrite requests
+  if (useJSON) {
+    return `${contextInfo}User's rewrite request: "${message}"
+
+YOU ARE A SCREENPLAY REWRITE ASSISTANT - REWRITE THE SELECTED TEXT.
+
+🚫 ABSOLUTELY FORBIDDEN:
+- NO analysis, critique, or feedback about the story
+- NO suggestions or alternatives
+- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
+- NO explanations about why something is good or bad
+- NO meta-commentary about writing or storytelling
+- NO scene headings (INT./EXT.) - NEVER include scene headings
+- NO repeating information from surrounding text
+- NO adding excessive detail beyond the request
+- NO markdown formatting (no **, no *, no ---)
+- 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
+
+✅ YOU MUST RESPOND WITH VALID JSON ONLY:
+
+{
+  "rewrittenText": "the rewritten text in Fountain format"
+}
+
+JSON SCHEMA REQUIREMENTS:
+- "rewrittenText": Single string containing the rewritten text in Fountain format
+- NO scene headings in the rewritten text
+- NO markdown formatting in JSON strings
+- NO explanations outside JSON
+- Maintain proper Fountain format with PROPER NEWLINES:
+  - Character names MUST be on their own line (ALL CAPS)
+  - Parentheticals MUST be on their own line below character name: (in parentheses)
+  - Dialogue MUST be on its own line below character name (or parenthetical if present)
+  - Action lines are separate paragraphs (each on its own line or lines)
+  - Empty line after dialogue blocks
+
+CRITICAL INSTRUCTIONS:
+1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
+2. Write ONLY what the user requested - be LITERAL
+3. If they say "make this more dramatic", intensify the existing content without adding new elements
+4. If they say "make this concise", shorten it without changing the meaning
+5. If they say "add dialogue", add ONLY dialogue - no extra action
+6. Keep the same scene location: ${sceneContext?.heading || 'current scene'} - NO scene headings
+7. Use ONLY these characters: ${sceneContext?.characters?.join(', ') || 'existing characters'}
+8. Match the length of the original text unless specifically asked to expand/shorten
+9. BLEND SEAMLESSLY with surrounding text (see before/after context above)
+10. Do NOT repeat information from surrounding text
+11. Do NOT add excessive detail beyond the request
+12. Output ONLY the rewritten selection - nothing before, nothing after
+13. Character names in ALL CAPS only when speaking
+14. If generating more content than the original line length, use proper line breaks
+
+EXAMPLE JSON RESPONSE:
+{
+  "rewrittenText": "SARAH CHEN (30s), razor-sharp eyes burning with exhausted fury, hunches at her desk like a caged predator. Awards crowd the wall behind her -- Journalist of the Year, Pulitzer finalist, two Press Freedom citations. But her face is carved from stone, hollow with soul-crushing boredom."
+}
+
+OUTPUT: Only valid JSON object. Nothing else.`;
+  }
+  
+  // Fallback: Original text format (for backward compatibility)
   const fullPrompt = `${contextInfo}User's rewrite request: "${message}"
 
 CRITICAL INSTRUCTIONS:
@@ -606,6 +673,7 @@ CRITICAL INSTRUCTIONS:
 14. This is STANDALONE - ignore previous responses
 15. Output only screenplay content - no explanations or suggestions
 16. If generating more content than the original line length, use proper line breaks
+17. 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
 
 Format: Pure Fountain screenplay text matching the user's specific request with proper newlines.`;
   

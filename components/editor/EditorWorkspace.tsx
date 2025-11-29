@@ -304,11 +304,11 @@ export default function EditorWorkspace() {
                 cleaned = cleaned + '\n';
             }
             
-            // Case 2: Rewrite is significantly longer than original (even if still single line)
-            // This handles cases where a short line expands into a much longer line
-            // Threshold: if rewrite is 50% longer than original, it likely needs a newline
+            // Case 2: Rewrite is longer than original (even if still single line)
+            // If rewrite is longer, it likely needs a newline after it to separate from following content
+            // Lower threshold: if rewrite is 20% longer than original, add newline
             const lengthIncrease = rewriteLength / originalLength;
-            if (lengthIncrease > 1.5 && originalWasSingleLine && !rewriteIsMultiLine && hasTextAfter && !textAfterStartsWithNewline) {
+            if (lengthIncrease > 1.2 && hasTextAfter && !textAfterStartsWithNewline) {
                 // Add a newline after the expanded text
                 cleaned = cleaned + '\n';
             }
