@@ -1009,8 +1009,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         // Get IDs of assets from filtered API response
                         const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
                         
-                        // Find optimistic assets (in prev but not in API response)
-                        // Also load from sessionStorage in case state was reset
+                        // 🔥 CRITICAL FIX: Load ALL recently updated assets from sessionStorage
+                        // This includes both newly created AND recently updated assets
+                        // The sessionStorage is updated by both createAsset and updateAsset
                         const sessionStorageAssets: Asset[] = [];
                         if (screenplayId && typeof window !== 'undefined') {
                             try {
@@ -1018,35 +1019,56 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 if (stored) {
                                     const storedAssets = JSON.parse(stored) as Asset[];
                                     const now = Date.now();
+                                    // Include assets that were created OR updated recently (within last 5 minutes)
                                     sessionStorageAssets.push(...storedAssets.filter(a => {
-                                        const createdAt = new Date(a.createdAt).getTime();
-                                        const age = now - createdAt;
+                                        // Use updatedAt if available (for updated assets), otherwise createdAt (for new assets)
+                                        const timestamp = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+                                        const age = now - timestamp;
                                         return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
                                     }));
+                                    console.log('[ScreenplayContext] 📦 Loaded', sessionStorageAssets.length, 'assets from sessionStorage (includes updated assets)');
                                 }
                             } catch (e) {
-                                console.warn('[ScreenplayContext] Failed to load optimistic assets from sessionStorage:', e);
+                                console.warn('[ScreenplayContext] Failed to load assets from sessionStorage:', e);
                             }
                         }
                         
                         // Combine prev state and sessionStorage assets
+                        // 🔥 CRITICAL: prev might be empty if state was reset, so sessionStorage is crucial
                         const allOptimistic = [...prev, ...sessionStorageAssets];
                         
-                        // Find optimistic assets that aren't in API response
+                        // Find assets that aren't in API response OR have been updated more recently
+                        // This includes both newly created assets and recently updated assets
                         const optimisticAssets = allOptimistic.filter(a => {
-                            if (apiAssetIds.has(a.id)) {
-                                return false; // Already in API response
-                            }
                             if (deletedAssetIdsRef.current.has(a.id)) {
                                 return false; // Was deleted, don't keep
                             }
-                            // Only keep assets created recently (within last 5 minutes)
-                            // This handles DynamoDB GSI eventual consistency window
-                            // GSI queries can take up to several minutes to reflect new items
-                            const createdAt = new Date(a.createdAt).getTime();
-                            const now = Date.now();
-                            const age = now - createdAt;
-                            return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
+                            
+                            // Check if asset exists in API response
+                            const apiAsset = filteredApiAssets.find(api => api.id === a.id);
+                            if (!apiAsset) {
+                                // Asset not in API - keep if recently created (within last 5 minutes)
+                                const createdAt = new Date(a.createdAt).getTime();
+                                const now = Date.now();
+                                const age = now - createdAt;
+                                return age < 300000; // 5 minutes - handles GSI eventual consistency
+                            } else {
+                                // Asset exists in API - keep if our version is newer (updated more recently)
+                                const apiUpdatedAt = apiAsset.updatedAt ? new Date(apiAsset.updatedAt).getTime() : 0;
+                                const ourUpdatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+                                const isNewer = ourUpdatedAt > apiUpdatedAt + 1000; // More than 1 second newer
+                                
+                                if (isNewer) {
+                                    console.log('[ScreenplayContext] 🔄 Keeping updated asset from sessionStorage (newer than API):', a.id, {
+                                        apiUpdatedAt: new Date(apiUpdatedAt).toISOString(),
+                                        ourUpdatedAt: new Date(ourUpdatedAt).toISOString(),
+                                        apiImages: apiAsset.images?.length || 0,
+                                        ourImages: a.images?.length || 0
+                                    });
+                                }
+                                
+                                return isNewer; // Keep if our version is newer
+                            }
                         });
                         
                         // Remove duplicates from optimistic assets
@@ -1059,6 +1081,38 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         
                         // Start with filtered API assets (source of truth, minus deleted ones)
                         const merged = [...filteredApiAssets];
+                        
+                        // 🔥 CRITICAL FIX: Merge sessionStorage assets (which includes updated assets)
+                        // These assets have the latest data including recent image updates
+                        // Compare with API assets and prefer the newer version
+                        for (const sessionAsset of uniqueOptimistic) {
+                            const existingApiAsset = merged.find(a => a.id === sessionAsset.id);
+                            
+                            if (!existingApiAsset) {
+                                // Asset not in API - add it (newly created, eventual consistency)
+                                merged.push(sessionAsset);
+                                console.log('[ScreenplayContext] 🔄 Adding new asset from sessionStorage (not in API yet):', sessionAsset.id);
+                            } else {
+                                // Asset exists in both - compare timestamps to see which is newer
+                                const apiUpdatedAt = existingApiAsset.updatedAt ? new Date(existingApiAsset.updatedAt).getTime() : 0;
+                                const sessionUpdatedAt = sessionAsset.updatedAt ? new Date(sessionAsset.updatedAt).getTime() : new Date(sessionAsset.createdAt).getTime();
+                                
+                                if (sessionUpdatedAt > apiUpdatedAt + 1000) {
+                                    // SessionStorage version is newer - replace API version
+                                    const index = merged.indexOf(existingApiAsset);
+                                    merged[index] = sessionAsset;
+                                    console.log('[ScreenplayContext] 🔄 Replacing API asset with newer sessionStorage version:', sessionAsset.id, {
+                                        apiUpdatedAt: new Date(apiUpdatedAt).toISOString(),
+                                        sessionUpdatedAt: new Date(sessionUpdatedAt).toISOString(),
+                                        apiImages: existingApiAsset.images?.length || 0,
+                                        sessionImages: sessionAsset.images?.length || 0
+                                    });
+                                } else {
+                                    // API version is newer or same - keep API version
+                                    console.log('[ScreenplayContext] ⏭️ Keeping API version (newer or same):', sessionAsset.id);
+                                }
+                            }
+                        }
                         
                         // 🔥 CRITICAL FIX: Also merge with current state (prev) to preserve updated images
                         // When images are uploaded/deleted, the asset's updatedAt is updated in the current state
@@ -1079,24 +1133,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         
                         // Add current state assets to merged list (will be deduplicated below)
                         for (const currentAsset of currentStateAssets) {
-                            const alreadyInMerged = merged.some(a => a.id === currentAsset.id);
-                            if (!alreadyInMerged) {
+                            const existingMergedAsset = merged.find(a => a.id === currentAsset.id);
+                            
+                            if (!existingMergedAsset) {
+                                // Asset not in merged list - add it
                                 merged.push(currentAsset);
                                 console.log('[ScreenplayContext] 🔄 Adding current state asset to merge:', currentAsset.id, 'images:', currentAsset.images?.length || 0);
-                            }
-                        }
-                        
-                        // Add optimistic assets that aren't in API yet
-                        // 🔥 FIX: Only add optimistic assets that are NOT already in the API response
-                        // This ensures API data (with images) takes precedence over optimistic data (without images)
-                        for (const optimistic of uniqueOptimistic) {
-                            // Check if this asset is already in the merged list (from API or current state)
-                            const alreadyInMerged = merged.some(a => a.id === optimistic.id);
-                            if (!alreadyInMerged) {
-                                merged.push(optimistic);
-                                console.log('[ScreenplayContext] 🔄 Keeping optimistic asset (eventual consistency):', optimistic.id, 'age:', Math.round((Date.now() - new Date(optimistic.createdAt).getTime()) / 1000), 's');
                             } else {
-                                console.log('[ScreenplayContext] ⏭️ Skipping optimistic asset (already in API/state):', optimistic.id);
+                                // Asset exists - compare timestamps
+                                const mergedUpdatedAt = existingMergedAsset.updatedAt ? new Date(existingMergedAsset.updatedAt).getTime() : 0;
+                                const currentUpdatedAt = currentAsset.updatedAt ? new Date(currentAsset.updatedAt).getTime() : 0;
+                                
+                                if (currentUpdatedAt > mergedUpdatedAt + 1000) {
+                                    // Current state version is newer - replace
+                                    const index = merged.indexOf(existingMergedAsset);
+                                    merged[index] = currentAsset;
+                                    console.log('[ScreenplayContext] 🔄 Replacing merged asset with newer current state version:', currentAsset.id, {
+                                        mergedUpdatedAt: new Date(mergedUpdatedAt).toISOString(),
+                                        currentUpdatedAt: new Date(currentUpdatedAt).toISOString(),
+                                        mergedImages: existingMergedAsset.images?.length || 0,
+                                        currentImages: currentAsset.images?.length || 0
+                                    });
+                                }
                             }
                         }
                         
