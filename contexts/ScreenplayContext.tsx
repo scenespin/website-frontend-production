@@ -2010,13 +2010,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const now = new Date().toISOString();
         
         // 🔥 FIX: Create optimistic asset locally FIRST (like characters/locations)
+        // Use user from component scope (already available via useUser hook)
+        const userId = user?.id || 'temp-user-id'; // Will be replaced by real asset from API
+        
         const optimisticAsset: Asset = {
             id: `asset-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+            userId: userId,
+            projectId: screenplayId,
             name: asset.name.trim(),
             category: asset.category,
             description: asset.description?.trim(),
             tags: asset.tags || [],
             images: [],
+            has3DModel: false,
             createdAt: now,
             updatedAt: now
         };
@@ -2077,7 +2083,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             setAssets(prev => prev.filter(a => a.id !== optimisticAsset.id));
             throw error;
         }
-    }, [screenplayId]);
+    }, [screenplayId, user]);
     
     const updateAsset = useCallback(async (id: string, updates: Partial<Asset>) => {
         // Optimistic UI update
@@ -2155,7 +2161,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // 🔥 FIX: Wait a bit for DynamoDB eventual consistency, then reload
             // This ensures the soft delete is propagated before we query again
             // Use a small delay (500ms) to allow DynamoDB to propagate the change
-            setTimeout(async () => {
+            const reloadAssets = async () => {
                 // Reload assets to ensure we have the latest data (excluding soft-deleted)
                 try {
                     if (screenplayId) {
@@ -2173,6 +2179,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.error('[ScreenplayContext] Failed to reload assets after delete:', reloadError);
                     // Don't throw - optimistic update is still in place
                 }
+            };
+            setTimeout(() => {
+                reloadAssets();
             }, 500);
         } catch (error) {
             // Restore on error
