@@ -1021,7 +1021,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                     sessionStorageAssets.push(...storedAssets.filter(a => {
                                         const createdAt = new Date(a.createdAt).getTime();
                                         const age = now - createdAt;
-                                        return age < 60000; // 60 seconds
+                                        return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
                                     }));
                                 }
                             } catch (e) {
@@ -1040,12 +1040,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             if (deletedAssetIdsRef.current.has(a.id)) {
                                 return false; // Was deleted, don't keep
                             }
-                            // Only keep assets created recently (within last 60 seconds)
-                            // This handles eventual consistency window
+                            // Only keep assets created recently (within last 5 minutes)
+                            // This handles DynamoDB GSI eventual consistency window
+                            // GSI queries can take up to several minutes to reflect new items
                             const createdAt = new Date(a.createdAt).getTime();
                             const now = Date.now();
                             const age = now - createdAt;
-                            return age < 60000; // 60 seconds
+                            return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
                         });
                         
                         // Remove duplicates from optimistic assets
