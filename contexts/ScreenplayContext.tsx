@@ -1081,7 +1081,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 const recentOptimistic = uniqueOptimistic.filter(a => {
                                     const createdAt = new Date(a.createdAt).getTime();
                                     const age = now - createdAt;
-                                    return age < 60000; // 60 seconds
+                                    return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
                                 });
                                 sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recentOptimistic));
                             } catch (e) {
@@ -2312,12 +2312,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     } else {
                         optimisticAssets.push(normalizedAsset);
                     }
-                    // Only keep assets created within last 60 seconds
+                    // Only keep assets created within last 5 minutes (accounts for GSI eventual consistency)
                     const now = Date.now();
                     const recent = optimisticAssets.filter(a => {
                         const createdAt = new Date(a.createdAt).getTime();
                         const age = now - createdAt;
-                        return age < 60000; // 60 seconds
+                        return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
                     });
                     sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recent));
                 } catch (e) {
@@ -2437,7 +2437,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 const recent = optimisticAssets.filter(a => {
                                     const createdAt = new Date(a.createdAt).getTime();
                                     const age = now - createdAt;
-                                    return age < 60000; // 60 seconds
+                                    return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
                                 });
                                 sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recent));
                                 console.log('[ScreenplayContext] 🔄 Updated asset in sessionStorage with images');
