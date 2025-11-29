@@ -2149,12 +2149,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             await api.assetBank.delete(id);
             console.log('[ScreenplayContext] ✅ Deleted asset:', id);
             
-            // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
-            // Force reload is safe for delete operations (no complex fields to lose)
-            // This ensures the list is refreshed and the deletion is reflected
-            forceReloadRef.current = true;
-            hasInitializedRef.current = false;
-            setReloadTrigger(prev => prev + 1);
+            // 🔥 FIX: Don't force reload immediately - optimistic update is sufficient
+            // Force reload can cause stale data issues if DynamoDB hasn't fully propagated the deletion
+            // The deletion will be reflected on the next page refresh or when initializeData runs naturally
+            // This matches the location pattern which doesn't force reload on delete
         } catch (error) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);

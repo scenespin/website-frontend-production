@@ -357,9 +357,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                         if (img.s3Key) {
                                                             // Image already uploaded to S3, just register it
                                                             imageEntries.push({
-                                                                id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                                                                 url: img.imageUrl, // This is the presigned download URL
-                                                                s3Key: img.s3Key,
                                                                 uploadedAt: new Date().toISOString()
                                                             });
                                                         } else {
@@ -380,10 +378,12 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                     }
                                                 }
                                                 
+                                                // 🔥 FIX: Use updateAsset from ScreenplayContext to ensure state sync
                                                 // Register all images at once if we have s3Keys
                                                 if (imageEntries.length > 0) {
-                                                    const currentAsset = await api.assetBank.get(newAsset.id);
-                                                    await api.assetBank.update(newAsset.id, {
+                                                    // Get current asset from context (should have the newly created asset)
+                                                    const currentAsset = assets.find(a => a.id === newAsset.id) || newAsset;
+                                                    await updateAsset(newAsset.id, {
                                                         images: [
                                                             ...(currentAsset.images || []),
                                                             ...imageEntries

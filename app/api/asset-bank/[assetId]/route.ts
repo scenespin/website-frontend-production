@@ -193,6 +193,8 @@ export async function DELETE(
     // Forward request to backend
     const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}`;
 
+    console.log('[Asset Bank Proxy] DELETE request:', { assetId, url });
+
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
@@ -201,14 +203,24 @@ export async function DELETE(
       },
     });
 
+    console.log('[Asset Bank Proxy] DELETE response status:', response.status);
+
     // Handle 204 No Content (successful delete)
     if (response.status === 204) {
+      console.log('[Asset Bank Proxy] ✅ DELETE successful (204)');
       return new NextResponse(null, { status: 204 });
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Backend error' }));
-      console.error('[Asset Bank] Backend error:', error);
+      const errorText = await response.text().catch(() => 'Backend error');
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { error: errorText || 'Backend error' };
+      }
+      console.error('[Asset Bank Proxy] ❌ DELETE backend error:', error);
+      console.error('[Asset Bank Proxy] Response status:', response.status);
       return NextResponse.json(
         error,
         { status: response.status }
