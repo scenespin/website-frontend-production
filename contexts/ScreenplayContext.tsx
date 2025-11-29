@@ -2047,6 +2047,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Extract asset from response (API returns { success: true, asset } or just asset)
                 const updatedAsset = response.asset || response;
                 
+                // 🔥 DEBUG: Log the response to verify images are included
+                console.log('[ScreenplayContext] 📥 Asset update API response:', {
+                    hasResponse: !!response,
+                    hasAsset: !!response.asset,
+                    responseKeys: response ? Object.keys(response) : [],
+                    updatedAssetImages: updatedAsset?.images?.length || 0,
+                    updatedAssetImageUrls: updatedAsset?.images?.map(img => img.url) || []
+                });
+                
                 // Sync with API response
                 setAssets(prev => prev.map(a => a.id === id ? updatedAsset : a));
                 console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
