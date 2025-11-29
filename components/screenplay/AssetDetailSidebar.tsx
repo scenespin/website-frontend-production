@@ -34,7 +34,7 @@ export default function AssetDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
-  const { getAssetScenes, isEntityInScript, screenplayId, assets } = useScreenplay()
+  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
   
@@ -299,23 +299,20 @@ export default function AssetDetailSidebar({
             // Note: angle can be added later if needed
           }));
 
-          // Register all images with the asset
-          await api.assetBank.update(asset.id, {
+          // Register all images with the asset via ScreenplayContext (updates both API and local state)
+          await updateAsset(asset.id, {
             images: [
               ...(asset.images || []),
               ...newImageObjects
             ]
           });
           
-          // 🔥 FIX: Only update images in formData, preserve user's current input (name, description, etc.)
-          // Don't overwrite the entire formData - user might be editing other fields
-          setFormData(prev => ({
-            ...prev,
-            images: [
-              ...(prev.images || []),
-              ...newImageObjects
-            ]
-          }));
+          // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
+          // Get updated asset from context to ensure UI reflects the new images
+          const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+          if (updatedAssetFromContext) {
+            setFormData({ ...updatedAssetFromContext });
+          }
           
           toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
         } catch (error: any) {
@@ -357,14 +354,16 @@ export default function AssetDetailSidebar({
     
     if (confirm('Remove this image from the asset?')) {
       try {
-        // Note: Asset bank API may need a delete image endpoint
-        // For now, we'll update the asset without this image
+        // Remove image from asset via ScreenplayContext (updates both API and local state)
         const updatedImages = asset.images.filter((_, i) => i !== index);
-        await api.assetBank.update(asset.id, { images: updatedImages });
+        await updateAsset(asset.id, { images: updatedImages });
         
-        // Reload asset
-        const updatedAsset = await api.assetBank.get(asset.id);
-        setFormData(updatedAsset);
+        // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
+        // Get updated asset from context to ensure UI reflects the removed image
+        const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+        if (updatedAssetFromContext) {
+          setFormData({ ...updatedAssetFromContext });
+        }
         
         toast.success('Image removed');
       } catch (error: any) {
@@ -798,9 +797,9 @@ export default function AssetDetailSidebar({
                     console.warn('Failed to get presigned download URL:', error);
                   }
 
-                  // Register with asset - use uploadImage endpoint or update with correct AssetImage structure
+                  // Register with asset via ScreenplayContext (updates both API and local state)
                   // AssetImage only has: url, angle?, uploadedAt (no id or s3Key)
-                  await api.assetBank.update(asset.id, {
+                  await updateAsset(asset.id, {
                     images: [
                       ...(asset.images || []),
                       {
@@ -810,20 +809,12 @@ export default function AssetDetailSidebar({
                     ]
                   });
                   
-                  // 🔥 FIX: Only update images in formData, preserve user's current input (name, description, etc.)
-                  // Don't overwrite the entire formData - user might be editing other fields
-                  setFormData(prev => ({
-                    ...prev,
-                    images: [
-                      ...(prev.images || []),
-                      {
-                        id: `img_${Date.now()}`,
-                        url: downloadUrl,
-                        s3Key: s3Key,
-                        uploadedAt: new Date().toISOString()
-                      }
-                    ]
-                  }));
+                  // 🔥 FIX: Sync asset data from context after update (like MediaLibrary refetches)
+                  // Get updated asset from context to ensure UI reflects the new image
+                  const updatedAssetFromContext = assets.find(a => a.id === asset.id);
+                  if (updatedAssetFromContext) {
+                    setFormData({ ...updatedAssetFromContext });
+                  }
                   
                   toast.success('Image generated and uploaded');
                   
