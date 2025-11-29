@@ -12,7 +12,7 @@ const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
     // Verify user is authenticated with Clerk and get backend token
@@ -32,7 +32,8 @@ export async function GET(
       );
     }
 
-    const { assetId } = params;
+    // Next.js 15: params is now a Promise
+    const { assetId } = await params;
 
     // Forward request to backend
     const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}`;
@@ -68,7 +69,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
     // Verify user is authenticated with Clerk and get backend token
@@ -88,7 +89,8 @@ export async function PUT(
       );
     }
 
-    const { assetId } = params;
+    // Next.js 15: params is now a Promise
+    const { assetId } = await params;
     const body = await request.json();
 
     // Forward request to backend
@@ -126,7 +128,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
     // Verify user is authenticated with Clerk and get backend token
@@ -146,7 +148,8 @@ export async function DELETE(
       );
     }
 
-    const { assetId } = params;
+    // Next.js 15: params is now a Promise
+    const { assetId } = await params;
 
     // Forward request to backend
     const url = `${BACKEND_API_URL}/api/asset-bank/${assetId}`;
