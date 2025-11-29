@@ -139,6 +139,16 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         break;
       }
       
+      // 🔥 NEW: Stop on note/analysis patterns like "[Note:" or "*[Note:"
+      if (/^(\*?\s*)?\[Note:/i.test(line)) {
+        break; // STOP on notes/analysis
+      }
+      
+      // Stop on lines that start with "*" followed by bracket (markdown analysis notes)
+      if (/^\*\s*\[/i.test(line)) {
+        break; // STOP on markdown analysis notes like "*[Note: This addition..."
+      }
+      
       // If line starts with explanation words, stop here (but allow short lines that might be dialogue)
       // IMPORTANT: Don't stop on lines that are clearly dialogue (short, or follow a character name)
       const isLikelyDialogue = line.length < 50 && (
