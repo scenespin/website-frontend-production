@@ -2043,7 +2043,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Extract asset from response (API returns { success: true, asset })
             const createdAsset = response.asset || response;
             
+            console.log('[ScreenplayContext] 📥 Asset creation API response:', {
+                hasResponse: !!response,
+                hasAsset: !!response.asset,
+                responseKeys: response ? Object.keys(response) : [],
+                createdAssetId: createdAsset?.id,
+                createdAssetName: createdAsset?.name,
+                optimisticAssetId: optimisticAsset.id,
+                optimisticAssetName: optimisticAsset.name
+            });
+            
             if (!createdAsset || !createdAsset.id) {
+                console.error('[ScreenplayContext] ❌ Invalid asset creation response:', response);
                 throw new Error('Invalid response from asset creation API');
             }
             
@@ -2053,20 +2064,32 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 images: createdAsset.images || []
             };
             
-            // 🔥 FIX: REPLACE optimistic asset with real one from DynamoDB (like locations)
+            // 🔥 FIX: REPLACE optimistic asset with real one from DynamoDB (match by optimistic ID only)
             setAssets(prev => {
-                const updated = prev.map(a => {
-                    // Match by name or ID
-                    if (a.id === optimisticAsset.id || a.name === optimisticAsset.name) {
-                        return normalizedAsset; // Replace with real data
+                // Find and replace the optimistic asset by its ID
+                const optimisticIndex = prev.findIndex(a => a.id === optimisticAsset.id);
+                
+                if (optimisticIndex >= 0) {
+                    // Replace optimistic asset with real one
+                    const updated = [...prev];
+                    updated[optimisticIndex] = normalizedAsset;
+                    console.log('[ScreenplayContext] 🔄 Replaced optimistic asset at index', optimisticIndex, 'with real asset:', normalizedAsset.id);
+                    return updated;
+                } else {
+                    // Optimistic asset not found - check if real asset already exists
+                    const existingIndex = prev.findIndex(a => a.id === normalizedAsset.id);
+                    if (existingIndex >= 0) {
+                        // Update existing asset
+                        const updated = [...prev];
+                        updated[existingIndex] = normalizedAsset;
+                        console.log('[ScreenplayContext] 🔄 Updated existing asset at index', existingIndex, ':', normalizedAsset.id);
+                        return updated;
+                    } else {
+                        // Add new asset
+                        console.log('[ScreenplayContext] ➕ Adding new asset:', normalizedAsset.id);
+                        return [...prev, normalizedAsset];
                     }
-                    return a;
-                });
-                // If not found, add it
-                if (!updated.find(a => a.id === normalizedAsset.id)) {
-                    return [...updated, normalizedAsset];
                 }
-                return updated;
             });
             
             console.log('[ScreenplayContext] ✅ Created asset:', normalizedAsset.id);
@@ -2160,18 +2183,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             
             // 🔥 FIX: Wait a bit for DynamoDB eventual consistency, then reload
             // This ensures the soft delete is propagated before we query again
-            // Use a small delay (500ms) to allow DynamoDB to propagate the change
+            // Use a longer delay (1000ms) to allow DynamoDB to fully propagate the change
             const reloadAssets = async () => {
                 // Reload assets to ensure we have the latest data (excluding soft-deleted)
                 try {
                     if (screenplayId) {
-                        const assetsData = await api.assetBank.list(screenplayId).catch(() => ({ assets: [] }));
+                        console.log('[ScreenplayContext] 🔄 Reloading assets after delete (screenplayId:', screenplayId, ')');
+                        const assetsData = await api.assetBank.list(screenplayId).catch((err) => {
+                            console.error('[ScreenplayContext] ❌ Failed to reload assets:', err);
+                            return { assets: [] };
+                        });
                         const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
                         const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
-                        const normalizedAssets = assetsList.map(a => ({
+                        
+                        // Filter out soft-deleted assets (safety measure)
+                        const activeAssets = assetsList.filter(a => !a.deleted_at);
+                        
+                        const normalizedAssets = activeAssets.map(a => ({
                             ...a,
                             images: a.images || []
                         }));
+                        
+                        console.log('[ScreenplayContext] 📦 Reloaded assets:', {
+                            totalFromAPI: assetsList.length,
+                            activeAfterFilter: normalizedAssets.length,
+                            deletedAssetIds: assetsList.filter(a => a.deleted_at).map(a => a.id)
+                        });
+                        
                         setAssets(normalizedAssets);
                         console.log('[ScreenplayContext] ✅ Reloaded assets after delete:', normalizedAssets.length);
                     }
@@ -2182,7 +2220,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             };
             setTimeout(() => {
                 reloadAssets();
-            }, 500);
+            }, 1000); // Increased delay for DynamoDB eventual consistency
         } catch (error) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
