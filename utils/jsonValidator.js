@@ -98,35 +98,25 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
   }
 
   // Step 5: Check for duplicate content (if context provided)
-  // Simple but effective: Check if any generated line exactly matches or is a substantial substring of context
+  // Simple: Only flag exact matches of substantial content (20+ chars) to avoid false positives
   if (contextBeforeCursor && parsedJson.content && Array.isArray(parsedJson.content)) {
     const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    // Also check the full context as a single string for multi-line duplicates
-    const normalizedFullContext = contextBeforeCursor.toLowerCase().replace(/\s+/g, ' ');
     
     parsedJson.content.forEach((line, index) => {
       const normalizedLine = line.trim().toLowerCase().replace(/\s+/g, ' ');
       
-      // Skip very short lines (likely just formatting)
-      if (normalizedLine.length < 5) return;
-      
-      // Check 1: Exact match with any context line
-      const exactMatch = contextLines.some(contextLine => {
-        const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
-        return normalizedContext === normalizedLine;
-      });
-      
-      // Check 2: If line is substantial (10+ chars), check if it's a substring of any context line
-      const isSubstring = normalizedLine.length >= 10 && contextLines.some(contextLine => {
-        const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
-        return normalizedContext.includes(normalizedLine);
-      });
-      
-      // Check 3: Check if the line appears in the full context (catches multi-line duplicates)
-      const appearsInFullContext = normalizedLine.length >= 10 && normalizedFullContext.includes(normalizedLine);
-      
-      if (exactMatch || isSubstring || appearsInFullContext) {
-        errors.push(`Content item ${index} is a duplicate of content before cursor`);
+      // Only check substantial lines (20+ chars) for exact matches
+      // This prevents false positives from common words/phrases
+      if (normalizedLine.length >= 20) {
+        const exactMatch = contextLines.some(contextLine => {
+          const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
+          // Only flag if it's an exact match (not substring) to avoid over-engineering
+          return normalizedContext === normalizedLine;
+        });
+        
+        if (exactMatch) {
+          errors.push(`Content item ${index} is a duplicate of content before cursor`);
+        }
       }
     });
   }

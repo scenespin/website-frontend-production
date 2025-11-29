@@ -286,7 +286,8 @@ export default function EditorWorkspace() {
         if (!selectionRange) return;
         
         // Clean the text (should already be cleaned by modal, but double-check)
-        let cleaned = rewrittenText.trim();
+        // Don't trim end - we'll add newline if needed
+        let cleaned = rewrittenText.trimStart();
         
         // Smart newline detection: Add newlines when rewrite generates more content than original
         if (selectedText) {
@@ -296,12 +297,14 @@ export default function EditorWorkspace() {
             const rewriteLength = cleaned.length;
             const textAfter = state.content.substring(selectionRange.end);
             const hasTextAfter = textAfter.trim().length > 0;
-            const textAfterStartsWithNewline = textAfter.startsWith('\n');
+            const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
+            
+            // Determine if we need a newline at the end
+            let needsNewlineAtEnd = false;
             
             // Case 1: Original was single line, rewrite is multi-line, and there's text after without newline
             if (originalWasSingleLine && rewriteIsMultiLine && hasTextAfter && !textAfterStartsWithNewline) {
-                // Add a newline after the rewritten text to separate it from following content
-                cleaned = cleaned + '\n';
+                needsNewlineAtEnd = true;
             }
             
             // Case 2: Rewrite is longer than original (even if still single line)
@@ -309,7 +312,11 @@ export default function EditorWorkspace() {
             // Lower threshold: if rewrite is 20% longer than original, add newline
             const lengthIncrease = rewriteLength / originalLength;
             if (lengthIncrease > 1.2 && hasTextAfter && !textAfterStartsWithNewline) {
-                // Add a newline after the expanded text
+                needsNewlineAtEnd = true;
+            }
+            
+            // Add newline at end if needed (ensure it's not already there)
+            if (needsNewlineAtEnd && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                 cleaned = cleaned + '\n';
             }
             
@@ -317,7 +324,7 @@ export default function EditorWorkspace() {
             // ensure proper spacing before the rewrite (if there's text before)
             const textBefore = state.content.substring(0, selectionRange.start);
             const hasTextBefore = textBefore.trim().length > 0;
-            const textBeforeEndsWithNewline = textBefore.endsWith('\n');
+            const textBeforeEndsWithNewline = textBefore.endsWith('\n') || textBefore.endsWith('\r\n');
             
             if (originalWasSingleLine && rewriteIsMultiLine && hasTextBefore && !textBeforeEndsWithNewline) {
                 // Add a newline before the rewritten text to separate it from preceding content

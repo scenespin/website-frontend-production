@@ -103,18 +103,13 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
 
 YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
 
-🚫 ABSOLUTELY FORBIDDEN:
-- NO analysis, critique, or feedback about the story
-- NO suggestions or alternatives
-- NO questions (no "Should...?", "Want me to...?", "Would you like...?", etc.)
-- NO explanations about why something is good or bad
-- NO meta-commentary about writing or storytelling
-- NO "This would..." or "This could..." statements
-- NO "Consider..." or "Think about..." statements
-- NO lists of options or alternatives
-- NO scene headings (INT./EXT.) - NEVER include scene headings
-- NO repeating content that already exists before the cursor
-- NO rewriting the beginning of the scene - CONTINUE from where the cursor is
+SIMPLE INSTRUCTIONS:
+- Write 1-5 lines that CONTINUE the scene from where the cursor is
+- These are short bursts of contextual text that flow naturally from what's already written
+- Write action lines or dialogue that continues the story
+- Do NOT include scene headings (INT./EXT.) - the scene heading already exists
+- Do NOT repeat what's already written before the cursor
+- Do NOT use dashes (-- or -) in action lines
 
 ✅ YOU MUST RESPOND WITH VALID JSON ONLY:
 
@@ -123,33 +118,28 @@ YOU ARE A SCREENPLAY WRITER - CONTINUE THE SCENE FROM THE CURSOR POSITION.
   "lineCount": 3
 }
 
-JSON SCHEMA REQUIREMENTS:
-- "content": Array of 1-5 strings (screenplay lines)
+JSON SCHEMA:
+- "content": Array of 1-5 strings (screenplay lines - action or dialogue)
 - "lineCount": Number matching content.length
-- Each line in content array is a string (action or dialogue)
-- NO scene headings in any line
-- NO content that exists before the cursor
-- NO markdown formatting in JSON
+- Each line is a string (NO scene headings, NO markdown)
 - NO explanations outside JSON
 
-EXAMPLE JSON RESPONSE:
+EXAMPLE:
 {
   "content": [
-    "The download bar STOPS at 47%.",
-    "A SPARK erupts from the back of her computer tower.",
-    "Then another. WHOOSH — the tower EXPLODES in a burst of flame and smoke, throwing Sarah backward in her chair."
+    "Her phone RINGS.",
+    "She glances at the caller ID - UNKNOWN NUMBER.",
+    "Hesitates, then answers."
   ],
   "lineCount": 3
 }
 
-CRITICAL INSTRUCTIONS:
-1. Respond with ONLY valid JSON - no markdown, no explanations, no code blocks
-2. content array must have 1-5 items
-3. Each item is a screenplay line (action or dialogue)
-4. NO scene headings (INT./EXT.)
-5. NO repeating content before cursor
-6. lineCount must exactly match content.length
-7. NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
+CRITICAL:
+1. Respond with ONLY valid JSON - no markdown, no explanations
+2. Write what comes NEXT in the scene, not what came before
+3. NO scene headings (INT./EXT.)
+4. NO repeating content that exists before the cursor
+5. NO dashes (-- or -) in action lines
 ${continuationContext}
 
 OUTPUT: Only valid JSON object. Nothing else.`;
@@ -375,7 +365,41 @@ SCENE REQUIREMENTS:
 - SCENE LENGTH: ${lengthInstruction}
 - SCENE COUNT: ${sceneCountInstruction}
 🔥 CRITICAL: The Director agent ALWAYS creates NEW scenes that come AFTER the current scene "${sceneContext?.heading || 'INT. LOCATION - TIME'}". It does NOT continue the current scene - that's what the Screenwriter agent does.
-${generationLength === 'multiple' ? `- Generate EXACTLY ${sceneCount} COMPLETELY NEW scenes\n- Each scene MUST start with its own scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- Each scene heading must have a DIFFERENT location/time than "${sceneContext?.heading || 'INT. LOCATION - TIME'}"\n- Each scene should be 15-30 lines long\n- Connect scenes narratively to advance the story forward\n- Do NOT repeat or revise the current scene\n- Example structure for ${sceneCount} NEW scenes:\n  INT. NEW LOCATION 1 - TIME\n  [Scene 1 content - 15-30 lines]\n  \n  INT. NEW LOCATION 2 - TIME\n  [Scene 2 content - 15-30 lines]\n  ${sceneCount > 2 ? `\n  INT. NEW LOCATION 3 - TIME\n  [Scene 3 content - 15-30 lines]${sceneCount > 3 ? `\n  \n  ... (continue for all ${sceneCount} scenes with NEW locations)` : ''}` : ''}` : `- Generate EXACTLY 1 NEW scene that comes AFTER the current scene\n- The scene MUST start with a scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME\n- The scene heading must have a DIFFERENT location/time than "${sceneContext?.heading || 'INT. LOCATION - TIME'}"\n- The scene should be ${generationLength === 'short' ? '5-10' : '15-30'} lines long\n- This is a NEW scene that continues the story forward, NOT a continuation of the current scene`}
+
+${generationLength === 'multiple' ? `🔥🔥🔥 MULTIPLE SCENES MODE - CRITICAL INSTRUCTIONS:
+- You MUST generate EXACTLY ${sceneCount} COMPLETE scenes in your JSON content array
+- Each scene MUST be a separate, complete scene with its own scene heading
+- Scene 1: INT. [NEW LOCATION 1] - [TIME]
+  [15-30 lines of content for scene 1]
+  
+- Scene 2: INT. [NEW LOCATION 2] - [TIME]
+  [15-30 lines of content for scene 2]
+  ${sceneCount > 2 ? `\n- Scene 3: INT. [NEW LOCATION 3] - [TIME]\n  [15-30 lines of content for scene 3]${sceneCount > 3 ? `\n\n... (continue for all ${sceneCount} scenes)` : ''}` : ''}
+- Each scene heading must be DIFFERENT from "${sceneContext?.heading || 'INT. LOCATION - TIME'}"
+- Total content array should have ${minLines}-${maxLines} items (${sceneCount} scenes × 15-50 lines each)
+- DO NOT generate only 1 scene - you MUST generate ${sceneCount} scenes
+- Example JSON structure for ${sceneCount} scenes:
+{
+  "content": [
+    "INT. NEW LOCATION 1 - TIME",
+    "[Scene 1 line 1]",
+    "[Scene 1 line 2]",
+    "...",
+    "[Scene 1 line 15-30]",
+    "",
+    "INT. NEW LOCATION 2 - TIME",
+    "[Scene 2 line 1]",
+    "[Scene 2 line 2]",
+    "...",
+    "[Scene 2 line 15-30]"
+    ${sceneCount > 2 ? `,\n    "",\n    "INT. NEW LOCATION 3 - TIME",\n    "[Scene 3 line 1]",\n    "..."` : ''}
+  ],
+  "lineCount": [total number of lines]
+}` : `- Generate EXACTLY 1 NEW scene that comes AFTER the current scene
+- The scene MUST start with a scene heading: INT. LOCATION - TIME or EXT. LOCATION - TIME
+- The scene heading must have a DIFFERENT location/time than "${sceneContext?.heading || 'INT. LOCATION - TIME'}"
+- The scene should be ${generationLength === 'short' ? '5-10' : '15-30'} lines long
+- This is a NEW scene that continues the story forward, NOT a continuation of the current scene`}
 
 INCLUDE ELEMENTS:
 - Action lines that set the mood and visual
