@@ -275,11 +275,11 @@ export default function AssetDetailSidebar({
       if (asset) {
         // Existing asset - register all images with asset bank API
         try {
+          // Transform to AssetImage format (url, angle?, uploadedAt) - no id or s3Key
           const newImageObjects = uploadedImages.map(img => ({
-            id: `img_${Date.now()}_${Math.random()}`,
             url: img.imageUrl,
-            s3Key: img.s3Key,
             uploadedAt: new Date().toISOString()
+            // Note: angle can be added later if needed
           }));
 
           // Register all images with the asset
@@ -781,14 +781,13 @@ export default function AssetDetailSidebar({
                     console.warn('Failed to get presigned download URL:', error);
                   }
 
-                  // Register with asset
+                  // Register with asset - use uploadImage endpoint or update with correct AssetImage structure
+                  // AssetImage only has: url, angle?, uploadedAt (no id or s3Key)
                   await api.assetBank.update(asset.id, {
                     images: [
                       ...(asset.images || []),
                       {
-                        id: `img_${Date.now()}`,
                         url: downloadUrl,
-                        s3Key: s3Key,
                         uploadedAt: new Date().toISOString()
                       }
                     ]

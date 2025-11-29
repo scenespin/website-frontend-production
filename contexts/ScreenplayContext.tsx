@@ -930,9 +930,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
                     // Load and set assets
-                    const assetsList = assetsData.assets || [];
-                    setAssets(assetsList);
-                    console.log('[ScreenplayContext] ✅ Loaded', assetsList.length, 'assets from API');
+                    // Extract assets from response (API returns { assets: Asset[] } or { success: true, assets: Asset[] })
+                    const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
+                    const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
+                    
+                    // Ensure all assets have images array initialized
+                    const normalizedAssets = assetsList.map(asset => ({
+                        ...asset,
+                        images: asset.images || []
+                    }));
+                    
+                    setAssets(normalizedAssets);
+                    console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API');
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
                     // Pass characters and locations for validation (beats are empty templates now)
@@ -2033,7 +2042,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Update via API
         if (screenplayId) {
             try {
-                const updatedAsset = await api.assetBank.update(id, updates);
+                const response = await api.assetBank.update(id, updates);
+                
+                // Extract asset from response (API returns { success: true, asset } or just asset)
+                const updatedAsset = response.asset || response;
                 
                 // Sync with API response
                 setAssets(prev => prev.map(a => a.id === id ? updatedAsset : a));
