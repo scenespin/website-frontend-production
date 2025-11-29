@@ -1088,7 +1088,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             }
                         }
                         
-                        // Remove duplicates - prefer newer version (by updatedAt timestamp)
+                        // Remove duplicates - prefer newer version (by updatedAt timestamp, then by image count)
                         const unique = merged.reduce((acc, asset) => {
                             const existing = acc.find(a => a.id === asset.id);
                             if (!existing) {
@@ -1098,22 +1098,34 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 const index = acc.indexOf(existing);
                                 const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
                                 const assetUpdatedAt = asset.updatedAt ? new Date(asset.updatedAt).getTime() : 0;
+                                const existingImageCount = existing.images?.length || 0;
+                                const assetImageCount = asset.images?.length || 0;
                                 
                                 // 🔥 FIX: Prefer the version with the newer updatedAt timestamp
+                                // If timestamps are equal (within 1 second), prefer the one with more images
                                 // This prevents stale API data from overwriting recent updates
-                                if (assetUpdatedAt > existingUpdatedAt) {
-                                    acc[index] = asset; // Replace with newer version
-                                    console.log('[ScreenplayContext] 🔄 Replacing asset with newer version:', asset.id, {
+                                const timeDiff = assetUpdatedAt - existingUpdatedAt;
+                                const shouldReplace = timeDiff > 1000 || // Asset is more than 1 second newer
+                                    (Math.abs(timeDiff) <= 1000 && assetImageCount > existingImageCount); // Same time but more images
+                                
+                                if (shouldReplace) {
+                                    acc[index] = asset; // Replace with newer/better version
+                                    console.log('[ScreenplayContext] 🔄 Replacing asset with newer/better version:', asset.id, {
                                         existingUpdatedAt: new Date(existingUpdatedAt).toISOString(),
                                         assetUpdatedAt: new Date(assetUpdatedAt).toISOString(),
-                                        existingImages: existing.images?.length || 0,
-                                        assetImages: asset.images?.length || 0
+                                        timeDiff: timeDiff,
+                                        existingImages: existingImageCount,
+                                        assetImages: assetImageCount,
+                                        reason: timeDiff > 1000 ? 'newer timestamp' : 'more images'
                                     });
                                 } else {
-                                    // Keep existing version (it's newer or same)
-                                    console.log('[ScreenplayContext] ⏭️ Keeping existing asset (newer or same):', asset.id, {
+                                    // Keep existing version (it's newer or has more images)
+                                    console.log('[ScreenplayContext] ⏭️ Keeping existing asset (newer or better):', asset.id, {
                                         existingUpdatedAt: new Date(existingUpdatedAt).toISOString(),
-                                        assetUpdatedAt: new Date(assetUpdatedAt).toISOString()
+                                        assetUpdatedAt: new Date(assetUpdatedAt).toISOString(),
+                                        timeDiff: timeDiff,
+                                        existingImages: existingImageCount,
+                                        assetImages: assetImageCount
                                     });
                                 }
                             }
