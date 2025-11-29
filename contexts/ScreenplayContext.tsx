@@ -1440,10 +1440,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     return updated;
                 });
                 
-                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
-                forceReloadRef.current = true;
-                hasInitializedRef.current = false;
-                setReloadTrigger(prev => prev + 1);
+                // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
+                // The force reload was causing data loss for locations (address field disappeared)
+                // Characters now have complex fields (physicalAttributes, referenceLibrary) that could have the same issue
+                // Instead, we rely on the state sync above which uses the actual API response
+                // The data will be correct on the next page refresh when initializeData runs
+                // forceReloadRef.current = true;
+                // hasInitializedRef.current = false;
+                // setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create character in DynamoDB:', error);
             }
@@ -1521,12 +1525,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB and synced local state');
                 
-                // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
-                // This ensures that on refresh, we'll have the correct data
-                forceReloadRef.current = true;
-                hasInitializedRef.current = false;
-                // Trigger re-initialization by incrementing reload trigger
-                setReloadTrigger(prev => prev + 1);
+                // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
+                // The force reload was causing data loss for locations (address field disappeared)
+                // Characters now have complex fields (physicalAttributes, referenceLibrary) that could have the same issue
+                // Instead, we rely on the state sync above which uses the actual API response
+                // The data will be correct on the next page refresh when initializeData runs
+                // forceReloadRef.current = true;
+                // hasInitializedRef.current = false;
+                // setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 // 3. Rollback on error
                 console.error('[ScreenplayContext] Failed to update character, rolling back:', error);
@@ -2000,6 +2006,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         const now = new Date().toISOString();
         
+        // 🔥 FIX: Create optimistic asset locally FIRST (like characters/locations)
+        const optimisticAsset: Asset = {
+            id: `asset-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+            name: asset.name.trim(),
+            category: asset.category,
+            description: asset.description?.trim(),
+            tags: asset.tags || [],
+            images: [],
+            createdAt: now,
+            updatedAt: now
+        };
+        
+        // Add to local state IMMEDIATELY (optimistic UI)
+        setAssets(prev => [...prev, optimisticAsset]);
+        
         // Create asset via API
         try {
             const response = await api.assetBank.create({
@@ -2017,13 +2038,40 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 throw new Error('Invalid response from asset creation API');
             }
             
-            // Add to local state
-            setAssets(prev => [...prev, createdAsset]);
+            // 🔥 FIX: Normalize asset (ensure images array exists)
+            const normalizedAsset: Asset = {
+                ...createdAsset,
+                images: createdAsset.images || []
+            };
             
-            console.log('[ScreenplayContext] ✅ Created asset:', createdAsset.id);
-            return createdAsset;
+            // 🔥 FIX: REPLACE optimistic asset with real one from DynamoDB (like locations)
+            setAssets(prev => {
+                const updated = prev.map(a => {
+                    // Match by name or ID
+                    if (a.id === optimisticAsset.id || a.name === optimisticAsset.name) {
+                        return normalizedAsset; // Replace with real data
+                    }
+                    return a;
+                });
+                // If not found, add it
+                if (!updated.find(a => a.id === normalizedAsset.id)) {
+                    return [...updated, normalizedAsset];
+                }
+                return updated;
+            });
+            
+            console.log('[ScreenplayContext] ✅ Created asset:', normalizedAsset.id);
+            
+            // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
+            // The force reload was causing data loss for locations (address field disappeared)
+            // Instead, we rely on the state sync above which uses the actual API response
+            // The data will be correct on the next page refresh when initializeData runs
+            
+            return normalizedAsset;
         } catch (error) {
-            console.error('[ScreenplayContext] Failed to create asset:', error);
+            // Rollback on error
+            console.error('[ScreenplayContext] Failed to create asset, rolling back:', error);
+            setAssets(prev => prev.filter(a => a.id !== optimisticAsset.id));
             throw error;
         }
     }, [screenplayId]);
@@ -2073,6 +2121,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Sync with API response (or refetched asset)
                 setAssets(prev => prev.map(a => a.id === id ? finalAsset : a));
                 console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
+                
+                // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
+                // The force reload was causing data loss for locations (address field disappeared)
+                // Instead, we rely on the state sync above which uses the actual API response
+                // The data will be correct on the next page refresh when initializeData runs
             } catch (error) {
                 // Rollback on error
                 console.error('[ScreenplayContext] Failed to update asset, rolling back:', error);
@@ -2088,13 +2141,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             throw new Error('Asset not found');
         }
         
-        // Remove from local state
+        // 🔥 OPTIMISTIC UPDATE: Remove from local state immediately
         setAssets(prev => prev.filter(a => a.id !== id));
         
         // Delete via API
         try {
             await api.assetBank.delete(id);
             console.log('[ScreenplayContext] ✅ Deleted asset:', id);
+            
+            // 🔥 FIX: Force reload from DynamoDB to ensure we have the latest data
+            // Force reload is safe for delete operations (no complex fields to lose)
+            // This ensures the list is refreshed and the deletion is reflected
+            forceReloadRef.current = true;
+            hasInitializedRef.current = false;
+            setReloadTrigger(prev => prev + 1);
         } catch (error) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
