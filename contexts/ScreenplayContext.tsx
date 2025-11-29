@@ -267,6 +267,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const charactersRef = useRef<Character[]>([]);
     const locationsRef = useRef<Location[]>([]);
     const assetsRef = useRef<Asset[]>([]);
+    // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
+    const deletedAssetIdsRef = useRef<Set<string>>(new Set());
     const updateScenePositionsRef = useRef<((content: string) => Promise<number>) | null>(null);
     
     // Keep refs in sync with state
@@ -943,7 +945,77 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         images: asset.images || []
                     }));
                     
-                    setAssets(normalizedAssets);
+                    // 🔥 FIX: Merge with current state to handle DynamoDB eventual consistency
+                    // Strategy: 
+                    // 1. Filter out assets that were deleted (even if API returns them due to eventual consistency)
+                    // 2. Preserve recently created assets that aren't in API yet
+                    setAssets(prev => {
+                        // Filter out deleted assets from API response (eventual consistency protection)
+                        const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
+                        
+                        // Get IDs of assets from filtered API response
+                        const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
+                        
+                        // Find optimistic assets (in prev but not in API response)
+                        // These are assets that were just created but GSI hasn't updated yet
+                        const optimisticAssets = prev.filter(a => {
+                            if (apiAssetIds.has(a.id)) {
+                                return false; // Already in API response
+                            }
+                            if (deletedAssetIdsRef.current.has(a.id)) {
+                                return false; // Was deleted, don't keep
+                            }
+                            // Only keep assets created recently (within last 60 seconds)
+                            // This handles eventual consistency window
+                            const createdAt = new Date(a.createdAt).getTime();
+                            const now = Date.now();
+                            const age = now - createdAt;
+                            return age < 60000; // 60 seconds
+                        });
+                        
+                        // Start with filtered API assets (source of truth, minus deleted ones)
+                        const merged = [...filteredApiAssets];
+                        
+                        // Add optimistic assets that aren't in API yet
+                        for (const optimistic of optimisticAssets) {
+                            merged.push(optimistic);
+                            console.log('[ScreenplayContext] 🔄 Keeping optimistic asset (eventual consistency):', optimistic.id, 'age:', Math.round((Date.now() - new Date(optimistic.createdAt).getTime()) / 1000), 's');
+                        }
+                        
+                        // Remove duplicates (prioritize API response over optimistic)
+                        const unique = merged.reduce((acc, asset) => {
+                            const existing = acc.find(a => a.id === asset.id);
+                            if (!existing) {
+                                acc.push(asset);
+                            } else {
+                                // If both exist, prefer API version (has real data)
+                                const index = acc.indexOf(existing);
+                                if (apiAssetIds.has(asset.id)) {
+                                    acc[index] = asset; // Replace with API version
+                                }
+                            }
+                            return acc;
+                        }, [] as Asset[]);
+                        
+                        // Clean up old deleted IDs (older than 5 minutes) to prevent memory leak
+                        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                        // We can't track when assets were deleted, so we'll just limit the set size
+                        // If it gets too large, clear it (shouldn't happen in normal usage)
+                        if (deletedAssetIdsRef.current.size > 100) {
+                            console.warn('[ScreenplayContext] ⚠️ Deleted asset IDs set is large, clearing:', deletedAssetIdsRef.current.size);
+                            deletedAssetIdsRef.current.clear();
+                        }
+                        
+                        console.log('[ScreenplayContext] ✅ Merged assets:', {
+                            fromAPI: normalizedAssets.length,
+                            filteredAPI: filteredApiAssets.length,
+                            optimistic: optimisticAssets.length,
+                            total: unique.length,
+                            deletedFiltered: normalizedAssets.length - filteredApiAssets.length
+                        });
+                        
+                        return unique;
+                    });
                     console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API (filtered', assetsList.length - normalizedAssets.length, 'soft-deleted)');
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
@@ -2209,6 +2281,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             throw new Error('Asset not found');
         }
         
+        // 🔥 FIX: Track deleted asset ID to prevent it from reappearing on refresh
+        deletedAssetIdsRef.current.add(id);
+        
         // 🔥 OPTIMISTIC UPDATE: Remove from local state immediately
         setAssets(prev => prev.filter(a => a.id !== id));
         
@@ -2224,6 +2299,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         } catch (error) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
+            deletedAssetIdsRef.current.delete(id); // Remove from deleted set
             setAssets(prev => [...prev, asset]);
             throw error;
         }
