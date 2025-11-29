@@ -72,8 +72,23 @@ export async function POST(request: NextRequest) {
     console.log('[Asset Bank Proxy] POST request received');
     
     // Verify user is authenticated with Clerk and get backend token
-    const { userId, getToken } = await auth();
-    console.log('[Asset Bank Proxy] Auth check - userId:', userId ? 'present' : 'missing');
+    let authResult;
+    try {
+      authResult = await auth();
+      console.log('[Asset Bank Proxy] Auth result:', { 
+        hasUserId: !!authResult.userId, 
+        hasGetToken: !!authResult.getToken,
+        userId: authResult.userId 
+      });
+    } catch (authError: any) {
+      console.error('[Asset Bank Proxy] ❌ Auth() failed:', authError.message);
+      return NextResponse.json(
+        { error: 'Unauthorized - Authentication failed' },
+        { status: 401 }
+      );
+    }
+    
+    const { userId, getToken } = authResult;
     
     if (!userId) {
       console.error('[Asset Bank Proxy] ❌ No userId - user not authenticated');
@@ -83,11 +98,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = await getToken({ template: 'wryda-backend' });
-    console.log('[Asset Bank Proxy] Token check - token:', token ? `present (${token.length} chars)` : 'missing');
+    let token;
+    try {
+      token = await getToken({ template: 'wryda-backend' });
+      console.log('[Asset Bank Proxy] Token generation result:', token ? `success (${token.length} chars)` : 'null/undefined');
+    } catch (tokenError: any) {
+      console.error('[Asset Bank Proxy] ❌ getToken() failed:', tokenError.message);
+      console.error('[Asset Bank Proxy] Token error stack:', tokenError.stack);
+      return NextResponse.json(
+        { error: 'Unauthorized - Could not generate token', details: tokenError.message },
+        { status: 401 }
+      );
+    }
     
     if (!token) {
-      console.error('[Asset Bank Proxy] ❌ No token - could not generate backend token');
+      console.error('[Asset Bank Proxy] ❌ No token - getToken returned null/undefined');
       return NextResponse.json(
         { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
