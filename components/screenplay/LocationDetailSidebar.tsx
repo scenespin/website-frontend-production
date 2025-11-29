@@ -604,7 +604,6 @@ export default function LocationDetailSidebar({
                             }));
                             toast.error(`Failed to remove image: ${error.message}`);
                           }
-                        }
                       } else {
                         // Remove from pending images
                         setPendingImages(prev => prev.filter((_, i) => i !== index))
