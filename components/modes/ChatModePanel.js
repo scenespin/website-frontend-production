@@ -21,12 +21,17 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
   
   // Remove markdown formatting
   cleaned = cleaned
-    // Remove bold markdown (**text** or __text__)
+    // Remove bold markdown (**text** or __text__) - be aggressive
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     // Remove italic markdown (*text* or _text_) - use word boundaries to avoid issues
     .replace(/\b\*([^*\n]+)\*\b/g, '$1')
     .replace(/\b_([^_\n]+)_\b/g, '$1')
+    // 🔥 NEW: Remove markdown scene headings (# INT. or ## INT.)
+    .replace(/^#+\s*(INT\.|EXT\.|I\/E\.)/gim, '$1')
+    // 🔥 NEW: Remove standalone asterisks used for emphasis (but preserve in dialogue)
+    .replace(/^\*\s+/gm, '') // Remove leading asterisk + space
+    .replace(/\s+\*$/gm, '') // Remove trailing asterisk + space
     // Remove horizontal rules (---)
     .replace(/^---+$/gm, '')
     // Remove markdown links [text](url) -> text
@@ -34,6 +39,8 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
     // Remove markdown code blocks
     .replace(/```[a-z]*\n/g, '')
     .replace(/```/g, '')
+    // 🔥 NEW: Remove markdown scene headings (# INT. or ## INT.)
+    .replace(/^#+\s*(INT\.|EXT\.|I\/E\.)/gim, '$1')
     // 🔥 NEW: Remove "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
     .replace(/^\[SCREENWRITING ASSISTANT\]\s*$/gim, '')
     .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '');
@@ -175,10 +182,20 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip markdown headers
       }
       
-      // Skip lines that are just "FADE OUT" or "THE END" if we've already seen screenplay content
-      // (prevents duplicate endings)
-      if (foundFirstScreenplayContent && /^(FADE OUT|THE END|FADE TO BLACK)\.?\s*$/i.test(line)) {
-        continue; // Skip duplicate endings
+      // 🔥 CRITICAL: Stop on "FADE OUT" or "THE END" - these shouldn't be in middle of screenplay
+      // Screenwriter agent should never generate endings
+      if (/^(FADE OUT|THE END|FADE TO BLACK)\.?\s*$/i.test(line)) {
+        break; // STOP on endings - Screenwriter should not generate them
+      }
+      
+      // Also stop on notes/analysis patterns like "[Note:" or "*[Note:"
+      if (/^(\*?\s*)?\[Note:/i.test(line)) {
+        break; // STOP on notes/analysis
+      }
+      
+      // Stop on lines that start with "*" followed by analysis (like "*[Note: This addition...")
+      if (/^\*\s*\[/i.test(line)) {
+        break; // STOP on markdown analysis notes
       }
       
       // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
@@ -186,10 +203,10 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip assistant headers
       }
       
-      // 🔥 CRITICAL: If we find a scene heading, STOP processing
+      // 🔥 CRITICAL: If we find a scene heading (with or without markdown), STOP processing
       // Screenwriter agent should NEVER generate scene headings - if it does, something is wrong
-      // Skip the scene heading and everything after it
-      if (/^(INT\.|EXT\.|I\/E\.|#\s*INT\.|#\s*EXT\.)/i.test(line)) {
+      // Check for both regular scene headings and markdown scene headings (# INT. or ## INT.)
+      if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line)) {
         sceneHeadingFound = true;
         break; // STOP on scene headings - Screenwriter should not generate them
       }
