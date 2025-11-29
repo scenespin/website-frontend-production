@@ -101,6 +101,23 @@ export default function LocationDetailSidebar({
     }
   }, [isCreating, initialData, location])
 
+  // 🔥 FIX: Refetch location data after StorageDecisionModal closes (like MediaLibrary refetches files)
+  // This ensures the UI reflects the latest location data, including newly uploaded images
+  useEffect(() => {
+    if (!showStorageModal && location?.id) {
+      // Modal just closed - sync from context (which should have been updated by the upload)
+      // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
+      const syncLocation = async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const updatedLocationFromContext = locations.find(l => l.id === location.id);
+        if (updatedLocationFromContext) {
+          setFormData(updatedLocationFromContext);
+        }
+      };
+      syncLocation();
+    }
+  }, [showStorageModal, location?.id, locations])
+
   const handleSave = async () => {
     if (!formData.name.trim()) return
     
