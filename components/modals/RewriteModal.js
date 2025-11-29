@@ -285,16 +285,14 @@ export default function RewriteModal({
                 return;
               }
               
-              // 🔥 FIX: Ensure newline is preserved - don't trim end, add newline if rewrite is longer
-              // Check if rewrite is longer than original (rough estimate)
-              const originalLength = selectedText?.length || 0;
-              const rewriteLength = cleaned.length;
+              // 🔥 FIX: Always add newline if there's text after (regardless of length change)
+              // This ensures proper spacing whether rewrite is longer, shorter, or same length
               const textAfter = editorContent.substring(selectionRange.end);
               const hasTextAfter = textAfter.trim().length > 0;
               const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
               
-              // If rewrite is 20%+ longer and there's text after without newline, add newline
-              if (originalLength > 0 && (rewriteLength / originalLength > 1.2) && hasTextAfter && !textAfterStartsWithNewline) {
+              // If there's text after without newline, always add newline
+              if (hasTextAfter && !textAfterStartsWithNewline) {
                 if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                   cleaned = cleaned + '\n';
                 }
@@ -313,15 +311,14 @@ export default function RewriteModal({
                 return;
               }
               
-              // 🔥 FIX: Ensure newline is preserved - don't trim end, add newline if rewrite is longer
-              const originalLength = selectedText?.length || 0;
-              const rewriteLength = cleaned.length;
+              // 🔥 FIX: Always add newline if there's text after (regardless of length change)
+              // This ensures proper spacing whether rewrite is longer, shorter, or same length
               const textAfter = editorContent.substring(selectionRange.end);
               const hasTextAfter = textAfter.trim().length > 0;
               const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
               
-              // If rewrite is 20%+ longer and there's text after without newline, add newline
-              if (originalLength > 0 && (rewriteLength / originalLength > 1.2) && hasTextAfter && !textAfterStartsWithNewline) {
+              // If there's text after without newline, always add newline
+              if (hasTextAfter && !textAfterStartsWithNewline) {
                 if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                   cleaned = cleaned + '\n';
                 }

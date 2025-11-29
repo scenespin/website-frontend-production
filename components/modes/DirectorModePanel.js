@@ -15,7 +15,7 @@ import toast from 'react-hot-toast';
 // Helper to strip markdown formatting from text (for Fountain format compliance)
 // Import cleanFountainOutput from ChatModePanel for consistency
 // Using the same robust cleaning function that removes analysis, notes, etc.
-function cleanFountainOutput(text) {
+function cleanFountainOutput(text, sceneContext = null) {
   if (!text) return text;
   
   let cleaned = text;
@@ -87,7 +87,11 @@ function cleanFountainOutput(text) {
     /this is her (redemption|journey|arc|transformation|development|growth|evolution)/i,
     /captured through her (determination|instinct|skill|talent|ability|expertise)/i,
     /^Here are the next/i,  // "Here are the next three scenes..."
-    /^Here are the/i  // "Here are the scenes..."
+    /^Here are the/i,  // "Here are the scenes..."
+    // 🔥 NEW: Stop on analysis comments like "*This revision adds..."
+    /^\*.*(revision|adds|creates|builds|develops|enhances|improves|strengthens)/i,
+    /^This revision/i,
+    /^This adds/i
   ];
   
   // Patterns for lines to skip (but continue processing after them)
@@ -110,7 +114,13 @@ function cleanFountainOutput(text) {
     // 🔥 NEW: Skip scene sequence headers (like "NEW SCENES: TIGER CHASE SEQUENCE")
     /^NEW SCENES?:/i,
     /^SCENE SEQUENCE:/i,
-    /^SEQUENCE:/i
+    /^SEQUENCE:/i,
+    // 🔥 NEW: Skip "CUT TO:" transitions (not standard Fountain format)
+    /^CUT TO:?\s*$/i,
+    // 🔥 NEW: Skip analysis comments like "*This revision adds..."
+    /^\*.*(revision|adds|creates|builds|develops|enhances|improves|strengthens)/i,
+    /^This revision/i,
+    /^This adds/i
   ];
   
   // Patterns for lines that are clearly explanations (stop here)
@@ -232,11 +242,26 @@ function cleanFountainOutput(text) {
     foundFirstScreenplayContent = false;
     
     // Find the first scene heading or character name
+    // 🔥 CRITICAL: Skip duplicate scene headings that match the current scene
     let firstContentIndex = -1;
+    const currentSceneHeading = sceneContext?.heading || '';
     for (let i = 0; i < lines.length; i++) {
       const trimmedLine = lines[i].trim();
-      if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine) || 
-          (/^[A-Z][A-Z\s#0-9']+$/.test(trimmedLine) && trimmedLine.length > 2 && trimmedLine.length < 50)) {
+      // Check if it's a scene heading
+      if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
+        // Skip if it matches the current scene (duplicate)
+        if (currentSceneHeading) {
+          const currentLocation = currentSceneHeading.toLowerCase().split(' - ')[0];
+          const newLocation = trimmedLine.toLowerCase().split(' - ')[0];
+          if (currentLocation === newLocation) {
+            continue; // Skip duplicate scene heading
+          }
+        }
+        firstContentIndex = i;
+        foundFirstScreenplayContent = true;
+        break;
+      } else if (/^[A-Z][A-Z\s#0-9']+$/.test(trimmedLine) && trimmedLine.length > 2 && trimmedLine.length < 50) {
+        // Character name
         firstContentIndex = i;
         foundFirstScreenplayContent = true;
         break;
@@ -556,7 +581,7 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 console.log('[DirectorModePanel] Extracted content preview:', validation.content?.substring(0, 500) || '(empty)');
                 // Clean the JSON-extracted content to remove any headers that might have slipped through
                 // (e.g., "NEW SCENES:" headers that the AI might have included in the JSON)
-                const cleanedJsonContent = cleanFountainOutput(validation.content);
+                const cleanedJsonContent = cleanFountainOutput(validation.content, sceneContext);
                 console.log('[DirectorModePanel] Cleaned JSON content length:', cleanedJsonContent?.length || 0);
                 // Use the cleaned content from JSON
                 addMessage({
@@ -595,7 +620,7 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                   return; // Don't continue with cleaning
                 }
                 
-                const cleanedContent = cleanFountainOutput(fullContent);
+                const cleanedContent = cleanFountainOutput(fullContent, sceneContext);
                 console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
                 console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
                 
@@ -767,9 +792,12 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                       console.log('[DirectorModePanel] Message content length:', message.content?.length);
                       console.log('[DirectorModePanel] Message content preview:', message.content?.substring(0, 500));
                       
+                      // Get current scene context for duplicate detection
+                      const currentSceneContext = detectCurrentScene(editorContent, cursorPosition) || state.sceneContext;
+                      
                       // Content should already be clean (extracted from JSON or cleaned on receipt)
                       // Clean again as safeguard to remove any headers like "NEW SCENES:" that might have slipped through
-                      const cleanedContent = cleanFountainOutput(message.content);
+                      const cleanedContent = cleanFountainOutput(message.content, currentSceneContext);
                       
                       console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
                       console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
@@ -836,11 +864,15 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                     } else {
                       console.warn('[DirectorModePanel] ❌ JSON validation failed for streaming text, falling back to cleaning');
                       // Fallback to cleaning if JSON validation fails
-                      contentToInsert = cleanFountainOutput(state.streamingText);
+                      // Get current scene context for duplicate detection
+                      const currentSceneContext = detectCurrentScene(editorContent, cursorPosition) || state.sceneContext;
+                      contentToInsert = cleanFountainOutput(state.streamingText, currentSceneContext);
                     }
                   } else {
                     // Fallback: Clean the content before inserting (strip markdown, remove notes)
-                    contentToInsert = cleanFountainOutput(state.streamingText);
+                    // Get current scene context for duplicate detection
+                    const currentSceneContext = detectCurrentScene(editorContent, cursorPosition) || state.sceneContext;
+                    contentToInsert = cleanFountainOutput(state.streamingText, currentSceneContext);
                   }
                   
                   // Validate content before inserting

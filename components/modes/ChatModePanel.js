@@ -180,11 +180,12 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip assistant headers
       }
       
-      // If we find a scene heading, skip it (but continue processing - don't break)
-      // Users might still want content even if AI generated a full scene
+      // 🔥 CRITICAL: If we find a scene heading, STOP processing
+      // Screenwriter agent should NEVER generate scene headings - if it does, something is wrong
+      // Skip the scene heading and everything after it
       if (/^(INT\.|EXT\.|I\/E\.|#\s*INT\.|#\s*EXT\.)/i.test(line)) {
         sceneHeadingFound = true;
-        continue; // Skip scene headings (including markdown headers like "# INT. NEWS OFFICE - NIGHT")
+        break; // STOP on scene headings - Screenwriter should not generate them
       }
       
       // 🔥 RELAXED: Don't break on scene headings - just skip them and continue

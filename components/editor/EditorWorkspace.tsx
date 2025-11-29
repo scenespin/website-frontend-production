@@ -307,11 +307,9 @@ export default function EditorWorkspace() {
                 needsNewlineAtEnd = true;
             }
             
-            // Case 2: Rewrite is longer than original (even if still single line)
-            // If rewrite is longer, it likely needs a newline after it to separate from following content
-            // Lower threshold: if rewrite is 20% longer than original, add newline
-            const lengthIncrease = rewriteLength / originalLength;
-            if (lengthIncrease > 1.2 && hasTextAfter && !textAfterStartsWithNewline) {
+            // Case 2: Always add newline if there's text after (regardless of length change)
+            // This ensures proper spacing whether rewrite is longer, shorter, or same length
+            if (hasTextAfter && !textAfterStartsWithNewline) {
                 needsNewlineAtEnd = true;
             }
             

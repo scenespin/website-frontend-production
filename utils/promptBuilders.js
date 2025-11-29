@@ -99,9 +99,11 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
 
   // Simplified prompt - JSON optional, text cleaning is primary
   if (useJSON) {
-    return `${contextInfo}Continue the scene from the cursor. Write 1-5 lines of action or dialogue.
+    return `${contextInfo}Continue the scene from the cursor. Write ONLY 1-5 lines of action or dialogue.
 
 ${continuationContext}
+
+CRITICAL: Write ONLY 1-5 lines. Do NOT write full scenes. Do NOT include scene headings.
 
 Respond with JSON:
 {
@@ -110,23 +112,25 @@ Respond with JSON:
 }
 
 Rules:
-- NO scene headings (INT./EXT.)
+- NO scene headings (INT./EXT.) - NEVER include scene headings
 - NO repeating content before cursor
 - NO dashes (-- or -) in action lines
-- Just write what comes next`;
+- Write ONLY what comes next - 1-5 lines maximum`;
   }
   
   // Fallback: Simplified text format (primary reliable path)
-  return `${contextInfo}Continue the scene from the cursor. Write 1-5 lines of action or dialogue.
+  return `${contextInfo}Continue the scene from the cursor. Write ONLY 1-5 lines of action or dialogue.
 
 ${continuationContext}
 
+CRITICAL: Write ONLY 1-5 lines. Do NOT write full scenes. Do NOT include scene headings.
+
 Rules:
-- NO scene headings (INT./EXT.)
+- NO scene headings (INT./EXT.) - NEVER include scene headings
 - NO repeating content before cursor
 - NO dashes (-- or -) in action lines
 - NO analysis, suggestions, or questions
-- Just write what comes next in the scene`;
+- Write ONLY what comes next - 1-5 lines maximum`;
 }
 
 /**
@@ -204,9 +208,12 @@ Rules:
 - NO analysis, suggestions, or questions - just write scenes
 - NO markdown formatting (no **, no #, no ---)
 - NO dashes (-- or -) in action lines
+- NO "CUT TO:" - Fountain format doesn't use transitions between scenes
 - NO "FADE OUT" or "THE END" unless user requests ending
 - NO "Revised Scene" or other headers
+- NO comments like "*This revision adds..." - just write the scenes
 - Each scene must have different location/time than "${sceneContext?.heading || 'current scene'}"
+- Do NOT repeat the current scene "${sceneContext?.heading || 'current scene'}" - create NEW scenes
 - Write in Fountain format with proper newlines
 
 EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
