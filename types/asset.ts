@@ -11,6 +11,7 @@ export interface AssetImage {
   url: string;
   angle?: string;
   uploadedAt: string;
+  s3Key?: string; // S3 key for regenerating presigned URLs when expired
 }
 
 export interface Asset {

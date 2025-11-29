@@ -253,6 +253,8 @@ export default function AssetDetailSidebar({
         });
 
         // Step 3: Get presigned download URL for StorageDecisionModal (bucket is private)
+        // 🔥 FIX: Generate 7-day presigned URL for temporary storage (matches S3 lifecycle)
+        // This ensures the URL stays valid for the full 7 days the file is in S3
         const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
         const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
         const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
@@ -267,7 +269,7 @@ export default function AssetDetailSidebar({
             },
             body: JSON.stringify({
               s3Key: s3Key,
-              expiresIn: 3600 // 1 hour
+              expiresIn: 604800 // 7 days (604800 seconds) - matches S3 lifecycle policy
             }),
           });
           
@@ -292,10 +294,12 @@ export default function AssetDetailSidebar({
       if (asset) {
         // Existing asset - register all images with asset bank API
         try {
-          // Transform to AssetImage format (url, angle?, uploadedAt) - no id or s3Key
+          // Transform to AssetImage format (url, angle?, uploadedAt, s3Key)
+          // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
           const newImageObjects = uploadedImages.map(img => ({
             url: img.imageUrl,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            s3Key: img.s3Key // Store s3Key for URL regeneration
             // Note: angle can be added later if needed
           }));
 
@@ -789,7 +793,7 @@ export default function AssetDetailSidebar({
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                      body: JSON.stringify({ s3Key, expiresIn: 604800 }), // 7 days - matches S3 lifecycle
                     });
                     if (downloadResponse.ok) {
                       const downloadData = await downloadResponse.json();
@@ -805,13 +809,14 @@ export default function AssetDetailSidebar({
                   const currentAsset = assets.find(a => a.id === asset.id) || asset;
                   
                   // Register with asset via ScreenplayContext (updates both API and local state)
-                  // AssetImage only has: url, angle?, uploadedAt (no id or s3Key)
+                  // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
                   await updateAsset(asset.id, {
                     images: [
                       ...(currentAsset.images || []),
                       {
                         url: downloadUrl,
-                        uploadedAt: new Date().toISOString()
+                        uploadedAt: new Date().toISOString(),
+                        s3Key: s3Key // Store s3Key for URL regeneration
                       }
                     ]
                   });
@@ -898,7 +903,7 @@ export default function AssetDetailSidebar({
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                      body: JSON.stringify({ s3Key, expiresIn: 604800 }), // 7 days - matches S3 lifecycle
                     });
                     if (downloadResponse.ok) {
                       const downloadData = await downloadResponse.json();

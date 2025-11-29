@@ -356,9 +356,11 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                     try {
                                                         if (img.s3Key) {
                                                             // Image already uploaded to S3, just register it
+                                                            // 🔥 FIX: Store s3Key so we can regenerate presigned URLs when they expire
                                                             imageEntries.push({
-                                                                url: img.imageUrl, // This is the presigned download URL
-                                                                uploadedAt: new Date().toISOString()
+                                                                url: img.imageUrl, // This is the presigned download URL (7-day expiration)
+                                                                uploadedAt: new Date().toISOString(),
+                                                                s3Key: img.s3Key // Store s3Key for URL regeneration
                                                             });
                                                         } else {
                                                             // AI-generated image (data URL) - needs to be uploaded to S3
