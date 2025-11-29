@@ -257,6 +257,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     });
     const [assets, setAssets] = useState<Asset[]>(() => {
         console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty assets array');
+        // 🔥 FIX: Load recently created assets from sessionStorage to handle eventual consistency
+        if (typeof window !== 'undefined' && screenplayId) {
+            try {
+                const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
+                if (stored) {
+                    const optimisticAssets = JSON.parse(stored) as Asset[];
+                    // Only keep assets created within last 60 seconds
+                    const now = Date.now();
+                    const recent = optimisticAssets.filter(a => {
+                        const createdAt = new Date(a.createdAt).getTime();
+                        const age = now - createdAt;
+                        return age < 60000; // 60 seconds
+                    });
+                    if (recent.length > 0) {
+                        console.log('[ScreenplayContext] 🔄 Loaded', recent.length, 'optimistic assets from sessionStorage');
+                        return recent;
+                    }
+                }
+            } catch (e) {
+                console.warn('[ScreenplayContext] Failed to load optimistic assets from sessionStorage:', e);
+            }
+        }
         return [];
     });
     
@@ -268,7 +290,40 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const locationsRef = useRef<Location[]>([]);
     const assetsRef = useRef<Asset[]>([]);
     // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
-    const deletedAssetIdsRef = useRef<Set<string>>(new Set());
+    // Use sessionStorage to persist across remounts (refresh)
+    const getDeletedAssetIds = useCallback(() => {
+        if (typeof window === 'undefined' || !screenplayId) return new Set<string>();
+        try {
+            const stored = sessionStorage.getItem(`deleted-assets-${screenplayId}`);
+            if (stored) {
+                const ids = JSON.parse(stored) as string[];
+                console.log('[ScreenplayContext] 🔄 Loaded', ids.length, 'deleted asset IDs from sessionStorage');
+                return new Set(ids);
+            }
+        } catch (e) {
+            console.warn('[ScreenplayContext] Failed to load deleted asset IDs from sessionStorage:', e);
+        }
+        return new Set<string>();
+    }, [screenplayId]);
+    
+    const saveDeletedAssetIds = useCallback((ids: Set<string>) => {
+        if (typeof window === 'undefined' || !screenplayId) return;
+        try {
+            sessionStorage.setItem(`deleted-assets-${screenplayId}`, JSON.stringify(Array.from(ids)));
+        } catch (e) {
+            console.warn('[ScreenplayContext] Failed to save deleted asset IDs to sessionStorage:', e);
+        }
+    }, [screenplayId]);
+    
+    const deletedAssetIdsRef = useRef<Set<string>>(getDeletedAssetIds());
+    
+    // 🔥 FIX: Load deleted IDs when screenplayId changes
+    useEffect(() => {
+        if (screenplayId) {
+            deletedAssetIdsRef.current = getDeletedAssetIds();
+        }
+    }, [screenplayId, getDeletedAssetIds]);
+    
     const updateScenePositionsRef = useRef<((content: string) => Promise<number>) | null>(null);
     
     // Keep refs in sync with state
@@ -949,6 +1004,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Strategy: 
                     // 1. Filter out assets that were deleted (even if API returns them due to eventual consistency)
                     // 2. Preserve recently created assets that aren't in API yet
+                    // 🔥 CRITICAL: Reload deleted IDs from sessionStorage in case ref was reset
+                    if (screenplayId && typeof window !== 'undefined') {
+                        const storedDeleted = sessionStorage.getItem(`deleted-assets-${screenplayId}`);
+                        if (storedDeleted) {
+                            try {
+                                const deletedIds = JSON.parse(storedDeleted) as string[];
+                                deletedAssetIdsRef.current = new Set(deletedIds);
+                                console.log('[ScreenplayContext] 🔄 Reloaded', deletedIds.length, 'deleted asset IDs from sessionStorage for merge');
+                            } catch (e) {
+                                console.warn('[ScreenplayContext] Failed to reload deleted IDs:', e);
+                            }
+                        }
+                    }
+                    
                     setAssets(prev => {
                         // Filter out deleted assets from API response (eventual consistency protection)
                         const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
@@ -957,8 +1026,30 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
                         
                         // Find optimistic assets (in prev but not in API response)
-                        // These are assets that were just created but GSI hasn't updated yet
-                        const optimisticAssets = prev.filter(a => {
+                        // Also load from sessionStorage in case state was reset
+                        const sessionStorageAssets: Asset[] = [];
+                        if (screenplayId && typeof window !== 'undefined') {
+                            try {
+                                const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
+                                if (stored) {
+                                    const storedAssets = JSON.parse(stored) as Asset[];
+                                    const now = Date.now();
+                                    sessionStorageAssets.push(...storedAssets.filter(a => {
+                                        const createdAt = new Date(a.createdAt).getTime();
+                                        const age = now - createdAt;
+                                        return age < 60000; // 60 seconds
+                                    }));
+                                }
+                            } catch (e) {
+                                console.warn('[ScreenplayContext] Failed to load optimistic assets from sessionStorage:', e);
+                            }
+                        }
+                        
+                        // Combine prev state and sessionStorage assets
+                        const allOptimistic = [...prev, ...sessionStorageAssets];
+                        
+                        // Find optimistic assets that aren't in API response
+                        const optimisticAssets = allOptimistic.filter(a => {
                             if (apiAssetIds.has(a.id)) {
                                 return false; // Already in API response
                             }
@@ -973,13 +1064,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             return age < 60000; // 60 seconds
                         });
                         
+                        // Remove duplicates from optimistic assets
+                        const uniqueOptimistic = optimisticAssets.reduce((acc, asset) => {
+                            if (!acc.find(a => a.id === asset.id)) {
+                                acc.push(asset);
+                            }
+                            return acc;
+                        }, [] as Asset[]);
+                        
                         // Start with filtered API assets (source of truth, minus deleted ones)
                         const merged = [...filteredApiAssets];
                         
                         // Add optimistic assets that aren't in API yet
-                        for (const optimistic of optimisticAssets) {
+                        for (const optimistic of uniqueOptimistic) {
                             merged.push(optimistic);
                             console.log('[ScreenplayContext] 🔄 Keeping optimistic asset (eventual consistency):', optimistic.id, 'age:', Math.round((Date.now() - new Date(optimistic.createdAt).getTime()) / 1000), 's');
+                        }
+                        
+                        // Update sessionStorage with current optimistic assets
+                        if (screenplayId && typeof window !== 'undefined') {
+                            try {
+                                const now = Date.now();
+                                const recentOptimistic = uniqueOptimistic.filter(a => {
+                                    const createdAt = new Date(a.createdAt).getTime();
+                                    const age = now - createdAt;
+                                    return age < 60000; // 60 seconds
+                                });
+                                sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recentOptimistic));
+                            } catch (e) {
+                                console.warn('[ScreenplayContext] Failed to save optimistic assets to sessionStorage:', e);
+                            }
                         }
                         
                         // Remove duplicates (prioritize API response over optimistic)
@@ -1009,7 +1123,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         console.log('[ScreenplayContext] ✅ Merged assets:', {
                             fromAPI: normalizedAssets.length,
                             filteredAPI: filteredApiAssets.length,
-                            optimistic: optimisticAssets.length,
+                            optimistic: uniqueOptimistic.length,
                             total: unique.length,
                             deletedFiltered: normalizedAssets.length - filteredApiAssets.length
                         });
@@ -2164,6 +2278,31 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             });
             
+            // 🔥 FIX: Save optimistic asset to sessionStorage for eventual consistency handling
+            if (screenplayId && typeof window !== 'undefined') {
+                try {
+                    const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
+                    const optimisticAssets = stored ? JSON.parse(stored) as Asset[] : [];
+                    // Add or update the asset
+                    const index = optimisticAssets.findIndex(a => a.id === normalizedAsset.id || a.id === optimisticAsset.id);
+                    if (index >= 0) {
+                        optimisticAssets[index] = normalizedAsset;
+                    } else {
+                        optimisticAssets.push(normalizedAsset);
+                    }
+                    // Only keep assets created within last 60 seconds
+                    const now = Date.now();
+                    const recent = optimisticAssets.filter(a => {
+                        const createdAt = new Date(a.createdAt).getTime();
+                        const age = now - createdAt;
+                        return age < 60000; // 60 seconds
+                    });
+                    sessionStorage.setItem(`optimistic-assets-${screenplayId}`, JSON.stringify(recent));
+                } catch (e) {
+                    console.warn('[ScreenplayContext] Failed to save optimistic asset to sessionStorage:', e);
+                }
+            }
+            
             console.log('[ScreenplayContext] ✅ Created asset:', normalizedAsset.id);
             
             // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
@@ -2283,6 +2422,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         // 🔥 FIX: Track deleted asset ID to prevent it from reappearing on refresh
         deletedAssetIdsRef.current.add(id);
+        saveDeletedAssetIds(deletedAssetIdsRef.current); // Persist to sessionStorage
         
         // 🔥 OPTIMISTIC UPDATE: Remove from local state immediately
         setAssets(prev => prev.filter(a => a.id !== id));
@@ -2300,6 +2440,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
             deletedAssetIdsRef.current.delete(id); // Remove from deleted set
+            saveDeletedAssetIds(deletedAssetIdsRef.current); // Update sessionStorage
             setAssets(prev => [...prev, asset]);
             throw error;
         }
