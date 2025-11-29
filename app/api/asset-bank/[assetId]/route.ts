@@ -15,22 +15,19 @@ export async function GET(
   { params }: { params: { assetId: string } }
 ) {
   try {
-    // Get the token from the Authorization header that the client sent
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify user is authenticated with Clerk
-    const { userId } = await auth();
+    // Verify user is authenticated with Clerk and get backend token
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
       );
     }
@@ -74,22 +71,19 @@ export async function PUT(
   { params }: { params: { assetId: string } }
 ) {
   try {
-    // Get the token from the Authorization header that the client sent
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify user is authenticated with Clerk
-    const { userId } = await auth();
+    // Verify user is authenticated with Clerk and get backend token
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
       );
     }
@@ -135,22 +129,19 @@ export async function DELETE(
   { params }: { params: { assetId: string } }
 ) {
   try {
-    // Get the token from the Authorization header that the client sent
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify user is authenticated with Clerk
-    const { userId } = await auth();
+    // Verify user is authenticated with Clerk and get backend token
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Could not generate token' },
         { status: 401 }
       );
     }
