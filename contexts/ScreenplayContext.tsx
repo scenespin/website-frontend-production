@@ -2109,15 +2109,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, user]);
     
     const updateAsset = useCallback(async (id: string, updates: Partial<Asset>) => {
-        // Optimistic UI update
-        const previousAssets = assets;
-        const updatedAssets = assets.map(asset => {
-            if (asset.id === id) {
-                return { ...asset, ...updates, updatedAt: new Date().toISOString() };
+        // 🔥 FIX: Save previous state for rollback BEFORE optimistic update
+        // Use ref to get current state without closure issues
+        const previousAsset = assetsRef.current.find(a => a.id === id);
+        if (!previousAsset) {
+            console.warn('[ScreenplayContext] ⚠️ Asset not found for update:', id);
+            // Asset not found - might be a race condition, try to continue anyway
+        }
+        
+        // 🔥 FIX: Use functional update to get latest state (not closure)
+        // This prevents stale state issues when updateAsset is called right after createAsset
+        setAssets(prev => {
+            const assetIndex = prev.findIndex(a => a.id === id);
+            if (assetIndex === -1) {
+                console.warn('[ScreenplayContext] ⚠️ Asset not found in state for update:', id);
+                return prev; // Asset not found, return unchanged
             }
-            return asset;
+            // Update the asset optimistically
+            const updated = [...prev];
+            updated[assetIndex] = { ...updated[assetIndex], ...updates, updatedAt: new Date().toISOString() };
+            return updated;
         });
-        setAssets(updatedAssets);
         
         // Update via API
         if (screenplayId) {
@@ -2150,8 +2162,19 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                 }
                 
-                // Sync with API response (or refetched asset)
-                setAssets(prev => prev.map(a => a.id === id ? finalAsset : a));
+                // 🔥 FIX: Sync with API response using functional update
+                setAssets(prev => {
+                    const assetIndex = prev.findIndex(a => a.id === id);
+                    if (assetIndex === -1) {
+                        // Asset not found - might have been created but state not synced yet
+                        console.warn('[ScreenplayContext] ⚠️ Asset not found in state for sync, adding:', id);
+                        return [...prev, finalAsset];
+                    }
+                    // Replace with API response
+                    const updated = [...prev];
+                    updated[assetIndex] = finalAsset;
+                    return updated;
+                });
                 console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
                 
                 // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
@@ -2159,13 +2182,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Instead, we rely on the state sync above which uses the actual API response
                 // The data will be correct on the next page refresh when initializeData runs
             } catch (error) {
-                // Rollback on error
+                // Rollback on error - restore previous asset state
                 console.error('[ScreenplayContext] Failed to update asset, rolling back:', error);
-                setAssets(previousAssets);
+                if (previousAsset) {
+                    setAssets(prev => {
+                        const assetIndex = prev.findIndex(a => a.id === id);
+                        if (assetIndex === -1) {
+                            // Asset was removed, restore it
+                            return [...prev, previousAsset];
+                        } else {
+                            // Asset exists, restore previous state
+                            const restored = [...prev];
+                            restored[assetIndex] = previousAsset;
+                            return restored;
+                        }
+                    });
+                }
                 throw error;
             }
         }
-    }, [screenplayId, assets]);
+    }, [screenplayId]);
     
     const deleteAsset = useCallback(async (id: string) => {
         const asset = assets.find(a => a.id === id);
@@ -2181,53 +2217,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             await api.assetBank.delete(id);
             console.log('[ScreenplayContext] ✅ Deleted asset:', id);
             
-            // 🔥 FIX: Wait a bit for DynamoDB eventual consistency, then reload
-            // This ensures the soft delete is propagated before we query again
-            // Use a longer delay (1000ms) to allow DynamoDB to fully propagate the change
-            const reloadAssets = async () => {
-                // Reload assets to ensure we have the latest data (excluding soft-deleted)
-                try {
-                    if (screenplayId) {
-                        console.log('[ScreenplayContext] 🔄 Reloading assets after delete (screenplayId:', screenplayId, ')');
-                        const assetsData = await api.assetBank.list(screenplayId).catch((err) => {
-                            console.error('[ScreenplayContext] ❌ Failed to reload assets:', err);
-                            return { assets: [] };
-                        });
-                        const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
-                        const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
-                        
-                        // Filter out soft-deleted assets (safety measure)
-                        const activeAssets = assetsList.filter(a => !a.deleted_at);
-                        
-                        const normalizedAssets = activeAssets.map(a => ({
-                            ...a,
-                            images: a.images || []
-                        }));
-                        
-                        console.log('[ScreenplayContext] 📦 Reloaded assets:', {
-                            totalFromAPI: assetsList.length,
-                            activeAfterFilter: normalizedAssets.length,
-                            deletedAssetIds: assetsList.filter(a => a.deleted_at).map(a => a.id)
-                        });
-                        
-                        setAssets(normalizedAssets);
-                        console.log('[ScreenplayContext] ✅ Reloaded assets after delete:', normalizedAssets.length);
-                    }
-                } catch (reloadError) {
-                    console.error('[ScreenplayContext] Failed to reload assets after delete:', reloadError);
-                    // Don't throw - optimistic update is still in place
-                }
-            };
-            setTimeout(() => {
-                reloadAssets();
-            }, 1000); // Increased delay for DynamoDB eventual consistency
+            // 🔥 FIX: Don't reload immediately - DynamoDB eventual consistency causes deleted assets to reappear
+            // The optimistic update is sufficient - the asset will be gone on next page refresh
+            // when initializeData runs, which will have fresh data from DynamoDB
+            // This matches the pattern used for locations (no immediate reload for deletes)
         } catch (error) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
             setAssets(prev => [...prev, asset]);
             throw error;
         }
-    }, [assets, screenplayId]);
+    }, [assets]);
     
     const getAssetScenes = useCallback((assetId: string): string[] => {
         // Find all scenes that reference this asset via props tag
