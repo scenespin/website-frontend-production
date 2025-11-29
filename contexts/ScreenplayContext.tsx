@@ -934,14 +934,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
                     const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
                     
+                    // 🔥 FIX: Filter out soft-deleted assets (safety measure - backend should already filter)
+                    const activeAssets = assetsList.filter(asset => !asset.deleted_at);
+                    
                     // Ensure all assets have images array initialized
-                    const normalizedAssets = assetsList.map(asset => ({
+                    const normalizedAssets = activeAssets.map(asset => ({
                         ...asset,
                         images: asset.images || []
                     }));
                     
                     setAssets(normalizedAssets);
-                    console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API');
+                    console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API (filtered', assetsList.length - normalizedAssets.length, 'soft-deleted)');
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
                     // Pass characters and locations for validation (beats are empty templates now)
@@ -2149,17 +2152,35 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             await api.assetBank.delete(id);
             console.log('[ScreenplayContext] ✅ Deleted asset:', id);
             
-            // 🔥 FIX: Don't force reload immediately - optimistic update is sufficient
-            // Force reload can cause stale data issues if DynamoDB hasn't fully propagated the deletion
-            // The deletion will be reflected on the next page refresh or when initializeData runs naturally
-            // This matches the location pattern which doesn't force reload on delete
+            // 🔥 FIX: Wait a bit for DynamoDB eventual consistency, then reload
+            // This ensures the soft delete is propagated before we query again
+            // Use a small delay (500ms) to allow DynamoDB to propagate the change
+            setTimeout(async () => {
+                // Reload assets to ensure we have the latest data (excluding soft-deleted)
+                try {
+                    if (screenplayId) {
+                        const assetsData = await api.assetBank.list(screenplayId).catch(() => ({ assets: [] }));
+                        const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
+                        const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
+                        const normalizedAssets = assetsList.map(a => ({
+                            ...a,
+                            images: a.images || []
+                        }));
+                        setAssets(normalizedAssets);
+                        console.log('[ScreenplayContext] ✅ Reloaded assets after delete:', normalizedAssets.length);
+                    }
+                } catch (reloadError) {
+                    console.error('[ScreenplayContext] Failed to reload assets after delete:', reloadError);
+                    // Don't throw - optimistic update is still in place
+                }
+            }, 500);
         } catch (error) {
             // Restore on error
             console.error('[ScreenplayContext] Failed to delete asset, restoring:', error);
             setAssets(prev => [...prev, asset]);
             throw error;
         }
-    }, [assets]);
+    }, [assets, screenplayId]);
     
     const getAssetScenes = useCallback((assetId: string): string[] => {
         // Find all scenes that reference this asset via props tag
