@@ -101,6 +101,23 @@ export default function CharacterDetailSidebar({
     }
   }, [character, initialData, isCreating])
 
+  // 🔥 FIX: Refetch character data after StorageDecisionModal closes (like MediaLibrary refetches files)
+  // This ensures the UI reflects the latest character data, including newly uploaded images
+  useEffect(() => {
+    if (!showStorageModal && character?.id) {
+      // Modal just closed - sync from context (which should have been updated by the upload)
+      // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
+      const syncCharacter = async () => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+        if (updatedCharacterFromContext) {
+          setFormData(updatedCharacterFromContext);
+        }
+      };
+      syncCharacter();
+    }
+  }, [showStorageModal, character?.id, characters])
+
   const handleSave = async () => {
     if (!formData.name.trim()) return
     
