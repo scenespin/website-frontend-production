@@ -431,26 +431,44 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = screenplayLines.join('\n');
   
   // 🔥 CRITICAL: Ensure 2 newlines between scenes (Fountain format standard)
+  // SIMPLIFIED APPROACH: Add 2 newlines BEFORE each scene heading (except the first one)
+  // This is more reliable than trying to find where scenes end
+  
   // First, normalize line endings and trim trailing whitespace from each line
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // Split by scene headings and rejoin with 2 newlines between scenes
-  const sceneParts = cleaned.split(/(?=^(?:INT\.|EXT\.|I\/E\.))/gim);
-  if (sceneParts.length > 1) {
-    // Multiple scenes - ensure 2 newlines between them
-    cleaned = sceneParts
-      .map((part, index) => {
-        if (index === 0) {
-          // First scene - trim leading whitespace but keep content
-          return part.trimStart();
-        }
+  // Find all scene headings and ensure 2 newlines before each (except first)
+  // Split by scene headings, but keep the scene headings in the result
+  const lines = cleaned.split('\n');
+  const result = [];
+  let firstSceneFound = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
+    
+    // Check if this is a scene heading
+    if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
+      if (!firstSceneFound) {
+        // First scene - no extra newlines needed
+        firstSceneFound = true;
+        result.push(line);
+      } else {
         // Subsequent scenes - ensure 2 newlines before scene heading
-        // Remove any existing newlines/whitespace at the start, then add exactly 2 newlines
-        const trimmed = part.replace(/^\s+/, ''); // Remove leading whitespace
-        return '\n\n' + trimmed;
-      })
-      .join('');
+        // Remove any trailing newlines from previous content, then add 2 newlines
+        while (result.length > 0 && result[result.length - 1].trim() === '') {
+          result.pop(); // Remove trailing empty lines
+        }
+        result.push(''); // Add first newline
+        result.push(''); // Add second newline
+        result.push(line); // Add scene heading
+      }
+    } else {
+      result.push(line);
+    }
   }
+  
+  cleaned = result.join('\n');
   
   // Remove duplicate "FADE OUT. THE END" patterns and "FADE TO BLACK"
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
@@ -459,19 +477,6 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|FADE TO BLACK\.?|THE END\.?)\s*$/gi, '');
   // Remove "FADE TO BLACK" anywhere in the content (shouldn't be in middle of screenplay)
   cleaned = cleaned.replace(/^\s*FADE TO BLACK\.?\s*$/gim, '');
-  
-  // 🔥 CRITICAL: Re-ensure 2 newlines between scenes after other processing
-  // This handles cases where normalization might have collapsed newlines
-  cleaned = cleaned.replace(/(\n)(INT\.|EXT\.|I\/E\.)/gi, (match, newline, heading) => {
-    // Check if there's already 2+ newlines before this scene heading
-    const beforeMatch = cleaned.substring(0, cleaned.indexOf(match));
-    const beforeNewlines = beforeMatch.match(/\n+$/);
-    if (beforeNewlines && beforeNewlines[0].length >= 2) {
-      return match; // Already has 2+ newlines, keep as is
-    }
-    // Add extra newline to make it 2 newlines total before scene heading
-    return '\n\n' + heading;
-  });
   
   // Normalize excessive newlines (3+ becomes 2) but preserve 2 newlines between scenes
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
