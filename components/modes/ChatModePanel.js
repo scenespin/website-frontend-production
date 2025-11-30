@@ -339,12 +339,34 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // Build prompt - ALWAYS content generation (no advice mode)
       builtPrompt = buildChatContentPrompt(prompt, sceneContext, useJSONFormat);
       
-      // Build system prompt - ABSOLUTE MINIMUM
-      systemPrompt = `Write 3 lines of Fountain format screenplay text that continue the scene.`;
+      // Build system prompt - CODE BLOCK APPROACH
+      systemPrompt = `You are a screenwriting assistant. Generate 1-3 lines of Fountain format screenplay text that continue the scene.
+
+CRITICAL FORMAT REQUIREMENT:
+- Put ALL Fountain format content inside a code block with language tag "fountain"
+- Format: \`\`\`fountain\n[your screenplay content]\n\`\`\`
+- Any analysis, commentary, or explanations must be OUTSIDE the code block
+- The code block should contain ONLY the screenplay text (no markdown, no headers, no analysis)
+
+EXAMPLE OUTPUT:
+\`\`\`fountain
+Sarah enters the room, her hands shaking.
+
+She looks around nervously.
+\`\`\`
+
+RULES:
+- NO scene headings (INT./EXT.) - this is a continuation, not a new scene
+- NO markdown formatting inside the code block
+- NO analysis or commentary inside the code block
+- NO questions, suggestions, or options
+- Just 1-3 lines of Fountain format screenplay text
+- Character names in ALL CAPS when speaking
+- Action lines in normal case`;
       
       // Add scene context if available (minimal, just for context)
       if (sceneContext) {
-        systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
+        systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include scene heading in output)`;
         if (sceneContext.characters && sceneContext.characters.length > 0) {
           systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
         }

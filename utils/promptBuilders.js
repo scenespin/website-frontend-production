@@ -85,8 +85,11 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
     continuationContext = `\n\nContext: ${sceneContext.contextBeforeCursor.substring(0, 200)}...`;
   }
 
-  // ABSOLUTE MINIMUM: Just the user's request + minimal context
-  return `${message}${continuationContext}`;
+  // 🔥 CODE BLOCK APPROACH: Request Fountain format in code blocks
+  const codeBlockInstruction = `\n\nIMPORTANT: Put your Fountain format output in a code block:\n\n\`\`\`fountain\n[your screenplay content here]\n\`\`\`\n\nAny analysis or commentary should be OUTSIDE the code block.`;
+
+  // User's request + minimal context + code block instruction
+  return `${message}${continuationContext}${codeBlockInstruction}`;
 }
 
 /**
