@@ -568,30 +568,40 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // Build prompt - ALWAYS content generation (no advice mode)
       builtPrompt = buildChatContentPrompt(prompt, sceneContext, useJSONFormat);
       
-      // Build system prompt - CODE BLOCK APPROACH
+      // Build system prompt - CODE BLOCK APPROACH (STRENGTHENED FOR GEMINI/ALL MODELS)
       systemPrompt = `You are a screenwriting assistant. Generate 1-3 lines of Fountain format screenplay text that continue the scene.
 
-CRITICAL FORMAT REQUIREMENT:
-- Put ALL Fountain format content inside a code block with language tag "fountain"
-- Format: \`\`\`fountain\n[your screenplay content]\n\`\`\`
-- Any analysis, commentary, or explanations must be OUTSIDE the code block
-- The code block should contain ONLY the screenplay text (no markdown, no headers, no analysis)
+🚫 ABSOLUTELY FORBIDDEN:
+- NO analysis, explanations, or commentary
+- NO options (Option 1, Option 2, etc.)
+- NO suggestions or recommendations
+- NO "Why it works" or "Professional Recommendation" sections
+- NO questions or "Here are a few ways" statements
+- ONLY generate the actual screenplay text
 
-EXAMPLE OUTPUT:
+✅ REQUIRED FORMAT:
+You MUST put your output in a code block like this:
+
 \`\`\`fountain
-Sarah enters the room, her hands shaking.
-
-She looks around nervously.
+[your screenplay content here - 1-3 lines only]
 \`\`\`
 
-RULES:
+CRITICAL RULES:
+- The code block must contain ONLY Fountain format screenplay text
 - NO scene headings (INT./EXT.) - this is a continuation, not a new scene
 - NO markdown formatting inside the code block
-- NO analysis or commentary inside the code block
-- NO questions, suggestions, or options
-- Just 1-3 lines of Fountain format screenplay text
 - Character names in ALL CAPS when speaking
-- Action lines in normal case`;
+- Action lines in normal case
+- Just 1-3 lines total
+
+EXAMPLE CORRECT OUTPUT:
+\`\`\`fountain
+Two reporters collide right in front of Sarah's desk, papers flying.
+
+SARAH glances up, then back at her screen.
+\`\`\`
+
+DO NOT include any text outside the code block. If you must explain something, do NOT include it in your response.`;
       
       // Add scene context if available (minimal, just for context)
       if (sceneContext) {
@@ -990,9 +1000,10 @@ RULES:
                     <div className="flex-1 min-w-0 space-y-3">
                       {/* Only show raw message content if we're not displaying parsed rewrite options */}
                       {!rewriteOptions && (
-                      <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
+                      {/* 🔥 CLEANED UI: Removed prose classes for cleaner look */}
+                      <div className="chat-message-content">
                         {isUser ? (
-                          <div className="whitespace-pre-wrap break-words text-base-content">
+                          <div className="whitespace-pre-wrap break-words text-base-content text-sm leading-relaxed">
                             {message.content}
                           </div>
                         ) : (
@@ -1011,15 +1022,17 @@ RULES:
                                     }}
                                   />
                                 ))}
-                                {/* Render remaining content (analysis/commentary) */}
+                                {/* Render remaining content (analysis/commentary) - simplified styling */}
                                 {otherContent && otherContent.trim() && (
-                                  <div className="text-base-content/70 text-sm">
-                                    <MarkdownRenderer content={otherContent} />
+                                  <div className="text-base-content/60 text-sm leading-relaxed whitespace-pre-wrap">
+                                    {otherContent}
                                   </div>
                                 )}
                                 {/* If no code blocks and no other content, render full content */}
                                 {codeBlocks.length === 0 && !otherContent.trim() && (
-                                  <MarkdownRenderer content={message.content} />
+                                  <div className="text-base-content text-sm leading-relaxed whitespace-pre-wrap">
+                                    {message.content}
+                                  </div>
                                 )}
                               </div>
                             );
@@ -1056,7 +1069,7 @@ RULES:
                                   Insert into script
                                 </button>
                               </div>
-                              <div className="prose prose-sm max-w-none text-base-content/80 whitespace-pre-wrap font-mono text-xs bg-base-200 p-3 rounded border border-base-300">
+                              <div className="text-base-content/80 whitespace-pre-wrap font-mono text-xs bg-base-200 p-3 rounded border border-base-300">
                                 {option.content}
                               </div>
                             </div>
@@ -1172,22 +1185,22 @@ RULES:
                             }}
                           />
                         ))}
-                        {/* Render remaining content (analysis/commentary) */}
+                        {/* Render remaining content (analysis/commentary) - simplified styling */}
                         {otherContent && otherContent.trim() && (
-                          <div className="text-base-content/70 text-sm">
-                            <MarkdownRenderer content={otherContent} />
+                          <div className="text-base-content/60 text-sm leading-relaxed whitespace-pre-wrap">
+                            {otherContent}
                           </div>
                         )}
                         {/* If no code blocks, render full content */}
                         {codeBlocks.length === 0 && (
-                          <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
-                            <MarkdownRenderer content={state.streamingText} />
+                          <div className="text-base-content text-sm leading-relaxed whitespace-pre-wrap">
+                            {state.streamingText}
                           </div>
                         )}
-                        {state.isStreaming && (
-                          <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
-                        )}
-                      </div>
+                    {state.isStreaming && (
+                      <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                    )}
+                  </div>
                     );
                   })()}
                   

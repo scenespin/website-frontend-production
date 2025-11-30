@@ -85,8 +85,8 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
     continuationContext = `\n\nContext: ${sceneContext.contextBeforeCursor.substring(0, 200)}...`;
   }
 
-  // 🔥 CODE BLOCK APPROACH: Request Fountain format in code blocks
-  const codeBlockInstruction = `\n\nIMPORTANT: Put your Fountain format output in a code block:\n\n\`\`\`fountain\n[your screenplay content here]\n\`\`\`\n\nAny analysis or commentary should be OUTSIDE the code block.`;
+  // 🔥 CODE BLOCK APPROACH: Request Fountain format in code blocks (STRENGTHENED)
+  const codeBlockInstruction = `\n\n🚫 DO NOT provide analysis, options, or explanations.\n\n✅ REQUIRED: Put your Fountain format output in a code block:\n\n\`\`\`fountain\n[your screenplay content here - 1-3 lines only]\n\`\`\`\n\nCRITICAL: The code block must contain ONLY the screenplay text. No analysis outside the code block.`;
 
   // User's request + minimal context + code block instruction
   return `${message}${continuationContext}${codeBlockInstruction}`;
