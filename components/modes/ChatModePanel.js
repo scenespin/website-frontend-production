@@ -511,9 +511,10 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
   }
   
   // Also remove standalone analysis notes at the end (even without ---)
-  const endNotesPattern = /\n\s*\*?This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens).*$/is;
+  // Match questions, notes, and analysis patterns
+  const endNotesPattern = /\n\s*\*?(This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens)|Does this capture|Who might|Note:|Note that|Consider if|The sense that).*$/is;
   if (endNotesPattern.test(cleaned)) {
-    const match = cleaned.search(/\n\s*\*?This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens)/i);
+    const match = cleaned.search(/\n\s*\*?(This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens)|Does this capture|Who might|Note:|Note that|Consider if|The sense that)/i);
     if (match !== -1) {
       cleaned = cleaned.substring(0, match).trim();
       console.log('[ChatModePanel] ⚠️ Removed analysis notes at end');
