@@ -226,17 +226,20 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       
       // 🔥 NEW: Stop immediately on analysis patterns (even before finding content)
       // These indicate the AI is analyzing instead of writing
-      if (/^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts)/i.test(trimmedLine)) {
+      if (/^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts|Great addition)/i.test(trimmedLine)) {
         break; // STOP on analysis intros
+      }
+      if (/^(Here's how that could|Here's how it could|Here's how this could|This gives you|Want to develop|Want to adjust)/i.test(trimmedLine)) {
+        break; // STOP on analysis/suggestion patterns
       }
       if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring)/i.test(trimmedLine)) {
         break; // STOP on analysis questions
       }
-      if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine)) {
+      if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine) || /This gives you:/i.test(trimmedLine)) {
         break; // STOP on analysis sections
       }
       // 🔥 NEW: Stop on revision/rewrite patterns
-      if (/^(Here's a revision|Here's how it could be|Here's how it might|Here's the revision|Here's the rewrite|Here's a rewrite)/i.test(trimmedLine)) {
+      if (/^(Here's a revision|Here's how it could be|Here's how it might|Here's the revision|Here's the rewrite|Here's a rewrite|Here's how that could play out)/i.test(trimmedLine)) {
         break; // STOP on revision intros
       }
       
@@ -249,11 +252,18 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       // Screenwriter agent should NEVER generate scene headings for normal continuation
       // Only the Director agent generates scene headings
       // Check for both regular scene headings and markdown scene headings (# INT. or ## INT.)
-      if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line)) {
+      // Also check for scene headings embedded in markdown like "**Continuation of INT. COFFEE SHOP - DAY**"
+      if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line) || /(INT\.|EXT\.|I\/E\.)/i.test(line)) {
         sceneHeadingFound = true;
         // Skip the scene heading and everything after it
         // Screenwriter agent should only continue the current scene, not create new ones
         break; // STOP on scene headings - Screenwriter should not generate them
+      }
+      
+      // 🔥 CRITICAL: Stop on markdown formatting that contains scene headings
+      // Pattern: "**Continuation of INT. COFFEE SHOP - DAY**" or similar
+      if (/^\*\*.*(INT\.|EXT\.|I\/E\.).*\*\*/i.test(line)) {
+        break; // STOP on markdown scene heading references
       }
       
       // 🔥 RELAXED: Don't break on scene headings - just skip them and continue
