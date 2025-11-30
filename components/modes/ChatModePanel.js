@@ -14,36 +14,41 @@ import toast from 'react-hot-toast';
 
 // Helper to clean AI output: strip markdown and remove writing notes
 // Also removes duplicate content that matches context before cursor
-function cleanFountainOutput(text, contextBeforeCursor = null) {
+// Now accepts sceneContext to detect and skip duplicate scene headings
+function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = null) {
   if (!text) return text;
   
   let cleaned = text;
   
-  // Remove markdown formatting
+  // 🔥 AGGRESSIVE: Remove markdown formatting FIRST (before processing)
   cleaned = cleaned
+    // Remove markdown headers (# Revised Scene, ## Scene, etc.)
+    .replace(/^#+\s*(Revised Scene|REVISED SCENE|REVISION|Scene|SCENE)\s*:?\s*$/gim, '')
     // Remove bold markdown (**text** or __text__) - be aggressive
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     // Remove italic markdown (*text* or _text_) - use word boundaries to avoid issues
     .replace(/\b\*([^*\n]+)\*\b/g, '$1')
     .replace(/\b_([^_\n]+)_\b/g, '$1')
-    // 🔥 NEW: Remove markdown scene headings (# INT. or ## INT.)
+    // Remove markdown scene headings (# INT. or ## INT.)
     .replace(/^#+\s*(INT\.|EXT\.|I\/E\.)/gim, '$1')
-    // 🔥 NEW: Remove standalone asterisks used for emphasis (but preserve in dialogue)
+    // Remove standalone asterisks used for emphasis (but preserve in dialogue)
     .replace(/^\*\s+/gm, '') // Remove leading asterisk + space
     .replace(/\s+\*$/gm, '') // Remove trailing asterisk + space
-    // Remove horizontal rules (---)
-    .replace(/^---+$/gm, '')
     // Remove markdown links [text](url) -> text
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
     // Remove markdown code blocks
     .replace(/```[a-z]*\n/g, '')
     .replace(/```/g, '')
-    // 🔥 NEW: Remove markdown scene headings (# INT. or ## INT.)
-    .replace(/^#+\s*(INT\.|EXT\.|I\/E\.)/gim, '$1')
-    // 🔥 NEW: Remove "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
+    // Remove "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
     .replace(/^\[SCREENWRITING ASSISTANT\]\s*$/gim, '')
-    .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '');
+    .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '')
+    // Remove "INSERT - NOTE" patterns
+    .replace(/\*\*INSERT - NOTE\*\*/gi, '')
+    .replace(/INSERT - NOTE/gi, '')
+    // Remove "BACK TO SCENE" patterns
+    .replace(/\*\*BACK TO SCENE\*\*/gi, '')
+    .replace(/BACK TO SCENE/gi, '');
   
   // Remove common AI response patterns that aren't screenplay content
   const unwantedPatterns = [
@@ -248,16 +253,80 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip assistant headers
       }
       
-      // 🔥 CRITICAL: If we find a scene heading (with or without markdown), STOP processing
+      // 🔥 CRITICAL: Check for scene headings (with or without markdown)
       // Screenwriter agent should NEVER generate scene headings for normal continuation
-      // Only the Director agent generates scene headings
-      // Check for both regular scene headings and markdown scene headings (# INT. or ## INT.)
-      // Also check for scene headings embedded in markdown like "**Continuation of INT. COFFEE SHOP - DAY**"
+      // But if it does, we need to:
+      // 1. Skip duplicate scenes (current scene heading)
+      // 2. Stop on new scene headings (different location)
       if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line) || /(INT\.|EXT\.|I\/E\.)/i.test(line)) {
-        sceneHeadingFound = true;
-        // Skip the scene heading and everything after it
-        // Screenwriter agent should only continue the current scene, not create new ones
-        break; // STOP on scene headings - Screenwriter should not generate them
+        // Extract scene heading (remove markdown if present)
+        const sceneHeadingMatch = line.match(/(INT\.|EXT\.|I\/E\.\s+[^-]+(?:\s*-\s*[^-]+)?)/i);
+        if (sceneHeadingMatch) {
+          const detectedHeading = sceneHeadingMatch[1].trim();
+          
+          // Check if this matches the current scene (duplicate/revised scene)
+          if (sceneContext?.heading) {
+            const normalizeHeading = (heading) => {
+              return heading.toLowerCase()
+                .replace(/\s+/g, ' ')
+                .replace(/\s*-\s*/g, ' - ')
+                .trim();
+            };
+            
+            const currentNormalized = normalizeHeading(sceneContext.heading);
+            const newNormalized = normalizeHeading(detectedHeading);
+            
+            // Check if locations match (before the dash)
+            const currentLocation = currentNormalized.split(' - ')[0].trim();
+            const newLocation = newNormalized.split(' - ')[0].trim();
+            
+            // Check if full headings match (exact match) or locations match (same location)
+            const isExactMatch = currentNormalized === newNormalized;
+            const isLocationMatch = currentLocation === newLocation && currentLocation.length > 0;
+            
+            if (isExactMatch || isLocationMatch) {
+              console.log('[ChatModePanel] ⚠️ Skipping duplicate/revised scene heading:', detectedHeading, 'matches current:', sceneContext.heading);
+              // Skip this duplicate scene and continue looking for actual content
+              // Skip all content until we find something that's not the duplicate scene
+              let foundContentAfterDuplicate = false;
+              for (let j = i + 1; j < lines.length; j++) {
+                const nextLine = lines[j].trim();
+                // If we find another scene heading (different location), stop
+                if (/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine)) {
+                  const nextHeadingMatch = nextLine.match(/(INT\.|EXT\.|I\/E\.\s+[^-]+(?:\s*-\s*[^-]+)?)/i);
+                  if (nextHeadingMatch) {
+                    const nextNormalized = normalizeHeading(nextHeadingMatch[1].trim());
+                    const nextLocation = nextNormalized.split(' - ')[0].trim();
+                    if (nextLocation !== currentLocation) {
+                      // Different location - this is a new scene, stop processing
+                      break;
+                    }
+                  }
+                }
+                // If we find actual content (not scene heading), we can continue
+                if (nextLine && !/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine) && nextLine.length > 5) {
+                  foundContentAfterDuplicate = true;
+                  i = j - 1; // Process from here
+                  break;
+                }
+              }
+              if (!foundContentAfterDuplicate) {
+                // No content after duplicate scene, stop processing
+                break;
+              }
+              continue; // Skip the duplicate scene heading
+            } else {
+              // Different scene heading - Screenwriter shouldn't generate new scenes
+              // Stop processing
+              sceneHeadingFound = true;
+              break;
+            }
+          } else {
+            // No current scene context, but Screenwriter shouldn't generate scene headings
+            sceneHeadingFound = true;
+            break;
+          }
+        }
       }
       
       // 🔥 CRITICAL: Stop on markdown formatting that contains scene headings
@@ -423,6 +492,30 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       break;
     }
   }
+  
+  // 🔥 CRITICAL: Remove notes at the end (after --- separator)
+  // Pattern: "---\n*This adds tension..." or "---\n**NOTE:**" etc.
+  const notesPattern = /---\s*\n\s*\*?.*(adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens|tension|story|character|arc|redemption|journey|transformation|development|growth|evolution|determination|instinct|skill|talent|ability|expertise|conspiracy|chance|engage).*$/is;
+  if (notesPattern.test(cleaned)) {
+    const match = cleaned.search(/---\s*\n/i);
+    if (match !== -1) {
+      cleaned = cleaned.substring(0, match).trim();
+      console.log('[ChatModePanel] ⚠️ Removed notes after --- separator');
+    }
+  }
+  
+  // Also remove standalone analysis notes at the end (even without ---)
+  const endNotesPattern = /\n\s*\*?This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens).*$/is;
+  if (endNotesPattern.test(cleaned)) {
+    const match = cleaned.search(/\n\s*\*?This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens)/i);
+    if (match !== -1) {
+      cleaned = cleaned.substring(0, match).trim();
+      console.log('[ChatModePanel] ⚠️ Removed analysis notes at end');
+    }
+  }
+  
+  // Remove "FADE OUT" and "THE END" at the end
+  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
   
   // 🔥 AGGRESSIVE: Limit to first 3 lines maximum for Screenwriter agent
   // This ensures we never get more than 3 lines even if AI generates more
@@ -871,7 +964,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               // JSON is optional, text cleaning is the reliable primary path
               console.warn('[ChatModePanel] JSON validation failed, using text cleaning (primary path)...');
               console.warn('[ChatModePanel] Full content before cleaning:', fullContent.substring(0, 500));
-              const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
+              const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null, sceneContext);
               console.warn('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
               console.warn('[ChatModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
               
@@ -895,7 +988,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             }
           } else {
             // For advice requests or fallback: use text cleaning
-            const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null);
+            const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null, sceneContext);
             
             // 🔥 PHASE 1 FIX: Validate content before adding message
             if (!cleanedContent || cleanedContent.trim().length < 3) {
@@ -1252,7 +1345,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                           // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
                           // Get scene context for duplicate detection
                           const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
-                          const cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null);
+                          const cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
                           
                           // 🔥 PHASE 1 FIX: Validate content before inserting
                           if (!cleanedContent || cleanedContent.trim().length < 3) {
