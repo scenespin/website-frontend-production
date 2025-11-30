@@ -89,7 +89,7 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
     /Enhanced options?:.*$/is
   ];
   
-  for (const pattern of unwantedPatterns) {
+  for (const pattern of stopPatterns) {
     const match = cleaned.match(pattern);
     if (match) {
       cleaned = cleaned.substring(0, match.index).trim();
