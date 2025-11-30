@@ -304,7 +304,7 @@ function cleanFountainOutput(text, sceneContext = null) {
         
         if (isExactMatch || isLocationMatch) {
           console.log('[DirectorModePanel] ⚠️ Skipping duplicate scene heading:', trimmedLine, 'matches current:', currentSceneHeading);
-          // Skip this line AND all content until the next scene heading
+          // 🔥 AGGRESSIVE: Skip this line AND all content until the next DIFFERENT scene heading
           // This prevents including the rewritten scene content
           let foundNextScene = false;
           for (let j = i + 1; j < lines.length; j++) {
@@ -312,7 +312,9 @@ function cleanFountainOutput(text, sceneContext = null) {
             if (/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine)) {
               // Found next scene heading - normalize and check if it's different
               const nextNormalized = normalizeHeading(nextLine);
-              if (nextNormalized !== currentNormalized && normalizeHeading(nextLine).split(' - ')[0].trim() !== currentLocation) {
+              const nextLocation = nextNormalized.split(' - ')[0].trim();
+              // Must be a different location (not just different time)
+              if (nextLocation !== currentLocation && nextNormalized !== currentNormalized) {
                 foundNextScene = true;
                 i = j - 1; // Set i to j-1 so the loop will process j next
                 break;
@@ -321,9 +323,10 @@ function cleanFountainOutput(text, sceneContext = null) {
           }
           if (!foundNextScene) {
             // No next scene found, skip everything
+            console.log('[DirectorModePanel] ⚠️ No different scene found after duplicate, skipping all content');
             break;
           }
-          continue; // Skip duplicate scene heading
+          continue; // Skip duplicate scene heading and all its content
         }
       }
       foundFirstScreenplayContent = true;
@@ -445,11 +448,10 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
   // Find all scene headings and ensure proper spacing:
-  // - 1 newline before the FIRST scene heading
-  // - 2 newlines before all SUBSEQUENT scene headings
+  // - 2 newlines before ALL scene headings (for proper spacing when inserting)
   const sceneLines = cleaned.split('\n');
   const result = [];
-  let firstSceneFound = false;
+  let lastWasSceneHeading = false;
   
   for (let i = 0; i < sceneLines.length; i++) {
     const line = sceneLines[i];
@@ -457,22 +459,23 @@ function cleanFountainOutput(text, sceneContext = null) {
     
     // Check if this is a scene heading
     if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
-      // Remove any trailing newlines from previous content
+      // Remove any trailing empty lines from previous content
       while (result.length > 0 && result[result.length - 1].trim() === '') {
-        result.pop(); // Remove trailing empty lines
+        result.pop();
       }
       
-      // 🔥 FIX: Add 2 newlines before ALL scene headings (including first)
+      // 🔥 FIX: Add 2 newlines before ALL scene headings
       // When inserting into existing content, all scenes need proper spacing
-      if (!firstSceneFound) {
-        firstSceneFound = true;
+      // Don't add newlines if the previous line was already a scene heading (shouldn't happen, but safety check)
+      if (!lastWasSceneHeading) {
+        result.push(''); // Add first newline
+        result.push(''); // Add second newline
       }
-      // Always add 2 newlines before scene headings
-      result.push(''); // Add first newline
-      result.push(''); // Add second newline
       result.push(line); // Add scene heading
+      lastWasSceneHeading = true;
     } else {
       result.push(line);
+      lastWasSceneHeading = false;
     }
   }
   
