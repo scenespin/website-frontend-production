@@ -192,14 +192,14 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
       // After finding screenplay content, only stop on clear meta-commentary patterns (already handled above)
       
       // Skip "REVISED SCENE:" or "REVISION:" headers (with or without colon, with or without markdown)
-      if (/^#?\s*REVISED\s+SCENE\s*:?\s*$/i.test(line) || /^#?\s*REVISION\s*:?\s*$/i.test(line)) {
-        continue; // Skip revision headers
+      if (/^#?\s*(REVISED\s+SCENE|REVISION|GOT IT|Got it|SCENE ANALYSIS|Scene Analysis)\s*:?\s*$/i.test(line)) {
+        continue; // Skip revision/analysis headers
       }
       
       // Skip markdown headers like "# REVISED SCENE" or "# Revised Scene" (must start with #, have space, then REVISED/REVISION)
       // This won't match character names like "REPORTER #1" because # is not at the start
-      if (/^#+\s+(REVISED|REVISION|Revised Scene)/i.test(line)) {
-        continue; // Skip markdown headers
+      if (/^#+\s+(REVISED|REVISION|Revised Scene|GOT IT|Got it|SCENE ANALYSIS|Scene Analysis)/i.test(line)) {
+        continue; // Skip markdown revision/analysis headers
       }
       
       // 🔥 NEW: Skip "Scene Addition" headers (with or without markdown)
