@@ -440,18 +440,16 @@ function cleanFountainOutput(text, sceneContext = null) {
   
   cleaned = screenplayLines.join('\n');
   
-  // 🔥 CRITICAL: Ensure 2 newlines between scenes (Fountain format standard)
-  // SIMPLIFIED APPROACH: Add 2 newlines BEFORE each scene heading (except the first one)
-  // This is more reliable than trying to find where scenes end
+  // 🔥 SIMPLIFIED SPACING: Ensure 2 newlines before each scene heading (Fountain format standard)
+  // Step 1: Remove ALL trailing newlines from cleaned content (normalize to no trailing newlines)
+  cleaned = cleaned.replace(/\n+$/, '');
   
-  // First, normalize line endings and trim trailing whitespace from each line
+  // Step 2: Trim trailing whitespace from each line (but preserve newlines between lines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // Find all scene headings and ensure proper spacing:
-  // - 2 newlines before ALL scene headings (for proper spacing when inserting)
+  // Step 3: Split into lines and add exactly 2 newlines before each scene heading
   const sceneLines = cleaned.split('\n');
   const result = [];
-  let lastWasSceneHeading = false;
   
   for (let i = 0; i < sceneLines.length; i++) {
     const line = sceneLines[i];
@@ -459,23 +457,17 @@ function cleanFountainOutput(text, sceneContext = null) {
     
     // Check if this is a scene heading
     if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
-      // Remove any trailing empty lines from previous content
+      // Remove any trailing empty lines from previous content (clean slate)
       while (result.length > 0 && result[result.length - 1].trim() === '') {
         result.pop();
       }
       
-      // 🔥 FIX: Add 2 newlines before ALL scene headings
-      // When inserting into existing content, all scenes need proper spacing
-      // Don't add newlines if the previous line was already a scene heading (shouldn't happen, but safety check)
-      if (!lastWasSceneHeading) {
-        result.push(''); // Add first newline
-        result.push(''); // Add second newline
-      }
+      // Add exactly 2 newlines before this scene heading (Fountain format: one blank line)
+      result.push(''); // First newline (blank line)
+      result.push(''); // Second newline (scene heading will be on next line)
       result.push(line); // Add scene heading
-      lastWasSceneHeading = true;
     } else {
-      result.push(line);
-      lastWasSceneHeading = false;
+      result.push(line); // Regular content line
     }
   }
   
