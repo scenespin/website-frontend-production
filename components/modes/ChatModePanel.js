@@ -12,46 +12,22 @@ import { buildChatContentPrompt, buildRewritePrompt } from '@/utils/promptBuilde
 import { validateScreenplayContent, supportsNativeJSON, buildRetryPrompt } from '@/utils/jsonValidator';
 import toast from 'react-hot-toast';
 
-// Helper to clean AI output: strip markdown and remove writing notes
-// Also removes duplicate content that matches context before cursor
-// Now accepts sceneContext to detect and skip duplicate scene headings
+// 🔥 MINIMAL: Just clean obvious markdown and stop on obvious analysis
 function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = null) {
   if (!text) return text;
   
   let cleaned = text;
   
-  // 🔥 AGGRESSIVE: Remove markdown formatting FIRST (before processing)
+  // Remove obvious markdown
   cleaned = cleaned
-    // Remove markdown headers (# Revised Scene, ## Scene, etc.) - including with descriptions
-    .replace(/^#+\s*(Revised Scene|REVISED SCENE|REVISION|Scene|SCENE)\s*[:\-]?\s*.*$/gim, '')
-    // Remove bold markdown (**text** or __text__) - be aggressive
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    // Remove italic markdown (*text* or _text_) - use word boundaries to avoid issues
-    .replace(/\b\*([^*\n]+)\*\b/g, '$1')
-    .replace(/\b_([^_\n]+)_\b/g, '$1')
-    // Remove markdown scene headings (# INT. or ## INT.)
-    .replace(/^#+\s*(INT\.|EXT\.|I\/E\.)/gim, '$1')
-    // Remove standalone asterisks used for emphasis (but preserve in dialogue)
-    .replace(/^\*\s+/gm, '') // Remove leading asterisk + space
-    .replace(/\s+\*$/gm, '') // Remove trailing asterisk + space
-    // Remove markdown links [text](url) -> text
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-    // Remove markdown code blocks
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold**
+    .replace(/\*([^*]+)\*/g, '$1') // Remove *italic*
+    .replace(/^#+\s*/gm, '') // Remove markdown headers
     .replace(/```[a-z]*\n/g, '')
-    .replace(/```/g, '')
-    // Remove "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
-    .replace(/^\[SCREENWRITING ASSISTANT\]\s*$/gim, '')
-    .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '')
-    // Remove "INSERT - NOTE" patterns (these are markdown/analysis, not Fountain format)
-    .replace(/\*\*INSERT - NOTE\*\*/gi, '')
-    .replace(/INSERT - NOTE/gi, '')
-    // 🔥 KEEP "BACK TO SCENE" - it's valid Fountain format for returning from inserts
-    // Only remove markdown-wrapped versions (which are analysis, not screenplay)
-    .replace(/\*\*BACK TO SCENE\*\*/gi, '');
+    .replace(/```/g, '');
   
-  // Remove common AI response patterns that aren't screenplay content
-  const unwantedPatterns = [
+  // Stop on obvious analysis/questions
+  const stopPatterns = [
     // Remove "Here's..." or "I'll write..." intros
     /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK|Ah,|Ah!)[\s:]*/i,
     // Remove analysis intros like "Ah, interesting detail!" or "Adding that..."
@@ -121,466 +97,36 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
     }
   }
   
-    // Remove lines that are clearly explanations (contain "This", "That", "Which", etc. at start)
-    const lines = cleaned.split('\n');
-    const screenplayLines = [];
-    let foundFirstScreenplayContent = false;
-    let sceneHeadingFound = false; // Track if we've seen a scene heading (means full scene was generated)
+  // 🔥 MINIMAL: Just take first 3 non-empty lines, stop on obvious analysis
+  const lines = cleaned.split('\n');
+  const result = [];
+  let lineCount = 0;
+  
+  for (let i = 0; i < lines.length && lineCount < 3; i++) {
+    const line = lines[i].trim();
+    if (!line) continue; // Skip empty lines
     
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmedLine = line.trim();
-      
-      // Skip empty lines at the start
-      if (!foundFirstScreenplayContent && !trimmedLine) continue;
-      
-      // 🔥 CRITICAL: Stop immediately on options/suggestions patterns
-      // These indicate the AI is giving options instead of writing content
-      if (/^(Option \d+|Here are|Here's|I can help|I'll|Let me|SARAH'S|SCENE DEVELOPMENT|VISUAL STORYTELLING|STORY QUESTIONS|Given the scene|POTENTIAL ADDITIONS)/i.test(line)) {
-        break; // Stop on options/suggestions
-      }
-      
-      // Stop on advice headers/patterns
-      if (/^(DIALOGUE\/ACTION SUGGESTION|LEAD PROBLEM|New Leads for|Here are some options|Here are options)/i.test(trimmedLine)) {
-        break; // Stop on advice headers
-      }
-      
-      // If line starts with "NOTE:" or explanation words, stop here
-      if (/^NOTE:/i.test(line)) {
-        break;
-      }
-      
-      // CRITICAL: Stop on meta-commentary patterns (analysis, explanations about the story)
-      // Pattern: "This [verb] [something]" - indicates analysis/explanation, not screenplay content
-      if (/^\*?\s*This\s+(adds|creates|raises|builds|establishes|introduces|sets up|develops|enhances|improves|strengthens|deepens|expands|explores|reveals|highlights|emphasizes|underscores|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i.test(line)) {
-        break; // Stop on meta-commentary like "This adds immediate digital threat..."
-      }
-      
-      // Also stop on lines that start with asterisk (markdown emphasis) followed by "This"
-      if (/^\*\s*This\s+/i.test(line)) {
-        break;
-      }
-      
-      // 🔥 NEW: Stop on note/analysis patterns like "[Note:" or "*[Note:"
-      if (/^(\*?\s*)?\[Note:/i.test(line)) {
-        break; // STOP on notes/analysis
-      }
-      
-      // Stop on lines that start with "*" followed by bracket (markdown analysis notes)
-      if (/^\*\s*\[/i.test(line)) {
-        break; // STOP on markdown analysis notes like "*[Note: This addition..."
-      }
-      
-      // If line starts with explanation words, stop here (but allow short lines that might be dialogue)
-      // IMPORTANT: Don't stop on lines that are clearly dialogue (short, or follow a character name)
-      const isLikelyDialogue = line.length < 50 && (
-        /^[A-Z][A-Z\s]+$/.test(lines[i-1]?.trim() || '') || // Previous line was a character name
-        /^\(/.test(line) || // Starts with parenthetical
-        /[!?.]$/.test(line) // Ends with punctuation (dialogue markers)
-      );
-      
-      // Stop on questions (especially at the end of responses)
-      if (/\?.*$/.test(line) && /(Should|Want|Would|Do you|Can you|Shall|Want me|keep going|continue|next)/i.test(line)) {
-        break; // Stop on questions like "Should the footsteps enter, or pass by? Want me to keep going?"
-      }
-      
-      // 🔥 FIX: Only stop on explanation patterns if we HAVEN'T found screenplay content yet
-      // Once we've found screenplay content (character names, action lines), be more lenient
-      // This prevents stopping on legitimate narrative action lines like "This is what she became a journalist for."
-      if (!foundFirstScreenplayContent) {
-        // Before finding screenplay content, be strict about stopping on explanation patterns
-        const isMetaCommentary = /^(This|That)\s+(adds|creates|raises|builds|establishes|introduces|sets up|develops|enhances|improves|strengthens|deepens|expands|explores|reveals|highlights|emphasizes|underscores|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i.test(line);
-        
-        // Only stop on explanation words if they're clearly meta-commentary OR if they're questions/instructions
-        if (!isLikelyDialogue && !isMetaCommentary &&
-            /^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure)/i.test(line) && 
-            !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // But allow scene headings
-            !/^[A-Z][A-Z\s]+$/.test(line) && // But allow character names in ALL CAPS
-            line.length > 15 && // Only if it's a longer explanation
-            /(should|would|could|might|may|can|will|shall|want|need|must|try|use|do|make|think|consider|remember|keep|ensure|make sure)/i.test(line)) { // Must contain instruction/analysis words
-          break;
-        }
-      }
-      // After finding screenplay content, only stop on clear meta-commentary patterns (already handled above)
-      
-      // Skip "REVISED SCENE:" or "REVISION:" headers (with or without colon, with or without markdown, with or without description)
-      if (/^#?\s*(REVISED\s+SCENE|REVISION|GOT IT|Got it|SCENE ANALYSIS|Scene Analysis)\s*[:\-]?\s*/i.test(line)) {
-        continue; // Skip revision/analysis headers (including with descriptions like "REVISED SCENE - ONLY CRAPPY LEADS")
-      }
-      
-      // Skip markdown headers like "# REVISED SCENE" or "# Revised Scene" (must start with #, have space, then REVISED/REVISION)
-      // Also catch headers with descriptions like "# REVISED SCENE - ONLY CRAPPY LEADS"
-      // This won't match character names like "REPORTER #1" because # is not at the start
-      if (/^#+\s+(REVISED|REVISION|Revised Scene|GOT IT|Got it|SCENE ANALYSIS|Scene Analysis)/i.test(line)) {
-        continue; // Skip markdown revision/analysis headers
-      }
-      
-      // 🔥 NEW: Skip "Scene Addition" headers (with or without markdown)
-      if (/^#?\s*Scene\s+Addition\s*:?\s*$/i.test(line)) {
-        continue; // Skip "Scene Addition" header but continue processing
-      }
-      
-      // 🔥 NEW: Skip "[CONTINUED]" headers (screenplay continuation markers)
-      if (/^\[CONTINUED\]\s*$/i.test(line)) {
-        continue; // Skip "[CONTINUED]" header but continue processing
-      }
-      
-      // 🔥 CRITICAL: Stop on "FADE OUT" or "THE END" - these shouldn't be in middle of screenplay
-      // Screenwriter agent should never generate endings
-      if (/^(FADE OUT|THE END|FADE TO BLACK)\.?\s*$/i.test(line)) {
-        break; // STOP on endings - Screenwriter should not generate them
-      }
-      
-      // Also stop on notes/analysis patterns like "[Note:" or "*[Note:" or "NOTE TO WRITER:"
-      // But only if we've already found screenplay content (don't stop before finding content)
-      if (foundFirstScreenplayContent && (/^(\*?\s*)?\[Note:/i.test(line) || /^NOTE\s+TO\s+WRITER:/i.test(line))) {
-        break; // STOP on notes/analysis (but only after finding screenplay content)
-      }
-      
-      // Stop on lines that start with "*" followed by analysis (like "*[Note: This addition...")
-      // But only if we've already found screenplay content
-      if (foundFirstScreenplayContent && /^\*\s*\[/i.test(line)) {
-        break; // STOP on markdown analysis notes (but only after finding screenplay content)
-      }
-      
-      // 🔥 NEW: Stop immediately on analysis patterns (even before finding content)
-      // These indicate the AI is analyzing instead of writing
-      if (/^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts|Great addition|GOT IT|Got it)/i.test(trimmedLine)) {
-        break; // STOP on analysis intros
-      }
-      if (/^(Here's how that could|Here's how it could|Here's how this could|This gives you|Want to develop|Want to adjust|You're right|You're talking about|Let me revise)/i.test(trimmedLine)) {
-        break; // STOP on analysis/suggestion patterns
-      }
-      if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring|The problem|THE PROBLEM|Missing|SUGGESTED|Suggested|What direction would serve|Which direction fits|Is this showing|Does the phone buzz|Should someone|Is she stuck|What kind of lead)/i.test(trimmedLine)) {
-        break; // STOP on analysis questions
-      }
-      if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine) || /This gives you:/i.test(trimmedLine) || /SCENE ANALYSIS/i.test(trimmedLine) || /Scene Analysis/i.test(trimmedLine)) {
-        break; // STOP on analysis sections
-      }
-      // 🔥 NEW: Stop on revision/rewrite patterns
-      if (/^(Here's a revision|Here's how it could be|Here's how it might|Here's the revision|Here's the rewrite|Here's a rewrite|Here's how that could play out|REVISED SCENE|Revised Scene)/i.test(trimmedLine)) {
-        break; // STOP on revision intros
-      }
-      // 🔥 NEW: Stop on analysis explanations
-      if (/^(This adds|CHANGES:|Changes:|Does this capture|Does this hit|Who might|Note:|Note that|This adds physical|Consider if)/i.test(trimmedLine)) {
-        break; // STOP on analysis explanations
-      }
-      
-      // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
-      if (/^\[?SCREENWRITING ASSISTANT\]?\s*$/i.test(line)) {
-        continue; // Skip assistant headers
-      }
-      
-      // 🔥 CRITICAL: Check for scene headings (with or without markdown)
-      // Screenwriter agent should NEVER generate scene headings for normal continuation
-      // But if it does, we need to:
-      // 1. Skip duplicate scenes (current scene heading)
-      // 2. Stop on new scene headings (different location)
-      if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line) || /(INT\.|EXT\.|I\/E\.)/i.test(line)) {
-        // Extract scene heading (remove markdown if present)
-        const sceneHeadingMatch = line.match(/(INT\.|EXT\.|I\/E\.\s+[^-]+(?:\s*-\s*[^-]+)?)/i);
-        if (sceneHeadingMatch) {
-          const detectedHeading = sceneHeadingMatch[1].trim();
-          
-          // Check if this matches the current scene (duplicate/revised scene)
-          if (sceneContext?.heading) {
-            const normalizeHeading = (heading) => {
-              return heading.toLowerCase()
-                .replace(/\s+/g, ' ')
-                .replace(/\s*-\s*/g, ' - ')
-                .trim();
-            };
-            
-            const currentNormalized = normalizeHeading(sceneContext.heading);
-            const newNormalized = normalizeHeading(detectedHeading);
-            
-            // Check if locations match (before the dash)
-            const currentLocation = currentNormalized.split(' - ')[0].trim();
-            const newLocation = newNormalized.split(' - ')[0].trim();
-            
-            // Check if full headings match (exact match) or locations match (same location)
-            const isExactMatch = currentNormalized === newNormalized;
-            const isLocationMatch = currentLocation === newLocation && currentLocation.length > 0;
-            
-            if (isExactMatch || isLocationMatch) {
-              console.log('[ChatModePanel] ⚠️ Skipping duplicate/revised scene heading:', detectedHeading, 'matches current:', sceneContext.heading);
-              // Skip this duplicate scene and continue looking for actual content
-              // Skip all content until we find something that's not the duplicate scene
-              let foundContentAfterDuplicate = false;
-              for (let j = i + 1; j < lines.length; j++) {
-                const nextLine = lines[j].trim();
-                // If we find another scene heading (different location), stop
-                if (/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine)) {
-                  const nextHeadingMatch = nextLine.match(/(INT\.|EXT\.|I\/E\.\s+[^-]+(?:\s*-\s*[^-]+)?)/i);
-                  if (nextHeadingMatch) {
-                    const nextNormalized = normalizeHeading(nextHeadingMatch[1].trim());
-                    const nextLocation = nextNormalized.split(' - ')[0].trim();
-                    if (nextLocation !== currentLocation) {
-                      // Different location - this is a new scene, stop processing
-                      break;
-                    }
-                  }
-                }
-                // If we find actual content (not scene heading), we can continue
-                if (nextLine && !/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine) && nextLine.length > 5) {
-                  foundContentAfterDuplicate = true;
-                  i = j - 1; // Process from here
-                  break;
-                }
-              }
-              if (!foundContentAfterDuplicate) {
-                // No content after duplicate scene, stop processing
-                break;
-              }
-              continue; // Skip the duplicate scene heading
-            } else {
-              // Different scene heading - Screenwriter shouldn't generate new scenes
-              // Stop processing
-              sceneHeadingFound = true;
-              break;
-            }
-          } else {
-            // No current scene context, but Screenwriter shouldn't generate scene headings
-            sceneHeadingFound = true;
-            break;
-          }
-        }
-      }
-      
-      // 🔥 CRITICAL: Stop on markdown formatting that contains scene headings
-      // Pattern: "**Continuation of INT. COFFEE SHOP - DAY**" or similar
-      if (/^\*\*.*(INT\.|EXT\.|I\/E\.).*\*\*/i.test(line)) {
-        break; // STOP on markdown scene heading references
-      }
-      
-      // 🔥 RELAXED: Don't break on scene headings - just skip them and continue
-      // This allows users to insert content even if AI generated a full scene
-      // The scene heading is removed, but the rest of the content is preserved
-      
-      // 🔥 NEW: Smart duplicate detection with partial content extraction
-      // This prevents AI from repeating content that already exists
-      // BUT: If a line starts with duplicate content but has new content after, extract just the new part
-      if (contextBeforeCursor) {
-        const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        const currentLineTrimmed = line.trim();
-
-        // Only check for duplicates if the line is substantial (avoid false positives)
-        if (currentLineTrimmed.length > 5) {
-          let isDuplicate = false;
-          let newContentStart = -1;
-          
-          // Check each context line for matches
-          for (const contextLine of contextLines) {
-            // Only check substantial context lines
-            if (contextLine.length < 5) continue;
-            
-            // 🔥 FIX: Declare these at the top of the loop so they're accessible throughout
-            const contextLineOriginal = contextLine.trim();
-            const currentLineOriginal = currentLineTrimmed;
-            
-            const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ').trim();
-            const normalizedCurrent = currentLineTrimmed.toLowerCase().replace(/\s+/g, ' ').trim();
-            
-            // Exact match - skip entire line
-            if (normalizedContext === normalizedCurrent) {
-              isDuplicate = true;
-              break;
-            }
-            
-            // 🔥 FIX: Don't extract partial content if the match is just a character name
-            // Character names (ALL CAPS, short) are common and shouldn't trigger extraction
-            const isCharacterName = /^[A-Z][A-Z\s#0-9']+$/.test(contextLine.trim()) && contextLine.trim().length < 30;
-            
-            // Check if current line STARTS with context line (partial match at beginning)
-            // This means AI repeated the end of existing content but added new content after
-            // BUT: Skip if context line is just a character name (common in screenplays)
-            if (!isCharacterName && normalizedCurrent.startsWith(normalizedContext) && normalizedCurrent.length > normalizedContext.length) {
-              // Find where the new content starts in the original (case-sensitive) line
-              
-              // Try to find the context line at the start of current line (case-insensitive)
-              const contextLower = contextLineOriginal.toLowerCase();
-              const currentLower = currentLineOriginal.toLowerCase();
-              
-              if (currentLower.startsWith(contextLower)) {
-                // Extract the new content (everything after the duplicate part)
-                newContentStart = contextLineOriginal.length;
-                // Skip whitespace after the duplicate
-                while (newContentStart < currentLineOriginal.length && /\s/.test(currentLineOriginal[newContentStart])) {
-                  newContentStart++;
-                }
-                // If there's substantial new content, use it instead of skipping
-                const extractedContent = currentLineOriginal.substring(newContentStart).trim();
-                if (extractedContent.length > 3) {
-                  console.log('[cleanFountainOutput] Extracting new content from partial duplicate:', {
-                    original: currentLineOriginal,
-                    duplicate: contextLineOriginal,
-                    newContent: extractedContent
-                  });
-                  // Replace the line with just the new content (preserve original line structure)
-                  screenplayLines.push(lines[i].substring(lines[i].indexOf(currentLineOriginal) + newContentStart).trimStart());
-                  isDuplicate = true; // Mark as handled
-                  break;
-                }
-              }
-            }
-            
-            // 🔥 FIX: Also check if current line starts with a character name that appears in context
-            // But only if it's followed by action (not just the character name alone)
-            // Example: Context has "SARAH (whispers) Holy shit." and AI generates "SARAH glances at..."
-            // We should keep "SARAH glances at..." not extract just "glances at..."
-            if (isCharacterName) {
-              // If context line is a character name, check if current line starts with it
-              const contextName = contextLineOriginal.trim();
-              const currentStartsWithName = currentLineOriginal.trim().toLowerCase().startsWith(contextName.toLowerCase());
-              
-              if (currentStartsWithName && currentLineOriginal.trim().length > contextName.length + 5) {
-                // Current line starts with the character name but has more content
-                // This is valid - character names appear in action lines, don't extract
-                // Just continue to next check (don't mark as duplicate)
-                continue;
-              }
-            }
-            
-            // Check if context line contains current line (current is substring of context)
-            // Only if both are substantial (avoid removing short lines)
-            if (normalizedContext.length > 25 && normalizedCurrent.length > 25) {
-              if (normalizedContext.includes(normalizedCurrent)) {
-                isDuplicate = true;
-                break;
-              }
-            }
-          }
-          
-          if (isDuplicate && newContentStart === -1) {
-            // Only skip if we didn't extract new content
-            console.log('[cleanFountainOutput] Skipping duplicate line:', line);
-            continue;
-          } else if (newContentStart !== -1) {
-            // Already added the new content above, skip adding the original line
-            continue;
-          }
-        }
-      }
-      
-      // If we find a character name in ALL CAPS, we're in screenplay content
-      if (/^[A-Z][A-Z\s#0-9']+$/.test(line) && line.length > 2 && line.length < 50) {
-        foundFirstScreenplayContent = true;
-      }
-      
-      // 🔥 FIX: Also mark screenplay content when we find substantial action lines
-      // Action lines are typically longer, contain action verbs, and don't start with explanation words
-      if (!foundFirstScreenplayContent && line.length > 10 && 
-          !/^(This|That|Which|What|How|Why|When|Where|Here|There|I|You|We|They|It|These|Those|Consider|Think|Remember|Keep|Make sure|Note|NOTE)/i.test(line) &&
-          !/^(INT\.|EXT\.|I\/E\.)/i.test(line) && // Not a scene heading
-          !/^[A-Z][A-Z\s#0-9']+$/.test(line) && // Not a character name
-          /[.!?]$/.test(line)) { // Ends with punctuation (typical of action lines)
-        foundFirstScreenplayContent = true;
-      }
-      
-      // If we've found screenplay content, include this line
-      // 🔥 FIX: Preserve original line structure (including leading/trailing whitespace for newlines)
-      // Use original line from lines array to preserve newline structure
-      if (foundFirstScreenplayContent || line.length > 0) {
-        screenplayLines.push(lines[i]); // Use original line to preserve structure
-      }
-    }
-  
-  cleaned = screenplayLines.join('\n');
-  
-  // 🔥 AGGRESSIVE: Remove markdown formatting (bold, italic, etc.)
-  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
-  cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic*
-  cleaned = cleaned.replace(/^#+\s*/gm, ''); // Remove markdown headers
-  
-  // 🔥 AGGRESSIVE: Stop on analysis patterns that might have slipped through
-  // Check for patterns like "This gives you:" or "Want to develop" anywhere in the content
-  const analysisPatterns = [
-    /This gives you:/i,
-    /Want to develop/i,
-    /Want to adjust/i,
-    /Great addition!/i,
-    /Here's how that could play out/i
-  ];
-  
-  for (const pattern of analysisPatterns) {
-    const match = cleaned.search(pattern);
-    if (match !== -1) {
-      cleaned = cleaned.substring(0, match).trim();
-      console.log('[ChatModePanel] ⚠️ Stopped on analysis pattern:', pattern);
+    // Stop on obvious analysis/questions
+    if (/^(Option \d+|Here are|Here's some|Would you like|What tone|Which direction|Does this capture|Who might|Note:|---\s*$|This adds|This creates|This shows)/i.test(line)) {
       break;
     }
+    
+    result.push(lines[i]); // Keep original line (with spacing)
+    lineCount++;
   }
   
-  // 🔥 CRITICAL: Remove notes at the end (after --- separator)
-  // Pattern: "---\n*This adds tension..." or "---\n**NOTE:**" etc.
-  const notesPattern = /---\s*\n\s*\*?.*(adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens|tension|story|character|arc|redemption|journey|transformation|development|growth|evolution|determination|instinct|skill|talent|ability|expertise|conspiracy|chance|engage|Does this capture|Who might|Note:|Consider if|The sense that).*$/is;
-  if (notesPattern.test(cleaned)) {
-    const match = cleaned.search(/---\s*\n/i);
-    if (match !== -1) {
-      cleaned = cleaned.substring(0, match).trim();
-      console.log('[ChatModePanel] ⚠️ Removed notes after --- separator');
-    }
-  }
-  
-  // Also remove standalone analysis notes at the end (even without ---)
-  // Match questions, notes, and analysis patterns
-  const endNotesPattern = /\n\s*\*?(This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens)|Does this capture|Who might|Note:|Note that|Consider if|The sense that).*$/is;
-  if (endNotesPattern.test(cleaned)) {
-    const match = cleaned.search(/\n\s*\*?(This (adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens)|Does this capture|Who might|Note:|Note that|Consider if|The sense that)/i);
-    if (match !== -1) {
-      cleaned = cleaned.substring(0, match).trim();
-      console.log('[ChatModePanel] ⚠️ Removed analysis notes at end');
-    }
-  }
+  cleaned = result.join('\n');
   
   // Remove "FADE OUT" and "THE END" at the end
   cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
   
-  // 🔥 REMOVED: 3-line limit was too aggressive and cutting off legitimate content
-  // The cleaning function already stops at:
-  // - New scene headings (different locations)
-  // - Analysis patterns
-  // - Notes/separators
-  // - Explanation text
-  // So we don't need an arbitrary line limit - let the natural cleaning logic handle it
-  
-  // Whitespace normalization
-  // 1. Trim trailing whitespace from each line (but preserve newlines)
-  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
-  
-  // 2. Normalize multiple consecutive newlines (but preserve single newlines between lines)
-  // This ensures consistent spacing without losing line breaks
-  // Keep single newlines between lines, but limit multiple newlines to max 2
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
-  
-  // 3. 🔥 FIX: Preserve newlines but still trim excessive whitespace
-  // Limit excessive leading/trailing newlines but preserve single newlines
-  // This preserves newlines before character names like "SARAH"
-  if (cleaned.startsWith('\n\n\n')) {
-    cleaned = cleaned.replace(/^\n+/, '\n\n'); // Limit leading newlines to 2
-  } else if (cleaned.startsWith('\n\n')) {
-    // Keep 2 newlines at start (for scene breaks)
-    // Don't trim
-  } else if (cleaned.startsWith('\n')) {
-    // Keep single newline at start
-    // Don't trim
+  // Limit to 3 lines maximum (the task)
+  const allLines = cleaned.split('\n').filter(line => line.trim().length > 0);
+  if (allLines.length > 3) {
+    cleaned = allLines.slice(0, 3).join('\n');
   }
   
-  if (cleaned.endsWith('\n\n\n')) {
-    cleaned = cleaned.replace(/\n+$/, '\n\n'); // Limit trailing newlines to 2
-  } else if (cleaned.endsWith('\n\n')) {
-    // Keep 2 newlines at end (for scene breaks)
-    // Don't trim
-  } else if (cleaned.endsWith('\n')) {
-    // Keep single newline at end
-    // Don't trim
-  }
-  
-  // Final trim only removes spaces/tabs, not newlines
-  // This ensures content validation works (trim().length check)
-  cleaned = cleaned.trim(); // This removes spaces/tabs but newlines are preserved in the content
-  
-  return cleaned;
+  return cleaned.trim();
 }
 
 // Helper to parse 3 rewrite options from AI response
