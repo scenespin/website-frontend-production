@@ -450,23 +450,62 @@ function cleanFountainOutput(text, sceneContext = null) {
   
   cleaned = screenplayLines.join('\n');
   
-  // 🔥 SIMPLIFIED SPACING: Ensure 2 newlines before each scene heading (Fountain format standard)
+  // 🔥 RELIABLE SPACING: Ensure exactly 2 newlines before each scene heading (Fountain format standard)
+  // Strategy: Split by scene headings, then rejoin with exactly 2 newlines between each part
+  
   // Step 1: Remove ALL trailing newlines from cleaned content (normalize to no trailing newlines)
   cleaned = cleaned.replace(/\n+$/, '');
   
   // Step 2: Trim trailing whitespace from each line (but preserve newlines between lines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // Step 3: Normalize all spacing first (collapse multiple newlines to single, remove excessive spacing)
-  // This gives us a clean slate to work with
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Collapse 3+ newlines to 2
-  cleaned = cleaned.replace(/\n\n\n/g, '\n\n'); // Ensure max 2 consecutive newlines
+  // Step 3: Split content by scene headings - this gives us clean parts to work with
+  // Pattern matches: scene heading at start of line (with optional leading whitespace)
+  const sceneHeadingRegex = /(\n|^)(INT\.|EXT\.|I\/E\.\s+[^\n]+)/gi;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
   
-  // Step 4: Use regex to add exactly 2 newlines before each scene heading
-  // This is more reliable than line-by-line processing
-  // Match: (start of string OR newline) followed by scene heading
-  // Replace with: 2 newlines + scene heading
-  cleaned = cleaned.replace(/(^|\n)(INT\.|EXT\.|I\/E\.)/gi, '\n\n$2');
+  // Find all scene headings and split content around them
+  while ((match = sceneHeadingRegex.exec(cleaned)) !== null) {
+    // Add content before this scene heading
+    if (match.index > lastIndex) {
+      const beforeContent = cleaned.substring(lastIndex, match.index).trim();
+      if (beforeContent) {
+        parts.push({ type: 'content', text: beforeContent });
+      }
+    }
+    // Add the scene heading itself
+    parts.push({ type: 'heading', text: match[2] });
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add any remaining content after the last scene heading
+  if (lastIndex < cleaned.length) {
+    const afterContent = cleaned.substring(lastIndex).trim();
+    if (afterContent) {
+      parts.push({ type: 'content', text: afterContent });
+    }
+  }
+  
+  // Step 4: Rebuild content with exactly 2 newlines before each scene heading
+  const result = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.type === 'heading') {
+      // Add exactly 2 newlines before scene heading (except if it's the very first part)
+      if (i > 0) {
+        result.push(''); // First newline
+        result.push(''); // Second newline
+      }
+      result.push(part.text);
+    } else {
+      // Content part - add as-is
+      result.push(part.text);
+    }
+  }
+  
+  cleaned = result.join('\n');
   
   // Step 5: Clean up any leading newlines (first scene shouldn't have newlines before it)
   cleaned = cleaned.replace(/^\n+/, '');
@@ -480,7 +519,7 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = cleaned.replace(/^\s*(FADE TO BLACK\.?|FADE TO:?|FADE OUT\.?)\s*$/gim, '');
   
   // Step 6: Final normalization - ensure exactly 2 newlines between scenes (no more, no less)
-  // This handles edge cases where the regex might have created 3+ newlines
+  // This handles edge cases where content might have had extra newlines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
   // Trim leading/trailing whitespace (but preserve newlines in content)
