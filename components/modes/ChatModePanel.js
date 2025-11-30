@@ -244,7 +244,7 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
       if (/^(Here's how that could|Here's how it could|Here's how this could|This gives you|Want to develop|Want to adjust|You're right|You're talking about|Let me revise)/i.test(trimmedLine)) {
         break; // STOP on analysis/suggestion patterns
       }
-      if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring|The problem|THE PROBLEM|Missing|SUGGESTED|Suggested)/i.test(trimmedLine)) {
+      if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring|The problem|THE PROBLEM|Missing|SUGGESTED|Suggested|What direction would serve|Which direction fits|Is this showing|Does the phone buzz|Should someone|Is she stuck|What kind of lead)/i.test(trimmedLine)) {
         break; // STOP on analysis questions
       }
       if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine) || /This gives you:/i.test(trimmedLine) || /SCENE ANALYSIS/i.test(trimmedLine) || /Scene Analysis/i.test(trimmedLine)) {
