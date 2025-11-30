@@ -457,70 +457,16 @@ function cleanFountainOutput(text, sceneContext = null) {
   
   cleaned = screenplayLines.join('\n');
   
-  // 🔥 RELIABLE SPACING: Ensure exactly 2 newlines before each scene heading (Fountain format standard)
-  // Strategy: Split by scene headings, then rejoin with exactly 2 newlines between each part
+  // 🔥 SIMPLIFIED: Just add minimal spacing at the start so user knows content was inserted
+  // User is responsible for spacing scenes themselves - this is much more reliable
+  // Remove trailing newlines, then add 1-2 newlines at the start
+  cleaned = cleaned.replace(/\n+$/, ''); // Remove trailing newlines
+  cleaned = cleaned.trimStart(); // Remove leading whitespace
   
-  // Step 1: Remove ALL trailing newlines from cleaned content (normalize to no trailing newlines)
-  cleaned = cleaned.replace(/\n+$/, '');
-  
-  // Step 2: Trim trailing whitespace from each line (but preserve newlines between lines)
-  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
-  
-  // Step 3: Split content by scene headings - this gives us clean parts to work with
-  // Pattern matches: scene heading at start of line (handles split headings like "INT.\nLOCATION - TIME")
-  // First, fix split scene headings (INT.\nLOCATION -> INT. LOCATION)
-  cleaned = cleaned.replace(/(INT\.|EXT\.|I\/E\.)\s*\n\s*([A-Z][^\n]+)/g, '$1 $2');
-  
-  // Now match complete scene headings (INT./EXT./I/E. followed by location and optional time)
-  const sceneHeadingRegex = /(\n|^)(INT\.|EXT\.|I\/E\.)\s+([^\n]+)/gi;
-  const parts = [];
-  let lastIndex = 0;
-  let match;
-  
-  // Find all scene headings and split content around them
-  while ((match = sceneHeadingRegex.exec(cleaned)) !== null) {
-    // Add content before this scene heading
-    if (match.index > lastIndex) {
-      const beforeContent = cleaned.substring(lastIndex, match.index).trim();
-      if (beforeContent) {
-        parts.push({ type: 'content', text: beforeContent });
-      }
-    }
-    // Add the complete scene heading (type + location/time)
-    const fullHeading = match[2] + ' ' + match[3].trim();
-    parts.push({ type: 'heading', text: fullHeading });
-    lastIndex = match.index + match[0].length;
+  // Add minimal spacing at the start (just enough to show insertion)
+  if (cleaned && !cleaned.startsWith('\n')) {
+    cleaned = '\n' + cleaned; // Add one newline at start
   }
-  
-  // Add any remaining content after the last scene heading
-  if (lastIndex < cleaned.length) {
-    const afterContent = cleaned.substring(lastIndex).trim();
-    if (afterContent) {
-      parts.push({ type: 'content', text: afterContent });
-    }
-  }
-  
-  // Step 4: Rebuild content with exactly 2 newlines before each scene heading
-  const result = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (part.type === 'heading') {
-      // Add exactly 2 newlines before scene heading (except if it's the very first part)
-      if (i > 0) {
-        result.push(''); // First newline
-        result.push(''); // Second newline
-      }
-      result.push(part.text);
-    } else {
-      // Content part - add as-is
-      result.push(part.text);
-    }
-  }
-  
-  cleaned = result.join('\n');
-  
-  // Step 5: Clean up any leading newlines (first scene shouldn't have newlines before it)
-  cleaned = cleaned.replace(/^\n+/, '');
   
   // Remove duplicate "FADE OUT. THE END" patterns and "FADE TO BLACK"
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
@@ -530,8 +476,7 @@ function cleanFountainOutput(text, sceneContext = null) {
   // Remove "FADE TO BLACK", "FADE TO:", or "FADE OUT" anywhere in the content (shouldn't be in middle of screenplay)
   cleaned = cleaned.replace(/^\s*(FADE TO BLACK\.?|FADE TO:?|FADE OUT\.?)\s*$/gim, '');
   
-  // Step 6: Final normalization - ensure exactly 2 newlines between scenes (no more, no less)
-  // This handles edge cases where content might have had extra newlines
+  // Normalize excessive newlines (3+ becomes 2) - but don't try to enforce scene spacing
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
   // Trim leading/trailing whitespace (but preserve newlines in content)
