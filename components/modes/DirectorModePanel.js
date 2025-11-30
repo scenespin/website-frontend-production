@@ -142,6 +142,52 @@ function cleanFountainOutput(text, sceneContext = null) {
     // Skip empty lines until we find content
     if (!foundFirstScreenplayContent && !trimmedLine) continue;
     
+    // 🔥 CRITICAL: Check for "REVISED SCENE" or "REVISION" headers
+    // If we find one, skip everything until we find a NEW scene heading (different from current)
+    if (/^(REVISED|REVISION|REWRITTEN)/i.test(trimmedLine) || 
+        /^#+\s*(REVISED|REVISION|REWRITTEN)/i.test(trimmedLine)) {
+      console.log('[DirectorModePanel] ⚠️ Found REVISED/REVISION header, skipping until next NEW scene:', trimmedLine);
+      // Skip this line and all content until we find a NEW scene heading
+      const currentSceneHeading = sceneContext?.heading || '';
+      let foundNewScene = false;
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        // Check if this is a scene heading
+        if (/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine)) {
+          // Check if it's different from current scene
+          if (currentSceneHeading) {
+            const normalizeHeading = (heading) => {
+              return heading.toLowerCase()
+                .replace(/\s+/g, ' ')
+                .replace(/\s*-\s*/g, ' - ')
+                .trim();
+            };
+            const currentNormalized = normalizeHeading(currentSceneHeading);
+            const nextNormalized = normalizeHeading(nextLine);
+            const currentLocation = currentNormalized.split(' - ')[0].trim();
+            const nextLocation = nextNormalized.split(' - ')[0].trim();
+            
+            // If it's a different scene, we found our new scene
+            if (nextNormalized !== currentNormalized && nextLocation !== currentLocation) {
+              foundNewScene = true;
+              i = j - 1; // Set i to j-1 so the loop will process j next
+              break;
+            }
+          } else {
+            // No current scene, so any scene heading is new
+            foundNewScene = true;
+            i = j - 1;
+            break;
+          }
+        }
+      }
+      if (!foundNewScene) {
+        // No new scene found after revision, skip everything
+        break;
+      }
+      continue; // Skip the revision header and content
+    }
+    
     // Check if this is a line we should skip (but continue processing)
     let shouldSkip = false;
     for (const pattern of skipPatterns) {

@@ -210,10 +210,12 @@ Rules:
 - NO dashes (-- or -) in action lines
 - NO "CUT TO:" - Fountain format doesn't use transitions between scenes
 - NO "FADE OUT" or "THE END" unless user requests ending
-- NO "Revised Scene" or other headers
-- NO comments like "*This revision adds..." - just write the scenes
+- 🚫 ABSOLUTELY FORBIDDEN: NO "REVISED SCENE", "REVISION", "REWRITTEN SCENE", or any revision headers
+- 🚫 ABSOLUTELY FORBIDDEN: Do NOT rewrite, revise, or modify the current scene "${sceneContext?.heading || 'current scene'}"
+- 🚫 ABSOLUTELY FORBIDDEN: Do NOT rewrite, revise, or modify ANY existing scenes
 - Each scene must have different location/time than "${sceneContext?.heading || 'current scene'}"
 - Do NOT repeat the current scene "${sceneContext?.heading || 'current scene'}" - create NEW scenes
+- Create ONLY NEW scenes that come AFTER the current scene
 - Write in Fountain format with proper newlines
 
 EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
@@ -241,8 +243,10 @@ CRITICAL INSTRUCTIONS:
 3. Each item is a screenplay line (action, dialogue, scene heading)
 4. 🔥 CRITICAL: Scene headings ARE REQUIRED - ${generationLength === 'multiple' ? `Each of the ${sceneCount} new scenes` : 'The new scene'} MUST start with its own scene heading (INT./EXT. LOCATION - TIME). Do NOT repeat the current scene heading "${sceneContext?.heading || 'INT. LOCATION - TIME'}". Create NEW scenes with NEW locations/times.
 5. 🚫 ABSOLUTELY FORBIDDEN: Do NOT continue the current scene. The Director agent creates NEW scenes, not continuations. The Screenwriter agent handles scene continuation.
-6. 🚫 ABSOLUTELY FORBIDDEN: Do NOT repeat or revise the current scene. Create ${generationLength === 'multiple' ? `${sceneCount} COMPLETELY NEW scenes` : '1 COMPLETELY NEW scene'} that come AFTER the current scene and advance the story forward.
-7. NO "REVISED SCENE", "REVISION", "NEW SCENE ADDITION", or any headers - just the screenplay content
+6. 🚫 ABSOLUTELY FORBIDDEN: Do NOT repeat, rewrite, revise, or modify the current scene "${sceneContext?.heading || 'current scene'}". Create ${generationLength === 'multiple' ? `${sceneCount} COMPLETELY NEW scenes` : '1 COMPLETELY NEW scene'} that come AFTER the current scene and advance the story forward.
+7. 🚫 ABSOLUTELY FORBIDDEN: Do NOT rewrite, revise, or modify ANY existing scenes. Only create NEW scenes.
+8. 🚫 ABSOLUTELY FORBIDDEN: NO "REVISED SCENE", "REVISION", "REWRITTEN SCENE", "REWRITTEN", or any revision headers - just write NEW scenes
+9. NO "NEW SCENE ADDITION" or any other headers - just the screenplay content
 8. lineCount must exactly match content.length
 9. Empty strings in content array are allowed for spacing (screenplay formatting)
 10. 🔥 CRITICAL: Output ONLY the raw JSON object. Do NOT wrap it in markdown code blocks. Do NOT add any text before or after the JSON.
