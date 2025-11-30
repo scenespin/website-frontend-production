@@ -308,14 +308,24 @@ export default function EditorWorkspace() {
         console.log('[EditorWorkspace] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
         console.log('[EditorWorkspace] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
         
-        // ALWAYS add newline if there's text after (even if textAfter starts with newline)
-        // The newline belongs AFTER the rewritten text, not before the text after
-        // This handles the case where selection includes entire paragraph (double/triple click)
-        if (hasTextAfter) {
-            // Always add newline if rewrite doesn't end with one
+        // 🔥 SIMPLIFIED: Only add newline if there's text after AND text doesn't already end with newline
+        // The modal already handles newline addition, so we only add here if modal didn't
+        // This prevents double newlines when highlighting portions of paragraphs
+        if (hasTextAfter && !textAfterStartsWithNewline) {
+            // Only add if rewrite doesn't already end with newline (modal might have added it)
             if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                 cleaned = cleaned + '\n';
                 console.log('[EditorWorkspace] ✅ Added newline - new length:', cleaned.length);
+            } else {
+                console.log('[EditorWorkspace] ℹ️ Newline already present (from modal)');
+            }
+        } else if (hasTextAfter && textAfterStartsWithNewline) {
+            // textAfter already starts with newline, so we don't need to add one
+            // But if the rewrite doesn't end with newline, we should add it for consistency
+            // This handles the case where entire paragraph is selected (selection ends at newline)
+            if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+                cleaned = cleaned + '\n';
+                console.log('[EditorWorkspace] ✅ Added newline (textAfter has newline but rewrite doesn't) - new length:', cleaned.length);
             } else {
                 console.log('[EditorWorkspace] ℹ️ Newline already present');
             }
