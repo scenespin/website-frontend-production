@@ -367,16 +367,9 @@ export default function RewriteModal({
               console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
               console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
               
-              // Add newline to raw content BEFORE cleaning if there's text after
-              // ALWAYS add newline if there's text after (even if textAfter starts with newline)
-              let contentToClean = fullContent;
-              if (hasTextAfter && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
-                contentToClean = fullContent + '\n';
-                console.log('[RewriteModal] ✅ Added newline BEFORE cleaning - new length:', contentToClean.length);
-              }
-              
-              // Fallback to text cleaning (now with newline preserved if added)
-              let cleaned = cleanFountainOutput(contentToClean);
+              // 🔥 SIMPLIFIED: Add newline ONCE, AFTER cleaning
+              // This prevents double newlines from multiple addition points
+              let cleaned = cleanFountainOutput(fullContent);
               
               console.log('[RewriteModal] 📝 After cleaning - cleaned length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
               
@@ -386,15 +379,13 @@ export default function RewriteModal({
                 return;
               }
               
-              // Double-check: ALWAYS ensure newline is there after cleaning if there's text after
-              // This handles the case where selection includes entire paragraph (double/triple click)
-              if (hasTextAfter) {
-                if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
-                  cleaned = cleaned + '\n';
-                  console.log('[RewriteModal] ✅ Added newline AFTER cleaning (fallback) - new length:', cleaned.length);
-                } else {
-                  console.log('[RewriteModal] ℹ️ Newline preserved through cleaning');
-                }
+              // Add newline ONCE if there's text after and rewrite doesn't already end with one
+              // This ensures exactly one newline regardless of selection method
+              if (hasTextAfter && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+                cleaned = cleaned + '\n';
+                console.log('[RewriteModal] ✅ Added newline AFTER cleaning - new length:', cleaned.length);
+              } else if (hasTextAfter) {
+                console.log('[RewriteModal] ℹ️ Newline already present after cleaning');
               }
               
               console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
@@ -418,14 +409,9 @@ export default function RewriteModal({
             console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
             console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
             
-            // ALWAYS add newline if there's text after (even if textAfter starts with newline)
-            let contentToClean = fullContent;
-            if (hasTextAfter && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
-              contentToClean = fullContent + '\n';
-              console.log('[RewriteModal] ✅ Added newline BEFORE cleaning (original format)');
-            }
-            
-            let cleaned = cleanFountainOutput(contentToClean);
+            // 🔥 SIMPLIFIED: Add newline ONCE, AFTER cleaning
+            // This prevents double newlines from multiple addition points
+            let cleaned = cleanFountainOutput(fullContent);
             
             console.log('[RewriteModal] 📝 After cleaning (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
             
@@ -435,11 +421,13 @@ export default function RewriteModal({
               return;
             }
             
-            // Double-check: ALWAYS ensure newline is there after cleaning if there's text after
-            // This handles the case where selection includes entire paragraph (double/triple click)
+            // Add newline ONCE if there's text after and rewrite doesn't already end with one
+            // This ensures exactly one newline regardless of selection method
             if (hasTextAfter && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
               cleaned = cleaned + '\n';
-              console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format fallback)');
+              console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format)');
+            } else if (hasTextAfter) {
+              console.log('[RewriteModal] ℹ️ Newline already present after cleaning (original format)');
             }
             
             console.log('[RewriteModal] 📝 Final text before onReplace (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
