@@ -501,7 +501,7 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
   
   // 🔥 CRITICAL: Remove notes at the end (after --- separator)
   // Pattern: "---\n*This adds tension..." or "---\n**NOTE:**" etc.
-  const notesPattern = /---\s*\n\s*\*?.*(adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens|tension|story|character|arc|redemption|journey|transformation|development|growth|evolution|determination|instinct|skill|talent|ability|expertise|conspiracy|chance|engage).*$/is;
+  const notesPattern = /---\s*\n\s*\*?.*(adds|suggests|gives|creates|builds|develops|enhances|improves|strengthens|tension|story|character|arc|redemption|journey|transformation|development|growth|evolution|determination|instinct|skill|talent|ability|expertise|conspiracy|chance|engage|Does this capture|Who might|Note:|Consider if|The sense that).*$/is;
   if (notesPattern.test(cleaned)) {
     const match = cleaned.search(/---\s*\n/i);
     if (match !== -1) {
