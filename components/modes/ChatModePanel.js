@@ -232,21 +232,25 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
       
       // 🔥 NEW: Stop immediately on analysis patterns (even before finding content)
       // These indicate the AI is analyzing instead of writing
-      if (/^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts|Great addition)/i.test(trimmedLine)) {
+      if (/^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts|Great addition|GOT IT|Got it)/i.test(trimmedLine)) {
         break; // STOP on analysis intros
       }
-      if (/^(Here's how that could|Here's how it could|Here's how this could|This gives you|Want to develop|Want to adjust)/i.test(trimmedLine)) {
+      if (/^(Here's how that could|Here's how it could|Here's how this could|This gives you|Want to develop|Want to adjust|You're right|You're talking about|Let me revise)/i.test(trimmedLine)) {
         break; // STOP on analysis/suggestion patterns
       }
-      if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring)/i.test(trimmedLine)) {
+      if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring|The problem|THE PROBLEM|Missing|SUGGESTED|Suggested)/i.test(trimmedLine)) {
         break; // STOP on analysis questions
       }
-      if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine) || /This gives you:/i.test(trimmedLine)) {
+      if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine) || /This gives you:/i.test(trimmedLine) || /SCENE ANALYSIS/i.test(trimmedLine) || /Scene Analysis/i.test(trimmedLine)) {
         break; // STOP on analysis sections
       }
       // 🔥 NEW: Stop on revision/rewrite patterns
-      if (/^(Here's a revision|Here's how it could be|Here's how it might|Here's the revision|Here's the rewrite|Here's a rewrite|Here's how that could play out)/i.test(trimmedLine)) {
+      if (/^(Here's a revision|Here's how it could be|Here's how it might|Here's the revision|Here's the rewrite|Here's a rewrite|Here's how that could play out|REVISED SCENE|Revised Scene)/i.test(trimmedLine)) {
         break; // STOP on revision intros
+      }
+      // 🔥 NEW: Stop on analysis explanations
+      if (/^(This adds|CHANGES:|Changes:|Does this capture|Does this hit)/i.test(trimmedLine)) {
+        break; // STOP on analysis explanations
       }
       
       // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
