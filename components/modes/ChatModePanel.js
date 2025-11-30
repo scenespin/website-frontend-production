@@ -390,6 +390,14 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
   
   cleaned = screenplayLines.join('\n');
   
+  // 🔥 AGGRESSIVE: Limit to first 3 lines maximum for Screenwriter agent
+  // This ensures we never get more than 3 lines even if AI generates more
+  const allLines = cleaned.split('\n').filter(line => line.trim().length > 0);
+  if (allLines.length > 3) {
+    cleaned = allLines.slice(0, 3).join('\n');
+    console.log('[ChatModePanel] ⚠️ Truncated to 3 lines (Screenwriter agent limit)');
+  }
+  
   // Whitespace normalization
   // 1. Trim trailing whitespace from each line (but preserve newlines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
