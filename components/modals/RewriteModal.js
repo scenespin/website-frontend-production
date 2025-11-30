@@ -331,17 +331,14 @@ export default function RewriteModal({
               console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
               console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
               
-              // If there's text after, ALWAYS add newline (even if textAfter starts with newline)
-              // The newline belongs AFTER the rewritten text, not before the text after
+              // 🔥 CRITICAL: Normalize trailing newlines FIRST to prevent duplicates
+              // Remove any trailing newlines, then add exactly ONE if needed
+              cleaned = cleaned.replace(/\n+$/, ''); // Remove ALL trailing newlines
+              
+              // If there's text after, add exactly ONE newline
               if (hasTextAfter) {
-                // Always add newline if rewrite doesn't end with one
-                // This ensures proper spacing regardless of how selection was made
-                if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
-                  cleaned = cleaned + '\n';
-                  console.log('[RewriteModal] ✅ Added newline after JSON validation - new length:', cleaned.length);
-                } else {
-                  console.log('[RewriteModal] ℹ️ Newline already present after JSON validation');
-                }
+                cleaned = cleaned + '\n';
+                console.log('[RewriteModal] ✅ Added newline after JSON validation (normalized) - new length:', cleaned.length);
               }
               
               console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
@@ -378,13 +375,14 @@ export default function RewriteModal({
                 return;
               }
               
-              // Add newline ONCE if there's text after and rewrite doesn't already end with one
-              // This ensures exactly one newline regardless of selection method
-              if (hasTextAfter && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+              // 🔥 CRITICAL: Normalize trailing newlines FIRST to prevent duplicates
+              // Remove any trailing newlines, then add exactly ONE if needed
+              cleaned = cleaned.replace(/\n+$/, ''); // Remove ALL trailing newlines
+              
+              // If there's text after, add exactly ONE newline
+              if (hasTextAfter) {
                 cleaned = cleaned + '\n';
-                console.log('[RewriteModal] ✅ Added newline AFTER cleaning - new length:', cleaned.length);
-              } else if (hasTextAfter) {
-                console.log('[RewriteModal] ℹ️ Newline already present after cleaning');
+                console.log('[RewriteModal] ✅ Added newline AFTER cleaning (normalized) - new length:', cleaned.length);
               }
               
               console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
@@ -420,13 +418,14 @@ export default function RewriteModal({
               return;
             }
             
-            // Add newline ONCE if there's text after and rewrite doesn't already end with one
-            // This ensures exactly one newline regardless of selection method
-            if (hasTextAfter && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+            // 🔥 CRITICAL: Normalize trailing newlines FIRST to prevent duplicates
+            // Remove any trailing newlines, then add exactly ONE if needed
+            cleaned = cleaned.replace(/\n+$/, ''); // Remove ALL trailing newlines
+            
+            // If there's text after, add exactly ONE newline
+            if (hasTextAfter) {
               cleaned = cleaned + '\n';
-              console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format)');
-            } else if (hasTextAfter) {
-              console.log('[RewriteModal] ℹ️ Newline already present after cleaning (original format)');
+              console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format, normalized)');
             }
             
             console.log('[RewriteModal] 📝 Final text before onReplace (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
