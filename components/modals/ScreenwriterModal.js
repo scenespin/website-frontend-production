@@ -167,22 +167,38 @@ Rules:
           // Format content for insertion
           let contentToInsert = validation.content.trim();
 
-          // Check if we need to add newline before insertion
+          // Check spacing context around cursor
           const textBeforeCursor = editorContent.substring(0, cursorPosition);
           const textAfterCursor = editorContent.substring(cursorPosition);
           
-          // If cursor is not at start of line, add newline before
-          const isAtStartOfLine = textBeforeCursor === '' || textBeforeCursor.endsWith('\n');
+          // Check if there's text on the same line before cursor (not just whitespace/newlines)
+          const lastNewlineIndex = textBeforeCursor.lastIndexOf('\n');
+          const textOnCurrentLine = lastNewlineIndex >= 0 
+            ? textBeforeCursor.substring(lastNewlineIndex + 1)
+            : textBeforeCursor;
+          const hasTextOnCurrentLine = textOnCurrentLine.trim().length > 0;
+          
+          // Check if there's text after cursor
           const hasTextAfter = textAfterCursor.trim().length > 0;
+          const textAfterStartsWithNewline = textAfterCursor.startsWith('\n') || textAfterCursor.startsWith('\r\n');
 
-          if (!isAtStartOfLine) {
+          // Add newline BEFORE if there's text on the current line
+          if (hasTextOnCurrentLine) {
+            contentToInsert = '\n\n' + contentToInsert; // Double newline for proper spacing
+            console.log('[ScreenwriterModal] ✅ Added double newline before content (text exists on current line)');
+          } else {
+            // Even if at start of line, add single newline for spacing
             contentToInsert = '\n' + contentToInsert;
+            console.log('[ScreenwriterModal] ✅ Added single newline before content (at start of line)');
           }
 
-          // Add newline after if there's text after cursor
-          if (hasTextAfter && !textAfterCursor.startsWith('\n')) {
+          // Add newline AFTER if there's text after cursor and it doesn't start with newline
+          if (hasTextAfter && !textAfterStartsWithNewline) {
             contentToInsert = contentToInsert + '\n';
+            console.log('[ScreenwriterModal] ✅ Added newline after content (text exists after cursor)');
           }
+          
+          console.log('[ScreenwriterModal] 📝 Final content to insert - length:', contentToInsert.length, 'startsWith newline:', contentToInsert.startsWith('\n'), 'endsWith newline:', contentToInsert.endsWith('\n'));
 
           // Insert content
           onInsert(contentToInsert);
