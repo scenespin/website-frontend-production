@@ -431,7 +431,10 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = screenplayLines.join('\n');
   
   // 🔥 CRITICAL: Ensure 2 newlines between scenes (Fountain format standard)
-  // Split by scene headings and rejoin with 2 newlines
+  // First, normalize line endings and trim trailing whitespace from each line
+  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  
+  // Split by scene headings and rejoin with 2 newlines between scenes
   const sceneParts = cleaned.split(/(?=^(?:INT\.|EXT\.|I\/E\.))/gim);
   if (sceneParts.length > 1) {
     // Multiple scenes - ensure 2 newlines between them
@@ -442,8 +445,8 @@ function cleanFountainOutput(text, sceneContext = null) {
           return part.trimStart();
         }
         // Subsequent scenes - ensure 2 newlines before scene heading
-        // Remove any existing newlines at the start, then add exactly 2
-        const trimmed = part.replace(/^\s*\n*/, '');
+        // Remove any existing newlines/whitespace at the start, then add exactly 2 newlines
+        const trimmed = part.replace(/^\s+/, ''); // Remove leading whitespace
         return '\n\n' + trimmed;
       })
       .join('');
@@ -457,15 +460,25 @@ function cleanFountainOutput(text, sceneContext = null) {
   // Remove "FADE TO BLACK" anywhere in the content (shouldn't be in middle of screenplay)
   cleaned = cleaned.replace(/^\s*FADE TO BLACK\.?\s*$/gim, '');
   
-  // Whitespace normalization
-  // 1. Trim trailing whitespace from each line
-  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  // 🔥 CRITICAL: Re-ensure 2 newlines between scenes after other processing
+  // This handles cases where normalization might have collapsed newlines
+  cleaned = cleaned.replace(/(\n)(INT\.|EXT\.|I\/E\.)/gi, (match, newline, heading) => {
+    // Check if there's already 2+ newlines before this scene heading
+    const beforeMatch = cleaned.substring(0, cleaned.indexOf(match));
+    const beforeNewlines = beforeMatch.match(/\n+$/);
+    if (beforeNewlines && beforeNewlines[0].length >= 2) {
+      return match; // Already has 2+ newlines, keep as is
+    }
+    // Add extra newline to make it 2 newlines total before scene heading
+    return '\n\n' + heading;
+  });
   
-  // 2. Normalize multiple consecutive newlines to single newline (but preserve structure)
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
+  // Normalize excessive newlines (3+ becomes 2) but preserve 2 newlines between scenes
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
-  // 3. Trim leading/trailing whitespace from entire block
-  cleaned = cleaned.trim();
+  // Trim leading/trailing whitespace (but preserve newlines in content)
+  // Only trim spaces/tabs, not newlines
+  cleaned = cleaned.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
   
   return cleaned;
 }
