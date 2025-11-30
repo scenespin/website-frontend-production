@@ -130,11 +130,10 @@ function cleanFountainOutput(text) {
   
   // 3. 🔥 FIX: Only trim leading whitespace, preserve trailing newline if present
   // This is critical for rewrite agent to maintain spacing after rewritten text
-  const hasTrailingNewline = cleaned.endsWith('\n') || cleaned.endsWith('\r\n');
+  // BUT: Don't add newlines here - let the calling code handle it to prevent duplicates
   cleaned = cleaned.trimStart(); // Only trim leading whitespace
-  if (hasTrailingNewline && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
-    cleaned = cleaned + '\n'; // Restore trailing newline if it was removed
-  }
+  // Note: We preserve trailing newlines but don't add them here
+  // The calling code will add exactly one newline if needed
   
   // 🔥 FIX: Repair broken sentences that got split incorrectly
   // Pattern: single lowercase letter followed by period at start of line (like "p. A bead")
