@@ -224,6 +224,18 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         break; // STOP on markdown analysis notes (but only after finding screenplay content)
       }
       
+      // 🔥 NEW: Stop immediately on analysis patterns (even before finding content)
+      // These indicate the AI is analyzing instead of writing
+      if (/^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts)/i.test(trimmedLine)) {
+        break; // STOP on analysis intros
+      }
+      if (/^(could create|might suggest|adds a|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring)/i.test(trimmedLine)) {
+        break; // STOP on analysis questions
+      }
+      if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine)) {
+        break; // STOP on analysis sections
+      }
+      
       // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
       if (/^\[?SCREENWRITING ASSISTANT\]?\s*$/i.test(line)) {
         continue; // Skip assistant headers
@@ -684,19 +696,23 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           systemPrompt = `You are a professional screenwriting assistant. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
         } else {
           // Fallback: Original text format - STRICT: NO OPTIONS, NO SUGGESTIONS
-          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique. 
+          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique.
 
 🚫 ABSOLUTELY FORBIDDEN:
-- NO options or suggestions (no "Here are some options:", "Option 1:", "Option 2:")
-- NO questions (no "Which approach?", "Does this work?")
-- NO explanations or analysis
+- NO options or suggestions (no "Here are some options:", "Option 1:", "Option 2:", "A few thoughts:")
+- NO questions (no "Which approach?", "Does this work?", "What tone are you going for?", "Could you clarify?", "Are you referring to?")
+- NO explanations or analysis (no "Ah, interesting detail!", "Adding that... could create...", "What it might suggest:", "Potential line adjustment:")
 - NO lists or alternatives
+- NO meta-commentary about the writing process
+- NO suggestions about what to add or how to improve
 
 ✅ YOU MUST:
 - Write ONLY the screenplay content requested
 - Write 1-5 lines that continue from the cursor
 - NO scene headings
-- Just write what comes next`;
+- Just write what comes next in Fountain format
+- If user says "USB drive is gooey", write: "The USB drive is gooey." or similar action line
+- Direct continuation only - no analysis, no questions, no suggestions`;
         }
         
         // Add scene context if available (minimal, just for context)
