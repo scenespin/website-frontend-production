@@ -141,7 +141,9 @@ function cleanFountainOutput(text, sceneContext = null) {
     /^🎬 Generate complete scenes/i,
     // 🔥 NEW: Skip scene sequence headers (like "NEW SCENES: TIGER CHASE SEQUENCE")
     /^NEW SCENES?:/i,
+    /^NEW SCENE SEQUENCE$/i,  // "NEW SCENE SEQUENCE" header
     /^SCENE SEQUENCE:/i,
+    /^END SEQUENCE$/i,  // "END SEQUENCE" marker
     /^SEQUENCE:/i,
     // 🔥 NEW: Skip "CUT TO:" transitions (not standard Fountain format)
     /^CUT TO:?\s*$/i,
