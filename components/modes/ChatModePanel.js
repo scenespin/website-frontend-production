@@ -43,12 +43,12 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
     // Remove "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
     .replace(/^\[SCREENWRITING ASSISTANT\]\s*$/gim, '')
     .replace(/^SCREENWRITING ASSISTANT\s*$/gim, '')
-    // Remove "INSERT - NOTE" patterns
+    // Remove "INSERT - NOTE" patterns (these are markdown/analysis, not Fountain format)
     .replace(/\*\*INSERT - NOTE\*\*/gi, '')
     .replace(/INSERT - NOTE/gi, '')
-    // Remove "BACK TO SCENE" patterns
-    .replace(/\*\*BACK TO SCENE\*\*/gi, '')
-    .replace(/BACK TO SCENE/gi, '');
+    // 🔥 KEEP "BACK TO SCENE" - it's valid Fountain format for returning from inserts
+    // Only remove markdown-wrapped versions (which are analysis, not screenplay)
+    .replace(/\*\*BACK TO SCENE\*\*/gi, '');
   
   // Remove common AI response patterns that aren't screenplay content
   const unwantedPatterns = [
