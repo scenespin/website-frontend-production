@@ -22,8 +22,8 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
   
   // 🔥 AGGRESSIVE: Remove markdown formatting FIRST (before processing)
   cleaned = cleaned
-    // Remove markdown headers (# Revised Scene, ## Scene, etc.)
-    .replace(/^#+\s*(Revised Scene|REVISED SCENE|REVISION|Scene|SCENE)\s*:?\s*$/gim, '')
+    // Remove markdown headers (# Revised Scene, ## Scene, etc.) - including with descriptions
+    .replace(/^#+\s*(Revised Scene|REVISED SCENE|REVISION|Scene|SCENE)\s*[:\-]?\s*.*$/gim, '')
     // Remove bold markdown (**text** or __text__) - be aggressive
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
@@ -249,7 +249,7 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
         break; // STOP on revision intros
       }
       // 🔥 NEW: Stop on analysis explanations
-      if (/^(This adds|CHANGES:|Changes:|Does this capture|Does this hit)/i.test(trimmedLine)) {
+      if (/^(This adds|CHANGES:|Changes:|Does this capture|Does this hit|Who might|Note:|Note that|This adds physical|Consider if)/i.test(trimmedLine)) {
         break; // STOP on analysis explanations
       }
       
