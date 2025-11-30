@@ -198,6 +198,12 @@ Rules:
           if (!validation.valid) {
             console.error('[DirectorModal] ❌ JSON validation failed:', validation.errors);
             
+            // Filter out non-critical errors (like totalLines mismatch)
+            const criticalErrors = validation.errors.filter(err => 
+              !err.includes('totalLines') && 
+              !err.includes('does not match sum')
+            );
+            
             // Try to extract content anyway if we have rawJson with scenes
             if (validation.rawJson && validation.rawJson.scenes && Array.isArray(validation.rawJson.scenes) && validation.rawJson.scenes.length > 0) {
               console.warn('[DirectorModal] ⚠️ Validation failed but attempting to use content anyway');
@@ -205,21 +211,27 @@ Rules:
               // Check if scenes are valid enough to use
               const hasValidScenes = validation.rawJson.scenes.every(scene => 
                 scene.heading && 
+                typeof scene.heading === 'string' &&
+                scene.heading.trim().length > 0 &&
                 scene.content && 
                 Array.isArray(scene.content) && 
-                scene.content.length >= 5
+                scene.content.length >= 3  // Reduced from 5 to be more lenient
               );
               
               if (hasValidScenes) {
                 console.log('[DirectorModal] ✅ Scenes appear valid, using content despite validation errors');
+                // Show warning toast if there were critical errors, but continue
+                if (criticalErrors.length > 0) {
+                  toast.warning(`Warning: ${criticalErrors[0]}. Using content anyway.`);
+                }
                 // Continue with content extraction below
               } else {
-                toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
+                toast.error(`Invalid response: ${criticalErrors[0] || validation.errors[0] || 'Unknown error'}`);
                 setIsLoading(false);
                 return;
               }
             } else {
-              toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
+              toast.error(`Invalid response: ${criticalErrors[0] || validation.errors[0] || 'Unknown error'}`);
               setIsLoading(false);
               return;
             }
