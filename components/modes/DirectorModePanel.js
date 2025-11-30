@@ -461,17 +461,15 @@ function cleanFountainOutput(text, sceneContext = null) {
         result.pop(); // Remove trailing empty lines
       }
       
+      // 🔥 FIX: Add 2 newlines before ALL scene headings (including first)
+      // When inserting into existing content, all scenes need proper spacing
       if (!firstSceneFound) {
-        // First scene heading - add 1 newline
         firstSceneFound = true;
-        result.push(''); // Add single newline
-        result.push(line); // Add scene heading
-      } else {
-        // Subsequent scene headings - add 2 newlines
-        result.push(''); // Add first newline
-        result.push(''); // Add second newline
-        result.push(line); // Add scene heading
       }
+      // Always add 2 newlines before scene headings
+      result.push(''); // Add first newline
+      result.push(''); // Add second newline
+      result.push(line); // Add scene heading
     } else {
       result.push(line);
     }
@@ -482,10 +480,10 @@ function cleanFountainOutput(text, sceneContext = null) {
   // Remove duplicate "FADE OUT. THE END" patterns and "FADE TO BLACK"
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
   cleaned = cleaned.replace(/(FADE OUT\.?\s*\n\s*THE END\.?\s*\n\s*)+/gi, ''); // Remove all instances
-  // Also remove standalone "FADE OUT", "FADE TO BLACK", or "THE END" at the end
-  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|FADE TO BLACK\.?|THE END\.?)\s*$/gi, '');
-  // Remove "FADE TO BLACK" anywhere in the content (shouldn't be in middle of screenplay)
-  cleaned = cleaned.replace(/^\s*FADE TO BLACK\.?\s*$/gim, '');
+  // Also remove standalone "FADE OUT", "FADE TO BLACK", "FADE TO:", or "THE END" at the end
+  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|FADE TO BLACK\.?|FADE TO:?|THE END\.?)\s*$/gi, '');
+  // Remove "FADE TO BLACK", "FADE TO:", or "FADE OUT" anywhere in the content (shouldn't be in middle of screenplay)
+  cleaned = cleaned.replace(/^\s*(FADE TO BLACK\.?|FADE TO:?|FADE OUT\.?)\s*$/gim, '');
   
   // Normalize excessive newlines (3+ becomes 2) but preserve 2 newlines between scenes
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
