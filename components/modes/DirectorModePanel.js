@@ -102,7 +102,17 @@ function cleanFountainOutput(text, sceneContext = null) {
     /^NOTES:/i,
     /^DEVELOPMENT NOTES:/i,
     /^Questions to consider:/i,
-    /^Tension escalation:/i
+    /^Tension escalation:/i,
+    // 🔥 NEW: Stop on "[END OF...]" patterns (analysis markers)
+    /\[END OF.*?\]/i,  // [END OF REVISED SEQUENCE], [END OF SCENE], etc.
+    // 🔥 NEW: Stop on "This expansion adds..." analysis patterns
+    /^This expansion adds/i,  // "This expansion adds approximately..."
+    /^This addition adds/i,  // "This addition adds..."
+    /^This revision adds/i,  // "This revision adds..."
+    /approximately \d+ pages/i,  // "approximately 2 pages"
+    /and (sets up|deepens|establishes|creates|builds|develops|enhances|improves|strengthens|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i,  // "and sets up the warehouse meeting"
+    // 🔥 NEW: Stop on analysis patterns that describe what the content does
+    /This (expansion|addition|revision|version|scene|sequence) (adds|creates|builds|develops|enhances|improves|strengthens|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i
   ];
   
   // Patterns for lines to skip (but continue processing after them)
@@ -447,31 +457,19 @@ function cleanFountainOutput(text, sceneContext = null) {
   // Step 2: Trim trailing whitespace from each line (but preserve newlines between lines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // Step 3: Split into lines and add exactly 2 newlines before each scene heading
-  const sceneLines = cleaned.split('\n');
-  const result = [];
+  // Step 3: Normalize all spacing first (collapse multiple newlines to single, remove excessive spacing)
+  // This gives us a clean slate to work with
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Collapse 3+ newlines to 2
+  cleaned = cleaned.replace(/\n\n\n/g, '\n\n'); // Ensure max 2 consecutive newlines
   
-  for (let i = 0; i < sceneLines.length; i++) {
-    const line = sceneLines[i];
-    const trimmedLine = line.trim();
-    
-    // Check if this is a scene heading
-    if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
-      // Remove any trailing empty lines from previous content (clean slate)
-      while (result.length > 0 && result[result.length - 1].trim() === '') {
-        result.pop();
-      }
-      
-      // Add exactly 2 newlines before this scene heading (Fountain format: one blank line)
-      result.push(''); // First newline (blank line)
-      result.push(''); // Second newline (scene heading will be on next line)
-      result.push(line); // Add scene heading
-    } else {
-      result.push(line); // Regular content line
-    }
-  }
+  // Step 4: Use regex to add exactly 2 newlines before each scene heading
+  // This is more reliable than line-by-line processing
+  // Match: (start of string OR newline) followed by scene heading
+  // Replace with: 2 newlines + scene heading
+  cleaned = cleaned.replace(/(^|\n)(INT\.|EXT\.|I\/E\.)/gi, '\n\n$2');
   
-  cleaned = result.join('\n');
+  // Step 5: Clean up any leading newlines (first scene shouldn't have newlines before it)
+  cleaned = cleaned.replace(/^\n+/, '');
   
   // Remove duplicate "FADE OUT. THE END" patterns and "FADE TO BLACK"
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
@@ -481,7 +479,8 @@ function cleanFountainOutput(text, sceneContext = null) {
   // Remove "FADE TO BLACK", "FADE TO:", or "FADE OUT" anywhere in the content (shouldn't be in middle of screenplay)
   cleaned = cleaned.replace(/^\s*(FADE TO BLACK\.?|FADE TO:?|FADE OUT\.?)\s*$/gim, '');
   
-  // Normalize excessive newlines (3+ becomes 2) but preserve 2 newlines between scenes
+  // Step 6: Final normalization - ensure exactly 2 newlines between scenes (no more, no less)
+  // This handles edge cases where the regex might have created 3+ newlines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
   // Trim leading/trailing whitespace (but preserve newlines in content)
