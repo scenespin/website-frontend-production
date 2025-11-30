@@ -437,11 +437,10 @@ function cleanFountainOutput(text, sceneContext = null) {
   // First, normalize line endings and trim trailing whitespace from each line
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // Find all scene headings and ensure 2 newlines before each (except first)
-  // Split by scene headings, but keep the scene headings in the result
+  // Find all scene headings and ensure 2 newlines before EACH scene heading
+  // This ensures proper spacing when inserting into existing screenplay content
   const lines = cleaned.split('\n');
   const result = [];
-  let firstSceneFound = false;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -449,20 +448,15 @@ function cleanFountainOutput(text, sceneContext = null) {
     
     // Check if this is a scene heading
     if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
-      if (!firstSceneFound) {
-        // First scene - no extra newlines needed
-        firstSceneFound = true;
-        result.push(line);
-      } else {
-        // Subsequent scenes - ensure 2 newlines before scene heading
-        // Remove any trailing newlines from previous content, then add 2 newlines
-        while (result.length > 0 && result[result.length - 1].trim() === '') {
-          result.pop(); // Remove trailing empty lines
-        }
-        result.push(''); // Add first newline
-        result.push(''); // Add second newline
-        result.push(line); // Add scene heading
+      // ALL scene headings need 2 newlines before them (including the first one)
+      // This ensures proper spacing when inserting into existing screenplay
+      // Remove any trailing newlines from previous content, then add 2 newlines
+      while (result.length > 0 && result[result.length - 1].trim() === '') {
+        result.pop(); // Remove trailing empty lines
       }
+      result.push(''); // Add first newline
+      result.push(''); // Add second newline
+      result.push(line); // Add scene heading
     } else {
       result.push(line);
     }
