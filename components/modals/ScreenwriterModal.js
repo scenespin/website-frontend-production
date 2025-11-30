@@ -164,8 +164,54 @@ Rules:
             return;
           }
 
+          // Format content with proper Fountain spacing
+          // Get the raw content array from validation
+          const contentArray = validation.rawJson?.content || validation.content.split('\n').filter(l => l.trim());
+          let formattedLines = [];
+          
+          for (let i = 0; i < contentArray.length; i++) {
+            const line = contentArray[i].trim();
+            if (!line) continue;
+            
+            const nextLine = i < contentArray.length - 1 ? contentArray[i + 1].trim() : '';
+            
+            // Check if this is a character name (ALL CAPS, not a scene heading, 2-50 chars)
+            const isCharacterName = /^[A-Z][A-Z\s#0-9']+$/.test(line) && 
+                                   line.length >= 2 && 
+                                   line.length <= 50 && 
+                                   !/^(INT\.|EXT\.|I\/E\.)/i.test(line);
+            
+            // Check if next line is character name
+            const nextIsCharacterName = nextLine && /^[A-Z][A-Z\s#0-9']+$/.test(nextLine) && 
+                                       nextLine.length >= 2 && 
+                                       nextLine.length <= 50 && 
+                                       !/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine);
+            
+            // Check if next line is dialogue (starts with parenthesis or lowercase)
+            const nextIsDialogue = nextLine && (/^\(/.test(nextLine) || /^[a-z]/.test(nextLine));
+            
+            // Add the line
+            formattedLines.push(line);
+            
+            // Add blank line after action if next is character name
+            if (!isCharacterName && nextIsCharacterName) {
+              formattedLines.push('');
+            }
+            // Add blank line after character name (before dialogue)
+            else if (isCharacterName && nextIsDialogue) {
+              formattedLines.push('');
+            }
+            // Add single newline between other lines (unless it's the last line)
+            else if (i < contentArray.length - 1) {
+              // Don't add extra newline - join will handle it
+            }
+          }
+          
+          // Join lines with newlines (empty strings create blank lines)
+          let formattedContent = formattedLines.join('\n');
+          
           // Format content for insertion
-          let contentToInsert = validation.content.trim();
+          let contentToInsert = formattedContent.trim();
 
           // Check spacing context around cursor
           const textBeforeCursor = editorContent.substring(0, cursorPosition);
