@@ -71,6 +71,13 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
     /Option \d+[:\-].*$/im,
     // Remove "Which direction..." questions
     /Which direction.*$/is,
+    // Remove advice headers
+    /SARAH'S (DIALOGUE\/ACTION SUGGESTION|LEAD PROBLEM).*$/is,
+    /SCENE DEVELOPMENT.*$/is,
+    /VISUAL STORYTELLING OPTIONS?:.*$/is,
+    /STORY QUESTIONS?:.*$/is,
+    /POTENTIAL ADDITIONS?:.*$/is,
+    /Given the scene context.*$/is,
     // Remove "This version:" explanations
     /This version:.*$/is,
     // Remove "What comes next?" questions
