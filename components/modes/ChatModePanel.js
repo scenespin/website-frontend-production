@@ -1337,8 +1337,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     )}
                   </div>
                   
-                  {/* Insert button for streaming text (when it's screenplay content) */}
-                  {onInsert && isScreenplayContent(state.streamingText) && (
+                  {/* Insert button for streaming text (always show if there's content) */}
+                  {onInsert && state.streamingText && state.streamingText.trim().length > 0 && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => {
