@@ -40,6 +40,9 @@ function cleanFountainOutput(text, sceneContext = null) {
     // 🔥 NEW: Remove markdown headers (## or ###) and convert to action lines
     // Example: "## A FEW BLOCKS LATER" -> "A FEW BLOCKS LATER"
     .replace(/^#+\s+(.+)$/gm, '$1')
+    // 🔥 NEW: Remove markdown blockquotes (lines starting with >)
+    // Example: "> COURIER" -> "COURIER", "> Sarah Chen?" -> "Sarah Chen?"
+    .replace(/^>\s*/gm, '') // Remove > at start of lines
     // 🔥 NEW: Remove leading asterisks (standalone * at start of line, like *"Tomorrow...")
     .replace(/^\s*\*\s*/gm, '') // Remove * at start of lines (with optional whitespace)
     // 🔥 NEW: Remove trailing asterisks (standalone * at end of line or end of content)
