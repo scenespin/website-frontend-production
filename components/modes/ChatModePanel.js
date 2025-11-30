@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
-import { FileText, Sparkles, User, Bot, RotateCcw } from 'lucide-react';
+import { FileText, Sparkles, User, Bot, RotateCcw, Copy, Check } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt, extractSelectionContext } from '@/utils/sceneDetection';
@@ -205,6 +205,114 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
   cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
   
   return cleaned.trim();
+}
+
+// 🔥 PHASE 3: Code block parsing and rendering helpers
+/**
+ * Parse markdown text to extract code blocks and surrounding text
+ * @param {string} text - Markdown text
+ * @returns {Object} { codeBlocks: Array, otherContent: string }
+ */
+function parseCodeBlocks(text) {
+  if (!text) return { codeBlocks: [], otherContent: text || '' };
+  
+  const codeBlocks = [];
+  let otherContent = text;
+  
+  // Pattern 1: ```fountain ... ```
+  const fountainPattern = /```fountain\s*\n([\s\S]*?)```/gi;
+  let match;
+  while ((match = fountainPattern.exec(text)) !== null) {
+    codeBlocks.push({
+      language: 'fountain',
+      content: match[1].trim(),
+      fullMatch: match[0],
+      index: match.index
+    });
+    // Remove from other content
+    otherContent = otherContent.replace(match[0], '');
+  }
+  
+  // Pattern 2: ``` ... ``` (generic code blocks)
+  const genericPattern = /```([a-z]*)\s*\n([\s\S]*?)```/gi;
+  while ((match = genericPattern.exec(text)) !== null) {
+    // Skip if already captured as fountain
+    const alreadyCaptured = codeBlocks.some(cb => 
+      match.index >= cb.index && match.index < cb.index + cb.fullMatch.length
+    );
+    if (!alreadyCaptured) {
+      const language = match[1] || 'text';
+      const content = match[2].trim();
+      // Only include if it looks like Fountain format
+      if (isFountainFormat(content) || language === 'fountain') {
+        codeBlocks.push({
+          language: 'fountain',
+          content: content,
+          fullMatch: match[0],
+          index: match.index
+        });
+        // Remove from other content
+        otherContent = otherContent.replace(match[0], '');
+      }
+    }
+  }
+  
+  // Clean up other content (remove extra whitespace from removed code blocks)
+  otherContent = otherContent.replace(/\n{3,}/g, '\n\n').trim();
+  
+  return { codeBlocks, otherContent };
+}
+
+/**
+ * Code block component with copy button
+ */
+function FountainCodeBlock({ content, onCopy }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+      if (onCopy) onCopy(content);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy');
+    }
+  };
+  
+  return (
+    <div className="relative group my-4">
+      <div className="bg-base-200 border border-base-300 rounded-lg overflow-hidden">
+        {/* Header with copy button */}
+        <div className="flex items-center justify-between px-4 py-2 bg-base-300 border-b border-base-300">
+          <span className="text-xs font-mono text-base-content/60">fountain</span>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-base-200 transition-colors text-base-content/70 hover:text-base-content"
+            title="Copy code"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
+        {/* Code content */}
+        <pre className="p-4 overflow-x-auto">
+          <code className="text-sm font-mono text-base-content whitespace-pre-wrap">{content}</code>
+        </pre>
+      </div>
+    </div>
+  );
 }
 
 // Helper to parse 3 rewrite options from AI response
@@ -834,7 +942,34 @@ RULES:
                             {message.content}
                           </div>
                         ) : (
-                          <MarkdownRenderer content={message.content} />
+                          // 🔥 PHASE 3: Parse and render code blocks separately
+                          (() => {
+                            const { codeBlocks, otherContent } = parseCodeBlocks(message.content);
+                            return (
+                              <div className="space-y-3">
+                                {/* Render code blocks with copy buttons */}
+                                {codeBlocks.map((block, blockIndex) => (
+                                  <FountainCodeBlock
+                                    key={blockIndex}
+                                    content={block.content}
+                                    onCopy={(content) => {
+                                      console.log('[ChatModePanel] Code block copied:', content);
+                                    }}
+                                  />
+                                ))}
+                                {/* Render remaining content (analysis/commentary) */}
+                                {otherContent && otherContent.trim() && (
+                                  <div className="text-base-content/70 text-sm">
+                                    <MarkdownRenderer content={otherContent} />
+                                  </div>
+                                )}
+                                {/* If no code blocks and no other content, render full content */}
+                                {codeBlocks.length === 0 && !otherContent.trim() && (
+                                  <MarkdownRenderer content={message.content} />
+                                )}
+                              </div>
+                            );
+                          })()
                         )}
                       </div>
                       )}
@@ -887,10 +1022,23 @@ RULES:
                               console.log('[ChatModePanel] Message content length:', message.content?.length);
                               console.log('[ChatModePanel] Message content preview:', message.content?.substring(0, 500));
                               
-                              // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
+                              // 🔥 PHASE 3: Extract from code blocks first, then clean
                               // Get scene context for duplicate detection
                               const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
-                              const cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
+                              
+                              // Try to extract from code blocks (Phase 2/3 approach)
+                              const codeBlockContent = extractFountainFromCodeBlocks(message.content);
+                              let cleanedContent;
+                              
+                              if (codeBlockContent) {
+                                // Use code block content with minimal cleaning
+                                cleanedContent = minimalCleanCodeBlockContent(codeBlockContent, currentSceneContext);
+                                console.log('[ChatModePanel] ✅ Inserting from code block');
+                              } else {
+                                // Fallback to full cleaning (backward compatibility)
+                                cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
+                                console.log('[ChatModePanel] ⚠️ No code block found, using fallback cleaning');
+                              }
                               
                               console.log('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
                               console.log('[ChatModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
@@ -955,12 +1103,39 @@ RULES:
                 
                 {/* Streaming Content */}
                 <div className="flex-1 min-w-0 space-y-3">
-                  <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
-                    <MarkdownRenderer content={state.streamingText} />
-                    {state.isStreaming && (
-                      <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
-                    )}
-                  </div>
+                  {/* 🔥 PHASE 3: Parse and render code blocks in streaming text */}
+                  {(() => {
+                    const { codeBlocks, otherContent } = parseCodeBlocks(state.streamingText);
+                    return (
+                      <div className="space-y-3">
+                        {/* Render code blocks with copy buttons */}
+                        {codeBlocks.map((block, blockIndex) => (
+                          <FountainCodeBlock
+                            key={blockIndex}
+                            content={block.content}
+                            onCopy={(content) => {
+                              console.log('[ChatModePanel] Streaming code block copied:', content);
+                            }}
+                          />
+                        ))}
+                        {/* Render remaining content (analysis/commentary) */}
+                        {otherContent && otherContent.trim() && (
+                          <div className="text-base-content/70 text-sm">
+                            <MarkdownRenderer content={otherContent} />
+                          </div>
+                        )}
+                        {/* If no code blocks, render full content */}
+                        {codeBlocks.length === 0 && (
+                          <div className="prose prose-sm md:prose-base max-w-none chat-message-content">
+                            <MarkdownRenderer content={state.streamingText} />
+                          </div>
+                        )}
+                        {state.isStreaming && (
+                          <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   
                   {/* Insert button for streaming text (always show if there's content) */}
                   {onInsert && state.streamingText && state.streamingText.trim().length > 0 && (
@@ -973,10 +1148,23 @@ RULES:
                           console.log('[ChatModePanel] onInsert function:', typeof onInsert);
                           console.log('[ChatModePanel] Streaming text length:', state.streamingText?.length);
                           
-                          // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
+                          // 🔥 PHASE 3: Extract from code blocks first, then clean
                           // Get scene context for duplicate detection
                           const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
-                          const cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
+                          
+                          // Try to extract from code blocks (Phase 2/3 approach)
+                          const codeBlockContent = extractFountainFromCodeBlocks(state.streamingText);
+                          let cleanedContent;
+                          
+                          if (codeBlockContent) {
+                            // Use code block content with minimal cleaning
+                            cleanedContent = minimalCleanCodeBlockContent(codeBlockContent, currentSceneContext);
+                            console.log('[ChatModePanel] ✅ Inserting from code block (streaming)');
+                          } else {
+                            // Fallback to full cleaning (backward compatibility)
+                            cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
+                            console.log('[ChatModePanel] ⚠️ No code block found, using fallback cleaning (streaming)');
+                          }
                           
                           console.log('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
                           
