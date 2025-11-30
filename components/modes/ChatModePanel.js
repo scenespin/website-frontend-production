@@ -12,9 +12,130 @@ import { buildChatContentPrompt, buildRewritePrompt } from '@/utils/promptBuilde
 import { validateScreenplayContent, supportsNativeJSON, buildRetryPrompt } from '@/utils/jsonValidator';
 import toast from 'react-hot-toast';
 
-// 🔥 MINIMAL: Just clean obvious markdown and stop on obvious analysis
+// 🔥 PHASE 2: Code block extraction helpers
+/**
+ * Check if content looks like Fountain format screenplay text
+ * @param {string} text - Text to check
+ * @returns {boolean} True if content appears to be Fountain format
+ */
+function isFountainFormat(text) {
+  if (!text || text.trim().length === 0) return false;
+  
+  // Heuristics: scene headings, character names in caps, dialogue patterns
+  const hasSceneHeading = /^(INT\.|EXT\.|I\/E\.)/im.test(text);
+  const hasCharacterName = /^[A-Z][A-Z\s#0-9']+$/m.test(text);
+  const hasDialogue = /^[A-Z][A-Z\s#0-9']+\s*\n[^A-Z]/m.test(text);
+  const hasActionLine = /^[A-Z][a-z]/.test(text.trim()); // Action lines start with capital letter
+  
+  return hasSceneHeading || hasCharacterName || hasDialogue || hasActionLine;
+}
+
+/**
+ * Extract Fountain format content from markdown code blocks
+ * @param {string} text - Full text that may contain code blocks
+ * @returns {string|null} Extracted Fountain content, or null if no code blocks found
+ */
+function extractFountainFromCodeBlocks(text) {
+  if (!text) return null;
+  
+  // Pattern 1: ```fountain ... ``` (fountain-specific code block)
+  const fountainBlockPattern = /```fountain\s*\n([\s\S]*?)```/i;
+  const fountainMatch = text.match(fountainBlockPattern);
+  if (fountainMatch && fountainMatch[1]) {
+    const content = fountainMatch[1].trim();
+    if (content.length > 0) {
+      console.log('[ChatModePanel] ✅ Extracted from ```fountain code block');
+      return content;
+    }
+  }
+  
+  // Pattern 2: ``` ... ``` (generic code block, check if Fountain format)
+  const genericBlockPattern = /```[a-z]*\s*\n([\s\S]*?)```/g;
+  let match;
+  while ((match = genericBlockPattern.exec(text)) !== null) {
+    const content = match[1].trim();
+    if (content.length > 0 && isFountainFormat(content)) {
+      console.log('[ChatModePanel] ✅ Extracted from generic code block (detected as Fountain format)');
+      return content;
+    }
+  }
+  
+  // No code blocks found
+  console.log('[ChatModePanel] ⚠️ No code blocks found, will use fallback cleaning');
+  return null;
+}
+
+/**
+ * Minimal cleaning for content extracted from code blocks
+ * @param {string} text - Content from code block
+ * @param {Object} sceneContext - Scene context for duplicate detection
+ * @returns {string} Cleaned content
+ */
+function minimalCleanCodeBlockContent(text, sceneContext = null) {
+  if (!text) return text;
+  
+  let cleaned = text;
+  
+  // Remove any remaining markdown (in case model added markdown inside code block)
+  cleaned = cleaned
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold**
+    .replace(/\*([^*]+)\*/g, '$1') // Remove *italic*
+    .replace(/^#+\s*/gm, ''); // Remove markdown headers
+  
+  // Process line by line to skip duplicate scene headings
+  const lines = cleaned.split('\n');
+  const result = [];
+  const currentSceneHeading = sceneContext?.heading || '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
+    
+    // Skip duplicate scene headings (same as current scene)
+    if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine) && currentSceneHeading) {
+      const normalizeHeading = (heading) => {
+        return heading.toLowerCase()
+          .replace(/\s+/g, ' ')
+          .replace(/\s*-\s*/g, ' - ')
+          .trim();
+      };
+      
+      const currentNormalized = normalizeHeading(currentSceneHeading);
+      const newNormalized = normalizeHeading(trimmedLine);
+      const currentLocation = currentNormalized.split(' - ')[0].trim();
+      const newLocation = newNormalized.split(' - ')[0].trim();
+      
+      // Skip if it matches current scene (exact match or same location)
+      if (currentNormalized === newNormalized || (currentLocation === newLocation && currentLocation.length > 0)) {
+        console.log('[ChatModePanel] ⚠️ Skipping duplicate scene heading in code block:', trimmedLine);
+        continue; // Skip duplicate scene heading
+      }
+    }
+    
+    result.push(line); // Keep original line (with spacing)
+  }
+  
+  cleaned = result.join('\n');
+  
+  // Remove "FADE OUT" and "THE END" at the end
+  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
+  
+  return cleaned.trim();
+}
+
+// 🔥 PHASE 2: Updated cleaning function - tries code block extraction first, then fallback
 function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = null) {
   if (!text) return text;
+  
+  // Step 1: Try code block extraction first (Phase 2 approach)
+  const codeBlockContent = extractFountainFromCodeBlocks(text);
+  if (codeBlockContent) {
+    // Apply minimal cleaning to extracted content
+    return minimalCleanCodeBlockContent(codeBlockContent, sceneContext);
+  }
+  
+  // Step 2: Fallback to current cleaning logic (backward compatibility)
+  console.log('[ChatModePanel] Using fallback cleaning (no code blocks found)');
   
   let cleaned = text;
   
