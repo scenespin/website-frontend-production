@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt } from '@/utils/sceneDetection';
 import { buildDirectorPrompt } from '@/utils/promptBuilders';
 import { validateDirectorContent, supportsNativeJSON, buildRetryPrompt } from '@/utils/jsonValidator';
+import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import toast from 'react-hot-toast';
 
 // Helper to strip markdown formatting from text (for Fountain format compliance)
@@ -736,14 +737,21 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                 console.log('[DirectorModePanel] ✅ JSON validation passed');
                 console.log('[DirectorModePanel] Extracted content length:', validation.content?.length || 0);
                 console.log('[DirectorModePanel] Extracted content preview:', validation.content?.substring(0, 500) || '(empty)');
-                // Clean the JSON-extracted content to remove any headers that might have slipped through
+                
+                // Apply Fountain spacing formatting
+                // Get content array from rawJson if available, otherwise split the content string
+                const contentArray = validation.rawJson?.content || validation.content.split('\n').filter(l => l.trim());
+                let formattedContent = formatFountainSpacing(contentArray);
+                
+                // Clean the formatted content to remove any headers that might have slipped through
                 // (e.g., "NEW SCENES:" headers that the AI might have included in the JSON)
-                const cleanedJsonContent = cleanFountainOutput(validation.content, sceneContext);
+                const cleanedJsonContent = cleanFountainOutput(formattedContent, sceneContext);
                 console.log('[DirectorModePanel] Cleaned JSON content length:', cleanedJsonContent?.length || 0);
+                
                 // Use the cleaned content from JSON
                 addMessage({
                   role: 'assistant',
-                  content: cleanedJsonContent || validation.content, // Use cleaned content, fallback to original if cleaning fails
+                  content: cleanedJsonContent || formattedContent, // Use cleaned content, fallback to formatted if cleaning fails
                   mode: 'director'
                 });
                 setTimeout(() => {
@@ -777,7 +785,12 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                   return; // Don't continue with cleaning
                 }
                 
-                const cleanedContent = cleanFountainOutput(fullContent, sceneContext);
+                let cleanedContent = cleanFountainOutput(fullContent, sceneContext);
+                
+                // Apply Fountain spacing formatting
+                const lines = cleanedContent.split('\n').filter(l => l.trim() || l === '');
+                cleanedContent = formatFountainSpacing(lines.filter(l => l.trim()));
+                
                 console.log('[DirectorModePanel] Cleaned content length:', cleanedContent?.length || 0);
                 console.log('[DirectorModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
                 
@@ -1017,19 +1030,27 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                     
                     if (validation.valid) {
                       console.log('[DirectorModePanel] ✅ JSON validation passed for streaming text');
-                      contentToInsert = validation.content;
+                      // Apply Fountain spacing formatting
+                      const contentArray = validation.rawJson?.content || validation.content.split('\n').filter(l => l.trim());
+                      contentToInsert = formatFountainSpacing(contentArray);
                     } else {
                       console.warn('[DirectorModePanel] ❌ JSON validation failed for streaming text, falling back to cleaning');
                       // Fallback to cleaning if JSON validation fails
                       // Get current scene context for duplicate detection
                       const currentSceneContext = detectCurrentScene(editorContent, cursorPosition) || state.sceneContext;
-                      contentToInsert = cleanFountainOutput(state.streamingText, currentSceneContext);
+                      let cleaned = cleanFountainOutput(state.streamingText, currentSceneContext);
+                      // Apply Fountain spacing formatting
+                      const lines = cleaned.split('\n').filter(l => l.trim() || l === '');
+                      contentToInsert = formatFountainSpacing(lines.filter(l => l.trim()));
                     }
                   } else {
                     // Fallback: Clean the content before inserting (strip markdown, remove notes)
                     // Get current scene context for duplicate detection
                     const currentSceneContext = detectCurrentScene(editorContent, cursorPosition) || state.sceneContext;
-                    contentToInsert = cleanFountainOutput(state.streamingText, currentSceneContext);
+                    let cleaned = cleanFountainOutput(state.streamingText, currentSceneContext);
+                    // Apply Fountain spacing formatting
+                    const lines = cleaned.split('\n').filter(l => l.trim() || l === '');
+                    contentToInsert = formatFountainSpacing(lines.filter(l => l.trim()));
                   }
                   
                   // Validate content before inserting

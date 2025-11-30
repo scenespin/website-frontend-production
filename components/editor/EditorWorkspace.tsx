@@ -16,6 +16,8 @@ import { ExportPDFModal } from '../screenplay/ExportPDFModal';
 import { CollaborationPanel } from '../CollaborationPanel';
 import RewriteModal from '../modals/RewriteModal';
 import ScreenwriterModal from '../modals/ScreenwriterModal';
+import DirectorModal from '../modals/DirectorModal';
+import DialogueModal from '../modals/DialogueModal';
 import { saveToGitHub } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -49,6 +51,12 @@ export default function EditorWorkspace() {
     
     // Screenwriter modal state
     const [isScreenwriterModalOpen, setIsScreenwriterModalOpen] = useState(false);
+    
+    // Director modal state
+    const [isDirectorModalOpen, setIsDirectorModalOpen] = useState(false);
+    
+    // Dialogue modal state
+    const [isDialogueModalOpen, setIsDialogueModalOpen] = useState(false);
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -235,7 +243,38 @@ export default function EditorWorkspace() {
         setIsScreenwriterModalOpen(false);
     };
     
+    // FAB Launch Handlers - Director
+    const handleLaunchDirector = () => {
+        // Open director modal instead of drawer
+        setIsDirectorModalOpen(true);
+    };
+    
+    // Handle director insertion (called from DirectorModal)
+    const handleDirectorInsert = (content: string) => {
+        // Insert at cursor position using insertText
+        insertText(content, state.cursorPosition);
+        
+        // Close modal
+        setIsDirectorModalOpen(false);
+    };
+    
+    // FAB Launch Handlers - Dialogue
     const handleLaunchDialogue = () => {
+        // Open dialogue modal instead of drawer
+        setIsDialogueModalOpen(true);
+    };
+    
+    // Handle dialogue insertion (called from DialogueModal)
+    const handleDialogueInsert = (content: string) => {
+        // Insert at cursor position using insertText
+        insertText(content, state.cursorPosition);
+        
+        // Close modal
+        setIsDialogueModalOpen(false);
+    };
+    
+    // Legacy handler (kept for compatibility, but now opens modal)
+    const handleLaunchDialogueLegacy = () => {
         const cursorPos = state.cursorPosition || 0;
         const context = extractEditorContext(state.content, cursorPos);
         
@@ -518,6 +557,26 @@ Tip:
                 cursorPosition={state.cursorPosition || 0}
                 selectionRange={selectionRange}
                 onInsert={handleScreenwriterInsert}
+            />
+            
+            {/* Director Modal */}
+            <DirectorModal
+                isOpen={isDirectorModalOpen}
+                onClose={() => setIsDirectorModalOpen(false)}
+                editorContent={state.content}
+                cursorPosition={state.cursorPosition || 0}
+                selectionRange={selectionRange}
+                onInsert={handleDirectorInsert}
+            />
+            
+            {/* Dialogue Modal */}
+            <DialogueModal
+                isOpen={isDialogueModalOpen}
+                onClose={() => setIsDialogueModalOpen(false)}
+                editorContent={state.content}
+                cursorPosition={state.cursorPosition || 0}
+                selectionRange={selectionRange}
+                onInsert={handleDialogueInsert}
             />
         </div>
     );

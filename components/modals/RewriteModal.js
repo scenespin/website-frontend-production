@@ -8,6 +8,7 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { api } from '@/lib/api';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
+import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import toast from 'react-hot-toast';
 
 // Helper to clean AI output: strip markdown and remove writing notes
@@ -314,22 +315,17 @@ export default function RewriteModal({
                 return;
               }
               
+              // Apply Fountain spacing formatting
+              // Split into lines, apply spacing logic, then rejoin
+              const lines = cleaned.split('\n').filter(l => l.trim() || l === '');
+              cleaned = formatFountainSpacing(lines.filter(l => l.trim()));
+              
+              console.log('[RewriteModal] 📝 After Fountain spacing formatting - cleaned length:', cleaned.length);
+              
               // 🔥 FIX: Add newline BEFORE any processing if there's text after
               // This ensures the newline is part of the content being processed
               const textAfter = editorContent.substring(selectionRange.end);
               const hasTextAfter = textAfter.trim().length > 0;
-              const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
-              
-              // 🔥 CRITICAL FIX: Check if selection ends at a newline character
-              // When selecting entire paragraph (double/triple click), selection might end right at newline
-              // In that case, textAfter starts with newline, but we still need newline after rewrite
-              const selectionEndsAtNewline = selectionRange.end > 0 && 
-                (editorContent[selectionRange.end - 1] === '\n' || 
-                 (selectionRange.end > 1 && editorContent.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
-              
-              console.log('[RewriteModal] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline, 'selectionEndsAtNewline:', selectionEndsAtNewline);
-              console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
-              console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
               
               // 🔥 CRITICAL: Normalize trailing newlines FIRST to prevent duplicates
               // Remove any trailing newlines, then add exactly ONE if needed
@@ -338,7 +334,7 @@ export default function RewriteModal({
               // If there's text after, add exactly ONE newline
               if (hasTextAfter) {
                 cleaned = cleaned + '\n';
-                console.log('[RewriteModal] ✅ Added newline after JSON validation (normalized) - new length:', cleaned.length);
+                console.log('[RewriteModal] ✅ Added newline after formatting (normalized) - new length:', cleaned.length);
               }
               
               console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));

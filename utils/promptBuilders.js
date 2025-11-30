@@ -148,6 +148,69 @@ Note: The user is asking for advice or discussion. Keep your response concise an
 }
 
 /**
+ * Build director modal prompt (for modal-based UI with scene directions)
+ * @param {Array} sceneDirections - Array of {location, scenario, direction} objects
+ * @param {Object} sceneContext - Scene context from detectCurrentScene
+ * @param {string} contextBefore - Context text before cursor/selection
+ * @param {boolean} useJSON - Whether to use JSON format (structured output)
+ * @returns {string} Formatted prompt for Director modal
+ */
+export function buildDirectorModalPrompt(sceneDirections, sceneContext, contextBefore = '', useJSON = true) {
+  const contextInfo = buildContextInfo(sceneContext);
+  
+  // Build scene direction prompts
+  let scenePrompts = '';
+  sceneDirections.forEach((scene, index) => {
+    scenePrompts += `Scene ${index + 1}:\n`;
+    scenePrompts += `Location: ${scene.location}\n`;
+    scenePrompts += `Scenario: ${scene.scenario}\n`;
+    if (scene.direction && scene.direction.trim()) {
+      scenePrompts += `Direction: ${scene.direction}\n`;
+    }
+    scenePrompts += '\n';
+  });
+
+  // Add context if available
+  let contextSection = '';
+  if (contextBefore) {
+    contextSection = `\n\nContext from screenplay:\n${contextBefore.substring(0, 200)}...\n`;
+  }
+  if (sceneContext?.heading) {
+    contextSection += `Current scene: ${sceneContext.heading}\n`;
+  }
+
+  if (useJSON) {
+    return `${contextInfo}Generate ${sceneDirections.length} complete scene${sceneDirections.length > 1 ? 's' : ''} based on the following directions:
+
+${scenePrompts}${contextSection}
+
+Generate all scenes in JSON format:
+{
+  "scenes": [
+    {
+      "heading": "INT. LOCATION - TIME",
+      "content": ["action line", "CHARACTER", "dialogue", ...]
+    },
+    ...
+  ],
+  "totalLines": 15
+}
+
+Rules:
+- Each scene MUST have its own scene heading (INT./EXT. LOCATION - TIME)
+- Each scene: 5-30 lines of content
+- NO markdown formatting
+- Character names in ALL CAPS when speaking
+- Action lines in normal case
+- Create NEW scenes that come AFTER the current scene "${sceneContext?.heading || 'current scene'}"
+- Do NOT repeat or rewrite the current scene`;
+  }
+
+  // Fallback (not used in modal, but for consistency)
+  return `${contextInfo}Generate ${sceneDirections.length} complete scene${sceneDirections.length > 1 ? 's' : ''}:\n\n${scenePrompts}${contextSection}`;
+}
+
+/**
  * Build director mode prompt (expansive scene generation - supports multiple lengths)
  * @param {string} message - User's message
  * @param {Object} sceneContext - Scene context from detectCurrentScene
@@ -417,5 +480,67 @@ Rules:
 - Output only the rewritten text`;
   
   return fullPrompt;
+}
+
+/**
+ * Build dialogue prompt (for modal-based UI with form data)
+ * @param {Object} formData - Form data object with sceneHeading, act, characters, conflict, tone, subtext, etc.
+ * @param {Object} sceneContext - Scene context from detectCurrentScene
+ * @param {boolean} useJSON - Whether to use JSON format (structured output)
+ * @returns {string} Formatted prompt for Dialogue modal
+ */
+export function buildDialoguePrompt(formData, sceneContext, useJSON = true) {
+  const contextInfo = buildContextInfo(sceneContext);
+  
+  // Build prompt from form data
+  let prompt = `${contextInfo}Generate compelling screenplay dialogue based on the following context:\n\n`;
+  
+  if (formData.sceneHeading) {
+    prompt += `Scene: ${formData.sceneHeading}\n`;
+  }
+  if (formData.act) {
+    prompt += `Act: ${formData.act}\n`;
+  }
+  if (formData.characters && formData.characters.length > 0) {
+    prompt += `Characters: ${formData.characters.join(', ')}\n`;
+  }
+  if (formData.conflict) {
+    prompt += `Conflict/Tension: ${formData.conflict}\n`;
+  }
+  if (formData.tone) {
+    prompt += `Tone: ${formData.tone}\n`;
+  }
+  if (formData.subtext) {
+    prompt += `Subtext: ${formData.subtext}\n`;
+  }
+  if (formData.characterWants) {
+    prompt += `Character Wants: ${formData.characterWants}\n`;
+  }
+  if (formData.powerDynamics) {
+    prompt += `Power Dynamics: ${formData.powerDynamics}\n`;
+  }
+  if (formData.specificLines) {
+    prompt += `Specific Lines to Include: ${formData.specificLines}\n`;
+  }
+
+  if (useJSON) {
+    prompt += `\n\nGenerate dialogue in JSON format:
+{
+  "dialogue": [
+    {"character": "CHARACTER", "line": "dialogue text", "subtext": "optional subtext"},
+    ...
+  ],
+  "breakdown": "optional analysis"
+}
+
+Rules:
+- Character names in ALL CAPS
+- Natural, realistic dialogue
+- Subtext where appropriate
+- NO markdown formatting
+- Each exchange should advance the scene`;
+  }
+
+  return prompt;
 }
 

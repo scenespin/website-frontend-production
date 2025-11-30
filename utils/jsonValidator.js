@@ -434,6 +434,304 @@ export function validateRewriteContent(jsonResponse) {
 }
 
 /**
+ * Validates and extracts director modal content from JSON response (scenes format)
+ * @param {string} jsonResponse - Raw response from LLM (may be JSON or markdown-wrapped)
+ * @param {string} contextBeforeCursor - Optional context to check for duplicates
+ * @param {number} expectedSceneCount - Expected number of scenes (1, 2, or 3)
+ * @returns {{ valid: boolean, content: string, errors: string[], rawJson?: object }}
+ */
+export function validateDirectorModalContent(jsonResponse, contextBeforeCursor = null, expectedSceneCount = 1) {
+  if (!jsonResponse || typeof jsonResponse !== 'string') {
+    return {
+      valid: false,
+      content: '',
+      errors: ['Response is empty or not a string']
+    };
+  }
+
+  let parsedJson = null;
+  let rawJsonString = jsonResponse.trim();
+
+  // Step 1: Try to extract JSON from markdown code blocks
+  const jsonBlockMatch = rawJsonString.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (jsonBlockMatch) {
+    rawJsonString = jsonBlockMatch[1].trim();
+  }
+
+  // Also try generic code blocks
+  const codeBlockMatch = rawJsonString.match(/```\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1].trim().startsWith('{')) {
+    rawJsonString = codeBlockMatch[1].trim();
+  }
+
+  // Step 2: Try to find JSON object in the response
+  const jsonObjectMatch = rawJsonString.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    rawJsonString = jsonObjectMatch[0];
+  }
+
+  // Step 3: Parse JSON
+  try {
+    parsedJson = JSON.parse(rawJsonString);
+  } catch (error) {
+    return {
+      valid: false,
+      content: '',
+      errors: [`JSON parsing failed: ${error.message}`, `Attempted to parse: ${rawJsonString.substring(0, 200)}...`]
+    };
+  }
+
+  // Step 4: Validate schema
+  const errors = [];
+
+  // Check if it's an object
+  if (typeof parsedJson !== 'object' || parsedJson === null || Array.isArray(parsedJson)) {
+    errors.push('Response must be a JSON object, not an array or primitive');
+    return { valid: false, content: '', errors, rawJson: parsedJson };
+  }
+
+  // Check for required fields
+  if (!parsedJson.scenes) {
+    errors.push('Missing required field: "scenes"');
+  } else if (!Array.isArray(parsedJson.scenes)) {
+    errors.push('Field "scenes" must be an array');
+  } else if (parsedJson.scenes.length < 1) {
+    errors.push('Field "scenes" must have at least 1 scene');
+  } else if (parsedJson.scenes.length > 3) {
+    errors.push('Field "scenes" must have at most 3 scenes');
+  } else if (parsedJson.scenes.length !== expectedSceneCount) {
+    errors.push(`Expected ${expectedSceneCount} scene(s), got ${parsedJson.scenes.length}`);
+  } else {
+    // Validate each scene
+    parsedJson.scenes.forEach((scene, sceneIndex) => {
+      if (typeof scene !== 'object' || scene === null || Array.isArray(scene)) {
+        errors.push(`Scene ${sceneIndex + 1} must be an object`);
+        return;
+      }
+
+      if (!scene.heading) {
+        errors.push(`Scene ${sceneIndex + 1}: Missing required field "heading"`);
+      } else if (typeof scene.heading !== 'string') {
+        errors.push(`Scene ${sceneIndex + 1}: Field "heading" must be a string`);
+      } else if (!/^(INT\.|EXT\.|I\/E\.)/i.test(scene.heading.trim())) {
+        errors.push(`Scene ${sceneIndex + 1}: Heading must start with INT./EXT./I\/E.`);
+      }
+
+      if (!scene.content) {
+        errors.push(`Scene ${sceneIndex + 1}: Missing required field "content"`);
+      } else if (!Array.isArray(scene.content)) {
+        errors.push(`Scene ${sceneIndex + 1}: Field "content" must be an array`);
+      } else if (scene.content.length < 5) {
+        errors.push(`Scene ${sceneIndex + 1}: Content must have at least 5 lines`);
+      } else if (scene.content.length > 50) {
+        errors.push(`Scene ${sceneIndex + 1}: Content must have at most 50 lines`);
+      } else {
+        // Validate each line in content
+        scene.content.forEach((line, lineIndex) => {
+          if (typeof line !== 'string') {
+            errors.push(`Scene ${sceneIndex + 1}, line ${lineIndex + 1}: Must be a string`);
+          }
+        });
+      }
+    });
+  }
+
+  // Check totalLines if provided
+  if (parsedJson.totalLines !== undefined) {
+    if (typeof parsedJson.totalLines !== 'number') {
+      errors.push('Field "totalLines" must be a number');
+    } else {
+      const actualTotal = parsedJson.scenes?.reduce((sum, scene) => sum + (scene.content?.length || 0), 0) || 0;
+      if (parsedJson.totalLines !== actualTotal) {
+        errors.push(`Field "totalLines" (${parsedJson.totalLines}) does not match sum of scene content lengths (${actualTotal})`);
+      }
+    }
+  }
+
+  // Step 5: Check for duplicate content (if context provided)
+  if (contextBeforeCursor && parsedJson.scenes && Array.isArray(parsedJson.scenes)) {
+    const contextLines = contextBeforeCursor.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    parsedJson.scenes.forEach((scene, sceneIndex) => {
+      // Check for duplicate scene headings
+      if (scene.heading) {
+        const normalizedHeading = scene.heading.trim().toLowerCase().replace(/\s+/g, ' ');
+        const isDuplicateHeading = contextLines.some(contextLine => {
+          const normalizedContext = contextLine.toLowerCase().replace(/\s+/g, ' ');
+          if (/^(int\.|ext\.|i\/e\.)/i.test(normalizedContext)) {
+            const headingParts = normalizedHeading.split(/\s+-\s+/);
+            const contextParts = normalizedContext.split(/\s+-\s+/);
+            if (headingParts.length >= 2 && contextParts.length >= 2) {
+              return headingParts[0] === contextParts[0];
+            }
+          }
+          return normalizedContext === normalizedHeading;
+        });
+        if (isDuplicateHeading) {
+          errors.push(`Scene ${sceneIndex + 1}: Scene heading is a duplicate of content before cursor`);
+        }
+      }
+    });
+  }
+
+  // Step 6: Extract content if valid
+  if (errors.length > 0) {
+    return {
+      valid: false,
+      content: '',
+      errors,
+      rawJson: parsedJson
+    };
+  }
+
+  // Format scenes into screenplay format
+  const formattedScenes = parsedJson.scenes.map(scene => {
+    const heading = scene.heading.trim();
+    const content = scene.content.join('\n').trim();
+    return `${heading}\n\n${content}`;
+  });
+
+  const content = formattedScenes.join('\n\n');
+
+  return {
+    valid: true,
+    content,
+    errors: [],
+    rawJson: parsedJson
+  };
+}
+
+/**
+ * Validates and extracts dialogue content from JSON response
+ * @param {string} jsonResponse - Raw response from LLM (may be JSON or markdown-wrapped)
+ * @param {string} contextBeforeCursor - Optional context to check for duplicates
+ * @returns {{ valid: boolean, content: string, errors: string[], rawJson?: object }}
+ */
+export function validateDialogueContent(jsonResponse, contextBeforeCursor = null) {
+  if (!jsonResponse || typeof jsonResponse !== 'string') {
+    return {
+      valid: false,
+      content: '',
+      errors: ['Response is empty or not a string']
+    };
+  }
+
+  let parsedJson = null;
+  let rawJsonString = jsonResponse.trim();
+
+  // Step 1: Try to extract JSON from markdown code blocks
+  const jsonBlockMatch = rawJsonString.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (jsonBlockMatch) {
+    rawJsonString = jsonBlockMatch[1].trim();
+  }
+
+  // Also try generic code blocks
+  const codeBlockMatch = rawJsonString.match(/```\s*([\s\S]*?)\s*```/);
+  if (codeBlockMatch && codeBlockMatch[1].trim().startsWith('{')) {
+    rawJsonString = codeBlockMatch[1].trim();
+  }
+
+  // Step 2: Try to find JSON object in the response
+  const jsonObjectMatch = rawJsonString.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    rawJsonString = jsonObjectMatch[0];
+  }
+
+  // Step 3: Parse JSON
+  try {
+    parsedJson = JSON.parse(rawJsonString);
+  } catch (error) {
+    return {
+      valid: false,
+      content: '',
+      errors: [`JSON parsing failed: ${error.message}`, `Attempted to parse: ${rawJsonString.substring(0, 200)}...`]
+    };
+  }
+
+  // Step 4: Validate schema
+  const errors = [];
+
+  // Check if it's an object
+  if (typeof parsedJson !== 'object' || parsedJson === null || Array.isArray(parsedJson)) {
+    errors.push('Response must be a JSON object, not an array or primitive');
+    return { valid: false, content: '', errors, rawJson: parsedJson };
+  }
+
+  // Check for required fields
+  if (!parsedJson.dialogue) {
+    errors.push('Missing required field: "dialogue"');
+  } else if (!Array.isArray(parsedJson.dialogue)) {
+    errors.push('Field "dialogue" must be an array');
+  } else if (parsedJson.dialogue.length < 1) {
+    errors.push('Field "dialogue" must have at least 1 exchange');
+  } else {
+    // Validate each dialogue exchange
+    parsedJson.dialogue.forEach((exchange, index) => {
+      if (typeof exchange !== 'object' || exchange === null || Array.isArray(exchange)) {
+        errors.push(`Dialogue exchange ${index + 1} must be an object`);
+        return;
+      }
+
+      if (!exchange.character) {
+        errors.push(`Dialogue exchange ${index + 1}: Missing required field "character"`);
+      } else if (typeof exchange.character !== 'string') {
+        errors.push(`Dialogue exchange ${index + 1}: Field "character" must be a string`);
+      } else if (exchange.character !== exchange.character.toUpperCase()) {
+        errors.push(`Dialogue exchange ${index + 1}: Character name must be in ALL CAPS`);
+      }
+
+      if (!exchange.line) {
+        errors.push(`Dialogue exchange ${index + 1}: Missing required field "line"`);
+      } else if (typeof exchange.line !== 'string') {
+        errors.push(`Dialogue exchange ${index + 1}: Field "line" must be a string`);
+      } else if (exchange.line.trim().length === 0) {
+        errors.push(`Dialogue exchange ${index + 1}: Field "line" cannot be empty`);
+      }
+
+      if (exchange.subtext !== undefined && typeof exchange.subtext !== 'string') {
+        errors.push(`Dialogue exchange ${index + 1}: Field "subtext" must be a string`);
+      }
+    });
+  }
+
+  // Breakdown is optional
+  if (parsedJson.breakdown !== undefined && typeof parsedJson.breakdown !== 'string') {
+    errors.push('Field "breakdown" must be a string');
+  }
+
+  // Step 5: Extract content if valid
+  if (errors.length > 0) {
+    return {
+      valid: false,
+      content: '',
+      errors,
+      rawJson: parsedJson
+    };
+  }
+
+  // Format dialogue into screenplay format
+  const formattedExchanges = parsedJson.dialogue.map(exchange => {
+    const characterName = exchange.character.toUpperCase();
+    let formatted = `${characterName}\n`;
+    
+    if (exchange.subtext && exchange.subtext.trim()) {
+      formatted += `(${exchange.subtext.trim()})\n`;
+    }
+    
+    formatted += exchange.line;
+    return formatted;
+  });
+
+  const content = formattedExchanges.join('\n\n');
+
+  return {
+    valid: true,
+    content,
+    errors: [],
+    rawJson: parsedJson
+  };
+}
+
+/**
  * Builds a retry prompt with more explicit JSON instructions
  * @param {string} originalPrompt - Original user prompt
  * @param {string[]} errors - Validation errors from first attempt
