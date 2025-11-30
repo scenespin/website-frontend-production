@@ -235,6 +235,10 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
       if (/What it might suggest:/i.test(trimmedLine) || /Potential line adjustment:/i.test(trimmedLine)) {
         break; // STOP on analysis sections
       }
+      // 🔥 NEW: Stop on revision/rewrite patterns
+      if (/^(Here's a revision|Here's how it could be|Here's how it might|Here's the revision|Here's the rewrite|Here's a rewrite)/i.test(trimmedLine)) {
+        break; // STOP on revision intros
+      }
       
       // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
       if (/^\[?SCREENWRITING ASSISTANT\]?\s*$/i.test(line)) {
@@ -702,17 +706,18 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
 - NO options or suggestions (no "Here are some options:", "Option 1:", "Option 2:", "A few thoughts:")
 - NO questions (no "Which approach?", "Does this work?", "What tone are you going for?", "Could you clarify?", "Are you referring to?")
 - NO explanations or analysis (no "Ah, interesting detail!", "Adding that... could create...", "What it might suggest:", "Potential line adjustment:")
+- NO full scene rewrites or revisions (no "Here's a revision:", "Here's how it could be:")
+- NO scene headings (INT./EXT./I/E.) - NEVER include scene headings
 - NO lists or alternatives
 - NO meta-commentary about the writing process
 - NO suggestions about what to add or how to improve
 
 ✅ YOU MUST:
-- Write ONLY the screenplay content requested
-- Write 1-5 lines that continue from the cursor
-- NO scene headings
-- Just write what comes next in Fountain format
-- If user says "USB drive is gooey", write: "The USB drive is gooey." or similar action line
-- Direct continuation only - no analysis, no questions, no suggestions`;
+- Write ONLY 1-5 lines that continue from the cursor
+- Continue the existing scene, don't rewrite it
+- If user says "USB drive is gooey", write: "The USB drive is gooey." (just that line, not a full scene)
+- Write in Fountain format (action lines or dialogue only)
+- Direct continuation only - no analysis, no questions, no suggestions, no revisions`;
         }
         
         // Add scene context if available (minimal, just for context)

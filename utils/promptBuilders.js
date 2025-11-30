@@ -103,7 +103,19 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
 
 ${continuationContext}
 
-CRITICAL: Write ONLY 1-5 lines. Do NOT write full scenes. Do NOT include scene headings.
+🚫 ABSOLUTELY FORBIDDEN:
+- NO scene headings (INT./EXT./I/E.) - NEVER include scene headings
+- NO full scene rewrites or revisions
+- NO "Here's a revision:" or "Here's how it could be:"
+- NO repeating content before cursor
+- NO dashes (-- or -) in action lines
+- NO analysis, suggestions, or questions
+
+✅ YOU MUST:
+- Write ONLY 1-5 lines that continue from the cursor
+- If user says "USB drive is gooey", write: "The USB drive is gooey." or "It's gooey." (just the line, not a full scene)
+- Continue the existing scene, don't rewrite it
+- Write in Fountain format (action lines or dialogue only)
 
 Respond with JSON:
 {
@@ -111,11 +123,10 @@ Respond with JSON:
   "lineCount": 2
 }
 
-Rules:
-- NO scene headings (INT./EXT.) - NEVER include scene headings
-- NO repeating content before cursor
-- NO dashes (-- or -) in action lines
-- Write ONLY what comes next - 1-5 lines maximum`;
+Example: User says "it was gooey"
+Output: {"content": ["The USB drive is gooey."], "lineCount": 1}
+
+NOT: A full scene rewrite with scene heading`;
   }
   
   // Fallback: Simplified text format (primary reliable path)
@@ -123,14 +134,24 @@ Rules:
 
 ${continuationContext}
 
-CRITICAL: Write ONLY 1-5 lines. Do NOT write full scenes. Do NOT include scene headings.
-
-Rules:
-- NO scene headings (INT./EXT.) - NEVER include scene headings
+🚫 ABSOLUTELY FORBIDDEN:
+- NO scene headings (INT./EXT./I/E.) - NEVER include scene headings
+- NO full scene rewrites or revisions
+- NO "Here's a revision:" or "Here's how it could be:"
 - NO repeating content before cursor
 - NO dashes (-- or -) in action lines
 - NO analysis, suggestions, or questions
-- Write ONLY what comes next - 1-5 lines maximum`;
+
+✅ YOU MUST:
+- Write ONLY 1-5 lines that continue from the cursor
+- If user says "USB drive is gooey", write: "The USB drive is gooey." or "It's gooey." (just the line, not a full scene)
+- Continue the existing scene, don't rewrite it
+- Write in Fountain format (action lines or dialogue only)
+
+Example: User says "it was gooey"
+Output: The USB drive is gooey.
+
+NOT: A full scene rewrite with scene heading`;
 }
 
 /**
