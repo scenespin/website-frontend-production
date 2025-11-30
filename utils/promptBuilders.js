@@ -195,6 +195,7 @@ Rules:
 - 🚫 ABSOLUTELY FORBIDDEN: NO "REVISED SCENE", "REVISION", "REWRITTEN SCENE", or any revision headers
 - 🚫 ABSOLUTELY FORBIDDEN: Do NOT rewrite, revise, or modify the current scene "${sceneContext?.heading || 'current scene'}"
 - 🚫 ABSOLUTELY FORBIDDEN: Do NOT rewrite, revise, or modify ANY existing scenes
+- 🚫 CRITICAL: Do NOT include "${sceneContext?.heading || 'current scene'}" in your response. The FIRST scene must be a DIFFERENT location.
 - Each scene must have different location/time than "${sceneContext?.heading || 'current scene'}"
 - Do NOT repeat the current scene "${sceneContext?.heading || 'current scene'}" - create NEW scenes
 - Create ONLY NEW scenes that come AFTER the current scene
