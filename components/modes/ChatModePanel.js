@@ -400,6 +400,30 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
   
   cleaned = screenplayLines.join('\n');
   
+  // 🔥 AGGRESSIVE: Remove markdown formatting (bold, italic, etc.)
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic*
+  cleaned = cleaned.replace(/^#+\s*/gm, ''); // Remove markdown headers
+  
+  // 🔥 AGGRESSIVE: Stop on analysis patterns that might have slipped through
+  // Check for patterns like "This gives you:" or "Want to develop" anywhere in the content
+  const analysisPatterns = [
+    /This gives you:/i,
+    /Want to develop/i,
+    /Want to adjust/i,
+    /Great addition!/i,
+    /Here's how that could play out/i
+  ];
+  
+  for (const pattern of analysisPatterns) {
+    const match = cleaned.search(pattern);
+    if (match !== -1) {
+      cleaned = cleaned.substring(0, match).trim();
+      console.log('[ChatModePanel] ⚠️ Stopped on analysis pattern:', pattern);
+      break;
+    }
+  }
+  
   // 🔥 AGGRESSIVE: Limit to first 3 lines maximum for Screenwriter agent
   // This ensures we never get more than 3 lines even if AI generates more
   const allLines = cleaned.split('\n').filter(line => line.trim().length > 0);
