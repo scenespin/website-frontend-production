@@ -439,11 +439,11 @@ function cleanFountainOutput(text, sceneContext = null) {
   
   // Find all scene headings and ensure 2 newlines before EACH scene heading
   // This ensures proper spacing when inserting into existing screenplay content
-  const lines = cleaned.split('\n');
+  const sceneLines = cleaned.split('\n');
   const result = [];
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (let i = 0; i < sceneLines.length; i++) {
+    const line = sceneLines[i];
     const trimmedLine = line.trim();
     
     // Check if this is a scene heading
