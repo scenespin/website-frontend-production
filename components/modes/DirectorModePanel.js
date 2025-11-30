@@ -117,7 +117,18 @@ function cleanFountainOutput(text, sceneContext = null) {
     /approximately \d+ pages/i,  // "approximately 2 pages"
     /and (sets up|deepens|establishes|creates|builds|develops|enhances|improves|strengthens|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i,  // "and sets up the warehouse meeting"
     // 🔥 NEW: Stop on analysis patterns that describe what the content does
-    /This (expansion|addition|revision|version|scene|sequence) (adds|creates|builds|develops|enhances|improves|strengthens|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i
+    /This (expansion|addition|revision|version|scene|sequence) (adds|creates|builds|develops|enhances|improves|strengthens|reinforces|supports|connects|links|ties|bridges|transitions|moves|shifts|changes|transforms|evolves|progresses|advances|drives|propels|pushes|pulls|draws|brings|takes|leads|guides|directs|steers|navigates|maneuvers|positions|places|situates|locates|anchors|grounds|roots|bases|founds|sets|puts|makes|turns|converts|becomes)/i,
+    // 🔥 NEW: Stop on Director agent analysis/outline patterns
+    /^Scene Development$/i,  // "Scene Development" header
+    /^Based on your scene context/i,  // "Based on your scene context, here's how..."
+    /^CONTINUING FROM/i,  // "CONTINUING FROM INT. SARAH'S APARTMENT - NIGHT"
+    /^Option \d+:/i,  // "Option 1:", "Option 2:", etc.
+    /^Story Questions/i,  // "Story Questions This Raises:"
+    /^Narrative Tension:/i,  // "Narrative Tension:"
+    /Would you like me to (develop|explore|write|create)/i,  // "Would you like me to develop..."
+    /^Consider:/i,  // "Consider:" analysis
+    /^After the moment/i,  // "After the moment with James..."
+    /^You'll need/i,  // "You'll need a transition"
   ];
   
   // Patterns for lines to skip (but continue processing after them)
@@ -145,6 +156,20 @@ function cleanFountainOutput(text, sceneContext = null) {
     /^SCENE SEQUENCE:/i,
     /^END SEQUENCE$/i,  // "END SEQUENCE" marker
     /^SEQUENCE:/i,
+    // 🔥 NEW: Skip Director agent analysis/outline headers
+    /^Scene Development$/i,  // "Scene Development" header
+    /^Based on your scene context/i,  // "Based on your scene context..."
+    /^CONTINUING FROM/i,  // "CONTINUING FROM INT. SARAH'S APARTMENT - NIGHT"
+    /^Story Questions/i,  // "Story Questions This Raises:"
+    /^Narrative Tension:/i,  // "Narrative Tension:"
+    /^Consider:/i,  // "Consider:" analysis
+    // 🔥 NEW: Skip Director agent analysis/outline headers
+    /^Scene Development$/i,  // "Scene Development" header
+    /^Based on your scene context/i,  // "Based on your scene context..."
+    /^CONTINUING FROM/i,  // "CONTINUING FROM INT. SARAH'S APARTMENT - NIGHT"
+    /^Story Questions/i,  // "Story Questions This Raises:"
+    /^Narrative Tension:/i,  // "Narrative Tension:"
+    /^Consider:/i,  // "Consider:" analysis
     // 🔥 NEW: Skip "CUT TO:" transitions (not standard Fountain format)
     /^CUT TO:?\s*$/i,
     // 🔥 NEW: Skip analysis comments like "*This revision adds..."
