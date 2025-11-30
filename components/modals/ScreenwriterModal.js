@@ -165,14 +165,17 @@ Rules:
           }
 
           // Format content with proper Fountain spacing
-          // Get the raw content array from validation
+          // Get the raw content array from validation (prefer rawJson.content for original array structure)
           const contentArray = validation.rawJson?.content || validation.content.split('\n').filter(l => l.trim());
           let formattedLines = [];
+          
+          console.log('[ScreenwriterModal] 📝 Content array:', contentArray);
           
           for (let i = 0; i < contentArray.length; i++) {
             const line = contentArray[i].trim();
             if (!line) continue;
             
+            const prevLine = i > 0 ? contentArray[i - 1].trim() : '';
             const nextLine = i < contentArray.length - 1 ? contentArray[i + 1].trim() : '';
             
             // Check if this is a character name (ALL CAPS, not a scene heading, 2-50 chars)
@@ -181,34 +184,56 @@ Rules:
                                    line.length <= 50 && 
                                    !/^(INT\.|EXT\.|I\/E\.)/i.test(line);
             
+            // Check if previous line was character name
+            const prevIsCharacterName = prevLine && /^[A-Z][A-Z\s#0-9']+$/.test(prevLine) && 
+                                       prevLine.length >= 2 && 
+                                       prevLine.length <= 50 && 
+                                       !/^(INT\.|EXT\.|I\/E\.)/i.test(prevLine);
+            
+            // Check if this is dialogue (follows character name)
+            const isDialogue = prevIsCharacterName;
+            
+            // Check if this is action (not character name, not dialogue)
+            const isAction = !isCharacterName && !isDialogue;
+            
             // Check if next line is character name
             const nextIsCharacterName = nextLine && /^[A-Z][A-Z\s#0-9']+$/.test(nextLine) && 
                                        nextLine.length >= 2 && 
                                        nextLine.length <= 50 && 
                                        !/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine);
             
-            // Check if next line is dialogue (starts with parenthesis or lowercase)
-            const nextIsDialogue = nextLine && (/^\(/.test(nextLine) || /^[a-z]/.test(nextLine));
+            // Check if next line is dialogue (will follow this character name)
+            const nextIsDialogue = isCharacterName && nextLine && !nextIsCharacterName;
+            
+            // Check if next line is action (not character, not dialogue)
+            const nextIsAction = nextLine && !nextIsCharacterName && !nextIsDialogue;
+            
+            // Add blank line BEFORE character name if previous was action
+            if (isCharacterName && prevLine && !prevIsCharacterName) {
+              formattedLines.push('');
+            }
             
             // Add the line
             formattedLines.push(line);
             
-            // Add blank line after action if next is character name
-            if (!isCharacterName && nextIsCharacterName) {
+            // Add blank line AFTER action if next is character name
+            if (isAction && nextIsCharacterName) {
               formattedLines.push('');
             }
-            // Add blank line after character name (before dialogue)
+            // Add blank line AFTER character name (before dialogue)
             else if (isCharacterName && nextIsDialogue) {
               formattedLines.push('');
             }
-            // Add single newline between other lines (unless it's the last line)
-            else if (i < contentArray.length - 1) {
-              // Don't add extra newline - join will handle it
+            // Add blank line AFTER dialogue if next is action or character
+            else if (isDialogue && nextLine && (nextIsAction || nextIsCharacterName)) {
+              formattedLines.push('');
             }
           }
           
           // Join lines with newlines (empty strings create blank lines)
           let formattedContent = formattedLines.join('\n');
+          
+          console.log('[ScreenwriterModal] 📝 Formatted content:', formattedContent);
           
           // Format content for insertion
           let contentToInsert = formattedContent.trim();
