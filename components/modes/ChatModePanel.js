@@ -810,60 +810,26 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         setSelectedTextContext(null, null);
       }
       
-      // REGULAR MODE: Detect if this is content generation vs advice request
+      // 🔥 SIMPLIFIED: Screenwriter agent ONLY generates 1-3 lines of Fountain format text
+      // No advice mode, no questions, no analysis - just text generation
       let builtPrompt;
       let systemPrompt;
-      const isContentRequest = detectContentRequest(prompt);
-      
-      // DEBUG: Log detection result
-      console.log('[ChatModePanel] Content detection:', {
-        prompt,
-        isContentRequest,
-        hasActionVerb: /explodes|enters|leaves|says|does|runs|walks|sees|hears|finds|comes|goes|arrives|exits|sits|stands|turns|looks|grabs|takes|opens|closes|attacks|fights|dies|falls|jumps|screams|whispers|shouts|morphs|transforms|becomes|changes|appears|disappears|moves|flies|crashes|breaks|shatters/i.test(prompt),
-        isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
-      });
       
       // 🔥 SIMPLIFIED: No JSON for Screenwriter agent - just simple text, aggressive cleaning
       // JSON adds complexity and the AI often ignores it anyway
       const useJSONFormat = false; // Always use simple text format
       
-      // Build appropriate prompt using prompt builders
-      builtPrompt = isContentRequest 
-        ? buildChatContentPrompt(prompt, sceneContext, useJSONFormat) // Pass useJSON flag
-        : buildChatAdvicePrompt(prompt, sceneContext);
+      // Build prompt - ALWAYS content generation (no advice mode)
+      builtPrompt = buildChatContentPrompt(prompt, sceneContext, useJSONFormat);
       
-      // Build system prompt - Simple for content, permissive for advice
-      if (isContentRequest) {
-        // 🔥 PHASE 4: System prompt for JSON format
-        if (useJSONFormat) {
-          systemPrompt = `You are a professional screenwriting assistant. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
-        } else {
-          // Fallback: Original text format - STRICT: NO OPTIONS, NO SUGGESTIONS
-          systemPrompt = `You are a screenwriting assistant. Write 1-3 lines that continue the scene. No scene headings. No analysis. No questions. Just write the lines.`;
-        }
-        
-        // Add scene context if available (minimal, just for context)
-        if (sceneContext) {
-          systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
-          if (sceneContext.characters && sceneContext.characters.length > 0) {
-            systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
-          }
-        }
-      } else {
-        // Permissive system prompt for advice/discussion
-        systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
-        
-        // Add scene context if available
-        if (sceneContext) {
-          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
-          systemPrompt += `Current Scene: ${sceneContext.heading}\n`;
-          systemPrompt += `Act: ${sceneContext.act}\n`;
-          systemPrompt += `Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages}\n`;
-          if (sceneContext.characters && sceneContext.characters.length > 0) {
-            systemPrompt += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
-          }
-          systemPrompt += `\nScene Content:\n${sceneContext.content.substring(0, 1000)}${sceneContext.content.length > 1000 ? '...' : ''}\n`;
-          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+      // Build system prompt - ALWAYS content generation
+      systemPrompt = `You are a screenwriting assistant. Write 1-3 lines that continue the scene. No scene headings. No analysis. No questions. Just write the lines.`;
+      
+      // Add scene context if available (minimal, just for context)
+      if (sceneContext) {
+        systemPrompt += `\n\nCurrent Scene: ${sceneContext.heading} (for context only - do NOT include in output)`;
+        if (sceneContext.characters && sceneContext.characters.length > 0) {
+          systemPrompt += `\nCharacters: ${sceneContext.characters.join(', ')}`;
         }
       }
       
@@ -874,22 +840,11 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         mode: 'chat'
       });
       
-      // Build conversation history
-      // CRITICAL: For content requests, use EMPTY history to prevent AI from continuing in advice mode
-      // Only include history for advice/discussion requests
+      // 🔥 SIMPLIFIED: Screenwriter agent uses EMPTY history to prevent confusion
+      // Always generate fresh content, don't continue previous conversations
       let conversationHistory = [];
-      if (!isContentRequest) {
-        // For advice requests, include last 10 messages for context
-      const chatMessages = state.messages.filter(m => m.mode === 'chat').slice(-10);
-        conversationHistory = chatMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
-      }
-      // For content requests, conversationHistory stays empty (fresh conversation)
       
       console.log('[ChatModePanel] API call params:', {
-        isContentRequest,
         useJSONFormat,
         modelSupportsNativeJSON,
         conversationHistoryLength: conversationHistory.length,
@@ -914,7 +869,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // 🔥 PHASE 4: Note: Backend doesn't support responseFormat yet
       // For now, we use prompt engineering (works for all models)
       // TODO: Add backend support for responseFormat when available
-      if (isContentRequest && useJSONFormat && modelSupportsNativeJSON) {
+      if (useJSONFormat && modelSupportsNativeJSON) {
         console.log('[ChatModePanel] Model supports native JSON, but backend support pending. Using prompt engineering.');
         // apiRequestData.responseFormat = { type: 'json_object' }; // Will work when backend supports it
       }
@@ -928,7 +883,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       const retryState = { attempts: 0 };
       
       const makeApiCall = async (isRetry = false, retryErrors = []) => {
-        const requestData = isRetry && isContentRequest && useJSONFormat && retryErrors.length > 0
+        const requestData = isRetry && useJSONFormat && retryErrors.length > 0
           ? {
               ...apiRequestData,
               userPrompt: buildRetryPrompt(builtPrompt, retryErrors)
@@ -992,7 +947,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               }, 100);
             }
           } else {
-            // For advice requests or fallback: use text cleaning
+            // Fallback: use text cleaning
             const cleanedContent = cleanFountainOutput(fullContent, sceneContext?.contextBeforeCursor || null, sceneContext);
             
             // 🔥 PHASE 1 FIX: Validate content before adding message
@@ -1150,12 +1105,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             <div>
               <h3 className="text-lg font-semibold text-base-content mb-2">Screenwriter Agent</h3>
               <p className="text-sm text-base-content/70 mb-4">
-                Your writing partner for ideas, advice, and short snippets. Perfect for brainstorming, getting feedback, and quick fixes.
+                Generates 1-3 lines of Fountain format text that continue your scene from the cursor. No scene headings. No analysis. Just screenplay content.
               </p>
               <div className="text-xs text-base-content/50 space-y-1 mb-3">
-                <p>Try: "How do I make this better?"</p>
-                <p>or "Write one line where Sarah enters"</p>
-                <p>or "What's the problem with this structure?"</p>
+                <p>Try: "Sarah enters the room"</p>
+                <p>or "She's terrified and ready to leave"</p>
+                <p>or "Write one line where he discovers the truth"</p>
               </div>
               <div className="text-xs text-base-content/40 pt-3 border-t border-base-300">
                 <p>💡 <strong>Tip:</strong> Select any text in your screenplay to enable <strong>Rewrite mode</strong> with quick action buttons</p>
@@ -1182,14 +1137,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
               .slice(0, index + 1)
               .reverse()
               .find(m => m.role === 'user');
-            const wasContentRequest = previousUserMessage ? detectContentRequest(previousUserMessage.content) : false;
-            
+            // 🔥 SIMPLIFIED: Screenwriter agent always generates content, so always show insert button if there's content
             const showInsertButton = 
               !isUser && 
               isLastAssistantMessage && 
               !activeWorkflow && 
               !workflowCompletionData &&
-              (isScreenplayContent(message.content) || (wasContentRequest && message.content.trim().length > 50));
+              (isScreenplayContent(message.content) || message.content.trim().length > 20);
             
             // Check if this message contains 3 rewrite options
             const rewriteOptions = !isUser && state.selectedTextContext ? parseRewriteOptions(message.content) : null;
@@ -1412,7 +1366,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           {activeWorkflow ? (
             'Answer the question to continue the interview...'
           ) : (
-            'Ask me anything about your screenplay'
+            'Write 1-3 lines that continue the scene'
           )}
         </span>
         {state.messages.filter(m => m.mode === 'chat').length > 0 && (
