@@ -192,6 +192,16 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip markdown headers
       }
       
+      // 🔥 NEW: Skip "Scene Addition" headers (with or without markdown)
+      if (/^#?\s*Scene\s+Addition\s*:?\s*$/i.test(line)) {
+        continue; // Skip "Scene Addition" header but continue processing
+      }
+      
+      // 🔥 NEW: Skip "[CONTINUED]" headers (screenplay continuation markers)
+      if (/^\[CONTINUED\]\s*$/i.test(line)) {
+        continue; // Skip "[CONTINUED]" header but continue processing
+      }
+      
       // 🔥 CRITICAL: Stop on "FADE OUT" or "THE END" - these shouldn't be in middle of screenplay
       // Screenwriter agent should never generate endings
       if (/^(FADE OUT|THE END|FADE TO BLACK)\.?\s*$/i.test(line)) {
