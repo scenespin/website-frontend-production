@@ -293,43 +293,10 @@ export default function EditorWorkspace() {
         
         console.log('[EditorWorkspace] 📝 After trimStart - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
         
-        // Check if there's text after the selection
-        const textAfter = state.content.substring(selectionRange.end);
-        const hasTextAfter = textAfter.trim().length > 0;
-        const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
-        
-        // 🔥 CRITICAL FIX: Check if selection ends at a newline character
-        // When selecting entire paragraph (double/triple click), selection might end right at newline
-        const selectionEndsAtNewline = selectionRange.end > 0 && 
-          (state.content[selectionRange.end - 1] === '\n' || 
-           (selectionRange.end > 1 && state.content.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
-        
-        console.log('[EditorWorkspace] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline, 'selectionEndsAtNewline:', selectionEndsAtNewline);
-        console.log('[EditorWorkspace] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
-        console.log('[EditorWorkspace] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
-        
-        // 🔥 SIMPLIFIED: Only add newline if there's text after AND text doesn't already end with newline
-        // The modal already handles newline addition, so we only add here if modal didn't
+        // 🔥 SIMPLIFIED: The modal already handles all newline logic
+        // We just preserve what the modal sends us - no additional newline logic needed
         // This prevents double newlines when highlighting portions of paragraphs
-        if (hasTextAfter && !textAfterStartsWithNewline) {
-            // Only add if rewrite doesn't already end with newline (modal might have added it)
-            if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
-                cleaned = cleaned + '\n';
-                console.log('[EditorWorkspace] ✅ Added newline - new length:', cleaned.length);
-            } else {
-                console.log('[EditorWorkspace] ℹ️ Newline already present (from modal)');
-            }
-        } else if (hasTextAfter && textAfterStartsWithNewline) {
-            // textAfter already starts with newline, so we don't need to add one
-            // But if the rewrite doesn't end with newline, we should add it for consistency
-            // This handles the case where entire paragraph is selected (selection ends at newline)
-            if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
-                cleaned = cleaned + '\n';
-                console.log('[EditorWorkspace] ✅ Added newline (textAfter has newline but rewrite does not) - new length:', cleaned.length);
-            } else {
-                console.log('[EditorWorkspace] ℹ️ Newline already present');
-            }
-        }
+        console.log('[EditorWorkspace] ℹ️ Using text as-is from modal (newline already handled)');
         
         console.log('[EditorWorkspace] 📝 Final text before replaceSelection - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
         console.log('[EditorWorkspace] 📝 Text preview (last 20 chars):', JSON.stringify(cleaned.slice(-20)));
