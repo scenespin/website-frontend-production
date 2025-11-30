@@ -744,10 +744,31 @@ RULES:
         (error) => {
           console.error('Error in streaming:', error);
           setStreaming(false, '');
-          toast.error(error.message || 'Failed to get AI response');
+          
+          // 🔥 PHASE 4: Better error handling for API overload/rate limits
+          let errorMessage = 'Failed to get AI response';
+          let userFriendlyMessage = '❌ Sorry, I encountered an error. Please try again.';
+          
+          // Check for specific error types
+          const errorString = error.message || error.toString() || '';
+          const isOverloaded = errorString.includes('overloaded') || 
+                               errorString.includes('overloaded_error') ||
+                               (error.error && error.error.type === 'overloaded_error');
+          const isRateLimit = errorString.includes('rate_limit') || 
+                             errorString.includes('429') ||
+                             errorString.includes('too_many_requests');
+          
+          if (isOverloaded || isRateLimit) {
+            errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
+            userFriendlyMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
+            toast.error(errorMessage, { duration: 5000 });
+          } else {
+            toast.error(error.message || errorMessage);
+          }
+          
           addMessage({
             role: 'assistant',
-            content: '❌ Sorry, I encountered an error. Please try again.',
+            content: userFriendlyMessage,
             mode: 'chat'
           });
         }
@@ -763,11 +784,30 @@ RULES:
     } catch (error) {
       console.error('Error sending message:', error);
       setStreaming(false, '');
-      toast.error(error.response?.data?.message || error.message || 'Failed to get AI response');
+      
+      // 🔥 PHASE 4: Better error handling for API overload/rate limits
+      const errorString = error.message || error.toString() || '';
+      const isOverloaded = errorString.includes('overloaded') || 
+                           errorString.includes('overloaded_error') ||
+                           (error.error && error.error.type === 'overloaded_error');
+      const isRateLimit = errorString.includes('rate_limit') || 
+                         errorString.includes('429') ||
+                         errorString.includes('too_many_requests');
+      
+      let errorMessage = error.response?.data?.message || error.message || 'Failed to get AI response';
+      let userFriendlyMessage = '❌ Sorry, I encountered an error. Please try again.';
+      
+      if (isOverloaded || isRateLimit) {
+        errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
+        userFriendlyMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
+        toast.error(errorMessage, { duration: 5000 });
+      } else {
+        toast.error(errorMessage);
+      }
       
       addMessage({
         role: 'assistant',
-        content: '❌ Sorry, I encountered an error. Please try again.',
+        content: userFriendlyMessage,
         mode: 'chat'
       });
     } finally {
