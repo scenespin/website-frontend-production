@@ -579,7 +579,7 @@ function parseRewriteOptions(text) {
     let content = match[3].trim();
     
     // Clean the content (remove markdown, etc.)
-    content = cleanFountainOutput(content);
+    content = cleanFountainOutput(content, null, null);
     
     if (content) {
       options.push({
@@ -629,7 +629,7 @@ function parseRewriteOptions(text) {
   
   // Clean each option's content
   foundOptions.forEach(opt => {
-    opt.content = cleanFountainOutput(opt.content);
+    opt.content = cleanFountainOutput(opt.content, null, null);
   });
   
   return foundOptions.length >= 2 ? foundOptions : null; // Return if we found at least 2 options
