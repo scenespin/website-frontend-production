@@ -26,105 +26,62 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
     .replace(/```[a-z]*\n/g, '')
     .replace(/```/g, '');
   
-  // Stop on obvious analysis/questions
-  const stopPatterns = [
-    // Remove "Here's..." or "I'll write..." intros
-    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK|Ah,|Ah!)[\s:]*/i,
-    // Remove analysis intros like "Ah, interesting detail!" or "Adding that..."
-    /^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts)[\s:]*/i,
-    // Remove "Great emotional note" or similar praise
-    /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
-    // Remove analysis patterns
-    /(could create|might suggest|adds a|What it might|Potential line|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring|In the current scene|There's nothing described).*$/i,
-    // Remove "SCREENWRITING NOTE:" or "NOTE:" sections (case insensitive, multiline)
-    /(SCREENWRITING\s+)?NOTE:.*$/is,
-    // Remove "REVISION" or "REVISED SCENE" headers (with or without markdown, with or without colon)
-    /^#?\s*REVISION\s*:?\s*$/im,
-    /^#?\s*REVISED\s+SCENE\s*:?\s*$/im,
-    // Remove "ALTERNATIVE OPTIONS:" sections
-    /ALTERNATIVE OPTIONS?:.*$/is,
-    // Remove "Option 1:", "Option 2:", etc.
-    /Option \d+[:\-].*$/im,
-    // Remove "Which direction..." questions
-    /Which direction.*$/is,
-    // Remove advice headers
-    /SARAH'S (DIALOGUE\/ACTION SUGGESTION|LEAD PROBLEM).*$/is,
-    /SCENE DEVELOPMENT.*$/is,
-    /VISUAL STORYTELLING OPTIONS?:.*$/is,
-    /STORY QUESTIONS?:.*$/is,
-    /POTENTIAL ADDITIONS?:.*$/is,
-    /Given the scene context.*$/is,
-    // Remove "This version:" explanations
-    /This version:.*$/is,
-    // Remove "What comes next?" questions
-    /What comes next\?.*$/is,
-    // Remove "What feeling..." questions
-    /What feeling.*$/is,
-    // Remove "Would you like..." questions
-    /Would you like.*$/is,
-    // Remove "Here are some suggestions:" patterns
-    /Here are (some|a few) (suggestions|options|ideas|ways|things).*$/is,
-  // Remove writing notes section (everything after "---" or "WRITING NOTE" or similar)
-    /---\s*\n\s*\*\*WRITING NOTE\*\*.*$/is,
-    /---\s*\n\s*WRITING NOTE.*$/is,
-    /\*\*WRITING NOTE\*\*.*$/is,
-    /WRITING NOTE.*$/is,
-    /---\s*\n\s*\*\*NOTE\*\*.*$/is,
-    /---\s*\n\s*NOTE.*$/is,
-    /\*\*NOTE\*\*.*$/is,
-    /^---\s*$/m,
-    // Remove explanations that start with "This version:" or "This Sarah is..."
-    /This (version|Sarah|character|scene|moment).*$/is,
-    // Remove "Works perfectly for..." explanations
-    /Works perfectly.*$/is,
-    // Remove "What happens next?" questions
-    /What happens next\?.*$/is,
-    // Remove "For your scene" or "For this scene" explanations
-    /For (your|this) scene.*$/is,
-    // Remove "Recommendation:" patterns
-    /Recommendation:.*$/is,
-    // Remove "Current line:" patterns
-    /Current line:.*$/is,
-    // Remove "Enhanced options:" patterns
-    /Enhanced options?:.*$/is
-  ];
-  
-  for (const pattern of stopPatterns) {
-    const match = cleaned.match(pattern);
-    if (match) {
-      cleaned = cleaned.substring(0, match.index).trim();
-      break;
-    }
-  }
-  
-  // 🔥 MINIMAL: Just take first 3 non-empty lines, stop on obvious analysis
+  // Process line by line to skip headers and duplicate scenes
   const lines = cleaned.split('\n');
   const result = [];
-  let lineCount = 0;
+  let foundFirstContent = false;
+  let skippedHeader = false;
   
-  for (let i = 0; i < lines.length && lineCount < 3; i++) {
-    const line = lines[i].trim();
-    if (!line) continue; // Skip empty lines
+  // Get current scene heading for duplicate detection
+  const currentSceneHeading = sceneContext?.heading || '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
     
-    // Stop on obvious analysis/questions
-    if (/^(Option \d+|Here are|Here's some|Would you like|What tone|Which direction|Does this capture|Who might|Note:|---\s*$|This adds|This creates|This shows)/i.test(line)) {
+    // Skip empty lines until we find content
+    if (!foundFirstContent && !trimmedLine) continue;
+    
+    // Skip "REVISED SCENE" or "REVISION" headers
+    if (/^#?\s*(REVISED\s+SCENE|REVISION)\s*:?\s*$/i.test(trimmedLine)) {
+      skippedHeader = true;
+      continue;
+    }
+    
+    // Skip duplicate scene headings (same as current scene)
+    if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine) && currentSceneHeading) {
+      const normalizeHeading = (heading) => {
+        return heading.toLowerCase()
+          .replace(/\s+/g, ' ')
+          .replace(/\s*-\s*/g, ' - ')
+          .trim();
+      };
+      
+      const currentNormalized = normalizeHeading(currentSceneHeading);
+      const newNormalized = normalizeHeading(trimmedLine);
+      const currentLocation = currentNormalized.split(' - ')[0].trim();
+      const newLocation = newNormalized.split(' - ')[0].trim();
+      
+      // Skip if it matches current scene (exact match or same location)
+      if (currentNormalized === newNormalized || (currentLocation === newLocation && currentLocation.length > 0)) {
+        continue; // Skip duplicate scene heading
+      }
+    }
+    
+    // Stop on obvious analysis/questions (but NOT on "---" - that's just user formatting)
+    // Stop on patterns like "Note: This raises..." or "This raises the stakes..."
+    if (/^(Note:|This raises|This adds|This creates|This shows|Was it deliberate|Option \d+|Here are|Here's some|Would you like|What tone|Which direction|Does this capture|Who might)/i.test(trimmedLine)) {
       break;
     }
     
-    result.push(lines[i]); // Keep original line (with spacing)
-    lineCount++;
+    foundFirstContent = true;
+    result.push(line); // Keep original line (with spacing)
   }
   
   cleaned = result.join('\n');
   
   // Remove "FADE OUT" and "THE END" at the end
   cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
-  
-  // Limit to 3 lines maximum (the task)
-  const allLines = cleaned.split('\n').filter(line => line.trim().length > 0);
-  if (allLines.length > 3) {
-    cleaned = allLines.slice(0, 3).join('\n');
-  }
   
   return cleaned.trim();
 }
