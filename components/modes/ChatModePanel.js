@@ -121,10 +121,11 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
     let sceneHeadingFound = false; // Track if we've seen a scene heading (means full scene was generated)
     
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      const line = lines[i];
+      const trimmedLine = line.trim();
       
       // Skip empty lines at the start
-      if (!foundFirstScreenplayContent && !line) continue;
+      if (!foundFirstScreenplayContent && !trimmedLine) continue;
       
       // 🔥 CRITICAL: Stop immediately on options/suggestions patterns
       // These indicate the AI is giving options instead of writing content
