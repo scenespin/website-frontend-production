@@ -321,29 +321,9 @@ function cleanFountainOutput(text, sceneContext = null) {
         
         if (isExactMatch || isLocationMatch) {
           console.log('[DirectorModePanel] ⚠️ Skipping duplicate scene heading:', trimmedLine, 'matches current:', currentSceneHeading);
-          // 🔥 AGGRESSIVE: Skip this line AND all content until the next DIFFERENT scene heading
-          // This prevents including the rewritten scene content
-          let foundNextScene = false;
-          for (let j = i + 1; j < lines.length; j++) {
-            const nextLine = lines[j].trim();
-            if (/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine)) {
-              // Found next scene heading - normalize and check if it's different
-              const nextNormalized = normalizeHeading(nextLine);
-              const nextLocation = nextNormalized.split(' - ')[0].trim();
-              // Must be a different location (not just different time)
-              if (nextLocation !== currentLocation && nextNormalized !== currentNormalized) {
-                foundNextScene = true;
-                i = j - 1; // Set i to j-1 so the loop will process j next
-                break;
-              }
-            }
-          }
-          if (!foundNextScene) {
-            // No next scene found, skip everything
-            console.log('[DirectorModePanel] ⚠️ No different scene found after duplicate, skipping all content');
-            break;
-          }
-          continue; // Skip duplicate scene heading and all its content
+          // Skip this duplicate scene heading line, but continue processing (don't break)
+          // This prevents including the duplicate scene heading, but allows valid content after it
+          continue; // Skip duplicate scene heading line only
         }
       }
       foundFirstScreenplayContent = true;
