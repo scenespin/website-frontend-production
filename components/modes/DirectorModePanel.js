@@ -96,7 +96,13 @@ function cleanFountainOutput(text, sceneContext = null) {
     // 🔥 NEW: Stop on analysis comments like "*This revision adds..."
     /^\*.*(revision|adds|creates|builds|develops|enhances|improves|strengthens)/i,
     /^This revision/i,
-    /^This adds/i
+    /^This adds/i,
+    // 🔥 NEW: Stop on "NOTES FOR DEVELOPMENT" or similar development notes
+    /^NOTES FOR (DEVELOPMENT|FURTHER DEVELOPMENT|CONSIDERATION)/i,
+    /^NOTES:/i,
+    /^DEVELOPMENT NOTES:/i,
+    /^Questions to consider:/i,
+    /^Tension escalation:/i
   ];
   
   // Patterns for lines to skip (but continue processing after them)
