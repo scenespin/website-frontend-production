@@ -79,40 +79,14 @@ export function detectContentRequest(message) {
 export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
   
-  // 🔥 CRITICAL: Build limited context window around cursor (before and after)
-  // This gives AI enough context to understand the scene without seeing the full scene
+  // 🔥 MINIMAL: Just add context if available, then user's request
   let continuationContext = '';
-  if (sceneContext?.contextBeforeCursor || sceneContext?.contextAfterCursor) {
-    continuationContext = '\n\n[SCENE CONTEXT - Limited window around your cursor (for reference only, do NOT include in output)]:\n';
-    
-    if (sceneContext.contextBeforeCursor) {
-      continuationContext += `...${sceneContext.contextBeforeCursor}\n`;
-    }
-    continuationContext += '← [CURSOR IS HERE - Continue from this point - DO NOT repeat anything above this line]\n';
-    
-    if (sceneContext.contextAfterCursor) {
-      continuationContext += `${sceneContext.contextAfterCursor}...\n`;
-    }
-    
-    continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output. DO NOT repeat any of the text shown above the cursor marker.';
+  if (sceneContext?.contextBeforeCursor) {
+    continuationContext = `\n\nContext: ${sceneContext.contextBeforeCursor.substring(0, 200)}...`;
   }
 
-  // 🔥 SIMPLIFIED: Ultra-simple prompt, aggressive cleaning handles the rest
-  // No JSON - just simple text generation, cleaning extracts what we need
-  return `${contextInfo}Write 1-3 lines that continue from the cursor.
-
-${continuationContext}
-
-Rules:
-- 1-3 lines only
-- No scene headings
-- No analysis
-- Just continue the scene
-
-Example: User says "it was gooey"
-You write: The USB drive is gooey.
-
-That's it. Just write the lines.`;
+  // ABSOLUTE MINIMUM: Just the user's request + minimal context
+  return `${message}${continuationContext}`;
 }
 
 /**
