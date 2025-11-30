@@ -999,9 +999,9 @@ DO NOT include any text outside the code block. If you must explain something, d
                     {/* Message Content */}
                     <div className="flex-1 min-w-0 space-y-3">
                       {/* Only show raw message content if we're not displaying parsed rewrite options */}
-                      {!rewriteOptions && (
                       {/* 🔥 CLEANED UI: Removed prose classes for cleaner look */}
-                      <div className="chat-message-content">
+                      {!rewriteOptions && (
+                        <div className="chat-message-content">
                         {isUser ? (
                           <div className="whitespace-pre-wrap break-words text-base-content text-sm leading-relaxed">
                             {message.content}
