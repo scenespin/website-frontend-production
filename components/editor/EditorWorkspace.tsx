@@ -15,6 +15,7 @@ import AgentFABGroup from './AgentFABGroup';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
 import { CollaborationPanel } from '../CollaborationPanel';
 import RewriteModal from '../modals/RewriteModal';
+import ScreenwriterModal from '../modals/ScreenwriterModal';
 import { saveToGitHub } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -28,7 +29,7 @@ import type { Scene } from '../../types/screenplay';
  */
 export default function EditorWorkspace() {
     const router = useRouter();
-    const { state, setContent, setCurrentLine, replaceSelection } = useEditor();
+    const { state, setContent, setCurrentLine, replaceSelection, insertText } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
@@ -45,6 +46,9 @@ export default function EditorWorkspace() {
     
     // Rewrite modal state
     const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
+    
+    // Screenwriter modal state
+    const [isScreenwriterModalOpen, setIsScreenwriterModalOpen] = useState(false);
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -218,23 +222,17 @@ export default function EditorWorkspace() {
     
     // FAB Launch Handlers
     const handleLaunchScreenwriter = () => {
-        const cursorPos = state.cursorPosition || 0;
-        const context = extractEditorContext(state.content, cursorPos);
+        // Open screenwriter modal instead of drawer
+        setIsScreenwriterModalOpen(true);
+    };
+    
+    // Handle screenwriter insertion (called from ScreenwriterModal)
+    const handleScreenwriterInsert = (content: string) => {
+        // Insert at cursor position using insertText
+        insertText(content, state.cursorPosition);
         
-        // Set scene context
-        if (context.sceneContext) {
-            setSceneContext(context.sceneContext);
-        }
-        
-        // Clear selected text context (not needed for screenwriter)
-        setSelectedTextContext(null, null);
-        setInput('');
-        
-        // Open drawer in chat mode
-        openDrawer('chat', {
-            mode: 'chat',
-            initialPrompt: null // Show instruction message
-        });
+        // Close modal
+        setIsScreenwriterModalOpen(false);
     };
     
     const handleLaunchDialogue = () => {
@@ -510,6 +508,16 @@ Tip:
                 selectionRange={selectionRange || { start: 0, end: 0 }}
                 editorContent={state.content}
                 onReplace={handleRewriteReplace}
+            />
+            
+            {/* Screenwriter Modal */}
+            <ScreenwriterModal
+                isOpen={isScreenwriterModalOpen}
+                onClose={() => setIsScreenwriterModalOpen(false)}
+                editorContent={state.content}
+                cursorPosition={state.cursorPosition || 0}
+                selectionRange={selectionRange}
+                onInsert={handleScreenwriterInsert}
             />
         </div>
     );

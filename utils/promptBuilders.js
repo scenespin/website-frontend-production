@@ -93,6 +93,47 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
 }
 
 /**
+ * Build screenwriter prompt for modal-based generation (JSON format)
+ * @param {string} userMessage - User's prompt describing what to generate
+ * @param {Object} sceneContext - Scene context from detectCurrentScene
+ * @param {string} contextBefore - Optional text before cursor/selection for context
+ * @param {boolean} useJSON - Whether to request JSON format (default: true)
+ * @returns {string} Formatted prompt for screenwriter generation
+ */
+export function buildScreenwriterPrompt(userMessage, sceneContext, contextBefore = '', useJSON = true) {
+  let prompt = userMessage;
+  
+  // Add context information if available
+  if (contextBefore) {
+    prompt += `\n\nContext from screenplay (what comes before):\n${contextBefore.substring(0, 200)}`;
+  }
+  
+  if (sceneContext) {
+    const contextInfo = buildContextInfo(sceneContext);
+    if (contextInfo) {
+      prompt += `\n\n${contextInfo}`;
+    }
+  }
+  
+  if (useJSON) {
+    prompt += `\n\nGenerate 1-3 lines of Fountain format screenplay text. Respond with ONLY valid JSON:
+{
+  "content": ["line 1", "line 2", "line 3"],
+  "lineCount": 3
+}
+
+Rules:
+- NO scene headings (INT./EXT.) - this is a continuation
+- NO markdown formatting
+- Character names in ALL CAPS when speaking
+- Action lines in normal case
+- Just 1-3 lines total`;
+  }
+  
+  return prompt;
+}
+
+/**
  * Build chat advice prompt (for advice/discussion)
  * @param {string} message - User's message
  * @param {Object} sceneContext - Scene context from detectCurrentScene

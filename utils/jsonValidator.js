@@ -147,6 +147,19 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
 }
 
 /**
+ * Validates screenwriter content (wrapper for validateScreenplayContent)
+ * Screenwriter generates 1-3 lines, so uses the same validator
+ * @param {string} jsonResponse - Raw response from LLM
+ * @param {string} contextBeforeCursor - Optional context to check for duplicates
+ * @returns {{ valid: boolean, content: string, errors: string[], rawJson?: object }}
+ */
+export function validateScreenwriterContent(jsonResponse, contextBeforeCursor = null) {
+  // Screenwriter uses the same structure as validateScreenplayContent
+  // (content array with 1-3 items, no scene headings)
+  return validateScreenplayContent(jsonResponse, contextBeforeCursor);
+}
+
+/**
  * Checks if a model supports native JSON output format
  * @param {string} modelId - Model identifier
  * @returns {boolean}
