@@ -196,10 +196,14 @@ Rules:
             const nextLine = i < contentArray.length - 1 ? contentArray[i + 1].trim() : '';
             
             // Check if this is a character name (ALL CAPS, not a scene heading, 2-50 chars)
+            // EXCLUDE lines that contain lowercase letters (like "SARAH CHEN (30s)" - that's action, not character)
+            // EXCLUDE lines that contain parentheses with content (character extensions are on same line as name)
             const isCharacterName = /^[A-Z][A-Z\s#0-9']+$/.test(line) && 
                                    line.length >= 2 && 
                                    line.length <= 50 && 
-                                   !/^(INT\.|EXT\.|I\/E\.)/i.test(line);
+                                   !/^(INT\.|EXT\.|I\/E\.)/i.test(line) &&
+                                   !/[a-z]/.test(line) && // No lowercase letters
+                                   !/\([^)]+\)/.test(line); // No parenthetical content (like "(30s)")
             
             // Check if this is a parenthetical (wrapped in parentheses)
             const isParenthetical = /^\(.+\)$/.test(line);
@@ -238,19 +242,25 @@ Rules:
             
             // FOUNTAIN SPEC: Character has blank line BEFORE, NO blank line AFTER
             // Add blank line BEFORE character name if previous was action
+            // We add it BEFORE the character (not after action) to avoid duplicates
             if (isCharacterName && prevLine && !prevIsCharacterName && !prevIsParenthetical) {
-              formattedLines.push('');
-              console.log(`[ScreenwriterModal] ✅ Added blank line BEFORE character name`);
+              // Only add if last line in formattedLines is not already empty
+              if (formattedLines.length === 0 || formattedLines[formattedLines.length - 1] !== '') {
+                formattedLines.push('');
+                console.log(`[ScreenwriterModal] ✅ Added blank line BEFORE character name`);
+              } else {
+                console.log(`[ScreenwriterModal] ℹ️ Skipped blank line BEFORE character (already exists)`);
+              }
             }
             
             // Add the line
             formattedLines.push(line);
             
             // FOUNTAIN SPEC: Action → blank line → Character
-            // Add blank line AFTER action if next is character name
+            // Don't add blank line here - we add it BEFORE the character to avoid duplicates
             if (isAction && nextIsCharacterName) {
-              formattedLines.push('');
-              console.log(`[ScreenwriterModal] ✅ Added blank line AFTER action (next is character)`);
+              // Don't add here - the character's "before" logic will handle it
+              console.log(`[ScreenwriterModal] ℹ️ Action before character - blank line will be added by character's "before" logic`);
             }
             // FOUNTAIN SPEC: Character → NO blank line → Parenthetical/Dialogue
             // Character has "without an empty line after it" - dialogue/parenthetical follows immediately
@@ -267,15 +277,23 @@ Rules:
             // FOUNTAIN SPEC: Dialogue → blank line → Action/Character
             // Add blank line AFTER dialogue if next is action or character
             else if (isDialogue && nextLine && (nextIsAction || nextIsCharacterName)) {
-              formattedLines.push('');
-              console.log(`[ScreenwriterModal] ✅ Added blank line AFTER dialogue (next is action/character)`);
+              // Only add if last line is not already empty
+              if (formattedLines[formattedLines.length - 1] !== '') {
+                formattedLines.push('');
+                console.log(`[ScreenwriterModal] ✅ Added blank line AFTER dialogue (next is action/character)`);
+              }
             }
           }
           
           // Join lines with newlines (empty strings create blank lines)
+          // Then normalize: remove multiple consecutive blank lines (max 2 blank lines = 1 blank line)
           let formattedContent = formattedLines.join('\n');
           
+          // Normalize excessive blank lines: replace 3+ consecutive newlines with just 2 (one blank line)
+          formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
+          
           console.log('[ScreenwriterModal] 📝 Formatted content:', formattedContent);
+          console.log('[ScreenwriterModal] 📝 Formatted content (with newlines shown):', JSON.stringify(formattedContent.substring(0, 200)));
           
           // Format content for insertion
           let contentToInsert = formattedContent.trim();
