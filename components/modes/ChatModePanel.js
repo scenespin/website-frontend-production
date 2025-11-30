@@ -48,9 +48,13 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
   // Remove common AI response patterns that aren't screenplay content
   const unwantedPatterns = [
     // Remove "Here's..." or "I'll write..." intros
-    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK)[\s:]*/i,
+    /^(Here's|Here is|I'll|I will|Let me|This version|Here's the|This is|Here are|Here is the|I've|I have|Perfect|Great|Excellent|Good|Nice|Sure|Okay|OK|Ah,|Ah!)[\s:]*/i,
+    // Remove analysis intros like "Ah, interesting detail!" or "Adding that..."
+    /^(Ah,|Ah!|Interesting|Adding that|What it might suggest|Potential|A few thoughts)[\s:]*/i,
     // Remove "Great emotional note" or similar praise
     /Great (emotional|physical|character|story|writing|detail|note|suggestion|idea).*$/i,
+    // Remove analysis patterns
+    /(could create|might suggest|adds a|What it might|Potential line|What tone are you|Could you clarify|Are you referring|I'm not sure what you're referring|In the current scene|There's nothing described).*$/i,
     // Remove "SCREENWRITING NOTE:" or "NOTE:" sections (case insensitive, multiline)
     /(SCREENWRITING\s+)?NOTE:.*$/is,
     // Remove "REVISION" or "REVISED SCENE" headers (with or without markdown, with or without colon)
