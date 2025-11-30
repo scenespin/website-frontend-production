@@ -69,6 +69,7 @@ export function useEditorSelection(
             onSelectionChange(start, end);
         }
         
+        // 🔥 CRITICAL: Check if there's actual text selection (not just cursor position)
         // Only show toolbar if text is actually selected (more than 5 characters to avoid accidental selections)
         if (end - start > 5) {
             const selected = content.substring(start, end);
@@ -87,6 +88,12 @@ export function useEditorSelection(
             
             setShowSelectionToolbar(true);
         } else {
+            // 🔥 FIX: Clear selection state when there's no actual selection (cursor position only)
+            // This ensures hasSelection is false when there's just a cursor, not a text selection
+            setSelectedText('');
+            setSelectionStart(start); // Set to current cursor position
+            setSelectionEnd(start);   // Set to current cursor position (start === end = no selection)
+            
             // Hide toolbar if selection is cleared
             setShowSelectionToolbar(false);
         }
@@ -101,8 +108,10 @@ export function useEditorSelection(
     
     /**
      * Check if text is currently selected
+     * 🔥 CRITICAL: Only return true if there's actual text selected (not just cursor position)
+     * Require at least 1 character difference to ensure it's a real selection
      */
-    const hasSelection = selectionEnd - selectionStart > 0;
+    const hasSelection = selectionEnd - selectionStart > 0 && selectedText.trim().length > 0;
     
     return {
         selection: {
