@@ -225,14 +225,15 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip assistant headers
       }
       
-      // 🔥 CRITICAL: If we find a scene heading (with or without markdown), handle it
-      // Screenwriter agent CAN generate scene headings if user requests a scene addition
+      // 🔥 CRITICAL: If we find a scene heading (with or without markdown), STOP processing
+      // Screenwriter agent should NEVER generate scene headings for normal continuation
+      // Only the Director agent generates scene headings
       // Check for both regular scene headings and markdown scene headings (# INT. or ## INT.)
       if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line)) {
         sceneHeadingFound = true;
-        foundFirstScreenplayContent = true; // Mark that we found screenplay content
-        // Don't break - include the scene heading and continue processing
-        // The Screenwriter agent can generate full scenes when requested (scene additions)
+        // Skip the scene heading and everything after it
+        // Screenwriter agent should only continue the current scene, not create new ones
+        break; // STOP on scene headings - Screenwriter should not generate them
       }
       
       // 🔥 RELAXED: Don't break on scene headings - just skip them and continue
