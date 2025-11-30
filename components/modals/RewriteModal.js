@@ -116,6 +116,11 @@ function cleanFountainOutput(text) {
   
   cleaned = screenplayLines.join('\n');
   
+  // 🔥 DEBUG: Log after line processing to catch sentence splitting
+  if (cleaned.includes('p. ') || cleaned.includes('p.\n') || cleaned.match(/^[a-z]\.\s/)) {
+    console.warn('[RewriteModal] ⚠️ POTENTIAL SENTENCE SPLITTING DETECTED:', cleaned);
+  }
+  
   // Whitespace normalization
   // 1. Trim trailing whitespace from each line (but preserve newlines between lines)
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
@@ -129,6 +134,18 @@ function cleanFountainOutput(text) {
   cleaned = cleaned.trimStart(); // Only trim leading whitespace
   if (hasTrailingNewline && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
     cleaned = cleaned + '\n'; // Restore trailing newline if it was removed
+  }
+  
+  // 🔥 FIX: Repair broken sentences that got split incorrectly
+  // Pattern: single lowercase letter followed by period at start of line (like "p. A bead")
+  // This usually means a sentence was split incorrectly
+  cleaned = cleaned.replace(/\n([a-z])\.\s+/g, ' $1. '); // Fix "p. A bead" -> "p. A bead" (on same line)
+  cleaned = cleaned.replace(/\n([a-z])\.\n/g, ' $1. '); // Fix "p.\nA bead" -> "p. A bead"
+  
+  // Fix missing words at start of lines (like " the newsroom" should be "Through the newsroom")
+  // This is harder to fix automatically, but we can at least log it
+  if (cleaned.match(/^\s+[a-z]/m)) {
+    console.warn('[RewriteModal] ⚠️ Potential missing word at line start detected');
   }
   
   return cleaned;
@@ -274,6 +291,12 @@ export default function RewriteModal({
         },
         // onComplete
         async (fullContent) => {
+          // 🔥 DEBUG: Log raw AI response to diagnose sentence splitting issues
+          console.log('[RewriteModal] 📝 RAW AI RESPONSE (first 500 chars):', fullContent.substring(0, 500));
+          console.log('[RewriteModal] 📝 RAW AI RESPONSE (last 200 chars):', fullContent.substring(Math.max(0, fullContent.length - 200)));
+          console.log('[RewriteModal] 📝 RAW AI RESPONSE length:', fullContent.length);
+          console.log('[RewriteModal] 📝 RAW AI RESPONSE (full):', JSON.stringify(fullContent));
+          
           // 🔥 PHASE 4: Validate JSON for rewrite requests
           if (useJSONFormat) {
             const { validateRewriteContent } = await import('@/utils/jsonValidator');
