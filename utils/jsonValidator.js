@@ -536,14 +536,16 @@ export function validateDirectorModalContent(jsonResponse, contextBeforeCursor =
     });
   }
 
-  // Check totalLines if provided
+  // Check totalLines if provided (non-blocking - just warn, don't fail)
   if (parsedJson.totalLines !== undefined) {
     if (typeof parsedJson.totalLines !== 'number') {
-      errors.push('Field "totalLines" must be a number');
+      // Warn but don't block - totalLines is optional metadata
+      console.warn('[validateDirectorModalContent] totalLines is not a number, ignoring');
     } else {
       const actualTotal = parsedJson.scenes?.reduce((sum, scene) => sum + (scene.content?.length || 0), 0) || 0;
       if (parsedJson.totalLines !== actualTotal) {
-        errors.push(`Field "totalLines" (${parsedJson.totalLines}) does not match sum of scene content lengths (${actualTotal})`);
+        // Warn but don't block - totalLines is just metadata, content is what matters
+        console.warn(`[validateDirectorModalContent] totalLines (${parsedJson.totalLines}) doesn't match actual content length (${actualTotal}), but continuing anyway`);
       }
     }
   }

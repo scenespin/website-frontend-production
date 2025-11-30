@@ -85,19 +85,19 @@ export default function DirectorModal({
     }
   }, [selectedModel]);
 
-  // Handle Escape key to close modal
+  // Handle Escape key to close modal (always allowed, even during loading)
   useEffect(() => {
     if (!isOpen) return;
     
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && !isLoading) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
     
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOpen, isLoading, onClose]);
+  }, [isOpen, onClose]);
 
   const updateScene = (index, field, value) => {
     const updated = [...scenes];
@@ -197,22 +197,48 @@ Rules:
 
           if (!validation.valid) {
             console.error('[DirectorModal] ❌ JSON validation failed:', validation.errors);
-            toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
-            setIsLoading(false);
-            return;
+            
+            // Try to extract content anyway if we have rawJson with scenes
+            if (validation.rawJson && validation.rawJson.scenes && Array.isArray(validation.rawJson.scenes) && validation.rawJson.scenes.length > 0) {
+              console.warn('[DirectorModal] ⚠️ Validation failed but attempting to use content anyway');
+              
+              // Check if scenes are valid enough to use
+              const hasValidScenes = validation.rawJson.scenes.every(scene => 
+                scene.heading && 
+                scene.content && 
+                Array.isArray(scene.content) && 
+                scene.content.length >= 5
+              );
+              
+              if (hasValidScenes) {
+                console.log('[DirectorModal] ✅ Scenes appear valid, using content despite validation errors');
+                // Continue with content extraction below
+              } else {
+                toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
+                setIsLoading(false);
+                return;
+              }
+            } else {
+              toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
+              setIsLoading(false);
+              return;
+            }
+          } else {
+            console.log('[DirectorModal] ✅ JSON validation passed');
           }
 
-          console.log('[DirectorModal] ✅ JSON validation passed');
-
-          if (!validation.content || validation.content.trim().length === 0) {
-            toast.error('No valid content returned');
+          // Extract scenes from validated JSON or rawJson
+          const scenesToUse = validation.rawJson?.scenes || [];
+          
+          if (!scenesToUse || scenesToUse.length === 0) {
+            toast.error('No valid scenes returned');
             setIsLoading(false);
             return;
           }
 
           // Format content with proper Fountain spacing for each scene
           const formattedScenes = [];
-          for (const scene of validation.rawJson.scenes) {
+          for (const scene of scenesToUse) {
             // Apply spacing formatting to scene content
             const contentArray = scene.content || [];
             const formattedContent = formatFountainSpacing(contentArray);
@@ -282,7 +308,7 @@ Rules:
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={isLoading ? () => {} : onClose}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -339,8 +365,8 @@ Rules:
                     </select>
                     <button
                       onClick={onClose}
-                      disabled={isLoading}
                       className="btn btn-ghost btn-sm btn-circle"
+                      title="Close (ESC)"
                     >
                       <X className="h-5 w-5" />
                     </button>
