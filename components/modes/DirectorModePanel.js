@@ -105,6 +105,11 @@ function cleanFountainOutput(text, sceneContext = null) {
     /^Tension escalation:/i,
     // 🔥 NEW: Stop on "[END OF...]" patterns (analysis markers)
     /\[END OF.*?\]/i,  // [END OF REVISED SEQUENCE], [END OF SCENE], etc.
+    // 🔥 NEW: Stop on sequence headers and notes
+    /^NEW SCENE SEQUENCE$/i,  // "NEW SCENE SEQUENCE" header
+    /^CONTINUITY NOTES?:/i,  // "CONTINUITY NOTES:" analysis
+    /^END SEQUENCE$/i,  // "END SEQUENCE" marker
+    /This sequence (raises|shows|moves|advances|deepens|creates|builds|develops|enhances|improves|strengthens)/i,  // Analysis about the sequence
     // 🔥 NEW: Stop on "This expansion adds..." analysis patterns
     /^This expansion adds/i,  // "This expansion adds approximately..."
     /^This addition adds/i,  // "This addition adds..."
@@ -240,10 +245,10 @@ function cleanFountainOutput(text, sceneContext = null) {
         shouldStop = true;
       } else {
         // Check all stop patterns
-        for (const pattern of stopPatterns) {
-          if (pattern.test(trimmedLine)) {
-            shouldStop = true;
-            break;
+    for (const pattern of stopPatterns) {
+      if (pattern.test(trimmedLine)) {
+        shouldStop = true;
+        break;
           }
         }
       }
@@ -256,12 +261,12 @@ function cleanFountainOutput(text, sceneContext = null) {
     // BUT: Don't stop if we haven't found screenplay content yet - keep looking for it
     let isExplanation = false;
     if (foundFirstScreenplayContent) {
-      for (const pattern of explanationPatterns) {
-        if (pattern.test(trimmedLine)) {
-          isExplanation = true;
-          break;
-        }
+    for (const pattern of explanationPatterns) {
+      if (pattern.test(trimmedLine)) {
+        isExplanation = true;
+        break;
       }
+    }
     }
     if (isExplanation && foundFirstScreenplayContent) {
       break; // Stop if we've already found screenplay content and now see explanation
@@ -350,7 +355,7 @@ function cleanFountainOutput(text, sceneContext = null) {
     
     // Include this line if we've found screenplay content, or if it looks like screenplay content
     if (foundFirstScreenplayContent || /^(INT\.|EXT\.|I\/E\.|[A-Z][A-Z\s#0-9']+$)/.test(trimmedLine)) {
-      screenplayLines.push(line);
+    screenplayLines.push(line);
     }
   }
   
@@ -460,8 +465,12 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
   // Step 3: Split content by scene headings - this gives us clean parts to work with
-  // Pattern matches: scene heading at start of line (with optional leading whitespace)
-  const sceneHeadingRegex = /(\n|^)(INT\.|EXT\.|I\/E\.\s+[^\n]+)/gi;
+  // Pattern matches: scene heading at start of line (handles split headings like "INT.\nLOCATION - TIME")
+  // First, fix split scene headings (INT.\nLOCATION -> INT. LOCATION)
+  cleaned = cleaned.replace(/(INT\.|EXT\.|I\/E\.)\s*\n\s*([A-Z][^\n]+)/g, '$1 $2');
+  
+  // Now match complete scene headings (INT./EXT./I/E. followed by location and optional time)
+  const sceneHeadingRegex = /(\n|^)(INT\.|EXT\.|I\/E\.)\s+([^\n]+)/gi;
   const parts = [];
   let lastIndex = 0;
   let match;
@@ -475,8 +484,9 @@ function cleanFountainOutput(text, sceneContext = null) {
         parts.push({ type: 'content', text: beforeContent });
       }
     }
-    // Add the scene heading itself
-    parts.push({ type: 'heading', text: match[2] });
+    // Add the complete scene heading (type + location/time)
+    const fullHeading = match[2] + ' ' + match[3].trim();
+    parts.push({ type: 'heading', text: fullHeading });
     lastIndex = match.index + match[0].length;
   }
   
@@ -835,11 +845,11 @@ DIRECTOR MODE - THOROUGH SCENE GENERATION:
                   console.error('[DirectorModePanel] ❌ No valid screenplay content extracted from response');
                   console.error('[DirectorModePanel] Response appears to be analysis/outline, not screenplay content');
                   toast.error('No valid screenplay content found. The response may contain analysis instead of Fountain format content. Please try rephrasing your request to be more direct.');
-                  addMessage({
-                    role: 'assistant',
+                addMessage({
+                  role: 'assistant',
                     content: '❌ No valid screenplay content could be extracted. The response may contain analysis/outline instead of Fountain format content. Please try rephrasing your request to be more direct. Example: "Write three scenes about a tiger chase" instead of "In the next three scenes a tiger...".',
-                    mode: 'director'
-                  });
+                  mode: 'director'
+                });
                 } else {
                   // Use cleaned content (Fountain format only)
                   addMessage({
