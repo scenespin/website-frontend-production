@@ -184,17 +184,23 @@ Rules:
                                    line.length <= 50 && 
                                    !/^(INT\.|EXT\.|I\/E\.)/i.test(line);
             
+            // Check if this is a parenthetical (wrapped in parentheses)
+            const isParenthetical = /^\(.+\)$/.test(line);
+            
             // Check if previous line was character name
             const prevIsCharacterName = prevLine && /^[A-Z][A-Z\s#0-9']+$/.test(prevLine) && 
                                        prevLine.length >= 2 && 
                                        prevLine.length <= 50 && 
                                        !/^(INT\.|EXT\.|I\/E\.)/i.test(prevLine);
             
-            // Check if this is dialogue (follows character name)
-            const isDialogue = prevIsCharacterName;
+            // Check if previous line was parenthetical
+            const prevIsParenthetical = prevLine && /^\(.+\)$/.test(prevLine);
             
-            // Check if this is action (not character name, not dialogue)
-            const isAction = !isCharacterName && !isDialogue;
+            // Check if this is dialogue (follows character name or parenthetical)
+            const isDialogue = (prevIsCharacterName || prevIsParenthetical) && !isParenthetical && !isCharacterName;
+            
+            // Check if this is action (not character name, not dialogue, not parenthetical)
+            const isAction = !isCharacterName && !isDialogue && !isParenthetical;
             
             // Check if next line is character name
             const nextIsCharacterName = nextLine && /^[A-Z][A-Z\s#0-9']+$/.test(nextLine) && 
@@ -202,14 +208,17 @@ Rules:
                                        nextLine.length <= 50 && 
                                        !/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine);
             
-            // Check if next line is dialogue (will follow this character name)
-            const nextIsDialogue = isCharacterName && nextLine && !nextIsCharacterName;
+            // Check if next line is parenthetical
+            const nextIsParenthetical = nextLine && /^\(.+\)$/.test(nextLine);
             
-            // Check if next line is action (not character, not dialogue)
-            const nextIsAction = nextLine && !nextIsCharacterName && !nextIsDialogue;
+            // Check if next line is dialogue (follows this character name or parenthetical)
+            const nextIsDialogue = (isCharacterName || isParenthetical) && nextLine && !nextIsCharacterName && !nextIsParenthetical;
+            
+            // Check if next line is action (not character, not dialogue, not parenthetical)
+            const nextIsAction = nextLine && !nextIsCharacterName && !nextIsDialogue && !nextIsParenthetical;
             
             // Add blank line BEFORE character name if previous was action
-            if (isCharacterName && prevLine && !prevIsCharacterName) {
+            if (isCharacterName && prevLine && !prevIsCharacterName && !prevIsParenthetical) {
               formattedLines.push('');
             }
             
@@ -220,9 +229,13 @@ Rules:
             if (isAction && nextIsCharacterName) {
               formattedLines.push('');
             }
-            // Add blank line AFTER character name (before dialogue)
-            else if (isCharacterName && nextIsDialogue) {
-              formattedLines.push('');
+            // Add blank line AFTER character name (before parenthetical or dialogue)
+            else if (isCharacterName && (nextIsParenthetical || nextIsDialogue)) {
+              // No blank line - parenthetical/dialogue follows immediately
+            }
+            // Add blank line AFTER parenthetical (before dialogue) - actually no, parenthetical flows to dialogue
+            else if (isParenthetical && nextIsDialogue) {
+              // No blank line - dialogue follows immediately
             }
             // Add blank line AFTER dialogue if next is action or character
             else if (isDialogue && nextLine && (nextIsAction || nextIsCharacterName)) {
