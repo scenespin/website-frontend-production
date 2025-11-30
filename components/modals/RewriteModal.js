@@ -321,10 +321,22 @@ export default function RewriteModal({
               const hasTextAfter = textAfter.trim().length > 0;
               const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
               
-              console.log('[RewriteModal] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline);
+              // 🔥 CRITICAL FIX: Check if selection ends at a newline character
+              // When selecting entire paragraph (double/triple click), selection might end right at newline
+              // In that case, textAfter starts with newline, but we still need newline after rewrite
+              const selectionEndsAtNewline = selectionRange.end > 0 && 
+                (editorContent[selectionRange.end - 1] === '\n' || 
+                 (selectionRange.end > 1 && editorContent.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
               
-              // If there's text after without newline, add newline BEFORE any other processing
-              if (hasTextAfter && !textAfterStartsWithNewline) {
+              console.log('[RewriteModal] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline, 'selectionEndsAtNewline:', selectionEndsAtNewline);
+              console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
+              console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
+              
+              // If there's text after, ALWAYS add newline (even if textAfter starts with newline)
+              // The newline belongs AFTER the rewritten text, not before the text after
+              if (hasTextAfter) {
+                // Always add newline if rewrite doesn't end with one
+                // This ensures proper spacing regardless of how selection was made
                 if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                   cleaned = cleaned + '\n';
                   console.log('[RewriteModal] ✅ Added newline after JSON validation - new length:', cleaned.length);
@@ -346,11 +358,19 @@ export default function RewriteModal({
               const hasTextAfter = textAfter.trim().length > 0;
               const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
               
-              console.log('[RewriteModal] 📝 Before cleaning - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline);
+              // 🔥 CRITICAL FIX: Check if selection ends at a newline character
+              const selectionEndsAtNewline = selectionRange.end > 0 && 
+                (editorContent[selectionRange.end - 1] === '\n' || 
+                 (selectionRange.end > 1 && editorContent.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
               
-              // Add newline to raw content BEFORE cleaning if needed
+              console.log('[RewriteModal] 📝 Before cleaning - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline, 'selectionEndsAtNewline:', selectionEndsAtNewline);
+              console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
+              console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
+              
+              // Add newline to raw content BEFORE cleaning if there's text after
+              // ALWAYS add newline if there's text after (even if textAfter starts with newline)
               let contentToClean = fullContent;
-              if (hasTextAfter && !textAfterStartsWithNewline && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
+              if (hasTextAfter && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
                 contentToClean = fullContent + '\n';
                 console.log('[RewriteModal] ✅ Added newline BEFORE cleaning - new length:', contentToClean.length);
               }
@@ -366,8 +386,9 @@ export default function RewriteModal({
                 return;
               }
               
-              // Double-check: ensure newline is still there after cleaning
-              if (hasTextAfter && !textAfterStartsWithNewline) {
+              // Double-check: ALWAYS ensure newline is there after cleaning if there's text after
+              // This handles the case where selection includes entire paragraph (double/triple click)
+              if (hasTextAfter) {
                 if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                   cleaned = cleaned + '\n';
                   console.log('[RewriteModal] ✅ Added newline AFTER cleaning (fallback) - new length:', cleaned.length);
@@ -388,10 +409,18 @@ export default function RewriteModal({
             const hasTextAfter = textAfter.trim().length > 0;
             const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
             
-            console.log('[RewriteModal] 📝 Original format - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter);
+            // 🔥 CRITICAL FIX: Check if selection ends at a newline character
+            const selectionEndsAtNewline = selectionRange.end > 0 && 
+              (editorContent[selectionRange.end - 1] === '\n' || 
+               (selectionRange.end > 1 && editorContent.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
             
+            console.log('[RewriteModal] 📝 Original format - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter, 'selectionEndsAtNewline:', selectionEndsAtNewline);
+            console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
+            console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
+            
+            // ALWAYS add newline if there's text after (even if textAfter starts with newline)
             let contentToClean = fullContent;
-            if (hasTextAfter && !textAfterStartsWithNewline && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
+            if (hasTextAfter && !fullContent.endsWith('\n') && !fullContent.endsWith('\r\n')) {
               contentToClean = fullContent + '\n';
               console.log('[RewriteModal] ✅ Added newline BEFORE cleaning (original format)');
             }
@@ -406,8 +435,9 @@ export default function RewriteModal({
               return;
             }
             
-            // Double-check newline after cleaning
-            if (hasTextAfter && !textAfterStartsWithNewline && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
+            // Double-check: ALWAYS ensure newline is there after cleaning if there's text after
+            // This handles the case where selection includes entire paragraph (double/triple click)
+            if (hasTextAfter && !cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
               cleaned = cleaned + '\n';
               console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format fallback)');
             }

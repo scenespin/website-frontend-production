@@ -298,12 +298,21 @@ export default function EditorWorkspace() {
         const hasTextAfter = textAfter.trim().length > 0;
         const textAfterStartsWithNewline = textAfter.startsWith('\n') || textAfter.startsWith('\r\n');
         
-        console.log('[EditorWorkspace] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline);
+        // 🔥 CRITICAL FIX: Check if selection ends at a newline character
+        // When selecting entire paragraph (double/triple click), selection might end right at newline
+        const selectionEndsAtNewline = selectionRange.end > 0 && 
+          (state.content[selectionRange.end - 1] === '\n' || 
+           (selectionRange.end > 1 && state.content.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
         
-        // Always add newline if there's text after without newline
-        // This ensures proper spacing regardless of rewrite length
-        if (hasTextAfter && !textAfterStartsWithNewline) {
-            // Only add if not already there (modal might have added it)
+        console.log('[EditorWorkspace] 📝 Context check - hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline, 'selectionEndsAtNewline:', selectionEndsAtNewline);
+        console.log('[EditorWorkspace] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
+        console.log('[EditorWorkspace] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
+        
+        // ALWAYS add newline if there's text after (even if textAfter starts with newline)
+        // The newline belongs AFTER the rewritten text, not before the text after
+        // This handles the case where selection includes entire paragraph (double/triple click)
+        if (hasTextAfter) {
+            // Always add newline if rewrite doesn't end with one
             if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                 cleaned = cleaned + '\n';
                 console.log('[EditorWorkspace] ✅ Added newline - new length:', cleaned.length);
