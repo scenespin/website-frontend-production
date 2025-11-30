@@ -166,10 +166,27 @@ Rules:
 
           // Format content with proper Fountain spacing
           // Get the raw content array from validation (prefer rawJson.content for original array structure)
-          const contentArray = validation.rawJson?.content || validation.content.split('\n').filter(l => l.trim());
+          let contentArray = validation.rawJson?.content || validation.content.split('\n').filter(l => l.trim());
+          
+          // If array items contain newlines, split them into individual lines
+          // This handles cases where AI returns multi-line strings in array items
+          const expandedArray = [];
+          for (const item of contentArray) {
+            if (typeof item === 'string' && item.includes('\n')) {
+              // Split multi-line items
+              const lines = item.split('\n').map(l => l.trim()).filter(l => l);
+              expandedArray.push(...lines);
+            } else {
+              expandedArray.push(item);
+            }
+          }
+          contentArray = expandedArray;
+          
           let formattedLines = [];
           
-          console.log('[ScreenwriterModal] 📝 Content array:', contentArray);
+          console.log('[ScreenwriterModal] 📝 Content array (after expansion):', contentArray);
+          console.log('[ScreenwriterModal] 📝 Content array length:', contentArray.length);
+          console.log('[ScreenwriterModal] 📝 Content array items:', contentArray.map((item, idx) => `${idx}: "${item}"`));
           
           for (let i = 0; i < contentArray.length; i++) {
             const line = contentArray[i].trim();
@@ -217,29 +234,41 @@ Rules:
             // Check if next line is action (not character, not dialogue, not parenthetical)
             const nextIsAction = nextLine && !nextIsCharacterName && !nextIsDialogue && !nextIsParenthetical;
             
+            console.log(`[ScreenwriterModal] Line ${i}: "${line}" | isChar:${isCharacterName} isParen:${isParenthetical} isDial:${isDialogue} isAction:${isAction} | nextIsChar:${nextIsCharacterName} nextIsParen:${nextIsParenthetical} nextIsDial:${nextIsDialogue}`);
+            
+            // FOUNTAIN SPEC: Character has blank line BEFORE, NO blank line AFTER
             // Add blank line BEFORE character name if previous was action
             if (isCharacterName && prevLine && !prevIsCharacterName && !prevIsParenthetical) {
               formattedLines.push('');
+              console.log(`[ScreenwriterModal] ✅ Added blank line BEFORE character name`);
             }
             
             // Add the line
             formattedLines.push(line);
             
+            // FOUNTAIN SPEC: Action → blank line → Character
             // Add blank line AFTER action if next is character name
             if (isAction && nextIsCharacterName) {
               formattedLines.push('');
+              console.log(`[ScreenwriterModal] ✅ Added blank line AFTER action (next is character)`);
             }
-            // Add blank line AFTER character name (before parenthetical or dialogue)
+            // FOUNTAIN SPEC: Character → NO blank line → Parenthetical/Dialogue
+            // Character has "without an empty line after it" - dialogue/parenthetical follows immediately
             else if (isCharacterName && (nextIsParenthetical || nextIsDialogue)) {
-              // No blank line - parenthetical/dialogue follows immediately
+              // No blank line - parenthetical/dialogue follows immediately on next line
+              console.log(`[ScreenwriterModal] ℹ️ Character name - NO blank line after (next is parenthetical/dialogue)`);
             }
-            // Add blank line AFTER parenthetical (before dialogue) - actually no, parenthetical flows to dialogue
+            // FOUNTAIN SPEC: Parenthetical → NO blank line → Dialogue
+            // Parenthetical flows directly to dialogue
             else if (isParenthetical && nextIsDialogue) {
-              // No blank line - dialogue follows immediately
+              // No blank line - dialogue follows immediately on next line
+              console.log(`[ScreenwriterModal] ℹ️ Parenthetical - NO blank line after (next is dialogue)`);
             }
+            // FOUNTAIN SPEC: Dialogue → blank line → Action/Character
             // Add blank line AFTER dialogue if next is action or character
             else if (isDialogue && nextLine && (nextIsAction || nextIsCharacterName)) {
               formattedLines.push('');
+              console.log(`[ScreenwriterModal] ✅ Added blank line AFTER dialogue (next is action/character)`);
             }
           }
           
