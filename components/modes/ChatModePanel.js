@@ -1258,10 +1258,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                       
                       {/* Single Insert Button (if not showing rewrite options) */}
                       {showInsertButton && !rewriteOptions && onInsert && (
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap relative z-10">
                           <button
-                            onClick={() => {
-                              console.log('[ChatModePanel] Insert button clicked');
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('[ChatModePanel] Insert button clicked (completed message)');
+                              console.log('[ChatModePanel] onInsert function:', typeof onInsert);
                               console.log('[ChatModePanel] Message content length:', message.content?.length);
                               console.log('[ChatModePanel] Message content preview:', message.content?.substring(0, 500));
                               
@@ -1293,6 +1296,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                                 return; // Don't insert empty content
                               }
                               
+                              console.log('[ChatModePanel] ✅ Calling onInsert with cleaned content');
+                              
                               // If in rewrite mode, pass selection range info
                               if (state.selectedTextContext && state.selectionRange) {
                                 onInsert(cleanedContent, {
@@ -1300,11 +1305,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                                   selectionRange: state.selectionRange
                                 });
                               } else {
-                              onInsert(cleanedContent);
+                                onInsert(cleanedContent);
                               }
                               closeDrawer();
                             }}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200 cursor-pointer relative z-10"
+                            type="button"
                           >
                             <FileText className="h-3.5 w-3.5" />
                             Insert into script
@@ -1339,13 +1345,21 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                   
                   {/* Insert button for streaming text (always show if there's content) */}
                   {onInsert && state.streamingText && state.streamingText.trim().length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap relative z-10">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('[ChatModePanel] Insert button clicked (streaming)');
+                          console.log('[ChatModePanel] onInsert function:', typeof onInsert);
+                          console.log('[ChatModePanel] Streaming text length:', state.streamingText?.length);
+                          
                           // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
                           // Get scene context for duplicate detection
                           const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
                           const cleanedContent = cleanFountainOutput(state.streamingText, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
+                          
+                          console.log('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
                           
                           // 🔥 PHASE 1 FIX: Validate content before inserting
                           if (!cleanedContent || cleanedContent.trim().length < 3) {
@@ -1356,6 +1370,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                             return; // Don't insert empty content
                           }
                           
+                          console.log('[ChatModePanel] ✅ Calling onInsert with cleaned content');
+                          
                           // If in rewrite mode, pass selection range info
                           if (state.selectedTextContext && state.selectionRange) {
                             onInsert(cleanedContent, {
@@ -1363,11 +1379,12 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                               selectionRange: state.selectionRange
                             });
                           } else {
-                          onInsert(cleanedContent);
+                            onInsert(cleanedContent);
                           }
                           closeDrawer();
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-base-200 hover:bg-base-300 text-base-content transition-colors duration-200 cursor-pointer relative z-10"
+                        type="button"
                       >
                         <FileText className="h-3.5 w-3.5" />
                         Insert into script
