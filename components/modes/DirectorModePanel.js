@@ -437,10 +437,12 @@ function cleanFountainOutput(text, sceneContext = null) {
   // First, normalize line endings and trim trailing whitespace from each line
   cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
   
-  // Find all scene headings and ensure 2 newlines before EACH scene heading
-  // This ensures proper spacing when inserting into existing screenplay content
+  // Find all scene headings and ensure proper spacing:
+  // - 1 newline before the FIRST scene heading
+  // - 2 newlines before all SUBSEQUENT scene headings
   const sceneLines = cleaned.split('\n');
   const result = [];
+  let firstSceneFound = false;
   
   for (let i = 0; i < sceneLines.length; i++) {
     const line = sceneLines[i];
@@ -448,15 +450,22 @@ function cleanFountainOutput(text, sceneContext = null) {
     
     // Check if this is a scene heading
     if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
-      // ALL scene headings need 2 newlines before them (including the first one)
-      // This ensures proper spacing when inserting into existing screenplay
-      // Remove any trailing newlines from previous content, then add 2 newlines
+      // Remove any trailing newlines from previous content
       while (result.length > 0 && result[result.length - 1].trim() === '') {
         result.pop(); // Remove trailing empty lines
       }
-      result.push(''); // Add first newline
-      result.push(''); // Add second newline
-      result.push(line); // Add scene heading
+      
+      if (!firstSceneFound) {
+        // First scene heading - add 1 newline
+        firstSceneFound = true;
+        result.push(''); // Add single newline
+        result.push(line); // Add scene heading
+      } else {
+        // Subsequent scene headings - add 2 newlines
+        result.push(''); // Add first newline
+        result.push(''); // Add second newline
+        result.push(line); // Add scene heading
+      }
     } else {
       result.push(line);
     }
