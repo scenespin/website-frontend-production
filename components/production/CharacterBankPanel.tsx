@@ -37,7 +37,7 @@ import { CharacterDetailModal } from './CharacterDetailModal';
 interface CharacterBankPanelProps {
   characters: CharacterProfile[];
   isLoading: boolean;
-  projectId: string;
+  projectId: string; // Actually screenplayId - kept as projectId for backward compatibility
   onCharactersUpdate: () => void;
 }
 
@@ -118,23 +118,35 @@ export function CharacterBankPanel({
   async function generateReferences(characterId: string) {
     setIsGeneratingRefs(prev => ({ ...prev, [characterId]: true }));
     try {
+      // Call Next.js API route which will proxy to backend with auth
       const response = await fetch('/api/character-bank/generate-variations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          projectId,
+          screenplayId: projectId, // Use screenplayId (projectId prop is actually screenplayId)
           characterId,
           variations: ['front', 'profile', 'three-quarter', 'happy', 'sad', 'action']
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (data.success) {
+        toast.success(`Generated ${data.references?.length || 0} reference variations!`);
         onCharactersUpdate();
+      } else {
+        throw new Error(data.error || 'Generation failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[CharacterBank] Generate refs failed:', error);
+      toast.error(error.message || 'Failed to generate references');
     } finally {
       setIsGeneratingRefs(prev => ({ ...prev, [characterId]: false }));
     }

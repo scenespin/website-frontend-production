@@ -273,25 +273,11 @@ export default function EditorWorkspace() {
         setIsDialogueModalOpen(false);
     };
     
-    // Legacy handler (kept for compatibility, but now opens modal)
+    // Legacy handler - removed since director mode no longer exists in chat window
+    // Dialogue is now handled via DialogueModal (opened by handleLaunchDialogue)
     const handleLaunchDialogueLegacy = () => {
-        const cursorPos = state.cursorPosition || 0;
-        const context = extractEditorContext(state.content, cursorPos);
-        
-        // Set scene context
-        if (context.sceneContext) {
-            setSceneContext(context.sceneContext);
-        }
-        
-        // Clear selected text context (not needed for director/dialogue)
-        setSelectedTextContext(null, null);
-        setInput('');
-        
-        // Open drawer in director mode (director handles dialogue & scene generation)
-        openDrawer('director', {
-            mode: 'director',
-            initialPrompt: null // Show instruction message
-        });
+        // Fallback: open DialogueModal instead
+        setIsDialogueModalOpen(true);
     };
     
     const handleLaunchRewrite = () => {

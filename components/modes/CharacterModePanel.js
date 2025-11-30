@@ -380,14 +380,12 @@ REQUIRED OUTPUT FORMAT:
   };
   
   // Handle "Continue with Dialogue" button
+  // Note: Director mode removed from chat window - users should use DirectorModal via FAB button
   const handleContinueWithDialogue = () => {
     setShowPostInsertPrompt(false);
-    setMode('director');
-    addMessage({
-      role: 'assistant',
-      content: `Let's add dialogue for ${insertedCharacterName}. What should they say?`,
-      mode: 'director'
-    });
+    // Close drawer and suggest using FAB button for dialogue
+    closeDrawer();
+    toast.success(`Use the Director FAB button to add dialogue for ${insertedCharacterName}`);
   };
   
   // Handle "Create Another Character" button

@@ -8,7 +8,6 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { ChatModePanel } from './modes/ChatModePanel';
-import { DirectorModePanel } from './modes/DirectorModePanel';
 import { CharacterModePanel } from './modes/CharacterModePanel';
 import { LocationModePanel } from './modes/LocationModePanel';
 import { ImageModePanel } from './modes/ImageModePanel';
@@ -25,12 +24,11 @@ import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
 
 // The Intelligent Agent System + Generation Features
-// AGENTS (with LLM selector): Screenwriter, Director, Audio, Workflows, Try-On
+// AGENTS (with LLM selector): Story Advisor, Character, Location, Audio, Workflows, Try-On
 // FEATURES (with their own selectors): Image (model selector), Video (wrapped)
 const MODE_CONFIG = {
   // AI AGENTS (use LLMs)
-  chat: { icon: MessageSquare, label: 'Screenwriter', color: 'text-purple-500', description: 'AI interviews & brainstorming', isAgent: true },
-  director: { icon: Clapperboard, label: 'Director', color: 'text-pink-500', description: 'Shot planning, dialogue & blocking', isAgent: true },
+  chat: { icon: MessageSquare, label: 'Story Advisor', color: 'text-purple-500', description: 'Screenplay consultation & creative guidance', isAgent: true },
   character: { icon: User, label: 'Character', color: 'text-cyan-500', description: 'Create characters with AI interview', isAgent: true },
   location: { icon: Building2, label: 'Location', color: 'text-amber-500', description: 'Create locations with AI interview', isAgent: true },
   audio: { icon: Music, label: 'Audio', color: 'text-green-500', description: 'Music, sound effects & dialogue', isAgent: true },
@@ -43,7 +41,7 @@ const MODE_CONFIG = {
 };
 
 // Mode order: Agents first, then generation features
-const MODE_ORDER = ['chat', 'director', 'character', 'location', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
+const MODE_ORDER = ['chat', 'character', 'location', 'audio', 'workflows', 'try-on', 'image', 'quick-video'];
 
 // ============================================================================
 // PAGE-BASED AGENT FILTERING
@@ -60,7 +58,7 @@ function getAvailableModesForPage(pathname) {
   
   // /write page - Writing agents ONLY
   if (pathname.includes('/write') || pathname.includes('/editor')) {
-    return ['chat', 'director', 'character', 'location'];
+    return ['chat', 'character', 'location'];
   }
   
   // /production page - Production agents ONLY (workflows first as default)
@@ -614,9 +612,6 @@ function UnifiedChatPanelInner({
             onClearContext={onClearContext}
           />
         );
-
-      case 'director':
-        return <DirectorModePanel {...commonProps} />;
 
       case 'character':
         return <CharacterModePanel {...commonProps} />;

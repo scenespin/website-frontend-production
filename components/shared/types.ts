@@ -9,7 +9,7 @@
 /**
  * Available agent modes in the chat panel
  */
-export type AgentMode = 'chat' | 'director' | 'image' | 'scene-visualizer' | 'quick-video' | 'dialogue' | 'audio' | 'workflows' | 'try-on';
+export type AgentMode = 'chat' | 'image' | 'scene-visualizer' | 'quick-video' | 'dialogue' | 'audio' | 'workflows' | 'try-on';
 
 /**
  * Chat message structure

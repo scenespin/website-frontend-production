@@ -6,7 +6,7 @@ import { createContext, useContext, useReducer, useCallback } from 'react';
 // TYPES
 // ============================================================================
 
-const AGENT_MODES = ['image', 'quick-video', 'audio', 'try-on', 'chat', 'director', 'workflows'];
+const AGENT_MODES = ['image', 'quick-video', 'audio', 'try-on', 'chat', 'workflows'];
 
 // ============================================================================
 // STATE INTERFACE
