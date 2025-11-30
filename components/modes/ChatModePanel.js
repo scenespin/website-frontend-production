@@ -129,8 +129,13 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
       
       // 🔥 CRITICAL: Stop immediately on options/suggestions patterns
       // These indicate the AI is giving options instead of writing content
-      if (/^(Option \d+|Here are|Here's|I can help|I'll|Let me)/i.test(line)) {
+      if (/^(Option \d+|Here are|Here's|I can help|I'll|Let me|SARAH'S|SCENE DEVELOPMENT|VISUAL STORYTELLING|STORY QUESTIONS|Given the scene|POTENTIAL ADDITIONS)/i.test(line)) {
         break; // Stop on options/suggestions
+      }
+      
+      // Stop on advice headers/patterns
+      if (/^(DIALOGUE\/ACTION SUGGESTION|LEAD PROBLEM|New Leads for|Here are some options|Here are options)/i.test(trimmedLine)) {
+        break; // Stop on advice headers
       }
       
       // If line starts with "NOTE:" or explanation words, stop here
@@ -825,7 +830,27 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       builtPrompt = buildChatContentPrompt(prompt, sceneContext, useJSONFormat);
       
       // Build system prompt - ALWAYS content generation
-      systemPrompt = `You are a screenwriting assistant. Write 1-3 lines that continue the scene. No scene headings. No analysis. No questions. Just write the lines.`;
+      // 🔥 CRITICAL: Screenwriter agent ONLY generates text, NEVER gives advice
+      systemPrompt = `You are a screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique.
+
+🚫 ABSOLUTELY FORBIDDEN:
+- NO options or suggestions (no "Here are some options:", "Option 1:", "Option 2:", "SARAH'S DIALOGUE/ACTION SUGGESTION:", "SCENE DEVELOPMENT", "VISUAL STORYTELLING OPTIONS:")
+- NO questions (no "What tone are you going for?", "Which direction?", "What direction would serve your Act 3 best?", "Is this showing Sarah...?", "Does the phone buzz lead...?", "Should someone...?", "STORY QUESTIONS:")
+- NO explanations or analysis (no "Given the scene context...", "Here are options to...", "This shows...", "This adds...")
+- NO lists or alternatives
+- NO scene headings (INT./EXT.)
+- NO markdown formatting
+
+✅ YOU MUST:
+- Write ONLY 1-3 lines of Fountain format screenplay content
+- Continue the scene from where the cursor is
+- Write action lines, dialogue, or character names
+- Just write what comes next in the scene
+
+Example: User says "her leads are garbage"
+You write: Sarah deletes another paragraph. Her phone buzzes with another dead-end tip. She silences it without looking.
+
+That's it. Just write the lines. No options. No questions. No analysis.`;
       
       // Add scene context if available (minimal, just for context)
       if (sceneContext) {
