@@ -3,7 +3,7 @@
 /**
  * AgentFABGroup - Floating Action Buttons for Quick Agent Launch
  * 
- * Three stacked FABs for instant access to Screenwriter, Dialogue, and Rewrite agents.
+ * Four stacked FABs for instant access to Screenwriter, Director, Dialogue, and Rewrite agents.
  * Mobile: Positioned bottom-right, larger buttons (56px)
  * Desktop: Positioned bottom-right, smaller buttons (48px), more subtle
  * Hidden when drawer is open.
@@ -11,10 +11,11 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit3, MessageSquare, Sparkles } from 'lucide-react';
+import { Edit3, MessageSquare, Sparkles, Film } from 'lucide-react';
 
 export default function AgentFABGroup({
   onLaunchScreenwriter,
+  onLaunchDirector,
   onLaunchDialogue,
   onLaunchRewrite,
   hasSelection,
@@ -114,6 +115,34 @@ export default function AgentFABGroup({
         >
           <MessageSquare className={iconSize} />
         </motion.button>
+
+        {/* Director FAB */}
+        {onLaunchDirector && (
+          <motion.button
+            onClick={onLaunchDirector}
+            className={`${buttonSize} rounded-full flex items-center justify-center text-white ${
+              isMobile ? 'shadow-2xl' : 'shadow-lg'
+            }`}
+            style={{
+              // Pink gradient (matches Director modal theme)
+              background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+            }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ 
+              delay: hasSelection ? 0.05 : 0.15, 
+              type: 'spring', 
+              stiffness: 260, 
+              damping: 20 
+            }}
+            whileTap={{ scale: 0.9 }}
+            whileHover={!isMobile ? { scale: 1.05 } : {}}
+            title="Launch Director Agent: Generate complete scenes with scene headings"
+            aria-label="Launch Director Agent"
+          >
+            <Film className={iconSize} />
+          </motion.button>
+        )}
 
         {/* Screenwriter FAB */}
         <motion.button

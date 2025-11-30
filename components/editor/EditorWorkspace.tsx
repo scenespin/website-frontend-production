@@ -531,6 +531,7 @@ Tip:
             {/* FAB Group - Mobile & Desktop */}
             <AgentFABGroup
                 onLaunchScreenwriter={handleLaunchScreenwriter}
+                onLaunchDirector={handleLaunchDirector}
                 onLaunchDialogue={handleLaunchDialogue}
                 onLaunchRewrite={handleLaunchRewrite}
                 hasSelection={hasSelection}
