@@ -456,33 +456,23 @@ function cleanFountainOutput(text, sceneContext = null) {
   }
   
   cleaned = screenplayLines.join('\n');
-  
-  // 🔥 SIMPLIFIED: Just add minimal spacing at the start so user knows content was inserted
-  // User is responsible for spacing scenes themselves - this is much more reliable
-  // Remove trailing newlines, then add 1-2 newlines at the start
-  cleaned = cleaned.replace(/\n+$/, ''); // Remove trailing newlines
-  cleaned = cleaned.trimStart(); // Remove leading whitespace
-  
-  // Add minimal spacing at the start (just enough to show insertion)
-  if (cleaned && !cleaned.startsWith('\n')) {
-    cleaned = '\n' + cleaned; // Add one newline at start
-  }
-  
-  // Remove duplicate "FADE OUT. THE END" patterns and "FADE TO BLACK"
+
+  // Remove duplicate "FADE OUT. THE END" patterns
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
   cleaned = cleaned.replace(/(FADE OUT\.?\s*\n\s*THE END\.?\s*\n\s*)+/gi, ''); // Remove all instances
-  // Also remove standalone "FADE OUT", "FADE TO BLACK", "FADE TO:", or "THE END" at the end
-  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|FADE TO BLACK\.?|FADE TO:?|THE END\.?)\s*$/gi, '');
-  // Remove "FADE TO BLACK", "FADE TO:", or "FADE OUT" anywhere in the content (shouldn't be in middle of screenplay)
-  cleaned = cleaned.replace(/^\s*(FADE TO BLACK\.?|FADE TO:?|FADE OUT\.?)\s*$/gim, '');
-  
-  // Normalize excessive newlines (3+ becomes 2) - but don't try to enforce scene spacing
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-  
-  // Trim leading/trailing whitespace (but preserve newlines in content)
-  // Only trim spaces/tabs, not newlines
-  cleaned = cleaned.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
-  
+  // Also remove standalone "FADE OUT" or "THE END" at the end
+  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
+
+  // Whitespace normalization
+  // 1. Trim trailing whitespace from each line
+  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+
+  // 2. Normalize multiple consecutive newlines to single newline (but preserve structure)
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines (for scene breaks if needed)
+
+  // 3. Trim leading/trailing whitespace from entire block
+  cleaned = cleaned.trim();
+
   return cleaned;
 }
 
