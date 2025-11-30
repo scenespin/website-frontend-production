@@ -208,14 +208,16 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         break; // STOP on endings - Screenwriter should not generate them
       }
       
-      // Also stop on notes/analysis patterns like "[Note:" or "*[Note:"
-      if (/^(\*?\s*)?\[Note:/i.test(line)) {
-        break; // STOP on notes/analysis
+      // Also stop on notes/analysis patterns like "[Note:" or "*[Note:" or "NOTE TO WRITER:"
+      // But only if we've already found screenplay content (don't stop before finding content)
+      if (foundFirstScreenplayContent && (/^(\*?\s*)?\[Note:/i.test(line) || /^NOTE\s+TO\s+WRITER:/i.test(line))) {
+        break; // STOP on notes/analysis (but only after finding screenplay content)
       }
       
       // Stop on lines that start with "*" followed by analysis (like "*[Note: This addition...")
-      if (/^\*\s*\[/i.test(line)) {
-        break; // STOP on markdown analysis notes
+      // But only if we've already found screenplay content
+      if (foundFirstScreenplayContent && /^\*\s*\[/i.test(line)) {
+        break; // STOP on markdown analysis notes (but only after finding screenplay content)
       }
       
       // Skip "[SCREENWRITING ASSISTANT]" headers (with or without brackets)
@@ -223,12 +225,14 @@ function cleanFountainOutput(text, contextBeforeCursor = null) {
         continue; // Skip assistant headers
       }
       
-      // 🔥 CRITICAL: If we find a scene heading (with or without markdown), STOP processing
-      // Screenwriter agent should NEVER generate scene headings - if it does, something is wrong
+      // 🔥 CRITICAL: If we find a scene heading (with or without markdown), handle it
+      // Screenwriter agent CAN generate scene headings if user requests a scene addition
       // Check for both regular scene headings and markdown scene headings (# INT. or ## INT.)
       if (/^(#+\s*)?(INT\.|EXT\.|I\/E\.)/i.test(line)) {
         sceneHeadingFound = true;
-        break; // STOP on scene headings - Screenwriter should not generate them
+        foundFirstScreenplayContent = true; // Mark that we found screenplay content
+        // Don't break - include the scene heading and continue processing
+        // The Screenwriter agent can generate full scenes when requested (scene additions)
       }
       
       // 🔥 RELAXED: Don't break on scene headings - just skip them and continue
