@@ -8,7 +8,7 @@ import { FileText, Sparkles, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene, buildContextPrompt, extractSelectionContext } from '@/utils/sceneDetection';
-import { buildChatContentPrompt, buildChatAdvicePrompt, detectContentRequest, buildRewritePrompt } from '@/utils/promptBuilders';
+import { buildChatContentPrompt, buildRewritePrompt } from '@/utils/promptBuilders';
 import { validateScreenplayContent, supportsNativeJSON, buildRetryPrompt } from '@/utils/jsonValidator';
 import toast from 'react-hot-toast';
 
@@ -944,8 +944,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         },
         // onComplete
         async (fullContent) => {
-          // 🔥 PHASE 4: Validate JSON for content requests
-          if (isContentRequest && useJSONFormat) {
+          // 🔥 PHASE 4: Validate JSON for content requests (currently disabled, but keeping structure)
+          if (useJSONFormat) {
             console.log('[ChatModePanel] Validating JSON response...');
             const validation = validateScreenplayContent(fullContent, sceneContext?.contextBeforeCursor || null);
             
