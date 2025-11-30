@@ -757,10 +757,17 @@ RULES:
           const isRateLimit = errorString.includes('rate_limit') || 
                              errorString.includes('429') ||
                              errorString.includes('too_many_requests');
+          const isParameterError = errorString.includes('max_tokens') && 
+                                  errorString.includes('max_completion_tokens') ||
+                                  errorString.includes('Unsupported parameter');
           
           if (isOverloaded || isRateLimit) {
             errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
             userFriendlyMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
+            toast.error(errorMessage, { duration: 5000 });
+          } else if (isParameterError) {
+            errorMessage = 'API configuration error. Please try a different model or contact support.';
+            userFriendlyMessage = '⚠️ There was a configuration issue with this model. Please try selecting a different model.';
             toast.error(errorMessage, { duration: 5000 });
           } else {
             toast.error(error.message || errorMessage);
@@ -793,6 +800,9 @@ RULES:
       const isRateLimit = errorString.includes('rate_limit') || 
                          errorString.includes('429') ||
                          errorString.includes('too_many_requests');
+      const isParameterError = errorString.includes('max_tokens') && 
+                               errorString.includes('max_completion_tokens') ||
+                               errorString.includes('Unsupported parameter');
       
       let errorMessage = error.response?.data?.message || error.message || 'Failed to get AI response';
       let userFriendlyMessage = '❌ Sorry, I encountered an error. Please try again.';
@@ -800,6 +810,10 @@ RULES:
       if (isOverloaded || isRateLimit) {
         errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
         userFriendlyMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
+        toast.error(errorMessage, { duration: 5000 });
+      } else if (isParameterError) {
+        errorMessage = 'API configuration error. Please try a different model or contact support.';
+        userFriendlyMessage = '⚠️ There was a configuration issue with this model. Please try selecting a different model.';
         toast.error(errorMessage, { duration: 5000 });
       } else {
         toast.error(errorMessage);
