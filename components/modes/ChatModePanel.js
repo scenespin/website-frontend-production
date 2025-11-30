@@ -683,10 +683,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         isNarrativeDescription: /^(her|his|the|a|an)\s+(monitor|tv|phone|door|window|car|computer|screen|robot|desk|wall|floor|ceiling|room)/i.test(prompt)
       });
       
-      // 🔥 SIMPLIFIED: Make JSON optional - use when it works, but text cleaning is primary
-      // Only use JSON if model supports it well (OpenAI models)
-      const modelSupportsNativeJSON = supportsNativeJSON(selectedModel);
-      const useJSONFormat = isContentRequest && modelSupportsNativeJSON; // Only use JSON for models that support it well
+      // 🔥 SIMPLIFIED: No JSON for Screenwriter agent - just simple text, aggressive cleaning
+      // JSON adds complexity and the AI often ignores it anyway
+      const useJSONFormat = false; // Always use simple text format
       
       // Build appropriate prompt using prompt builders
       builtPrompt = isContentRequest 
@@ -700,24 +699,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           systemPrompt = `You are a professional screenwriting assistant. You MUST respond with valid JSON only. No explanations, no markdown, just JSON.`;
         } else {
           // Fallback: Original text format - STRICT: NO OPTIONS, NO SUGGESTIONS
-          systemPrompt = `You are a professional screenwriting assistant. The user wants you to WRITE SCREENPLAY CONTENT, not analyze or critique.
-
-🚫 ABSOLUTELY FORBIDDEN:
-- NO options or suggestions (no "Here are some options:", "Option 1:", "Option 2:", "A few thoughts:")
-- NO questions (no "Which approach?", "Does this work?", "What tone are you going for?", "Could you clarify?", "Are you referring to?")
-- NO explanations or analysis (no "Ah, interesting detail!", "Adding that... could create...", "What it might suggest:", "Potential line adjustment:")
-- NO full scene rewrites or revisions (no "Here's a revision:", "Here's how it could be:")
-- NO scene headings (INT./EXT./I/E.) - NEVER include scene headings
-- NO lists or alternatives
-- NO meta-commentary about the writing process
-- NO suggestions about what to add or how to improve
-
-✅ YOU MUST:
-- Write ONLY 1-5 lines that continue from the cursor
-- Continue the existing scene, don't rewrite it
-- If user says "USB drive is gooey", write: "The USB drive is gooey." (just that line, not a full scene)
-- Write in Fountain format (action lines or dialogue only)
-- Direct continuation only - no analysis, no questions, no suggestions, no revisions`;
+          systemPrompt = `You are a screenwriting assistant. Write 1-3 lines that continue the scene. No scene headings. No analysis. No questions. Just write the lines.`;
         }
         
         // Add scene context if available (minimal, just for context)

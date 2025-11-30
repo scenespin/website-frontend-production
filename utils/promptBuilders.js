@@ -97,61 +97,22 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
     continuationContext += '\n🔥 CRITICAL: The content above the cursor marker already exists in the screenplay. DO NOT include it in your output. DO NOT repeat any of the text shown above the cursor marker.';
   }
 
-  // Simplified prompt - JSON optional, text cleaning is primary
-  if (useJSON) {
-    return `${contextInfo}Continue the scene from the cursor. Write ONLY 1-5 lines of action or dialogue.
+  // 🔥 SIMPLIFIED: Ultra-simple prompt, aggressive cleaning handles the rest
+  // No JSON - just simple text generation, cleaning extracts what we need
+  return `${contextInfo}Write 1-3 lines that continue from the cursor.
 
 ${continuationContext}
 
-🚫 ABSOLUTELY FORBIDDEN:
-- NO scene headings (INT./EXT./I/E.) - NEVER include scene headings
-- NO full scene rewrites or revisions
-- NO "Here's a revision:" or "Here's how it could be:"
-- NO repeating content before cursor
-- NO dashes (-- or -) in action lines
-- NO analysis, suggestions, or questions
-
-✅ YOU MUST:
-- Write ONLY 1-5 lines that continue from the cursor
-- If user says "USB drive is gooey", write: "The USB drive is gooey." or "It's gooey." (just the line, not a full scene)
-- Continue the existing scene, don't rewrite it
-- Write in Fountain format (action lines or dialogue only)
-
-Respond with JSON:
-{
-  "content": ["line 1", "line 2"],
-  "lineCount": 2
-}
+Rules:
+- 1-3 lines only
+- No scene headings
+- No analysis
+- Just continue the scene
 
 Example: User says "it was gooey"
-Output: {"content": ["The USB drive is gooey."], "lineCount": 1}
+You write: The USB drive is gooey.
 
-NOT: A full scene rewrite with scene heading`;
-  }
-  
-  // Fallback: Simplified text format (primary reliable path)
-  return `${contextInfo}Continue the scene from the cursor. Write ONLY 1-5 lines of action or dialogue.
-
-${continuationContext}
-
-🚫 ABSOLUTELY FORBIDDEN:
-- NO scene headings (INT./EXT./I/E.) - NEVER include scene headings
-- NO full scene rewrites or revisions
-- NO "Here's a revision:" or "Here's how it could be:"
-- NO repeating content before cursor
-- NO dashes (-- or -) in action lines
-- NO analysis, suggestions, or questions
-
-✅ YOU MUST:
-- Write ONLY 1-5 lines that continue from the cursor
-- If user says "USB drive is gooey", write: "The USB drive is gooey." or "It's gooey." (just the line, not a full scene)
-- Continue the existing scene, don't rewrite it
-- Write in Fountain format (action lines or dialogue only)
-
-Example: User says "it was gooey"
-Output: The USB drive is gooey.
-
-NOT: A full scene rewrite with scene heading`;
+That's it. Just write the lines.`;
 }
 
 /**
