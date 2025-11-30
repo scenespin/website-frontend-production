@@ -1268,7 +1268,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                               // Clean the content before inserting (strip markdown, remove notes, remove duplicates)
                               // Get scene context for duplicate detection
                               const currentSceneContext = detectCurrentScene(editorContent, cursorPosition);
-                              const cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null);
+                              const cleanedContent = cleanFountainOutput(message.content, currentSceneContext?.contextBeforeCursor || null, currentSceneContext);
                               
                               console.log('[ChatModePanel] Cleaned content length:', cleanedContent?.length || 0);
                               console.log('[ChatModePanel] Cleaned content preview:', cleanedContent?.substring(0, 500) || '(empty)');
