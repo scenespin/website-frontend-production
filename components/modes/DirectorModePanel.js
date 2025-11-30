@@ -40,6 +40,8 @@ function cleanFountainOutput(text, sceneContext = null) {
     // 🔥 NEW: Remove markdown headers (## or ###) and convert to action lines
     // Example: "## A FEW BLOCKS LATER" -> "A FEW BLOCKS LATER"
     .replace(/^#+\s+(.+)$/gm, '$1')
+    // 🔥 NEW: Remove leading asterisks (standalone * at start of line, like *"Tomorrow...")
+    .replace(/^\s*\*\s*/gm, '') // Remove * at start of lines (with optional whitespace)
     // 🔥 NEW: Remove trailing asterisks (standalone * at end of line or end of content)
     .replace(/\s*\*\s*$/gm, '') // Remove * at end of lines
     .replace(/\s*\*$/, ''); // Remove * at very end of content
@@ -102,6 +104,7 @@ function cleanFountainOutput(text, sceneContext = null) {
     /^\s*---\s*$/,
     /^\s*\*\s*$/,
     /^FADE OUT\.?\s*$/i,  // Skip "FADE OUT" lines (shouldn't be in middle of screenplay)
+    /^FADE TO BLACK\.?\s*$/i,  // Skip "FADE TO BLACK" lines (shouldn't be in middle of screenplay)
     /^THE END\.?\s*$/i,    // Skip "THE END" lines (shouldn't be in middle of screenplay)
     /^\[SCREENWRITING ASSISTANT\]\s*$/i,  // Skip "[SCREENWRITING ASSISTANT]" headers
     /^SCREENWRITING ASSISTANT\s*$/i,        // Skip "SCREENWRITING ASSISTANT" headers
@@ -223,13 +226,47 @@ function cleanFountainOutput(text, sceneContext = null) {
       // Check if this matches the current scene (duplicate)
       const currentSceneHeading = sceneContext?.heading || '';
       if (currentSceneHeading) {
-        const currentLocation = currentSceneHeading.toLowerCase().split(' - ')[0].trim();
-        const newLocation = trimmedLine.toLowerCase().split(' - ')[0].trim();
-        const currentFull = currentSceneHeading.toLowerCase().trim();
-        const newFull = trimmedLine.toLowerCase().trim();
+        // Normalize both headings for comparison (remove extra spaces, case-insensitive)
+        const normalizeHeading = (heading) => {
+          return heading.toLowerCase()
+            .replace(/\s+/g, ' ')
+            .replace(/\s*-\s*/g, ' - ')
+            .trim();
+        };
         
-        if (currentLocation === newLocation || currentFull === newFull) {
-          console.log('[DirectorModePanel] Skipping duplicate scene heading in main loop:', trimmedLine);
+        const currentNormalized = normalizeHeading(currentSceneHeading);
+        const newNormalized = normalizeHeading(trimmedLine);
+        
+        // Check if locations match (before the dash)
+        const currentLocation = currentNormalized.split(' - ')[0].trim();
+        const newLocation = newNormalized.split(' - ')[0].trim();
+        
+        // Check if full headings match (exact match)
+        const isExactMatch = currentNormalized === newNormalized;
+        // Check if locations match (same location, might be different time)
+        const isLocationMatch = currentLocation === newLocation && currentLocation.length > 0;
+        
+        if (isExactMatch || isLocationMatch) {
+          console.log('[DirectorModePanel] ⚠️ Skipping duplicate scene heading:', trimmedLine, 'matches current:', currentSceneHeading);
+          // Skip this line AND all content until the next scene heading
+          // This prevents including the rewritten scene content
+          let foundNextScene = false;
+          for (let j = i + 1; j < lines.length; j++) {
+            const nextLine = lines[j].trim();
+            if (/^(INT\.|EXT\.|I\/E\.)/i.test(nextLine)) {
+              // Found next scene heading - normalize and check if it's different
+              const nextNormalized = normalizeHeading(nextLine);
+              if (nextNormalized !== currentNormalized && normalizeHeading(nextLine).split(' - ')[0].trim() !== currentLocation) {
+                foundNextScene = true;
+                i = j - 1; // Set i to j-1 so the loop will process j next
+                break;
+              }
+            }
+          }
+          if (!foundNextScene) {
+            // No next scene found, skip everything
+            break;
+          }
           continue; // Skip duplicate scene heading
         }
       }
@@ -267,16 +304,30 @@ function cleanFountainOutput(text, sceneContext = null) {
       if (/^(INT\.|EXT\.|I\/E\.)/i.test(trimmedLine)) {
         // Skip if it matches the current scene (duplicate)
         if (currentSceneHeading) {
-          const currentLocation = currentSceneHeading.toLowerCase().split(' - ')[0].trim();
-          const newLocation = trimmedLine.toLowerCase().split(' - ')[0].trim();
-          // Also check if the full scene heading matches (more accurate)
-          const currentFull = currentSceneHeading.toLowerCase().trim();
-          const newFull = trimmedLine.toLowerCase().trim();
+          // Normalize both headings for comparison (remove extra spaces, case-insensitive)
+          const normalizeHeading = (heading) => {
+            return heading.toLowerCase()
+              .replace(/\s+/g, ' ')
+              .replace(/\s*-\s*/g, ' - ')
+              .trim();
+          };
           
-          if (currentLocation === newLocation || currentFull === newFull) {
-            console.log('[DirectorModePanel] Skipping duplicate scene heading:', trimmedLine);
+          const currentNormalized = normalizeHeading(currentSceneHeading);
+          const newNormalized = normalizeHeading(trimmedLine);
+          
+          // Check if locations match (before the dash)
+          const currentLocation = currentNormalized.split(' - ')[0].trim();
+          const newLocation = newNormalized.split(' - ')[0].trim();
+          
+          // Check if full headings match (exact match)
+          const isExactMatch = currentNormalized === newNormalized;
+          // Check if locations match (same location, might be different time)
+          const isLocationMatch = currentLocation === newLocation && currentLocation.length > 0;
+          
+          if (isExactMatch || isLocationMatch) {
+            console.log('[DirectorModePanel] ⚠️ Skipping duplicate scene heading in aggressive extraction:', trimmedLine, 'matches current:', currentSceneHeading);
             skippedDuplicateScene = true;
-            continue; // Skip duplicate scene heading
+            continue; // Skip duplicate scene heading and keep looking
           }
         }
         firstContentIndex = i;
@@ -331,27 +382,31 @@ function cleanFountainOutput(text, sceneContext = null) {
   cleaned = screenplayLines.join('\n');
   
   // 🔥 CRITICAL: Ensure 2 newlines between scenes (Fountain format standard)
-  // Pattern: scene heading should have 2 newlines before it (except the first one)
-  cleaned = cleaned.replace(/(\n)(INT\.|EXT\.|I\/E\.)/gi, (match, newline, heading) => {
-    // Check if this is the first scene heading (at start of content)
-    const beforeMatch = cleaned.substring(0, cleaned.indexOf(match));
-    if (beforeMatch.trim().length === 0) {
-      return heading; // First scene heading, no extra newline needed
-    }
-    // Check if there's already 2+ newlines before this scene heading
-    const beforeNewlines = beforeMatch.match(/\n+$/);
-    if (beforeNewlines && beforeNewlines[0].length >= 2) {
-      return match; // Already has 2+ newlines, keep as is
-    }
-    // Add extra newline to make it 2 newlines total before scene heading
-    return '\n\n' + heading;
-  });
+  // Split by scene headings and rejoin with 2 newlines
+  const sceneParts = cleaned.split(/(?=^(?:INT\.|EXT\.|I\/E\.))/gim);
+  if (sceneParts.length > 1) {
+    // Multiple scenes - ensure 2 newlines between them
+    cleaned = sceneParts
+      .map((part, index) => {
+        if (index === 0) {
+          // First scene - trim leading whitespace but keep content
+          return part.trimStart();
+        }
+        // Subsequent scenes - ensure 2 newlines before scene heading
+        // Remove any existing newlines at the start, then add exactly 2
+        const trimmed = part.replace(/^\s*\n*/, '');
+        return '\n\n' + trimmed;
+      })
+      .join('');
+  }
   
-  // Remove duplicate "FADE OUT. THE END" patterns
+  // Remove duplicate "FADE OUT. THE END" patterns and "FADE TO BLACK"
   // Match patterns like "FADE OUT.\n\nTHE END" or "FADE OUT.\nTHE END" (with or without periods)
   cleaned = cleaned.replace(/(FADE OUT\.?\s*\n\s*THE END\.?\s*\n\s*)+/gi, ''); // Remove all instances
-  // Also remove standalone "FADE OUT" or "THE END" at the end
-  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
+  // Also remove standalone "FADE OUT", "FADE TO BLACK", or "THE END" at the end
+  cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|FADE TO BLACK\.?|THE END\.?)\s*$/gi, '');
+  // Remove "FADE TO BLACK" anywhere in the content (shouldn't be in middle of screenplay)
+  cleaned = cleaned.replace(/^\s*FADE TO BLACK\.?\s*$/gim, '');
   
   // Whitespace normalization
   // 1. Trim trailing whitespace from each line
