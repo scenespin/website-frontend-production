@@ -325,7 +325,7 @@ export default function EditorWorkspace() {
             // This handles the case where entire paragraph is selected (selection ends at newline)
             if (!cleaned.endsWith('\n') && !cleaned.endsWith('\r\n')) {
                 cleaned = cleaned + '\n';
-                console.log('[EditorWorkspace] ✅ Added newline (textAfter has newline but rewrite doesn't) - new length:', cleaned.length);
+                console.log('[EditorWorkspace] ✅ Added newline (textAfter has newline but rewrite does not) - new length:', cleaned.length);
             } else {
                 console.log('[EditorWorkspace] ℹ️ Newline already present');
             }
