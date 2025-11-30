@@ -114,6 +114,7 @@ function cleanFountainOutput(text, sceneContext = null) {
     /^\s*\*\s*$/,
     /^FADE OUT\.?\s*$/i,  // Skip "FADE OUT" lines (shouldn't be in middle of screenplay)
     /^FADE TO BLACK\.?\s*$/i,  // Skip "FADE TO BLACK" lines (shouldn't be in middle of screenplay)
+    /^FADE TO:?\s*$/i,  // Skip "FADE TO:" lines (shouldn't be in middle of screenplay)
     /^THE END\.?\s*$/i,    // Skip "THE END" lines (shouldn't be in middle of screenplay)
     /^\[SCREENWRITING ASSISTANT\]\s*$/i,  // Skip "[SCREENWRITING ASSISTANT]" headers
     /^SCREENWRITING ASSISTANT\s*$/i,        // Skip "SCREENWRITING ASSISTANT" headers
