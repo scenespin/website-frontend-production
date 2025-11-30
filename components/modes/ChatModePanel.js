@@ -522,13 +522,13 @@ function cleanFountainOutput(text, contextBeforeCursor = null, sceneContext = nu
   // Remove "FADE OUT" and "THE END" at the end
   cleaned = cleaned.replace(/\n\s*(FADE OUT\.?|THE END\.?)\s*$/gi, '');
   
-  // 🔥 AGGRESSIVE: Limit to first 3 lines maximum for Screenwriter agent
-  // This ensures we never get more than 3 lines even if AI generates more
-  const allLines = cleaned.split('\n').filter(line => line.trim().length > 0);
-  if (allLines.length > 3) {
-    cleaned = allLines.slice(0, 3).join('\n');
-    console.log('[ChatModePanel] ⚠️ Truncated to 3 lines (Screenwriter agent limit)');
-  }
+  // 🔥 REMOVED: 3-line limit was too aggressive and cutting off legitimate content
+  // The cleaning function already stops at:
+  // - New scene headings (different locations)
+  // - Analysis patterns
+  // - Notes/separators
+  // - Explanation text
+  // So we don't need an arbitrary line limit - let the natural cleaning logic handle it
   
   // Whitespace normalization
   // 1. Trim trailing whitespace from each line (but preserve newlines)
