@@ -104,6 +104,10 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
+  
+  // Location bank state (Feature 0142: Location Bank Unification)
+  const [locations, setLocations] = useState<any[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
   // Sync activeTab with URL params
   useEffect(() => {
@@ -401,20 +405,10 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
-                locations={(screenplay.locations || []).map(loc => ({
-                  location_id: loc.id,
-                  project_id: projectId,
-                  name: loc.name,
-                  full_name: loc.name,
-                  type: loc.type as 'INT.' | 'EXT.' | 'INT./EXT.',
-                  description: loc.description || `Imported from script`,
-                  scenes: [],
-                  reference_images: (loc.images || []).map(img => img.imageUrl),
-                  created_at: loc.createdAt || new Date().toISOString(),
-                  updated_at: loc.updatedAt || new Date().toISOString(),
-                }))}
-                isLoading={screenplay.isLoading}
                 projectId={projectId}
+                locations={locations}
+                isLoading={isLoadingLocations}
+                onLocationsUpdate={loadLocations}
                 className="h-full"
               />
             </div>
@@ -651,20 +645,10 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
-                locations={(screenplay.locations || []).map(loc => ({
-                  location_id: loc.id,
-                  project_id: projectId,
-                  name: loc.name,
-                  full_name: loc.name,
-                  type: loc.type as 'INT.' | 'EXT.' | 'INT./EXT.',
-                  description: loc.description || `Imported from script`,
-                  scenes: [],
-                  reference_images: (loc.images || []).map(img => img.imageUrl),
-                  created_at: loc.createdAt || new Date().toISOString(),
-                  updated_at: loc.updatedAt || new Date().toISOString(),
-                }))}
-                isLoading={screenplay.isLoading}
                 projectId={projectId}
+                locations={locations}
+                isLoading={isLoadingLocations}
+                onLocationsUpdate={loadLocations}
                 className="h-full"
               />
             </div>
