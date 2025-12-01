@@ -121,13 +121,6 @@ export function LocationBankPanel({
       setIsGeneratingAngles(prev => ({ ...prev, [locationId]: false }));
     }
   }
-
-  const handleSwitchToChatForInterview = (location: any, context: any) => {
-    // Start the AI interview workflow
-    setWorkflow(context);
-    setIsDrawerOpen(true);
-    setShowCreateSidebar(false);
-  };
   
   if (isLoading) {
     return (
