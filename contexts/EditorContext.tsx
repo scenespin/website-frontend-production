@@ -466,7 +466,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 if (!pendingUndoSnapshotRef.current) {
                     pendingUndoSnapshotRef.current = {
                         content: previousContent || prev.content,
-                        cursorPosition: previousCursor || prev.cursorPosition ?? 0
+                        cursorPosition: (previousCursor ?? prev.cursorPosition) ?? 0
                     };
                 }
                 
