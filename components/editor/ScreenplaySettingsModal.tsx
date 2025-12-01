@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { X, Settings, Loader2 } from 'lucide-react';
+import { useStorageConnections } from '@/hooks/useStorageConnections';
+import { X, Settings, Loader2, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ScreenplaySettingsModalProps {
@@ -29,6 +30,10 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
+  const [cloudStorageProvider, setCloudStorageProvider] = useState<'google-drive' | 'dropbox' | null>(null);
+  
+  // Check storage connections
+  const { googleDrive, dropbox, isLoading: connectionsLoading } = useStorageConnections();
 
   useEffect(() => {
     if (isOpen && screenplayId) {
@@ -48,6 +53,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         setAuthor(screenplayData.author || '');
         setDescription(screenplayData.description || '');
         setGenre(screenplayData.metadata?.genre || '');
+        setCloudStorageProvider(screenplayData.cloudStorageProvider || null);
       }
     } catch (error) {
       console.error('[ScreenplaySettingsModal] Failed to fetch screenplay:', error);
@@ -82,7 +88,8 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
           metadata: {
             ...(currentScreenplay?.metadata || {}),
             ...(genre.trim() ? { genre: genre.trim() } : {})
-          }
+          },
+          cloudStorageProvider: cloudStorageProvider || undefined
         },
         getToken
       );
@@ -210,6 +217,88 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   <option value="documentary">Documentary</option>
                   <option value="other">Other</option>
                 </select>
+              </div>
+
+              {/* Cloud Storage Provider */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <Cloud className="w-4 h-4 inline mr-2" />
+                  Cloud Storage Auto-Sync (Optional)
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-600 bg-slate-700/50 hover:bg-slate-700 cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="cloudProvider"
+                      value=""
+                      checked={cloudStorageProvider === null}
+                      onChange={() => setCloudStorageProvider(null)}
+                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
+                      disabled={isSaving}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-slate-200">None (Manual Sync)</div>
+                      <div className="text-xs text-slate-400">You'll choose storage location each time</div>
+                    </div>
+                  </label>
+                  
+                  <label className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    cloudStorageProvider === 'google-drive' 
+                      ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                      : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
+                  } cursor-pointer transition-colors ${!googleDrive ? 'opacity-50' : ''}`}>
+                    <input
+                      type="radio"
+                      name="cloudProvider"
+                      value="google-drive"
+                      checked={cloudStorageProvider === 'google-drive'}
+                      onChange={() => setCloudStorageProvider('google-drive')}
+                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
+                      disabled={isSaving || !googleDrive}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                        Google Drive
+                        {!googleDrive && (
+                          <span className="text-xs text-yellow-500 font-normal">(Not connected)</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        Files automatically sync to Google Drive
+                      </div>
+                    </div>
+                  </label>
+                  
+                  <label className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    cloudStorageProvider === 'dropbox' 
+                      ? 'border-[#DC143C] bg-[#DC143C]/10' 
+                      : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
+                  } cursor-pointer transition-colors ${!dropbox ? 'opacity-50' : ''}`}>
+                    <input
+                      type="radio"
+                      name="cloudProvider"
+                      value="dropbox"
+                      checked={cloudStorageProvider === 'dropbox'}
+                      onChange={() => setCloudStorageProvider('dropbox')}
+                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
+                      disabled={isSaving || !dropbox}
+                    />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                        Dropbox
+                        {!dropbox && (
+                          <span className="text-xs text-yellow-500 font-normal">(Not connected)</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        Files automatically sync to Dropbox
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
+                </p>
               </div>
             </>
           )}

@@ -112,6 +112,7 @@ export interface Screenplay {
   last_edited_by?: string; // Feature 0133: user_id of the person who last edited
   last_edited_at?: string; // Feature 0133: ISO timestamp of last edit
   collaborators?: Collaborator[]; // Feature 0122: Array of collaborators with their roles
+  cloudStorageProvider?: 'google-drive' | 'dropbox' | null; // Feature 0144: Per-screenplay cloud provider for auto-sync
 }
 
 export interface CreateScreenplayParams {
@@ -146,6 +147,7 @@ export interface UpdateScreenplayParams {
   relationships?: Relationships;
   github_config?: GitHubConfig;
   status?: 'active' | 'archived' | 'deleted';
+  cloudStorageProvider?: 'google-drive' | 'dropbox' | null; // Feature 0144: Per-screenplay cloud provider for auto-sync
   // Feature 0133: Optimistic Locking
   expectedVersion?: number;  // Version number expected when saving (for conflict detection)
   force?: boolean;  // Force save (bypass version check) - for conflict resolution "Keep My Changes"
