@@ -226,7 +226,18 @@ export function LocationBankPanel({
             onUpdate={async (locationId, updates) => {
               // Handle location updates via ScreenplayContext
               try {
-                await updateLocation(locationId, updates);
+                // Map LocationProfile type to LocationType
+                const locationUpdates: any = { ...updates };
+                if (updates.type) {
+                  // Convert 'interior' | 'exterior' | 'mixed' to 'INT' | 'EXT' | 'INT/EXT'
+                  const typeMap: Record<string, 'INT' | 'EXT' | 'INT/EXT'> = {
+                    'interior': 'INT',
+                    'exterior': 'EXT',
+                    'mixed': 'INT/EXT'
+                  };
+                  locationUpdates.type = typeMap[updates.type] || updates.type;
+                }
+                await updateLocation(locationId, locationUpdates);
                 if (onLocationsUpdate) {
                   onLocationsUpdate();
                 }
