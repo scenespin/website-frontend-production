@@ -225,6 +225,9 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   <Cloud className="w-4 h-4 inline mr-2" />
                   Cloud Storage Auto-Sync (Optional)
                 </label>
+                <p className="text-xs text-slate-400 mb-3">
+                  Choose one provider per screenplay. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
+                </p>
                 <div className="space-y-2">
                   <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-600 bg-slate-700/50 hover:bg-slate-700 cursor-pointer transition-colors">
                     <input

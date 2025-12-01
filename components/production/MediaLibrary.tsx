@@ -36,6 +36,9 @@ import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { toast } from 'sonner';
 // Removed useDropdownCoordinator - using uncontrolled state
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
+import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
+import { getScreenplay } from '@/utils/screenplayStorage';
+import { Settings, Info } from 'lucide-react';
 import { 
   useMediaFiles, 
   useStorageConnectionsQuery, 
@@ -273,9 +276,42 @@ export default function MediaLibrary({
     type: 'video' | 'image' | 'attachment';
   } | null>(null);
 
+  // Auto-sync configuration state (Feature 0144)
+  const [screenplayData, setScreenplayData] = useState<{ cloudStorageProvider?: 'google-drive' | 'dropbox' | null; title?: string } | null>(null);
+  const [isLoadingScreenplay, setIsLoadingScreenplay] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   // ============================================================================
   // API CALLS
   // ============================================================================
+
+  // Load screenplay data to check auto-sync status (Feature 0144)
+  useEffect(() => {
+    const loadScreenplayData = async () => {
+      // Only load if projectId is a valid screenplay ID
+      if (!projectId || !projectId.startsWith('screenplay_')) {
+        return;
+      }
+
+      setIsLoadingScreenplay(true);
+      try {
+        const screenplay = await getScreenplay(projectId, getToken);
+        if (screenplay) {
+          setScreenplayData({
+            cloudStorageProvider: screenplay.cloudStorageProvider || null,
+            title: screenplay.title
+          });
+        }
+      } catch (error) {
+        console.error('[MediaLibrary] Failed to load screenplay data:', error);
+        // Don't show error toast - this is optional data
+      } finally {
+        setIsLoadingScreenplay(false);
+      }
+    };
+
+    loadScreenplayData();
+  }, [projectId, getToken]);
 
   // Load folder files (cloud storage folders - not using React Query yet)
   const loadFolderFiles = async (folderId: string) => {
@@ -1211,49 +1247,112 @@ export default function MediaLibrary({
             className="hidden"
           />
 
-          {/* Cloud Storage Buttons */}
-          <button
-            onClick={() => handleConnectDrive('google-drive')}
-            className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
-              (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected
-                ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
-                : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
-            }`}
-          >
-            {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected ? (
-              <>
-                <Check className="w-5 h-5" />
-                <span className="hidden sm:inline">Drive Connected</span>
-              </>
-            ) : (
-              <>
-                <Cloud className="w-5 h-5" />
-                <span className="hidden sm:inline">Google Drive</span>
-              </>
-            )}
-          </button>
+          {/* Cloud Storage Section - Feature 0144: Improved UI */}
+          <div className="flex gap-2">
+            {/* Google Drive Connection */}
+            <button
+              onClick={() => handleConnectDrive('google-drive')}
+              className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected
+                  ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
+                  : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
+              }`}
+            >
+              {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  <span className="hidden sm:inline">Drive Connected</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="w-5 h-5" />
+                  <span className="hidden sm:inline">Google Drive</span>
+                </>
+              )}
+            </button>
 
-          <button
-            onClick={() => handleConnectDrive('dropbox')}
-            className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
-              (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected
-                ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
-                : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
-            }`}
-          >
-            {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected ? (
-              <>
-                <Check className="w-5 h-5" />
-                <span className="hidden sm:inline">Dropbox Connected</span>
-              </>
-            ) : (
-              <>
-                <Cloud className="w-5 h-5" />
-                <span className="hidden sm:inline">Dropbox</span>
-              </>
+            {/* Dropbox Connection */}
+            <button
+              onClick={() => handleConnectDrive('dropbox')}
+              className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected
+                  ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
+                  : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
+              }`}
+            >
+              {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected ? (
+                <>
+                  <Check className="w-5 h-5" />
+                  <span className="hidden sm:inline">Dropbox Connected</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="w-5 h-5" />
+                  <span className="hidden sm:inline">Dropbox</span>
+                </>
+              )}
+            </button>
+
+            {/* Configure Auto-Sync Button */}
+            {projectId && projectId.startsWith('screenplay_') && (
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C] transition-colors flex items-center justify-center gap-2"
+                title="Configure auto-sync for this screenplay"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="hidden sm:inline">Auto-Sync</span>
+              </button>
             )}
-          </button>
+          </div>
         </div>
+
+        {/* Auto-Sync Status Banner - Feature 0144 */}
+        {projectId && projectId.startsWith('screenplay_') && screenplayData && (
+          <div className={`mt-4 p-3 rounded-lg border ${
+            screenplayData.cloudStorageProvider
+              ? 'bg-[#00D9FF]/10 border-[#00D9FF]/30 text-[#00D9FF]'
+              : 'bg-[#3F3F46]/20 border-[#3F3F46] text-[#808080]'
+          }`}>
+            <div className="flex items-start gap-3">
+              {screenplayData.cloudStorageProvider ? (
+                <>
+                  <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">
+                      Auto-sync enabled: {screenplayData.cloudStorageProvider === 'google-drive' ? 'Google Drive' : 'Dropbox'}
+                    </div>
+                    <div className="text-xs mt-1 opacity-80">
+                      Files automatically save to: <span className="font-mono">/Wryda Screenplays/{screenplayData.title || 'Screenplay'}/...</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowSettingsModal(true)}
+                    className="text-xs underline hover:no-underline flex-shrink-0"
+                  >
+                    Change
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Auto-sync not configured</div>
+                    <div className="text-xs mt-1 opacity-80">
+                      Enable auto-sync to automatically save files to your cloud storage. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowSettingsModal(true)}
+                    className="text-xs underline hover:no-underline flex-shrink-0 text-[#DC143C]"
+                  >
+                    Configure
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Search & Filter */}
         <div className="flex gap-3 mt-4">
@@ -1708,6 +1807,34 @@ export default function MediaLibrary({
           assetName={selectedAsset.name}
           s3TempUrl={selectedAsset.url}
           s3Key={selectedAsset.s3Key}
+        />
+      )}
+
+      {/* Screenplay Settings Modal for Auto-Sync Configuration - Feature 0144 */}
+      {projectId && projectId.startsWith('screenplay_') && (
+        <ScreenplaySettingsModal
+          isOpen={showSettingsModal}
+          onClose={(updatedData) => {
+            setShowSettingsModal(false);
+            // Reload screenplay data if settings were updated
+            if (updatedData) {
+              const loadScreenplayData = async () => {
+                try {
+                  const screenplay = await getScreenplay(projectId, getToken);
+                  if (screenplay) {
+                    setScreenplayData({
+                      cloudStorageProvider: screenplay.cloudStorageProvider || null,
+                      title: screenplay.title
+                    });
+                  }
+                } catch (error) {
+                  console.error('[MediaLibrary] Failed to reload screenplay data:', error);
+                }
+              };
+              loadScreenplayData();
+            }
+          }}
+          screenplayId={projectId}
         />
       )}
     </div>
