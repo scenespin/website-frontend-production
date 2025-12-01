@@ -194,9 +194,32 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           systemPrompt += `\n- Characters in scene: ${sceneContext.characters.join(', ')}`;
         }
         if (sceneContext.pageNumber) {
-          systemPrompt += `\n- Page: ${sceneContext.pageNumber}`;
+          systemPrompt += `\n- Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages || '?'}`;
         }
-        systemPrompt += `\n\nUse this context to provide relevant, specific advice about the screenplay.`;
+        
+        // Include scene content for analysis (limited to avoid token limits)
+        if (sceneContext.content) {
+          const sceneContent = sceneContext.content;
+          // Limit to first 2000 characters to avoid token limits, but give enough context
+          const contentPreview = sceneContent.length > 2000 
+            ? sceneContent.substring(0, 2000) + '...'
+            : sceneContent;
+          systemPrompt += `\n\nCURRENT SCENE CONTENT:\n${contentPreview}`;
+        } else if (editorContent) {
+          // Fallback: include a preview of the screenplay if scene content not available
+          const preview = editorContent.length > 1500 
+            ? editorContent.substring(0, 1500) + '...'
+            : editorContent;
+          systemPrompt += `\n\nSCREENPLAY PREVIEW:\n${preview}`;
+        }
+        
+        systemPrompt += `\n\nUse this context to provide relevant, specific advice about the screenplay. You can reference specific scenes, characters, and plot points when giving advice.`;
+      } else if (editorContent) {
+        // Even without scene context, include screenplay preview for general analysis
+        const preview = editorContent.length > 1500 
+          ? editorContent.substring(0, 1500) + '...'
+          : editorContent;
+        systemPrompt += `\n\nSCREENPLAY CONTENT (for reference):\n${preview}\n\nUse this content to provide specific, relevant advice about the screenplay.`;
       }
       
       // Add user message
