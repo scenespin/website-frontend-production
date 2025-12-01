@@ -255,78 +255,148 @@ export function CharacterDetailModal({
                     </div>
                   )}
 
-                  {/* Performance Controls - Only show if advanced features available */}
-                  {hasAdvancedFeatures && performanceSettings && onPerformanceSettingsChange && (
-                    <div className="mb-6 pb-6 border-b border-[#3F3F46]">
-                      <PerformanceControls
-                        settings={performanceSettings}
-                        onChange={onPerformanceSettingsChange}
-                        compact={false}
+                  {/* Action Buttons - Compact, all on one or two rows */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        if (onGenerateVariations) {
+                          onGenerateVariations(character.id);
+                        } else {
+                          toast.error('Generate variations function not available');
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-[#DC143C] hover:bg-[#B91238] text-white rounded transition-colors inline-flex items-center gap-1 text-xs font-medium"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generate Variations
+                    </button>
+                    
+                    <label className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded cursor-pointer transition-colors inline-flex items-center gap-1 text-xs">
+                      <Upload className="w-3 h-3" />
+                      {isUploading ? 'Uploading...' : 'Upload'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        disabled={isUploading}
                       />
+                    </label>
+                    
+                    <button
+                      onClick={() => {
+                        if (onGeneratePosePackage) {
+                          onGeneratePosePackage(character.id);
+                        } else {
+                          toast.error('Generate pose package function not available');
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded transition-colors inline-flex items-center gap-1 text-xs"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Pose Package
+                      <span className="px-0.5 py-0 rounded text-[9px] font-medium bg-[#DC143C] text-white ml-0.5">NEW</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleGenerate3D}
+                      disabled={isGenerating3D}
+                      className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#808080]/50 text-[#808080] hover:text-[#FFFFFF] rounded transition-colors inline-flex items-center gap-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Export 3D model (500 credits)"
+                    >
+                      <Box className="w-3 h-3" />
+                      3D
+                      <span className="text-[9px] text-[#808080] ml-0.5">500cr</span>
+                    </button>
+                  </div>
+
+                  {/* Performance Controls - Compact, only if advanced features available */}
+                  {hasAdvancedFeatures && performanceSettings && onPerformanceSettingsChange && (
+                    <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+                      <div className="flex items-center gap-3">
+                        {/* Compact Preset Buttons */}
+                        <div className="flex items-center gap-1">
+                          {[
+                            { key: 'subtle', icon: '😐', value: 0.5 },
+                            { key: 'natural', icon: '😊', value: 1.0 },
+                            { key: 'expressive', icon: '😃', value: 1.5 },
+                            { key: 'dramatic', icon: '😱', value: 1.8 }
+                          ].map((preset) => {
+                            const isActive = Math.abs(performanceSettings.facialPerformance - preset.value) < 0.2;
+                            return (
+                              <button
+                                key={preset.key}
+                                onClick={() => onPerformanceSettingsChange({
+                                  ...performanceSettings,
+                                  facialPerformance: preset.value
+                                })}
+                                className={`px-1.5 py-1 rounded text-xs transition-colors ${
+                                  isActive
+                                    ? 'bg-[#DC143C]/20 border border-[#DC143C] text-[#DC143C]'
+                                    : 'bg-[#141414] border border-[#3F3F46] text-[#808080] hover:border-[#DC143C]/50'
+                                }`}
+                                title={preset.key.charAt(0).toUpperCase() + preset.key.slice(1)}
+                              >
+                                {preset.icon}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Compact Slider */}
+                        <div className="flex-1 flex items-center gap-2">
+                          <span className="text-[10px] text-[#808080] whitespace-nowrap">Performance:</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            value={performanceSettings.facialPerformance}
+                            onChange={(e) => onPerformanceSettingsChange({
+                              ...performanceSettings,
+                              facialPerformance: parseFloat(e.target.value)
+                            })}
+                            className="flex-1 h-1 bg-[#1F1F1F] rounded-lg appearance-none cursor-pointer accent-[#DC143C]"
+                          />
+                          <span className="text-[10px] text-[#808080] whitespace-nowrap min-w-[50px] text-right">
+                            {performanceSettings.facialPerformance.toFixed(1)}
+                          </span>
+                        </div>
+                        
+                        {/* Animation Style Toggle */}
+                        <div className="flex items-center gap-1 bg-[#141414] border border-[#3F3F46] rounded p-0.5">
+                          <button
+                            onClick={() => onPerformanceSettingsChange({
+                              ...performanceSettings,
+                              animationStyle: 'full-body'
+                            })}
+                            className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                              performanceSettings.animationStyle === 'full-body'
+                                ? 'bg-[#DC143C] text-white'
+                                : 'text-[#808080] hover:text-[#FFFFFF]'
+                            }`}
+                            title="Full Body"
+                          >
+                            Body
+                          </button>
+                          <button
+                            onClick={() => onPerformanceSettingsChange({
+                              ...performanceSettings,
+                              animationStyle: 'face-only'
+                            })}
+                            className={`px-2 py-0.5 rounded text-[10px] transition-colors ${
+                              performanceSettings.animationStyle === 'face-only'
+                                ? 'bg-[#DC143C] text-white'
+                                : 'text-[#808080] hover:text-[#FFFFFF]'
+                            }`}
+                            title="Face Only"
+                          >
+                            Face
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
-
-                  {/* Action Buttons - Organized by frequency of use */}
-                  <div className="space-y-3">
-                    {/* Primary Actions - Most Frequently Used */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          if (onGenerateVariations) {
-                            onGenerateVariations(character.id);
-                          } else {
-                            toast.error('Generate variations function not available');
-                          }
-                        }}
-                        className="flex-1 px-3 py-1.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-md transition-colors inline-flex items-center justify-center gap-1.5 text-sm font-medium"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Generate Variations
-                      </button>
-                      
-                      <label className="px-3 py-1.5 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded-md cursor-pointer transition-colors inline-flex items-center gap-1.5 text-sm">
-                        <Upload className="w-3.5 h-3.5" />
-                        {isUploading ? 'Uploading...' : 'Upload'}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          disabled={isUploading}
-                        />
-                      </label>
-                    </div>
-
-                    {/* Secondary Actions - Less Frequently Used */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          if (onGeneratePosePackage) {
-                            onGeneratePosePackage(character.id);
-                          } else {
-                            toast.error('Generate pose package function not available');
-                          }
-                        }}
-                        className="flex-1 px-3 py-1.5 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded-md transition-colors inline-flex items-center justify-center gap-1.5 text-sm"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Pose Package
-                        <span className="px-1 py-0.5 rounded text-[10px] font-medium bg-[#DC143C] text-white ml-0.5">NEW</span>
-                      </button>
-                      
-                      <button
-                        onClick={handleGenerate3D}
-                        disabled={isGenerating3D}
-                        className="px-3 py-1.5 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#808080]/50 text-[#808080] hover:text-[#FFFFFF] rounded-md transition-colors inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Export 3D model (500 credits) - Use in AR/VR, game engines, 3D animation tools"
-                      >
-                        <Box className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">3D Export</span>
-                        <span className="sm:hidden">3D</span>
-                        <span className="text-[10px] text-[#808080] ml-0.5">500cr</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
 
