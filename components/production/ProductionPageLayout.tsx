@@ -336,7 +336,15 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       console.log('[ProductionPage] Location load response:', response.status, data);
       
       if (data.success) {
-        setLocations(data.data?.locations || []);
+        if (!data.data || !Array.isArray(data.data.locations)) {
+          console.error('[ProductionPage] Invalid response structure:', data);
+          setLocations([]);
+          return;
+        }
+        setLocations(data.data.locations);
+      } else {
+        console.error('[ProductionPage] Location API error:', data.error);
+        setLocations([]);
       }
     } catch (error) {
       console.error('[ProductionPage] Failed to load locations:', error);

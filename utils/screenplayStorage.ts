@@ -407,9 +407,14 @@ export async function listScreenplays(
   }
 
   const data = await response.json();
-  // Handle different response structures:
-  // { data: { screenplays: [...] } } or { success: true, data: { screenplays: [...] } } or { screenplays: [...] }
-  return data.data?.screenplays || data.screenplays || [];
+  
+  // Backend returns { success: true, data: { screenplays: [...] } }
+  if (!data.success || !data.data || !Array.isArray(data.data.screenplays)) {
+    console.error('[screenplayStorage] Invalid response structure:', data);
+    return [];
+  }
+  
+  return data.data.screenplays;
 }
 
 /**

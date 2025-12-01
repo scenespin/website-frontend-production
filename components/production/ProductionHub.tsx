@@ -164,11 +164,16 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
       
       if (data.success) {
         // Backend returns { success: true, data: { locations: [...] } }
-        const locationsList = data.data?.locations || data.locations || [];
-        setLocations(locationsList);
-        console.log('[ProductionHub] Loaded locations:', locationsList.length);
+        if (!data.data || !Array.isArray(data.data.locations)) {
+          console.error('[ProductionHub] Invalid response structure:', data);
+          setLocations([]);
+          return;
+        }
+        setLocations(data.data.locations);
+        console.log('[ProductionHub] Loaded locations:', data.data.locations.length);
       } else {
         console.error('[ProductionHub] Location API error:', data.error);
+        setLocations([]);
       }
     } catch (error) {
       console.error('[ProductionHub] Failed to load locations:', error);

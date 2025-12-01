@@ -195,11 +195,18 @@ export function LayoutSelector({ selectedLayout, onSelectLayout, userLevel = 1, 
       const response = await authFetch('/api/composition/layouts');
       if (!response.ok) throw new Error('API not available');
       const data = await response.json();
-      // Backend sendSuccess wraps data: { success: true, data: { layouts: [...] } }
-      setLayouts(data.data?.layouts || data.layouts || []);
+      
+      // Backend returns { success: true, data: { layouts: [...] } }
+      if (!data.success || !data.data || !Array.isArray(data.data.layouts)) {
+        console.error('[LayoutSelector] Invalid response structure:', data);
+        setLayouts(DEFAULT_LAYOUTS);
+        return;
+      }
+      
+      setLayouts(data.data.layouts);
     } catch (error) {
       console.error('Failed to fetch layouts, using defaults:', error);
-      // Fallback to default layouts
+      // Fallback to default layouts only on network/API errors
       setLayouts(DEFAULT_LAYOUTS);
     } finally {
       setLoading(false);
