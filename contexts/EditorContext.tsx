@@ -421,7 +421,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const undoDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const previousContentForUndoRef = useRef<string>('');
     const previousCursorForUndoRef = useRef<number>(0);
-    const pendingUndoSnapshotRef = useRef<{ content: string; cursorPosition: number } | null>(null);
+    const pendingUndoSnapshotRef = useRef<{ content: string; cursorPosition: number; timestamp: number } | null>(null);
     
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
         setState(prev => {
@@ -447,7 +447,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     // Clear pending snapshot and start new group
                     pendingUndoSnapshotRef.current = {
                         content: previousContent,
-                        cursorPosition: previousCursor
+                        cursorPosition: previousCursor,
+                        timestamp: Date.now()
                     };
                     
                     // Clear redo stack when new action is performed
@@ -466,7 +467,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 if (!pendingUndoSnapshotRef.current) {
                     pendingUndoSnapshotRef.current = {
                         content: previousContent || prev.content,
-                        cursorPosition: (previousCursor ?? prev.cursorPosition) ?? 0
+                        cursorPosition: (previousCursor ?? prev.cursorPosition) ?? 0,
+                        timestamp: Date.now()
                     };
                 }
                 
