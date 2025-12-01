@@ -15,7 +15,6 @@ import type { CharacterProfile } from './ProductionPageLayout';
 import type { Character } from '@/types/screenplay';
 import { 
   User, 
-  Plus, 
   Image as ImageIcon, 
   Sparkles,
   Upload,
@@ -28,11 +27,7 @@ import { PerformanceControls, PerformanceSettings } from '../characters/Performa
 import PoseGenerationModal from '../character-bank/PoseGenerationModal';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useChatContext } from '@/contexts/ChatContext';
-import { useDrawer } from '@/contexts/DrawerContext';
 import { useAuth } from '@clerk/nextjs';
-import CharacterDetailSidebar from '../screenplay/CharacterDetailSidebar';
-import { AnimatePresence } from 'framer-motion';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { CharacterDetailModal } from './CharacterDetailModal';
 
@@ -50,14 +45,11 @@ export function CharacterBankPanel({
   onCharactersUpdate
 }: CharacterBankPanelProps) {
   
-  const { createCharacter, updateCharacter, deleteCharacter } = useScreenplay();
-  const { setWorkflow } = useChatContext();
-  const { setIsDrawerOpen } = useDrawer();
+  const { updateCharacter, deleteCharacter } = useScreenplay();
   const { getToken } = useAuth();
   
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [isGeneratingRefs, setIsGeneratingRefs] = useState<Record<string, boolean>>({});
-  const [showCreateSidebar, setShowCreateSidebar] = useState(false);
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
   
   // Pose Generation Modal state
@@ -257,25 +249,6 @@ export function CharacterBankPanel({
     }
   }
 
-  // Character creation handlers
-  const handleCreateCharacter = async (characterData: any) => {
-    try {
-      await createCharacter(characterData);
-      toast.success('Character created!');
-      setShowCreateSidebar(false);
-      onCharactersUpdate();
-    } catch (error) {
-      console.error('[CharacterBank] Create failed:', error);
-      toast.error('Failed to create character');
-    }
-  };
-
-  const handleSwitchToChatForInterview = (character: any, context: any) => {
-    // Start the AI interview workflow
-    setWorkflow(context);
-    setIsDrawerOpen(true);
-    setShowCreateSidebar(false);
-  };
 
   if (isLoading) {
     return (
@@ -293,13 +266,6 @@ export function CharacterBankPanel({
           <h2 className="text-lg font-semibold text-[#FFFFFF]">
             Character Bank
           </h2>
-          <button
-            onClick={() => setShowCreateSidebar(true)}
-            className="p-1.5 hover:bg-[#DC143C]/10 rounded-lg transition-colors"
-            title="Create Character"
-          >
-            <Plus className="w-5 h-5 text-[#DC143C]" />
-          </button>
         </div>
         <p className="text-xs text-[#808080]">
           {characters.length} {characters.length === 1 ? 'character' : 'characters'}
@@ -314,15 +280,8 @@ export function CharacterBankPanel({
             No Characters Yet
           </p>
           <p className="text-xs text-[#808080] mb-4">
-            Create characters to maintain consistency across clips
+            Characters can only be added in the Create section. Use this panel to view and edit existing characters.
           </p>
-          <button
-            onClick={() => setShowCreateSidebar(true)}
-            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Create Character
-          </button>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
@@ -367,23 +326,6 @@ export function CharacterBankPanel({
         </div>
       )}
 
-      {/* Create Character Sidebar */}
-      <AnimatePresence>
-        {showCreateSidebar && (
-          <CharacterDetailSidebar
-            character={null}
-            isCreating={true}
-            initialData={null}
-            onClose={() => setShowCreateSidebar(false)}
-            onCreate={handleCreateCharacter}
-            onUpdate={() => {}} // Not used in creation mode
-            onDelete={() => {}} // Not used in creation mode
-            onSwitchToChatImageMode={handleSwitchToChatForInterview}
-            onOpenCharacterBank={() => {}} // Already in character bank
-          />
-        )}
-      </AnimatePresence>
-      
       {/* Character Detail Modal */}
       {showCharacterDetail && selectedCharacter && (
         <CharacterDetailModal

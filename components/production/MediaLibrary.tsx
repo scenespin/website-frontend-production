@@ -1347,12 +1347,13 @@ export default function MediaLibrary({
           <div className="mt-4 p-3 rounded-lg border bg-[#3F3F46]/20 border-[#3F3F46] text-[#808080] relative">
             <button
               onClick={handleDismissBanner}
-              className="absolute top-2 right-2 p-1 hover:bg-[#3F3F46] rounded transition-colors"
+              className="absolute top-2 right-2 p-1.5 hover:bg-[#3F3F46] rounded transition-colors z-10"
               title="Dismiss"
+              type="button"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
             </button>
-            <div className="flex items-start gap-3 pr-6">
+            <div className="flex items-start gap-3 pr-8">
               <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <div className="text-sm font-medium">Auto-sync not configured</div>
@@ -1363,6 +1364,7 @@ export default function MediaLibrary({
               <button
                 onClick={() => setShowSettingsModal(true)}
                 className="text-xs underline hover:no-underline flex-shrink-0 text-[#DC143C]"
+                type="button"
               >
                 Configure
               </button>
