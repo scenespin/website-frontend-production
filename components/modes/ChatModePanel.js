@@ -8,6 +8,7 @@ import { Sparkles, User, Bot, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene } from '@/utils/sceneDetection';
+import { calculateMaxContentChars, includeContentUpToLimit } from '@/utils/tokenCalculator';
 import toast from 'react-hot-toast';
 
 // Story Advisor: No Fountain parsing needed (consultation only, no content generation)
@@ -151,8 +152,16 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         setSelectedTextContext(null, null);
       }
       
-      // Story Advisor: Build system prompt for screenplay consultation
-      let systemPrompt = `You are a professional screenplay consultant. Provide advice, analysis, and creative guidance. Do NOT generate Fountain format — that's handled by other tools.
+      // Get conversation history for token calculation
+      const conversationHistory = state.messages
+        .filter(m => m.mode === 'chat')
+        .map(m => ({
+          role: m.role,
+          content: m.content
+        }));
+      
+      // Base system prompt (without screenplay content)
+      const systemPromptBase = `You are a professional screenplay consultant. Provide advice, analysis, and creative guidance. Do NOT generate Fountain format — that's handled by other tools.
 
 ✅ YOUR ROLE:
 - Provide expert screenplay consultation and feedback
@@ -183,42 +192,62 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
 - Use examples and explanations
 - Be encouraging and constructive`;
       
-      // Add scene context if available for context-aware advice
+      // Build scene context metadata string (for token calculation)
+      let sceneContextMetadata = '';
       if (sceneContext) {
-        systemPrompt += `\n\nCURRENT SCREENPLAY CONTEXT:
+        sceneContextMetadata = `\n\nCURRENT SCREENPLAY CONTEXT:
 - Current Scene: ${sceneContext.heading}`;
         if (sceneContext.act) {
-          systemPrompt += `\n- Act: ${sceneContext.act}`;
+          sceneContextMetadata += `\n- Act: ${sceneContext.act}`;
         }
         if (sceneContext.characters && sceneContext.characters.length > 0) {
-          systemPrompt += `\n- Characters in scene: ${sceneContext.characters.join(', ')}`;
+          sceneContextMetadata += `\n- Characters in scene: ${sceneContext.characters.join(', ')}`;
         }
         if (sceneContext.pageNumber) {
-          systemPrompt += `\n- Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages || '?'}`;
+          sceneContextMetadata += `\n- Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages || '?'}`;
         }
+      }
+      
+      // Calculate how much content we can include based on model and conversation history
+      // Include scene context metadata in the base prompt for accurate calculation
+      const systemPromptWithMetadata = systemPromptBase + sceneContextMetadata;
+      const maxContentChars = calculateMaxContentChars(
+        selectedModel,
+        conversationHistory,
+        systemPromptWithMetadata,
+        prompt
+      );
+      
+      console.log('[ChatModePanel] Token calculation:', {
+        model: selectedModel,
+        maxContentChars,
+        conversationHistoryLength: conversationHistory.length,
+        editorContentLength: editorContent?.length || 0,
+        sceneContextAvailable: !!sceneContext
+      });
+      
+      // Build system prompt with dynamically calculated content limits
+      let systemPrompt = systemPromptBase;
+      
+      // Add scene context if available for context-aware advice
+      if (sceneContext) {
+        systemPrompt += sceneContextMetadata;
         
-        // Include scene content for analysis (limited to avoid token limits)
+        // Include scene content - dynamically calculated to maximize content while staying within limits
         if (sceneContext.content) {
           const sceneContent = sceneContext.content;
-          // Limit to first 2000 characters to avoid token limits, but give enough context
-          const contentPreview = sceneContent.length > 2000 
-            ? sceneContent.substring(0, 2000) + '...'
-            : sceneContent;
+          const contentPreview = includeContentUpToLimit(sceneContent, maxContentChars);
           systemPrompt += `\n\nCURRENT SCENE CONTENT:\n${contentPreview}`;
         } else if (editorContent) {
-          // Fallback: include a preview of the screenplay if scene content not available
-          const preview = editorContent.length > 1500 
-            ? editorContent.substring(0, 1500) + '...'
-            : editorContent;
+          // Fallback: include screenplay preview if scene content not available
+          const preview = includeContentUpToLimit(editorContent, maxContentChars);
           systemPrompt += `\n\nSCREENPLAY PREVIEW:\n${preview}`;
         }
         
         systemPrompt += `\n\nUse this context to provide relevant, specific advice about the screenplay. You can reference specific scenes, characters, and plot points when giving advice.`;
       } else if (editorContent) {
         // Even without scene context, include screenplay preview for general analysis
-        const preview = editorContent.length > 1500 
-          ? editorContent.substring(0, 1500) + '...'
-          : editorContent;
+        const preview = includeContentUpToLimit(editorContent, maxContentChars);
         systemPrompt += `\n\nSCREENPLAY CONTENT (for reference):\n${preview}\n\nUse this content to provide specific, relevant advice about the screenplay.`;
       }
       
@@ -229,13 +258,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         mode: 'chat'
       });
       
-      // Story Advisor: Keep conversation history for context-aware consultation
-      const conversationHistory = state.messages
-        .filter(m => m.mode === 'chat')
-        .map(m => ({
-          role: m.role,
-          content: m.content
-        }));
+      // Conversation history already calculated above for token calculation
       
       // Use user's prompt directly (no special building needed for consultation)
       const builtPrompt = prompt;

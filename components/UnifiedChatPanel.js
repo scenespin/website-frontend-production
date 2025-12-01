@@ -78,16 +78,21 @@ function getAvailableModesForPage(pathname) {
 
 // LLM Models (Text Generation) - User Choice for Creative Style
 const LLM_MODELS = [
-  // Claude (Anthropic)
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: 'Best for creative writing', recommended: true },
-  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic', description: 'Most powerful analysis' },
+  // Claude (Anthropic) - Best for Creative Writing
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
+  { id: 'claude-opus-4-5-20251124', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
+  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic', description: 'Powerful analysis & creative tasks' },
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
-  // GPT (OpenAI)
-  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', description: 'Most advanced GPT' },
+  // GPT (OpenAI) - Good for Creative Writing
+  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
+  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', description: 'Advanced - Great for storytelling' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
   { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI', description: 'Fast and capable' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Optimized GPT-4' },
-  // Gemini (Google)
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Advanced reasoning' },
+  { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
+  { id: 'o1', name: 'O1', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
+  // Gemini (Google) - Good for Complex Narratives
+  { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Enhanced reasoning & narratives' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Advanced reasoning - Complex narratives' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
 ];
 

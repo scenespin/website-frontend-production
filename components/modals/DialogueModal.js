@@ -14,14 +14,19 @@ import toast from 'react-hot-toast';
 
 // LLM Models for selection
 const LLM_MODELS = [
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', recommended: true },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', recommended: true }, // Best for dialogue
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' }, // Excellent for natural dialogue
+  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI' }, // Latest - great dialogue
+  { id: 'claude-opus-4-5-20251124', name: 'Claude Opus 4.5', provider: 'Anthropic' }, // Most powerful
   { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' },
-  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic' },
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
-  { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
+  { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google' }, // Latest
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic' }, // Fast & economical
+  { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
+  { id: 'o3', name: 'O3', provider: 'OpenAI' }, // Reasoning - best for analysis
+  { id: 'o1', name: 'O1', provider: 'OpenAI' }, // Reasoning - best for analysis
 ];
 
 const TONE_OPTIONS = [
