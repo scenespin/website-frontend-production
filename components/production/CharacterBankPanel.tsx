@@ -229,6 +229,7 @@ export function CharacterBankPanel({
 
   async function uploadReference(characterId: string, file: File) {
     try {
+      const token = await getToken({ template: 'wryda-backend' });
       const formData = new FormData();
       formData.append('image', file);
       formData.append('screenplayId', projectId); // projectId prop is actually screenplayId
@@ -236,6 +237,9 @@ export function CharacterBankPanel({
 
       const response = await fetch('/api/character-bank/upload-reference', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
 
@@ -243,9 +247,13 @@ export function CharacterBankPanel({
       
       if (data.success) {
         onCharactersUpdate();
+      } else {
+        console.error('[CharacterBank] Upload failed:', data.error || 'Unknown error');
+        toast.error(data.error || 'Failed to upload image');
       }
     } catch (error) {
       console.error('[CharacterBank] Upload failed:', error);
+      toast.error('Failed to upload image');
     }
   }
 
