@@ -415,12 +415,110 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         saveNowRef.current = saveNow;
     }, [saveNow]);
     
+    // 🔥 UNDO/REDO TRACKING: Industry-standard debounced undo tracking (500ms)
+    // Groups continuous typing into single undo steps, breaks on cursor movement
+    // Separate from save logic - does not interfere with saving
+    const undoDebounceRef = useRef<NodeJS.Timeout | null>(null);
+    const previousContentForUndoRef = useRef<string>('');
+    const previousCursorForUndoRef = useRef<number>(0);
+    const pendingUndoSnapshotRef = useRef<{ content: string; cursorPosition: number } | null>(null);
+    
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
-        setState(prev => ({
-            ...prev,
-            content,
-            isDirty: markDirty ? true : prev.isDirty
-        }));
+        setState(prev => {
+            const currentCursor = prev.cursorPosition ?? 0;
+            const previousContent = previousContentForUndoRef.current;
+            const previousCursor = previousCursorForUndoRef.current;
+            
+            // 🔥 UNDO/REDO TRACKING: Track changes for undo stack (industry standard: 500ms debounce)
+            // Only track if content actually changed and it's a user-initiated change (markDirty=true)
+            if (markDirty && content !== previousContent) {
+                // Check if cursor moved significantly (breaks undo group)
+                // Industry standard: cursor movement > 1 character away breaks the group
+                const cursorMoved = Math.abs(currentCursor - previousCursor) > 1;
+                
+                // If cursor moved significantly, push previous state immediately and start new group
+                if (cursorMoved && previousContent !== '' && pendingUndoSnapshotRef.current) {
+                    // Push the pending snapshot (from previous typing session)
+                    const snapshotToPush = pendingUndoSnapshotRef.current;
+                    const newUndoStack = [...prev.undoStack, snapshotToPush].slice(-50); // Keep last 50 states
+                    
+                    console.log('[EditorContext] 🔄 Cursor moved - breaking undo group, pushing snapshot');
+                    
+                    // Clear pending snapshot and start new group
+                    pendingUndoSnapshotRef.current = {
+                        content: previousContent,
+                        cursorPosition: previousCursor
+                    };
+                    
+                    // Clear redo stack when new action is performed
+                    return {
+                        ...prev,
+                        content,
+                        isDirty: markDirty ? true : prev.isDirty,
+                        undoStack: newUndoStack,
+                        redoStack: [],
+                        canUndo: true,
+                        canRedo: false
+                    };
+                }
+                
+                // If this is the first change in a typing session, save current state as checkpoint
+                if (!pendingUndoSnapshotRef.current) {
+                    pendingUndoSnapshotRef.current = {
+                        content: previousContent || prev.content,
+                        cursorPosition: previousCursor || prev.cursorPosition ?? 0
+                    };
+                }
+                
+                // Clear existing undo debounce timer
+                if (undoDebounceRef.current) {
+                    clearTimeout(undoDebounceRef.current);
+                    undoDebounceRef.current = null;
+                }
+                
+                // Debounce undo tracking (500ms - industry standard for grouping keystrokes)
+                // This groups continuous typing into single undo steps
+                undoDebounceRef.current = setTimeout(() => {
+                    if (pendingUndoSnapshotRef.current) {
+                        setState(currentState => {
+                            // Only push if content is different from snapshot (user kept typing)
+                            if (currentState.content !== pendingUndoSnapshotRef.current!.content) {
+                                const newUndoStack = [...currentState.undoStack, pendingUndoSnapshotRef.current!].slice(-50);
+                                
+                                console.log('[EditorContext] 📝 Pushed to undo stack (debounced, grouped typing). Stack size:', newUndoStack.length);
+                                
+                                // Clear pending snapshot
+                                pendingUndoSnapshotRef.current = null;
+                                
+                                // Update previous refs for next typing session
+                                previousContentForUndoRef.current = currentState.content;
+                                previousCursorForUndoRef.current = currentState.cursorPosition ?? 0;
+                                
+                                return {
+                                    ...currentState,
+                                    undoStack: newUndoStack,
+                                    redoStack: [], // Clear redo stack when new action is performed
+                                    canUndo: true,
+                                    canRedo: false
+                                };
+                            }
+                            return currentState;
+                        });
+                    }
+                    undoDebounceRef.current = null;
+                }, 500); // 500ms debounce - industry standard
+            }
+            
+            // Update previous refs for next comparison
+            previousContentForUndoRef.current = content;
+            previousCursorForUndoRef.current = currentCursor;
+            
+            return {
+                ...prev,
+                content,
+                isDirty: markDirty ? true : prev.isDirty
+            };
+        });
         
         // 🔥 BEST PRACTICE: Save to localStorage immediately, debounce database saves (3 seconds)
         // This matches Google Docs/VS Code pattern: immediate local cache, debounced cloud save
@@ -514,6 +612,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     }, [projectId, getScreenplayStorageKey]); // 🔥 FIX: Removed saveNow from dependencies - using saveNowRef instead
     
     const insertText = useCallback((text: string, position?: number) => {
+        // 🔥 UNDO/REDO TRACKING: Clear pending undo snapshot when explicitly inserting
+        // This prevents double-pushing when AI or programmatic insertions happen
+        if (undoDebounceRef.current) {
+            clearTimeout(undoDebounceRef.current);
+            undoDebounceRef.current = null;
+        }
+        pendingUndoSnapshotRef.current = null;
+        
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -523,7 +629,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             };
             
             // Push to undo stack (this will clear redo stack)
-            const newUndoStack = [...prev.undoStack, currentSnapshot].slice(-10);
+            const newUndoStack = [...prev.undoStack, currentSnapshot].slice(-50);
+            
+            // Update refs
+            previousContentForUndoRef.current = prev.content;
+            previousCursorForUndoRef.current = prev.cursorPosition ?? 0;
             
             const pos = position ?? prev.cursorPosition;
             const before = prev.content.substring(0, pos);
@@ -550,6 +660,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         console.log('[EditorContext] 📝 replaceSelection called - text length:', text.length, 'endsWith newline:', text.endsWith('\n'));
         console.log('[EditorContext] 📝 Text preview (last 20 chars):', JSON.stringify(text.slice(-20)));
         
+        // 🔥 UNDO/REDO TRACKING: Clear pending undo snapshot when explicitly replacing
+        // This prevents double-pushing when AI or programmatic replacements happen
+        if (undoDebounceRef.current) {
+            clearTimeout(undoDebounceRef.current);
+            undoDebounceRef.current = null;
+        }
+        pendingUndoSnapshotRef.current = null;
+        
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -559,7 +677,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             };
             
             // Push to undo stack (this will clear redo stack)
-            const newUndoStack = [...prev.undoStack, currentSnapshot].slice(-10);
+            const newUndoStack = [...prev.undoStack, currentSnapshot].slice(-50);
+            
+            // Update refs
+            previousContentForUndoRef.current = prev.content;
+            previousCursorForUndoRef.current = prev.cursorPosition ?? 0;
             
             const before = prev.content.substring(0, start);
             const after = prev.content.substring(end);
@@ -585,14 +707,25 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     
     // Undo operations
     const pushToUndoStack = useCallback((snapshot?: { content: string; cursorPosition: number }) => {
+        // 🔥 UNDO/REDO TRACKING: Clear pending undo snapshot when explicitly pushing
+        if (undoDebounceRef.current) {
+            clearTimeout(undoDebounceRef.current);
+            undoDebounceRef.current = null;
+        }
+        pendingUndoSnapshotRef.current = null;
+        
         setState(prev => {
             const snapshotToSave = snapshot || {
                 content: prev.content,
                 cursorPosition: prev.cursorPosition
             };
             
-            // Keep only last 10 undo states to prevent memory issues
-            const newUndoStack = [...prev.undoStack, { ...snapshotToSave, timestamp: Date.now() }].slice(-10);
+            // Keep only last 50 undo states to prevent memory issues (increased from 10 for better UX)
+            const newUndoStack = [...prev.undoStack, { ...snapshotToSave, timestamp: Date.now() }].slice(-50);
+            
+            // Update refs
+            previousContentForUndoRef.current = snapshotToSave.content;
+            previousCursorForUndoRef.current = snapshotToSave.cursorPosition ?? 0;
             
             console.log('[EditorContext] Pushed to undo stack. Stack size:', newUndoStack.length);
             
@@ -613,6 +746,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 return prev;
             }
             
+            // 🔥 UNDO/REDO TRACKING: Clear any pending undo snapshot when explicitly undoing
+            // This prevents double-pushing when user clicks undo button
+            if (undoDebounceRef.current) {
+                clearTimeout(undoDebounceRef.current);
+                undoDebounceRef.current = null;
+            }
+            pendingUndoSnapshotRef.current = null;
+            
             // Save current state to redo stack before undoing
             const currentState = {
                 content: prev.content,
@@ -627,7 +768,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             if (!previousState) return prev;
             
             // Push current state to redo stack
-            const newRedoStack = [...prev.redoStack, currentState].slice(-10);
+            const newRedoStack = [...prev.redoStack, currentState].slice(-50);
+            
+            // Update refs to match new state
+            previousContentForUndoRef.current = previousState.content;
+            previousCursorForUndoRef.current = previousState.cursorPosition ?? 0;
             
             console.log('[EditorContext] Undoing. Undo stack:', newUndoStack.length, 'Redo stack:', newRedoStack.length);
             
@@ -651,6 +796,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 return prev;
             }
             
+            // 🔥 UNDO/REDO TRACKING: Clear any pending undo snapshot when explicitly redoing
+            if (undoDebounceRef.current) {
+                clearTimeout(undoDebounceRef.current);
+                undoDebounceRef.current = null;
+            }
+            pendingUndoSnapshotRef.current = null;
+            
             // Save current state to undo stack before redoing
             const currentState = {
                 content: prev.content,
@@ -665,7 +817,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             if (!nextState) return prev;
             
             // Push current state to undo stack
-            const newUndoStack = [...prev.undoStack, currentState].slice(-10);
+            const newUndoStack = [...prev.undoStack, currentState].slice(-50);
+            
+            // Update refs to match new state
+            previousContentForUndoRef.current = nextState.content;
+            previousCursorForUndoRef.current = nextState.cursorPosition ?? 0;
             
             console.log('[EditorContext] Redoing. Undo stack:', newUndoStack.length, 'Redo stack:', newRedoStack.length);
             
@@ -684,7 +840,40 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     
     // Cursor and selection operations
     const setCursorPosition = useCallback((position: number) => {
-        setState(prev => ({ ...prev, cursorPosition: position }));
+        setState(prev => {
+            const previousCursor = previousCursorForUndoRef.current;
+            const currentCursor = prev.cursorPosition ?? 0;
+            
+            // 🔥 UNDO/REDO TRACKING: Break undo group if cursor moved significantly
+            // Industry standard: cursor movement breaks typing groups
+            if (Math.abs(position - previousCursor) > 1 && pendingUndoSnapshotRef.current) {
+                // Push pending snapshot before cursor move
+                const snapshotToPush = pendingUndoSnapshotRef.current;
+                const newUndoStack = [...prev.undoStack, snapshotToPush].slice(-50);
+                
+                console.log('[EditorContext] 🔄 Cursor position changed - breaking undo group');
+                
+                // Clear pending snapshot and update refs
+                pendingUndoSnapshotRef.current = null;
+                previousContentForUndoRef.current = prev.content;
+                previousCursorForUndoRef.current = position;
+                
+                // Clear redo stack when new action is performed
+                return {
+                    ...prev,
+                    cursorPosition: position,
+                    undoStack: newUndoStack,
+                    redoStack: [],
+                    canUndo: true,
+                    canRedo: false
+                };
+            }
+            
+            // Update previous cursor ref
+            previousCursorForUndoRef.current = position;
+            
+            return { ...prev, cursorPosition: position };
+        });
     }, []);
     
     const setSelection = useCallback((start: number, end: number) => {
@@ -988,6 +1177,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 clearTimeout(saveDebounceRef.current);
                 saveDebounceRef.current = null;
             }
+            
+            // 🔥 UNDO/REDO TRACKING: Clear undo debounce timer on cleanup (prevents memory leaks)
+            if (undoDebounceRef.current) {
+                console.log('[EditorContext] 🧹 Clearing undo debounce timer in cleanup');
+                clearTimeout(undoDebounceRef.current);
+                undoDebounceRef.current = null;
+            }
+            // Clear pending snapshot
+            pendingUndoSnapshotRef.current = null;
             
             // Always save if there are unsaved changes (matches best practices from articles)
             if (activeId && activeId.startsWith('screenplay_') && currentState.isDirty && currentState.content.trim().length > 0) {
