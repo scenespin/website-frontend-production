@@ -49,6 +49,7 @@ export default function LocationDetailSidebar({
   const [showStorageModal, setShowStorageModal] = useState(false)
   const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
       name: initialData.name || '',
@@ -100,6 +101,54 @@ export default function LocationDetailSidebar({
       }
     }
   }, [isCreating, initialData, location])
+
+  // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
+  useEffect(() => {
+    if (!location || !location.images || location.images.length === 0) return;
+    
+    const regenerateUrls = async () => {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+      
+      const urlMap: Record<string, string> = {};
+      
+      for (const img of location.images) {
+        // Regenerate URL if we have s3Key (regardless of whether URL looks expired)
+        // This ensures URLs are always fresh with 7-day expiration
+        if (img.s3Key) {
+          try {
+            const downloadResponse = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                s3Key: img.s3Key, 
+                expiresIn: 604800 // 7 days - matches S3 lifecycle
+              }),
+            });
+            
+            if (downloadResponse.ok) {
+              const downloadData = await downloadResponse.json();
+              if (downloadData.downloadUrl) {
+                urlMap[img.s3Key] = downloadData.downloadUrl;
+              }
+            }
+          } catch (error) {
+            console.warn('[LocationDetailSidebar] Failed to regenerate presigned URL for', img.s3Key, error);
+          }
+        }
+      }
+      
+      if (Object.keys(urlMap).length > 0) {
+        setRegeneratedImageUrls(prev => ({ ...prev, ...urlMap }));
+        console.log('[LocationDetailSidebar] 🔄 Regenerated', Object.keys(urlMap).length, 'presigned URLs for images with s3Key');
+      }
+    };
+    
+    regenerateUrls();
+  }, [location?.id, location?.images, getToken]);
 
   // 🔥 FIX: Refetch location data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest location data, including newly uploaded images
@@ -508,7 +557,17 @@ export default function LocationDetailSidebar({
           </div>
           {(() => {
             const images = location ? getEntityImages('location', location.id) : []
-            const allImages = location ? images : pendingImages.map((img, idx) => ({
+            // 🔥 FIX: Use regenerated URLs when available (for expired presigned URLs)
+            const allImages = location ? images.map(img => {
+              const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
+                ? regeneratedImageUrls[img.s3Key] 
+                : img.imageUrl;
+              
+              return {
+                ...img,
+                imageUrl
+              };
+            }) : pendingImages.map((img, idx) => ({
               id: `pending-${idx}`,
               imageUrl: img.imageUrl,
               metadata: { 
