@@ -88,6 +88,7 @@ export interface CharacterProfile {
   id: string;
   name: string;
   type: 'lead' | 'supporting' | 'minor';
+  description?: string;
   baseReference?: {
     imageUrl: string;
     s3Key?: string;
