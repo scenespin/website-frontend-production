@@ -19,17 +19,33 @@ import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Downloa
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
+// Location Profile from Location Bank API (Feature 0142: Unified storage)
+interface LocationReference {
+  id: string;
+  locationId: string;
+  imageUrl: string;
+  s3Key: string;
+  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+  generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
+  creditsUsed: number;
+  createdAt: string;
+}
+
 interface LocationProfile {
-  location_id: string;
-  project_id: string;
+  locationId: string;
+  screenplayId: string;
+  projectId: string; // Backward compatibility
   name: string;
-  full_name?: string;
-  type: 'INT.' | 'EXT.' | 'INT./EXT.';
+  type: 'interior' | 'exterior' | 'mixed';
   description: string;
-  scenes?: string[];
-  reference_images: string[];
-  created_at: string;
-  updated_at: string;
+  baseReference: LocationReference;
+  angleVariations: LocationReference[];
+  totalCreditsSpent?: number;
+  consistencyRating?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface LocationDetailModalProps {
@@ -61,13 +77,30 @@ export function LocationDetailModal({
   const [isGenerating3D, setIsGenerating3D] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
   
-  // Convert reference_images to image objects
-  const allImages = (location.reference_images || []).map((img, idx) => ({
-    id: `ref-${idx}`,
-    imageUrl: img,
-    label: `${location.name} - Reference ${idx + 1}`,
-    isBase: idx === 0 // First image is base reference
-  }));
+  // Convert baseReference and angleVariations to image objects
+  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean }> = [];
+  
+  if (location.baseReference) {
+    allImages.push({
+      id: location.baseReference.id,
+      imageUrl: location.baseReference.imageUrl,
+      label: `${location.name} - Base Reference`,
+      isBase: true
+    });
+  }
+  
+  location.angleVariations.forEach((variation) => {
+    allImages.push({
+      id: variation.id,
+      imageUrl: variation.imageUrl,
+      label: `${location.name} - ${variation.angle} view`,
+      isBase: false
+    });
+  });
+  
+  // Convert type for display
+  const typeLabel = location.type === 'interior' ? 'INT.' : 
+                   location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,7 +113,7 @@ export function LocationDetailModal({
 
     setIsUploading(true);
     try {
-      await onUploadImage(location.location_id, file);
+      await onUploadImage(location.locationId, file);
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Upload failed:', error);
@@ -99,7 +132,7 @@ export function LocationDetailModal({
 
     setIsGenerating3D(true);
     try {
-      await onGenerate3D(location.location_id);
+      await onGenerate3D(location.locationId);
       toast.success('3D model generation started');
     } catch (error) {
       console.error('3D generation failed:', error);
@@ -117,7 +150,7 @@ export function LocationDetailModal({
 
     setIsGeneratingAngles(true);
     try {
-      await onGenerateAngles(location.location_id);
+      await onGenerateAngles(location.locationId);
       toast.success('Location angle package generation started');
     } catch (error) {
       console.error('Angle generation failed:', error);
@@ -157,7 +190,7 @@ export function LocationDetailModal({
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-[#FFFFFF]">{location.name}</h2>
-                  <p className="text-sm text-[#808080]">{location.type}</p>
+                  <p className="text-sm text-[#808080]">{typeLabel}</p>
                 </div>
               </div>
               <button
@@ -201,7 +234,7 @@ export function LocationDetailModal({
                 }`}
               >
                 <Box className="w-4 h-4 inline mr-2" />
-                References ({location.reference_images?.length || 0})
+                References ({allImages.length})
               </button>
             </div>
 
@@ -324,7 +357,7 @@ export function LocationDetailModal({
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Type</label>
-                        <p className="text-[#FFFFFF]">{location.type}</p>
+                        <p className="text-[#FFFFFF]">{typeLabel}</p>
                       </div>
                       {location.description && (
                         <div>
@@ -332,10 +365,10 @@ export function LocationDetailModal({
                           <p className="text-[#808080]">{location.description}</p>
                         </div>
                       )}
-                      {location.scenes && location.scenes.length > 0 && (
+                      {location.angleVariations && location.angleVariations.length > 0 && (
                         <div>
-                          <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Scenes</label>
-                          <p className="text-[#808080]">{location.scenes.length} scene{location.scenes.length !== 1 ? 's' : ''}</p>
+                          <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Angle Variations</label>
+                          <p className="text-[#808080]">{location.angleVariations.length} angle{location.angleVariations.length !== 1 ? 's' : ''}</p>
                         </div>
                       )}
                     </div>
