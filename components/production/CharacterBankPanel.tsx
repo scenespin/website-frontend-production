@@ -235,13 +235,21 @@ export function CharacterBankPanel({
         body: formData
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[CharacterBank] Upload failed:', errorData);
+        throw new Error(errorData.error?.message || errorData.error || 'Upload failed');
+      }
+      
       const data = await response.json();
       
-      if (data.success) {
+      // Response format: { success: true, data: { s3Key, imageUrl, message } }
+      if (data.success && data.data) {
+        toast.success('Image uploaded successfully');
         onCharactersUpdate();
       } else {
         console.error('[CharacterBank] Upload failed:', data.error || 'Unknown error');
-        toast.error(data.error || 'Failed to upload image');
+        toast.error(data.error?.message || data.error || 'Failed to upload image');
       }
     } catch (error) {
       console.error('[CharacterBank] Upload failed:', error);

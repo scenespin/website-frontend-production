@@ -50,6 +50,13 @@ export default function LocationDetailSidebar({
   const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
+  
+  // 🔥 FIX: Use ref to track latest locations to avoid stale closures in async functions
+  const locationsRef = useRef(locations);
+  useEffect(() => {
+    locationsRef.current = locations;
+  }, [locations]);
+  
   const [formData, setFormData] = useState<any>(
     location ? { ...location } : (initialData ? {
       name: initialData.name || '',
@@ -70,25 +77,32 @@ export default function LocationDetailSidebar({
     })
   )
 
-  // 🔥 FIX: Update formData when initialData changes (for column type selection)
+  // 🔥 FIX: Only update formData when location ID actually changes (not when isCreating or initialData changes)
+  // This prevents resetting user input when uploading images during location creation
+  // Use a ref to track the previous location ID to detect actual changes
+  const prevLocationIdRef = useRef<string | undefined>(location?.id);
+  
   useEffect(() => {
-    if (location) {
-      setFormData({ ...location })
-    } else if (isCreating && !location) {
-      // If initialData is provided, use it (especially for column type)
-      if (initialData) {
-        console.log('[LocationDetailSidebar] 🔄 Updating formData from initialData:', initialData);
+    // Only update if location ID actually changed (switching between locations or create/edit mode)
+    if (location?.id !== prevLocationIdRef.current) {
+      if (location) {
+        // Switching to edit mode - load location data
+        setFormData({ ...location });
+        prevLocationIdRef.current = location.id;
+      } else if (initialData) {
+        // Switching to create mode with initialData - use initialData
         setFormData({
           name: initialData.name || '',
-          type: initialData.type || 'INT', // 🔥 FIX: Use initialData.type (from column selection)
+          type: initialData.type || 'INT',
           description: initialData.description || '',
           address: initialData.address || '',
           atmosphereNotes: initialData.atmosphereNotes || '',
           setRequirements: initialData.setRequirements || '',
           productionNotes: initialData.productionNotes || ''
         });
+        prevLocationIdRef.current = undefined;
       } else {
-        // Reset to defaults if no initialData
+        // Switching to create mode without initialData - reset to defaults
         setFormData({
           name: '',
           type: 'INT',
@@ -98,9 +112,40 @@ export default function LocationDetailSidebar({
           setRequirements: '',
           productionNotes: ''
         });
+        prevLocationIdRef.current = undefined;
+      }
+    } else if (location?.id && location.id === prevLocationIdRef.current) {
+      // Same location ID but location object might have changed (e.g., images updated)
+      // Only update if images actually changed to avoid overwriting user input
+      const currentImages = (formData.images || []).map(img => img.imageUrl).sort().join(',');
+      const locationImages = (location.images || []).map(img => img.imageUrl).sort().join(',');
+      if (currentImages !== locationImages) {
+        // Location prop has newer images - update formData
+        setFormData({ ...location });
       }
     }
-  }, [isCreating, initialData, location])
+    // Note: Don't reset formData when isCreating or initialData changes - preserve user input!
+    // Only reset when location.id actually changes (switching between locations or modes)
+  }, [location, location?.id, location?.images]) // Watch full location object and images to catch updates
+  
+  // 🔥 FIX: Sync formData when location in context changes (for immediate UI updates)
+  // This ensures the sidebar reflects changes immediately when images are added/removed
+  // Only sync if the location prop is stale (not matching context)
+  useEffect(() => {
+    if (location?.id) {
+      const updatedLocationFromContext = locations.find(l => l.id === location.id);
+      if (updatedLocationFromContext) {
+        // Only update if the location from context is different from the prop
+        // This handles the case where selectedLocation in LocationBoard is stale
+        const locationImages = (location.images || []).map(img => img.imageUrl).sort().join(',');
+        const contextImages = (updatedLocationFromContext.images || []).map(img => img.imageUrl).sort().join(',');
+        if (locationImages !== contextImages) {
+          // Context has newer data - update formData
+          setFormData({ ...updatedLocationFromContext });
+        }
+      }
+    }
+  }, [locations, location?.id, location?.images]) // Watch locations array, location.id, and location.images
 
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
   useEffect(() => {
@@ -159,14 +204,19 @@ export default function LocationDetailSidebar({
       // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
       const syncLocation = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
-        const updatedLocationFromContext = locations.find(l => l.id === location.id);
+        // 🔥 FIX: Use ref to get latest locations to avoid stale closures
+        const updatedLocationFromContext = locationsRef.current.find(l => l.id === location.id);
         if (updatedLocationFromContext) {
-          setFormData(updatedLocationFromContext);
+          console.log('[LocationDetailSidebar] 📸 Syncing from context after modal close:', {
+            imageCount: updatedLocationFromContext.images?.length || 0,
+            imageUrls: updatedLocationFromContext.images?.map(img => img.imageUrl) || []
+          });
+          setFormData({ ...updatedLocationFromContext });
         }
       };
       syncLocation();
     }
-  }, [showStorageModal, location?.id, locations])
+  }, [showStorageModal, location?.id]) // Remove locations from deps, use ref instead
 
   const handleSave = async () => {
     if (!formData.name.trim()) return
@@ -331,8 +381,8 @@ export default function LocationDetailSidebar({
       // Step 4: Persist images to location (or add to pending)
       if (location) {
         // Existing location - update location's images array directly
-        // 🔥 FIX: Get latest location from context (not prop) to ensure we have current images
-        const currentLocation = locations.find(l => l.id === location.id) || location;
+        // 🔥 FIX: Get latest location from context (using ref to avoid stale closures) to ensure we have current images
+        const currentLocation = locationsRef.current.find(l => l.id === location.id) || location;
         const currentImages = currentLocation.images || [];
         const newImages: ImageAsset[] = uploadedImages.map(img => ({
           imageUrl: img.imageUrl,
@@ -360,8 +410,13 @@ export default function LocationDetailSidebar({
         
         // 🔥 FIX: Sync location data from context after update (like MediaLibrary refetches)
         // Get updated location from context to ensure UI reflects the new images
-        const updatedLocationFromContext = locations.find(l => l.id === location.id);
+        // Use ref to get latest locations to avoid stale closures
+        const updatedLocationFromContext = locationsRef.current.find(l => l.id === location.id);
         if (updatedLocationFromContext) {
+          console.log('[LocationDetailSidebar] 📸 Syncing from context after upload:', {
+            imageCount: updatedLocationFromContext.images?.length || 0,
+            imageUrls: updatedLocationFromContext.images?.map(img => img.imageUrl) || []
+          });
           setFormData({ ...updatedLocationFromContext });
         }
         

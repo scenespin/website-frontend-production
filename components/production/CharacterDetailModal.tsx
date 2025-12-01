@@ -74,7 +74,14 @@ export function CharacterDetailModal({
     }))
   ].filter(Boolean) as Array<{id: string; imageUrl: string; label: string; isBase: boolean}>;
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Headshot angle labels for multiple headshots (matching Create section)
+  const headshotAngles = [
+    { value: 'front', label: 'Front View' },
+    { value: 'side', label: 'Side Profile' },
+    { value: 'three-quarter', label: '3/4 Angle' }
+  ];
+  
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, angle?: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -86,7 +93,7 @@ export function CharacterDetailModal({
     setIsUploading(true);
     try {
       await onUploadImage(character.id, file);
-      toast.success('Image uploaded successfully');
+      toast.success(`Image uploaded successfully${angle ? ` (${headshotAngles.find(a => a.value === angle)?.label || angle})` : ''}`);
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error('Failed to upload image');
@@ -302,17 +309,24 @@ export function CharacterDetailModal({
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
-                      <label className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        Upload Image
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          disabled={isUploading}
-                        />
-                      </label>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {headshotAngles.map(angle => (
+                          <label
+                            key={angle.value}
+                            className="px-3 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2 text-sm"
+                          >
+                            <Upload className="w-4 h-4" />
+                            Upload {angle.label}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileUpload(e, angle.value)}
+                              className="hidden"
+                              disabled={isUploading}
+                            />
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -332,17 +346,23 @@ export function CharacterDetailModal({
                       Generate Variations
                     </button>
                     
-                    <label className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded cursor-pointer transition-colors inline-flex items-center gap-1 text-xs">
-                      <Upload className="w-3 h-3" />
-                      {isUploading ? 'Uploading...' : 'Upload'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
-                    </label>
+                    {/* Specific Upload Buttons - Matching Create section */}
+                    {headshotAngles.map(angle => (
+                      <label
+                        key={angle.value}
+                        className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded cursor-pointer transition-colors inline-flex items-center gap-1 text-xs"
+                      >
+                        <Upload className="w-3 h-3" />
+                        {isUploading ? 'Uploading...' : angle.label}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, angle.value)}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                      </label>
+                    ))}
                     
                     <button
                       onClick={() => {

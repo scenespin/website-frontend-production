@@ -53,6 +53,12 @@ export default function CharacterDetailSidebar({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
   
+  // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
+  const charactersRef = useRef(characters);
+  useEffect(() => {
+    charactersRef.current = characters;
+  }, [characters]);
+  
   // Headshot angle labels for multiple headshots
   const headshotAngles = [
     { value: 'front', label: 'Front View' },
@@ -77,30 +83,73 @@ export default function CharacterDetailSidebar({
     })
   )
   
-  // Update form data when character prop changes
+  // 🔥 FIX: Only update formData when character ID actually changes (not when isCreating or initialData changes)
+  // This prevents resetting user input when uploading images during character creation
+  // Use a ref to track the previous character ID to detect actual changes
+  const prevCharacterIdRef = useRef<string | undefined>(character?.id);
+  
   useEffect(() => {
-    if (character) {
-      setFormData({ ...character })
-    } else if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        type: initialData.type || 'lead',
-        arcStatus: initialData.arcStatus || 'introduced',
-        description: initialData.description || '',
-        arcNotes: initialData.arcNotes || '',
-        physicalAttributes: initialData.physicalAttributes || {}
-      })
-    } else if (isCreating) {
-      setFormData({
-        name: '',
-        type: 'lead',
-        arcStatus: 'introduced',
-        description: '',
-        arcNotes: '',
-        physicalAttributes: {}
-      })
+    // Only update if character ID actually changed (switching between characters or create/edit mode)
+    if (character?.id !== prevCharacterIdRef.current) {
+      if (character) {
+        // Switching to edit mode - load character data
+        setFormData({ ...character });
+        prevCharacterIdRef.current = character.id;
+      } else if (initialData) {
+        // Switching to create mode with initialData - use initialData
+        setFormData({
+          name: initialData.name || '',
+          type: initialData.type || 'lead',
+          arcStatus: initialData.arcStatus || 'introduced',
+          description: initialData.description || '',
+          arcNotes: initialData.arcNotes || '',
+          physicalAttributes: initialData.physicalAttributes || {}
+        });
+        prevCharacterIdRef.current = undefined;
+      } else {
+        // Switching to create mode without initialData - reset to defaults
+        setFormData({
+          name: '',
+          type: 'lead',
+          arcStatus: 'introduced',
+          description: '',
+          arcNotes: '',
+          physicalAttributes: {}
+        });
+        prevCharacterIdRef.current = undefined;
+      }
+    } else if (character?.id && character.id === prevCharacterIdRef.current) {
+      // Same character ID but character object might have changed (e.g., images updated)
+      // Only update if images actually changed to avoid overwriting user input
+      const currentImages = (formData.images || []).map(img => img.imageUrl).sort().join(',');
+      const characterImages = (character.images || []).map(img => img.imageUrl).sort().join(',');
+      if (currentImages !== characterImages) {
+        // Character prop has newer images - update formData
+        setFormData({ ...character });
+      }
     }
-  }, [character, initialData, isCreating])
+    // Note: Don't reset formData when isCreating or initialData changes - preserve user input!
+    // Only reset when character.id actually changes (switching between characters or modes)
+  }, [character, character?.id, character?.images]) // Watch full character object and images to catch updates
+  
+  // 🔥 FIX: Sync formData when character in context changes (for immediate UI updates)
+  // This ensures the sidebar reflects changes immediately when images are added/removed
+  // Only sync if the character prop is stale (not matching context)
+  useEffect(() => {
+    if (character?.id) {
+      const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+      if (updatedCharacterFromContext) {
+        // Only update if the character from context is different from the prop
+        // This handles the case where selectedCharacter in CharacterBoard is stale
+        const characterImages = (character.images || []).map(img => img.imageUrl).sort().join(',');
+        const contextImages = (updatedCharacterFromContext.images || []).map(img => img.imageUrl).sort().join(',');
+        if (characterImages !== contextImages) {
+          // Context has newer data - update formData
+          setFormData({ ...updatedCharacterFromContext });
+        }
+      }
+    }
+  }, [characters, character?.id, character?.images]) // Watch characters array, character.id, and character.images
 
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
   useEffect(() => {
@@ -159,14 +208,19 @@ export default function CharacterDetailSidebar({
       // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
       const syncCharacter = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
-        const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+        // 🔥 FIX: Use ref to get latest characters to avoid stale closures
+        const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
         if (updatedCharacterFromContext) {
-          setFormData(updatedCharacterFromContext);
+          console.log('[CharacterDetailSidebar] 📸 Syncing from context after modal close:', {
+            imageCount: updatedCharacterFromContext.images?.length || 0,
+            imageUrls: updatedCharacterFromContext.images?.map(img => img.imageUrl) || []
+          });
+          setFormData({ ...updatedCharacterFromContext });
         }
       };
       syncCharacter();
     }
-  }, [showStorageModal, character?.id, characters])
+  }, [showStorageModal, character?.id]) // Remove characters from deps, use ref instead
 
   const handleSave = async () => {
     if (!formData.name.trim()) return
@@ -317,10 +371,10 @@ export default function CharacterDetailSidebar({
 
       // Step 4: Persist image to character (or add to pending)
       if (character) {
-        // 🔥 FIX: Get latest character from context to avoid stale images (race condition)
+        // 🔥 FIX: Get latest character from context (using ref to avoid stale closures) to avoid stale images (race condition)
         // If multiple images are uploaded quickly, they all use the same stale character.images
         // Get the latest from context to ensure we're appending to the most recent images array
-        const currentCharacter = characters.find(c => c.id === character.id) || character;
+        const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
         const currentImages = currentCharacter.images || [];
         
         // Check if image with same angle already exists (prevent duplicates)
@@ -339,6 +393,12 @@ export default function CharacterDetailSidebar({
             } : img
           );
           
+          // 🔥 FIX: Optimistic UI update - update formData immediately
+          setFormData(prev => ({
+            ...prev,
+            images: updatedImages
+          }));
+          
           await updateCharacter(character.id, {
             images: updatedImages
           });
@@ -353,9 +413,17 @@ export default function CharacterDetailSidebar({
             }
           };
           
+          const updatedImages = [...currentImages, newImage];
+          
+          // 🔥 FIX: Optimistic UI update - add images immediately
+          setFormData(prev => ({
+            ...prev,
+            images: updatedImages
+          }));
+          
           // Update character with new image - this persists to DynamoDB
           await updateCharacter(character.id, {
-            images: [...currentImages, newImage]
+            images: updatedImages
           });
         }
         
@@ -364,7 +432,8 @@ export default function CharacterDetailSidebar({
         
         // 🔥 FIX: Sync character data from context after update (like MediaLibrary refetches)
         // Get updated character from context to ensure UI reflects the new image
-        const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+        // Use ref to get latest characters to avoid stale closures
+        const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
         if (updatedCharacterFromContext) {
           setFormData({ ...updatedCharacterFromContext });
         }
@@ -1234,7 +1303,8 @@ export default function CharacterDetailSidebar({
                 
                 // 🔥 FIX: Sync character data from context after update (like MediaLibrary refetches)
                 // Get updated character from context to ensure UI reflects the new image
-                const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                // Use ref to get latest characters to avoid stale closures
+                const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
                 if (updatedCharacterFromContext) {
                   setFormData({ ...updatedCharacterFromContext });
                 }
