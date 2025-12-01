@@ -105,9 +105,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
   
-  // Location bank state (Feature 0142: Location Bank Unification)
-  const [locations, setLocations] = useState<any[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  // Location bank state - REMOVED: Now using screenplay.locations from context like characters
 
   // Sync activeTab with URL params
   useEffect(() => {
@@ -144,49 +142,9 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   }, []);
 
   // ============================================================================
-  // LOAD LOCATIONS FROM LOCATION BANK API
-  // Feature 0142: Location Bank Unification
+  // LOCATIONS - Now using screenplay.locations from context (like characters)
+  // Feature 0142: Location Bank Unification - Locations persist via ScreenplayContext
   // ============================================================================
-
-  async function loadLocations() {
-    setIsLoadingLocations(true);
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) return;
-      
-      const response = await fetch(`/api/location-bank/list?screenplayId=${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        // Backend returns { success: true, data: { locations: [...] } }
-        if (!data.data || !Array.isArray(data.data.locations)) {
-          console.error('[ProductionHub] Invalid response structure:', data);
-          setLocations([]);
-          return;
-        }
-        setLocations(data.data.locations);
-        console.log('[ProductionHub] Loaded locations:', data.data.locations.length);
-      } else {
-        console.error('[ProductionHub] Location API error:', data.error);
-        setLocations([]);
-      }
-    } catch (error) {
-      console.error('[ProductionHub] Failed to load locations:', error);
-    } finally {
-      setIsLoadingLocations(false);
-    }
-  }
-
-  useEffect(() => {
-    if (isLoaded && isSignedIn && projectId) {
-      loadLocations();
-    }
-  }, [projectId, isLoaded, isSignedIn]);
 
   // ============================================================================
   // POLL FOR ACTIVE JOBS
@@ -451,9 +409,50 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
                 projectId={projectId}
-                locations={locations}
-                isLoading={isLoadingLocations}
-                onLocationsUpdate={loadLocations}
+                locations={(screenplay.locations || []).map(loc => ({
+                  locationId: loc.id,
+                  screenplayId: projectId,
+                  projectId: projectId,
+                  name: loc.name,
+                  type: (loc.type as 'interior' | 'exterior' | 'mixed') || 'mixed',
+                  description: loc.description || '',
+                  baseReference: loc.images?.[0] ? {
+                    id: `ref-${loc.id}-base`,
+                    locationId: loc.id,
+                    imageUrl: loc.images[0].imageUrl,
+                    s3Key: (loc.images[0] as any).metadata?.s3Key || '',
+                    angle: 'front' as const,
+                    generationMethod: 'upload' as const,
+                    creditsUsed: 0,
+                    createdAt: loc.images[0].createdAt || new Date().toISOString()
+                  } : {
+                    id: `ref-${loc.id}-base`,
+                    locationId: loc.id,
+                    imageUrl: '',
+                    s3Key: '',
+                    angle: 'front' as const,
+                    generationMethod: 'upload' as const,
+                    creditsUsed: 0,
+                    createdAt: new Date().toISOString()
+                  },
+                  angleVariations: (loc.images || []).slice(1).map((img, idx) => ({
+                    id: `ref-${loc.id}-${idx}`,
+                    locationId: loc.id,
+                    imageUrl: img.imageUrl,
+                    s3Key: (img as any).metadata?.s3Key || '',
+                    angle: ((img as any).metadata?.angle as any) || 'front',
+                    generationMethod: 'upload' as const,
+                    creditsUsed: 0,
+                    createdAt: img.createdAt || new Date().toISOString()
+                  })),
+                  createdAt: loc.createdAt || new Date().toISOString(),
+                  updatedAt: loc.updatedAt || new Date().toISOString()
+                }))}
+                isLoading={screenplay.isLoading}
+                onLocationsUpdate={() => {
+                  // LocationBankPanel uses useScreenplay() internally and will update context automatically
+                  // No refresh needed - context updates when CRUD operations happen
+                }}
                 className="h-full"
               />
             </div>
@@ -691,9 +690,50 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
                 projectId={projectId}
-                locations={locations}
-                isLoading={isLoadingLocations}
-                onLocationsUpdate={loadLocations}
+                locations={(screenplay.locations || []).map(loc => ({
+                  locationId: loc.id,
+                  screenplayId: projectId,
+                  projectId: projectId,
+                  name: loc.name,
+                  type: (loc.type as 'interior' | 'exterior' | 'mixed') || 'mixed',
+                  description: loc.description || '',
+                  baseReference: loc.images?.[0] ? {
+                    id: `ref-${loc.id}-base`,
+                    locationId: loc.id,
+                    imageUrl: loc.images[0].imageUrl,
+                    s3Key: (loc.images[0] as any).metadata?.s3Key || '',
+                    angle: 'front' as const,
+                    generationMethod: 'upload' as const,
+                    creditsUsed: 0,
+                    createdAt: loc.images[0].createdAt || new Date().toISOString()
+                  } : {
+                    id: `ref-${loc.id}-base`,
+                    locationId: loc.id,
+                    imageUrl: '',
+                    s3Key: '',
+                    angle: 'front' as const,
+                    generationMethod: 'upload' as const,
+                    creditsUsed: 0,
+                    createdAt: new Date().toISOString()
+                  },
+                  angleVariations: (loc.images || []).slice(1).map((img, idx) => ({
+                    id: `ref-${loc.id}-${idx}`,
+                    locationId: loc.id,
+                    imageUrl: img.imageUrl,
+                    s3Key: (img as any).metadata?.s3Key || '',
+                    angle: ((img as any).metadata?.angle as any) || 'front',
+                    generationMethod: 'upload' as const,
+                    creditsUsed: 0,
+                    createdAt: img.createdAt || new Date().toISOString()
+                  })),
+                  createdAt: loc.createdAt || new Date().toISOString(),
+                  updatedAt: loc.updatedAt || new Date().toISOString()
+                }))}
+                isLoading={screenplay.isLoading}
+                onLocationsUpdate={() => {
+                  // LocationBankPanel uses useScreenplay() internally and will update context automatically
+                  // No refresh needed - context updates when CRUD operations happen
+                }}
                 className="h-full"
               />
             </div>

@@ -1714,7 +1714,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     type: newCharacter.type || 'lead', // 🔥 FIX: Include type field
                     arcStatus: newCharacter.arcStatus || 'introduced',
                     arcNotes: newCharacter.arcNotes || '', // 🔥 FIX: Include arcNotes field
-                    referenceImages: newCharacter.images?.map(img => img.imageUrl) || []
+                    referenceImages: newCharacter.images?.map(img => {
+                        // Extract s3Key from metadata, fallback to extracting from imageUrl
+                        if (img.metadata?.s3Key) return img.metadata.s3Key;
+                        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                            const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                            if (urlMatch) return urlMatch[1];
+                            if (!img.imageUrl.includes('?')) return img.imageUrl;
+                        }
+                        return null;
+                    }).filter((key): key is string => key !== null) || []
                 };
                 const createdCharacter = await apiCreateCharacter(screenplayId, apiChar, getToken);
                 console.log('[ScreenplayContext] 📥 Received created character from API:', { 
