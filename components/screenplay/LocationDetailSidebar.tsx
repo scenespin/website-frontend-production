@@ -278,98 +278,40 @@ export default function LocationDetailSidebar({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      // Upload all files to S3
+      if (!location) {
+        toast.error('Location not found');
+        return;
+      }
+
+      // 🔥 FIX: Use backend upload endpoint (matches asset pattern)
+      // Backend handles: S3 upload, s3Key generation (correct 7-part format), location update
+      // Upload all files sequentially
       for (const file of fileArray) {
-        // Step 1: Get presigned POST URL for S3 upload
-        const presignedResponse = await fetch(
-          `/api/video/upload/get-presigned-url?` + 
-          `fileName=${encodeURIComponent(file.name)}` +
-          `&fileType=${encodeURIComponent(file.type)}` +
-          `&fileSize=${file.size}` +
-          `&screenplayId=${encodeURIComponent(screenplayId)}` +
-          `&projectId=${encodeURIComponent(screenplayId)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (!presignedResponse.ok) {
-          if (presignedResponse.status === 413) {
-            throw new Error(`${file.name} is too large. Maximum size is 10MB.`);
-          } else if (presignedResponse.status === 401) {
-            throw new Error('Please sign in to upload files.');
-          } else {
-            const errorData = await presignedResponse.json();
-            throw new Error(errorData.error || `Failed to get upload URL for ${file.name}: ${presignedResponse.status}`);
-          }
-        }
-
-        const { url, fields, s3Key } = await presignedResponse.json();
-        
-        if (!url || !fields || !s3Key) {
-          throw new Error(`Invalid response from server for ${file.name}`);
-        }
-
-        // Step 2: Upload directly to S3 using FormData POST
         const formData = new FormData();
-        
-        Object.entries(fields).forEach(([key, value]) => {
-          if (key.toLowerCase() !== 'bucket') {
-            formData.append(key, value as string);
-          }
-        });
-        
-        formData.append('file', file);
-        
-        await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-            } else {
-              reject(new Error(`S3 upload failed for ${file.name}: ${xhr.status} ${xhr.statusText}`));
-            }
-          });
-          
-          xhr.addEventListener('error', () => {
-            reject(new Error(`S3 upload failed for ${file.name}: Network error`));
-          });
-          
-          xhr.open('POST', url);
-          xhr.send(formData);
-        });
+        formData.append('image', file);
 
-        // Step 3: Get presigned download URL
-        const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-        const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-        const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-        
-        let downloadUrl = s3Url;
-        try {
-          const downloadResponse = await fetch('/api/s3/download-url', {
+        const uploadResponse = await fetch(
+          `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
+          {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              s3Key: s3Key,
-              expiresIn: 604800 // 7 days - matches S3 lifecycle
-            }),
-          });
-          
-          if (downloadResponse.ok) {
-            const downloadData = await downloadResponse.json();
-            if (downloadData.downloadUrl) {
-              downloadUrl = downloadData.downloadUrl;
-            }
+            body: formData,
           }
-        } catch (error) {
-          console.warn('[LocationDetailSidebar] Failed to get presigned download URL:', error);
+        );
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Upload failed for ${file.name}: ${uploadResponse.status}`);
+        }
+
+        const uploadData = await uploadResponse.json();
+        const downloadUrl = uploadData.imageUrl || uploadData.data?.images?.[uploadData.data.images.length - 1]?.imageUrl;
+        const s3Key = uploadData.s3Key || uploadData.data?.images?.[uploadData.data.images.length - 1]?.metadata?.s3Key;
+
+        if (!downloadUrl || !s3Key) {
+          throw new Error(`Invalid response from server for ${file.name}`);
         }
 
         uploadedImages.push({
@@ -378,13 +320,16 @@ export default function LocationDetailSidebar({
         });
       }
 
-      // Step 4: Persist images to location (or add to pending)
-      if (location) {
-        // Existing location - update location's images array directly
-        // 🔥 FIX: Get latest location from context (using ref to avoid stale closures) to ensure we have current images
+      // Step 4: Backend already updated location - use response data from last upload
+      // The backend endpoint returns the enriched location with presigned URLs
+      // For multiple files, we use the last response (all files are appended)
+      if (uploadedImages.length > 0 && location) {
+        // Get current images from context
         const currentLocation = locationsRef.current.find(l => l.id === location.id) || location;
         const currentImages = currentLocation.images || [];
-        const newImages: ImageAsset[] = uploadedImages.map(img => ({
+        
+        // Transform uploaded images to frontend format
+        const transformedImages = uploadedImages.map(img => ({
           imageUrl: img.imageUrl,
           createdAt: new Date().toISOString(),
           metadata: {
@@ -392,34 +337,19 @@ export default function LocationDetailSidebar({
           }
         }));
         
-        const updatedImages = [...currentImages, ...newImages];
-        
-        // 🔥 FIX: Optimistic UI update - add images immediately
+        const updatedImages = [...currentImages, ...transformedImages];
+
+        // Update formData
         setFormData(prev => ({
           ...prev,
           images: updatedImages
         }));
-        
-        // Update location with new images array - this persists to DynamoDB
+
+        // Update location in context
         await updateLocation(location.id, {
           images: updatedImages
         });
-        
-        // Force a small delay to ensure DynamoDB consistency
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 🔥 FIX: Sync location data from context after update (like MediaLibrary refetches)
-        // Get updated location from context to ensure UI reflects the new images
-        // Use ref to get latest locations to avoid stale closures
-        const updatedLocationFromContext = locationsRef.current.find(l => l.id === location.id);
-        if (updatedLocationFromContext) {
-          console.log('[LocationDetailSidebar] 📸 Syncing from context after upload:', {
-            imageCount: updatedLocationFromContext.images?.length || 0,
-            imageUrls: updatedLocationFromContext.images?.map(img => img.imageUrl) || []
-          });
-          setFormData({ ...updatedLocationFromContext });
-        }
-        
+
         toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
       } else if (isCreating) {
         // New location - store temporarily, will be added after location creation

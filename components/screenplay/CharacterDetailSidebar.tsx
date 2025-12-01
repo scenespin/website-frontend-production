@@ -276,177 +276,83 @@ export default function CharacterDetailSidebar({
         return;
       }
 
-      // Upload file to S3
-      // Step 1: Get presigned POST URL for S3 upload
-      const presignedResponse = await fetch(
-        `/api/video/upload/get-presigned-url?` + 
-        `fileName=${encodeURIComponent(file.name)}` +
-        `&fileType=${encodeURIComponent(file.type)}` +
-        `&fileSize=${file.size}` +
-        `&screenplayId=${encodeURIComponent(screenplayId)}` +
-        `&projectId=${encodeURIComponent(screenplayId)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!presignedResponse.ok) {
-        if (presignedResponse.status === 413) {
-          throw new Error(`File too large. Maximum size is 10MB.`);
-        } else if (presignedResponse.status === 401) {
-          throw new Error('Please sign in to upload files.');
-        } else {
-          const errorData = await presignedResponse.json();
-          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
-        }
+      if (!character) {
+        toast.error('Character not found');
+        return;
       }
 
-      const { url, fields, s3Key } = await presignedResponse.json();
-      
-      if (!url || !fields || !s3Key) {
-        throw new Error('Invalid response from server');
-      }
-
-      // Step 2: Upload directly to S3 using FormData POST
+      // 🔥 FIX: Use backend upload endpoint (matches asset pattern)
+      // Backend handles: S3 upload, s3Key generation (correct 7-part format), character update
       const formData = new FormData();
-      
-      Object.entries(fields).forEach(([key, value]) => {
-        if (key.toLowerCase() !== 'bucket') {
-          formData.append(key, value as string);
-        }
-      });
-      
-      formData.append('file', file);
-      
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
-          }
-        });
-        
-        xhr.addEventListener('error', () => {
-          reject(new Error('S3 upload failed: Network error'));
-        });
-        
-        xhr.open('POST', url);
-        xhr.send(formData);
-      });
+      formData.append('image', file);
+      if (angle) {
+        formData.append('angle', angle);
+      }
 
-      // Step 3: Get presigned download URL
-      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-      
-      let downloadUrl = s3Url;
-      try {
-        const downloadResponse = await fetch('/api/s3/download-url', {
+      const uploadResponse = await fetch(
+        `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
+        {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            s3Key: s3Key,
-            expiresIn: 604800 // 7 days - matches S3 lifecycle
-          }),
-        });
-        
-        if (downloadResponse.ok) {
-          const downloadData = await downloadResponse.json();
-          if (downloadData.downloadUrl) {
-            downloadUrl = downloadData.downloadUrl;
-          }
+          body: formData,
         }
-      } catch (error) {
-        console.warn('[CharacterDetailSidebar] Failed to get presigned download URL:', error);
+      );
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${uploadResponse.status}`);
       }
 
-      // Step 4: Persist image to character (or add to pending)
-      if (character) {
-        // 🔥 FIX: Get latest character from context (using ref to avoid stale closures) to avoid stale images (race condition)
-        // If multiple images are uploaded quickly, they all use the same stale character.images
-        // Get the latest from context to ensure we're appending to the most recent images array
-        const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
-        const currentImages = currentCharacter.images || [];
-        
-        // Check if image with same angle already exists (prevent duplicates)
-        const existingImageWithAngle = currentImages.find(img => img.metadata?.angle === angle);
-        if (existingImageWithAngle && angle) {
-          toast.warning(`An image with ${angle} angle already exists. Replacing it.`);
-          // Replace existing image with same angle
-          const updatedImages = currentImages.map(img => 
-            img.metadata?.angle === angle ? {
-              imageUrl: downloadUrl,
-              createdAt: new Date().toISOString(),
-              metadata: {
-                angle: angle,
-                s3Key: s3Key
-              }
-            } : img
-          );
-          
-          // 🔥 FIX: Optimistic UI update - update formData immediately
-          setFormData(prev => ({
-            ...prev,
-            images: updatedImages
-          }));
-          
+      const uploadData = await uploadResponse.json();
+      const downloadUrl = uploadData.imageUrl || uploadData.data?.images?.[uploadData.data.images.length - 1]?.imageUrl;
+      const s3Key = uploadData.s3Key || uploadData.data?.images?.[uploadData.data.images.length - 1]?.metadata?.s3Key;
+
+      if (!downloadUrl || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Step 4: Backend already updated character - use response data
+      // The backend endpoint returns the enriched character with presigned URLs
+      if (uploadData.data) {
+        // Transform backend response to frontend format
+        const enrichedCharacter = uploadData.data;
+        const transformedImages = (enrichedCharacter.images || []).map((img: any) => ({
+          imageUrl: img.imageUrl || img.url,
+          createdAt: img.createdAt || img.uploadedAt || new Date().toISOString(),
+          metadata: {
+            s3Key: img.s3Key || img.metadata?.s3Key,
+            angle: angle || img.angle,
+            prompt: img.prompt,
+            modelUsed: img.modelUsed,
+            isEdited: img.isEdited,
+            originalImageUrl: img.originalImageUrl,
+          }
+        }));
+
+        // Update formData with enriched character data
+        setFormData(prev => ({
+          ...prev,
+          images: transformedImages
+        }));
+
+        // Update character in context (if character exists)
+        if (character) {
           await updateCharacter(character.id, {
-            images: updatedImages
-          });
-        } else {
-          // Add new image (no existing image with this angle)
-          const newImage: ImageAsset = {
-            imageUrl: downloadUrl,
-            createdAt: new Date().toISOString(),
-            metadata: {
-              angle: angle,
-              s3Key: s3Key
-            }
-          };
-          
-          const updatedImages = [...currentImages, newImage];
-          
-          // 🔥 FIX: Optimistic UI update - add images immediately
-          setFormData(prev => ({
-            ...prev,
-            images: updatedImages
-          }));
-          
-          // Update character with new image - this persists to DynamoDB
-          await updateCharacter(character.id, {
-            images: updatedImages
+            images: transformedImages
           });
         }
-        
-        // Force a small delay to ensure DynamoDB consistency
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 🔥 FIX: Sync character data from context after update (like MediaLibrary refetches)
-        // Get updated character from context to ensure UI reflects the new image
-        // Use ref to get latest characters to avoid stale closures
-        const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
-        if (updatedCharacterFromContext) {
-          setFormData({ ...updatedCharacterFromContext });
-        }
-        
-        toast.success('Headshot uploaded successfully');
+
+        toast.success('Image uploaded successfully');
       } else if (isCreating) {
         // New character - store temporarily, will be added after character creation
-        setPendingImages(prev => [...prev, { 
-          imageUrl: downloadUrl, 
+        setPendingImages(prev => [...prev, {
+          imageUrl: downloadUrl,
           s3Key: s3Key,
           angle: angle
         }]);
-        toast.success('Headshot ready - will be added when character is created');
+        toast.success('Image ready - will be added when character is created');
       }
 
       // Step 5: Show StorageDecisionModal
@@ -1239,86 +1145,63 @@ export default function CharacterDetailSidebar({
               const token = await getToken({ template: 'wryda-backend' });
               if (!token) throw new Error('Not authenticated');
 
-              // Get presigned URL
-              const presignedResponse = await fetch(
-                `/api/video/upload/get-presigned-url?` + 
-                `fileName=${encodeURIComponent(file.name)}` +
-                `&fileType=${encodeURIComponent(file.type)}` +
-                `&fileSize=${file.size}` +
-                `&screenplayId=${encodeURIComponent(screenplayId)}` +
-                `&projectId=${encodeURIComponent(screenplayId)}`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  }
-                }
-              );
-
-              if (!presignedResponse.ok) {
-                throw new Error('Failed to get upload URL');
+              // 🔥 FIX: Use backend upload endpoint (matches asset pattern)
+              if (!character) {
+                throw new Error('Character not found');
               }
 
-              const { url, fields, s3Key } = await presignedResponse.json();
-              
-              // Upload to S3
               const formData = new FormData();
-              Object.entries(fields).forEach(([key, value]) => {
-                if (key.toLowerCase() !== 'bucket') {
-                  formData.append(key, value as string);
-                }
-              });
-              formData.append('file', file);
-              
-              await fetch(url, { method: 'POST', body: formData });
+              formData.append('image', file);
 
-              // Get presigned download URL
-              let downloadUrl = imageUrl; // Fallback
-              try {
-                const downloadResponse = await fetch('/api/s3/download-url', {
+              const uploadResponse = await fetch(
+                `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
+                {
                   method: 'POST',
                   headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ s3Key, expiresIn: 604800 }), // 7 days - matches S3 lifecycle
-                });
-                if (downloadResponse.ok) {
-                  const downloadData = await downloadResponse.json();
-                  if (downloadData.downloadUrl) {
-                    downloadUrl = downloadData.downloadUrl;
-                  }
+                  body: formData,
                 }
-              } catch (error) {
-                console.warn('Failed to get presigned download URL:', error);
+              );
+
+              if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json().catch(() => ({}));
+                throw new Error(errorData.error || `Upload failed: ${uploadResponse.status}`);
               }
 
-              if (character) {
-                // Existing character - add image via addImageToEntity
-                await addImageToEntity('character', character.id, downloadUrl, {
-                  prompt,
-                  modelUsed,
-                  s3Key: s3Key
+              const uploadData = await uploadResponse.json();
+              const downloadUrl = uploadData.imageUrl || uploadData.data?.images?.[uploadData.data.images.length - 1]?.imageUrl;
+              const s3Key = uploadData.s3Key || uploadData.data?.images?.[uploadData.data.images.length - 1]?.metadata?.s3Key;
+
+              if (!downloadUrl || !s3Key) {
+                throw new Error('Invalid response from server');
+              }
+
+              // Backend already updated character - use response data
+              if (uploadData.data) {
+                const enrichedCharacter = uploadData.data;
+                const transformedImages = (enrichedCharacter.images || []).map((img: any) => ({
+                  imageUrl: img.imageUrl || img.url,
+                  createdAt: img.createdAt || img.uploadedAt || new Date().toISOString(),
+                  metadata: {
+                    s3Key: img.s3Key || img.metadata?.s3Key,
+                    prompt: prompt,
+                    modelUsed: modelUsed,
+                    isEdited: img.isEdited,
+                    originalImageUrl: img.originalImageUrl,
+                  }
+                }));
+
+                setFormData(prev => ({
+                  ...prev,
+                  images: transformedImages
+                }));
+
+                await updateCharacter(character.id, {
+                  images: transformedImages
                 });
-                
-                // 🔥 FIX: Sync character data from context after update (like MediaLibrary refetches)
-                // Get updated character from context to ensure UI reflects the new image
-                // Use ref to get latest characters to avoid stale closures
-                const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
-                if (updatedCharacterFromContext) {
-                  setFormData({ ...updatedCharacterFromContext });
-                }
-                
+
                 toast.success('Image generated and uploaded');
-                
-                // Show StorageDecisionModal
-                setSelectedAsset({
-                  url: downloadUrl,
-                  s3Key: s3Key,
-                  name: 'generated-headshot.png',
-                  type: 'image'
-                });
-                setShowStorageModal(true);
               } else if (isCreating) {
                 // New character - store temporarily with s3Key
                 setPendingImages(prev => [...prev, { 
@@ -1328,16 +1211,16 @@ export default function CharacterDetailSidebar({
                   modelUsed 
                 }]);
                 toast.success('Image generated - will be uploaded when character is created');
-                
-                // Show StorageDecisionModal
-                setSelectedAsset({
-                  url: downloadUrl,
-                  s3Key: s3Key,
-                  name: 'generated-headshot.png',
-                  type: 'image'
-                });
-                setShowStorageModal(true);
               }
+
+              // Show StorageDecisionModal
+              setSelectedAsset({
+                url: downloadUrl,
+                s3Key: s3Key,
+                name: 'generated-headshot.png',
+                type: 'image'
+              });
+              setShowStorageModal(true);
             } catch (error: any) {
               toast.error(`Failed to upload image: ${error.message}`);
             } finally {
