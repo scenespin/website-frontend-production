@@ -18,7 +18,7 @@ interface PoseGenerationModalProps {
   characterId: string;
   characterName: string;
   projectId: string;
-  baseReferenceUrl?: string; // Character's existing base reference image
+  baseReferenceS3Key?: string; // Character's existing base reference S3 key (not presigned URL)
   onComplete?: (result: any) => void;
 }
 
@@ -30,7 +30,7 @@ export default function PoseGenerationModal({
   characterId,
   characterName,
   projectId,
-  baseReferenceUrl,
+  baseReferenceS3Key,
   onComplete
 }: PoseGenerationModalProps) {
   const { getToken } = useAuth();
@@ -71,12 +71,10 @@ export default function PoseGenerationModal({
     try {
       setProgress(10);
       
-      // Use character's existing base reference image if available
-      const headshotUrl = baseReferenceUrl || (headshotFile ? headshotPreview : '');
-      
       setProgress(20);
       
       // Call backend API to generate pose package
+      // Pass s3Key instead of presigned URL to avoid KeyTooLongError
       const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch(
         `/api/projects/${projectId}/characters/${characterId}/generate-poses`,
@@ -89,7 +87,8 @@ export default function PoseGenerationModal({
           body: JSON.stringify({
             characterName,
             packageId: packageId,
-            headshotUrl: headshotUrl || undefined,
+            headshotS3Key: baseReferenceS3Key || undefined, // Pass s3Key, backend will generate presigned URL
+            headshotUrl: headshotFile ? headshotPreview : undefined, // Only for manual uploads
             screenplayContent: screenplayContent || undefined,
             manualDescription: manualDescription || undefined
           })

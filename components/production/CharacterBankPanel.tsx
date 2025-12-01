@@ -62,7 +62,7 @@ export function CharacterBankPanel({
   
   // Pose Generation Modal state
   const [showPoseModal, setShowPoseModal] = useState(false);
-  const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string, baseReferenceUrl?: string} | null>(null);
+  const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string, baseReferenceS3Key?: string} | null>(null);
   
   // Advanced features availability
   const [hasAdvancedFeatures, setHasAdvancedFeatures] = useState(false);
@@ -407,7 +407,7 @@ export function CharacterBankPanel({
               setPoseCharacter({
                 id: character.id, 
                 name: character.name,
-                baseReferenceUrl: character.baseReference?.imageUrl
+                baseReferenceS3Key: character.baseReference?.s3Key // Pass s3Key instead of presigned URL
               });
               setShowPoseModal(true);
             }
@@ -429,7 +429,7 @@ export function CharacterBankPanel({
           characterId={poseCharacter.id}
           characterName={poseCharacter.name}
           projectId={projectId}
-          baseReferenceUrl={poseCharacter.baseReferenceUrl}
+          baseReferenceS3Key={poseCharacter.baseReferenceS3Key}
           onComplete={(result) => {
             toast.success(`Generated ${result.result?.poses?.length || 0} poses for ${poseCharacter.name}!`);
             onCharactersUpdate();
