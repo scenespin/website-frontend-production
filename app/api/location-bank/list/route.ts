@@ -14,9 +14,19 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Location Bank List] Starting request...');
+    
     // Verify user is authenticated with Clerk
-    const { userId, getToken } = await auth();
+    const authResult = await auth();
+    const { userId, getToken } = authResult;
+    
+    console.log('[Location Bank List] Auth result:', { 
+      userId: userId || 'null',
+      hasGetToken: !!getToken 
+    });
+    
     if (!userId) {
+      console.error('[Location Bank List] ❌ No userId - user not authenticated');
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
@@ -25,7 +35,13 @@ export async function GET(request: NextRequest) {
 
     // Get Clerk token for backend API
     const token = await getToken({ template: 'wryda-backend' });
+    console.log('[Location Bank List] Token result:', { 
+      hasToken: !!token,
+      tokenLength: token?.length || 0 
+    });
+    
     if (!token) {
+      console.error('[Location Bank List] ❌ Failed to get backend token');
       return NextResponse.json(
         { error: 'Unauthorized - Failed to get backend token' },
         { status: 401 }
@@ -46,6 +62,8 @@ export async function GET(request: NextRequest) {
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/location-bank/list?screenplayId=${screenplayId}`;
+    
+    console.log('[Location Bank List] Forwarding to backend:', { url, screenplayId });
 
     const response = await fetch(url, {
       method: 'GET',
@@ -53,6 +71,11 @@ export async function GET(request: NextRequest) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+    });
+
+    console.log('[Location Bank List] Backend response:', { 
+      status: response.status,
+      ok: response.ok 
     });
 
     if (!response.ok) {
@@ -73,6 +96,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('[Location Bank List] Success, returning data');
     return NextResponse.json(data);
 
   } catch (error: any) {
