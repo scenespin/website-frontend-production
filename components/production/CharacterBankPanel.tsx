@@ -108,12 +108,14 @@ export function CharacterBankPanel({
   // Save performance settings when they change
   useEffect(() => {
     if (selectedCharacter && hasAdvancedFeatures) {
-      // Debounced save to backend
+      // Debounced save to backend via Next.js API route (handles auth internally)
       const timeoutId = setTimeout(async () => {
         try {
           await fetch('/api/character-bank/update-performance', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
               screenplayId: projectId, // projectId prop is actually screenplayId
               characterId: selectedCharacter.id,
