@@ -418,7 +418,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             id: char.id,  // Frontend uses 'id', backend will map to 'character_id'
             name: char.name,
             description: char.description,
-            referenceImages: char.images?.map(img => img.imageUrl) || []
+            // 🔥 FIX: Extract s3Key, not imageUrl (presigned URLs are 1000+ chars, causing KeyTooLongError)
+            referenceImages: char.images?.map(img => {
+                if (img.metadata?.s3Key) return img.metadata.s3Key;
+                if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                    const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                    if (urlMatch && urlMatch[1]) return urlMatch[1];
+                }
+                return null;
+            }).filter((key): key is string => key !== null && key.length <= 1024) || []
         }));
     }, []);
     
@@ -461,7 +469,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             name: loc.name,
             description: loc.description,
             type: loc.type, // 🔥 NEW: Include location type in API payload
-            referenceImages: loc.images?.map(img => img.imageUrl) || [],
+            // 🔥 FIX: Extract s3Key, not imageUrl (presigned URLs are 1000+ chars, causing KeyTooLongError)
+            referenceImages: loc.images?.map(img => {
+                if (img.metadata?.s3Key) return img.metadata.s3Key;
+                if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                    const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                    if (urlMatch && urlMatch[1]) return urlMatch[1];
+                }
+                return null;
+            }).filter((key): key is string => key !== null && key.length <= 1024) || [],
             address: loc.address, // 🔥 NEW: Include address
             atmosphereNotes: loc.atmosphereNotes, // 🔥 NEW: Include atmosphere notes
             setRequirements: loc.setRequirements, // 🔥 NEW: Include set requirements
@@ -1728,11 +1744,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         if (img.metadata?.s3Key) return img.metadata.s3Key;
                         if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
                             const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
-                            if (urlMatch) return urlMatch[1];
-                            if (!img.imageUrl.includes('?')) return img.imageUrl;
+                            if (urlMatch && urlMatch[1]) return urlMatch[1];
+                            if (!img.imageUrl.includes('?')) {
+                                const s3UrlMatch = img.imageUrl.match(/s3[^/]*\.amazonaws\.com\/([^?]+)/);
+                                if (s3UrlMatch && s3UrlMatch[1]) return s3UrlMatch[1];
+                                return img.imageUrl;
+                            }
                         }
                         return null;
-                    }).filter((key): key is string => key !== null) || []
+                    }).filter((key): key is string => key !== null && key.length <= 1024) || []
                 };
                 const createdCharacter = await apiCreateCharacter(screenplayId, apiChar, getToken);
                 console.log('[ScreenplayContext] 📥 Received created character from API:', { 
@@ -1813,8 +1833,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.physicalAttributes !== undefined) {
                     apiUpdates.physicalAttributes = updates.physicalAttributes;
                 }
+                // 🔥 FIX: Extract s3Key from images array (not imageUrl) for referenceImages
+                // CRITICAL: Store s3Key, NOT presigned URL (imageUrl can be 1000+ chars, causing KeyTooLongError)
                 if (updates.images !== undefined) {
-                    apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
+                    apiUpdates.referenceImages = updates.images.map(img => {
+                        // Extract s3Key from metadata, fallback to extracting from imageUrl
+                        if (img.metadata?.s3Key) return img.metadata.s3Key;
+                        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                            // Extract s3Key from presigned URL (everything before the first ?)
+                            const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                            if (urlMatch && urlMatch[1]) return urlMatch[1];
+                            // If no query params, might be direct S3 URL
+                            if (!img.imageUrl.includes('?')) {
+                                // Remove S3 bucket URL prefix if present
+                                const s3UrlMatch = img.imageUrl.match(/s3[^/]*\.amazonaws\.com\/([^?]+)/);
+                                if (s3UrlMatch && s3UrlMatch[1]) return s3UrlMatch[1];
+                                return img.imageUrl;
+                            }
+                        }
+                        return null;
+                    }).filter((key): key is string => key !== null && key.length <= 1024) || []; // Filter out nulls and keys > 1024 chars
                 }
                 
                 // 🔥 DEBUG: Log physicalAttributes to verify it's being sent
@@ -2054,7 +2092,20 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     name: newLocation.name,
                     description: newLocation.description || '',
                     type: newLocation.type || 'INT', // 🔥 FIX: Include type field (INT/EXT/INT-EXT)
-                    referenceImages: newLocation.images?.map(img => img.imageUrl) || []
+                    referenceImages: newLocation.images?.map(img => {
+                        // Extract s3Key from metadata, fallback to extracting from imageUrl
+                        if (img.metadata?.s3Key) return img.metadata.s3Key;
+                        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                            const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                            if (urlMatch && urlMatch[1]) return urlMatch[1];
+                            if (!img.imageUrl.includes('?')) {
+                                const s3UrlMatch = img.imageUrl.match(/s3[^/]*\.amazonaws\.com\/([^?]+)/);
+                                if (s3UrlMatch && s3UrlMatch[1]) return s3UrlMatch[1];
+                                return img.imageUrl;
+                            }
+                        }
+                        return null;
+                    }).filter((key): key is string => key !== null && key.length <= 1024) || []
                 };
                 
                 // 🔥 FIX: Include custom fields if they exist (even if empty string, but not if undefined)
@@ -2126,8 +2177,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.name !== undefined) apiUpdates.name = updates.name;
                 if (updates.description !== undefined) apiUpdates.description = updates.description;
                 if (updates.type !== undefined) apiUpdates.type = updates.type; // 🔥 CRITICAL: Include type field (INT/EXT/INT-EXT)
+                // 🔥 FIX: Extract s3Key from images array (not imageUrl) for referenceImages
+                // CRITICAL: Store s3Key, NOT presigned URL (imageUrl can be 1000+ chars, causing KeyTooLongError)
                 if (updates.images !== undefined) {
-                    apiUpdates.referenceImages = updates.images.map(img => img.imageUrl);
+                    apiUpdates.referenceImages = updates.images.map(img => {
+                        // Extract s3Key from metadata, fallback to extracting from imageUrl
+                        if (img.metadata?.s3Key) return img.metadata.s3Key;
+                        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                            // Extract s3Key from presigned URL (everything before the first ?)
+                            const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                            if (urlMatch && urlMatch[1]) return urlMatch[1];
+                            // If no query params, might be direct S3 URL
+                            if (!img.imageUrl.includes('?')) {
+                                // Remove S3 bucket URL prefix if present
+                                const s3UrlMatch = img.imageUrl.match(/s3[^/]*\.amazonaws\.com\/([^?]+)/);
+                                if (s3UrlMatch && s3UrlMatch[1]) return s3UrlMatch[1];
+                                return img.imageUrl;
+                            }
+                        }
+                        return null;
+                    }).filter((key): key is string => key !== null && key.length <= 1024) || []; // Filter out nulls and keys > 1024 chars
                 }
                 if (updates.address !== undefined) apiUpdates.address = updates.address; // 🔥 NEW: Include address
                 if (updates.atmosphereNotes !== undefined) apiUpdates.atmosphereNotes = updates.atmosphereNotes; // 🔥 NEW: Include atmosphere notes

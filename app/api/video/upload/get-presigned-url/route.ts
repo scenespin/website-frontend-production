@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { randomUUID } from 'crypto';
 
 const S3_BUCKET = process.env.S3_BUCKET || 'screenplay-assets-043309365215';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -71,9 +72,28 @@ export async function GET(request: Request) {
                      fileType.startsWith('audio/') ? 'audio' : 'image';
     
     // Generate S3 key (use screenplayId as the project identifier)
+    // 🔥 FIX: Use temp/images/ path for images (not timeline/) to match asset pattern and enable 7-day lifecycle
     const timestamp = Date.now();
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const s3Key = `timeline/${clerkUserId}/${screenplayId}/${category}/${timestamp}_${sanitizedFileName}`;
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50); // Limit filename length to prevent KeyTooLongError
+    const uuid = randomUUID().replace(/-/g, '').substring(0, 16); // Short UUID for uniqueness
+    
+    let s3Key: string;
+    if (category === 'image') {
+      // Images go to temp/images/ for 7-day lifecycle (matches asset pattern)
+      s3Key = `temp/images/${clerkUserId}/${screenplayId}/uploads/${timestamp}_${uuid}${sanitizedFileName.match(/\.[^.]+$/) || '.jpg'}`;
+    } else {
+      // Videos/audio go to timeline/ (existing behavior)
+      s3Key = `timeline/${clerkUserId}/${screenplayId}/${category}/${timestamp}_${sanitizedFileName}`;
+    }
+    
+    // Validate s3Key length (S3 max is 1024 bytes)
+    if (s3Key.length > 1024) {
+      // If still too long, use shorter path
+      const ext = sanitizedFileName.match(/\.[^.]+$/) || (category === 'image' ? '.jpg' : '.mp4');
+      s3Key = category === 'image' 
+        ? `temp/images/${clerkUserId}/${screenplayId}/${timestamp}_${uuid}${ext}`
+        : `timeline/${clerkUserId}/${screenplayId}/${timestamp}_${uuid}${ext}`;
+    }
     
     // Generate pre-signed POST (browser-friendly, handles Content-Type as form data)
     // This avoids the Content-Type header signing issues with getSignedUrl
