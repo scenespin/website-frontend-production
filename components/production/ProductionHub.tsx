@@ -144,6 +144,41 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   }, []);
 
   // ============================================================================
+  // LOAD LOCATIONS FROM LOCATION BANK API
+  // Feature 0142: Location Bank Unification
+  // ============================================================================
+
+  async function loadLocations() {
+    setIsLoadingLocations(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+      
+      const response = await fetch(`/api/location-bank/list?screenplayId=${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setLocations(data.data?.locations || []);
+      }
+    } catch (error) {
+      console.error('[ProductionHub] Failed to load locations:', error);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && activeTab === 'locations') {
+      loadLocations();
+    }
+  }, [projectId, isLoaded, isSignedIn, activeTab]);
+
+  // ============================================================================
   // POLL FOR ACTIVE JOBS
   // ============================================================================
 
