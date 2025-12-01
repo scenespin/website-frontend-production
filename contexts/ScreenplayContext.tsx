@@ -432,9 +432,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             arcStatus: (char.arcStatus as ArcStatus) || 'introduced' as ArcStatus, // 🔥 FIX: Read arcStatus from API, default to 'introduced' if missing
             arcNotes: char.arcNotes || '', // 🔥 FIX: Read arcNotes from API
             physicalAttributes: char.physicalAttributes || undefined, // 🔥 FIX: Include physicalAttributes from API
-            images: (char.referenceImages || []).map((url: string) => ({
-                imageUrl: url,
-                description: ''
+            // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
+            images: (char.images || []).map((img: any) => ({
+                imageUrl: img.imageUrl || img.url || '',
+                description: '',
+                metadata: {
+                    s3Key: img.s3Key // Preserve s3Key for regenerating presigned URLs if needed
+                }
             })),
             customFields: [],
             createdAt: char.created_at || new Date().toISOString(),
@@ -444,7 +448,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             transformed.length > 0 ? { 
                 name: transformed[0].name, 
                 arcStatus: transformed[0].arcStatus,
-                type: typeof transformed[0].arcStatus 
+                type: typeof transformed[0].arcStatus,
+                imageCount: transformed[0].images?.length || 0
             } : 'no characters'
         );
         return transformed;
@@ -470,9 +475,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             name: loc.name || '',
             description: loc.description || '',
             type: (loc.type as 'INT' | 'EXT' | 'INT/EXT') || 'INT', // 🔥 FIXED: Preserve type from DynamoDB, default to 'INT'
-            images: (loc.referenceImages || []).map((url: string) => ({
-                imageUrl: url,
-                description: ''
+            // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
+            images: (loc.images || []).map((img: any) => ({
+                imageUrl: img.imageUrl || img.url || '',
+                description: '',
+                metadata: {
+                    s3Key: img.s3Key // Preserve s3Key for regenerating presigned URLs if needed
+                }
             })),
             address: loc.address || '', // 🔥 NEW: Include address
             atmosphereNotes: loc.atmosphereNotes || '', // 🔥 NEW: Include atmosphere notes
