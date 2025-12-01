@@ -159,7 +159,25 @@ export function CharacterBankPanel({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('[CharacterBank] API error response:', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        
+        // Extract error message from backend response format
+        let errorMessage = 'Unknown error';
+        if (errorData.error) {
+          if (typeof errorData.error === 'string') {
+            errorMessage = errorData.error;
+          } else if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        
+        // Handle 404 specifically - backend route not deployed yet
+        if (response.status === 404) {
+          errorMessage = `${errorMessage}. The backend may need to be redeployed with the latest changes.`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
