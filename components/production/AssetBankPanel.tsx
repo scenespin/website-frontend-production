@@ -169,15 +169,6 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
           <h2 className="text-lg font-semibold text-[#FFFFFF]">
             Asset Bank
           </h2>
-          {!isMobile && (
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="p-1.5 hover:bg-[#DC143C]/10 rounded-lg transition-colors"
-              title="New Asset"
-            >
-              <Plus className="w-5 h-5 text-[#DC143C]" />
-            </button>
-          )}
         </div>
         <p className="text-xs text-[#808080]">
           {assets.length} asset{assets.length !== 1 ? 's' : ''}

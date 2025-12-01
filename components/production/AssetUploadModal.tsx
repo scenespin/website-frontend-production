@@ -9,6 +9,7 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useAuth } from '@clerk/nextjs';
 import { X, Upload, Image as ImageIcon, Trash2, Check } from 'lucide-react';
 import { AssetCategory, ASSET_CATEGORY_METADATA, CreateAssetRequest } from '@/types/asset';
 
@@ -26,6 +27,7 @@ interface ImagePreview {
 }
 
 export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess }: AssetUploadModalProps) {
+  const { getToken } = useAuth();
   const [step, setStep] = useState<'details' | 'upload'>('details');
   const [name, setName] = useState('');
   const [category, setCategory] = useState<AssetCategory>('prop');
@@ -85,12 +87,19 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
     setUploadProgress(0);
 
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required. Please sign in.');
+        setUploading(false);
+        return;
+      }
+
       // Step 1: Create asset
       const createResponse = await fetch('/api/asset-bank', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           projectId,
@@ -119,7 +128,7 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
         const uploadResponse = await fetch(`/api/asset-bank/${assetId}/images`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${token}`,
           },
           body: formData,
         });

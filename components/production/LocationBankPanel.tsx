@@ -58,6 +58,7 @@ export function LocationBankPanel({
   isLoading: propsIsLoading = false,
   onLocationsUpdate
 }: LocationBankPanelProps) {
+  const { updateLocation } = useScreenplay();
   const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
   const [isLoading, setIsLoading] = useState(propsIsLoading);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
@@ -223,10 +224,15 @@ export function LocationBankPanel({
               setSelectedLocationId(null);
             }}
             onUpdate={async (locationId, updates) => {
-              // Handle location updates
-              console.log('Update location:', locationId, updates);
-              if (onLocationsUpdate) {
-                onLocationsUpdate();
+              // Handle location updates via ScreenplayContext
+              try {
+                await updateLocation(locationId, updates);
+                if (onLocationsUpdate) {
+                  onLocationsUpdate();
+                }
+              } catch (error) {
+                console.error('[LocationBank] Failed to update location:', error);
+                toast.error('Failed to update location');
               }
             }}
             projectId={projectId}

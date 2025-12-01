@@ -336,9 +336,14 @@ export function CharacterBankPanel({
             setSelectedCharacterId(null);
           }}
           onUpdate={async (characterId, updates) => {
-            // Handle character updates
-            console.log('Update character:', characterId, updates);
-            onCharactersUpdate();
+            // Handle character updates via ScreenplayContext
+            try {
+              await updateCharacter(characterId, updates);
+              onCharactersUpdate();
+            } catch (error) {
+              console.error('[CharacterBank] Failed to update character:', error);
+              toast.error('Failed to update character');
+            }
           }}
           projectId={projectId}
           onUploadImage={async (characterId, file) => {

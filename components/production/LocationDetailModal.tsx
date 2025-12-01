@@ -15,7 +15,7 @@
  */
 
 import React, { useState } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -76,6 +76,10 @@ export function LocationDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating3D, setIsGenerating3D] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(location.name);
+  const [description, setDescription] = useState(location.description || '');
+  const [type, setType] = useState<LocationProfile['type']>(location.type);
   
   // Convert baseReference and angleVariations to image objects
   const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean }> = [];
@@ -188,17 +192,74 @@ export function LocationDetailModal({
                 <div className="p-2 bg-[#DC143C]/10 rounded-lg">
                   <MapPin className="w-6 h-6 text-[#DC143C]" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-[#FFFFFF]">{location.name}</h2>
-                  <p className="text-sm text-[#808080]">{typeLabel}</p>
+                <div className="flex-1">
+                  {editing ? (
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="text-xl font-bold bg-[#1F1F1F] border border-[#3F3F46] rounded px-3 py-2 text-[#FFFFFF] w-full focus:border-[#DC143C] focus:outline-none"
+                      maxLength={100}
+                    />
+                  ) : (
+                    <>
+                      <h2 className="text-xl font-bold text-[#FFFFFF]">{location.name}</h2>
+                      <p className="text-sm text-[#808080]">{typeLabel}</p>
+                    </>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {!editing && (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                    title="Edit"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </button>
+                )}
+                {editing && (
+                  <>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await onUpdate(location.locationId, { name, description, type });
+                          setEditing(false);
+                          toast.success('Location updated successfully');
+                        } catch (error) {
+                          console.error('Update failed:', error);
+                          toast.error('Failed to update location');
+                        }
+                      }}
+                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#DC143C] hover:text-[#FFFFFF]"
+                      title="Save"
+                    >
+                      <Save className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setName(location.name);
+                        setDescription(location.description || '');
+                        setType(location.type);
+                        setEditing(false);
+                      }}
+                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                      title="Cancel"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+                {!editing && (
+                  <button
+                    onClick={onClose}
+                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Tabs */}
@@ -353,18 +414,48 @@ export function LocationDetailModal({
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Name</label>
-                        <p className="text-[#FFFFFF]">{location.name}</p>
+                        {editing ? (
+                          <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
+                            maxLength={100}
+                          />
+                        ) : (
+                          <p className="text-[#FFFFFF]">{location.name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Type</label>
-                        <p className="text-[#FFFFFF]">{typeLabel}</p>
+                        {editing ? (
+                          <select
+                            value={type}
+                            onChange={(e) => setType(e.target.value as LocationProfile['type'])}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
+                          >
+                            <option value="interior">Interior</option>
+                            <option value="exterior">Exterior</option>
+                            <option value="mixed">Mixed</option>
+                          </select>
+                        ) : (
+                          <p className="text-[#FFFFFF]">{typeLabel}</p>
+                        )}
                       </div>
-                      {location.description && (
-                        <div>
-                          <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Description</label>
-                          <p className="text-[#808080]">{location.description}</p>
-                        </div>
-                      )}
+                      <div>
+                        <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Description</label>
+                        {editing ? (
+                          <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none resize-none"
+                            rows={4}
+                            maxLength={500}
+                          />
+                        ) : (
+                          <p className="text-[#808080]">{location.description || 'No description'}</p>
+                        )}
+                      </div>
                       {location.angleVariations && location.angleVariations.length > 0 && (
                         <div>
                           <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Angle Variations</label>

@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
@@ -39,6 +40,7 @@ export default function AssetDetailModal({
   onGenerate3D,
   isMobile = false
 }: AssetDetailModalProps) {
+  const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(asset.name);
@@ -62,11 +64,18 @@ export default function AssetDetailModal({
   const handleSave = async () => {
     setSaving(true);
     try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required. Please sign in.');
+        setSaving(false);
+        return;
+      }
+
       const response = await fetch(`/api/asset-bank/${asset.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: name.trim(),
