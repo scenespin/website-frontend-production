@@ -14,34 +14,28 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[Location Bank List] Starting request...');
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const clientToken = authHeader?.replace('Bearer ', '');
     
     // Verify user is authenticated with Clerk
-    const authResult = await auth();
-    const { userId, getToken } = authResult;
-    
-    console.log('[Location Bank List] Auth result:', { 
-      userId: userId || 'null',
-      hasGetToken: !!getToken 
-    });
-    
+    const { userId } = await auth();
     if (!userId) {
-      console.error('[Location Bank List] ❌ No userId - user not authenticated');
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
       );
     }
 
-    // Get Clerk token for backend API
-    const token = await getToken({ template: 'wryda-backend' });
-    console.log('[Location Bank List] Token result:', { 
-      hasToken: !!token,
-      tokenLength: token?.length || 0 
-    });
+    // Use the token from the client if available, otherwise get a new one
+    // This matches the pattern used in character-bank/list route
+    let token = clientToken;
+    if (!token) {
+      const { getToken } = await auth();
+      token = await getToken({ template: 'wryda-backend' });
+    }
     
     if (!token) {
-      console.error('[Location Bank List] ❌ Failed to get backend token');
       return NextResponse.json(
         { error: 'Unauthorized - Failed to get backend token' },
         { status: 401 }
