@@ -42,7 +42,12 @@ export async function GET(request: NextRequest) {
     console.log('[Credits Balance] User authenticated:', userId);
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/credits/balance`;
+    // Forward refresh query parameter to backend to bypass cache if needed
+    const searchParams = request.nextUrl.searchParams;
+    const refresh = searchParams.get('refresh');
+    const url = refresh 
+      ? `${backendUrl}/api/credits/balance?refresh=true`
+      : `${backendUrl}/api/credits/balance`;
 
     const response = await fetch(url, {
       method: 'GET',

@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { useAuth } from '@clerk/nextjs';
 import CharacterDetailSidebar from '../screenplay/CharacterDetailSidebar';
 import { AnimatePresence } from 'framer-motion';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
@@ -51,6 +52,7 @@ export function CharacterBankPanel({
   const { createCharacter, updateCharacter, deleteCharacter } = useScreenplay();
   const { setWorkflow } = useChatContext();
   const { setIsDrawerOpen } = useDrawer();
+  const { getToken } = useAuth();
   
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [isGeneratingRefs, setIsGeneratingRefs] = useState<Record<string, boolean>>({});
@@ -74,11 +76,23 @@ export function CharacterBankPanel({
 
   // Check if advanced features are available (silent check)
   useEffect(() => {
-    fetch('/api/features/advanced-performance')
-      .then(r => r.json())
-      .then(data => setHasAdvancedFeatures(data.available))
-      .catch(() => setHasAdvancedFeatures(false)); // Silent failure
-  }, []);
+    async function checkAdvancedFeatures() {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        const response = await fetch('/api/features/advanced-performance', {
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
+        });
+        const data = await response.json();
+        setHasAdvancedFeatures(data.available || false);
+      } catch (error) {
+        console.error('[CharacterBank] Failed to check advanced features:', error);
+        setHasAdvancedFeatures(false); // Silent failure
+      }
+    }
+    checkAdvancedFeatures();
+  }, [getToken]);
 
   // Load performance settings when character is selected
   useEffect(() => {
@@ -116,8 +130,15 @@ export function CharacterBankPanel({
   }, [performanceSettings, selectedCharacter, projectId, hasAdvancedFeatures]);
 
   async function generateReferences(characterId: string) {
+    console.log('[CharacterBank] Generate references clicked for character:', characterId);
     setIsGeneratingRefs(prev => ({ ...prev, [characterId]: true }));
     try {
+      console.log('[CharacterBank] Calling generate-variations API with:', {
+        screenplayId: projectId,
+        characterId,
+        variations: ['front', 'profile', 'three-quarter', 'happy', 'sad', 'action']
+      });
+      
       // Call Next.js API route which will proxy to backend with auth
       const response = await fetch('/api/character-bank/generate-variations', {
         method: 'POST',
@@ -131,12 +152,16 @@ export function CharacterBankPanel({
         })
       });
 
+      console.log('[CharacterBank] API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[CharacterBank] API error response:', errorData);
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('[CharacterBank] API success response:', data);
       
       if (data.success) {
         toast.success(`Generated ${data.references?.length || 0} reference variations!`);
@@ -281,76 +306,6 @@ export function CharacterBankPanel({
             </div>
           </div>
 
-          {/* Selected Character Actions */}
-          {selectedCharacter && (
-            <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#0A0A0A] to-transparent pt-8 pb-3 px-3">
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 space-y-3">
-                
-                {/* Performance Controls - Only show if advanced features available */}
-                {hasAdvancedFeatures && (
-                  <div className="pb-3 border-b border-[#3F3F46]">
-                    <PerformanceControls
-                      settings={performanceSettings}
-                      onChange={setPerformanceSettings}
-                      compact={false}
-                    />
-                  </div>
-                )}
-
-                <button
-                  onClick={() => generateReferences(selectedCharacter.id)}
-                  disabled={isGeneratingRefs[selectedCharacter.id]}
-                  className={cn(
-                    'w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isGeneratingRefs[selectedCharacter.id]
-                      ? 'bg-[#1F1F1F] text-[#808080] cursor-not-allowed border border-[#3F3F46]'
-                      : 'bg-[#DC143C] hover:bg-[#B91238] text-white'
-                  )}
-                >
-                  {isGeneratingRefs[selectedCharacter.id] ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Generate References
-                    </>
-                  )}
-                </button>
-                
-                {/* NEW: Generate Pose Package Button */}
-                <button
-                  onClick={() => {
-                    setPoseCharacter({id: selectedCharacter.id, name: selectedCharacter.name});
-                    setShowPoseModal(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Generate Pose Package
-                  <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-[#DC143C] text-white ml-1">NEW!</span>
-                </button>
-
-                <label className="block">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) uploadReference(selectedCharacter.id, file);
-                    }}
-                    className="hidden"
-                  />
-                  <span className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] transition-colors cursor-pointer">
-                    <Upload className="w-4 h-4" />
-                    Upload Reference
-                  </span>
-                </label>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -393,6 +348,19 @@ export function CharacterBankPanel({
             // TODO: Implement 3D generation
             toast.info('3D generation coming soon');
           }}
+          onGenerateVariations={async (characterId) => {
+            await generateReferences(characterId);
+          }}
+          onGeneratePosePackage={(characterId) => {
+            const character = characters.find(c => c.id === characterId);
+            if (character) {
+              setPoseCharacter({id: character.id, name: character.name});
+              setShowPoseModal(true);
+            }
+          }}
+          hasAdvancedFeatures={hasAdvancedFeatures}
+          performanceSettings={performanceSettings}
+          onPerformanceSettingsChange={setPerformanceSettings}
         />
       )}
       

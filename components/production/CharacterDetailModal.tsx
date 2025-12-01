@@ -16,6 +16,7 @@ import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download,
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './ProductionPageLayout';
 import { toast } from 'sonner';
+import { PerformanceControls, type PerformanceSettings } from '../characters/PerformanceControls';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -26,6 +27,11 @@ interface CharacterDetailModalProps {
   projectId: string;
   onUploadImage?: (characterId: string, file: File) => Promise<void>;
   onGenerate3D?: (characterId: string) => Promise<void>;
+  onGenerateVariations?: (characterId: string) => Promise<void>;
+  onGeneratePosePackage?: (characterId: string) => void;
+  hasAdvancedFeatures?: boolean;
+  performanceSettings?: PerformanceSettings;
+  onPerformanceSettingsChange?: (settings: PerformanceSettings) => void;
 }
 
 export function CharacterDetailModal({
@@ -36,7 +42,12 @@ export function CharacterDetailModal({
   onDelete,
   projectId,
   onUploadImage,
-  onGenerate3D
+  onGenerate3D,
+  onGenerateVariations,
+  onGeneratePosePackage,
+  hasAdvancedFeatures = false,
+  performanceSettings,
+  onPerformanceSettingsChange
 }: CharacterDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -244,6 +255,17 @@ export function CharacterDetailModal({
                     </div>
                   )}
 
+                  {/* Performance Controls - Only show if advanced features available */}
+                  {hasAdvancedFeatures && performanceSettings && onPerformanceSettingsChange && (
+                    <div className="mb-6 pb-6 border-b border-[#3F3F46]">
+                      <PerformanceControls
+                        settings={performanceSettings}
+                        onChange={onPerformanceSettingsChange}
+                        compact={false}
+                      />
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3">
                     <label className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2">
@@ -273,12 +295,36 @@ export function CharacterDetailModal({
                       </p>
                     </div>
                     
-                    <button
-                      className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      Generate Variations
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          if (onGenerateVariations) {
+                            onGenerateVariations(character.id);
+                          } else {
+                            toast.error('Generate variations function not available');
+                          }
+                        }}
+                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center font-medium"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Generate Variations
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          if (onGeneratePosePackage) {
+                            onGeneratePosePackage(character.id);
+                          } else {
+                            toast.error('Generate pose package function not available');
+                          }
+                        }}
+                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Generate Pose Package
+                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-[#DC143C] text-white ml-1">NEW!</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
