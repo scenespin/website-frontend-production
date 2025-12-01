@@ -258,7 +258,7 @@ export default function LocationDetailSidebar({
             },
             body: JSON.stringify({
               s3Key: s3Key,
-              expiresIn: 3600
+              expiresIn: 604800 // 7 days - matches S3 lifecycle
             }),
           });
           

@@ -251,7 +251,7 @@ export default function CharacterDetailSidebar({
           },
           body: JSON.stringify({
             s3Key: s3Key,
-            expiresIn: 3600
+            expiresIn: 604800 // 7 days - matches S3 lifecycle
           }),
         });
         
@@ -1151,7 +1151,7 @@ export default function CharacterDetailSidebar({
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+                  body: JSON.stringify({ s3Key, expiresIn: 604800 }), // 7 days - matches S3 lifecycle
                 });
                 if (downloadResponse.ok) {
                   const downloadData = await downloadResponse.json();
