@@ -18,6 +18,7 @@ interface PoseGenerationModalProps {
   characterId: string;
   characterName: string;
   projectId: string;
+  baseReferenceUrl?: string; // Character's existing base reference image
   onComplete?: (result: any) => void;
 }
 
@@ -29,6 +30,7 @@ export default function PoseGenerationModal({
   characterId,
   characterName,
   projectId,
+  baseReferenceUrl,
   onComplete
 }: PoseGenerationModalProps) {
   const { getToken } = useAuth();
@@ -60,21 +62,17 @@ export default function PoseGenerationModal({
     }
   };
   
-  const handleGenerate = async () => {
+  const handleGenerateWithPackage = async (packageId: string) => {
     setIsGenerating(true);
     setStep('generating');
     setError('');
     setProgress(0);
     
     try {
-      // Upload headshot if provided
-      let headshotUrl = '';
-      if (headshotFile) {
-        setProgress(10);
-        // TODO: Upload to S3 and get URL
-        // For now, use preview URL
-        headshotUrl = headshotPreview;
-      }
+      setProgress(10);
+      
+      // Use character's existing base reference image if available
+      const headshotUrl = baseReferenceUrl || (headshotFile ? headshotPreview : '');
       
       setProgress(20);
       
@@ -90,7 +88,7 @@ export default function PoseGenerationModal({
           },
           body: JSON.stringify({
             characterName,
-            packageId: selectedPackageId,
+            packageId: packageId,
             headshotUrl: headshotUrl || undefined,
             screenplayContent: screenplayContent || undefined,
             manualDescription: manualDescription || undefined
@@ -127,6 +125,10 @@ export default function PoseGenerationModal({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleGenerate = async () => {
+    await handleGenerateWithPackage(selectedPackageId);
   };
   
   const handleReset = () => {
@@ -186,18 +188,13 @@ export default function PoseGenerationModal({
                 <div className="space-y-6">
                   <PosePackageSelector
                     characterName={characterName}
-                    onSelectPackage={setSelectedPackageId}
+                    onSelectPackage={(packageId) => {
+                      setSelectedPackageId(packageId);
+                      // Automatically generate when package is selected
+                      handleGenerateWithPackage(packageId);
+                    }}
                     selectedPackageId={selectedPackageId}
                   />
-                  
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setStep('input')}
-                      className="px-6 py-3 bg-[#DC143C] hover:bg-blue-700 text-base-content rounded-lg font-semibold transition-colors"
-                    >
-                      Continue to Input
-                    </button>
-                  </div>
                 </div>
               )}
               

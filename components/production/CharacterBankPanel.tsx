@@ -62,7 +62,7 @@ export function CharacterBankPanel({
   
   // Pose Generation Modal state
   const [showPoseModal, setShowPoseModal] = useState(false);
-  const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string} | null>(null);
+  const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string, baseReferenceUrl?: string} | null>(null);
   
   // Advanced features availability
   const [hasAdvancedFeatures, setHasAdvancedFeatures] = useState(false);
@@ -404,7 +404,11 @@ export function CharacterBankPanel({
           onGeneratePosePackage={(characterId) => {
             const character = characters.find(c => c.id === characterId);
             if (character) {
-              setPoseCharacter({id: character.id, name: character.name});
+              setPoseCharacter({
+                id: character.id, 
+                name: character.name,
+                baseReferenceUrl: character.baseReference?.imageUrl
+              });
               setShowPoseModal(true);
             }
           }}
@@ -425,8 +429,9 @@ export function CharacterBankPanel({
           characterId={poseCharacter.id}
           characterName={poseCharacter.name}
           projectId={projectId}
+          baseReferenceUrl={poseCharacter.baseReferenceUrl}
           onComplete={(result) => {
-            toast.success(`Generated ${result.poses.length} poses for ${poseCharacter.name}!`);
+            toast.success(`Generated ${result.result?.poses?.length || 0} poses for ${poseCharacter.name}!`);
             onCharactersUpdate();
             setShowPoseModal(false);
             setPoseCharacter(null);
