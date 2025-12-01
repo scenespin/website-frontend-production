@@ -115,7 +115,8 @@ export default function CharacterDetailSidebar({
       for (const img of character.images) {
         // Regenerate URL if we have s3Key (regardless of whether URL looks expired)
         // This ensures URLs are always fresh with 7-day expiration
-        if (img.s3Key) {
+        const s3Key = img.metadata?.s3Key;
+        if (s3Key) {
           try {
             const downloadResponse = await fetch('/api/s3/download-url', {
               method: 'POST',
@@ -124,7 +125,7 @@ export default function CharacterDetailSidebar({
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({ 
-                s3Key: img.s3Key, 
+                s3Key: s3Key, 
                 expiresIn: 604800 // 7 days - matches S3 lifecycle
               }),
             });
@@ -132,11 +133,11 @@ export default function CharacterDetailSidebar({
             if (downloadResponse.ok) {
               const downloadData = await downloadResponse.json();
               if (downloadData.downloadUrl) {
-                urlMap[img.s3Key] = downloadData.downloadUrl;
+                urlMap[s3Key] = downloadData.downloadUrl;
               }
             }
           } catch (error) {
-            console.warn('[CharacterDetailSidebar] Failed to regenerate presigned URL for', img.s3Key, error);
+            console.warn('[CharacterDetailSidebar] Failed to regenerate presigned URL for', s3Key, error);
           }
         }
       }
@@ -724,8 +725,9 @@ export default function CharacterDetailSidebar({
             // For new characters, we create ImageAsset objects from pendingImages
             // 🔥 FIX: Use regenerated URLs when available (for expired presigned URLs)
             const allImages: ImageAsset[] = character ? images.map(img => {
-              const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
-                ? regeneratedImageUrls[img.s3Key] 
+              const s3Key = img.metadata?.s3Key;
+              const imageUrl = s3Key && regeneratedImageUrls[s3Key] 
+                ? regeneratedImageUrls[s3Key] 
                 : img.imageUrl;
               
               return {
