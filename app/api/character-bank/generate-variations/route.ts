@@ -7,6 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+// Ensure this route is dynamic and not cached
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     // Verify user is authenticated with Clerk
@@ -63,8 +67,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Backend error' }));
-      console.error('[Character Bank] Backend error:', error);
+      const error = await response.json().catch(() => ({ 
+        error: response.status === 404 
+          ? 'Backend route not found. Please ensure the backend is deployed with the latest changes.'
+          : 'Backend error'
+      }));
+      console.error('[Character Bank] Backend error:', {
+        status: response.status,
+        error,
+        url
+      });
       return NextResponse.json(
         error,
         { status: response.status }
