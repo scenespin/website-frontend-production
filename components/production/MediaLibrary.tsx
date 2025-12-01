@@ -280,6 +280,40 @@ export default function MediaLibrary({
   const [screenplayData, setScreenplayData] = useState<{ cloudStorageProvider?: 'google-drive' | 'dropbox' | null; title?: string } | null>(null);
   const [isLoadingScreenplay, setIsLoadingScreenplay] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  
+  // Check if banner should be dismissed (from localStorage)
+  useEffect(() => {
+    const dismissed = localStorage.getItem('mediaLibraryAutoSyncBannerDismissed') === 'true';
+    setIsBannerDismissed(dismissed);
+  }, []);
+  
+  // Check if any providers are connected
+  const hasConnectedProviders = (cloudConnections as CloudStorageConnection[]).some(
+    c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
+  );
+  
+  // Reset banner dismissal when all providers are disconnected
+  useEffect(() => {
+    if (!hasConnectedProviders && isBannerDismissed) {
+      // If all providers are disconnected and banner was dismissed, show it again
+      setIsBannerDismissed(false);
+      localStorage.removeItem('mediaLibraryAutoSyncBannerDismissed');
+    }
+  }, [hasConnectedProviders, isBannerDismissed]);
+  
+  // Hide banner permanently once a provider is connected
+  useEffect(() => {
+    if (hasConnectedProviders && !isBannerDismissed) {
+      setIsBannerDismissed(true);
+      localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
+    }
+  }, [hasConnectedProviders, isBannerDismissed]);
+  
+  const handleDismissBanner = () => {
+    setIsBannerDismissed(true);
+    localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
+  };
 
   // ============================================================================
   // API CALLS
@@ -1308,48 +1342,53 @@ export default function MediaLibrary({
         </div>
 
         {/* Auto-Sync Status Banner - Feature 0144 */}
-        {projectId && projectId.startsWith('screenplay_') && screenplayData && (
-          <div className={`mt-4 p-3 rounded-lg border ${
-            screenplayData.cloudStorageProvider
-              ? 'bg-[#00D9FF]/10 border-[#00D9FF]/30 text-[#00D9FF]'
-              : 'bg-[#3F3F46]/20 border-[#3F3F46] text-[#808080]'
-          }`}>
+        {/* Only show when no providers connected and not dismissed */}
+        {projectId && projectId.startsWith('screenplay_') && screenplayData && !hasConnectedProviders && !isBannerDismissed && (
+          <div className="mt-4 p-3 rounded-lg border bg-[#3F3F46]/20 border-[#3F3F46] text-[#808080] relative">
+            <button
+              onClick={handleDismissBanner}
+              className="absolute top-2 right-2 p-1 hover:bg-[#3F3F46] rounded transition-colors"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-start gap-3 pr-6">
+              <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="text-sm font-medium">Auto-sync not configured</div>
+                <div className="text-xs mt-1 opacity-80">
+                  Enable auto-sync to automatically save files to your cloud storage. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="text-xs underline hover:no-underline flex-shrink-0 text-[#DC143C]"
+              >
+                Configure
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Auto-Sync Enabled Banner (always show when configured) */}
+        {projectId && projectId.startsWith('screenplay_') && screenplayData && screenplayData.cloudStorageProvider && (
+          <div className="mt-4 p-3 rounded-lg border bg-[#00D9FF]/10 border-[#00D9FF]/30 text-[#00D9FF]">
             <div className="flex items-start gap-3">
-              {screenplayData.cloudStorageProvider ? (
-                <>
-                  <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">
-                      Auto-sync enabled: {screenplayData.cloudStorageProvider === 'google-drive' ? 'Google Drive' : 'Dropbox'}
-                    </div>
-                    <div className="text-xs mt-1 opacity-80">
-                      Files automatically save to: <span className="font-mono">/Wryda Screenplays/{screenplayData.title || 'Screenplay'}/...</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowSettingsModal(true)}
-                    className="text-xs underline hover:no-underline flex-shrink-0"
-                  >
-                    Change
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Info className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">Auto-sync not configured</div>
-                    <div className="text-xs mt-1 opacity-80">
-                      Enable auto-sync to automatically save files to your cloud storage. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowSettingsModal(true)}
-                    className="text-xs underline hover:no-underline flex-shrink-0 text-[#DC143C]"
-                  >
-                    Configure
-                  </button>
-                </>
-              )}
+              <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="text-sm font-medium">
+                  Auto-sync enabled: {screenplayData.cloudStorageProvider === 'google-drive' ? 'Google Drive' : 'Dropbox'}
+                </div>
+                <div className="text-xs mt-1 opacity-80">
+                  Files automatically save to: <span className="font-mono">/Wryda Screenplays/{screenplayData.title || 'Screenplay'}/...</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="text-xs underline hover:no-underline flex-shrink-0"
+              >
+                Change
+              </button>
             </div>
           </div>
         )}

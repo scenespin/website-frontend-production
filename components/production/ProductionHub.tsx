@@ -163,7 +163,12 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
       const data = await response.json();
       
       if (data.success) {
-        setLocations(data.data?.locations || []);
+        // Backend returns { success: true, data: { locations: [...] } }
+        const locationsList = data.data?.locations || data.locations || [];
+        setLocations(locationsList);
+        console.log('[ProductionHub] Loaded locations:', locationsList.length);
+      } else {
+        console.error('[ProductionHub] Location API error:', data.error);
       }
     } catch (error) {
       console.error('[ProductionHub] Failed to load locations:', error);

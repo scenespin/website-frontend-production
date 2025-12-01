@@ -8,14 +8,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Upload, Wand2, Loader2, Image, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useChatContext } from '@/contexts/ChatContext';
-import { useDrawer } from '@/contexts/DrawerContext';
-import LocationDetailSidebar from '../screenplay/LocationDetailSidebar';
-import { AnimatePresence } from 'framer-motion';
-import { useAuth } from '@clerk/nextjs';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 
@@ -63,15 +58,8 @@ export function LocationBankPanel({
   isLoading: propsIsLoading = false,
   onLocationsUpdate
 }: LocationBankPanelProps) {
-  const { getToken } = useAuth();
-  
-  const { createLocation, updateLocation, deleteLocation } = useScreenplay();
-  const { setWorkflow } = useChatContext();
-  const { setIsDrawerOpen } = useDrawer();
-  
   const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
   const [isLoading, setIsLoading] = useState(propsIsLoading);
-  const [showCreateSidebar, setShowCreateSidebar] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [showLocationDetail, setShowLocationDetail] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState<Record<string, boolean>>({});
@@ -80,22 +68,8 @@ export function LocationBankPanel({
   useEffect(() => {
     setLocations(propsLocations);
     setIsLoading(propsIsLoading);
+    console.log('[LocationBankPanel] Locations updated:', propsLocations.length);
   }, [propsLocations, propsIsLoading]);
-  
-  // Location creation handlers
-  const handleCreateLocation = async (locationData: any) => {
-    try {
-      await createLocation(locationData);
-      toast.success('Location created!');
-      setShowCreateSidebar(false);
-      if (onLocationsUpdate) {
-        onLocationsUpdate();
-      }
-    } catch (error) {
-      console.error('[LocationBank] Create failed:', error);
-      toast.error('Failed to create location');
-    }
-  };
 
   // Generate angle variations (Feature 0142: Location Bank Unification)
   async function generateAngles(locationId: string) {
@@ -171,13 +145,6 @@ export function LocationBankPanel({
           <h2 className="text-lg font-semibold text-[#FFFFFF]">
             Location Bank
           </h2>
-          <button
-            onClick={() => setShowCreateSidebar(true)}
-            className="p-1.5 hover:bg-[#DC143C]/10 rounded-lg transition-colors"
-            title="Add Location"
-          >
-            <Plus className="w-5 h-5 text-[#DC143C]" />
-          </button>
         </div>
         <p className="text-xs text-[#808080]">
           {locations.length} location{locations.length !== 1 ? 's' : ''}
@@ -192,15 +159,8 @@ export function LocationBankPanel({
             No locations yet
           </p>
           <p className="text-xs text-[#808080] mb-4">
-            Add locations to maintain consistency across scenes
+            Locations can only be added in the Create section. Use this panel to view and edit existing locations.
           </p>
-          <button
-            onClick={() => setShowCreateSidebar(true)}
-            className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Location
-          </button>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
@@ -293,21 +253,6 @@ export function LocationBankPanel({
         ) : null;
       })()}
       
-      {/* Create Location Sidebar */}
-      <AnimatePresence>
-        {showCreateSidebar && (
-          <LocationDetailSidebar
-            location={null}
-            isCreating={true}
-            initialData={null}
-            onClose={() => setShowCreateSidebar(false)}
-            onCreate={handleCreateLocation}
-            onUpdate={() => {}} // Not used in creation mode
-            onDelete={() => {}} // Not used in creation mode
-            onSwitchToChatImageMode={handleSwitchToChatForInterview}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

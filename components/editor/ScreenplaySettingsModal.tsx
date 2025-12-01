@@ -5,8 +5,9 @@ import { useAuth } from '@clerk/nextjs';
 import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useStorageConnections } from '@/hooks/useStorageConnections';
-import { X, Settings, Loader2, Cloud } from 'lucide-react';
+import { X, Settings, Loader2, Cloud, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface ScreenplaySettingsModalProps {
   isOpen: boolean;
@@ -299,6 +300,25 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                     </div>
                   </label>
                 </div>
+                {(!googleDrive || !dropbox) && (
+                  <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <p className="text-xs text-yellow-400 mb-2">
+                      {!googleDrive && !dropbox 
+                        ? 'No cloud storage providers connected. Connect a provider in the Media Library to enable auto-sync.'
+                        : !googleDrive 
+                        ? 'Google Drive is not connected. Connect it in the Media Library to enable auto-sync.'
+                        : 'Dropbox is not connected. Connect it in the Media Library to enable auto-sync.'}
+                    </p>
+                    <Link
+                      href={`/production?tab=media&screenplayId=${screenplayId}`}
+                      onClick={() => onClose()}
+                      className="inline-flex items-center gap-1.5 text-xs text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
+                    >
+                      Go to Media Library
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                )}
                 <p className="text-xs text-slate-400 mt-2">
                   When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
                 </p>
