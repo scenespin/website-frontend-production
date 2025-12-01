@@ -19,31 +19,49 @@ import { useAuth } from '@clerk/nextjs';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 
+// Location Profile from Location Bank API (Feature 0142: Unified storage)
+interface LocationReference {
+  id: string;
+  locationId: string;
+  imageUrl: string;
+  s3Key: string;
+  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+  generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
+  creditsUsed: number;
+  createdAt: string;
+}
+
 interface LocationProfile {
-  location_id: string;
-  project_id: string;
+  locationId: string;
+  screenplayId: string;
+  projectId: string; // Backward compatibility
   name: string;
-  full_name?: string;
-  type: 'INT.' | 'EXT.' | 'INT./EXT.';
+  type: 'interior' | 'exterior' | 'mixed';
   description: string;
-  scenes?: string[];
-  reference_images: string[];
-  created_at: string;
-  updated_at: string;
+  baseReference: LocationReference;
+  angleVariations: LocationReference[];
+  totalCreditsSpent?: number;
+  consistencyRating?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface LocationBankPanelProps {
   projectId: string;
   className?: string;
-  locations?: LocationProfile[]; // 🔥 NEW: Accept locations from screenplay context (like CharacterBankPanel)
-  isLoading?: boolean; // 🔥 NEW: Loading state from screenplay context
+  locations?: LocationProfile[]; // Locations from Location Bank API
+  isLoading?: boolean; // Loading state
+  onLocationsUpdate?: () => void; // Callback to refresh locations
 }
 
 export function LocationBankPanel({
   projectId,
   className = '',
-  locations: propsLocations, // 🔥 NEW: Locations from props (screenplay context)
-  isLoading: propsIsLoading = false // 🔥 NEW: Loading state from props
+  locations: propsLocations = [],
+  isLoading: propsIsLoading = false,
+  onLocationsUpdate
 }: LocationBankPanelProps) {
   const { getToken } = useAuth();
   
@@ -51,53 +69,18 @@ export function LocationBankPanel({
   const { setWorkflow } = useChatContext();
   const { setIsDrawerOpen } = useDrawer();
   
-  const [locations, setLocations] = useState<LocationProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
+  const [isLoading, setIsLoading] = useState(propsIsLoading);
   const [showCreateSidebar, setShowCreateSidebar] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [showLocationDetail, setShowLocationDetail] = useState(false);
+  const [isGeneratingAngles, setIsGeneratingAngles] = useState<Record<string, boolean>>({});
   
-  // 🔥 NEW: Use locations from props if provided, otherwise load from API
+  // Use locations from props (loaded by ProductionPageLayout from Location Bank API)
   useEffect(() => {
-    if (propsLocations !== undefined) {
-      // Locations provided via props (from screenplay context) - use them directly
-      setLocations(propsLocations);
-      setIsLoading(propsIsLoading);
-    } else {
-      // No props provided - load from API (backward compatibility)
-      loadLocations();
-    }
-  }, [projectId, propsLocations, propsIsLoading]);
-  
-  async function loadLocations() {
-    try {
-      setIsLoading(true);
-      
-      const token = await getToken({ template: 'wryda-backend' });
-      const response = await fetch(`/api/projects/${projectId}/locations`, { // projectId is treated as screenplayId by backend
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) throw new Error('Failed to load locations');
-      
-      const data = await response.json();
-      const locationsData = data.locations || data || [];
-      // Ensure reference_images is properly mapped from referenceImages
-      const mappedLocations = locationsData.map((loc: any) => ({
-        ...loc,
-        reference_images: loc.reference_images || loc.referenceImages || []
-      }));
-      setLocations(mappedLocations);
-      
-    } catch (error: any) {
-      console.error('[LocationBank] Error loading locations:', error);
-      toast.error('Failed to load locations');
-    } finally {
-      setIsLoading(false);
-    }
-  }
+    setLocations(propsLocations);
+    setIsLoading(propsIsLoading);
+  }, [propsLocations, propsIsLoading]);
   
   // Location creation handlers
   const handleCreateLocation = async (locationData: any) => {
@@ -105,12 +88,65 @@ export function LocationBankPanel({
       await createLocation(locationData);
       toast.success('Location created!');
       setShowCreateSidebar(false);
-      await loadLocations(); // Reload to get the new location
+      if (onLocationsUpdate) {
+        onLocationsUpdate();
+      }
     } catch (error) {
       console.error('[LocationBank] Create failed:', error);
       toast.error('Failed to create location');
     }
   };
+
+  // Generate angle variations (Feature 0142: Location Bank Unification)
+  async function generateAngles(locationId: string) {
+    console.log('[LocationBank] Generate angles clicked for location:', locationId);
+    setIsGeneratingAngles(prev => ({ ...prev, [locationId]: true }));
+    try {
+      const location = locations.find(l => l.locationId === locationId);
+      if (!location) {
+        throw new Error('Location not found');
+      }
+
+      // Call Next.js API route which will proxy to backend with auth
+      const response = await fetch('/api/location-bank/generate-angles', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          locationProfile: location,
+          angles: [
+            { angle: 'side' },
+            { angle: 'aerial' },
+            { angle: 'wide' },
+            { angle: 'detail' }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to generate angles');
+      }
+
+      const data = await response.json();
+      console.log('[LocationBank] Generate angles success:', data);
+      
+      if (data.success) {
+        toast.success(`Generated ${data.data?.angleVariations?.length || 0} angle variations!`);
+        if (onLocationsUpdate) {
+          onLocationsUpdate();
+        }
+      } else {
+        throw new Error(data.error || 'Generation failed');
+      }
+    } catch (error: any) {
+      console.error('[LocationBank] Generate angles failed:', error);
+      toast.error(error.message || 'Failed to generate angle variations');
+    } finally {
+      setIsGeneratingAngles(prev => ({ ...prev, [locationId]: false }));
+    }
+  }
 
   const handleSwitchToChatForInterview = (location: any, context: any) => {
     // Start the AI interview workflow
@@ -172,35 +208,48 @@ export function LocationBankPanel({
           <div className="p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {locations.map((location) => {
-                // Convert reference_images to CinemaCardImage format
-                const referenceImages: CinemaCardImage[] = (location.reference_images || []).map((img, idx) => ({
-                  id: `ref-${idx}`,
-                  imageUrl: img,
-                  label: `${location.name} - Reference ${idx + 1}`
-                }));
+                // Convert baseReference and angleVariations to CinemaCardImage format
+                const allReferences: CinemaCardImage[] = [];
+                
+                if (location.baseReference) {
+                  allReferences.push({
+                    id: location.baseReference.id,
+                    imageUrl: location.baseReference.imageUrl,
+                    label: `${location.name} - Base Reference`
+                  });
+                }
+                
+                location.angleVariations.forEach((variation) => {
+                  allReferences.push({
+                    id: variation.id,
+                    imageUrl: variation.imageUrl,
+                    label: `${location.name} - ${variation.angle} view`
+                  });
+                });
 
                 // Determine location type for badge
-                const locationType = location.type === 'INT.' ? 'interior' : 
-                                    location.type === 'EXT.' ? 'exterior' : 'mixed';
+                const locationType = location.type;
+                const typeLabel = location.type === 'interior' ? 'INT.' : 
+                                 location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
                 return (
                   <CinemaCard
-                    key={location.location_id}
-                    id={location.location_id}
+                    key={location.locationId}
+                    id={location.locationId}
                     name={location.name}
                     type={locationType}
-                    typeLabel={location.type}
-                    mainImage={referenceImages.length > 0 ? referenceImages[0] : null}
-                    referenceImages={referenceImages.slice(1)}
-                    referenceCount={referenceImages.length}
-                    metadata={location.scenes && location.scenes.length > 0 ? `${location.scenes.length} scenes` : undefined}
+                    typeLabel={typeLabel}
+                    mainImage={allReferences.length > 0 ? allReferences[0] : null}
+                    referenceImages={allReferences.slice(1)}
+                    referenceCount={allReferences.length}
+                    metadata={location.angleVariations.length > 0 ? `${location.angleVariations.length} angles` : undefined}
                     description={location.description}
                     cardType="location"
                     onClick={() => {
-                      setSelectedLocationId(location.location_id);
+                      setSelectedLocationId(location.locationId);
                       setShowLocationDetail(true);
                     }}
-                    isSelected={selectedLocationId === location.location_id}
+                    isSelected={selectedLocationId === location.locationId}
                   />
                 );
               })}
@@ -211,7 +260,7 @@ export function LocationBankPanel({
       
       {/* Location Detail Modal */}
       {showLocationDetail && selectedLocationId && (() => {
-        const selectedLocation = locations.find(l => l.location_id === selectedLocationId);
+        const selectedLocation = locations.find(l => l.locationId === selectedLocationId);
         return selectedLocation ? (
           <LocationDetailModal
             location={selectedLocation}
@@ -223,11 +272,13 @@ export function LocationBankPanel({
             onUpdate={async (locationId, updates) => {
               // Handle location updates
               console.log('Update location:', locationId, updates);
-              await loadLocations();
+              if (onLocationsUpdate) {
+                onLocationsUpdate();
+              }
             }}
             projectId={projectId}
             onUploadImage={async (locationId, file) => {
-              // TODO: Implement location image upload
+              // TODO: Implement location image upload via Location Bank API
               toast.info('Location image upload coming soon');
             }}
             onGenerate3D={async (locationId) => {
@@ -235,8 +286,8 @@ export function LocationBankPanel({
               toast.info('3D generation coming soon');
             }}
             onGenerateAngles={async (locationId) => {
-              // TODO: Implement angle package generation
-              toast.info('Angle package generation coming soon');
+              // Feature 0142: Generate angle variations via Location Bank API
+              await generateAngles(locationId);
             }}
           />
         ) : null;
@@ -260,3 +311,4 @@ export function LocationBankPanel({
     </div>
   );
 }
+

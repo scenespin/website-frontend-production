@@ -145,6 +145,10 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   const [characters, setCharacters] = useState<CharacterProfile[]>([]);
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(false);
   
+  // Location bank state (Feature 0142: Location Bank Unification)
+  const [locations, setLocations] = useState<any[]>([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+  
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<Record<number, number>>({});
@@ -211,6 +215,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       loadCharacters();
+      loadLocations(); // Feature 0142: Load locations from Location Bank
     }
   }, [projectId, isLoaded, isSignedIn]);
   
@@ -308,6 +313,35 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       console.error('[ProductionPage] Failed to load characters:', error);
     } finally {
       setIsLoadingCharacters(false);
+    }
+  }
+
+  /**
+   * Load locations from Location Bank (Feature 0142: Location Bank Unification)
+   */
+  async function loadLocations() {
+    setIsLoadingLocations(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      console.log('[ProductionPage] Loading locations with auth token:', token ? 'TOKEN_PRESENT' : 'NO_TOKEN');
+      
+      const response = await fetch(`/api/location-bank/list?screenplayId=${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      console.log('[ProductionPage] Location load response:', response.status, data);
+      
+      if (data.success) {
+        setLocations(data.data?.locations || []);
+      }
+    } catch (error) {
+      console.error('[ProductionPage] Failed to load locations:', error);
+    } finally {
+      setIsLoadingLocations(false);
     }
   }
 
@@ -841,6 +875,9 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
             <div className="flex-1 overflow-auto">
               <LocationBankPanel
                 projectId={projectId}
+                locations={locations}
+                isLoading={isLoadingLocations}
+                onLocationsUpdate={loadLocations}
                 className="h-full"
               />
             </div>
