@@ -15,6 +15,7 @@
  */
 
 import { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,9 +50,60 @@ export default function AssetDetailModal({
   const [tags, setTags] = useState(asset.tags.join(', '));
   const [saving, setSaving] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const categoryMeta = ASSET_CATEGORY_METADATA[category];
   const canExport3D = asset.images.length >= 2 && asset.images.length <= 10;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication required. Please sign in.');
+        setIsUploading(false);
+        return;
+      }
+
+      // Upload each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (asset.images.length >= 10) {
+          toast.error('Maximum 10 images per asset');
+          break;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch(`/api/asset-bank/${asset.id}/images`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to upload image');
+        }
+      }
+
+      toast.success(`Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`);
+      onUpdate(); // Refresh asset data
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      if (e.target) e.target.value = '';
+    }
+  };
   
   // Convert asset images to gallery format
   const allImages = asset.images.map((img, idx) => ({
@@ -301,14 +353,16 @@ export default function AssetDetailModal({
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3">
-                    <label className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2">
+                    <label className={`px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       <Upload className="w-4 h-4" />
-                      Upload Image
+                      {isUploading ? 'Uploading...' : asset.images.length >= 10 ? 'Max Images (10/10)' : `Upload Image (${asset.images.length}/10)`}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
                         multiple
+                        onChange={handleFileUpload}
+                        disabled={isUploading || asset.images.length >= 10}
                       />
                     </label>
                     
