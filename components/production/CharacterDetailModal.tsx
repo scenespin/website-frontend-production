@@ -266,36 +266,10 @@ export function CharacterDetailModal({
                     </div>
                   )}
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3">
-                    <label className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      {isUploading ? 'Uploading...' : 'Upload Image'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
-                    </label>
-                    
-                    <div className="space-y-2">
-                      <button
-                        onClick={handleGenerate3D}
-                        disabled={isGenerating3D}
-                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
-                        title="Export 3D model for external use"
-                      >
-                        <Box className="w-4 h-4" />
-                        {isGenerating3D ? 'Generating...' : 'Export to 3D (500 cr)'}
-                      </button>
-                      <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
-                        Use in AR/VR, game engines, 3D animation tools, and more
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
+                  {/* Action Buttons - Organized by frequency of use */}
+                  <div className="space-y-3">
+                    {/* Primary Actions - Most Frequently Used */}
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
                           if (onGenerateVariations) {
@@ -304,12 +278,27 @@ export function CharacterDetailModal({
                             toast.error('Generate variations function not available');
                           }
                         }}
-                        className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center font-medium"
+                        className="flex-1 px-3 py-1.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-md transition-colors inline-flex items-center justify-center gap-1.5 text-sm font-medium"
                       >
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-3.5 h-3.5" />
                         Generate Variations
                       </button>
                       
+                      <label className="px-3 py-1.5 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded-md cursor-pointer transition-colors inline-flex items-center gap-1.5 text-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        {isUploading ? 'Uploading...' : 'Upload'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Secondary Actions - Less Frequently Used */}
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
                           if (onGeneratePosePackage) {
@@ -318,11 +307,23 @@ export function CharacterDetailModal({
                             toast.error('Generate pose package function not available');
                           }
                         }}
-                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center"
+                        className="flex-1 px-3 py-1.5 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C]/50 text-[#FFFFFF] rounded-md transition-colors inline-flex items-center justify-center gap-1.5 text-sm"
                       >
-                        <Sparkles className="w-4 h-4" />
-                        Generate Pose Package
-                        <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-[#DC143C] text-white ml-1">NEW!</span>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Pose Package
+                        <span className="px-1 py-0.5 rounded text-[10px] font-medium bg-[#DC143C] text-white ml-0.5">NEW</span>
+                      </button>
+                      
+                      <button
+                        onClick={handleGenerate3D}
+                        disabled={isGenerating3D}
+                        className="px-3 py-1.5 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#808080]/50 text-[#808080] hover:text-[#FFFFFF] rounded-md transition-colors inline-flex items-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Export 3D model (500 credits) - Use in AR/VR, game engines, 3D animation tools"
+                      >
+                        <Box className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">3D Export</span>
+                        <span className="sm:hidden">3D</span>
+                        <span className="text-[10px] text-[#808080] ml-0.5">500cr</span>
                       </button>
                     </div>
                   </div>
