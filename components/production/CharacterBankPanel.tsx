@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { CharacterProfile } from './ProductionPageLayout';
+import type { Character } from '@/types/screenplay';
 import { 
   User, 
   Plus, 
@@ -183,11 +184,40 @@ export function CharacterBankPanel({
       const data = await response.json();
       console.log('[CharacterBank] API success response:', data);
       
-      if (data.success) {
-        toast.success(`Generated ${data.references?.length || 0} reference variations!`);
+      if (data.success && data.data) {
+        const responseData = data.data;
+        const referencesCount = responseData.references?.length || 0;
+        const character = responseData.character;
+        
+        // Update character in context if we have the updated character
+        if (character && updateCharacter) {
+          try {
+            // Map the character profile to the Character type expected by context
+            const characterUpdates: Partial<Character> = {
+              images: [
+                ...(character.baseReference ? [{
+                  imageUrl: character.baseReference.imageUrl,
+                  s3Key: character.baseReference.s3Key,
+                  metadata: { uploadedFileName: 'Base Reference' }
+                }] : []),
+                ...(character.references || []).map((ref: any) => ({
+                  imageUrl: ref.imageUrl,
+                  s3Key: ref.s3Key,
+                  metadata: { uploadedFileName: ref.label || 'Reference' }
+                }))
+              ]
+            };
+            
+            await updateCharacter(characterId, characterUpdates);
+          } catch (error) {
+            console.error('[CharacterBank] Failed to update character in context:', error);
+          }
+        }
+        
+        toast.success(`Generated ${referencesCount} reference variations!`);
         onCharactersUpdate();
       } else {
-        throw new Error(data.error || 'Generation failed');
+        throw new Error(data.error?.message || data.error || 'Generation failed');
       }
     } catch (error: any) {
       console.error('[CharacterBank] Generate refs failed:', error);

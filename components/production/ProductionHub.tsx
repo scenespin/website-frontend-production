@@ -173,10 +173,10 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   }
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && activeTab === 'locations') {
+    if (isLoaded && isSignedIn && projectId) {
       loadLocations();
     }
-  }, [projectId, isLoaded, isSignedIn, activeTab]);
+  }, [projectId, isLoaded, isSignedIn]);
 
   // ============================================================================
   // POLL FOR ACTIVE JOBS
