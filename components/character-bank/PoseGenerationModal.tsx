@@ -12,6 +12,7 @@ import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle } from '
 import PosePackageSelector from './PosePackageSelector';
 import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
+import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -81,6 +82,15 @@ export default function PoseGenerationModal({
   const [generationResult, setGenerationResult] = useState<any>(null);
   const [error, setError] = useState<string>('');
   const [progress, setProgress] = useState(0);
+  
+  // Storage modal state (for AI-generated poses)
+  const [showStorageModal, setShowStorageModal] = useState(false);
+  const [selectedPoseAsset, setSelectedPoseAsset] = useState<{
+    url: string;
+    s3Key: string;
+    name: string;
+    type: 'image';
+  } | null>(null);
   
   const handleHeadshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,6 +166,20 @@ export default function PoseGenerationModal({
       setGenerationResult(result);
       setStep('complete');
       
+      // Show storage modal for first generated pose (AI-generated content needs storage decision)
+      if (result?.result?.poses && result.result.poses.length > 0) {
+        const firstPose = result.result.poses[0];
+        if (firstPose.s3Key && firstPose.imageUrl) {
+          setSelectedPoseAsset({
+            url: firstPose.imageUrl,
+            s3Key: firstPose.s3Key,
+            name: `${characterName}_${firstPose.poseName || 'pose'}.png`,
+            type: 'image'
+          });
+          setShowStorageModal(true);
+        }
+      }
+      
       if (onComplete) {
         onComplete(result);
       }
@@ -192,6 +216,7 @@ export default function PoseGenerationModal({
   };
   
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -554,6 +579,29 @@ export default function PoseGenerationModal({
         </motion.div>
       )}
     </AnimatePresence>
+    
+    {/* Storage Decision Modal for AI-generated poses */}
+    {showStorageModal && selectedPoseAsset && (
+      <StorageDecisionModal
+        isOpen={showStorageModal}
+        onClose={() => {
+          setShowStorageModal(false);
+          setSelectedPoseAsset(null);
+        }}
+        assetType="image"
+        assetName={selectedPoseAsset.name}
+        s3TempUrl={selectedPoseAsset.url}
+        s3Key={selectedPoseAsset.s3Key}
+        fileSize={undefined}
+        metadata={{
+          entityType: 'character',
+          entityId: characterId,
+          entityName: characterName,
+          poseGeneration: true // Mark as pose generation for context
+        }}
+      />
+    )}
+  </>
   );
 }
 
