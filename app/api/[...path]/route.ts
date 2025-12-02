@@ -96,11 +96,16 @@ async function forwardRequest(
     // Forward request to backend
     const headers: HeadersInit = {};
     
-    // 🔥 FIX: Preserve original Content-Type header (don't force application/json)
-    if (contentType) {
+    // 🔥 FIX: For FormData, DON'T set Content-Type - fetch() will set it automatically with correct boundary
+    // Setting it manually will break the multipart boundary
+    if (isMultipart) {
+      // For multipart, let fetch() set Content-Type automatically
+      console.error(`[API Proxy] 📦 Multipart request - letting fetch() set Content-Type with boundary`);
+    } else if (contentType) {
+      // For non-multipart, preserve original Content-Type
       headers['Content-Type'] = contentType;
-    } else if (!isMultipart) {
-      // Only default to JSON if it's not multipart and no Content-Type was provided
+    } else {
+      // Default to JSON if no Content-Type provided
       headers['Content-Type'] = 'application/json';
     }
     
@@ -108,7 +113,7 @@ async function forwardRequest(
       headers['Authorization'] = authHeader;
     }
     
-    console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${headers['Content-Type'] || 'none'}`);
+    console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${isMultipart ? 'auto (multipart)' : (headers['Content-Type'] || 'none')}`);
     
     const response = await fetch(backendUrl, {
       method,
