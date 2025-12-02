@@ -279,6 +279,9 @@ export default function CharacterDetailSidebar({
 
     setUploading(true);
     
+    // Track initial image count to identify newly uploaded images
+    const initialImageCount = character?.images?.length || 0;
+    
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -378,15 +381,30 @@ export default function CharacterDetailSidebar({
 
         toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
 
-        // Step 5: Show StorageDecisionModal for first uploaded image (if any)
+        // Step 5: Show StorageDecisionModal for first newly uploaded image
+        // If replaceBase, show first image (the replaced headshot)
+        // If additional references, show first newly added image (after initial count)
         if (transformedImages.length > 0) {
-          setSelectedAsset({
-            url: transformedImages[0].imageUrl,
-            s3Key: transformedImages[0].metadata.s3Key,
-            name: fileArray[0].name,
-            type: 'image'
-          });
-          setShowStorageModal(true);
+          let imageToShow;
+          if (replaceBase) {
+            // For headshot replacement, show the first image (the new headshot)
+            imageToShow = transformedImages[0];
+          } else {
+            // For additional references, show the first newly uploaded image
+            // New images start at index = initialImageCount
+            const firstNewImageIndex = initialImageCount;
+            imageToShow = transformedImages[firstNewImageIndex] || transformedImages[transformedImages.length - 1];
+          }
+          
+          if (imageToShow) {
+            setSelectedAsset({
+              url: imageToShow.imageUrl,
+              s3Key: imageToShow.metadata.s3Key,
+              name: fileArray[0].name,
+              type: 'image'
+            });
+            setShowStorageModal(true);
+          }
         }
       } else if (isCreating) {
         // New character - store temporarily, will be added after character creation
