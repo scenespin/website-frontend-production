@@ -320,27 +320,10 @@ export default function CharacterDetailSidebar({
         }
       }
 
-      const uploadData = { data: lastEnrichedCharacter };
-      console.log('[CharacterDetailSidebar] 📤 Upload response:', {
-        hasData: !!uploadData.data,
-        hasImages: !!uploadData.data?.images,
-        imageCount: uploadData.data?.images?.length || 0,
-        imageUrl: uploadData.imageUrl,
-        s3Key: uploadData.s3Key,
-        fullResponse: uploadData
-      });
-
-      const downloadUrl = uploadData.imageUrl;
-      const s3Key = uploadData.s3Key;
-
-      if (!downloadUrl || !s3Key) {
-        throw new Error('Invalid response from server');
-      }
-
-      // Step 4: Backend already updated character - use enriched character data from response
-      // The backend endpoint returns the enriched character with presigned URLs in images array
-      if (uploadData.data) {
-        const enrichedCharacter = uploadData.data;
+        // Step 4: Backend already updated character - use enriched character data from last upload
+        // The backend endpoint returns the enriched character with presigned URLs in images array
+        if (lastEnrichedCharacter) {
+        const enrichedCharacter = lastEnrichedCharacter;
         
         // Backend returns images array with { imageUrl, s3Key, createdAt }
         // We need to transform to match frontend ImageAsset format
@@ -394,23 +377,30 @@ export default function CharacterDetailSidebar({
         }
 
         toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
+
+        // Step 5: Show StorageDecisionModal for first uploaded image (if any)
+        if (transformedImages.length > 0) {
+          setSelectedAsset({
+            url: transformedImages[0].imageUrl,
+            s3Key: transformedImages[0].metadata.s3Key,
+            name: fileArray[0].name,
+            type: 'image'
+          });
+          setShowStorageModal(true);
+        }
       } else if (isCreating) {
         // New character - store temporarily, will be added after character creation
-        setPendingImages(prev => [...prev, {
-          imageUrl: downloadUrl,
-          s3Key: s3Key
-        }]);
-        toast.success('Image ready - will be added when character is created');
+        // Extract image data from enriched character response
+        if (lastEnrichedCharacter && lastEnrichedCharacter.images) {
+          const imagesArray = lastEnrichedCharacter.images || [];
+          const transformedImages = imagesArray.map((img: any) => ({
+            imageUrl: img.imageUrl || img.url,
+            s3Key: img.s3Key || img.metadata?.s3Key
+          }));
+          setPendingImages(prev => [...prev, ...transformedImages]);
+        }
+        toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} ready - will be added when character is created`);
       }
-
-      // Step 5: Show StorageDecisionModal
-      setSelectedAsset({
-        url: downloadUrl,
-        s3Key: s3Key,
-        name: file.name,
-        type: 'image'
-      });
-      setShowStorageModal(true);
 
     } catch (error: any) {
       console.error('[CharacterDetailSidebar] Upload error:', error);
