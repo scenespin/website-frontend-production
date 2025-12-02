@@ -59,12 +59,8 @@ export default function CharacterDetailSidebar({
     charactersRef.current = characters;
   }, [characters]);
   
-  // Headshot angle labels for multiple headshots
-  const headshotAngles = [
-    { value: 'front', label: 'Front View' },
-    { value: 'side', label: 'Side Profile' },
-    { value: 'three-quarter', label: '3/4 Angle' }
-  ]
+  // File input refs for headshot and additional references
+  const additionalFileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<any>(
     character ? { ...character } : (initialData ? {
       name: initialData.name || '',
@@ -251,7 +247,7 @@ export default function CharacterDetailSidebar({
     }
   }
 
-  const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, angle?: string) => {
+  const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, replaceBase: boolean = true) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -285,9 +281,7 @@ export default function CharacterDetailSidebar({
       // Backend handles: S3 upload, s3Key generation (correct 7-part format), character update
       const formData = new FormData();
       formData.append('image', file);
-      if (angle) {
-        formData.append('angle', angle);
-      }
+      formData.append('replaceBase', replaceBase ? 'true' : 'false');
 
       const uploadResponse = await fetch(
         `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
@@ -335,47 +329,18 @@ export default function CharacterDetailSidebar({
           images: imagesArray
         });
 
-        // 🔥 FIX: Preserve angle metadata for all images
-        // When angle is undefined (from "Other" upload), preserve existing angle from backend
-        // For new uploads, use the provided angle, or 'other' if undefined
-        // Identify the newly uploaded image by matching s3Key or imageUrl
-        const newImageS3Key = s3Key;
-        const newImageUrl = downloadUrl;
-        
-        const transformedImages = imagesArray.map((img: any) => {
-          // Check if this is the newly uploaded image
-          const isNewImage = (img.s3Key || img.metadata?.s3Key) === newImageS3Key || 
-                            (img.imageUrl || img.url) === newImageUrl;
-          
-          // Determine angle: use provided angle for new upload, or preserve existing
-          let imageAngle: string | undefined;
-          if (isNewImage) {
-            // This is the newly uploaded image
-            if (angle !== undefined) {
-              // Use provided angle
-              imageAngle = angle;
-            } else {
-              // No angle provided (from "Other" button) - set to 'other' to maintain organization
-              imageAngle = 'other';
-            }
-          } else {
-            // Existing image - preserve its angle from backend
-            imageAngle = img.angle || img.metadata?.angle;
+        // Transform images to frontend format (no angle metadata needed)
+        const transformedImages = imagesArray.map((img: any) => ({
+          imageUrl: img.imageUrl || img.url,
+          createdAt: img.createdAt || new Date().toISOString(),
+          metadata: {
+            s3Key: img.s3Key || img.metadata?.s3Key,
+            prompt: img.prompt || img.metadata?.prompt,
+            modelUsed: img.modelUsed || img.metadata?.modelUsed,
+            isEdited: img.isEdited || img.metadata?.isEdited,
+            originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
           }
-          
-          return {
-            imageUrl: img.imageUrl || img.url,
-            createdAt: img.createdAt || new Date().toISOString(),
-            metadata: {
-              s3Key: img.s3Key || img.metadata?.s3Key,
-              angle: imageAngle,
-              prompt: img.prompt || img.metadata?.prompt,
-              modelUsed: img.modelUsed || img.metadata?.modelUsed,
-              isEdited: img.isEdited || img.metadata?.isEdited,
-              originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
-            }
-          };
-        });
+        }));
 
         console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
           count: transformedImages.length,
@@ -412,8 +377,7 @@ export default function CharacterDetailSidebar({
         // New character - store temporarily, will be added after character creation
         setPendingImages(prev => [...prev, {
           imageUrl: downloadUrl,
-          s3Key: s3Key,
-          angle: angle
+          s3Key: s3Key
         }]);
         toast.success('Image ready - will be added when character is created');
       }
@@ -432,9 +396,12 @@ export default function CharacterDetailSidebar({
       toast.error(error.message || 'Failed to upload headshot(s)');
     } finally {
       setUploading(false);
-      // Reset input
+      // Reset inputs
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+      if (additionalFileInputRef.current) {
+        additionalFileInputRef.current.value = '';
       }
     }
   }
@@ -783,66 +750,14 @@ export default function CharacterDetailSidebar({
               createdAt: new Date().toISOString()
             }))
             
-            // Group images by angle for display
-            const frontImages = allImages.filter(img => img.metadata?.angle === 'front' || !img.metadata?.angle)
-            const sideImages = allImages.filter(img => img.metadata?.angle === 'side')
-            const threeQuarterImages = allImages.filter(img => img.metadata?.angle === 'three-quarter')
-            const otherImages = allImages.filter(img => 
-              img.metadata?.angle && 
-              img.metadata.angle !== 'front' && 
-              img.metadata.angle !== 'side' && 
-              img.metadata.angle !== 'three-quarter'
-            )
-            
             return (
               <div className="space-y-4">
-                {/* Multiple Headshot Upload Buttons with Angle Labels */}
+                {/* Character Image Upload Buttons */}
                 <div className="space-y-2">
-                  {headshotAngles.map((angle) => {
-                    const existingCount = allImages.filter(img => img.metadata?.angle === angle.value).length
-                    const isMaxReached = existingCount >= 1 // Allow 1 per angle for now, can be increased
-                    
-                    return (
-                      <div key={angle.value} className="flex items-center gap-2">
-                        <label className="text-xs font-medium w-24 shrink-0" style={{ color: '#9CA3AF' }}>
-                          {angle.label}:
-                        </label>
-                        <button
-                          onClick={() => {
-                            if (isMaxReached) {
-                              toast.info(`You already have a ${angle.label} headshot. Remove it first to upload a new one.`)
-                              return
-                            }
-                            // Create a temporary input for this angle
-                            const input = document.createElement('input')
-                            input.type = 'file'
-                            input.accept = 'image/*'
-                            input.onchange = (e) => {
-                              const target = e.target as HTMLInputElement
-                              if (target.files?.[0]) {
-                                handleDirectFileUpload({ target } as any, angle.value)
-                              }
-                            }
-                            input.click()
-                          }}
-                          disabled={uploading || isMaxReached}
-                          className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ 
-                            backgroundColor: isMaxReached ? '#2C2C2E' : '#DC143C',
-                            color: 'white',
-                            border: `1px solid ${isMaxReached ? '#3F3F46' : '#DC143C'}`
-                          }}
-                        >
-                          {uploading ? 'Uploading...' : isMaxReached ? `✓ ${angle.label}` : `Upload ${angle.label}`}
-                        </button>
-                      </div>
-                    )
-                  })}
-                  
-                  {/* Generic Upload (no angle specified) */}
+                  {/* Upload Headshot Button - Replaces base reference (first image) */}
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-medium w-24 shrink-0" style={{ color: '#9CA3AF' }}>
-                      Other:
+                    <label className="text-xs font-medium w-32 shrink-0" style={{ color: '#9CA3AF' }}>
+                      Headshot:
                     </label>
                     <button
                       onClick={() => fileInputRef.current?.click()}
@@ -854,14 +769,41 @@ export default function CharacterDetailSidebar({
                         border: '1px solid #DC143C'
                       }}
                     >
-                      {uploading ? 'Uploading...' : 'Upload Photo'}
+                      {uploading ? 'Uploading...' : allImages.length > 0 ? 'Replace Headshot' : 'Upload Headshot'}
                     </button>
-                    {/* Hidden file input for generic upload */}
+                    {/* Hidden file input for headshot upload */}
                     <input
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleDirectFileUpload(e)}
+                      onChange={(e) => handleDirectFileUpload(e, true)}
+                      className="hidden"
+                    />
+                  </div>
+                  
+                  {/* Add Additional Reference Button - Appends to array */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium w-32 shrink-0" style={{ color: '#9CA3AF' }}>
+                      Additional:
+                    </label>
+                    <button
+                      onClick={() => additionalFileInputRef.current?.click()}
+                      disabled={uploading || allImages.length === 0}
+                      className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ 
+                        backgroundColor: allImages.length === 0 ? '#2C2C2E' : '#DC143C',
+                        color: 'white',
+                        border: `1px solid ${allImages.length === 0 ? '#3F3F46' : '#DC143C'}`
+                      }}
+                    >
+                      {uploading ? 'Uploading...' : 'Add Additional Reference'}
+                    </button>
+                    {/* Hidden file input for additional references */}
+                    <input
+                      ref={additionalFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleDirectFileUpload(e, false)}
                       className="hidden"
                     />
                   </div>
@@ -886,226 +828,60 @@ export default function CharacterDetailSidebar({
                   </button>
                 </div>
                 
-                {/* Image Gallery - Show if images exist */}
+                {/* Image Gallery - Show all images in one gallery */}
                 {allImages.length > 0 && (
-                  <div className="space-y-3">
-                    {frontImages.length > 0 && (
-                      <div>
-                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
-                          Front View
-                        </label>
-                        <ImageGallery
-                          images={frontImages}
-                          entityType="character"
-                          entityId={character?.id || 'new'}
-                          entityName={formData.name || 'New Character'}
-                          onDeleteImage={async (index: number) => {
-                            if (character) {
-                              // Find the actual image in allImages array by matching imageUrl
-                              const imageToDelete = frontImages[index]
-                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0) {
-                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
-                                try {
-                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
-                                  // Get current character from context to ensure we have latest images
-                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
-                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
-                                  
-                                  // 🔥 FIX: Optimistic UI update - remove image immediately
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    images: updatedImages
-                                  }));
-                                  
-                                  await updateCharacter(character.id, { images: updatedImages });
-                                  
-                                  // Sync from context after update (with delay for DynamoDB consistency)
-                                  await new Promise(resolve => setTimeout(resolve, 500));
-                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                                  if (updatedCharacterFromContext) {
-                                    setFormData({ ...updatedCharacterFromContext });
-                                  }
-                                  
-                                  toast.success('Image removed');
-                                } catch (error: any) {
-                                  // Rollback on error
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    images: character.images || []
-                                  }));
-                                  toast.error(`Failed to remove image: ${error.message}`);
-                                }
-                              }
-                            } else {
-                              // Remove from pending images by finding the matching image
-                              const imageToDelete = frontImages[index]
-                              setPendingImages(prev => prev.filter((img) => {
-                                return !(img.imageUrl === imageToDelete.imageUrl && 
-                                        (img.angle === 'front' || !img.angle))
-                              }))
+                  <div>
+                    <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
+                      Reference Images {allImages.length > 0 && `(${allImages.length})`}
+                    </label>
+                    <ImageGallery
+                      images={allImages}
+                      entityType="character"
+                      entityId={character?.id || 'new'}
+                      entityName={formData.name || 'New Character'}
+                      onDeleteImage={async (index: number) => {
+                        if (character) {
+                          try {
+                            // Get current character from context to ensure we have latest images
+                            const currentCharacter = characters.find(c => c.id === character.id) || character;
+                            const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== index);
+                            
+                            // Optimistic UI update - remove image immediately
+                            setFormData(prev => ({
+                              ...prev,
+                              images: updatedImages
+                            }));
+                            
+                            await updateCharacter(character.id, { images: updatedImages });
+                            
+                            // Sync from context after update (with delay for DynamoDB consistency)
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                            if (updatedCharacterFromContext) {
+                              setFormData({ ...updatedCharacterFromContext });
                             }
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    {sideImages.length > 0 && (
-                      <div>
-                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
-                          Side Profile
-                        </label>
-                        <ImageGallery
-                          images={sideImages}
-                          entityType="character"
-                          entityId={character?.id || 'new'}
-                          entityName={formData.name || 'New Character'}
-                          onDeleteImage={async (index: number) => {
-                            if (character) {
-                              const imageToDelete = sideImages[index]
-                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0) {
-                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
-                                try {
-                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
-                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
-                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
-                                  await updateCharacter(character.id, { images: updatedImages });
-                                  
-                                  // Sync from context after update
-                                  await new Promise(resolve => setTimeout(resolve, 500));
-                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                                  if (updatedCharacterFromContext) {
-                                    setFormData({ ...updatedCharacterFromContext });
-                                  }
-                                  
-                                  toast.success('Image removed');
-                                } catch (error: any) {
-                                  toast.error(`Failed to remove image: ${error.message}`);
-                                }
-                              }
-                            } else {
-                              const imageToDelete = sideImages[index]
-                              setPendingImages(prev => prev.filter((img) => {
-                                return !(img.imageUrl === imageToDelete.imageUrl && img.angle === 'side')
-                              }))
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    {threeQuarterImages.length > 0 && (
-                      <div>
-                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
-                          3/4 Angle
-                        </label>
-                        <ImageGallery
-                          images={threeQuarterImages}
-                          entityType="character"
-                          entityId={character?.id || 'new'}
-                          entityName={formData.name || 'New Character'}
-                          onDeleteImage={async (index: number) => {
-                            if (character) {
-                              const imageToDelete = threeQuarterImages[index]
-                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0) {
-                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
-                                try {
-                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
-                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
-                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
-                                  await updateCharacter(character.id, { images: updatedImages });
-                                  
-                                  // Sync from context after update
-                                  await new Promise(resolve => setTimeout(resolve, 500));
-                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                                  if (updatedCharacterFromContext) {
-                                    setFormData({ ...updatedCharacterFromContext });
-                                  }
-                                  
-                                  toast.success('Image removed');
-                                } catch (error: any) {
-                                  toast.error(`Failed to remove image: ${error.message}`);
-                                }
-                              }
-                            } else {
-                              const imageToDelete = threeQuarterImages[index]
-                              setPendingImages(prev => prev.filter((img) => {
-                                return !(img.imageUrl === imageToDelete.imageUrl && img.angle === 'three-quarter')
-                              }))
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    {otherImages.length > 0 && (
-                      <div>
-                        <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
-                          Other Images
-                        </label>
-                        <ImageGallery
-                          images={otherImages}
-                          entityType="character"
-                          entityId={character?.id || 'new'}
-                          entityName={formData.name || 'New Character'}
-                          onDeleteImage={async (index: number) => {
-                            if (character) {
-                              const imageToDelete = otherImages[index]
-                              const actualIndex = allImages.findIndex(img => img.imageUrl === imageToDelete.imageUrl)
-                              if (actualIndex >= 0) {
-                                // 🔥 FIX: ImageGallery already shows confirm dialog, so we don't need another one
-                                try {
-                                  // 🔥 FIX: Use updateCharacter directly (like assets) instead of removeImageFromEntity
-                                  const currentCharacter = characters.find(c => c.id === character.id) || character;
-                                  const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== actualIndex);
-                                  
-                                  // 🔥 FIX: Optimistic UI update - remove image immediately
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    images: updatedImages
-                                  }));
-                                  
-                                  await updateCharacter(character.id, { images: updatedImages });
-                                  
-                                  // Sync from context after update (with delay for DynamoDB consistency)
-                                  await new Promise(resolve => setTimeout(resolve, 500));
-                                  const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                                  if (updatedCharacterFromContext) {
-                                    setFormData({ ...updatedCharacterFromContext });
-                                  }
-                                  
-                                  toast.success('Image removed');
-                                } catch (error: any) {
-                                  // Rollback on error
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    images: character.images || []
-                                  }));
-                                  toast.error(`Failed to remove image: ${error.message}`);
-                                }
-                              }
-                            } else {
-                              const imageToDelete = otherImages[index]
-                              setPendingImages(prev => prev.filter((img) => {
-                                return !(img.imageUrl === imageToDelete.imageUrl && 
-                                        img.angle && 
-                                        img.angle !== 'front' && 
-                                        img.angle !== 'side' && 
-                                        img.angle !== 'three-quarter')
-                              }))
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
+                            
+                            toast.success('Image removed');
+                          } catch (error: any) {
+                            // Rollback on error
+                            setFormData(prev => ({
+                              ...prev,
+                              images: character.images || []
+                            }));
+                            toast.error(`Failed to remove image: ${error.message}`);
+                          }
+                        } else {
+                          // Remove from pending images
+                          setPendingImages(prev => prev.filter((_, i) => i !== index))
+                        }
+                      }}
+                    />
                   </div>
                 )}
                 
                 {allImages.length === 0 && (
                   <p className="text-xs text-center" style={{ color: '#6B7280' }}>
-                    Upload headshots for better character consistency (front, side, 3/4 angle recommended)
+                    Upload a headshot for better character consistency
                   </p>
                 )}
               </div>

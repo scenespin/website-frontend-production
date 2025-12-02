@@ -272,8 +272,6 @@ export default function LocationDetailSidebar({
     }
 
     setUploading(true);
-    const uploadedImages: Array<{ imageUrl: string; s3Key: string }> = [];
-    let lastEnrichedLocation: any = null;
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -284,64 +282,42 @@ export default function LocationDetailSidebar({
         return;
       }
 
-      // 🔥 FIX: Follow assets pattern - upload all files sequentially, then use last enriched response
-      // Assets successfully handle multiple uploads this way - upload all, then refresh with last response
-      let lastEnrichedLocation: any = null;
-      
-      for (let i = 0; i < fileArray.length; i++) {
-        const file = fileArray[i];
-        const formData = new FormData();
-        formData.append('image', file);
+      // 🔥 FIX: Upload all files in a single request (backend now supports upload.array)
+      const formData = new FormData();
+      fileArray.forEach(file => {
+        formData.append('images', file);
+      });
 
-        console.log(`[LocationDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name}`);
+      console.log(`[LocationDetailSidebar] 📤 Uploading ${fileArray.length} file(s) in single request`);
 
-        const uploadResponse = await fetch(
-          `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-            body: formData,
-          }
-        );
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json().catch(() => ({}));
-          throw new Error(errorData.error || `Upload failed for ${file.name}: ${uploadResponse.status}`);
+      const uploadResponse = await fetch(
+        `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
         }
+      );
 
-        const uploadData = await uploadResponse.json();
-        console.log('[LocationDetailSidebar] 📤 Upload response:', {
-          fileName: file.name,
-          fileIndex: i + 1,
-          totalFiles: fileArray.length,
-          hasData: !!uploadData.data,
-          imageCount: uploadData.data?.images?.length || 0
-        });
-
-        const downloadUrl = uploadData.imageUrl;
-        const s3Key = uploadData.s3Key;
-
-        if (!downloadUrl || !s3Key) {
-          throw new Error(`Invalid response from server for ${file.name}`);
-        }
-
-        uploadedImages.push({
-          imageUrl: downloadUrl,
-          s3Key: s3Key
-        });
-        
-        // Store the last enriched location response (has all images with presigned URLs)
-        // Backend re-reads before each update, so last response has all images
-        lastEnrichedLocation = uploadData.data;
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${uploadResponse.status}`);
       }
 
-      // 🔥 FIX: Use enriched location from last upload (matches assets pattern but with immediate UI update)
-      // The backend re-reads before each update, so the last response contains all images
-      if (lastEnrichedLocation && lastEnrichedLocation.images && location) {
-        const imagesArray = lastEnrichedLocation.images || [];
-        console.log('[LocationDetailSidebar] 📸 Processing images from last upload response:', {
+      const uploadData = await uploadResponse.json();
+      console.log('[LocationDetailSidebar] 📤 Upload response:', {
+        fileCount: fileArray.length,
+        hasData: !!uploadData.data,
+        imageCount: uploadData.data?.images?.length || 0
+      });
+
+      // Backend returns enriched location with all images
+      if (uploadData.data && uploadData.data.images && location) {
+        const enrichedLocation = uploadData.data;
+        const imagesArray = enrichedLocation.images || [];
+        console.log('[LocationDetailSidebar] 📸 Processing images from upload response:', {
           count: imagesArray.length,
           images: imagesArray
         });
@@ -373,24 +349,32 @@ export default function LocationDetailSidebar({
         // Update parent component
         const updatedLocation = { ...location, images: transformedImages };
         onUpdate(updatedLocation);
+
+        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
+
+        // Show StorageDecisionModal for first uploaded image
+        if (transformedImages.length > 0) {
+          setSelectedAsset({
+            url: transformedImages[0].imageUrl,
+            s3Key: transformedImages[0].metadata.s3Key,
+            name: fileArray[0].name,
+            type: 'image'
+          });
+          setShowStorageModal(true);
+        }
       } else if (isCreating) {
         // New location - store temporarily, will be added after location creation
-        setPendingImages(prev => [...prev, ...uploadedImages]);
-      }
-
-      toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
-
-      // Step 5: Show StorageDecisionModal for all uploaded images
-      // Show modal once after all uploads complete - user can choose storage location
-      if (uploadedImages.length > 0) {
-        // For now, show modal for first image (can be enhanced to batch all images)
-        setSelectedAsset({
-          url: uploadedImages[0].imageUrl,
-          s3Key: uploadedImages[0].s3Key,
-          name: fileArray[0].name,
-          type: 'image'
-        });
-        setShowStorageModal(true);
+        // Extract images from response if available
+        const imagesArray = uploadData.data?.images || [];
+        const transformedImages = imagesArray.map((img: any) => ({
+          imageUrl: img.imageUrl || img.url,
+          createdAt: img.createdAt || new Date().toISOString(),
+          metadata: {
+            s3Key: img.s3Key || img.metadata?.s3Key
+          }
+        }));
+        setPendingImages(prev => [...prev, ...transformedImages]);
+        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
       }
 
     } catch (error: any) {
