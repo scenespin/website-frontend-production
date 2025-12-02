@@ -430,34 +430,63 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }));
     }, []);
     
-    const transformCharactersFromAPI = useCallback((apiCharacters: any[]): Character[] => {
+    const transformCharactersFromAPI = useCallback((apiCharacters: any[], existingCharacters?: Character[]): Character[] => {
         console.log('[ScreenplayContext] 🔄 transformCharactersFromAPI - Input:', apiCharacters.length, 'characters');
-        const transformed = apiCharacters.map(char => ({
-            id: char.id || char.character_id,
-            name: char.name || '',
-            description: char.description || '',
-            type: (char.type as CharacterType) || 'lead', // 🔥 FIX: Read type from API, default to 'lead'
-            arcStatus: (char.arcStatus as ArcStatus) || 'introduced' as ArcStatus, // 🔥 FIX: Read arcStatus from API, default to 'introduced' if missing
-            arcNotes: char.arcNotes || '', // 🔥 FIX: Read arcNotes from API
-            physicalAttributes: char.physicalAttributes || undefined, // 🔥 FIX: Include physicalAttributes from API
-            // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
-            images: (char.images || []).map((img: any) => ({
-                imageUrl: img.imageUrl || img.url || '',
-                description: '',
-                metadata: {
-                    s3Key: img.s3Key // Preserve s3Key for regenerating presigned URLs if needed
-                }
-            })),
-            customFields: [],
-            createdAt: char.created_at || new Date().toISOString(),
-            updatedAt: char.updated_at || new Date().toISOString()
-        }));
+        const transformed = apiCharacters.map(char => {
+            // Try to find existing character to preserve angle metadata
+            const existingChar = existingCharacters?.find(c => 
+                c.id === (char.id || char.character_id) || 
+                c.name === char.name
+            );
+            
+            // Create a map of s3Key -> angle from existing character for preservation
+            const angleMap = new Map<string, string | undefined>();
+            if (existingChar?.images) {
+                existingChar.images.forEach(img => {
+                    const s3Key = img.metadata?.s3Key;
+                    if (s3Key) {
+                        angleMap.set(s3Key, img.metadata?.angle);
+                    }
+                });
+            }
+            
+            return {
+                id: char.id || char.character_id,
+                name: char.name || '',
+                description: char.description || '',
+                type: (char.type as CharacterType) || 'lead', // 🔥 FIX: Read type from API, default to 'lead'
+                arcStatus: (char.arcStatus as ArcStatus) || 'introduced' as ArcStatus, // 🔥 FIX: Read arcStatus from API, default to 'introduced' if missing
+                arcNotes: char.arcNotes || '', // 🔥 FIX: Read arcNotes from API
+                physicalAttributes: char.physicalAttributes || undefined, // 🔥 FIX: Include physicalAttributes from API
+                // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
+                // 🔥 FIX: Preserve angle metadata from existing character state by matching s3Key
+                images: (char.images || []).map((img: any) => {
+                    const s3Key = img.s3Key;
+                    const preservedAngle = s3Key ? angleMap.get(s3Key) : undefined;
+                    // Use angle from backend response if available, otherwise use preserved angle
+                    const angle = img.angle || img.metadata?.angle || preservedAngle;
+                    
+                    return {
+                        imageUrl: img.imageUrl || img.url || '',
+                        description: '',
+                        metadata: {
+                            s3Key: s3Key, // Preserve s3Key for regenerating presigned URLs if needed
+                            angle: angle // 🔥 FIX: Preserve angle metadata from existing state or backend response
+                        }
+                    };
+                }),
+                customFields: [],
+                createdAt: char.created_at || new Date().toISOString(),
+                updatedAt: char.updated_at || new Date().toISOString()
+            };
+        });
         console.log('[ScreenplayContext] ✅ transformCharactersFromAPI - Output sample:', 
             transformed.length > 0 ? { 
                 name: transformed[0].name, 
                 arcStatus: transformed[0].arcStatus,
                 type: typeof transformed[0].arcStatus,
-                imageCount: transformed[0].images?.length || 0
+                imageCount: transformed[0].images?.length || 0,
+                imagesWithAngles: transformed[0].images?.filter(img => img.metadata?.angle).length || 0
             } : 'no characters'
         );
         return transformed;
@@ -979,7 +1008,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                     
                     // Transform and set characters
-                    const transformedCharacters = transformCharactersFromAPI(charactersData);
+                    // 🔥 FIX: Pass existing characters to preserve angle metadata when reloading
+                    const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
                     setCharacters(transformedCharacters);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Character names:', transformedCharacters.map(c => c.name));
@@ -1761,7 +1791,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 });
                 
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
-                const transformedCharacter = transformCharactersFromAPI([createdCharacter as any])[0];
+                // 🔥 FIX: Pass existing characters to preserve angle metadata (though new character won't have any yet)
+                const transformedCharacter = transformCharactersFromAPI([createdCharacter as any], characters)[0];
                 console.log('[ScreenplayContext] 🔄 Syncing created character state:', { 
                     transformedId: transformedCharacter.id,
                     name: transformedCharacter.name
@@ -1833,12 +1864,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.physicalAttributes !== undefined) {
                     apiUpdates.physicalAttributes = updates.physicalAttributes;
                 }
-                // 🔥 FIX: Extract s3Key from images array (not imageUrl) for referenceImages
+                // 🔥 FIX: Extract s3Key from images array and separate into referenceImages and poseReferences
                 // CRITICAL: Store s3Key, NOT presigned URL (imageUrl can be 1000+ chars, causing KeyTooLongError)
                 if (updates.images !== undefined) {
-                    apiUpdates.referenceImages = updates.images.map(img => {
-                        // Extract s3Key from metadata, fallback to extracting from imageUrl
+                    // Helper function to extract s3Key from image
+                    const extractS3Key = (img: any): string | null => {
                         if (img.metadata?.s3Key) return img.metadata.s3Key;
+                        if (img.s3Key) return img.s3Key;
                         if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
                             // Extract s3Key from presigned URL (everything before the first ?)
                             const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
@@ -1852,7 +1884,34 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             }
                         }
                         return null;
-                    }).filter((key): key is string => key !== null && key.length <= 1024) || []; // Filter out nulls and keys > 1024 chars
+                    };
+                    
+                    // Separate images by source: user-uploaded vs pose-generated
+                    const referenceImageKeys: string[] = [];
+                    const poseReferenceKeys: string[] = [];
+                    
+                    updates.images.forEach(img => {
+                        const s3Key = extractS3Key(img);
+                        if (s3Key && s3Key.length <= 1024) {
+                            const source = img.metadata?.source;
+                            if (source === 'pose-generation') {
+                                poseReferenceKeys.push(s3Key);
+                            } else {
+                                // Default to user-uploaded (including undefined/null source)
+                                referenceImageKeys.push(s3Key);
+                            }
+                        }
+                    });
+                    
+                    // Only set if there are images (allows clearing arrays by passing empty array)
+                    apiUpdates.referenceImages = referenceImageKeys;
+                    apiUpdates.poseReferences = poseReferenceKeys;
+                    
+                    console.log('[ScreenplayContext] 📤 Separated images:', {
+                        totalImages: updates.images.length,
+                        referenceImages: referenceImageKeys.length,
+                        poseReferences: poseReferenceKeys.length
+                    });
                 }
                 
                 // 🔥 DEBUG: Log physicalAttributes to verify it's being sent
@@ -1866,7 +1925,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
-                const transformedCharacter = transformCharactersFromAPI([updatedCharacter as any])[0];
+                // Pass existing characters to preserve angle metadata
+                const transformedCharacter = transformCharactersFromAPI([updatedCharacter as any], characters)[0];
                 
                 // 🔥 FIX: Preserve images from optimistic update if API response doesn't have them enriched
                 // The API might return referenceImages (s3Keys) but not the enriched images array with presigned URLs
@@ -1881,9 +1941,46 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         });
                         transformedCharacter.images = optimisticCharacter.images;
                     } else {
-                        // API response has images - use it (it should be enriched with presigned URLs from GET endpoint)
-                        console.log('[ScreenplayContext] 🔄 Using images from API response:', {
-                            imageCount: transformedCharacter.images.length
+                        // API response has images - merge angle metadata from optimistic update
+                        // Match images by s3Key to preserve angle metadata
+                        const angleMap = new Map<string, string | undefined>();
+                        optimisticCharacter.images.forEach(img => {
+                            const s3Key = img.metadata?.s3Key;
+                            if (s3Key) {
+                                angleMap.set(s3Key, img.metadata?.angle);
+                            }
+                            // Also match by imageUrl as fallback (for cases where s3Key might not match)
+                            if (img.imageUrl) {
+                                angleMap.set(img.imageUrl, img.metadata?.angle);
+                            }
+                        });
+                        
+                        // Merge angle metadata into transformed images
+                        transformedCharacter.images = transformedCharacter.images.map((img: any) => {
+                            const s3Key = img.metadata?.s3Key;
+                            const imageUrl = img.imageUrl || img.url;
+                            
+                            // Try to find preserved angle by s3Key first, then by imageUrl
+                            const preservedAngle = (s3Key && angleMap.get(s3Key)) || 
+                                                  (imageUrl && angleMap.get(imageUrl)) ||
+                                                  undefined;
+                            
+                            // Use preserved angle if available, otherwise use what's in the response
+                            const angle = preservedAngle || img.metadata?.angle || img.angle;
+                            
+                            return {
+                                ...img,
+                                metadata: {
+                                    ...img.metadata,
+                                    angle: angle // 🔥 FIX: Always preserve angle metadata
+                                }
+                            };
+                        });
+                        
+                        console.log('[ScreenplayContext] 🔄 Merged angle metadata from optimistic update:', {
+                            imageCount: transformedCharacter.images.length,
+                            imagesWithAngles: transformedCharacter.images.filter((img: any) => img.metadata?.angle).length,
+                            angleMapSize: angleMap.size
                         });
                     }
                 } else {
