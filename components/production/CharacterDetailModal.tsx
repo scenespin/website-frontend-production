@@ -381,11 +381,15 @@ export function CharacterDetailModal({
                                   if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
                                     return;
                                   }
+                                  // Get current character from context to ensure we have latest images
+                                  // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
+                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
+                                  const currentImages = currentCharacter.images || [];
+                                  
+                                  // Store original images for rollback (same pattern as CharacterDetailSidebar)
+                                  const originalImages = [...currentImages];
+                                  
                                   try {
-                                    // Get current character from context to ensure we have latest images
-                                    // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
-                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
-                                    const currentImages = currentCharacter.images || [];
                                     
                                     // Find the actual index in the full images array by matching s3Key
                                     // Same pattern as CharacterDetailSidebar
@@ -418,6 +422,13 @@ export function CharacterDetailModal({
                                     toast.success('Reference image deleted');
                                   } catch (error: any) {
                                     console.error('Failed to delete reference image:', error);
+                                    // Rollback on error (same pattern as CharacterDetailSidebar)
+                                    try {
+                                      await updateCharacter(character.id, { images: originalImages });
+                                      await onUpdate(character.id, {});
+                                    } catch (rollbackError) {
+                                      console.error('Failed to rollback image deletion:', rollbackError);
+                                    }
                                     toast.error(`Failed to delete image: ${error.message}`);
                                   }
                                 }}
@@ -471,11 +482,15 @@ export function CharacterDetailModal({
                                   if (!confirm('Delete generated pose?')) {
                                     return;
                                   }
+                                  // Get current character from context to ensure we have latest images
+                                  // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
+                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
+                                  const currentImages = currentCharacter.images || [];
+                                  
+                                  // Store original images for rollback (same pattern as CharacterDetailSidebar)
+                                  const originalImages = [...currentImages];
+                                  
                                   try {
-                                    // Get current character from context to ensure we have latest images
-                                    // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
-                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
-                                    const currentImages = currentCharacter.images || [];
                                     
                                     // Find the actual index in the full images array by matching s3Key
                                     // Same pattern as CharacterDetailSidebar (for AI-generated images)
@@ -508,6 +523,13 @@ export function CharacterDetailModal({
                                     toast.success('Pose deleted');
                                   } catch (error: any) {
                                     console.error('Failed to delete pose:', error);
+                                    // Rollback on error (same pattern as CharacterDetailSidebar)
+                                    try {
+                                      await updateCharacter(character.id, { images: originalImages });
+                                      await onUpdate(character.id, {});
+                                    } catch (rollbackError) {
+                                      console.error('Failed to rollback pose deletion:', rollbackError);
+                                    }
                                     toast.error(`Failed to delete pose: ${error.message}`);
                                   }
                                 }}
