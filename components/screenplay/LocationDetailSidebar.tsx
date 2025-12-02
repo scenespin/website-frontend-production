@@ -284,9 +284,10 @@ export default function LocationDetailSidebar({
         return;
       }
 
-      // 🔥 FIX: Upload all files sequentially, but ensure each upload completes before the next
-      // Add small delay between uploads to allow DynamoDB eventual consistency to propagate
-      // This prevents race conditions where multiple uploads read the same stale state
+      // 🔥 FIX: Follow assets pattern - upload all files sequentially, then use last enriched response
+      // Assets successfully handle multiple uploads this way - upload all, then refresh with last response
+      let lastEnrichedLocation: any = null;
+      
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         const formData = new FormData();
@@ -316,11 +317,7 @@ export default function LocationDetailSidebar({
           fileIndex: i + 1,
           totalFiles: fileArray.length,
           hasData: !!uploadData.data,
-          hasImages: !!uploadData.data?.images,
-          imageCount: uploadData.data?.images?.length || 0,
-          imageUrl: uploadData.imageUrl,
-          s3Key: uploadData.s3Key,
-          fullResponse: uploadData
+          imageCount: uploadData.data?.images?.length || 0
         });
 
         const downloadUrl = uploadData.imageUrl;
@@ -336,27 +333,20 @@ export default function LocationDetailSidebar({
         });
         
         // Store the last enriched location response (has all images with presigned URLs)
+        // Backend re-reads before each update, so last response has all images
         lastEnrichedLocation = uploadData.data;
-        
-        // 🔥 FIX: Add small delay between uploads to allow DynamoDB eventual consistency
-        // This ensures the next upload reads the updated state from the previous upload
-        if (i < fileArray.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
-        }
       }
 
-      // Step 4: Backend already updated location - use enriched location data from last upload
-      // The backend endpoint returns the enriched location with presigned URLs in images array
-      // For multiple files, use the last response which has all images
-      if (lastEnrichedLocation && location) {
-        // Backend returns images array with { imageUrl, s3Key, createdAt }
+      // 🔥 FIX: Use enriched location from last upload (matches assets pattern but with immediate UI update)
+      // The backend re-reads before each update, so the last response contains all images
+      if (lastEnrichedLocation && lastEnrichedLocation.images && location) {
         const imagesArray = lastEnrichedLocation.images || [];
-        console.log('[LocationDetailSidebar] 📸 Processing images:', {
+        console.log('[LocationDetailSidebar] 📸 Processing images from last upload response:', {
           count: imagesArray.length,
           images: imagesArray
         });
 
-        // Use the enriched images directly from backend (already has presigned URLs)
+        // Transform to match frontend format
         const transformedImages = imagesArray.map((img: any) => ({
           imageUrl: img.imageUrl || img.url,
           createdAt: img.createdAt || new Date().toISOString(),
@@ -366,39 +356,29 @@ export default function LocationDetailSidebar({
         }));
 
         console.log('[LocationDetailSidebar] ✅ Transformed images:', {
-          count: transformedImages.length,
-          images: transformedImages
+          count: transformedImages.length
         });
 
         // Update formData immediately for UI update
-        setFormData(prev => {
-          const updated = {
-            ...prev,
-            images: transformedImages
-          };
-          console.log('[LocationDetailSidebar] 📝 Updated formData:', {
-            imageCount: updated.images.length,
-            images: updated.images
-          });
-          return updated;
-        });
+        setFormData(prev => ({
+          ...prev,
+          images: transformedImages
+        }));
 
         // Update location in context to trigger re-render
-        console.log('[LocationDetailSidebar] 🔄 Updating location in context:', {
-          locationId: location.id,
-          imageCount: transformedImages.length
-        });
         await updateLocation(location.id, {
           images: transformedImages
         });
-        console.log('[LocationDetailSidebar] ✅ Location updated in context');
 
-        toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
+        // Update parent component
+        const updatedLocation = { ...location, images: transformedImages };
+        onUpdate(updatedLocation);
       } else if (isCreating) {
         // New location - store temporarily, will be added after location creation
         setPendingImages(prev => [...prev, ...uploadedImages]);
-        toast.success(`${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''} ready - will be added when location is created`);
       }
+
+      toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
 
       // Step 5: Show StorageDecisionModal for all uploaded images
       // Show modal once after all uploads complete - user can choose storage location

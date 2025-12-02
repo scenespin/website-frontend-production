@@ -335,18 +335,47 @@ export default function CharacterDetailSidebar({
           images: imagesArray
         });
 
-        const transformedImages = imagesArray.map((img: any) => ({
-          imageUrl: img.imageUrl || img.url,
-          createdAt: img.createdAt || new Date().toISOString(),
-          metadata: {
-            s3Key: img.s3Key || img.metadata?.s3Key,
-            angle: angle || img.angle || img.metadata?.angle,
-            prompt: img.prompt || img.metadata?.prompt,
-            modelUsed: img.modelUsed || img.metadata?.modelUsed,
-            isEdited: img.isEdited || img.metadata?.isEdited,
-            originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
+        // 🔥 FIX: Preserve angle metadata for all images
+        // When angle is undefined (from "Other" upload), preserve existing angle from backend
+        // For new uploads, use the provided angle, or 'other' if undefined
+        // Identify the newly uploaded image by matching s3Key or imageUrl
+        const newImageS3Key = s3Key;
+        const newImageUrl = downloadUrl;
+        
+        const transformedImages = imagesArray.map((img: any) => {
+          // Check if this is the newly uploaded image
+          const isNewImage = (img.s3Key || img.metadata?.s3Key) === newImageS3Key || 
+                            (img.imageUrl || img.url) === newImageUrl;
+          
+          // Determine angle: use provided angle for new upload, or preserve existing
+          let imageAngle: string | undefined;
+          if (isNewImage) {
+            // This is the newly uploaded image
+            if (angle !== undefined) {
+              // Use provided angle
+              imageAngle = angle;
+            } else {
+              // No angle provided (from "Other" button) - set to 'other' to maintain organization
+              imageAngle = 'other';
+            }
+          } else {
+            // Existing image - preserve its angle from backend
+            imageAngle = img.angle || img.metadata?.angle;
           }
-        }));
+          
+          return {
+            imageUrl: img.imageUrl || img.url,
+            createdAt: img.createdAt || new Date().toISOString(),
+            metadata: {
+              s3Key: img.s3Key || img.metadata?.s3Key,
+              angle: imageAngle,
+              prompt: img.prompt || img.metadata?.prompt,
+              modelUsed: img.modelUsed || img.metadata?.modelUsed,
+              isEdited: img.isEdited || img.metadata?.isEdited,
+              originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
+            }
+          };
+        });
 
         console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
           count: transformedImages.length,
