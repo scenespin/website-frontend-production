@@ -526,6 +526,9 @@ function LocationCardContent({
                     <Film size={12} />
                     {sceneCount} scenes
                 </span>
+                {location.images && location.images.length > 0 && (
+                    <span className="text-blue-400">🖼️ {location.images.length}</span>
+                )}
                 {location.githubIssueNumber && <span>🔗 #{location.githubIssueNumber}</span>}
             </div>
 
