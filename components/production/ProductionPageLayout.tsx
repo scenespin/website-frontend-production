@@ -93,7 +93,8 @@ export interface CharacterProfile {
     imageUrl: string;
     s3Key?: string;
   };
-  references: CharacterReference[];
+  references: CharacterReference[]; // User-uploaded reference images
+  poseReferences?: CharacterReference[]; // NEW: AI-generated pose images
   referenceCount: number;
   
   // Performance settings for character animation

@@ -58,21 +58,30 @@ export function CharacterDetailModal({
   const [description, setDescription] = useState(character.description || '');
   const [type, setType] = useState<CharacterProfile['type']>(character.type);
   
-  // Combine all images: base reference + references
+  // Combine all images: base reference + user references + pose references
   const allImages = [
     character.baseReference ? {
       id: 'base',
       imageUrl: character.baseReference.imageUrl,
       label: 'Base Reference',
-      isBase: true
+      isBase: true,
+      isPose: false
     } : null,
     ...character.references.map(ref => ({
       id: ref.id,
       imageUrl: ref.imageUrl,
       label: ref.label || 'Reference',
-      isBase: false
+      isBase: false,
+      isPose: false
+    })),
+    ...(character.poseReferences || []).map(ref => ({
+      id: ref.id,
+      imageUrl: ref.imageUrl,
+      label: ref.label || 'Pose',
+      isBase: false,
+      isPose: true
     }))
-  ].filter(Boolean) as Array<{id: string; imageUrl: string; label: string; isBase: boolean}>;
+  ].filter(Boolean) as Array<{id: string; imageUrl: string; label: string; isBase: boolean; isPose: boolean}>;
 
   // Headshot angle labels for multiple headshots (matching Create section)
   const headshotAngles = [
@@ -275,6 +284,11 @@ export function CharacterDetailModal({
                             Base Reference
                           </div>
                         )}
+                        {allImages[selectedImageIndex]?.isPose && (
+                          <div className="absolute top-4 left-4 px-3 py-1 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded-full text-xs font-medium">
+                            Generated Pose
+                          </div>
+                        )}
                       </div>
                       
                       {/* Thumbnail Grid */}
@@ -298,6 +312,11 @@ export function CharacterDetailModal({
                               {img.isBase && (
                                 <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
                                   Base
+                                </div>
+                              )}
+                              {img.isPose && (
+                                <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#8B5CF6] text-white text-[10px] rounded">
+                                  Pose
                                 </div>
                               )}
                             </button>

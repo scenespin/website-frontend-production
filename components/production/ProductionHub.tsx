@@ -378,23 +378,41 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={(screenplay.characters || []).map(char => ({
-                  id: char.id,
-                  name: char.name,
-                  type: char.type,
-                  baseReference: char.images?.[0] ? {
-                    imageUrl: char.images[0].imageUrl,
-                    s3Key: (char.images[0] as any).s3Key
-                  } : undefined,
-                  references: (char.images || []).slice(1).map((img, idx) => ({
-                    id: (img as any).id || `ref-${idx}`,
-                    imageUrl: img.imageUrl,
-                    s3Key: (img as any).s3Key || '',
-                    label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
-                    referenceType: 'base' as const
-                  })),
-                  referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
-                }))}
+                characters={(screenplay.characters || []).map(char => {
+                  // Separate user-uploaded references from generated poses
+                  const allImages = char.images || [];
+                  const userReferences = allImages.filter((img: any) => 
+                    !(img.metadata as any)?.source || (img.metadata as any)?.source === 'user-upload'
+                  );
+                  const poseReferences = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source === 'pose-generation'
+                  );
+                  
+                  return {
+                    id: char.id,
+                    name: char.name,
+                    type: char.type,
+                    baseReference: userReferences[0] ? {
+                      imageUrl: userReferences[0].imageUrl,
+                      s3Key: (userReferences[0] as any).s3Key
+                    } : undefined,
+                    references: userReferences.slice(1).map((img, idx) => ({
+                      id: (img as any).id || `ref-${idx}`,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).s3Key || '',
+                      label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
+                      referenceType: 'base' as const
+                    })),
+                    poseReferences: poseReferences.map((img, idx) => ({
+                      id: (img as any).id || `pose-${idx}`,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).s3Key || '',
+                      label: (img.metadata as any)?.poseName || `Pose ${idx + 1}`,
+                      referenceType: 'pose' as const
+                    })),
+                    referenceCount: (userReferences.length + poseReferences.length) || 0
+                  };
+                })}
                 isLoading={screenplay.isLoading}
                 projectId={projectId}
                 onCharactersUpdate={() => {
@@ -659,23 +677,41 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={(screenplay.characters || []).map(char => ({
-                  id: char.id,
-                  name: char.name,
-                  type: char.type,
-                  baseReference: char.images?.[0] ? {
-                    imageUrl: char.images[0].imageUrl,
-                    s3Key: (char.images[0] as any).s3Key
-                  } : undefined,
-                  references: (char.images || []).slice(1).map((img, idx) => ({
-                    id: (img as any).id || `ref-${idx}`,
-                    imageUrl: img.imageUrl,
-                    s3Key: (img as any).s3Key || '',
-                    label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
-                    referenceType: 'base' as const
-                  })),
-                  referenceCount: char.referenceLibrary?.referenceCount || char.images?.length || 0
-                }))}
+                characters={(screenplay.characters || []).map(char => {
+                  // Separate user-uploaded references from generated poses
+                  const allImages = char.images || [];
+                  const userReferences = allImages.filter((img: any) => 
+                    !(img.metadata as any)?.source || (img.metadata as any)?.source === 'user-upload'
+                  );
+                  const poseReferences = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source === 'pose-generation'
+                  );
+                  
+                  return {
+                    id: char.id,
+                    name: char.name,
+                    type: char.type,
+                    baseReference: userReferences[0] ? {
+                      imageUrl: userReferences[0].imageUrl,
+                      s3Key: (userReferences[0] as any).s3Key
+                    } : undefined,
+                    references: userReferences.slice(1).map((img, idx) => ({
+                      id: (img as any).id || `ref-${idx}`,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).s3Key || '',
+                      label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
+                      referenceType: 'base' as const
+                    })),
+                    poseReferences: poseReferences.map((img, idx) => ({
+                      id: (img as any).id || `pose-${idx}`,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).s3Key || '',
+                      label: (img.metadata as any)?.poseName || `Pose ${idx + 1}`,
+                      referenceType: 'pose' as const
+                    })),
+                    referenceCount: (userReferences.length + poseReferences.length) || 0
+                  };
+                })}
                 isLoading={screenplay.isLoading}
                 projectId={projectId}
                 onCharactersUpdate={() => {
