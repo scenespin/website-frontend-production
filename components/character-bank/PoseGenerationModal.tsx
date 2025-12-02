@@ -6,10 +6,11 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import PosePackageSelector from './PosePackageSelector';
+import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
 
 interface PoseGenerationModalProps {
@@ -37,12 +38,42 @@ export default function PoseGenerationModal({
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  const [typicalClothing, setTypicalClothing] = useState<string | undefined>(undefined);
+  const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
   
   // Input data
   const [headshotFile, setHeadshotFile] = useState<File | null>(null);
   const [headshotPreview, setHeadshotPreview] = useState<string>('');
   const [screenplayContent, setScreenplayContent] = useState<string>('');
   const [manualDescription, setManualDescription] = useState<string>('');
+  
+  // Fetch character's default outfit on mount
+  useEffect(() => {
+    if (isOpen && characterId && projectId) {
+      const fetchCharacterOutfit = async () => {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          // Get character from screenplay characters API
+          const response = await fetch(`/api/screenplays/${projectId}/characters/${characterId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const outfit = data.data?.physicalAttributes?.typicalClothing;
+            if (outfit) {
+              setCharacterDefaultOutfit(outfit);
+            }
+          }
+        } catch (error) {
+          console.error('[PoseGenerationModal] Failed to fetch character outfit:', error);
+          // Non-fatal - continue without default
+        }
+      };
+      fetchCharacterOutfit();
+    }
+  }, [isOpen, characterId, projectId, getToken]);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -84,13 +115,14 @@ export default function PoseGenerationModal({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({
+            body: JSON.stringify({
             characterName,
             packageId: packageId,
             headshotS3Key: baseReferenceS3Key || undefined, // Pass s3Key, backend will generate presigned URL
             headshotUrl: headshotFile ? headshotPreview : undefined, // Only for manual uploads
             screenplayContent: screenplayContent || undefined,
-            manualDescription: manualDescription || undefined
+            manualDescription: manualDescription || undefined,
+            typicalClothing: typicalClothing // NEW: Pass selected outfit
           })
         }
       );
@@ -133,6 +165,7 @@ export default function PoseGenerationModal({
   const handleReset = () => {
     setStep('package');
     setSelectedPackageId('standard');
+    setTypicalClothing(undefined);
     setHeadshotFile(null);
     setHeadshotPreview('');
     setScreenplayContent('');
@@ -182,18 +215,41 @@ export default function PoseGenerationModal({
             {/* Content */}
             <div className="p-6">
               
-              {/* Step 1: Package Selection */}
+              {/* Step 1: Outfit Selection & Package Selection */}
               {step === 'package' && (
                 <div className="space-y-6">
-                  <PosePackageSelector
-                    characterName={characterName}
-                    onSelectPackage={(packageId) => {
-                      setSelectedPackageId(packageId);
-                      // Automatically generate when package is selected
-                      handleGenerateWithPackage(packageId);
-                    }}
-                    selectedPackageId={selectedPackageId}
-                  />
+                  {/* Outfit Selection - NEW */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 1: Select Outfit
+                    </h3>
+                    <OutfitSelector
+                      value={typicalClothing}
+                      defaultValue={characterDefaultOutfit}
+                      onChange={(outfit) => setTypicalClothing(outfit)}
+                      label="Character Outfit"
+                      showDefaultOption={true}
+                    />
+                    <p className="text-xs text-base-content/50 mt-2">
+                      All poses in the package will be generated wearing the selected outfit
+                    </p>
+                  </div>
+                  
+                  {/* Package Selection */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 2: Select Package
+                    </h3>
+                    <PosePackageSelector
+                      characterName={characterName}
+                      onSelectPackage={(packageId) => {
+                        setSelectedPackageId(packageId);
+                        // Automatically generate when package is selected
+                        handleGenerateWithPackage(packageId);
+                      }}
+                      selectedPackageId={selectedPackageId}
+                    />
+                  </div>
                 </div>
               )}
               
