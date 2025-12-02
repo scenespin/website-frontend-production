@@ -50,6 +50,7 @@ export function CharacterDetailModal({
   performanceSettings,
   onPerformanceSettingsChange
 }: CharacterDetailModalProps) {
+  const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
