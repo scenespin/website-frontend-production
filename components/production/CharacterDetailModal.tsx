@@ -383,26 +383,25 @@ export function CharacterDetailModal({
                                   }
                                   try {
                                     // Get current character from context to ensure we have latest images
-                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id);
-                                    if (!currentCharacter) {
-                                      throw new Error('Character not found in context');
-                                    }
-                                    
+                                    // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
+                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
                                     const currentImages = currentCharacter.images || [];
                                     
-                                    // If index is valid, use it; otherwise find by s3Key
-                                    let updatedImages;
-                                    if (img.index >= 0) {
-                                      updatedImages = currentImages.filter((_, i) => i !== img.index);
-                                    } else if (img.s3Key) {
-                                      // Fallback: find by s3Key if index mapping failed
-                                      updatedImages = currentImages.filter((image: any) => {
-                                        const imageS3Key = image.metadata?.s3Key || image.s3Key;
-                                        return imageS3Key !== img.s3Key;
-                                      });
-                                    } else {
-                                      throw new Error('Cannot delete: Image identifier not found');
+                                    // Find the actual index in the full images array by matching s3Key
+                                    // Same pattern as CharacterDetailSidebar
+                                    const actualIndex = currentImages.findIndex((image: any) => {
+                                      const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                      const deleteS3Key = img.metadata?.s3Key || img.s3Key;
+                                      return imgS3Key === deleteS3Key && 
+                                        (!image.metadata?.source || image.metadata?.source === 'user-upload');
+                                    });
+                                    
+                                    if (actualIndex < 0) {
+                                      throw new Error('Image not found in character data');
                                     }
+                                    
+                                    // Simple index-based deletion (same pattern as CharacterDetailSidebar)
+                                    const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
                                     
                                     // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
@@ -474,26 +473,25 @@ export function CharacterDetailModal({
                                   }
                                   try {
                                     // Get current character from context to ensure we have latest images
-                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id);
-                                    if (!currentCharacter) {
-                                      throw new Error('Character not found in context');
-                                    }
-                                    
+                                    // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
+                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
                                     const currentImages = currentCharacter.images || [];
                                     
-                                    // If index is valid, use it; otherwise find by s3Key
-                                    let updatedImages;
-                                    if (img.index >= 0) {
-                                      updatedImages = currentImages.filter((_, i) => i !== img.index);
-                                    } else if (img.s3Key) {
-                                      // Fallback: find by s3Key if index mapping failed
-                                      updatedImages = currentImages.filter((image: any) => {
-                                        const imageS3Key = image.metadata?.s3Key || image.s3Key;
-                                        return imageS3Key !== img.s3Key;
-                                      });
-                                    } else {
-                                      throw new Error('Cannot delete: Image identifier not found');
+                                    // Find the actual index in the full images array by matching s3Key
+                                    // Same pattern as CharacterDetailSidebar (for AI-generated images)
+                                    const actualIndex = currentImages.findIndex((image: any) => {
+                                      const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                      const deleteS3Key = img.metadata?.s3Key || img.s3Key;
+                                      return imgS3Key === deleteS3Key && 
+                                        (image.metadata?.source === 'pose-generation' || image.metadata?.source === 'image-generation');
+                                    });
+                                    
+                                    if (actualIndex < 0) {
+                                      throw new Error('Image not found in character data');
                                     }
+                                    
+                                    // Simple index-based deletion (same pattern as CharacterDetailSidebar)
+                                    const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
                                     
                                     // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
