@@ -273,6 +273,7 @@ export default function LocationDetailSidebar({
 
     setUploading(true);
     const uploadedImages: Array<{ imageUrl: string; s3Key: string }> = [];
+    let lastEnrichedLocation: any = null;
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -307,8 +308,8 @@ export default function LocationDetailSidebar({
         }
 
         const uploadData = await uploadResponse.json();
-        const downloadUrl = uploadData.imageUrl || uploadData.data?.images?.[uploadData.data.images.length - 1]?.imageUrl;
-        const s3Key = uploadData.s3Key || uploadData.data?.images?.[uploadData.data.images.length - 1]?.metadata?.s3Key;
+        const downloadUrl = uploadData.imageUrl;
+        const s3Key = uploadData.s3Key;
 
         if (!downloadUrl || !s3Key) {
           throw new Error(`Invalid response from server for ${file.name}`);
@@ -318,36 +319,33 @@ export default function LocationDetailSidebar({
           imageUrl: downloadUrl,
           s3Key: s3Key
         });
+        
+        // Store the last enriched location response (has all images with presigned URLs)
+        lastEnrichedLocation = uploadData.data;
       }
 
-      // Step 4: Backend already updated location - use response data from last upload
-      // The backend endpoint returns the enriched location with presigned URLs
-      // For multiple files, we use the last response (all files are appended)
-      if (uploadedImages.length > 0 && location) {
-        // Get current images from context
-        const currentLocation = locationsRef.current.find(l => l.id === location.id) || location;
-        const currentImages = currentLocation.images || [];
-        
-        // Transform uploaded images to frontend format
-        const transformedImages = uploadedImages.map(img => ({
-          imageUrl: img.imageUrl,
-          createdAt: new Date().toISOString(),
+      // Step 4: Backend already updated location - use enriched location data from last upload
+      // The backend endpoint returns the enriched location with presigned URLs in images array
+      // For multiple files, use the last response which has all images
+      if (lastEnrichedLocation && lastEnrichedLocation.images && location) {
+        // Use the enriched images directly from backend (already has presigned URLs)
+        const transformedImages = lastEnrichedLocation.images.map((img: any) => ({
+          imageUrl: img.imageUrl || img.url,
+          createdAt: img.createdAt || new Date().toISOString(),
           metadata: {
             s3Key: img.s3Key
           }
         }));
-        
-        const updatedImages = [...currentImages, ...transformedImages];
 
-        // Update formData
+        // Update formData immediately for UI update
         setFormData(prev => ({
           ...prev,
-          images: updatedImages
+          images: transformedImages
         }));
 
-        // Update location in context
+        // Update location in context to trigger re-render
         await updateLocation(location.id, {
-          images: updatedImages
+          images: transformedImages
         });
 
         toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);

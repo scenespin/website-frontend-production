@@ -306,23 +306,24 @@ export default function CharacterDetailSidebar({
       }
 
       const uploadData = await uploadResponse.json();
-      const downloadUrl = uploadData.imageUrl || uploadData.data?.images?.[uploadData.data.images.length - 1]?.imageUrl;
-      const s3Key = uploadData.s3Key || uploadData.data?.images?.[uploadData.data.images.length - 1]?.metadata?.s3Key;
+      const downloadUrl = uploadData.imageUrl;
+      const s3Key = uploadData.s3Key;
 
       if (!downloadUrl || !s3Key) {
         throw new Error('Invalid response from server');
       }
 
-      // Step 4: Backend already updated character - use response data
-      // The backend endpoint returns the enriched character with presigned URLs
-      if (uploadData.data) {
-        // Transform backend response to frontend format
+      // Step 4: Backend already updated character - use enriched character data from response
+      // The backend endpoint returns the enriched character with presigned URLs in images array
+      if (uploadData.data && uploadData.data.images) {
         const enrichedCharacter = uploadData.data;
-        const transformedImages = (enrichedCharacter.images || []).map((img: any) => ({
+        
+        // Use the enriched images directly from backend (already has presigned URLs)
+        const transformedImages = enrichedCharacter.images.map((img: any) => ({
           imageUrl: img.imageUrl || img.url,
-          createdAt: img.createdAt || img.uploadedAt || new Date().toISOString(),
+          createdAt: img.createdAt || new Date().toISOString(),
           metadata: {
-            s3Key: img.s3Key || img.metadata?.s3Key,
+            s3Key: img.s3Key,
             angle: angle || img.angle,
             prompt: img.prompt,
             modelUsed: img.modelUsed,
@@ -331,14 +332,15 @@ export default function CharacterDetailSidebar({
           }
         }));
 
-        // Update formData with enriched character data
+        // Update formData immediately for UI update
         setFormData(prev => ({
           ...prev,
           images: transformedImages
         }));
 
-        // Update character in context (if character exists)
+        // Update character in context to trigger re-render
         if (character) {
+          // Use the enriched character data directly - backend already updated referenceImages
           await updateCharacter(character.id, {
             images: transformedImages
           });
