@@ -12,7 +12,7 @@ import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle } from '
 import PosePackageSelector from './PosePackageSelector';
 import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
+import { toast } from 'sonner';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -82,15 +82,7 @@ export default function PoseGenerationModal({
   const [generationResult, setGenerationResult] = useState<any>(null);
   const [error, setError] = useState<string>('');
   const [progress, setProgress] = useState(0);
-  
-  // Storage modal state (for AI-generated poses)
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedPoseAsset, setSelectedPoseAsset] = useState<{
-    url: string;
-    s3Key: string;
-    name: string;
-    type: 'image';
-  } | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   
   const handleHeadshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -109,14 +101,20 @@ export default function PoseGenerationModal({
     setStep('generating');
     setError('');
     setProgress(0);
+    setJobId(null);
     
     try {
+      // Show toast notification
+      toast.info('Starting pose generation...', {
+        description: `Generating ${packageId} package for ${characterName}`
+      });
+      
       setProgress(10);
       
       setProgress(20);
       
       // Call backend API to generate pose package
-      // Pass s3Key instead of presigned URL to avoid KeyTooLongError
+      // Backend will create a job automatically
       const token = await getToken({ template: 'wryda-backend' });
       const response = await fetch(
         `/api/projects/${projectId}/characters/${characterId}/generate-poses`,
@@ -163,22 +161,27 @@ export default function PoseGenerationModal({
       clearInterval(progressInterval);
       setProgress(100);
       
+      // Store jobId for reference
+      if (result.jobId) {
+        setJobId(result.jobId);
+      }
+      
       setGenerationResult(result);
       setStep('complete');
       
-      // Show storage modal for first generated pose (AI-generated content needs storage decision)
-      if (result?.result?.poses && result.result.poses.length > 0) {
-        const firstPose = result.result.poses[0];
-        if (firstPose.s3Key && firstPose.imageUrl) {
-          setSelectedPoseAsset({
-            url: firstPose.imageUrl,
-            s3Key: firstPose.s3Key,
-            name: `${characterName}_${firstPose.poseName || 'pose'}.png`,
-            type: 'image'
-          });
-          setShowStorageModal(true);
-        }
-      }
+      // Show success toast with link to jobs
+      const poseCount = result?.result?.poses?.length || 0;
+      toast.success('Pose generation completed!', {
+        description: `Generated ${poseCount} pose(s). View in Jobs to save.`,
+        action: {
+          label: 'View Jobs',
+          onClick: () => {
+            // Navigate to jobs tab
+            window.location.href = `/production?tab=jobs&projectId=${projectId}`;
+          }
+        },
+        duration: 5000
+      });
       
       if (onComplete) {
         onComplete(result);
@@ -188,6 +191,11 @@ export default function PoseGenerationModal({
       console.error('[PoseGeneration] Error:', err);
       setError(err.message || 'An error occurred during generation');
       setStep('error');
+      
+      // Show error toast
+      toast.error('Pose generation failed', {
+        description: err.message || 'An error occurred during generation'
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -580,27 +588,6 @@ export default function PoseGenerationModal({
       )}
     </AnimatePresence>
     
-    {/* Storage Decision Modal for AI-generated poses */}
-    {showStorageModal && selectedPoseAsset && (
-      <StorageDecisionModal
-        isOpen={showStorageModal}
-        onClose={() => {
-          setShowStorageModal(false);
-          setSelectedPoseAsset(null);
-        }}
-        assetType="image"
-        assetName={selectedPoseAsset.name}
-        s3TempUrl={selectedPoseAsset.url}
-        s3Key={selectedPoseAsset.s3Key}
-        fileSize={undefined}
-        metadata={{
-          entityType: 'character',
-          entityId: characterId,
-          entityName: characterName,
-          poseGeneration: true // Mark as pose generation for context
-        }}
-      />
-    )}
   </>
   );
 }

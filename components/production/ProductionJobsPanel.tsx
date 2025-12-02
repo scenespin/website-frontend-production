@@ -12,21 +12,42 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle
+  Sparkles, AlertCircle, Image, Save
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 
 interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation';
   status: 'queued' | 'running' | 'completed' | 'failed';
   progress: number;
   results?: {
-    videos: Array<{
+    videos?: Array<{
       url: string;
       description: string;
       creditsUsed: number;
+    }>;
+    poses?: Array<{
+      poseId: string;
+      poseName: string;
+      imageUrl: string;
+      s3Key: string;
+      creditsUsed: number;
+    }>;
+    images?: Array<{
+      imageUrl: string;
+      s3Key: string;
+      creditsUsed: number;
+      label?: string;
+    }>;
+    audio?: Array<{
+      audioUrl: string;
+      s3Key: string;
+      creditsUsed: number;
+      label?: string;
     }>;
     totalCreditsUsed: number;
     executionTime: number;
@@ -35,6 +56,7 @@ interface WorkflowJob {
   createdAt: string;
   completedAt?: string;
   creditsUsed: number;
+  metadata?: any;
 }
 
 interface ProductionJobsPanelProps {
@@ -49,6 +71,16 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isPolling, setIsPolling] = useState(false);
+  
+  // Storage modal state
+  const [showStorageModal, setShowStorageModal] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<{
+    url: string;
+    s3Key: string;
+    name: string;
+    type: 'image' | 'video' | 'audio';
+    metadata?: any;
+  } | null>(null);
 
   /**
    * Load jobs from API
@@ -332,31 +364,114 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
               {job.status === 'completed' && job.results && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-4 text-xs text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Play className="w-3 h-3" />
-                      {job.results.videos.length} video(s)
-                    </span>
+                    {job.jobType === 'pose-generation' && job.results.poses && (
+                      <span className="flex items-center gap-1">
+                        <Image className="w-3 h-3" />
+                        {job.results.poses.length} pose(s)
+                      </span>
+                    )}
+                    {job.jobType === 'image-generation' && job.results.images && (
+                      <span className="flex items-center gap-1">
+                        <Image className="w-3 h-3" />
+                        {job.results.images.length} image(s)
+                      </span>
+                    )}
+                    {job.jobType === 'audio-generation' && job.results.audio && (
+                      <span className="flex items-center gap-1">
+                        <Play className="w-3 h-3" />
+                        {job.results.audio.length} audio file(s)
+                      </span>
+                    )}
+                    {job.jobType === 'complete-scene' && job.results.videos && (
+                      <span className="flex items-center gap-1">
+                        <Play className="w-3 h-3" />
+                        {job.results.videos.length} video(s)
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {Math.round(job.results.executionTime / 60)}m {Math.round(job.results.executionTime % 60)}s
                     </span>
                   </div>
 
-                  {/* Download buttons */}
+                  {/* Action buttons based on job type */}
                   <div className="flex flex-wrap gap-2">
-                    {job.results.videos.map((video, index) => (
-                      <a
-                        key={index}
-                        href={video.url}
-                        download
+                    {/* Pose generation: Save button */}
+                    {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const firstPose = job.results!.poses![0];
+                          setSelectedAsset({
+                            url: firstPose.imageUrl,
+                            s3Key: firstPose.s3Key,
+                            name: `${job.metadata?.inputs?.characterName || 'Character'} - ${firstPose.poseName}`,
+                            type: 'image',
+                            metadata: {
+                              entityType: 'character',
+                              entityId: job.metadata?.inputs?.characterId,
+                              entityName: job.metadata?.inputs?.characterName,
+                              poseGeneration: true,
+                              allPoses: job.results!.poses // Pass all poses for batch save
+                            }
+                          });
+                          setShowStorageModal(true);
+                        }}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
                                  bg-[#DC143C] text-white text-xs font-medium
                                  hover:bg-[#B91238] transition-colors"
                       >
-                        <Download className="w-3 h-3" />
-                        Video {index + 1}
-                      </a>
-                    ))}
+                        <Save className="w-3 h-3" />
+                        Save Poses
+                      </button>
+                    )}
+                    
+                    {/* Image generation: Save button */}
+                    {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const firstImage = job.results!.images![0];
+                          setSelectedAsset({
+                            url: firstImage.imageUrl,
+                            s3Key: firstImage.s3Key,
+                            name: firstImage.label || 'Generated Image',
+                            type: 'image',
+                            metadata: {
+                              entityType: job.metadata?.inputs?.characterId ? 'character' : 
+                                        job.metadata?.inputs?.locationId ? 'location' : 'asset',
+                              entityId: job.metadata?.inputs?.characterId || job.metadata?.inputs?.locationId || job.metadata?.inputs?.assetId,
+                              entityName: job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || 'Asset',
+                              allImages: job.results!.images
+                            }
+                          });
+                          setShowStorageModal(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                 bg-[#DC143C] text-white text-xs font-medium
+                                 hover:bg-[#B91238] transition-colors"
+                      >
+                        <Save className="w-3 h-3" />
+                        Save Images
+                      </button>
+                    )}
+                    
+                    {/* Video workflow: Download buttons */}
+                    {job.jobType === 'complete-scene' && job.results.videos && (
+                      <>
+                        {job.results.videos.map((video, index) => (
+                          <a
+                            key={index}
+                            href={video.url}
+                            download
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                     bg-[#DC143C] text-white text-xs font-medium
+                                     hover:bg-[#B91238] transition-colors"
+                          >
+                            <Download className="w-3 h-3" />
+                            Video {index + 1}
+                          </a>
+                        ))}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -365,6 +480,23 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         </div>
         )}
       </div>
+      
+      {/* Storage Decision Modal */}
+      {showStorageModal && selectedAsset && (
+        <StorageDecisionModal
+          isOpen={showStorageModal}
+          onClose={() => {
+            setShowStorageModal(false);
+            setSelectedAsset(null);
+          }}
+          assetType={selectedAsset.type}
+          assetName={selectedAsset.name}
+          s3TempUrl={selectedAsset.url}
+          s3Key={selectedAsset.s3Key}
+          fileSize={undefined}
+          metadata={selectedAsset.metadata}
+        />
+      )}
     </div>
   );
 }
