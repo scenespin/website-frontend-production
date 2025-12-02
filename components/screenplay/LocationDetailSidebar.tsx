@@ -308,6 +308,16 @@ export default function LocationDetailSidebar({
         }
 
         const uploadData = await uploadResponse.json();
+        console.log('[LocationDetailSidebar] 📤 Upload response:', {
+          fileName: file.name,
+          hasData: !!uploadData.data,
+          hasImages: !!uploadData.data?.images,
+          imageCount: uploadData.data?.images?.length || 0,
+          imageUrl: uploadData.imageUrl,
+          s3Key: uploadData.s3Key,
+          fullResponse: uploadData
+        });
+
         const downloadUrl = uploadData.imageUrl;
         const s3Key = uploadData.s3Key;
 
@@ -327,26 +337,50 @@ export default function LocationDetailSidebar({
       // Step 4: Backend already updated location - use enriched location data from last upload
       // The backend endpoint returns the enriched location with presigned URLs in images array
       // For multiple files, use the last response which has all images
-      if (lastEnrichedLocation && lastEnrichedLocation.images && location) {
+      if (lastEnrichedLocation && location) {
+        // Backend returns images array with { imageUrl, s3Key, createdAt }
+        const imagesArray = lastEnrichedLocation.images || [];
+        console.log('[LocationDetailSidebar] 📸 Processing images:', {
+          count: imagesArray.length,
+          images: imagesArray
+        });
+
         // Use the enriched images directly from backend (already has presigned URLs)
-        const transformedImages = lastEnrichedLocation.images.map((img: any) => ({
+        const transformedImages = imagesArray.map((img: any) => ({
           imageUrl: img.imageUrl || img.url,
           createdAt: img.createdAt || new Date().toISOString(),
           metadata: {
-            s3Key: img.s3Key
+            s3Key: img.s3Key || img.metadata?.s3Key
           }
         }));
 
-        // Update formData immediately for UI update
-        setFormData(prev => ({
-          ...prev,
+        console.log('[LocationDetailSidebar] ✅ Transformed images:', {
+          count: transformedImages.length,
           images: transformedImages
-        }));
+        });
+
+        // Update formData immediately for UI update
+        setFormData(prev => {
+          const updated = {
+            ...prev,
+            images: transformedImages
+          };
+          console.log('[LocationDetailSidebar] 📝 Updated formData:', {
+            imageCount: updated.images.length,
+            images: updated.images
+          });
+          return updated;
+        });
 
         // Update location in context to trigger re-render
+        console.log('[LocationDetailSidebar] 🔄 Updating location in context:', {
+          locationId: location.id,
+          imageCount: transformedImages.length
+        });
         await updateLocation(location.id, {
           images: transformedImages
         });
+        console.log('[LocationDetailSidebar] ✅ Location updated in context');
 
         toast.success(`Successfully uploaded ${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''}`);
       } else if (isCreating) {

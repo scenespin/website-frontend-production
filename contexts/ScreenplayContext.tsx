@@ -1867,10 +1867,34 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
                 const transformedCharacter = transformCharactersFromAPI([updatedCharacter as any])[0];
+                
+                // 🔥 FIX: Preserve images from optimistic update if API response doesn't have them enriched
+                // The API might return referenceImages (s3Keys) but not the enriched images array with presigned URLs
+                // Get the character from the optimistic update array
+                const optimisticCharacter = updatedCharacters.find(c => c.id === id);
+                if (optimisticCharacter && optimisticCharacter.images && optimisticCharacter.images.length > 0) {
+                    // If optimistic update has images but API response doesn't, preserve optimistic images
+                    if (!transformedCharacter.images || transformedCharacter.images.length === 0) {
+                        console.log('[ScreenplayContext] 🔄 Preserving images from optimistic update:', {
+                            imageCount: optimisticCharacter.images.length,
+                            images: optimisticCharacter.images
+                        });
+                        transformedCharacter.images = optimisticCharacter.images;
+                    } else {
+                        // API response has images - use it (it should be enriched with presigned URLs from GET endpoint)
+                        console.log('[ScreenplayContext] 🔄 Using images from API response:', {
+                            imageCount: transformedCharacter.images.length
+                        });
+                    }
+                } else {
+                    console.log('[ScreenplayContext] ⚠️ No images in optimistic update to preserve');
+                }
+                
                 console.log('[ScreenplayContext] 🔄 Syncing character state:', { 
                     updateId: id, 
                     transformedId: transformedCharacter.id,
-                    arcStatus: transformedCharacter.arcStatus 
+                    arcStatus: transformedCharacter.arcStatus,
+                    imageCount: transformedCharacter.images?.length || 0
                 });
                 setCharacters(prev => {
                     const updated = prev.map(char => {
@@ -1883,7 +1907,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 oldId: char.id, 
                                 newId: transformedCharacter.id,
                                 oldArcStatus: char.arcStatus,
-                                newArcStatus: transformedCharacter.arcStatus
+                                newArcStatus: transformedCharacter.arcStatus,
+                                oldImageCount: char.images?.length || 0,
+                                newImageCount: transformedCharacter.images?.length || 0
                             });
                             return transformedCharacter;
                         }
@@ -2208,6 +2234,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
                 // Transform the API response to frontend format and update state
                 const transformedLocation = transformLocationsFromAPI([updatedLocation as any])[0];
+                
+                // 🔥 FIX: Preserve images from optimistic update if API response doesn't have them enriched
+                // The API might return referenceImages (s3Keys) but not the enriched images array with presigned URLs
+                // Get the location from the optimistic update array
+                const optimisticLocation = updatedLocations.find(l => l.id === id);
+                if (optimisticLocation && optimisticLocation.images && optimisticLocation.images.length > 0) {
+                    // If optimistic update has images but API response doesn't, preserve optimistic images
+                    if (!transformedLocation.images || transformedLocation.images.length === 0) {
+                        console.log('[ScreenplayContext] 🔄 Preserving images from optimistic update:', {
+                            imageCount: optimisticLocation.images.length,
+                            images: optimisticLocation.images
+                        });
+                        transformedLocation.images = optimisticLocation.images;
+                    } else {
+                        // API response has images - use it (it should be enriched with presigned URLs from GET endpoint)
+                        console.log('[ScreenplayContext] 🔄 Using images from API response:', {
+                            imageCount: transformedLocation.images.length
+                        });
+                    }
+                } else {
+                    console.log('[ScreenplayContext] ⚠️ No images in optimistic update to preserve');
+                }
+                
+                console.log('[ScreenplayContext] 🔄 Syncing location state:', {
+                    locationId: id,
+                    imageCount: transformedLocation.images?.length || 0
+                });
                 setLocations(prev => {
                     const updated = prev.map(loc => {
                         // Match by either the frontend id or the location_id from API
@@ -2219,7 +2272,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 oldId: loc.id, 
                                 newId: transformedLocation.id,
                                 oldType: loc.type,
-                                newType: transformedLocation.type
+                                newType: transformedLocation.type,
+                                oldImageCount: loc.images?.length || 0,
+                                newImageCount: transformedLocation.images?.length || 0
                             });
                             return transformedLocation;
                         }

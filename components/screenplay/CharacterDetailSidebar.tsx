@@ -306,6 +306,15 @@ export default function CharacterDetailSidebar({
       }
 
       const uploadData = await uploadResponse.json();
+      console.log('[CharacterDetailSidebar] 📤 Upload response:', {
+        hasData: !!uploadData.data,
+        hasImages: !!uploadData.data?.images,
+        imageCount: uploadData.data?.images?.length || 0,
+        imageUrl: uploadData.imageUrl,
+        s3Key: uploadData.s3Key,
+        fullResponse: uploadData
+      });
+
       const downloadUrl = uploadData.imageUrl;
       const s3Key = uploadData.s3Key;
 
@@ -315,35 +324,58 @@ export default function CharacterDetailSidebar({
 
       // Step 4: Backend already updated character - use enriched character data from response
       // The backend endpoint returns the enriched character with presigned URLs in images array
-      if (uploadData.data && uploadData.data.images) {
+      if (uploadData.data) {
         const enrichedCharacter = uploadData.data;
         
-        // Use the enriched images directly from backend (already has presigned URLs)
-        const transformedImages = enrichedCharacter.images.map((img: any) => ({
+        // Backend returns images array with { imageUrl, s3Key, createdAt }
+        // We need to transform to match frontend ImageAsset format
+        const imagesArray = enrichedCharacter.images || [];
+        console.log('[CharacterDetailSidebar] 📸 Processing images:', {
+          count: imagesArray.length,
+          images: imagesArray
+        });
+
+        const transformedImages = imagesArray.map((img: any) => ({
           imageUrl: img.imageUrl || img.url,
           createdAt: img.createdAt || new Date().toISOString(),
           metadata: {
-            s3Key: img.s3Key,
-            angle: angle || img.angle,
-            prompt: img.prompt,
-            modelUsed: img.modelUsed,
-            isEdited: img.isEdited,
-            originalImageUrl: img.originalImageUrl,
+            s3Key: img.s3Key || img.metadata?.s3Key,
+            angle: angle || img.angle || img.metadata?.angle,
+            prompt: img.prompt || img.metadata?.prompt,
+            modelUsed: img.modelUsed || img.metadata?.modelUsed,
+            isEdited: img.isEdited || img.metadata?.isEdited,
+            originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
           }
         }));
 
-        // Update formData immediately for UI update
-        setFormData(prev => ({
-          ...prev,
+        console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
+          count: transformedImages.length,
           images: transformedImages
-        }));
+        });
+
+        // Update formData immediately for UI update
+        setFormData(prev => {
+          const updated = {
+            ...prev,
+            images: transformedImages
+          };
+          console.log('[CharacterDetailSidebar] 📝 Updated formData:', {
+            imageCount: updated.images.length,
+            images: updated.images
+          });
+          return updated;
+        });
 
         // Update character in context to trigger re-render
         if (character) {
-          // Use the enriched character data directly - backend already updated referenceImages
+          console.log('[CharacterDetailSidebar] 🔄 Updating character in context:', {
+            characterId: character.id,
+            imageCount: transformedImages.length
+          });
           await updateCharacter(character.id, {
             images: transformedImages
           });
+          console.log('[CharacterDetailSidebar] ✅ Character updated in context');
         }
 
         toast.success('Image uploaded successfully');
