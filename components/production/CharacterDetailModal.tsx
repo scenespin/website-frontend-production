@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './ProductionPageLayout';
 import { toast } from 'sonner';
 import { PerformanceControls, type PerformanceSettings } from '../characters/PerformanceControls';
+import { useAuth } from '@clerk/nextjs';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -58,11 +59,12 @@ export function CharacterDetailModal({
   const [description, setDescription] = useState(character.description || '');
   const [type, setType] = useState<CharacterProfile['type']>(character.type);
   
-  // Combine all images: base reference + user references + pose references
-  const allImages = [
+  // Separate user-uploaded references from generated poses for better organization
+  const userReferences = [
     character.baseReference ? {
       id: 'base',
       imageUrl: character.baseReference.imageUrl,
+      s3Key: character.baseReference.s3Key,
       label: 'Base Reference',
       isBase: true,
       isPose: false
@@ -70,18 +72,24 @@ export function CharacterDetailModal({
     ...character.references.map(ref => ({
       id: ref.id,
       imageUrl: ref.imageUrl,
+      s3Key: ref.s3Key,
       label: ref.label || 'Reference',
       isBase: false,
       isPose: false
-    })),
-    ...(character.poseReferences || []).map(ref => ({
-      id: ref.id,
-      imageUrl: ref.imageUrl,
-      label: ref.label || 'Pose',
-      isBase: false,
-      isPose: true
     }))
-  ].filter(Boolean) as Array<{id: string; imageUrl: string; label: string; isBase: boolean; isPose: boolean}>;
+  ].filter(Boolean) as Array<{id: string; imageUrl: string; s3Key?: string; label: string; isBase: boolean; isPose: boolean}>;
+  
+  const poseReferences = (character.poseReferences || []).map(ref => ({
+    id: ref.id,
+    imageUrl: ref.imageUrl,
+    s3Key: ref.s3Key,
+    label: ref.label || 'Pose',
+    isBase: false,
+    isPose: true
+  }));
+  
+  // Combined for main display
+  const allImages = [...userReferences, ...poseReferences];
 
   // Headshot angle labels for multiple headshots (matching Create section)
   const headshotAngles = [
@@ -269,7 +277,7 @@ export function CharacterDetailModal({
             {/* Content */}
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
-                <div className="p-6">
+                <div className="p-6 space-y-6">
                   {/* Main Image Display */}
                   {allImages.length > 0 ? (
                     <div className="mb-6">
@@ -290,41 +298,195 @@ export function CharacterDetailModal({
                           </div>
                         )}
                       </div>
-                      
-                      {/* Thumbnail Grid */}
-                      {allImages.length > 1 && (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                          {allImages.map((img, idx) => (
-                            <button
-                              key={img.id}
-                              onClick={() => setSelectedImageIndex(idx)}
-                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                selectedImageIndex === idx
-                                  ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
-                                  : 'border-[#3F3F46] hover:border-[#DC143C]/50'
-                              }`}
-                            >
-                              <img
-                                src={img.imageUrl}
-                                alt={img.label}
-                                className="w-full h-full object-cover"
-                              />
-                              {img.isBase && (
-                                <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
-                                  Base
-                                </div>
-                              )}
-                              {img.isPose && (
+                    </div>
+                  ) : null}
+                  
+                  {/* Reference Images Section */}
+                  {userReferences.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-white">
+                          Reference Images ({userReferences.length})
+                        </h3>
+                        <span className="text-xs text-[#6B7280]">User uploaded</span>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                        {userReferences.map((img, idx) => {
+                          const globalIndex = allImages.findIndex(i => i.id === img.id);
+                          return (
+                            <div key={img.id} className="relative group">
+                              <button
+                                onClick={() => setSelectedImageIndex(globalIndex)}
+                                className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                                  selectedImageIndex === globalIndex
+                                    ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
+                                    : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                                }`}
+                              >
+                                <img
+                                  src={img.imageUrl}
+                                  alt={img.label}
+                                  className="w-full h-full object-cover"
+                                />
+                                {img.isBase && (
+                                  <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
+                                    Base
+                                  </div>
+                                )}
+                              </button>
+                              {/* Delete button - only show on hover */}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!img.s3Key) {
+                                    toast.error('Cannot delete: Image S3 key not found');
+                                    return;
+                                  }
+                                  if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
+                                    return;
+                                  }
+                                  try {
+                                    const token = await getToken({ template: 'wryda-backend' });
+                                    if (!token) throw new Error('Not authenticated');
+
+                                    // Get current character data to update
+                                    const currentRefs = character.baseReference?.s3Key 
+                                      ? [character.baseReference.s3Key, ...character.references.map(r => r.s3Key).filter(Boolean)]
+                                      : character.references.map(r => r.s3Key).filter(Boolean);
+                                    
+                                    const updatedRefs = currentRefs.filter(s3Key => s3Key !== img.s3Key);
+                                    
+                                    // Call backend API directly to update referenceImages array
+                                    const response = await fetch(
+                                      `/api/screenplays/${projectId}/characters/${character.id}`,
+                                      {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({
+                                          referenceImages: updatedRefs
+                                        })
+                                      }
+                                    );
+
+                                    if (!response.ok) {
+                                      const errorData = await response.json().catch(() => ({}));
+                                      throw new Error(errorData.error || `Failed to delete image: ${response.status}`);
+                                    }
+
+                                    // Call onUpdate to refresh the UI
+                                    await onUpdate(character.id, {});
+                                    toast.success('Reference image deleted');
+                                  } catch (error: any) {
+                                    console.error('Failed to delete reference image:', error);
+                                    toast.error(`Failed to delete image: ${error.message}`);
+                                  }
+                                }}
+                                className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-red-600 hover:bg-red-700 rounded text-white"
+                                title="Delete image"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Generated Poses Section */}
+                  {poseReferences.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-white">
+                          Generated Poses ({poseReferences.length})
+                        </h3>
+                        <span className="text-xs text-[#6B7280]">AI generated</span>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                        {poseReferences.map((img, idx) => {
+                          const globalIndex = allImages.findIndex(i => i.id === img.id);
+                          return (
+                            <div key={img.id} className="relative group">
+                              <button
+                                onClick={() => setSelectedImageIndex(globalIndex)}
+                                className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                                  selectedImageIndex === globalIndex
+                                    ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6]/20'
+                                    : 'border-[#3F3F46] hover:border-[#8B5CF6]/50'
+                                }`}
+                              >
+                                <img
+                                  src={img.imageUrl}
+                                  alt={img.label}
+                                  className="w-full h-full object-cover"
+                                />
                                 <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#8B5CF6] text-white text-[10px] rounded">
                                   Pose
                                 </div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                              </button>
+                              {/* Delete button - only show on hover */}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!img.s3Key) {
+                                    toast.error('Cannot delete: Image S3 key not found');
+                                    return;
+                                  }
+                                  if (!confirm('Delete generated pose?')) {
+                                    return;
+                                  }
+                                  try {
+                                    const token = await getToken({ template: 'wryda-backend' });
+                                    if (!token) throw new Error('Not authenticated');
+
+                                    // Get current pose references and remove the deleted one
+                                    const currentPoses = (character.poseReferences || []).map(r => r.s3Key).filter(Boolean);
+                                    const updatedPoses = currentPoses.filter(s3Key => s3Key !== img.s3Key);
+                                    
+                                    // Call backend API directly to update poseReferences array
+                                    const response = await fetch(
+                                      `/api/screenplays/${projectId}/characters/${character.id}`,
+                                      {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({
+                                          poseReferences: updatedPoses
+                                        })
+                                      }
+                                    );
+
+                                    if (!response.ok) {
+                                      const errorData = await response.json().catch(() => ({}));
+                                      throw new Error(errorData.error || `Failed to delete pose: ${response.status}`);
+                                    }
+
+                                    // Call onUpdate to refresh the UI
+                                    await onUpdate(character.id, {});
+                                    toast.success('Pose deleted');
+                                  } catch (error: any) {
+                                    console.error('Failed to delete pose:', error);
+                                    toast.error(`Failed to delete pose: ${error.message}`);
+                                  }
+                                }}
+                                className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-red-600 hover:bg-red-700 rounded text-white"
+                                title="Delete pose"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ) : (
+                  )}
+                  
+                  {allImages.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
