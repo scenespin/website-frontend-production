@@ -679,6 +679,24 @@ export default function CharacterDetailSidebar({
                 placeholder="Hair Style (curly, straight, wavy)"
               />
             </div>
+            
+            {/* Typical Clothing */}
+            <div className="col-span-2">
+              <input
+                type="text"
+                value={formData.physicalAttributes?.typicalClothing || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  physicalAttributes: {
+                    ...formData.physicalAttributes,
+                    typicalClothing: e.target.value || undefined
+                  }
+                })}
+                className="w-full px-3 py-2 rounded-lg border-0 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB' }}
+                placeholder="Typical Clothing (e.g., 'business casual', 'military uniform', 'casual jeans and t-shirt')"
+              />
+            </div>
           </div>
           <p className="text-xs mt-1.5" style={{ color: '#6B7280' }}>
             💡 These help AI generate more accurate character images and pose packages
