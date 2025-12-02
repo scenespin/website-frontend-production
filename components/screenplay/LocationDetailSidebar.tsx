@@ -284,12 +284,15 @@ export default function LocationDetailSidebar({
         return;
       }
 
-      // 🔥 FIX: Use backend upload endpoint (matches asset pattern)
-      // Backend handles: S3 upload, s3Key generation (correct 7-part format), location update
-      // Upload all files sequentially
-      for (const file of fileArray) {
+      // 🔥 FIX: Upload all files sequentially, but ensure each upload completes before the next
+      // Add small delay between uploads to allow DynamoDB eventual consistency to propagate
+      // This prevents race conditions where multiple uploads read the same stale state
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
         const formData = new FormData();
         formData.append('image', file);
+
+        console.log(`[LocationDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name}`);
 
         const uploadResponse = await fetch(
           `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
@@ -310,6 +313,8 @@ export default function LocationDetailSidebar({
         const uploadData = await uploadResponse.json();
         console.log('[LocationDetailSidebar] 📤 Upload response:', {
           fileName: file.name,
+          fileIndex: i + 1,
+          totalFiles: fileArray.length,
           hasData: !!uploadData.data,
           hasImages: !!uploadData.data?.images,
           imageCount: uploadData.data?.images?.length || 0,
@@ -332,6 +337,12 @@ export default function LocationDetailSidebar({
         
         // Store the last enriched location response (has all images with presigned URLs)
         lastEnrichedLocation = uploadData.data;
+        
+        // 🔥 FIX: Add small delay between uploads to allow DynamoDB eventual consistency
+        // This ensures the next upload reads the updated state from the previous upload
+        if (i < fileArray.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+        }
       }
 
       // Step 4: Backend already updated location - use enriched location data from last upload
