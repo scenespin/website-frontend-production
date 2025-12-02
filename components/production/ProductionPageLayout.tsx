@@ -109,7 +109,7 @@ export interface CharacterReference {
   imageUrl: string;
   s3Key: string;
   label: string;
-  referenceType: 'base' | 'angle' | 'expression' | 'action';
+  referenceType: 'base' | 'angle' | 'expression' | 'action' | 'pose'; // NEW: Added 'pose' for AI-generated pose images
 }
 
 export interface ProductionPageLayoutProps {
