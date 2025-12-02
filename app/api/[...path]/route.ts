@@ -76,25 +76,44 @@ async function forwardRequest(
     
     console.error(`[API Proxy] 🚀 ${method} ${path} -> ${backendUrl}`);
     
+    // 🔥 FIX: Preserve Content-Type header and handle multipart/form-data correctly
+    const contentType = request.headers.get('content-type') || '';
+    const isMultipart = contentType.includes('multipart/form-data');
+    
     // Get request body for POST/PUT/PATCH
-    let body: string | undefined;
+    let body: string | FormData | ArrayBuffer | undefined;
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      body = await request.text();
+      if (isMultipart) {
+        // For multipart requests, preserve FormData to maintain binary data
+        body = await request.formData();
+        console.error(`[API Proxy] 📦 Multipart request detected - preserving FormData`);
+      } else {
+        // For JSON/text requests, read as text
+        body = await request.text();
+      }
     }
     
     // Forward request to backend
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
+    const headers: HeadersInit = {};
+    
+    // 🔥 FIX: Preserve original Content-Type header (don't force application/json)
+    if (contentType) {
+      headers['Content-Type'] = contentType;
+    } else if (!isMultipart) {
+      // Only default to JSON if it's not multipart and no Content-Type was provided
+      headers['Content-Type'] = 'application/json';
+    }
     
     if (authHeader) {
       headers['Authorization'] = authHeader;
     }
     
+    console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${headers['Content-Type'] || 'none'}`);
+    
     const response = await fetch(backendUrl, {
       method,
       headers,
-      body,
+      body: body as any, // TypeScript workaround for FormData
     });
     
     // Get response data
