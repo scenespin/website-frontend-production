@@ -171,10 +171,23 @@ export function ImageGallery({
                             </div>
                         )}
 
-                        {/* Metadata Badge */}
+                        {/* Angle Badge - Show which angle/view this image represents */}
+                        {image.metadata?.angle && (
+                            <div
+                                className="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium shadow-lg"
+                                style={{ backgroundColor: '#DC143C', color: 'white' }}
+                            >
+                                {image.metadata.angle === 'front' ? 'Front View' :
+                                 image.metadata.angle === 'side' ? 'Side Profile' :
+                                 image.metadata.angle === 'three-quarter' ? '3/4 Angle' :
+                                 image.metadata.angle.charAt(0).toUpperCase() + image.metadata.angle.slice(1)}
+                            </div>
+                        )}
+                        
+                        {/* Metadata Badge - Show if edited */}
                         {image.metadata?.isEdited && (
                             <div
-                                className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium"
+                                className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium shadow-lg"
                                 style={{ backgroundColor: '#3B82F6', color: 'white' }}
                             >
                                 Edited
@@ -245,6 +258,15 @@ export function ImageGallery({
                             {/* Metadata */}
                             {images[lightboxIndex].metadata && (
                                 <div className="space-y-1 text-xs" style={{ color: '#9CA3AF' }}>
+                                    {images[lightboxIndex].metadata?.angle && (
+                                        <p>
+                                            <span className="font-medium">Angle:</span>{' '}
+                                            {images[lightboxIndex].metadata.angle === 'front' ? 'Front View' :
+                                             images[lightboxIndex].metadata.angle === 'side' ? 'Side Profile' :
+                                             images[lightboxIndex].metadata.angle === 'three-quarter' ? '3/4 Angle' :
+                                             images[lightboxIndex].metadata.angle.charAt(0).toUpperCase() + images[lightboxIndex].metadata.angle.slice(1)}
+                                        </p>
+                                    )}
                                     {images[lightboxIndex].metadata?.prompt && (
                                         <p>
                                             <span className="font-medium">Prompt:</span>{' '}
