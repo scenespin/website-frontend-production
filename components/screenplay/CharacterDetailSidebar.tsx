@@ -248,11 +248,32 @@ export default function CharacterDetailSidebar({
   }
 
   const handleDirectFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, replaceBase: boolean = true) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    // For replaceBase (headshot), only use first file
+    // For additional references, process all selected files
+    const fileArray = replaceBase ? [files[0]] : Array.from(files);
 
     if (!screenplayId) {
       toast.error('Screenplay ID not found');
+      return;
+    }
+
+    // Validate all files
+    for (const file of fileArray) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image file`);
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+        return;
+      }
+    }
+
+    if (!character) {
+      toast.error('Character not found');
       return;
     }
 
@@ -262,44 +283,44 @@ export default function CharacterDetailSidebar({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      // Validate file
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
-        return;
-      }
+      // Upload files sequentially (backend currently accepts single file per request)
+      // For replaceBase, only upload first file. For additional references, upload all.
+      let lastEnrichedCharacter: any = null;
+      
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('replaceBase', replaceBase && i === 0 ? 'true' : 'false'); // Only replace base on first file if replaceBase=true
 
-      if (!character) {
-        toast.error('Character not found');
-        return;
-      }
+        console.log(`[CharacterDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (replaceBase: ${replaceBase && i === 0})`);
 
-      // 🔥 FIX: Use backend upload endpoint (matches asset pattern)
-      // Backend handles: S3 upload, s3Key generation (correct 7-part format), character update
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('replaceBase', replaceBase ? 'true' : 'false');
+        const uploadResponse = await fetch(
+          `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+          }
+        );
 
-      const uploadResponse = await fetch(
-        `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Upload failed for ${file.name}: ${uploadResponse.status}`);
         }
-      );
 
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed: ${uploadResponse.status}`);
+        const uploadData = await uploadResponse.json();
+        lastEnrichedCharacter = uploadData.data;
+        
+        // Add delay between uploads to allow DynamoDB eventual consistency
+        if (fileArray.length > 1 && i < fileArray.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      const uploadData = await uploadResponse.json();
+      const uploadData = { data: lastEnrichedCharacter };
       console.log('[CharacterDetailSidebar] 📤 Upload response:', {
         hasData: !!uploadData.data,
         hasImages: !!uploadData.data?.images,
@@ -372,7 +393,7 @@ export default function CharacterDetailSidebar({
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
         }
 
-        toast.success('Image uploaded successfully');
+        toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
       } else if (isCreating) {
         // New character - store temporarily, will be added after character creation
         setPendingImages(prev => [...prev, {
@@ -798,11 +819,12 @@ export default function CharacterDetailSidebar({
                     >
                       {uploading ? 'Uploading...' : 'Add Additional Reference'}
                     </button>
-                    {/* Hidden file input for additional references */}
+                    {/* Hidden file input for additional references - allows multiple files */}
                     <input
                       ref={additionalFileInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={(e) => handleDirectFileUpload(e, false)}
                       className="hidden"
                     />
