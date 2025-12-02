@@ -797,6 +797,15 @@ export default function CharacterDetailSidebar({
               createdAt: new Date().toISOString()
             }))
             
+            // Separate user-uploaded images from AI-generated images for better organization
+            const userUploadedImages = allImages.filter(img => 
+              !img.metadata?.source || img.metadata?.source === 'user-upload'
+            );
+            const aiGeneratedImages = allImages.filter(img => 
+              img.metadata?.source === 'pose-generation' || 
+              img.metadata?.source === 'image-generation'
+            );
+            
             return (
               <div className="space-y-4">
                 {/* Character Image Upload Buttons */}
@@ -876,54 +885,141 @@ export default function CharacterDetailSidebar({
                   </button>
                 </div>
                 
-                {/* Image Gallery - Show all images in one gallery */}
+                {/* Image Gallery - Separated by source */}
                 {allImages.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium mb-2 block" style={{ color: '#9CA3AF' }}>
-                      Reference Images {allImages.length > 0 && `(${allImages.length})`}
-                    </label>
-                    <ImageGallery
-                      images={allImages}
-                      entityType="character"
-                      entityId={character?.id || 'new'}
-                      entityName={formData.name || 'New Character'}
-                      onDeleteImage={async (index: number) => {
-                        if (character) {
-                          try {
-                            // Get current character from context to ensure we have latest images
-                            const currentCharacter = characters.find(c => c.id === character.id) || character;
-                            const updatedImages = (currentCharacter.images || []).filter((_, i) => i !== index);
-                            
-                            // Optimistic UI update - remove image immediately
-                            setFormData(prev => ({
-                              ...prev,
-                              images: updatedImages
-                            }));
-                            
-                            await updateCharacter(character.id, { images: updatedImages });
-                            
-                            // Sync from context after update (with delay for DynamoDB consistency)
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                            const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                            if (updatedCharacterFromContext) {
-                              setFormData({ ...updatedCharacterFromContext });
+                  <div className="space-y-4">
+                    {/* User-Uploaded Reference Images */}
+                    {userUploadedImages.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                            Reference Images ({userUploadedImages.length})
+                          </label>
+                          <span className="text-xs" style={{ color: '#6B7280' }}>User uploaded</span>
+                        </div>
+                        <ImageGallery
+                          images={userUploadedImages}
+                          entityType="character"
+                          entityId={character?.id || 'new'}
+                          entityName={formData.name || 'New Character'}
+                          onDeleteImage={async (index: number) => {
+                            if (character) {
+                              try {
+                                // Get current character from context to ensure we have latest images
+                                const currentCharacter = characters.find(c => c.id === character.id) || character;
+                                const currentImages = currentCharacter.images || [];
+                                // Find the actual index in the full images array
+                                const imageToDelete = userUploadedImages[index];
+                                const actualIndex = currentImages.findIndex((img: any) => {
+                                  const imgS3Key = img.metadata?.s3Key || img.s3Key;
+                                  const deleteS3Key = imageToDelete.metadata?.s3Key || imageToDelete.s3Key;
+                                  return imgS3Key === deleteS3Key && 
+                                    (!img.metadata?.source || img.metadata?.source === 'user-upload');
+                                });
+                                
+                                if (actualIndex < 0) {
+                                  throw new Error('Image not found in character data');
+                                }
+                                
+                                const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
+                                
+                                // Optimistic UI update - remove image immediately
+                                setFormData(prev => ({
+                                  ...prev,
+                                  images: updatedImages
+                                }));
+                                
+                                await updateCharacter(character.id, { images: updatedImages });
+                                
+                                // Sync from context after update (with delay for DynamoDB consistency)
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                                if (updatedCharacterFromContext) {
+                                  setFormData({ ...updatedCharacterFromContext });
+                                }
+                                
+                                toast.success('Image removed');
+                              } catch (error: any) {
+                                // Rollback on error
+                                setFormData(prev => ({
+                                  ...prev,
+                                  images: character.images || []
+                                }));
+                                toast.error(`Failed to remove image: ${error.message}`);
+                              }
+                            } else {
+                              // Remove from pending images
+                              setPendingImages(prev => prev.filter((_, i) => i !== index))
                             }
-                            
-                            toast.success('Image removed');
-                          } catch (error: any) {
-                            // Rollback on error
-                            setFormData(prev => ({
-                              ...prev,
-                              images: character.images || []
-                            }));
-                            toast.error(`Failed to remove image: ${error.message}`);
-                          }
-                        } else {
-                          // Remove from pending images
-                          setPendingImages(prev => prev.filter((_, i) => i !== index))
-                        }
-                      }}
-                    />
+                          }}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* AI-Generated Images (Poses) */}
+                    {aiGeneratedImages.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                            Generated Poses ({aiGeneratedImages.length})
+                          </label>
+                          <span className="text-xs" style={{ color: '#6B7280' }}>AI generated</span>
+                        </div>
+                        <ImageGallery
+                          images={aiGeneratedImages}
+                          entityType="character"
+                          entityId={character?.id || 'new'}
+                          entityName={formData.name || 'New Character'}
+                          onDeleteImage={async (index: number) => {
+                            if (character) {
+                              try {
+                                // Get current character from context to ensure we have latest images
+                                const currentCharacter = characters.find(c => c.id === character.id) || character;
+                                const currentImages = currentCharacter.images || [];
+                                // Find the actual index in the full images array
+                                const imageToDelete = aiGeneratedImages[index];
+                                const actualIndex = currentImages.findIndex((img: any) => {
+                                  const imgS3Key = img.metadata?.s3Key || img.s3Key;
+                                  const deleteS3Key = imageToDelete.metadata?.s3Key || imageToDelete.s3Key;
+                                  return imgS3Key === deleteS3Key && 
+                                    (img.metadata?.source === 'pose-generation' || img.metadata?.source === 'image-generation');
+                                });
+                                
+                                if (actualIndex < 0) {
+                                  throw new Error('Image not found in character data');
+                                }
+                                
+                                const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
+                                
+                                // Optimistic UI update - remove image immediately
+                                setFormData(prev => ({
+                                  ...prev,
+                                  images: updatedImages
+                                }));
+                                
+                                await updateCharacter(character.id, { images: updatedImages });
+                                
+                                // Sync from context after update (with delay for DynamoDB consistency)
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                const updatedCharacterFromContext = characters.find(c => c.id === character.id);
+                                if (updatedCharacterFromContext) {
+                                  setFormData({ ...updatedCharacterFromContext });
+                                }
+                                
+                                toast.success('Pose removed');
+                              } catch (error: any) {
+                                // Rollback on error
+                                setFormData(prev => ({
+                                  ...prev,
+                                  images: character.images || []
+                                }));
+                                toast.error(`Failed to remove pose: ${error.message}`);
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 

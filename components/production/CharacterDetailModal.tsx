@@ -378,10 +378,6 @@ export function CharacterDetailModal({
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  if (img.index < 0) {
-                                    toast.error('Cannot delete: Image index not found');
-                                    return;
-                                  }
                                   if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
                                     return;
                                   }
@@ -393,8 +389,20 @@ export function CharacterDetailModal({
                                     }
                                     
                                     const currentImages = currentCharacter.images || [];
-                                    // Simple index-based deletion (same pattern as CharacterDetailSidebar)
-                                    const updatedImages = currentImages.filter((_, i) => i !== img.index);
+                                    
+                                    // If index is valid, use it; otherwise find by s3Key
+                                    let updatedImages;
+                                    if (img.index >= 0) {
+                                      updatedImages = currentImages.filter((_, i) => i !== img.index);
+                                    } else if (img.s3Key) {
+                                      // Fallback: find by s3Key if index mapping failed
+                                      updatedImages = currentImages.filter((image: any) => {
+                                        const imageS3Key = image.metadata?.s3Key || image.s3Key;
+                                        return imageS3Key !== img.s3Key;
+                                      });
+                                    } else {
+                                      throw new Error('Cannot delete: Image identifier not found');
+                                    }
                                     
                                     // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
@@ -461,10 +469,6 @@ export function CharacterDetailModal({
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  if (img.index < 0) {
-                                    toast.error('Cannot delete: Image index not found');
-                                    return;
-                                  }
                                   if (!confirm('Delete generated pose?')) {
                                     return;
                                   }
@@ -476,8 +480,20 @@ export function CharacterDetailModal({
                                     }
                                     
                                     const currentImages = currentCharacter.images || [];
-                                    // Simple index-based deletion (same pattern as CharacterDetailSidebar)
-                                    const updatedImages = currentImages.filter((_, i) => i !== img.index);
+                                    
+                                    // If index is valid, use it; otherwise find by s3Key
+                                    let updatedImages;
+                                    if (img.index >= 0) {
+                                      updatedImages = currentImages.filter((_, i) => i !== img.index);
+                                    } else if (img.s3Key) {
+                                      // Fallback: find by s3Key if index mapping failed
+                                      updatedImages = currentImages.filter((image: any) => {
+                                        const imageS3Key = image.metadata?.s3Key || image.s3Key;
+                                        return imageS3Key !== img.s3Key;
+                                      });
+                                    } else {
+                                      throw new Error('Cannot delete: Image identifier not found');
+                                    }
                                     
                                     // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)

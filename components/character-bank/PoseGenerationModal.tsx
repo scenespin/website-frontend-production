@@ -81,7 +81,6 @@ export default function PoseGenerationModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState<any>(null);
   const [error, setError] = useState<string>('');
-  const [progress, setProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
   
   const handleHeadshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,20 +97,16 @@ export default function PoseGenerationModal({
   
   const handleGenerateWithPackage = async (packageId: string) => {
     setIsGenerating(true);
-    setStep('generating');
     setError('');
-    setProgress(0);
     setJobId(null);
     
     try {
-      // Show toast notification
+      // Show initial toast notification
       toast.info('Starting pose generation...', {
-        description: `Generating ${packageId} package for ${characterName}`
+        id: 'pose-gen-start',
+        duration: Infinity,
+        icon: <Loader2 className="w-4 h-4 animate-spin" />
       });
-      
-      setProgress(10);
-      
-      setProgress(20);
       
       // Call backend API to generate pose package
       // Backend will create a job automatically
@@ -151,28 +146,20 @@ export default function PoseGenerationModal({
         throw new Error(errorMessage);
       }
       
-      // Simulate progress during generation
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 90));
-      }, 1000);
-      
       const result = await response.json();
-      
-      clearInterval(progressInterval);
-      setProgress(100);
       
       // Store jobId for reference
       if (result.jobId) {
         setJobId(result.jobId);
       }
       
-      setGenerationResult(result);
-      setStep('complete');
+      // Close modal immediately - jobs area will handle tracking
+      onClose();
       
-      // Show success toast with link to jobs
-      const poseCount = result?.result?.poses?.length || 0;
-      toast.success('Pose generation completed!', {
-        description: `Generated ${poseCount} pose(s). View in Jobs to save.`,
+      // Dismiss initial toast and show success toast
+      toast.dismiss('pose-gen-start');
+      toast.success('Pose generation started!', {
+        description: 'View in Jobs tab to track progress and save your poses.',
         action: {
           label: 'View Jobs',
           onClick: () => {
@@ -190,11 +177,12 @@ export default function PoseGenerationModal({
     } catch (err: any) {
       console.error('[PoseGeneration] Error:', err);
       setError(err.message || 'An error occurred during generation');
-      setStep('error');
       
-      // Show error toast
-      toast.error('Pose generation failed', {
-        description: err.message || 'An error occurred during generation'
+      // Dismiss initial toast and show error toast
+      toast.dismiss('pose-gen-start');
+      toast.error('Pose generation failed!', {
+        description: err.message || 'Please try again.',
+        duration: Infinity // Keep error toast visible
       });
     } finally {
       setIsGenerating(false);
@@ -502,27 +490,7 @@ export default function PoseGenerationModal({
                 </div>
               )}
               
-              {/* Step 3: Generating */}
-              {step === 'generating' && (
-                <div className="text-center py-12">
-                  <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-100 mb-2">
-                    Generating Pose Package...
-                  </h3>
-                  <p className="text-base-content/60 mb-6">
-                    Creating {selectedPackageId} package poses for {characterName}
-                  </p>
-                  <div className="max-w-md mx-auto">
-                    <div className="w-full bg-base-content/20 rounded-full h-3 mb-2">
-                      <div 
-                        className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-base-content/50">{progress}% complete</p>
-                  </div>
-                </div>
-              )}
+              {/* Step 3: Generating - Removed since jobs handle this now */}
               
               {/* Step 4: Complete */}
               {step === 'complete' && generationResult && (
