@@ -178,35 +178,61 @@ export function CharacterBankPanel({
       
       if (data.success && data.data) {
         const responseData = data.data;
-        const referencesCount = responseData.references?.length || 0;
+        const references = responseData.references || [];
+        const referencesCount = references.length;
         const character = responseData.character;
         
-        // Update character in context if we have the updated character
-        if (character && updateCharacter) {
+        console.log('[CharacterBank] Processing response:', {
+          referencesCount,
+          hasCharacter: !!character,
+          hasReferences: references.length > 0,
+          references: references.map((r: any) => ({ label: r.label, type: r.referenceType }))
+        });
+        
+        // Update character in context if we have the updated character and references
+        if (character && updateCharacter && references.length > 0) {
           try {
-            // Map the character profile to the Character type expected by context
+            // Map the character profile and generated references to the Character type expected by context
+            // The backend returns references as a separate array, not nested in character
             const characterUpdates: Partial<Character> = {
               images: [
                 ...(character.baseReference ? [{
                   imageUrl: character.baseReference.imageUrl,
                   s3Key: character.baseReference.s3Key,
-                  metadata: { uploadedFileName: 'Base Reference' }
+                  createdAt: new Date().toISOString(),
+                  metadata: { 
+                    s3Key: character.baseReference.s3Key,
+                    uploadedFileName: 'Base Reference' 
+                  }
                 }] : []),
-                ...(character.references || []).map((ref: any) => ({
+                ...references.map((ref: any) => ({
                   imageUrl: ref.imageUrl,
                   s3Key: ref.s3Key,
-                  metadata: { uploadedFileName: ref.label || 'Reference' }
+                  createdAt: new Date().toISOString(),
+                  metadata: { 
+                    s3Key: ref.s3Key,
+                    uploadedFileName: ref.label || ref.referenceType || 'Reference',
+                    referenceType: ref.referenceType
+                  }
                 }))
               ]
             };
             
+            console.log('[CharacterBank] Updating character with', characterUpdates.images?.length || 0, 'images');
             await updateCharacter(characterId, characterUpdates);
+            console.log('[CharacterBank] ✅ Character updated in context');
           } catch (error) {
             console.error('[CharacterBank] Failed to update character in context:', error);
+            toast.error('Generated variations but failed to update character. Please refresh.');
           }
+        } else if (references.length === 0) {
+          console.warn('[CharacterBank] No references generated - backend may have failed silently');
+          toast.warning('Generation completed but no variations were created. Check backend logs.');
         }
         
-        toast.success(`Generated ${referencesCount} reference variations!`);
+        if (referencesCount > 0) {
+          toast.success(`Generated ${referencesCount} reference variation${referencesCount > 1 ? 's' : ''}!`);
+        }
         onCharactersUpdate();
       } else {
         throw new Error(data.error?.message || data.error || 'Generation failed');
