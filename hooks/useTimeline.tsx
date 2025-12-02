@@ -1192,7 +1192,7 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
       const response = await fetch(`${apiUrl}/api/timeline/project/${item.project.id}`, {
         method: 'PUT',
@@ -1774,7 +1774,7 @@ export function useTimeline(options: UseTimelineOptions = {}) {
       
       // Step 3: Try to save to backend (DynamoDB)
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
       const response = await fetch(`${apiUrl}/api/timeline/project/${project.id}`, {
         method: 'PUT',
@@ -1823,7 +1823,7 @@ export function useTimeline(options: UseTimelineOptions = {}) {
   const loadProject = useCallback(async (id: string) => {
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
       const response = await fetch(`${apiUrl}/api/timeline/project/${id}`, {
         headers: {

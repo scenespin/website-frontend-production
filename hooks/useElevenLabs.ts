@@ -45,7 +45,7 @@ export function useElevenLabs(): UseElevenLabsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
   /**
    * Get auth token from localStorage

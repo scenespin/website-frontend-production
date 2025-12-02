@@ -73,7 +73,7 @@ export function useSceneVisualizer() {
                 throw new Error('Authentication required');
             }
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
             
             const response = await fetch(`${apiUrl}/api/scene/to-prompts`, {
                 method: 'POST',
@@ -129,7 +129,7 @@ export function useSceneVisualizer() {
                 throw new Error('Authentication required');
             }
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
             const response = await fetch(`${apiUrl}/api/video/generate`, {
                 method: 'POST',

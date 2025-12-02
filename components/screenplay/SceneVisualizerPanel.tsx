@@ -185,7 +185,7 @@ export function SceneVisualizerPanel({
     setIsGeneratingShotList(true);
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://o31t5jk8w5.execute-api.us-east-1.amazonaws.com';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
       const response = await fetch(`${apiUrl}/api/shotlist/generate`, {
         method: 'POST',

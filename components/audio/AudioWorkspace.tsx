@@ -341,7 +341,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
       setLoadingVoices(true);
       try {
         const token = localStorage.getItem('jwt_token');
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
         
         const response = await fetch(`${apiUrl}/api/audio/voices/${provider}`, {
           headers: {
@@ -408,7 +408,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const requestBody: any = {
         text,
@@ -718,7 +718,7 @@ function SoundEffectsTab({ isProcessing, setIsProcessing, setResult, setError }:
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const response = await fetch(`${apiUrl}/api/audio/sound-effect`, {
         method: 'POST',
@@ -890,7 +890,7 @@ function VoiceIsolationTab({ isProcessing, setIsProcessing, setResult, setError 
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const formData = new FormData();
       formData.append('audio', audioFile);
@@ -1047,7 +1047,7 @@ function AudioDubbingTab({ isProcessing, setIsProcessing, setResult, setError }:
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const formData = new FormData();
       formData.append('audio', audioFile);
@@ -1241,7 +1241,7 @@ function TranscriptionTab({ isProcessing, setIsProcessing, setResult, setError }
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const formData = new FormData();
       if (audioFile) {

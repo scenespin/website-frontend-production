@@ -378,8 +378,8 @@ export function CharacterDetailModal({
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  if (!img.s3Key) {
-                                    toast.error('Cannot delete: Image S3 key not found');
+                                  if (img.index < 0) {
+                                    toast.error('Cannot delete: Image index not found');
                                     return;
                                   }
                                   if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
@@ -393,17 +393,10 @@ export function CharacterDetailModal({
                                     }
                                     
                                     const currentImages = currentCharacter.images || [];
-                                    // Filter out the image matching the s3Key (for user-uploaded references)
-                                    const updatedImages = currentImages.filter((image: any, idx: number) => {
-                                      const imageS3Key = image.metadata?.s3Key || image.s3Key;
-                                      // Only delete if it matches the s3Key AND is a user-uploaded image
-                                      const isMatch = imageS3Key === img.s3Key;
-                                      const isUserUpload = !image.metadata?.source || image.metadata?.source === 'user-upload';
-                                      // Keep the image if it's not a match, or if it's a match but not a user upload (safety check)
-                                      return !isMatch || !isUserUpload;
-                                    });
+                                    // Simple index-based deletion (same pattern as CharacterDetailSidebar)
+                                    const updatedImages = currentImages.filter((_, i) => i !== img.index);
                                     
-                                    // Optimistic UI update - the context will handle the actual update
+                                    // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
                                     await updateCharacter(character.id, { images: updatedImages });
                                     
@@ -468,8 +461,8 @@ export function CharacterDetailModal({
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  if (!img.s3Key) {
-                                    toast.error('Cannot delete: Image S3 key not found');
+                                  if (img.index < 0) {
+                                    toast.error('Cannot delete: Image index not found');
                                     return;
                                   }
                                   if (!confirm('Delete generated pose?')) {
@@ -483,17 +476,10 @@ export function CharacterDetailModal({
                                     }
                                     
                                     const currentImages = currentCharacter.images || [];
-                                    // Filter out the pose image matching the s3Key
-                                    const updatedImages = currentImages.filter((image: any, idx: number) => {
-                                      const imageS3Key = image.metadata?.s3Key || image.s3Key;
-                                      // Only delete if it matches the s3Key AND is a pose-generated image
-                                      const isMatch = imageS3Key === img.s3Key;
-                                      const isPose = image.metadata?.source === 'pose-generation';
-                                      // Keep the image if it's not a match, or if it's a match but not a pose (safety check)
-                                      return !isMatch || !isPose;
-                                    });
+                                    // Simple index-based deletion (same pattern as CharacterDetailSidebar)
+                                    const updatedImages = currentImages.filter((_, i) => i !== img.index);
                                     
-                                    // Optimistic UI update - the context will handle the actual update
+                                    // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
                                     await updateCharacter(character.id, { images: updatedImages });
                                     

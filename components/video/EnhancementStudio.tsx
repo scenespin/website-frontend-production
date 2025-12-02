@@ -276,7 +276,7 @@ function VideoModifyTab({ isProcessing, setIsProcessing, setResult, setError }: 
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       // Upload video to get URL (simplified - in production use S3 presigned URLs)
       const formData = new FormData();
@@ -481,7 +481,7 @@ function VideoReframeTab({ isProcessing, setIsProcessing, setResult, setError }:
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const formData = new FormData();
       formData.append('video', videoFile);
@@ -680,7 +680,7 @@ function VideoUpscaleTab({ isProcessing, setIsProcessing, setResult, setError }:
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const formData = new FormData();
       formData.append('video', videoFile);
@@ -918,7 +918,7 @@ function CharacterAnimateTab({ isProcessing, setIsProcessing, setResult, setErro
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const formData = new FormData();
       formData.append('characterImage', characterImage);

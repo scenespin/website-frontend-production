@@ -55,7 +55,7 @@ export function ElevenLabsConnectionModal({
 
     try {
       const token = localStorage.getItem('jwt_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://l9zm95wyxb.execute-api.us-east-1.amazonaws.com/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
       const response = await fetch(`${apiUrl}/api/elevenlabs/connect`, {
         method: 'POST',
