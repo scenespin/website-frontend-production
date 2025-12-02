@@ -40,6 +40,7 @@ export default function PoseGenerationModal({
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [typicalClothing, setTypicalClothing] = useState<string | undefined>(undefined);
   const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
+  const [quality, setQuality] = useState<'standard' | 'premium'>('standard'); // NEW: Quality tier
   
   // Input data
   const [headshotFile, setHeadshotFile] = useState<File | null>(null);
@@ -122,7 +123,8 @@ export default function PoseGenerationModal({
             headshotUrl: headshotFile ? headshotPreview : undefined, // Only for manual uploads
             screenplayContent: screenplayContent || undefined,
             manualDescription: manualDescription || undefined,
-            typicalClothing: typicalClothing // NEW: Pass selected outfit
+            typicalClothing: typicalClothing, // NEW: Pass selected outfit
+            quality: quality // NEW: Pass quality tier
           })
         }
       );
@@ -244,20 +246,111 @@ export default function PoseGenerationModal({
                     </p>
                   </div>
                   
+                  {/* Quality Selection - Only for Standard+ packages */}
+                  {selectedPackageId !== 'basic' && (
+                    <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                      <h3 className="text-sm font-semibold text-base-content mb-4">
+                        Step 2: Select Quality
+                      </h3>
+                      <div className="space-y-3">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="quality"
+                            value="standard"
+                            checked={quality === 'standard'}
+                            onChange={(e) => setQuality(e.target.value as 'standard' | 'premium')}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-base-content">Standard Quality</div>
+                            <div className="text-xs text-base-content/60 mt-1">
+                              Fast generation, good consistency. Recommended for most projects.
+                            </div>
+                          </div>
+                        </label>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="quality"
+                            value="premium"
+                            checked={quality === 'premium'}
+                            onChange={(e) => setQuality(e.target.value as 'standard' | 'premium')}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-base-content">Premium Quality</div>
+                            <div className="text-xs text-base-content/60 mt-1">
+                              Superior outfit quality with advanced virtual try-on. Best for professional productions.
+                            </div>
+                          </div>
+                        </label>
+                        {/* Cost Comparison */}
+                        <div className="mt-3 pt-3 border-t border-base-content/10">
+                          <div className="text-xs text-base-content/50">
+                            <div className="flex justify-between">
+                              <span>Standard:</span>
+                              <span className="font-medium">
+                                {(() => {
+                                  const packageDef = {
+                                    basic: 3,
+                                    standard: 6,
+                                    premium: 10,
+                                    cinematic: 15,
+                                    master: 22
+                                  }[selectedPackageId] || 6;
+                                  return `$${(packageDef * 8 / 100).toFixed(2)}`;
+                                })()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span>Premium:</span>
+                              <span className="font-medium">
+                                {(() => {
+                                  const packageDef = {
+                                    basic: 3,
+                                    standard: 6,
+                                    premium: 10,
+                                    cinematic: 15,
+                                    master: 22
+                                  }[selectedPackageId] || 6;
+                                  return `$${(packageDef * 20 / 100).toFixed(2)}`;
+                                })()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Package Selection */}
                   <div>
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 2: Select Package
+                      {selectedPackageId !== 'basic' ? 'Step 3: Select Package' : 'Step 2: Select Package'}
                     </h3>
                     <PosePackageSelector
                       characterName={characterName}
                       onSelectPackage={(packageId) => {
                         setSelectedPackageId(packageId);
-                        // Automatically generate when package is selected
-                        handleGenerateWithPackage(packageId);
+                        // Reset quality to standard if Basic package selected
+                        if (packageId === 'basic') {
+                          setQuality('standard');
+                        }
                       }}
                       selectedPackageId={selectedPackageId}
                     />
+                  </div>
+                  
+                  {/* Generate Button */}
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !selectedPackageId}
+                      className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGenerating ? 'Generating...' : 'Generate Pose Package'}
+                    </button>
                   </div>
                 </div>
               )}
