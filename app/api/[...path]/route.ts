@@ -117,10 +117,10 @@ async function forwardRequest(
     });
     
     // Get response data
-    const contentType = response.headers.get('content-type');
+    const responseContentType = response.headers.get('content-type');
     let data: any;
     
-    if (contentType?.includes('application/json')) {
+    if (responseContentType?.includes('application/json')) {
       data = await response.json();
     } else {
       data = await response.text();
