@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export interface OutfitSelectorProps {
   value?: string;
@@ -31,9 +31,16 @@ export function OutfitSelector({
 }: OutfitSelectorProps) {
   const [selectedOutfit, setSelectedOutfit] = useState<string>(value || 'default');
   const [customOutfit, setCustomOutfit] = useState<string>('');
+  const isManualChangeRef = useRef(false);
 
   // Initialize with value or default
   useEffect(() => {
+    // Skip if user just manually changed the selection
+    if (isManualChangeRef.current) {
+      isManualChangeRef.current = false;
+      return;
+    }
+    
     if (value !== undefined) {
       // If value is provided and matches a preset, use it
       // Otherwise, it's a custom outfit
@@ -67,14 +74,16 @@ export function OutfitSelector({
     : OUTFIT_OPTIONS;
 
   const handleOutfitChange = (newValue: string) => {
+    isManualChangeRef.current = true; // Mark as manual change to prevent useEffect reset
     setSelectedOutfit(newValue);
     
     if (newValue === 'default') {
       // Use character's default outfit (undefined means use default)
       onChange(undefined);
     } else if (newValue === 'custom') {
-      // Keep current custom value if it exists, otherwise empty
-      onChange(customOutfit || '');
+      // Don't call onChange yet - wait for user to type in custom field
+      // This prevents the parent from resetting the value
+      // The custom input field will call onChange when user types
     } else {
       // Use preset outfit
       onChange(newValue);

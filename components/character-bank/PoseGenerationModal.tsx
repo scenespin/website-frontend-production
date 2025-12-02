@@ -129,7 +129,16 @@ export default function PoseGenerationModal({
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to generate pose package');
+        let errorMessage = errorData.message || 'Failed to generate pose package';
+        
+        // Sanitize error message - remove internal model names and technical details
+        errorMessage = errorMessage
+          .replace(/MODEL_NOT_FOUND:\s*\w+(-\w+)*/gi, 'Model not available')
+          .replace(/luma-photon-\w+/gi, 'image generation model')
+          .replace(/photon-\w+/gi, 'image generation model')
+          .replace(/Failed to generate pose \w+:\s*/gi, 'Failed to generate pose: ');
+        
+        throw new Error(errorMessage);
       }
       
       // Simulate progress during generation
