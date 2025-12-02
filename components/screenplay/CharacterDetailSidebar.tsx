@@ -1016,6 +1016,8 @@ export default function CharacterDetailSidebar({
             type: formData.type || 'lead',
             arcNotes: formData.arcNotes || ''
           }}
+          entityId={character?.id}
+          projectId={screenplayId}
           onImageGenerated={async (imageUrl, prompt, modelUsed) => {
             // AI-generated images come as data URLs - we need to upload them to S3
             try {

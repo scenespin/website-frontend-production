@@ -14,7 +14,7 @@ import { Cloud, Download, Clock, Check, Loader2, X, Image, Video, Film } from 'l
 import { useAuth } from '@clerk/nextjs';
 import { useStorageConnections } from '@/hooks/useStorageConnections';
 
-type AssetType = 'image' | 'video' | 'composition';
+type AssetType = 'image' | 'video' | 'composition' | 'audio';
 type StorageLocation = 'google-drive' | 'dropbox' | 'download' | 'temp';
 
 interface StorageDecisionModalProps {

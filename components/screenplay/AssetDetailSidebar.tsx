@@ -889,6 +889,8 @@ export default function AssetDetailSidebar({
               description: formData.description || '',
               category: formData.category || 'prop'
             }}
+            entityId={asset?.id}
+            projectId={screenplayId}
             onImageGenerated={async (imageUrl, prompt, modelUsed) => {
               // AI-generated images come as data URLs - we need to upload them to S3
               // For now, store them temporarily and they'll be uploaded when asset is created

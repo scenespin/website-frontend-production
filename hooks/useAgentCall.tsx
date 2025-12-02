@@ -190,7 +190,14 @@ export function useImageGenerator() {
     const generateImage = useCallback(async (
         prompt: string,
         modelId: string,  // This is actually the providerId now (e.g., 'photon-1', 'imagen-3')
-        options?: { style?: string; size?: string; quality?: string }
+        options?: { 
+            style?: string; 
+            size?: string; 
+            quality?: string;
+            entityType?: 'character' | 'location' | 'asset';
+            entityId?: string;
+            projectId?: string;
+        }
     ) => {
         return callAgent({
             endpoint: '/api/image/generate',
@@ -200,7 +207,11 @@ export function useImageGenerator() {
                 desiredModelId: modelId,    // LEGACY: Keep for backwards compatibility
                 style: options?.style,
                 size: options?.size,
-                quality: options?.quality
+                quality: options?.quality,
+                // NEW: Optional entity context for job tracking
+                entityType: options?.entityType,
+                entityId: options?.entityId,
+                projectId: options?.projectId
             }
         });
     }, [callAgent]);

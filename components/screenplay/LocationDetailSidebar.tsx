@@ -753,6 +753,8 @@ export default function LocationDetailSidebar({
             type: formData.type || 'INT',
             atmosphereNotes: formData.atmosphereNotes || ''
           }}
+          entityId={location?.id}
+          projectId={screenplayId}
           onImageGenerated={async (imageUrl, prompt, modelUsed) => {
             // AI-generated images come as data URLs - we need to upload them to S3
             try {

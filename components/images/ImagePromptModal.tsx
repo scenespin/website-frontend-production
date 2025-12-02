@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useImageGenerator } from '@/hooks/useAgentCall';
+import { toast } from 'sonner';
 
 interface ImagePromptModalProps {
     isOpen: boolean;
@@ -18,6 +19,9 @@ interface ImagePromptModalProps {
         tags?: string[]; // For assets
     };
     onImageGenerated: (imageUrl: string, prompt: string, modelUsed: string) => void;
+    // NEW: Optional entity context for job tracking
+    entityId?: string;
+    projectId?: string;
 }
 
 /**
@@ -31,7 +35,9 @@ export function ImagePromptModal({
     onClose,
     entityType,
     entityData,
-    onImageGenerated
+    onImageGenerated,
+    entityId,
+    projectId
 }: ImagePromptModalProps) {
     const [prompt, setPrompt] = useState('');
     const { generateImage, isLoading, error: generationError } = useImageGenerator();
@@ -135,17 +141,43 @@ export function ImagePromptModal({
         if (!prompt.trim()) return;
 
         try {
+            // Show toast notification
+            if (entityId && projectId) {
+                toast.info('Starting image generation...', {
+                    description: `Generating ${entityType} image`
+                });
+            }
+            
             // Use Photon model (best quality) - backend will use luma-photon-1 or luma-photon-flash
+            // Pass entity context for job tracking (if available)
             const result = await generateImage(prompt, 'luma-photon-1', {
                 size: '1024x1024',
-                quality: 'hd'
+                quality: 'hd',
+                entityType: entityId && projectId ? entityType : undefined,
+                entityId: entityId && projectId ? entityId : undefined,
+                projectId: projectId
             });
             
-            // Result structure: { imageUrl, modelUsed, provider, creditsDeducted }
+            // Result structure: { imageUrl, modelUsed, provider, creditsDeducted, jobId }
             const imageUrl = (result as any)?.imageUrl || (result as any)?.url;
             const modelUsed = (result as any)?.modelUsed || 'luma-photon-1';
+            const jobId = (result as any)?.jobId;
             
             if (imageUrl) {
+                // Show success toast if job was created
+                if (jobId && entityId && projectId) {
+                    toast.success('Image generation completed!', {
+                        description: 'View in Jobs to save.',
+                        action: {
+                            label: 'View Jobs',
+                            onClick: () => {
+                                window.location.href = `/production?tab=jobs&projectId=${projectId}`;
+                            }
+                        },
+                        duration: 5000
+                    });
+                }
+                
                 onImageGenerated(imageUrl, prompt, modelUsed);
                 onClose();
             } else {
@@ -153,6 +185,12 @@ export function ImagePromptModal({
             }
         } catch (err: any) {
             console.error('Failed to generate image:', err);
+            
+            // Show error toast
+            toast.error('Image generation failed', {
+                description: err.message || 'An error occurred during generation'
+            });
+            
             // Error will be shown in the UI via generationError state from useImageGenerator
         }
     };

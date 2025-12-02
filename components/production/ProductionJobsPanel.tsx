@@ -436,10 +436,9 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                             name: firstImage.label || 'Generated Image',
                             type: 'image',
                             metadata: {
-                              entityType: job.metadata?.inputs?.characterId ? 'character' : 
-                                        job.metadata?.inputs?.locationId ? 'location' : 'asset',
-                              entityId: job.metadata?.inputs?.characterId || job.metadata?.inputs?.locationId || job.metadata?.inputs?.assetId,
-                              entityName: job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || 'Asset',
+                              entityType: job.metadata?.inputs?.entityType || 'asset',
+                              entityId: job.metadata?.inputs?.entityId,
+                              entityName: job.metadata?.inputs?.entityName || 'Asset',
                               allImages: job.results!.images
                             }
                           });
@@ -451,6 +450,32 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                       >
                         <Save className="w-3 h-3" />
                         Save Images
+                      </button>
+                    )}
+                    
+                    {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const firstAudio = job.results!.audio![0];
+                          setSelectedAsset({
+                            url: firstAudio.audioUrl,
+                            s3Key: firstAudio.s3Key,
+                            name: firstAudio.label || 'Generated Audio',
+                            type: 'audio',
+                            metadata: {
+                              audioType: job.metadata?.inputs?.type || 'audio',
+                              prompt: job.metadata?.inputs?.prompt,
+                              allAudio: job.results!.audio
+                            }
+                          });
+                          setShowStorageModal(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                 bg-[#8B5CF6] text-white text-xs font-medium
+                                 hover:bg-[#7C4DCC] transition-colors"
+                      >
+                        <Save className="w-3 h-3" />
+                        Save Audio
                       </button>
                     )}
                     
