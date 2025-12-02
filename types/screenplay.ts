@@ -49,6 +49,7 @@ export interface ImageAsset {
         originalImageUrl?: string; // If edited, reference to original
         angle?: string; // For character headshots: 'front' | 'side' | 'three-quarter'
         s3Key?: string; // S3 key for the uploaded file
+        source?: string; // Source of image: 'pose-generation' | 'user-upload' | etc.
     };
 }
 

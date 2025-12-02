@@ -153,6 +153,7 @@ interface ScreenplayContextType {
             modelUsed?: string;
             angle?: string; // For character headshots: 'front' | 'side' | 'three-quarter'
             s3Key?: string; // S3 key for file management
+            source?: string; // Source of image: 'pose-generation' | 'user-upload' | etc.
         }
     ) => Promise<void>;
     removeImageFromEntity: (
