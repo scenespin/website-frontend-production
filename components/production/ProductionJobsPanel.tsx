@@ -85,13 +85,18 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   /**
    * Load jobs from API
    */
-  const loadJobs = async () => {
+  const loadJobs = async (showLoading: boolean = false) => {
     try {
-      setIsLoading(true);
+      // Only show loading spinner on initial load, not on periodic refreshes
+      if (showLoading) {
+        setIsLoading(true);
+      }
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
-        toast.error('Authentication required');
-        setIsLoading(false);
+        if (showLoading) {
+          toast.error('Authentication required');
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -135,9 +140,13 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       }
     } catch (error: any) {
       console.error('[JobsPanel] Load error:', error);
-      toast.error('Failed to load jobs', { description: error.message });
+      if (showLoading) {
+        toast.error('Failed to load jobs', { description: error.message });
+      }
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -146,12 +155,13 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    * Refresh on mount, when filters change, and every 10 seconds to catch newly completed jobs
    */
   useEffect(() => {
-    // Initial load
-    loadJobs();
+    // Initial load with loading spinner
+    loadJobs(true);
     
     // Set up periodic refresh (every 10 seconds) to catch newly completed jobs
+    // Don't show loading spinner on periodic refreshes to avoid clearing jobs
     const refreshInterval = setInterval(() => {
-      loadJobs();
+      loadJobs(false);
     }, 10000);
 
     return () => {
@@ -173,7 +183,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
     setIsPolling(true);
     const interval = setInterval(() => {
-      loadJobs();
+      loadJobs(false); // Don't show loading spinner on polling
     }, 5000);
 
     return () => clearInterval(interval);
