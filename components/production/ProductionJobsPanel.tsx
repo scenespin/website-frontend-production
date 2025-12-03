@@ -110,14 +110,18 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
       console.log('[JobsPanel] Jobs response:', { 
         success: data.success, 
-        jobCount: data.jobs?.length || 0, 
-        jobs: data.jobs,
+        hasData: !!data.data,
+        jobCount: data.data?.jobs?.length || data.jobs?.length || 0, 
+        jobs: data.data?.jobs || data.jobs,
+        fullResponse: data,
         projectId,
         userId 
       });
 
       if (data.success) {
-        const jobList = data.jobs || [];
+        // Backend uses sendSuccess which wraps in { success: true, data: { jobs: [...] } }
+        // But also check for direct jobs property for backwards compatibility
+        const jobList = data.data?.jobs || data.jobs || [];
         setJobs(jobList);
         if (jobList.length === 0) {
           console.log('[JobsPanel] No jobs found - this might be expected if no jobs have been created yet');
@@ -138,18 +142,11 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   };
 
   /**
-   * Initial load and filter changes
+   * Initial load and periodic refresh
+   * Refresh on mount, when filters change, and every 10 seconds to catch newly completed jobs
    */
   useEffect(() => {
-    loadJobs();
-  }, [statusFilter, projectId]);
-
-  /**
-   * Refresh jobs when panel becomes visible (e.g., user navigates to jobs tab)
-   * Also refresh periodically to catch newly completed jobs
-   */
-  useEffect(() => {
-    // Refresh on mount and when projectId changes
+    // Initial load
     loadJobs();
     
     // Set up periodic refresh (every 10 seconds) to catch newly completed jobs
@@ -160,7 +157,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
     return () => {
       clearInterval(refreshInterval);
     };
-  }, [projectId, statusFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
 
   /**
    * Poll running jobs every 5 seconds
