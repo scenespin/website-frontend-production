@@ -94,7 +94,7 @@ async function forwardRequest(
     }
     
     // Forward request to backend
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     
     // 🔥 FIX: For FormData, DON'T set Content-Type - fetch() will set it automatically with correct boundary
     // Setting it manually will break the multipart boundary

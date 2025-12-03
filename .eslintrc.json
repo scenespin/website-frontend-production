@@ -5,8 +5,14 @@
     "node": true,
     "es6": true
   },
+  "globals": {
+    "HeadersInit": "readonly",
+    "NodeJS": "readonly",
+    "EventListener": "readonly",
+    "React": "readonly"
+  },
   "rules": {
-    // Your specific rules.
-    "no-unused-vars": "warn"
+    "no-unused-vars": "warn",
+    "no-undef": "warn"
   }
 }

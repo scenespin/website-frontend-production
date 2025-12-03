@@ -6,7 +6,7 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import PosePackageSelector from './PosePackageSelector';
