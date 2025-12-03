@@ -420,19 +420,20 @@ export function CharacterBankPanel({
           projectId={projectId}
           baseReferenceS3Key={poseCharacter.baseReferenceS3Key}
           onComplete={async (result) => {
-            const poseCount = result.result?.poses?.length || 0;
-            toast.success(`Generated ${poseCount} poses for ${poseCharacter.name}!`);
-            
-            // Refresh character data immediately to show new poses
-            onCharactersUpdate();
-            
-            // Double refresh after delay to ensure backend has saved and presigned URLs are generated
-            setTimeout(() => {
-              onCharactersUpdate();
-            }, 2000);
+            // Job is created - generation happens asynchronously
+            // Poses will appear in Character Bank once job completes
+            toast.success(`Pose generation started for ${poseCharacter.name}!`, {
+              description: 'Check the Jobs tab to track progress.'
+            });
             
             setShowPoseModal(false);
             setPoseCharacter(null);
+            
+            // Refresh character data after delay to catch completed poses
+            // Jobs panel will show progress, Character Bank will update when poses are saved
+            setTimeout(() => {
+              onCharactersUpdate();
+            }, 5000); // Longer delay since generation is async
           }}
         />
       )}

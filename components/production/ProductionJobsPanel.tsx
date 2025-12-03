@@ -108,12 +108,22 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       });
       const data = await response.json();
 
-      console.log('[JobsPanel] Jobs response:', { success: data.success, jobCount: data.jobs?.length || 0, jobs: data.jobs });
+      console.log('[JobsPanel] Jobs response:', { 
+        success: data.success, 
+        jobCount: data.jobs?.length || 0, 
+        jobs: data.jobs,
+        projectId,
+        userId: user?.id 
+      });
 
       if (data.success) {
-        setJobs(data.jobs || []);
-        if ((data.jobs || []).length === 0) {
+        const jobList = data.jobs || [];
+        setJobs(jobList);
+        if (jobList.length === 0) {
           console.log('[JobsPanel] No jobs found - this might be expected if no jobs have been created yet');
+          console.log('[JobsPanel] Checking filters:', { projectId, statusFilter });
+        } else {
+          console.log('[JobsPanel] ✅ Loaded jobs:', jobList.map(j => ({ id: j.jobId, type: j.jobType, status: j.status })));
         }
       } else {
         console.error('[JobsPanel] API error:', data.error);
@@ -274,7 +284,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   }
 
   return (
-    <div className="h-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800">
       {/* Header with filter */}
       <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
@@ -307,14 +317,16 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       {/* Jobs List */}
       <div className="p-6">
         {jobs.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">No jobs found</p>
-            <p className="text-sm mt-1">
-              {statusFilter === 'all' 
-                ? 'Generate a workflow to see it here'
-                : `No ${statusFilter} jobs`}
-            </p>
+          <div className="text-center py-12 text-slate-400 relative z-10">
+            <div className="flex flex-col items-center justify-center">
+              <Sparkles className="w-12 h-12 mb-3 opacity-50" style={{ maxWidth: '48px', maxHeight: '48px' }} />
+              <p className="font-medium">No jobs found</p>
+              <p className="text-sm mt-1">
+                {statusFilter === 'all' 
+                  ? 'Generate a workflow to see it here'
+                  : `No ${statusFilter} jobs`}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
