@@ -129,23 +129,37 @@ export default function CharacterDetailSidebar({
   }, [character, character?.id, character?.images]) // Watch full character object and images to catch updates
   
   // 🔥 FIX: Sync formData when character in context changes (for immediate UI updates)
-  // This ensures the sidebar reflects changes immediately when images are added/removed
-  // Only sync if the character prop is stale (not matching context)
+  // This ensures the sidebar reflects changes immediately when ANY field is updated (not just images)
+  // Syncs changes from Production Hub Character Bank back to Writing Section
   useEffect(() => {
-    if (character?.id) {
+    if (character?.id && !isCreating) {
       const updatedCharacterFromContext = characters.find(c => c.id === character.id);
       if (updatedCharacterFromContext) {
-        // Only update if the character from context is different from the prop
-        // This handles the case where selectedCharacter in CharacterBoard is stale
-        const characterImages = (character.images || []).map(img => img.imageUrl).sort().join(',');
-        const contextImages = (updatedCharacterFromContext.images || []).map(img => img.imageUrl).sort().join(',');
-        if (characterImages !== contextImages) {
-          // Context has newer data - update formData
+        // Check if ANY field has changed (not just images)
+        // Compare key fields that can be updated from Production Hub
+        const hasChanges = 
+          character.name !== updatedCharacterFromContext.name ||
+          character.description !== updatedCharacterFromContext.description ||
+          character.type !== updatedCharacterFromContext.type ||
+          character.arcStatus !== updatedCharacterFromContext.arcStatus ||
+          character.arcNotes !== updatedCharacterFromContext.arcNotes ||
+          JSON.stringify(character.physicalAttributes || {}) !== JSON.stringify(updatedCharacterFromContext.physicalAttributes || {}) ||
+          (character.images || []).length !== (updatedCharacterFromContext.images || []).length ||
+          (character.images || []).map(img => img.imageUrl).sort().join(',') !== (updatedCharacterFromContext.images || []).map(img => img.imageUrl).sort().join(',');
+        
+        if (hasChanges) {
+          // Context has newer data - update formData to reflect changes from Production Hub
+          console.log('[CharacterDetailSidebar] 🔄 Syncing character data from context (updated in Production Hub):', {
+            characterId: character.id,
+            name: updatedCharacterFromContext.name,
+            arcStatus: updatedCharacterFromContext.arcStatus,
+            hasPhysicalAttributes: !!updatedCharacterFromContext.physicalAttributes
+          });
           setFormData({ ...updatedCharacterFromContext });
         }
       }
     }
-  }, [characters, character?.id, character?.images]) // Watch characters array, character.id, and character.images
+  }, [characters, character?.id, character?.name, character?.description, character?.type, character?.arcStatus, character?.arcNotes, character?.physicalAttributes, character?.images, isCreating]) // Watch all character fields that can be updated
 
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
   useEffect(() => {
