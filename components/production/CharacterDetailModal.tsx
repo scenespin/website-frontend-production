@@ -11,7 +11,7 @@
  * - Advanced options
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './ProductionPageLayout';
@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { PerformanceControls, type PerformanceSettings } from '../characters/PerformanceControls';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -52,13 +53,23 @@ export function CharacterDetailModal({
   onPerformanceSettingsChange
 }: CharacterDetailModalProps) {
   const { getToken } = useAuth();
-  const { updateCharacter, characters } = useScreenplay();
+  const { updateCharacter, characters, isEntityInScript } = useScreenplay();
+  const { state: editorState } = useEditor();
   
   // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
   const charactersRef = useRef(characters);
   useEffect(() => {
     charactersRef.current = characters;
   }, [characters]);
+  
+  // Get the full Character from context (has arcStatus, physicalAttributes, arcNotes)
+  const contextCharacter = characters.find(c => c.id === character.id);
+  const allImagesFromContext = contextCharacter?.images || [];
+  
+  // Check if character is in script (for locking mechanism)
+  const isInScript = useMemo(() => {
+    return contextCharacter ? isEntityInScript(editorState.content, contextCharacter.name, 'character') : false;
+  }, [contextCharacter, editorState.content, isEntityInScript]);
   
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -68,11 +79,37 @@ export function CharacterDetailModal({
   const [name, setName] = useState(character.name);
   const [description, setDescription] = useState(character.description || '');
   const [type, setType] = useState<CharacterProfile['type']>(character.type);
+  const [arcStatus, setArcStatus] = useState<'introduced' | 'developing' | 'resolved'>(contextCharacter?.arcStatus || 'introduced');
+  const [arcNotes, setArcNotes] = useState(contextCharacter?.arcNotes || '');
+  const [physicalAttributes, setPhysicalAttributes] = useState(contextCharacter?.physicalAttributes || {
+    height: undefined,
+    bodyType: undefined,
+    eyeColor: undefined,
+    hairColor: undefined,
+    hairLength: undefined,
+    hairStyle: undefined,
+    typicalClothing: undefined
+  });
   
-  // Convert CharacterProfile format to images array format (matching context)
-  // Get the actual character from context to ensure we have the latest images
-  const contextCharacter = characters.find(c => c.id === character.id);
-  const allImagesFromContext = contextCharacter?.images || [];
+  // Update state when character changes
+  useEffect(() => {
+    if (contextCharacter) {
+      setName(contextCharacter.name);
+      setDescription(contextCharacter.description || '');
+      setType(contextCharacter.type);
+      setArcStatus(contextCharacter.arcStatus || 'introduced');
+      setArcNotes(contextCharacter.arcNotes || '');
+      setPhysicalAttributes(contextCharacter.physicalAttributes || {
+        height: undefined,
+        bodyType: undefined,
+        eyeColor: undefined,
+        hairColor: undefined,
+        hairLength: undefined,
+        hairStyle: undefined,
+        typicalClothing: undefined
+      });
+    }
+  }, [contextCharacter]);
   
   // Separate user-uploaded references from generated poses for better organization
   const userReferences = [
@@ -209,17 +246,30 @@ export function CharacterDetailModal({
                 </div>
                 <div className="flex-1">
                   {editing ? (
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="text-xl font-bold bg-[#1F1F1F] border border-[#3F3F46] rounded px-3 py-2 text-[#FFFFFF] w-full focus:border-[#DC143C] focus:outline-none"
-                      maxLength={100}
-                    />
+                    <div className="w-full">
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={isInScript}
+                        className={`text-xl font-bold bg-[#1F1F1F] border border-[#3F3F46] rounded px-3 py-2 text-[#FFFFFF] w-full focus:border-[#DC143C] focus:outline-none ${
+                          isInScript ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        maxLength={100}
+                      />
+                      {isInScript && (
+                        <p className="text-xs text-[#808080] mt-1">
+                          Name cannot be changed because this character appears in your script. Edit the script directly to change the name.
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <>
                       <h2 className="text-xl font-bold text-[#FFFFFF]">{character.name}</h2>
-                      <p className="text-sm text-[#808080] capitalize">{character.type} character</p>
+                      <p className="text-sm text-[#808080] capitalize">
+                        {character.type} character
+                        {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
+                      </p>
                     </>
                   )}
                 </div>
@@ -239,7 +289,19 @@ export function CharacterDetailModal({
                     <button
                       onClick={async () => {
                         try {
-                          await onUpdate(character.id, { name, description, type });
+                          // Use updateCharacter from ScreenplayContext to ensure all fields are synced
+                          if (contextCharacter) {
+                            await updateCharacter(contextCharacter.id, {
+                              name: isInScript ? contextCharacter.name : name, // Don't update name if locked
+                              description,
+                              type,
+                              arcStatus,
+                              arcNotes,
+                              physicalAttributes
+                            });
+                            // Also call onUpdate for CharacterProfile updates
+                            await onUpdate(character.id, { name: isInScript ? character.name : name, description, type });
+                          }
                           setEditing(false);
                           toast.success('Character updated successfully');
                         } catch (error) {
@@ -254,9 +316,22 @@ export function CharacterDetailModal({
                     </button>
                     <button
                       onClick={() => {
-                        setName(character.name);
-                        setDescription(character.description || '');
-                        setType(character.type);
+                        if (contextCharacter) {
+                          setName(contextCharacter.name);
+                          setDescription(contextCharacter.description || '');
+                          setType(contextCharacter.type);
+                          setArcStatus(contextCharacter.arcStatus || 'introduced');
+                          setArcNotes(contextCharacter.arcNotes || '');
+                          setPhysicalAttributes(contextCharacter.physicalAttributes || {
+                            height: undefined,
+                            bodyType: undefined,
+                            eyeColor: undefined,
+                            hairColor: undefined,
+                            hairLength: undefined,
+                            hairStyle: undefined,
+                            typicalClothing: undefined
+                          });
+                        }
                         setEditing(false);
                       }}
                       className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
@@ -773,6 +848,160 @@ export function CharacterDetailModal({
                           />
                         ) : (
                           <p className="text-[#808080]">{character.description || 'No description'}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Arc Status</label>
+                        {editing ? (
+                          <select
+                            value={arcStatus}
+                            onChange={(e) => setArcStatus(e.target.value as 'introduced' | 'developing' | 'resolved')}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
+                          >
+                            <option value="introduced">Introduced</option>
+                            <option value="developing">Developing</option>
+                            <option value="resolved">Resolved</option>
+                          </select>
+                        ) : (
+                          <p className="text-[#FFFFFF] capitalize">{arcStatus}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">
+                          Physical Attributes <span className="text-[#6B7280] normal-case">(Optional)</span>
+                        </label>
+                        {editing ? (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <select
+                                  value={physicalAttributes.height || ''}
+                                  onChange={(e) => setPhysicalAttributes({
+                                    ...physicalAttributes,
+                                    height: e.target.value as 'short' | 'average' | 'tall' | undefined || undefined
+                                  })}
+                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                >
+                                  <option value="">Height</option>
+                                  <option value="short">Short</option>
+                                  <option value="average">Average</option>
+                                  <option value="tall">Tall</option>
+                                </select>
+                              </div>
+                              <div>
+                                <select
+                                  value={physicalAttributes.bodyType || ''}
+                                  onChange={(e) => setPhysicalAttributes({
+                                    ...physicalAttributes,
+                                    bodyType: e.target.value as 'slim' | 'athletic' | 'muscular' | 'heavyset' | 'average' | undefined || undefined
+                                  })}
+                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                >
+                                  <option value="">Body Type</option>
+                                  <option value="slim">Slim</option>
+                                  <option value="athletic">Athletic</option>
+                                  <option value="muscular">Muscular</option>
+                                  <option value="heavyset">Heavyset</option>
+                                  <option value="average">Average</option>
+                                </select>
+                              </div>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={physicalAttributes.eyeColor || ''}
+                                  onChange={(e) => setPhysicalAttributes({
+                                    ...physicalAttributes,
+                                    eyeColor: e.target.value || undefined
+                                  })}
+                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                  placeholder="Eye Color"
+                                />
+                              </div>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={physicalAttributes.hairColor || ''}
+                                  onChange={(e) => setPhysicalAttributes({
+                                    ...physicalAttributes,
+                                    hairColor: e.target.value || undefined
+                                  })}
+                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                  placeholder="Hair Color"
+                                />
+                              </div>
+                              <div>
+                                <select
+                                  value={physicalAttributes.hairLength || ''}
+                                  onChange={(e) => setPhysicalAttributes({
+                                    ...physicalAttributes,
+                                    hairLength: e.target.value as 'bald' | 'very-short' | 'short' | 'medium' | 'long' | undefined || undefined
+                                  })}
+                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                >
+                                  <option value="">Hair Length</option>
+                                  <option value="bald">Bald</option>
+                                  <option value="very-short">Very Short</option>
+                                  <option value="short">Short</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="long">Long</option>
+                                </select>
+                              </div>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={physicalAttributes.hairStyle || ''}
+                                  onChange={(e) => setPhysicalAttributes({
+                                    ...physicalAttributes,
+                                    hairStyle: e.target.value || undefined
+                                  })}
+                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                  placeholder="Hair Style (curly, straight, wavy)"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <input
+                                type="text"
+                                value={physicalAttributes.typicalClothing || ''}
+                                onChange={(e) => setPhysicalAttributes({
+                                  ...physicalAttributes,
+                                  typicalClothing: e.target.value || undefined
+                                })}
+                                className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
+                                placeholder="Typical Clothing (e.g., 'business casual', 'military uniform', 'casual jeans and t-shirt')"
+                              />
+                            </div>
+                            <p className="text-xs text-[#6B7280] mt-1">
+                              💡 These help AI generate more accurate character images and pose packages
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {physicalAttributes.height && <p className="text-[#808080] text-sm">Height: <span className="text-[#FFFFFF] capitalize">{physicalAttributes.height}</span></p>}
+                            {physicalAttributes.bodyType && <p className="text-[#808080] text-sm">Body Type: <span className="text-[#FFFFFF] capitalize">{physicalAttributes.bodyType}</span></p>}
+                            {physicalAttributes.eyeColor && <p className="text-[#808080] text-sm">Eye Color: <span className="text-[#FFFFFF]">{physicalAttributes.eyeColor}</span></p>}
+                            {physicalAttributes.hairColor && <p className="text-[#808080] text-sm">Hair Color: <span className="text-[#FFFFFF]">{physicalAttributes.hairColor}</span></p>}
+                            {physicalAttributes.hairLength && <p className="text-[#808080] text-sm">Hair Length: <span className="text-[#FFFFFF] capitalize">{physicalAttributes.hairLength}</span></p>}
+                            {physicalAttributes.hairStyle && <p className="text-[#808080] text-sm">Hair Style: <span className="text-[#FFFFFF]">{physicalAttributes.hairStyle}</span></p>}
+                            {physicalAttributes.typicalClothing && <p className="text-[#808080] text-sm">Typical Clothing: <span className="text-[#FFFFFF]">{physicalAttributes.typicalClothing}</span></p>}
+                            {!physicalAttributes.height && !physicalAttributes.bodyType && !physicalAttributes.eyeColor && !physicalAttributes.hairColor && !physicalAttributes.hairLength && !physicalAttributes.hairStyle && !physicalAttributes.typicalClothing && (
+                              <p className="text-[#808080] text-sm">No physical attributes set</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Arc Notes</label>
+                        {editing ? (
+                          <textarea
+                            value={arcNotes}
+                            onChange={(e) => setArcNotes(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none resize-none"
+                            rows={3}
+                            placeholder="Character arc development notes"
+                          />
+                        ) : (
+                          <p className="text-[#808080]">{arcNotes || 'No arc notes'}</p>
                         )}
                       </div>
                     </div>
