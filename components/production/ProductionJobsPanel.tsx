@@ -71,6 +71,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isPolling, setIsPolling] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false); // Track if we've successfully loaded jobs at least once
   
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -134,10 +135,14 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         // But also check for direct jobs property for backwards compatibility
         const jobList = data.data?.jobs || data.jobs || [];
         
-        // Only update jobs if we got a valid response - don't clear on empty responses during refresh
-        // This prevents flashing when projectId temporarily becomes invalid
-        if (jobList.length > 0 || showLoading) {
+        // Always update jobs on successful response to reflect current state
+        // Only skip update if this is a refresh (not initial load) and we haven't loaded once yet
+        // This prevents clearing jobs unnecessarily while still allowing updates
+        if (showLoading || hasLoadedOnce || jobList.length > 0) {
           setJobs(jobList);
+          if (!hasLoadedOnce) {
+            setHasLoadedOnce(true); // Mark that we've successfully loaded at least once
+          }
         }
         
         if (jobList.length === 0) {
@@ -169,6 +174,9 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    * Refresh on mount, when filters change, and every 10 seconds to catch newly completed jobs
    */
   useEffect(() => {
+    // Reset loaded flag when projectId or filter changes (new context)
+    setHasLoadedOnce(false);
+    
     // Initial load with loading spinner
     loadJobs(true);
     
