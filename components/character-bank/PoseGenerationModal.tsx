@@ -151,6 +151,9 @@ export default function PoseGenerationModal({
         setJobId(result.jobId);
       }
       
+      // Reset state before closing
+      handleReset();
+      
       // Close modal immediately - jobs area will handle tracking
       onClose();
       

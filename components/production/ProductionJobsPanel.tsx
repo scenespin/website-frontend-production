@@ -87,6 +87,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    */
   const loadJobs = async () => {
     try {
+      setIsLoading(true);
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         toast.error('Authentication required');
@@ -98,6 +99,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       const statusParam = statusFilter === 'all' ? '' : statusFilter;
       const url = `/api/workflows/executions?projectId=${projectId}${statusParam ? `&status=${statusParam}` : ''}&limit=50`;
       
+      console.log('[JobsPanel] Loading jobs from:', url);
+      
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -105,14 +108,20 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       });
       const data = await response.json();
 
+      console.log('[JobsPanel] Jobs response:', { success: data.success, jobCount: data.jobs?.length || 0, jobs: data.jobs });
+
       if (data.success) {
         setJobs(data.jobs || []);
+        if ((data.jobs || []).length === 0) {
+          console.log('[JobsPanel] No jobs found - this might be expected if no jobs have been created yet');
+        }
       } else {
+        console.error('[JobsPanel] API error:', data.error);
         toast.error('Failed to load jobs', { description: data.error });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[JobsPanel] Load error:', error);
-      toast.error('Failed to load jobs');
+      toast.error('Failed to load jobs', { description: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +133,24 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   useEffect(() => {
     loadJobs();
   }, [statusFilter, projectId]);
+
+  /**
+   * Refresh jobs when panel becomes visible (e.g., user navigates to jobs tab)
+   * Also refresh periodically to catch newly completed jobs
+   */
+  useEffect(() => {
+    // Refresh on mount and when projectId changes
+    loadJobs();
+    
+    // Set up periodic refresh (every 10 seconds) to catch newly completed jobs
+    const refreshInterval = setInterval(() => {
+      loadJobs();
+    }, 10000);
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [projectId, statusFilter]);
 
   /**
    * Poll running jobs every 5 seconds
