@@ -63,6 +63,18 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         return map;
     }, [characters, scriptContent, isEntityInScript]);
     
+    // 🔥 FIX: Sync selectedCharacter with latest character from context (for immediate UI updates)
+    // This ensures changes from Production Hub Character Bank sync to Writing Section
+    useEffect(() => {
+        if (selectedCharacter?.id) {
+            const updatedCharacter = characters.find(c => c.id === selectedCharacter.id);
+            if (updatedCharacter) {
+                // Update selectedCharacter to reflect changes from Production Hub
+                setSelectedCharacter(updatedCharacter);
+            }
+        }
+    }, [characters, selectedCharacter?.id]);
+    
     // Listen for external trigger to add character
     useEffect(() => {
         if (triggerAdd) {
