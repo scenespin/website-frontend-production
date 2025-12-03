@@ -1933,8 +1933,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // The API might return referenceImages (s3Keys) but not the enriched images array with presigned URLs
                 // Get the character from the optimistic update array
                 const optimisticCharacter = updatedCharacters.find(c => c.id === id);
-                if (optimisticCharacter && optimisticCharacter.images && optimisticCharacter.images.length > 0) {
-                    // If optimistic update has images but API response doesn't, preserve optimistic images
+                
+                // 🔥 CRITICAL FIX: If updates.images was explicitly set (including empty array), respect it
+                // This handles the case where user deletes all images - we should NOT preserve old images
+                const wasImageUpdate = updates.images !== undefined;
+                
+                if (wasImageUpdate) {
+                    // Image update was explicitly made - use the optimistic update value (even if empty)
+                    // This ensures that deleting all images (images: []) is respected
+                    if (optimisticCharacter && Array.isArray(optimisticCharacter.images)) {
+                        transformedCharacter.images = optimisticCharacter.images;
+                        console.log('[ScreenplayContext] 🔄 Using images from explicit update:', {
+                            imageCount: optimisticCharacter.images.length,
+                            wasEmpty: optimisticCharacter.images.length === 0
+                        });
+                    }
+                } else if (optimisticCharacter && optimisticCharacter.images && optimisticCharacter.images.length > 0) {
+                    // Non-image update, but optimistic update has images - preserve if API response is missing them
                     if (!transformedCharacter.images || transformedCharacter.images.length === 0) {
                         console.log('[ScreenplayContext] 🔄 Preserving images from optimistic update:', {
                             imageCount: optimisticCharacter.images.length,
@@ -2337,8 +2352,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // The API might return referenceImages (s3Keys) but not the enriched images array with presigned URLs
                 // Get the location from the optimistic update array
                 const optimisticLocation = updatedLocations.find(l => l.id === id);
-                if (optimisticLocation && optimisticLocation.images && optimisticLocation.images.length > 0) {
-                    // If optimistic update has images but API response doesn't, preserve optimistic images
+                
+                // 🔥 CRITICAL FIX: If updates.images was explicitly set (including empty array), respect it
+                // This handles the case where user deletes all images - we should NOT preserve old images
+                const wasImageUpdate = updates.images !== undefined;
+                
+                if (wasImageUpdate) {
+                    // Image update was explicitly made - use the optimistic update value (even if empty)
+                    // This ensures that deleting all images (images: []) is respected
+                    if (optimisticLocation && Array.isArray(optimisticLocation.images)) {
+                        transformedLocation.images = optimisticLocation.images;
+                        console.log('[ScreenplayContext] 🔄 Using images from explicit update:', {
+                            imageCount: optimisticLocation.images.length,
+                            wasEmpty: optimisticLocation.images.length === 0
+                        });
+                    }
+                } else if (optimisticLocation && optimisticLocation.images && optimisticLocation.images.length > 0) {
+                    // Non-image update, but optimistic update has images - preserve if API response is missing them
                     if (!transformedLocation.images || transformedLocation.images.length === 0) {
                         console.log('[ScreenplayContext] 🔄 Preserving images from optimistic update:', {
                             imageCount: optimisticLocation.images.length,
