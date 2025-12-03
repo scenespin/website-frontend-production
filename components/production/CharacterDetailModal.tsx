@@ -394,9 +394,10 @@ export function CharacterDetailModal({
                                     
                                     // Find the actual index in the full images array by matching s3Key
                                     // Same pattern as CharacterDetailSidebar
+                                    // Note: img comes from userReferences array which has s3Key directly, not in metadata
                                     const actualIndex = currentImages.findIndex((image: any) => {
                                       const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                      const deleteS3Key = img.metadata?.s3Key || img.s3Key;
+                                      const deleteS3Key = img.s3Key; // userReferences items have s3Key directly
                                       return imgS3Key === deleteS3Key && 
                                         (!image.metadata?.source || image.metadata?.source === 'user-upload');
                                     });
