@@ -486,8 +486,9 @@ export function CharacterDetailModal({
                                   }
                                   // Get current character from context to ensure we have latest images
                                   // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
-                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
-                                  const currentImages = currentCharacter.images || [];
+                                  // Note: context character has 'images' property, CharacterProfile doesn't
+                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id);
+                                  const currentImages = currentCharacter?.images || [];
                                   
                                   // Store original images for rollback (same pattern as CharacterDetailSidebar)
                                   const originalImages = [...currentImages];
