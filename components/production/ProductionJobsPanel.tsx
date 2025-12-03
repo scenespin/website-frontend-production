@@ -136,13 +136,10 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         const jobList = data.data?.jobs || data.jobs || [];
         
         // Always update jobs on successful response to reflect current state
-        // Only skip update if this is a refresh (not initial load) and we haven't loaded once yet
-        // This prevents clearing jobs unnecessarily while still allowing updates
-        if (showLoading || hasLoadedOnce || jobList.length > 0) {
-          setJobs(jobList);
-          if (!hasLoadedOnce) {
-            setHasLoadedOnce(true); // Mark that we've successfully loaded at least once
-          }
+        // This ensures we always have the latest data, preventing stale state
+        setJobs(jobList);
+        if (!hasLoadedOnce) {
+          setHasLoadedOnce(true); // Mark that we've successfully loaded at least once
         }
         
         if (jobList.length === 0) {
@@ -176,15 +173,16 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   useEffect(() => {
     // Only reset loaded flag when projectId or filter changes (new context)
     // Don't reset on mount if we already have jobs (prevents flashing when switching tabs)
-    if (jobs.length === 0) {
+    const shouldReset = jobs.length === 0;
+    if (shouldReset) {
       setHasLoadedOnce(false);
     }
     
     // Initial load with loading spinner (only if we don't have jobs yet)
-    if (jobs.length === 0) {
+    if (shouldReset) {
       loadJobs(true);
     } else {
-      // If we already have jobs, just refresh silently
+      // If we already have jobs, just refresh silently without clearing
       loadJobs(false);
     }
     
@@ -470,6 +468,64 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                       {Math.round(job.results.executionTime / 60)}m {Math.round(job.results.executionTime % 60)}s
                     </span>
                   </div>
+
+                  {/* Pose Image Thumbnails */}
+                  {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      {job.results.poses.map((pose, index) => (
+                        <div
+                          key={pose.poseId || index}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
+                        >
+                          {pose.imageUrl ? (
+                            <img
+                              src={pose.imageUrl}
+                              alt={pose.poseName || `Pose ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Show placeholder on error
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-xs">
+                              No image
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
+                            <p className="text-xs text-white truncate">{pose.poseName || `Pose ${index + 1}`}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Image Generation Thumbnails */}
+                  {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      {job.results.images.map((img, index) => (
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
+                        >
+                          {img.imageUrl ? (
+                            <img
+                              src={img.imageUrl}
+                              alt={img.label || `Image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-xs">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Action buttons based on job type */}
                   <div className="flex flex-wrap gap-2">
