@@ -132,10 +132,6 @@ const nextConfig = {
       },
     ];
   },
-  // Turbopack config (Next.js 16 uses Turbopack by default)
-  // Empty config allows webpack to be used for custom configurations
-  turbopack: {},
-  
   webpack: (config, { webpack, isServer }) => {
     // Ignore MongoDB's optional dependencies to prevent build warnings
     if (isServer) {
