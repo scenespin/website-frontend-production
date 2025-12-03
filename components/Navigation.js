@@ -72,7 +72,7 @@ export default function Navigation() {
       hasFetchedCredits.current = true;
       fetchCreditBalance();
     }
-  }, [user?.id]);
+  }, [user?.id, getToken]);
   
   // Refetch credits when page becomes visible (fixes logout/login persistence issue)
   useEffect(() => {
@@ -254,17 +254,19 @@ export default function Navigation() {
                   </button>
 
                   {/* Credit Balance Display */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300">
-                    <Coins className="w-4 h-4 text-cinema-gold" />
-                    <span className="text-sm font-semibold">
-                      {loadingCredits ? (
-                        <span className="loading loading-spinner loading-xs"></span>
-                      ) : (
-                        <span className="tabular-nums">{credits?.toLocaleString() || '0'}</span>
-                      )}
-                    </span>
-                    <span className="text-xs text-base-content/60">credits</span>
-                  </div>
+                  {user && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-lg border border-base-300">
+                      <Coins className="w-4 h-4 text-cinema-gold" />
+                      <span className="text-sm font-semibold">
+                        {loadingCredits ? (
+                          <span className="loading loading-spinner loading-xs"></span>
+                        ) : (
+                          <span className="tabular-nums">{credits !== null ? credits.toLocaleString() : '0'}</span>
+                        )}
+                      </span>
+                      <span className="text-xs text-base-content/60">credits</span>
+                    </div>
+                  )}
                   
                   {/* Buy Credits Button */}
                   <Link 

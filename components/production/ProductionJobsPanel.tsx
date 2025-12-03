@@ -284,7 +284,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   }
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800">
+    <div className="h-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 overflow-auto">
       {/* Header with filter */}
       <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
         <div className="flex items-center gap-2">

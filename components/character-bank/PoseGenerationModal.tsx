@@ -110,25 +110,30 @@ export default function PoseGenerationModal({
       // Call backend API to generate pose package
       // Backend will create a job automatically
       const token = await getToken({ template: 'wryda-backend' });
-      const response = await fetch(
-        `/api/projects/${projectId}/characters/${characterId}/generate-poses`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-            body: JSON.stringify({
-            characterName,
-            packageId: packageId,
-            headshotS3Key: baseReferenceS3Key || undefined, // Pass s3Key, backend will generate presigned URL
-            headshotUrl: headshotFile ? headshotPreview : undefined, // Only for manual uploads
-            screenplayContent: screenplayContent || undefined,
-            manualDescription: manualDescription || undefined,
-            typicalClothing: typicalClothing, // NEW: Pass selected outfit
-          })
-        }
-      );
+      const apiUrl = `/api/projects/${projectId}/characters/${characterId}/generate-poses`;
+      const requestBody = {
+        characterName,
+        packageId: packageId,
+        headshotS3Key: baseReferenceS3Key || undefined,
+        headshotUrl: headshotFile ? headshotPreview : undefined,
+        screenplayContent: screenplayContent || undefined,
+        manualDescription: manualDescription || undefined,
+        typicalClothing: typicalClothing,
+      };
+      
+      console.log('[PoseGeneration] 🔥 Calling API:', apiUrl);
+      console.log('[PoseGeneration] Request body:', requestBody);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('[PoseGeneration] Response status:', response.status, response.statusText);
       
       if (!response.ok) {
         const errorData = await response.json();
