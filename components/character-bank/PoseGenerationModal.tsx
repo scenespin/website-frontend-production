@@ -201,7 +201,6 @@ export default function PoseGenerationModal({
     setManualDescription('');
     setGenerationResult(null);
     setError('');
-    setProgress(0);
   };
   
   const handleClose = () => {
