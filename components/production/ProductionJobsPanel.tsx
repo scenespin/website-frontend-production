@@ -136,10 +136,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         const jobList = data.data?.jobs || data.jobs || [];
         
         // Always update jobs on successful response to reflect current state
-        // This ensures we always have the latest data, preventing stale state
-        setJobs(jobList);
-        if (!hasLoadedOnce) {
-          setHasLoadedOnce(true); // Mark that we've successfully loaded at least once
+        // Only update if we have jobs OR if this is the initial load (prevents clearing on refresh)
+        if (jobList.length > 0 || !hasLoadedOnce) {
+          setJobs(jobList);
+          if (!hasLoadedOnce) {
+            setHasLoadedOnce(true); // Mark that we've successfully loaded at least once
+          }
         }
         
         if (jobList.length === 0) {
@@ -171,20 +173,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    * Refresh on mount, when filters change, and every 10 seconds to catch newly completed jobs
    */
   useEffect(() => {
-    // Only reset loaded flag when projectId or filter changes (new context)
-    // Don't reset on mount if we already have jobs (prevents flashing when switching tabs)
-    const shouldReset = jobs.length === 0;
-    if (shouldReset) {
-      setHasLoadedOnce(false);
-    }
+    // Reset loaded flag only when projectId or filter changes (new context)
+    // Don't reset on component remount (prevents flashing when switching tabs)
+    setHasLoadedOnce(false);
     
-    // Initial load with loading spinner (only if we don't have jobs yet)
-    if (shouldReset) {
-      loadJobs(true);
-    } else {
-      // If we already have jobs, just refresh silently without clearing
-      loadJobs(false);
-    }
+    // Always load jobs on mount or filter change, but only show loading spinner if we haven't loaded before
+    loadJobs(!hasLoadedOnce);
     
     // Set up periodic refresh (every 10 seconds) to catch newly completed jobs
     // Don't show loading spinner on periodic refreshes to avoid clearing jobs
