@@ -87,6 +87,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    */
   const loadJobs = async (showLoading: boolean = false) => {
     try {
+      // Validate projectId - don't load if invalid
+      if (!projectId || projectId === 'default' || projectId.trim() === '') {
+        console.log('[JobsPanel] Skipping load - invalid projectId:', projectId);
+        return;
+      }
+      
       // Only show loading spinner on initial load, not on periodic refreshes
       if (showLoading) {
         setIsLoading(true);
@@ -127,7 +133,13 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         // Backend uses sendSuccess which wraps in { success: true, data: { jobs: [...] } }
         // But also check for direct jobs property for backwards compatibility
         const jobList = data.data?.jobs || data.jobs || [];
-        setJobs(jobList);
+        
+        // Only update jobs if we got a valid response - don't clear on empty responses during refresh
+        // This prevents flashing when projectId temporarily becomes invalid
+        if (jobList.length > 0 || showLoading) {
+          setJobs(jobList);
+        }
+        
         if (jobList.length === 0) {
           console.log('[JobsPanel] No jobs found - this might be expected if no jobs have been created yet');
           console.log('[JobsPanel] Checking filters:', { projectId, statusFilter });
@@ -136,7 +148,9 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         }
       } else {
         console.error('[JobsPanel] API error:', data.error);
-        toast.error('Failed to load jobs', { description: data.error });
+        if (showLoading) {
+          toast.error('Failed to load jobs', { description: data.error });
+        }
       }
     } catch (error: any) {
       console.error('[JobsPanel] Load error:', error);
