@@ -8,9 +8,7 @@ const nextConfig = {
   },
   
   // Disable ESLint during production builds (warnings won't block deployment)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Note: eslint config moved to separate config file in Next.js 16
   
   // CDN & Performance Optimization
   compress: true, // Enable gzip/brotli compression
@@ -134,6 +132,10 @@ const nextConfig = {
       },
     ];
   },
+  // Turbopack config (Next.js 16 uses Turbopack by default)
+  // Empty config allows webpack to be used for custom configurations
+  turbopack: {},
+  
   webpack: (config, { webpack, isServer }) => {
     // Ignore MongoDB's optional dependencies to prevent build warnings
     if (isServer) {
