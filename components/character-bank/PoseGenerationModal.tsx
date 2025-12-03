@@ -157,14 +157,11 @@ export default function PoseGenerationModal({
         console.log('[PoseGeneration] Job created:', result.jobId);
       }
       
-      // Close modal immediately - jobs area will handle tracking
-      // Do this BEFORE resetting state to ensure modal closes
-      onClose();
+      // Reset state first to ensure clean state for next use
+      handleReset();
       
-      // Reset state after closing (use setTimeout to ensure modal closes first)
-      setTimeout(() => {
-        handleReset();
-      }, 100);
+      // Close modal after reset - jobs area will handle tracking
+      onClose();
       
       // Dismiss initial toast and show success toast
       toast.dismiss('pose-gen-start');
@@ -214,6 +211,8 @@ export default function PoseGenerationModal({
     setManualDescription('');
     setGenerationResult(null);
     setError('');
+    setIsGenerating(false); // Reset generating state
+    setJobId(null); // Reset job ID
   };
   
   const handleClose = () => {

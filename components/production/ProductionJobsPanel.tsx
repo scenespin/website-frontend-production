@@ -174,11 +174,19 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    * Refresh on mount, when filters change, and every 10 seconds to catch newly completed jobs
    */
   useEffect(() => {
-    // Reset loaded flag when projectId or filter changes (new context)
-    setHasLoadedOnce(false);
+    // Only reset loaded flag when projectId or filter changes (new context)
+    // Don't reset on mount if we already have jobs (prevents flashing when switching tabs)
+    if (jobs.length === 0) {
+      setHasLoadedOnce(false);
+    }
     
-    // Initial load with loading spinner
-    loadJobs(true);
+    // Initial load with loading spinner (only if we don't have jobs yet)
+    if (jobs.length === 0) {
+      loadJobs(true);
+    } else {
+      // If we already have jobs, just refresh silently
+      loadJobs(false);
+    }
     
     // Set up periodic refresh (every 10 seconds) to catch newly completed jobs
     // Don't show loading spinner on periodic refreshes to avoid clearing jobs
