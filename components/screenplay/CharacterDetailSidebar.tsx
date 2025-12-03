@@ -981,7 +981,8 @@ export default function CharacterDetailSidebar({
                                 const imageToDelete = aiGeneratedImages[index];
                                 const actualIndex = currentImages.findIndex((img: any) => {
                                   const imgS3Key = img.metadata?.s3Key || img.s3Key;
-                                  const deleteS3Key = imageToDelete.metadata?.s3Key || imageToDelete.s3Key;
+                                  // ImageAsset has s3Key in metadata, not at top level
+                                  const deleteS3Key = imageToDelete.metadata?.s3Key;
                                   return imgS3Key === deleteS3Key && 
                                     (img.metadata?.source === 'pose-generation' || img.metadata?.source === 'image-generation');
                                 });
