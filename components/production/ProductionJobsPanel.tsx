@@ -66,7 +66,7 @@ interface ProductionJobsPanelProps {
 type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
 
 export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -113,7 +113,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         jobCount: data.jobs?.length || 0, 
         jobs: data.jobs,
         projectId,
-        userId: user?.id 
+        userId 
       });
 
       if (data.success) {
