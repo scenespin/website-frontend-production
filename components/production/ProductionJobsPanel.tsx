@@ -21,7 +21,7 @@ interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
-  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation';
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment';
   status: 'queued' | 'running' | 'completed' | 'failed';
   progress: number;
   results?: {
@@ -457,6 +457,18 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                         {job.results.videos.length} video(s)
                       </span>
                     )}
+                    {job.jobType === 'workflow-execution' && job.results && (
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Workflow completed
+                      </span>
+                    )}
+                    {job.jobType === 'playground-experiment' && job.results && (
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Experiment completed
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {Math.round(job.results.executionTime / 60)}m {Math.round(job.results.executionTime % 60)}s
@@ -623,6 +635,50 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                           </a>
                         ))}
                       </>
+                    )}
+                    
+                    {/* Workflow execution: Display workflow results */}
+                    {job.jobType === 'workflow-execution' && job.results && (
+                      <div className="space-y-2">
+                        {job.results.videos && job.results.videos.length > 0 && (
+                          <>
+                            {job.results.videos.map((video, index) => (
+                              <a
+                                key={index}
+                                href={video.url}
+                                download
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                         bg-[#DC143C] text-white text-xs font-medium
+                                         hover:bg-[#B91238] transition-colors"
+                              >
+                                <Download className="w-3 h-3" />
+                                {video.description || `Video ${index + 1}`}
+                              </a>
+                            ))}
+                          </>
+                        )}
+                        {job.metadata?.workflowName && (
+                          <div className="text-xs text-slate-400 mt-2">
+                            Workflow: {job.metadata.workflowName}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Playground experiment: Display experiment results */}
+                    {job.jobType === 'playground-experiment' && job.results && (
+                      <div className="space-y-2">
+                        {job.metadata?.experimentType && (
+                          <div className="text-xs text-slate-400">
+                            Experiment: {job.metadata.experimentType}
+                          </div>
+                        )}
+                        {job.results.videos && job.results.videos.length > 0 && (
+                          <div className="text-xs text-slate-400">
+                            Generated {job.results.videos.length} video(s)
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
