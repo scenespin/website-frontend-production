@@ -9,7 +9,8 @@ import UnifiedChatPanel from "@/components/UnifiedChatPanel";
 
 // Client-side auth check - cleaner and no server redirect loops
 // Note: Context providers (ScreenplayProvider, DrawerProvider, ChatProvider) 
-// are in LayoutClient.js - don't duplicate them here
+// are in LayoutClient.js (root layout) - don't duplicate them here
+// UnifiedChatPanel can use ChatProvider from root layout
 export default function LayoutPrivate({ children }) {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
