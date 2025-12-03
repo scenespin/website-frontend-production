@@ -419,9 +419,18 @@ export function CharacterBankPanel({
           characterName={poseCharacter.name}
           projectId={projectId}
           baseReferenceS3Key={poseCharacter.baseReferenceS3Key}
-          onComplete={(result) => {
-            toast.success(`Generated ${result.result?.poses?.length || 0} poses for ${poseCharacter.name}!`);
+          onComplete={async (result) => {
+            const poseCount = result.result?.poses?.length || 0;
+            toast.success(`Generated ${poseCount} poses for ${poseCharacter.name}!`);
+            
+            // Refresh character data immediately to show new poses
             onCharactersUpdate();
+            
+            // Double refresh after delay to ensure backend has saved and presigned URLs are generated
+            setTimeout(() => {
+              onCharactersUpdate();
+            }, 2000);
+            
             setShowPoseModal(false);
             setPoseCharacter(null);
           }}

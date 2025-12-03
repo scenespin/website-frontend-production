@@ -221,6 +221,17 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     }
   }, [projectId, isLoaded, isSignedIn]);
   
+  // Refresh characters periodically to catch newly generated poses
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    
+    const refreshInterval = setInterval(() => {
+      loadCharacters();
+    }, 15000); // Refresh every 15 seconds
+    
+    return () => clearInterval(refreshInterval);
+  }, [projectId, isLoaded, isSignedIn]);
+  
   // Watch video generation progress (real polling)
   useEffect(() => {
     if (currentClipIndex >= 0 && videoGeneration.isPolling) {

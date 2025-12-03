@@ -383,23 +383,37 @@ export default function CharacterDetailSidebar({
 
         // Step 5: Show StorageDecisionModal for first newly uploaded image
         // If replaceBase, show first image (the replaced headshot)
-        // If additional references, show first newly added image (after initial count)
+        // If additional references, find the newly uploaded image by comparing with initial images
         if (transformedImages.length > 0) {
           let imageToShow;
           if (replaceBase) {
             // For headshot replacement, show the first image (the new headshot)
             imageToShow = transformedImages[0];
           } else {
-            // For additional references, show the first newly uploaded image
-            // New images start at index = initialImageCount
-            const firstNewImageIndex = initialImageCount;
-            imageToShow = transformedImages[firstNewImageIndex] || transformedImages[transformedImages.length - 1];
+            // For additional references, find the first image that wasn't in the initial set
+            // Compare by s3Key to identify newly uploaded images
+            const initialS3Keys = new Set(
+              (character?.images || []).slice(0, initialImageCount).map((img: any) => 
+                img.metadata?.s3Key || img.s3Key
+              ).filter(Boolean)
+            );
+            
+            // Find first image that's not in the initial set
+            imageToShow = transformedImages.find((img: any) => {
+              const imgS3Key = img.metadata?.s3Key || img.s3Key;
+              return imgS3Key && !initialS3Keys.has(imgS3Key);
+            });
+            
+            // Fallback to last image if no new image found
+            if (!imageToShow) {
+              imageToShow = transformedImages[transformedImages.length - 1];
+            }
           }
           
           if (imageToShow) {
             setSelectedAsset({
               url: imageToShow.imageUrl,
-              s3Key: imageToShow.metadata.s3Key,
+              s3Key: imageToShow.metadata?.s3Key || imageToShow.s3Key,
               name: fileArray[0].name,
               type: 'image'
             });
