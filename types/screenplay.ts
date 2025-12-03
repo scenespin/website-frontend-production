@@ -161,6 +161,7 @@ export interface Character {
         hairColor?: string; // "blonde", "brunette", "brown", "black", "red", "gray", "bald"
         hairLength?: 'bald' | 'very-short' | 'short' | 'medium' | 'long';
         hairStyle?: string; // "curly", "straight", "wavy", "braided", "ponytail"
+        typicalClothing?: string; // Default outfit description (e.g., 'business casual', 'military uniform')
     };
     
     // Character consistency integration (NEW - links to production CharacterBank)
