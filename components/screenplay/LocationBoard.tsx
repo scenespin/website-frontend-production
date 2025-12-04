@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, MapPin, Film, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useScreenplay } from '@/contexts/ScreenplayContext'
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
@@ -27,6 +28,7 @@ interface LocationBoardProps {
 }
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
+    const { getToken } = useAuth();
     const { 
         locations, 
         updateLocation, 
@@ -360,14 +362,29 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 // Add pending images after location creation
                                 // Images are already uploaded to S3 via presigned URLs, just need to register them
                                 if (pendingImages && pendingImages.length > 0 && newLocation) {
-                                    for (const img of pendingImages) {
-                                        // addImageToEntity accepts the presigned download URL
-                                        // The s3Key is stored in metadata for future reference
-                                        await addImageToEntity('location', newLocation.id, img.imageUrl, {
-                                            prompt: img.prompt,
-                                            modelUsed: img.modelUsed,
-                                            s3Key: img.s3Key
-                                        });
+                                    const token = await getToken({ template: 'wryda-backend' });
+                                    if (token) {
+                                        for (const img of pendingImages) {
+                                            if (img.s3Key) {
+                                                // Register image with location using direct S3 upload registration
+                                                await fetch(
+                                                    `/api/screenplays/${screenplayId}/locations/${newLocation.id}/images`,
+                                                    {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Authorization': `Bearer ${token}`,
+                                                            'Content-Type': 'application/json',
+                                                        },
+                                                        body: JSON.stringify({
+                                                            s3Key: img.s3Key,
+                                                            fileName: 'uploaded-image.jpg',
+                                                            fileType: 'image/jpeg',
+                                                            fileSize: 0,
+                                                        }),
+                                                    }
+                                                );
+                                            }
+                                        }
                                     }
                                 }
                                 
