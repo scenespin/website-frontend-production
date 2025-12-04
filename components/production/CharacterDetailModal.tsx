@@ -466,18 +466,44 @@ export function CharacterDetailModal({
                                   const originalImages = [...currentImages];
                                   
                                   try {
+                                    // 🔥 FIX: Use the index from userReferences (already mapped to context images)
+                                    // The userReferences array has an 'index' property that maps to the context images array
+                                    let actualIndex = img.index;
                                     
-                                    // Find the actual index in the full images array by matching s3Key
-                                    // Same pattern as CharacterDetailSidebar
-                                    // Note: img comes from userReferences array which has s3Key directly, not in metadata
-                                    const actualIndex = currentImages.findIndex((image: any) => {
-                                      const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                      const deleteS3Key = img.s3Key; // userReferences items have s3Key directly
-                                      return imgS3Key === deleteS3Key && 
-                                        (!image.metadata?.source || image.metadata?.source === 'user-upload');
-                                    });
+                                    // If index is not set or invalid, try to find by s3Key or id
+                                    if (actualIndex < 0 || actualIndex >= currentImages.length) {
+                                      actualIndex = currentImages.findIndex((image: any) => {
+                                        // Try matching by ID first (most reliable)
+                                        if (img.id && image.id === img.id) {
+                                          return true;
+                                        }
+                                        // Then try matching by s3Key
+                                        const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                        const deleteS3Key = img.s3Key;
+                                        if (imgS3Key && deleteS3Key && imgS3Key === deleteS3Key) {
+                                          // For base reference, check if it's the base
+                                          if (img.isBase) {
+                                            return image.metadata?.isBase || image.isBase || false;
+                                          }
+                                          // For other references, check source
+                                          return !image.metadata?.source || image.metadata?.source === 'user-upload';
+                                        }
+                                        return false;
+                                      });
+                                    }
                                     
-                                    if (actualIndex < 0) {
+                                    if (actualIndex < 0 || actualIndex >= currentImages.length) {
+                                      console.error('[CharacterDetailModal] Image not found:', {
+                                        imgId: img.id,
+                                        imgS3Key: img.s3Key,
+                                        imgIndex: img.index,
+                                        currentImageCount: currentImages.length,
+                                        currentImages: currentImages.map((img: any) => ({
+                                          id: img.id,
+                                          s3Key: img.metadata?.s3Key || img.s3Key,
+                                          source: img.metadata?.source
+                                        }))
+                                      });
                                       throw new Error('Image not found in character data');
                                     }
                                     

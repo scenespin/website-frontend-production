@@ -17,7 +17,6 @@ const OUTFIT_OPTIONS = [
   { value: 'casual', label: 'Casual' },
   { value: 'athletic', label: 'Athletic/Sportswear' },
   { value: 'formal-evening', label: 'Formal Evening' },
-  { value: 'uniform', label: 'Uniform' },
   { value: 'custom', label: 'Custom...' }
 ];
 
