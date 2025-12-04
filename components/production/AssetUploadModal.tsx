@@ -117,24 +117,78 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
       const { asset } = await createResponse.json();
       const assetId = asset.id;
 
-      // Step 2: Upload images
+      // Step 2: Upload images using direct S3 uploads (like characters/locations)
       for (let i = 0; i < images.length; i++) {
-        const formData = new FormData();
-        formData.append('image', images[i].file);
-        if (images[i].angle) {
-          formData.append('angle', images[i].angle);
+        const file = images[i].file;
+        
+        // Get presigned POST URL for direct S3 upload
+        const presignedResponse = await fetch(
+          `/api/assets/upload/get-presigned-url?` +
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&screenplayId=${encodeURIComponent(projectId)}` +
+          `&assetId=${encodeURIComponent(assetId)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!presignedResponse.ok) {
+          const errorData = await presignedResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
         }
 
-        const uploadResponse = await fetch(`/api/asset-bank/${assetId}/images`, {
+        const { url, fields, s3Key } = await presignedResponse.json();
+        
+        if (!url || !fields || !s3Key) {
+          throw new Error('Invalid response from server');
+        }
+
+        // Upload directly to S3 using presigned POST
+        const s3FormData = new FormData();
+        
+        Object.entries(fields).forEach(([key, value]) => {
+          if (key.toLowerCase() !== 'bucket') {
+            s3FormData.append(key, value as string);
+          }
+        });
+        
+        s3FormData.append('file', file);
+        
+        const s3UploadResponse = await fetch(url, {
+          method: 'POST',
+          body: s3FormData,
+        });
+
+        if (!s3UploadResponse.ok) {
+          const errorText = await s3UploadResponse.text();
+          console.error('[AssetUploadModal] S3 upload failed:', errorText);
+          throw new Error(`S3 upload failed: ${s3UploadResponse.status}`);
+        }
+
+        // Register the uploaded image with the asset via backend
+        const registerResponse = await fetch(`/api/asset-bank/${assetId}/images`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
-          body: formData,
+          body: JSON.stringify({
+            s3Key,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            angle: images[i].angle,
+          }),
         });
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload image ${i + 1}`);
+        if (!registerResponse.ok) {
+          const errorData = await registerResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
         }
 
         setUploadProgress(Math.round(((i + 1) / images.length) * 100));

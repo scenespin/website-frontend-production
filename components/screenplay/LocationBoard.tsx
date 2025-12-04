@@ -360,6 +360,9 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 const { pendingImages, ...locationData } = data;
                                 const newLocation = await createLocation(locationData);
                                 
+                                // 🔥 FIX: Set selectedLocation to newly created location so uploads work immediately
+                                setSelectedLocation(newLocation);
+                                
                                 // Add pending images after location creation
                                 // Images are already uploaded to S3 via presigned URLs, just need to register them
                                 if (pendingImages && pendingImages.length > 0 && newLocation) {
@@ -386,10 +389,18 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                 );
                                             }
                                         }
+                                        // Refresh location from context after images are registered
+                                        await new Promise(resolve => setTimeout(resolve, 500));
+                                        const updatedLocation = locations.find(l => l.id === newLocation.id);
+                                        if (updatedLocation) {
+                                            setSelectedLocation(updatedLocation);
+                                        }
                                     }
                                 }
                                 
+                                // 🔥 FIX: Don't close modal immediately - keep it open in edit mode so user can upload more images
                                 setIsCreating(false);
+                                setIsEditing(true);
                             } catch (err: any) {
                                 alert(`Error creating location: ${err.message}`);
                             }

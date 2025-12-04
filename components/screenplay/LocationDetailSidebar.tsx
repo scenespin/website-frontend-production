@@ -349,7 +349,8 @@ export default function LocationDetailSidebar({
         console.log(`[LocationDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
 
         // Step 3: If location exists, register the uploaded image with the location via backend
-        if (location && !isCreating) {
+        // 🔥 FIX: Also check if we're in edit mode (location was just created)
+        if (location && (!isCreating || location.id !== 'new')) {
           const registerResponse = await fetch(
             `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
             {

@@ -15,6 +15,7 @@ import AssetUploadModal from './AssetUploadModal';
 import Asset3DExportModal from './Asset3DExportModal';
 import AssetDetailModal from './AssetDetailModal';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
+import { useScreenplay } from '@/contexts/ScreenplayContext';  // 🔥 NEW: Use ScreenplayContext for asset sync
 import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 
@@ -31,6 +32,9 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
   
+  // 🔥 NEW: Use ScreenplayContext assets for real-time sync with creation section
+  const { assets: contextAssets } = useScreenplay();
+  
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
@@ -39,6 +43,17 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [show3DExportModal, setShow3DExportModal] = useState(false);
   const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
+
+  // 🔥 NEW: Sync with ScreenplayContext assets (created in creation section)
+  useEffect(() => {
+    if (contextAssets && contextAssets.length > 0) {
+      // Filter by selected category if needed
+      const filtered = selectedCategory === 'all' 
+        ? contextAssets 
+        : contextAssets.filter(a => a.category === selectedCategory);
+      setAssets(filtered);
+    }
+  }, [contextAssets, selectedCategory]);
 
   useEffect(() => {
     fetchAssets();
