@@ -647,7 +647,9 @@ export function CharacterDetailModal({
                       
                       {/* Outfit Tabs - Only show if multiple outfits */}
                       {outfitNames.length > 1 && (
-                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
+                        <div className="mb-4">
+                          <p className="text-xs text-[#808080] mb-2">Organized by outfit type:</p>
+                          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
                           {outfitNames.map((outfitName) => {
                             // Format outfit name for display
                             // If default, use typicalClothing or "Default Outfit"
@@ -682,6 +684,7 @@ export function CharacterDetailModal({
                               </button>
                             );
                           })}
+                          </div>
                         </div>
                       )}
                       
