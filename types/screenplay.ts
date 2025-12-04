@@ -51,6 +51,8 @@ export interface ImageAsset {
         s3Key?: string; // S3 key for the uploaded file
         source?: string; // Source of image: 'pose-generation' | 'user-upload' | etc.
         outfitName?: string; // Phase 3: Outfit name for pose organization (e.g., 'business-casual', 'default')
+        poseId?: string; // Pose definition ID for AI-generated poses (e.g., 'front-facing', 'three-quarter-left')
+        uploadMethod?: string; // Upload method: 'pose-generation' | 'manual' | 'user-upload'
     };
 }
 
