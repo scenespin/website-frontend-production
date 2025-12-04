@@ -513,7 +513,7 @@ export function CharacterDetailModal({
                         <h3 className="text-sm font-semibold text-white">
                           User Uploaded Reference ({userReferences.length})
                         </h3>
-                        <span className="text-xs text-[#6B7280]">Delete in Creation section</span>
+                        <span className="text-xs text-[#6B7280]">Created in Creation section - delete there</span>
                       </div>
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                         {userReferences.map((img, idx) => {
@@ -539,19 +539,22 @@ export function CharacterDetailModal({
                                 </div>
                               )}
                             </button>
-                              {/* Delete button - only show on hover, but DISABLED for user-uploaded references in Production Hub */}
-                              {/* 🔥 RESTRICTION: Production Hub only allows deletion of AI-generated images, not user-uploaded references */}
-                              {/* Check context images to determine if this is AI-generated or user-uploaded */}
+                              {/* Delete button - only show on hover for images created/uploaded in Production Hub */}
+                              {/* 🔥 LOGIC: Production Hub can delete anything created/uploaded in Production Hub */}
+                              {/* Creation section can delete anything created/uploaded in Creation section */}
+                              {/* They're separate - reference images are passed but deletion is location-based */}
                               {(() => {
-                                // Find the corresponding context image to check its source
+                                // Find the corresponding context image to check where it was created
                                 const contextImage = allImagesFromContext.find((ctxImg: any) => 
                                   (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
                                 );
-                                // 🔥 FIX: Check both source and uploadMethod for AI-generated images
-                                const isAIGenerated = contextImage?.metadata?.source === 'pose-generation' || 
-                                                      contextImage?.metadata?.source === 'image-generation' ||
-                                                      contextImage?.metadata?.uploadMethod === 'pose-generation';
-                                return isAIGenerated;
+                                // 🔥 LOGIC: Check if image was created/uploaded in Production Hub
+                                // Created in Production Hub if: pose-generation, image-generation, or createdIn === 'production-hub'
+                                const createdInProductionHub = contextImage?.metadata?.source === 'pose-generation' || 
+                                                              contextImage?.metadata?.source === 'image-generation' ||
+                                                              contextImage?.metadata?.uploadMethod === 'pose-generation' ||
+                                                              contextImage?.metadata?.createdIn === 'production-hub';
+                                return createdInProductionHub;
                               })() ? (
                                 <button
                                   onClick={async (e) => {
@@ -632,9 +635,9 @@ export function CharacterDetailModal({
                                 <Trash2 className="w-3 h-3" />
                               </button>
                               ) : (
-                                // User-uploaded reference - show info tooltip instead of delete button
+                                // Image created in Creation section - show info tooltip instead of delete button
                                 <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-[#3F3F46] rounded text-white cursor-help"
-                                  title="User-uploaded references can only be deleted in the Creation section"
+                                  title="Images created/uploaded in Creation section can only be deleted there"
                                 >
                                   <Info className="w-3 h-3" />
                                 </div>

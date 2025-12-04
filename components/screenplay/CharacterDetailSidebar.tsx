@@ -1020,8 +1020,13 @@ export default function CharacterDetailSidebar({
                                   const imgS3Key = img.metadata?.s3Key || img.s3Key;
                                   // ImageAsset has s3Key in metadata, not at top level
                                   const deleteS3Key = imageToDelete.metadata?.s3Key;
-                                  return imgS3Key === deleteS3Key && 
-                                    (!img.metadata?.source || img.metadata?.source === 'user-upload');
+                                  // 🔥 LOGIC: Creation section can delete anything NOT created in Production Hub
+                                  // Created in Production Hub if: pose-generation, image-generation, or createdIn === 'production-hub'
+                                  const createdInProductionHub = img.metadata?.source === 'pose-generation' || 
+                                                                img.metadata?.source === 'image-generation' ||
+                                                                img.metadata?.uploadMethod === 'pose-generation' ||
+                                                                img.metadata?.createdIn === 'production-hub';
+                                  return imgS3Key === deleteS3Key && !createdInProductionHub;
                                 });
                                 
                                 if (actualIndex < 0) {
