@@ -526,52 +526,48 @@ export function CharacterDetailModal({
                                   if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
                                     return;
                                   }
-                                  // Get current character from context to ensure we have latest images
-                                  // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
-                                  // Note: context character has 'images' property, CharacterProfile doesn't
-                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id);
-                                  const currentImages = currentCharacter?.images || [];
-                                  
-                                  // Store original images for rollback (same pattern as CharacterDetailSidebar)
-                                  const originalImages = [...currentImages];
                                   
                                   try {
-                                    // 🔥 FIX: Use the index from userReferences (already mapped to context images)
-                                    // The userReferences array has an 'index' property that maps to the context images array
-                                    let actualIndex = img.index;
-                                    
-                                    // If index is not set or invalid, try to find by s3Key or id
-                                    if (actualIndex < 0 || actualIndex >= currentImages.length) {
-                                      actualIndex = currentImages.findIndex((image: any) => {
-                                        // Try matching by ID first (most reliable)
-                                        if (img.id && image.id === img.id) {
-                                          return true;
-                                        }
-                                        // Then try matching by s3Key
-                                        const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                        const deleteS3Key = img.s3Key;
-                                        if (imgS3Key && deleteS3Key && imgS3Key === deleteS3Key) {
-                                          // For base reference, check if it's the base
-                                          if (img.isBase) {
-                                            return image.metadata?.isBase || image.isBase || false;
-                                          }
-                                          // For other references, check source
-                                          return !image.metadata?.source || image.metadata?.source === 'user-upload';
-                                        }
-                                        return false;
-                                      });
+                                    // 🔥 FIX: Use exact same pattern as CharacterDetailSidebar
+                                    // Get current character from context to ensure we have latest images
+                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id);
+                                    if (!currentCharacter) {
+                                      throw new Error('Character not found');
                                     }
                                     
-                                    if (actualIndex < 0 || actualIndex >= currentImages.length) {
+                                    const currentImages = currentCharacter.images || [];
+                                    
+                                    // Find the actual index in the full images array by matching s3Key
+                                    // Same pattern as CharacterDetailSidebar: match by s3Key from metadata
+                                    const actualIndex = currentImages.findIndex((image: any) => {
+                                      const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                      // ImageAsset has s3Key in metadata, not at top level
+                                      const deleteS3Key = img.s3Key;
+                                      if (!imgS3Key || !deleteS3Key) return false;
+                                      
+                                      // Match by s3Key
+                                      if (imgS3Key === deleteS3Key) {
+                                        // For base reference, check if it's the base
+                                        if (img.isBase) {
+                                          return image.metadata?.isBase || image.isBase || false;
+                                        }
+                                        // For user-uploaded references, check source
+                                        return !image.metadata?.source || image.metadata?.source === 'user-upload';
+                                      }
+                                      return false;
+                                    });
+                                    
+                                    if (actualIndex < 0) {
                                       console.error('[CharacterDetailModal] Image not found:', {
                                         imgId: img.id,
                                         imgS3Key: img.s3Key,
-                                        imgIndex: img.index,
+                                        imgIsBase: img.isBase,
                                         currentImageCount: currentImages.length,
                                         currentImages: currentImages.map((img: any) => ({
                                           id: img.id,
                                           s3Key: img.metadata?.s3Key || img.s3Key,
-                                          source: img.metadata?.source
+                                          source: img.metadata?.source,
+                                          isBase: img.metadata?.isBase || img.isBase
                                         }))
                                       });
                                       throw new Error('Image not found in character data');
@@ -584,24 +580,13 @@ export function CharacterDetailModal({
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
                                     await updateCharacter(character.id, { images: updatedImages });
                                     
-                                    // Sync from context after update (with delay for DynamoDB consistency)
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                    const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
-                                    if (updatedCharacterFromContext) {
-                                      // Trigger a refresh by calling onUpdate
-                                      await onUpdate(character.id, {});
-                                    }
+                                    // 🔥 FIX: Don't sync from context immediately after deletion
+                                    // The useEffect hook will handle syncing when context actually updates
+                                    // This prevents overwriting the optimistic update with stale data
                                     
                                     toast.success('Reference image deleted');
                                   } catch (error: any) {
                                     console.error('Failed to delete reference image:', error);
-                                    // Rollback on error (same pattern as CharacterDetailSidebar)
-                                    try {
-                                      await updateCharacter(character.id, { images: originalImages });
-                                      await onUpdate(character.id, {});
-                                    } catch (rollbackError) {
-                                      console.error('Failed to rollback image deletion:', rollbackError);
-                                    }
                                     toast.error(`Failed to delete image: ${error.message}`);
                                   }
                                 }}
@@ -712,37 +697,28 @@ export function CharacterDetailModal({
                                     return;
                                   }
                                   
-                                  // 🔥 COPY PATTERN FROM CharacterDetailSidebar (working code)
-                                  // Get current character from context to ensure we have latest images
-                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
-                                  if (!currentCharacter) {
-                                    toast.error('Character not found');
-                                    return;
-                                  }
-                                  
-                                  // Type guard: Character has images, CharacterProfile doesn't
-                                  const currentImages = ('images' in currentCharacter ? currentCharacter.images : allImagesFromContext) || [];
-                                  
-                                  // Store original images for rollback
-                                  const originalImages = [...currentImages];
-                                  
                                   try {
-                                    // 🔥 KEY FIX: Match the same way CharacterDetailSidebar does
+                                    // 🔥 FIX: Use exact same pattern as CharacterDetailSidebar (for AI-generated images)
+                                    // Get current character from context to ensure we have latest images
+                                    const currentCharacter = charactersRef.current.find(c => c.id === character.id);
+                                    if (!currentCharacter) {
+                                      throw new Error('Character not found');
+                                    }
+                                    
+                                    const currentImages = currentCharacter.images || [];
+                                    
+                                    // Find the actual index in the full images array by matching s3Key
+                                    // Same pattern as CharacterDetailSidebar: match by s3Key from metadata
                                     // img is a PoseReferenceWithOutfit which has s3Key at top level (from CharacterReference)
-                                    // In CharacterDetailSidebar, it uses imageToDelete.metadata?.s3Key because images come from getEntityImages
-                                    // But here, img comes from character.poseReferences which has s3Key at top level
-                                    const deleteS3Key = img.s3Key; // PoseReferenceWithOutfit has s3Key at top level
+                                    const deleteS3Key = img.s3Key;
                                     
                                     if (!deleteS3Key) {
                                       throw new Error('Pose image missing S3 key');
                                     }
                                     
-                                    // Find the actual index in the full images array
-                                    // Same pattern as CharacterDetailSidebar (for AI-generated images)
-                                    // Context images have s3Key in metadata.s3Key (ImageAsset structure)
                                     const actualIndex = currentImages.findIndex((image: any) => {
                                       const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                      // ImageAsset has s3Key in metadata, not at top level (per CharacterDetailSidebar comment)
+                                      // ImageAsset has s3Key in metadata, not at top level
                                       return imgS3Key === deleteS3Key && 
                                         (image.metadata?.source === 'pose-generation' || image.metadata?.source === 'image-generation');
                                     });
@@ -771,24 +747,13 @@ export function CharacterDetailModal({
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
                                     await updateCharacter(character.id, { images: updatedImages });
                                     
-                                    // Sync from context after update (with delay for DynamoDB consistency)
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                    const updatedCharacterFromContext = charactersRef.current.find(c => c.id === character.id);
-                                    if (updatedCharacterFromContext) {
-                                      // Trigger a refresh by calling onUpdate
-                                      await onUpdate(character.id, {});
-                                    }
+                                    // 🔥 FIX: Don't sync from context immediately after deletion
+                                    // The useEffect hook will handle syncing when context actually updates
+                                    // This prevents overwriting the optimistic update with stale data
                                     
                                     toast.success('Pose deleted');
                                   } catch (error: any) {
                                     console.error('[CharacterDetailModal] Failed to delete pose:', error);
-                                    // Rollback on error (same pattern as CharacterDetailSidebar)
-                                    try {
-                                      await updateCharacter(character.id, { images: originalImages });
-                                      await onUpdate(character.id, {});
-                                    } catch (rollbackError) {
-                                      console.error('[CharacterDetailModal] Failed to rollback pose deletion:', rollbackError);
-                                    }
                                     toast.error(`Failed to delete pose: ${error.message}`);
                                   }
                                 }}
