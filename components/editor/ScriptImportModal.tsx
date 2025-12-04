@@ -19,7 +19,8 @@ interface ScriptImportModalProps {
 export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModalProps) {
     const { getToken } = useAuth();
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
-    const { setContent, saveNow, content: editorContent } = useEditor();
+    const { setContent, saveNow, state: editorState } = useEditor();
+    const editorContent = editorState.content;
     const screenplay = useScreenplay();
     
     const [content, setContentLocal] = useState('');
