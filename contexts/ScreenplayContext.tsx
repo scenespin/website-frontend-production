@@ -2319,23 +2319,34 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Extract s3Key from images array (not imageUrl) for referenceImages
                 // CRITICAL: Store s3Key, NOT presigned URL (imageUrl can be 1000+ chars, causing KeyTooLongError)
                 if (updates.images !== undefined) {
-                    apiUpdates.referenceImages = updates.images.map(img => {
-                        // Extract s3Key from metadata, fallback to extracting from imageUrl
-                        if (img.metadata?.s3Key) return img.metadata.s3Key;
-                        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
-                            // Extract s3Key from presigned URL (everything before the first ?)
-                            const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
-                            if (urlMatch && urlMatch[1]) return urlMatch[1];
-                            // If no query params, might be direct S3 URL
-                            if (!img.imageUrl.includes('?')) {
-                                // Remove S3 bucket URL prefix if present
-                                const s3UrlMatch = img.imageUrl.match(/s3[^/]*\.amazonaws\.com\/([^?]+)/);
-                                if (s3UrlMatch && s3UrlMatch[1]) return s3UrlMatch[1];
-                                return img.imageUrl;
+                    // 🔥 CRITICAL FIX: Always set referenceImages, even if empty array
+                    // This ensures that deleting all images (images: []) properly clears the array
+                    if (updates.images.length === 0) {
+                        apiUpdates.referenceImages = [];
+                    } else {
+                        apiUpdates.referenceImages = updates.images.map(img => {
+                            // Extract s3Key from metadata, fallback to extracting from imageUrl
+                            if (img.metadata?.s3Key) return img.metadata.s3Key;
+                            if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+                                // Extract s3Key from presigned URL (everything before the first ?)
+                                const urlMatch = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+                                if (urlMatch && urlMatch[1]) return urlMatch[1];
+                                // If no query params, might be direct S3 URL
+                                if (!img.imageUrl.includes('?')) {
+                                    // Remove S3 bucket URL prefix if present
+                                    const s3UrlMatch = img.imageUrl.match(/s3[^/]*\.amazonaws\.com\/([^?]+)/);
+                                    if (s3UrlMatch && s3UrlMatch[1]) return s3UrlMatch[1];
+                                    return img.imageUrl;
+                                }
                             }
-                        }
-                        return null;
-                    }).filter((key): key is string => key !== null && key.length <= 1024) || []; // Filter out nulls and keys > 1024 chars
+                            return null;
+                        }).filter((key): key is string => key !== null && key.length <= 1024); // Filter out nulls and keys > 1024 chars
+                    }
+                    console.log('[ScreenplayContext] 📤 Setting referenceImages:', {
+                        imageCount: updates.images.length,
+                        referenceImageCount: apiUpdates.referenceImages.length,
+                        isEmpty: apiUpdates.referenceImages.length === 0
+                    });
                 }
                 if (updates.address !== undefined) apiUpdates.address = updates.address; // 🔥 NEW: Include address
                 if (updates.atmosphereNotes !== undefined) apiUpdates.atmosphereNotes = updates.atmosphereNotes; // 🔥 NEW: Include atmosphere notes
