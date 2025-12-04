@@ -181,7 +181,7 @@ interface MediaLibraryProps {
   projectId: string;
   onSelectFile?: (file: MediaFile) => void;
   allowMultiSelect?: boolean;
-  filterTypes?: Array<'video' | 'image' | 'audio' | 'other'>;
+  filterTypes?: Array<'video' | 'image' | 'audio' | '3d-model' | 'other'>;
   maxFileSize?: number; // in MB
   className?: string;
 }
