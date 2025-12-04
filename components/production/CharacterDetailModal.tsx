@@ -159,6 +159,7 @@ export function CharacterDetailModal({
     isPose: boolean;
     outfitName: string;
     index: number;
+    poseId?: string; // Pose definition ID for regeneration
   };
 
   const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map(ref => {
@@ -171,6 +172,7 @@ export function CharacterDetailModal({
     );
     const outfitFromMetadata = contextImage?.metadata?.outfitName;
     const outfitName = outfitFromMetadata || outfitFromS3;
+    const poseId = contextImage?.metadata?.poseId; // Extract poseId from metadata
     
     return {
       id: ref.id,
@@ -180,7 +182,8 @@ export function CharacterDetailModal({
       isBase: false,
       isPose: true,
       outfitName: outfitName, // Store outfit name for grouping
-      index: -1 // Will be set below
+      index: -1, // Will be set below
+      poseId: poseId // Store poseId for regeneration
     };
   });
   
@@ -725,8 +728,66 @@ export function CharacterDetailModal({
                                   Pose
                                 </div>
                               </button>
-                              {/* Delete button - only show on hover */}
-                              <button
+                              {/* Action buttons - only show on hover */}
+                              <div className="absolute bottom-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {/* Regenerate button */}
+                                {img.poseId && (
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!img.poseId || !img.s3Key) {
+                                        toast.error('Missing pose information for regeneration');
+                                        return;
+                                      }
+                                      
+                                      if (!confirm(`Regenerate this pose? This will cost credits.`)) {
+                                        return;
+                                      }
+                                      
+                                      try {
+                                        const token = await getToken({ template: 'wryda-backend' });
+                                        const response = await fetch(`/api/projects/${projectId}/characters/${character.id}/regenerate-pose`, {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                          },
+                                          body: JSON.stringify({
+                                            poseId: img.poseId,
+                                            existingPoseS3Key: img.s3Key,
+                                            outfitName: img.outfitName || 'default'
+                                          })
+                                        });
+                                        
+                                        if (!response.ok) {
+                                          const error = await response.json();
+                                          throw new Error(error.message || 'Failed to regenerate pose');
+                                        }
+                                        
+                                        const result = await response.json();
+                                        
+                                        // Show success message
+                                        toast.success('Pose regeneration started. Check the Jobs panel for progress.');
+                                        
+                                        // Invalidate queries to refresh character data
+                                        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                        
+                                        // Refresh character data from context
+                                        await onUpdate(character.id, {});
+                                        
+                                      } catch (error: any) {
+                                        console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
+                                        toast.error(`Failed to regenerate pose: ${error.message}`);
+                                      }
+                                    }}
+                                    className="p-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded transition-colors"
+                                    title="Regenerate this pose"
+                                  >
+                                    <Sparkles className="w-3 h-3" />
+                                  </button>
+                                )}
+                                {/* Delete button - only show on hover */}
+                                <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   if (!confirm('Delete generated pose?')) {
@@ -799,11 +860,12 @@ export function CharacterDetailModal({
                                     toast.error(`Failed to delete pose: ${error.message}`);
                                   }
                                 }}
-                                className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-red-600 hover:bg-red-700 rounded text-white"
+                                className="p-1 bg-red-600 hover:bg-red-700 rounded text-white"
                                 title="Delete pose"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
+                              </div>
                             </div>
                           );
                         })}

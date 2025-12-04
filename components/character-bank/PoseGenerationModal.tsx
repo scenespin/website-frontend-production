@@ -39,6 +39,7 @@ export default function PoseGenerationModal({
   
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
+  const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
   const [typicalClothing, setTypicalClothing] = useState<string | undefined>(undefined);
   const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
   
@@ -114,6 +115,7 @@ export default function PoseGenerationModal({
       const requestBody = {
         characterName,
         packageId: packageId,
+        quality: quality, // 🔥 NEW: Quality tier
         headshotS3Key: baseReferenceS3Key || undefined,
         headshotUrl: headshotFile ? headshotPreview : undefined,
         screenplayContent: screenplayContent || undefined,
@@ -276,10 +278,51 @@ export default function PoseGenerationModal({
                     </p>
                   </div>
                   
+                  {/* Quality Selection - NEW */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 2: Select Quality
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setQuality('standard')}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          quality === 'standard'
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                            : 'border-base-content/20 hover:border-base-content/40'
+                        }`}
+                      >
+                        <div className="font-semibold text-base-content mb-1">Standard (1080p)</div>
+                        <div className="text-xs text-base-content/60 mb-2">
+                          20 credits per image
+                        </div>
+                        <div className="text-xs text-base-content/50">
+                          Fewer safety restrictions, more creative freedom. Perfect for most projects.
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setQuality('high-quality')}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          quality === 'high-quality'
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                            : 'border-base-content/20 hover:border-base-content/40'
+                        }`}
+                      >
+                        <div className="font-semibold text-base-content mb-1">High Quality (4K)</div>
+                        <div className="text-xs text-base-content/60 mb-2">
+                          60 credits per image
+                        </div>
+                        <div className="text-xs text-base-content/50">
+                          Maximum resolution and quality. Best for final production.
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                  
                   {/* Package Selection */}
                   <div>
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 2: Select Package
+                      Step 3: Select Package
                     </h3>
                     <PosePackageSelector
                       characterName={characterName}
