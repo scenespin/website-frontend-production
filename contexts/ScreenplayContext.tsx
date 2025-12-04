@@ -1891,27 +1891,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const referenceImageKeys: string[] = [];
                     const poseReferenceKeys: string[] = [];
                     
-                    updates.images.forEach(img => {
-                        const s3Key = extractS3Key(img);
-                        if (s3Key && s3Key.length <= 1024) {
-                            const source = img.metadata?.source;
-                            if (source === 'pose-generation') {
-                                poseReferenceKeys.push(s3Key);
-                            } else {
-                                // Default to user-uploaded (including undefined/null source)
-                                referenceImageKeys.push(s3Key);
+                    // 🔥 CRITICAL FIX: Always process images array, even if empty
+                    // This ensures that deleting all images (images: []) properly clears the arrays
+                    if (updates.images.length === 0) {
+                        // Empty array - explicitly set to empty arrays to clear all images
+                        apiUpdates.referenceImages = [];
+                        apiUpdates.poseReferences = [];
+                        console.log('[ScreenplayContext] 📤 Clearing all images (empty array)');
+                    } else {
+                        updates.images.forEach(img => {
+                            const s3Key = extractS3Key(img);
+                            if (s3Key && s3Key.length <= 1024) {
+                                const source = img.metadata?.source;
+                                if (source === 'pose-generation') {
+                                    poseReferenceKeys.push(s3Key);
+                                } else {
+                                    // Default to user-uploaded (including undefined/null source)
+                                    referenceImageKeys.push(s3Key);
+                                }
                             }
-                        }
-                    });
-                    
-                    // Only set if there are images (allows clearing arrays by passing empty array)
-                    apiUpdates.referenceImages = referenceImageKeys;
-                    apiUpdates.poseReferences = poseReferenceKeys;
+                        });
+                        
+                        apiUpdates.referenceImages = referenceImageKeys;
+                        apiUpdates.poseReferences = poseReferenceKeys;
+                    }
                     
                     console.log('[ScreenplayContext] 📤 Separated images:', {
                         totalImages: updates.images.length,
-                        referenceImages: referenceImageKeys.length,
-                        poseReferences: poseReferenceKeys.length
+                        referenceImages: apiUpdates.referenceImages.length,
+                        poseReferences: apiUpdates.poseReferences.length,
+                        isEmpty: updates.images.length === 0
                     });
                 }
                 
