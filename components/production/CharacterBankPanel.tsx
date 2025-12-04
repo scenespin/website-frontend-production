@@ -248,28 +248,91 @@ export function CharacterBankPanel({
   async function uploadReference(characterId: string, file: File) {
     try {
       const token = await getToken({ template: 'wryda-backend' });
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('screenplayId', projectId); // projectId prop is actually screenplayId
-      formData.append('characterId', characterId);
+      if (!token) throw new Error('Not authenticated');
 
-      const response = await fetch('/api/character-bank/upload-reference', {
+      // 🔥 FIX: Use direct S3 uploads to bypass Vercel's 4.5MB body size limit
+      // Step 1: Get presigned POST URL for direct S3 upload
+      const presignedResponse = await fetch(
+        `/api/characters/upload/get-presigned-url?` +
+        `fileName=${encodeURIComponent(file.name)}` +
+        `&fileType=${encodeURIComponent(file.type)}` +
+        `&fileSize=${file.size}` +
+        `&screenplayId=${encodeURIComponent(projectId)}` +
+        `&characterId=${encodeURIComponent(characterId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!presignedResponse.ok) {
+        const errorData = await presignedResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+      }
+
+      const { url, fields, s3Key } = await presignedResponse.json();
+      
+      if (!url || !fields || !s3Key) {
+        throw new Error('Invalid response from server');
+      }
+
+      // Step 2: Upload directly to S3 using presigned POST
+      const s3FormData = new FormData();
+      
+      // Add all the fields returned from createPresignedPost
+      Object.entries(fields).forEach(([key, value]) => {
+        // Skip 'bucket' field - it's only used in the policy, not in FormData
+        if (key.toLowerCase() !== 'bucket') {
+          s3FormData.append(key, value as string);
+        }
+      });
+      
+      // Add the file last (must be last field in FormData per AWS requirements)
+      s3FormData.append('file', file);
+      
+      // Upload to S3
+      const s3UploadResponse = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        body: s3FormData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('[CharacterBank] Upload failed:', errorData);
-        throw new Error(errorData.error?.message || errorData.error || 'Upload failed');
+      if (!s3UploadResponse.ok) {
+        const errorText = await s3UploadResponse.text();
+        console.error('[CharacterBank] S3 upload failed:', errorText);
+        throw new Error(`S3 upload failed: ${s3UploadResponse.status}`);
       }
+
+      console.log(`[CharacterBank] ✅ Uploaded to S3: ${s3Key}`);
+
+      // Step 3: Register the uploaded image with the character via backend
+      const registerResponse = await fetch(
+        `/api/character-bank/upload-reference`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key,
+            screenplayId: projectId,
+            characterId: characterId,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          }),
+        }
+      );
+
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
+      }
+
+      const data = await registerResponse.json();
       
-      const data = await response.json();
-      
-      // Response format: { success: true, data: { s3Key, imageUrl, message } }
       if (data.success && data.data) {
         toast.success('Image uploaded successfully');
         onCharactersUpdate();
@@ -277,9 +340,9 @@ export function CharacterBankPanel({
         console.error('[CharacterBank] Upload failed:', data.error || 'Unknown error');
         toast.error(data.error?.message || data.error || 'Failed to upload image');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[CharacterBank] Upload failed:', error);
-      toast.error('Failed to upload image');
+      toast.error(error.message || 'Failed to upload image');
     }
   }
 
