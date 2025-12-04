@@ -46,9 +46,11 @@ import {
   useUploadMedia,
   useDeleteMedia,
   usePresignedUrl,
-  useBulkPresignedUrls
+  useBulkPresignedUrls,
+  useMediaFolderTree
 } from '@/hooks/useMediaLibrary';
 import { useQueryClient } from '@tanstack/react-query';
+import { Folder, FolderOpen } from 'lucide-react';
 
 // ============================================================================
 // VIDEO THUMBNAIL COMPONENT
@@ -227,6 +229,10 @@ export default function MediaLibrary({
   
   // Local error state for mutations (upload/delete)
   const [mutationError, setMutationError] = useState<string | null>(null);
+  
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
 
   // ============================================================================
   // REACT QUERY HOOKS (Phase 2B: React Query Integration)
@@ -247,6 +253,12 @@ export default function MediaLibrary({
     selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : undefined,
     !selectedFolderId || selectedStorageType === 's3' // Only load S3 files when S3 folder selected or no folder
   );
+  
+  // 🔥 NEW: Load folder tree to display folders in main view
+  const { 
+    data: folderTree = [],
+    isLoading: folderTreeLoading 
+  } = useMediaFolderTree(projectId, !!projectId);
   
   // Load cloud storage connections
   const { 
@@ -1166,6 +1178,84 @@ export default function MediaLibrary({
   // RENDER HELPERS
   // ============================================================================
 
+  /**
+   * 🔥 NEW: Get child folders of currently selected folder
+   * Returns folders that are direct children of the selected folder (or root if none selected)
+   * Includes both S3 folders and cloud storage folders for identical experience
+   */
+  const getChildFolders = (): Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud' }> => {
+    const folders: Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud' }> = [];
+    
+    // Helper to recursively find folder by ID in S3 tree
+    const findFolderById = (nodes: typeof folderTree, folderId: string): typeof folderTree[0] | null => {
+      for (const node of nodes) {
+        if (node.folderId === folderId) return node;
+        if (node.children) {
+          const found = findFolderById(node.children, folderId);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    // Get S3 folders
+    if (folderTree && folderTree.length > 0) {
+      if (!selectedFolderId) {
+        // Root level: show top-level S3 folders
+        const s3Folders = folderTree
+          .filter(node => node.folderPath && node.folderPath.length === 1)
+          .map(node => ({
+            id: node.folderId,
+            name: node.folderName,
+            fileCount: node.fileCount,
+            path: node.folderPath || [],
+            storageType: 's3' as const
+          }));
+        folders.push(...s3Folders);
+      } else {
+        // Check if selected folder is an S3 folder
+        const selectedFolder = findFolderById(folderTree, selectedFolderId);
+        if (selectedFolder && selectedFolder.children) {
+          const s3Children = selectedFolder.children.map(node => ({
+            id: node.folderId,
+            name: node.folderName,
+            fileCount: node.fileCount,
+            path: node.folderPath || [],
+            storageType: 's3' as const
+          }));
+          folders.push(...s3Children);
+        }
+      }
+    }
+    
+    // 🔥 NEW: Get cloud storage folders (for identical experience across storage providers)
+    if (screenplayData?.cloudStorageProvider && cloudConnections.length > 0) {
+      const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
+        c => c.provider === screenplayData.cloudStorageProvider && (c.connected || c.status === 'active')
+      );
+      
+      if (activeConnection && !selectedFolderId) {
+        // Root level: show cloud storage top-level folders (Characters, Locations, etc.)
+        const cloudFolders = [
+          { id: 'characters-cloud', name: 'Characters', path: ['Characters'], storageType: 'cloud' as const },
+          { id: 'locations-cloud', name: 'Locations', path: ['Locations'], storageType: 'cloud' as const },
+          { id: 'scenes-cloud', name: 'Scenes', path: ['Scenes'], storageType: 'cloud' as const },
+          { id: 'audio-cloud', name: 'Audio', path: ['Audio'], storageType: 'cloud' as const },
+          { id: 'compositions-cloud', name: 'Compositions', path: ['Compositions'], storageType: 'cloud' as const }
+        ];
+        folders.push(...cloudFolders);
+      } else if (selectedFolderId && selectedStorageType === 'cloud') {
+        // TODO: Load cloud storage subfolders (character subfolders, outfit folders, etc.)
+        // For now, cloud storage subfolders are handled via file loading
+        // This would require fetching folder structure from cloud provider API
+      }
+    }
+    
+    return folders;
+  };
+  
+  const childFolders = getChildFolders();
+
   const filteredFiles = displayFiles.filter(file => {
     // Search filter
     if (searchQuery && !file.fileName.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -1182,6 +1272,14 @@ export default function MediaLibrary({
       return false;
     }
 
+    return true;
+  });
+  
+  // 🔥 NEW: Filter folders by search query
+  const filteredFolders = childFolders.filter(folder => {
+    if (searchQuery && !folder.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
     return true;
   });
 
@@ -1507,13 +1605,13 @@ export default function MediaLibrary({
 
             {/* Files Grid/List */}
             <div className="p-6">
-              {displayLoading ? (
+              {displayLoading || folderTreeLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
                 </div>
-              ) : filteredFiles.length === 0 ? (
+              ) : filteredFiles.length === 0 && filteredFolders.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-[#B3B3B3]">No files found</p>
+                  <p className="text-[#B3B3B3]">No files or folders found</p>
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
@@ -1531,6 +1629,88 @@ export default function MediaLibrary({
                       : 'space-y-2'
                   }
                 >
+                  {/* 🔥 NEW: Display folders first (like a traditional file browser) */}
+                  {filteredFolders.map((folder) => {
+                    // Determine storage type from folder (S3 or cloud)
+                    const storageType = folder.storageType || (folder.id.includes('-cloud') ? 'cloud' : 's3');
+                    return (
+                      <div
+                        key={folder.id}
+                        onClick={() => {
+                          handleFolderSelect(folder.id, folder.path, storageType);
+                        }}
+                        className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
+                          selectedFolderId === folder.id
+                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                            : 'border-[#3F3F46] hover:border-[#8B5CF6]/50 hover:bg-[#1F1F1F]'
+                        } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
+                      >
+                        {/* Folder Icon */}
+                        <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
+                          <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
+                            <Folder className="w-12 h-12 text-[#8B5CF6]" />
+                          </div>
+                          {/* Cloud storage indicator */}
+                          {storageType === 'cloud' && (
+                            <div className="absolute top-1 right-1">
+                              <Cloud className="w-4 h-4 text-[#808080]" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Folder Name */}
+                        <div className={`${viewMode === 'grid' ? 'text-center' : 'flex-1'}`}>
+                          <p className="text-sm font-medium text-white truncate">
+                            {folder.name}
+                          </p>
+                          {folder.fileCount !== undefined && (
+                            <p className="text-xs text-[#6B7280] mt-1">
+                              {folder.fileCount} {folder.fileCount === 1 ? 'file' : 'files'}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* 🔥 NEW: Folder Actions Menu (for S3 folders with local files) */}
+                        {storageType === 's3' && hasConnectedProviders && (
+                          <div 
+                            className="absolute top-2 right-2 z-50" 
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  className="p-1 bg-[#141414] border border-[#3F3F46] rounded opacity-70 group-hover:opacity-100 transition-all hover:bg-[#1F1F1F] hover:border-[#DC143C] hover:opacity-100"
+                                  aria-label={`Actions for ${folder.name}`}
+                                  type="button"
+                                >
+                                  <MoreVertical className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent 
+                                align="end"
+                                className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                style={{ backgroundColor: '#0A0A0A' }}
+                              >
+                                <DropdownMenuItem 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    console.log('[MediaLibrary] Sync folder to Cloud onClick for folder:', folder.id);
+                                    await handleSyncFolderToCloud(folder.id);
+                                  }}
+                                  className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                >
+                                  <Cloud className="w-4 h-4 mr-2" />
+                                  Sync to Cloud
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Files */}
                   {filteredFiles.map((file) => (
                     <div
                       key={file.id}
@@ -1658,6 +1838,20 @@ export default function MediaLibrary({
                               <Download className="w-4 h-4 mr-2 text-[#808080]" />
                               Download
                             </DropdownMenuItem>
+                            {/* 🔥 NEW: Sync to Cloud option - only show for local files */}
+                            {(file.storageType === 'local' || file.storageType === 'wryda-temp') && file.s3Key && hasConnectedProviders && (
+                              <DropdownMenuItem 
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  console.log('[MediaLibrary] Sync to Cloud onClick for file:', file.id);
+                                  await handleSyncFileToCloud(file.id);
+                                }}
+                                className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                              >
+                                <Cloud className="w-4 h-4 mr-2" />
+                                Sync to Cloud
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
