@@ -260,8 +260,8 @@ export default function LocationDetailSidebar({
         toast.error(`${file.name} is not an image file`);
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 50MB.`);
         return;
       }
     }
@@ -271,92 +271,209 @@ export default function LocationDetailSidebar({
       return;
     }
 
+    // 🔥 FIX: Allow uploads during creation - use temporary location ID
+    const locationId = location?.id || 'new';
+    
+    if (!location && !isCreating) {
+      toast.error('Location not found');
+      return;
+    }
+
     setUploading(true);
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      if (!location) {
-        toast.error('Location not found');
-        return;
-      }
+      // 🔥 FIX: Use direct S3 uploads to bypass Vercel's 4.5MB body size limit
+      // Upload files sequentially
+      let uploadedImages: any[] = [];
+      
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        
+        console.log(`[LocationDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
-      // 🔥 FIX: Upload all files in a single request (backend now supports upload.array)
-      const formData = new FormData();
-      fileArray.forEach(file => {
-        formData.append('images', file);
-      });
-
-      console.log(`[LocationDetailSidebar] 📤 Uploading ${fileArray.length} file(s) in single request`);
-
-      const uploadResponse = await fetch(
-        `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed: ${uploadResponse.status}`);
-      }
-
-      const uploadData = await uploadResponse.json();
-      console.log('[LocationDetailSidebar] 📤 Upload response:', {
-        fileCount: fileArray.length,
-        hasData: !!uploadData.data,
-        imageCount: uploadData.data?.images?.length || 0
-      });
-
-      // Backend returns enriched location with all images
-      if (uploadData.data && uploadData.data.images && location) {
-        const enrichedLocation = uploadData.data;
-        const imagesArray = enrichedLocation.images || [];
-        console.log('[LocationDetailSidebar] 📸 Processing images from upload response:', {
-          count: imagesArray.length,
-          images: imagesArray
-        });
-
-        // Transform to match frontend format
-        const transformedImages = imagesArray.map((img: any) => ({
-          imageUrl: img.imageUrl || img.url,
-          createdAt: img.createdAt || new Date().toISOString(),
-          metadata: {
-            s3Key: img.s3Key || img.metadata?.s3Key
+        // Step 1: Get presigned POST URL for direct S3 upload
+        const presignedResponse = await fetch(
+          `/api/locations/upload/get-presigned-url?` +
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&screenplayId=${encodeURIComponent(screenplayId)}` +
+          `&locationId=${encodeURIComponent(locationId)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
-        }));
+        );
 
-        console.log('[LocationDetailSidebar] ✅ Transformed images:', {
-          count: transformedImages.length
+        if (!presignedResponse.ok) {
+          const errorData = await presignedResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
+
+        const { url, fields, s3Key } = await presignedResponse.json();
+        
+        if (!url || !fields || !s3Key) {
+          throw new Error('Invalid response from server');
+        }
+
+        // Step 2: Upload directly to S3 using presigned POST
+        const s3FormData = new FormData();
+        
+        // Add all the fields returned from createPresignedPost
+        Object.entries(fields).forEach(([key, value]) => {
+          if (key.toLowerCase() !== 'bucket') {
+            s3FormData.append(key, value as string);
+          }
+        });
+        
+        // Add the file last (must be last field in FormData per AWS requirements)
+        s3FormData.append('file', file);
+        
+        // Upload to S3
+        const s3UploadResponse = await fetch(url, {
+          method: 'POST',
+          body: s3FormData,
         });
 
+        if (!s3UploadResponse.ok) {
+          const errorText = await s3UploadResponse.text();
+          console.error('[LocationDetailSidebar] S3 upload failed:', errorText);
+          throw new Error(`S3 upload failed: ${s3UploadResponse.status}`);
+        }
+
+        console.log(`[LocationDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
+
+        // Step 3: If location exists, register the uploaded image with the location via backend
+        if (location && !isCreating) {
+          const registerResponse = await fetch(
+            `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key,
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size,
+              }),
+            }
+          );
+
+          if (!registerResponse.ok) {
+            const errorData = await registerResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
+          }
+
+          const registerData = await registerResponse.json();
+          const enrichedLocation = registerData.data;
+          const imagesArray = enrichedLocation.images || [];
+          
+          // Transform to match frontend format
+          uploadedImages = imagesArray.map((img: any) => ({
+            imageUrl: img.imageUrl || img.url,
+            createdAt: img.createdAt || new Date().toISOString(),
+            metadata: {
+              s3Key: img.s3Key || img.metadata?.s3Key
+            }
+          }));
+        } else if (isCreating) {
+          // New location - store temporarily with s3Key
+          // Generate presigned URL for display via backend
+          try {
+            const presignedUrlResponse = await fetch(
+              `/api/s3/download-url`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  s3Key,
+                  expiresIn: 3600,
+                }),
+              }
+            );
+            
+            if (presignedUrlResponse.ok) {
+              const { downloadUrl } = await presignedUrlResponse.json();
+              uploadedImages.push({
+                imageUrl: downloadUrl,
+                s3Key: s3Key,
+                createdAt: new Date().toISOString(),
+                metadata: {
+                  s3Key: s3Key
+                }
+              });
+            } else {
+              // Fallback: use S3 URL directly (may not work if bucket is private)
+              const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+              const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+              const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+              uploadedImages.push({
+                imageUrl: s3Url,
+                s3Key: s3Key,
+                createdAt: new Date().toISOString(),
+                metadata: {
+                  s3Key: s3Key
+                }
+              });
+            }
+          } catch (urlError) {
+            console.warn('[LocationDetailSidebar] Failed to get presigned URL, using S3 URL:', urlError);
+            // Fallback: use S3 URL directly
+            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+            const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+            uploadedImages.push({
+              imageUrl: s3Url,
+              s3Key: s3Key,
+              createdAt: new Date().toISOString(),
+              metadata: {
+                s3Key: s3Key
+              }
+            });
+          }
+        }
+
+        // Add delay between uploads to allow DynamoDB eventual consistency
+        if (fileArray.length > 1 && i < fileArray.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Step 4: Update UI
+      if (location && !isCreating) {
         // Update formData immediately for UI update
         setFormData(prev => ({
           ...prev,
-          images: transformedImages
+          images: uploadedImages
         }));
 
         // Update location in context to trigger re-render
         await updateLocation(location.id, {
-          images: transformedImages
+          images: uploadedImages
         });
 
         // Update parent component
-        const updatedLocation = { ...location, images: transformedImages };
+        const updatedLocation = { ...location, images: uploadedImages };
         onUpdate(updatedLocation);
 
         toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
 
         // Show StorageDecisionModal for first uploaded image
-        if (transformedImages.length > 0) {
+        if (uploadedImages.length > 0) {
           setSelectedAsset({
-            url: transformedImages[0].imageUrl,
-            s3Key: transformedImages[0].metadata.s3Key,
+            url: uploadedImages[0].imageUrl,
+            s3Key: uploadedImages[0].metadata.s3Key,
             name: fileArray[0].name,
             type: 'image'
           });
@@ -364,17 +481,8 @@ export default function LocationDetailSidebar({
         }
       } else if (isCreating) {
         // New location - store temporarily, will be added after location creation
-        // Extract images from response if available
-        const imagesArray = uploadData.data?.images || [];
-        const transformedImages = imagesArray.map((img: any) => ({
-          imageUrl: img.imageUrl || img.url,
-          createdAt: img.createdAt || new Date().toISOString(),
-          metadata: {
-            s3Key: img.s3Key || img.metadata?.s3Key
-          }
-        }));
-        setPendingImages(prev => [...prev, ...transformedImages]);
-        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
+        setPendingImages(prev => [...prev, ...uploadedImages]);
+        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''} - will be added when location is created`);
       }
 
     } catch (error: any) {
