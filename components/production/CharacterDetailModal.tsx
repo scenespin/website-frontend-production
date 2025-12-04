@@ -497,14 +497,14 @@ export function CharacterDetailModal({
                     </div>
                   ) : null}
                   
-                  {/* Reference Images Section */}
+                  {/* User Uploaded Reference Images Section */}
                   {userReferences.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#3F3F46]">
                         <h3 className="text-sm font-semibold text-white">
-                          Reference Images ({userReferences.length})
+                          User Uploaded Reference ({userReferences.length})
                         </h3>
-                        <span className="text-xs text-[#6B7280]">User uploaded</span>
+                        <span className="text-xs text-[#6B7280]">Delete in Creation section</span>
                       </div>
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                         {userReferences.map((img, idx) => {
@@ -635,14 +635,14 @@ export function CharacterDetailModal({
                     </div>
                   )}
                   
-                  {/* Generated Poses Section - Organized by Outfit */}
+                  {/* AI Generated Reference/Poses Section - Organized by Outfit */}
                   {poseReferences.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#3F3F46]">
                         <h3 className="text-sm font-semibold text-white">
-                          Generated Poses ({poseReferences.length})
+                          AI Generated Reference/Poses ({poseReferences.length})
                         </h3>
-                        <span className="text-xs text-[#6B7280]">AI generated</span>
+                        <span className="text-xs text-[#6B7280]">Organized by outfit</span>
                       </div>
                       
                       {/* Outfit Tabs - Only show if multiple outfits */}

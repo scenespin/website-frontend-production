@@ -1065,14 +1065,14 @@ export default function CharacterDetailSidebar({
                       </div>
                     )}
                     
-                    {/* AI-Generated Images (Poses) */}
+                    {/* AI Generated Reference/Poses */}
                     {aiGeneratedImages.length > 0 && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2 pb-2 border-b" style={{ borderColor: '#3F3F46' }}>
                           <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
-                            Generated Poses ({aiGeneratedImages.length})
+                            AI Generated Reference/Poses ({aiGeneratedImages.length})
                           </label>
-                          <span className="text-xs" style={{ color: '#6B7280' }}>AI generated</span>
+                          <span className="text-xs" style={{ color: '#6B7280' }}>Delete in Production Hub</span>
                         </div>
                         <ImageGallery
                           images={aiGeneratedImages}
