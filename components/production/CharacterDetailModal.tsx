@@ -133,15 +133,53 @@ export function CharacterDetailModal({
     }))
   ].filter(Boolean) as Array<{id: string; imageUrl: string; s3Key?: string; label: string; isBase: boolean; isPose: boolean; index: number}>;
   
-  const poseReferences = (character.poseReferences || []).map(ref => ({
-    id: ref.id,
-    imageUrl: ref.imageUrl,
-    s3Key: ref.s3Key,
-    label: ref.label || 'Pose',
-    isBase: false,
-    isPose: true,
-    index: -1 // Will be set below
-  }));
+  /**
+   * Extract outfit name from S3 key path
+   * Path format: temp/images/{userId}/{screenplayId}/character/{characterId}/outfits/{outfitName}/poses/{uuid}.png
+   */
+  const extractOutfitFromS3Key = (s3Key: string | undefined): string => {
+    if (!s3Key) return 'default';
+    const parts = s3Key.split('/');
+    const outfitsIndex = parts.indexOf('outfits');
+    if (outfitsIndex >= 0 && outfitsIndex + 1 < parts.length) {
+      return parts[outfitsIndex + 1];
+    }
+    return 'default';
+  };
+
+  type PoseReferenceWithOutfit = {
+    id: string;
+    imageUrl: string;
+    s3Key?: string;
+    label: string;
+    isBase: boolean;
+    isPose: boolean;
+    outfitName: string;
+    index: number;
+  };
+
+  const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map(ref => {
+    // Extract outfit from S3 key or metadata
+    const outfitFromS3 = extractOutfitFromS3Key(ref.s3Key);
+    // Also check context images for outfit metadata
+    const contextImage = allImagesFromContext.find((img: any) => 
+      (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key) &&
+      img.metadata?.source === 'pose-generation'
+    );
+    const outfitFromMetadata = contextImage?.metadata?.outfitName;
+    const outfitName = outfitFromMetadata || outfitFromS3;
+    
+    return {
+      id: ref.id,
+      imageUrl: ref.imageUrl,
+      s3Key: ref.s3Key,
+      label: ref.label || 'Pose',
+      isBase: false,
+      isPose: true,
+      outfitName: outfitName, // Store outfit name for grouping
+      index: -1 // Will be set below
+    };
+  });
   
   // Map to context images array to get the actual index
   // Find each image in the context's images array by s3Key
@@ -165,7 +203,38 @@ export function CharacterDetailModal({
     }
   });
   
-  // Combined for main display
+  // 🔥 NEW: Group poses by outfit
+  const posesByOutfit = useMemo(() => {
+    const grouped: Record<string, PoseReferenceWithOutfit[]> = {};
+    poseReferences.forEach(pose => {
+      const outfit = pose.outfitName || 'default';
+      if (!grouped[outfit]) {
+        grouped[outfit] = [];
+      }
+      grouped[outfit].push(pose);
+    });
+    return grouped;
+  }, [poseReferences]);
+  
+  // Get outfit names sorted (default first, then alphabetically)
+  const outfitNames = useMemo(() => {
+    const outfits = Object.keys(posesByOutfit);
+    const defaultOutfit = outfits.find(o => o === 'default');
+    const otherOutfits = outfits.filter(o => o !== 'default').sort();
+    return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
+  }, [posesByOutfit]);
+  
+  // Selected outfit tab state
+  const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);
+  
+  // Set default outfit when poses change
+  useEffect(() => {
+    if (outfitNames.length > 0 && !selectedOutfit) {
+      setSelectedOutfit(outfitNames[0]);
+    }
+  }, [outfitNames, selectedOutfit]);
+  
+  // Combined for main display (all images, not grouped)
   const allImages = [...userReferences, ...poseReferences];
 
   // Headshot angle labels for multiple headshots (matching Create section)
@@ -547,7 +616,7 @@ export function CharacterDetailModal({
                         </div>
                       )}
                   
-                  {/* Generated Poses Section */}
+                  {/* Generated Poses Section - Organized by Outfit */}
                   {poseReferences.length > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-3">
@@ -556,8 +625,64 @@ export function CharacterDetailModal({
                         </h3>
                         <span className="text-xs text-[#6B7280]">AI generated</span>
                       </div>
+                      
+                      {/* Outfit Tabs - Only show if multiple outfits */}
+                      {outfitNames.length > 1 && (
+                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
+                          {outfitNames.map((outfitName) => {
+                            // Format outfit name for display
+                            // If default, use typicalClothing or "Default Outfit"
+                            // Otherwise, convert from sanitized format (e.g., "business-casual" -> "Business Casual")
+                            let outfitDisplayName: string;
+                            if (outfitName === 'default') {
+                              outfitDisplayName = physicalAttributes?.typicalClothing 
+                                ? physicalAttributes.typicalClothing
+                                : 'Default Outfit';
+                            } else {
+                              // Convert sanitized name back to readable format
+                              // e.g., "business-casual" -> "Business Casual"
+                              outfitDisplayName = outfitName
+                                .split('-')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
+                            }
+                            const poseCount = posesByOutfit[outfitName]?.length || 0;
+                            
+                            return (
+                              <button
+                                key={outfitName}
+                                onClick={() => setSelectedOutfit(outfitName)}
+                                className={cn(
+                                  "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0",
+                                  selectedOutfit === outfitName
+                                    ? "bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20"
+                                    : "bg-[#1F1F23] text-[#B3B3B3] hover:bg-[#2C2C2E] border border-[#3F3F46]"
+                                )}
+                              >
+                                {outfitDisplayName} <span className="opacity-75">({poseCount})</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Show outfit name as header if single outfit */}
+                      {outfitNames.length === 1 && outfitNames[0] !== 'default' && (
+                        <div className="mb-3">
+                          <p className="text-xs text-[#808080]">
+                            Outfit: <span className="text-[#B3B3B3] font-medium">
+                              {outfitNames[0]
+                                .split('-')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ')}
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Poses Grid - Filtered by selected outfit */}
                       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                        {poseReferences.map((img, idx) => {
+                        {(selectedOutfit ? posesByOutfit[selectedOutfit] || [] : poseReferences).map((img, idx) => {
                           const globalIndex = allImages.findIndex(i => i.id === img.id);
                           return (
                             <div key={img.id} className="relative group">
