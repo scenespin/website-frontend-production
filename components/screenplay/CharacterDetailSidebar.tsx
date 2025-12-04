@@ -12,7 +12,6 @@ import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
-import { compressImage, needsCompression } from '@/utils/imageCompression'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -275,14 +274,14 @@ export default function CharacterDetailSidebar({
       return;
     }
 
-    // Validate all files
+      // Validate all files
     for (const file of fileArray) {
       if (!file.type.startsWith('image/')) {
         toast.error(`${file.name} is not an image file`);
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 50MB.`);
         return;
       }
     }
@@ -301,49 +300,94 @@ export default function CharacterDetailSidebar({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
+      // 🔥 FIX: Use direct S3 uploads to bypass Vercel's 4.5MB body size limit
       // Upload files sequentially (backend currently accepts single file per request)
       // For replaceBase, only upload first file. For additional references, upload all.
       let lastEnrichedCharacter: any = null;
       
       for (let i = 0; i < fileArray.length; i++) {
-        let file = fileArray[i];
+        const file = fileArray[i];
         
-        // 🔥 FIX: Compress image if it's too large (Vercel has 4.5MB body size limit)
-        if (needsCompression(file, 4)) {
-          console.log(`[CharacterDetailSidebar] 📦 Compressing image ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-          try {
-            file = await compressImage(file, { maxSizeMB: 4, quality: 0.85 });
-            console.log(`[CharacterDetailSidebar] ✅ Compressed to ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-          } catch (compressionError: any) {
-            console.warn(`[CharacterDetailSidebar] ⚠️ Compression failed, uploading original:`, compressionError.message);
-            // Continue with original file if compression fails
-          }
-        }
-        
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('replaceBase', replaceBase && i === 0 ? 'true' : 'false'); // Only replace base on first file if replaceBase=true
-
         console.log(`[CharacterDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB, replaceBase: ${replaceBase && i === 0})`);
 
-        const uploadResponse = await fetch(
+        // Step 1: Get presigned POST URL for direct S3 upload
+        const presignedResponse = await fetch(
+          `/api/characters/upload/get-presigned-url?` +
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&screenplayId=${encodeURIComponent(screenplayId)}` +
+          `&characterId=${encodeURIComponent(character.id)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!presignedResponse.ok) {
+          const errorData = await presignedResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
+
+        const { url, fields, s3Key } = await presignedResponse.json();
+        
+        if (!url || !fields || !s3Key) {
+          throw new Error('Invalid response from server');
+        }
+
+        // Step 2: Upload directly to S3 using presigned POST
+        const s3FormData = new FormData();
+        
+        // Add all the fields returned from createPresignedPost
+        Object.entries(fields).forEach(([key, value]) => {
+          // Skip 'bucket' field - it's only used in the policy, not in FormData
+          if (key.toLowerCase() !== 'bucket') {
+            s3FormData.append(key, value as string);
+          }
+        });
+        
+        // Add the file last (must be last field in FormData per AWS requirements)
+        s3FormData.append('file', file);
+        
+        // Upload to S3 using XMLHttpRequest for better error handling
+        const s3UploadResponse = await fetch(url, {
+          method: 'POST',
+          body: s3FormData,
+        });
+
+        if (!s3UploadResponse.ok) {
+          const errorText = await s3UploadResponse.text();
+          console.error('[CharacterDetailSidebar] S3 upload failed:', errorText);
+          throw new Error(`S3 upload failed: ${s3UploadResponse.status}`);
+        }
+
+        console.log(`[CharacterDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
+
+        // Step 3: Register the uploaded image with the character via backend
+        const registerResponse = await fetch(
           `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
           {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
-            body: formData,
+            body: JSON.stringify({
+              s3Key,
+              replaceBase: replaceBase && i === 0, // Only replace base on first file if replaceBase=true
+            }),
           }
         );
 
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json().catch(() => ({}));
-          throw new Error(errorData.error || `Upload failed for ${file.name}: ${uploadResponse.status}`);
+        if (!registerResponse.ok) {
+          const errorData = await registerResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
         }
 
-        const uploadData = await uploadResponse.json();
-        lastEnrichedCharacter = uploadData.data;
+        const registerData = await registerResponse.json();
+        lastEnrichedCharacter = registerData.data;
         
         // Add delay between uploads to allow DynamoDB eventual consistency
         if (fileArray.length > 1 && i < fileArray.length - 1) {
