@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './ProductionPageLayout';
 import { toast } from 'sonner';
@@ -184,15 +184,24 @@ export function CharacterDetailModal({
     };
   });
   
-  // Map to context images array to get the actual index
+  // Map to context images array to get the actual index and source
   // Find each image in the context's images array by s3Key
   userReferences.forEach((ref, idx) => {
     if (ref.s3Key) {
-      const contextIndex = allImagesFromContext.findIndex((img: any) => 
+      const contextImage = allImagesFromContext.find((img: any) => 
         (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key) &&
         (!img.metadata?.source || img.metadata?.source === 'user-upload')
       );
-      ref.index = contextIndex >= 0 ? contextIndex : -1;
+      if (contextImage) {
+        const contextIndex = allImagesFromContext.indexOf(contextImage);
+        ref.index = contextIndex >= 0 ? contextIndex : -1;
+        // 🔥 NEW: Add metadata to userReferences so we can check source for deletion restrictions
+        (ref as any).metadata = { source: contextImage.metadata?.source || 'user-upload' };
+      } else {
+        ref.index = -1;
+        // Default to user-upload if not found (safer assumption)
+        (ref as any).metadata = { source: 'user-upload' };
+      }
     }
   });
   
@@ -521,13 +530,24 @@ export function CharacterDetailModal({
                                 </div>
                               )}
                             </button>
-                              {/* Delete button - only show on hover */}
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
-                                    return;
-                                  }
+                              {/* Delete button - only show on hover, but DISABLED for user-uploaded references in Production Hub */}
+                              {/* 🔥 RESTRICTION: Production Hub only allows deletion of AI-generated images, not user-uploaded references */}
+                              {/* Check context images to determine if this is AI-generated or user-uploaded */}
+                              {(() => {
+                                // Find the corresponding context image to check its source
+                                const contextImage = allImagesFromContext.find((ctxImg: any) => 
+                                  (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
+                                );
+                                const isAIGenerated = contextImage?.metadata?.source === 'pose-generation' || 
+                                                      contextImage?.metadata?.source === 'image-generation';
+                                return isAIGenerated;
+                              })() ? (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
+                                      return;
+                                    }
                                   
                                   try {
                                     // 🔥 FIX: Use exact same pattern as CharacterDetailSidebar
@@ -600,12 +620,20 @@ export function CharacterDetailModal({
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
+                              ) : (
+                                // User-uploaded reference - show info tooltip instead of delete button
+                                <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-[#3F3F46] rounded text-white cursor-help"
+                                  title="User-uploaded references can only be deleted in the Creation section"
+                                >
+                                  <Info className="w-3 h-3" />
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
-                        </div>
-                      )}
+                    </div>
+                  )}
                   
                   {/* Generated Poses Section - Organized by Outfit */}
                   {poseReferences.length > 0 && (

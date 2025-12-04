@@ -1079,59 +1079,8 @@ export default function CharacterDetailSidebar({
                           entityType="character"
                           entityId={character?.id || 'new'}
                           entityName={formData.name || 'New Character'}
-                          onDeleteImage={async (index: number) => {
-                            if (character) {
-                              try {
-                                // Get current character from context to ensure we have latest images
-                                const currentCharacter = characters.find(c => c.id === character.id) || character;
-                                const currentImages = currentCharacter.images || [];
-                                // Find the actual index in the full images array
-                                const imageToDelete = aiGeneratedImages[index];
-                                const actualIndex = currentImages.findIndex((img: any) => {
-                                  const imgS3Key = img.metadata?.s3Key || img.s3Key;
-                                  // ImageAsset has s3Key in metadata, not at top level
-                                  const deleteS3Key = imageToDelete.metadata?.s3Key;
-                                  return imgS3Key === deleteS3Key && 
-                                    (img.metadata?.source === 'pose-generation' || img.metadata?.source === 'image-generation');
-                                });
-                                
-                                if (actualIndex < 0) {
-                                  throw new Error('Image not found in character data');
-                                }
-                                
-                                const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
-                                
-                                // Optimistic UI update - remove image immediately
-                                setFormData(prev => ({
-                                  ...prev,
-                                  images: updatedImages
-                                }));
-                                
-                                await updateCharacter(character.id, { images: updatedImages });
-                                
-                                // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears
-                                if (screenplayId) {
-                                  queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                }
-                                
-                                // Sync from context after update (with delay for DynamoDB consistency)
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                                const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                                if (updatedCharacterFromContext) {
-                                  setFormData({ ...updatedCharacterFromContext });
-                                }
-                                
-                                toast.success('Pose removed');
-                              } catch (error: any) {
-                                // Rollback on error
-                                setFormData(prev => ({
-                                  ...prev,
-                                  images: character.images || []
-                                }));
-                                toast.error(`Failed to remove pose: ${error.message}`);
-                              }
-                            }
-                          }}
+                          readOnly={true} // 🔥 RESTRICTION: Creation section cannot delete AI-generated poses - only Production Hub can
+                          // Note: onDeleteImage is not provided, so ImageGallery won't show delete button
                         />
                       </div>
                     )}
