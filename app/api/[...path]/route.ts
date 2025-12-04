@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
+// 🔥 FIX: Increase max duration for large file uploads (Vercel default is 10s, max is 300s for Pro)
+export const maxDuration = 60; // 60 seconds for image uploads
 
 /**
  * Catch-all API proxy route

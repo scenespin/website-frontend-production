@@ -12,6 +12,7 @@ import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
+import { compressImage, needsCompression } from '@/utils/imageCompression'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -305,12 +306,25 @@ export default function CharacterDetailSidebar({
       let lastEnrichedCharacter: any = null;
       
       for (let i = 0; i < fileArray.length; i++) {
-        const file = fileArray[i];
+        let file = fileArray[i];
+        
+        // 🔥 FIX: Compress image if it's too large (Vercel has 4.5MB body size limit)
+        if (needsCompression(file, 4)) {
+          console.log(`[CharacterDetailSidebar] 📦 Compressing image ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+          try {
+            file = await compressImage(file, { maxSizeMB: 4, quality: 0.85 });
+            console.log(`[CharacterDetailSidebar] ✅ Compressed to ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          } catch (compressionError: any) {
+            console.warn(`[CharacterDetailSidebar] ⚠️ Compression failed, uploading original:`, compressionError.message);
+            // Continue with original file if compression fails
+          }
+        }
+        
         const formData = new FormData();
         formData.append('image', file);
         formData.append('replaceBase', replaceBase && i === 0 ? 'true' : 'false'); // Only replace base on first file if replaceBase=true
 
-        console.log(`[CharacterDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (replaceBase: ${replaceBase && i === 0})`);
+        console.log(`[CharacterDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB, replaceBase: ${replaceBase && i === 0})`);
 
         const uploadResponse = await fetch(
           `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
