@@ -32,10 +32,9 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
   
-  // 🔥 NEW: Use ScreenplayContext assets for real-time sync with creation section
+  // 🔥 FIX: Use ScreenplayContext assets directly for real-time sync (like characters/locations)
   const { assets: contextAssets } = useScreenplay();
   
-  const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -44,20 +43,23 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   const [show3DExportModal, setShow3DExportModal] = useState(false);
   const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
 
-  // 🔥 NEW: Sync with ScreenplayContext assets (created in creation section)
-  useEffect(() => {
-    if (contextAssets && contextAssets.length > 0) {
-      // Filter by selected category if needed
-      const filtered = selectedCategory === 'all' 
+  // 🔥 FIX: Use context assets directly for real-time sync (like characters/locations)
+  // Filter by category
+  const assets = contextAssets && contextAssets.length > 0
+    ? (selectedCategory === 'all' 
         ? contextAssets 
-        : contextAssets.filter(a => a.category === selectedCategory);
-      setAssets(filtered);
-    }
-  }, [contextAssets, selectedCategory]);
+        : contextAssets.filter(a => a.category === selectedCategory))
+    : [];
 
+  // 🔥 FIX: Only fetch on initial mount if context is empty (for backward compatibility)
+  // Don't fetch on category change - context handles all updates
   useEffect(() => {
-    fetchAssets();
-  }, [projectId, selectedCategory]);
+    if (!contextAssets || contextAssets.length === 0) {
+      fetchAssets();
+    } else {
+      setLoading(false);
+    }
+  }, [projectId]); // Only fetch when projectId changes
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -82,7 +84,8 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
 
       if (response.ok) {
         const data = await response.json();
-        setAssets(data.assets || []);
+        // Don't set local state - context will handle it
+        // This is just for initial load if context is empty
       }
     } catch (error) {
       console.error('Failed to fetch assets:', error);

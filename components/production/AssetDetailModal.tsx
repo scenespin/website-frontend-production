@@ -21,6 +21,8 @@ import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Arm
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -42,6 +44,8 @@ export default function AssetDetailModal({
   isMobile = false
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
+  const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
+  const { updateAsset, screenplayId } = useScreenplay(); // 🔥 NEW: Use context for real-time sync
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(asset.name);
@@ -94,6 +98,29 @@ export default function AssetDetailModal({
       }
 
       toast.success(`Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`);
+      
+      // 🔥 NEW: Invalidate Media Library cache so new image appears
+      if (screenplayId) {
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      }
+      
+      // 🔥 NEW: Update asset in context for real-time sync
+      if (updateAsset) {
+        // Refetch asset to get updated images
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          const response = await fetch(`/api/asset-bank/${asset.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            await updateAsset(asset.id, data.asset || data);
+          }
+        } catch (error) {
+          console.error('Failed to sync asset update:', error);
+        }
+      }
+      
       onUpdate(); // Refresh asset data
     } catch (error: any) {
       console.error('Upload failed:', error);

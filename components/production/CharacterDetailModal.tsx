@@ -755,8 +755,11 @@ export function CharacterDetailModal({
                                     const actualIndex = currentImages.findIndex((image: any) => {
                                       const imgS3Key = image.metadata?.s3Key || image.s3Key;
                                       // ImageAsset has s3Key in metadata, not at top level
-                                      return imgS3Key === deleteS3Key && 
-                                        (image.metadata?.source === 'pose-generation' || image.metadata?.source === 'image-generation');
+                                      // Check both source and uploadMethod for pose-generation
+                                      const isPoseGenerated = image.metadata?.source === 'pose-generation' || 
+                                                              image.metadata?.source === 'image-generation' ||
+                                                              image.metadata?.uploadMethod === 'pose-generation';
+                                      return imgS3Key === deleteS3Key && isPoseGenerated;
                                     });
                                     
                                     if (actualIndex < 0) {
