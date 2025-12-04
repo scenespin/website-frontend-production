@@ -860,18 +860,24 @@ export function CharacterDetailModal({
                                     const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
                                     
                                     // 🔥 FIX: Also remove from poseReferences array if it's a pose
-                                    const currentPoseReferences = currentCharacter.poseReferences || [];
+                                    // Note: character is CharacterProfile (has poseReferences), currentCharacter is Character (from context, doesn't have poseReferences)
+                                    const currentPoseReferences = character.poseReferences || [];
                                     const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                       const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                       return refS3Key !== deleteS3Key;
                                     });
                                     
                                     // Optimistic UI update - remove image immediately
-                                    // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
+                                    // Call updateCharacter from context for images (Character type)
                                     await updateCharacter(character.id, { 
-                                      images: updatedImages,
-                                      poseReferences: updatedPoseReferences // 🔥 FIX: Also update poseReferences
+                                      images: updatedImages
                                     });
+                                    // Also update poseReferences via onUpdate (CharacterProfile type)
+                                    if (updatedPoseReferences.length !== currentPoseReferences.length) {
+                                      await onUpdate(character.id, { 
+                                        poseReferences: updatedPoseReferences // 🔥 FIX: Update poseReferences via CharacterProfile update
+                                      });
+                                    }
                                     
                                     // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears
                                     queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
