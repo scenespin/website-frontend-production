@@ -122,6 +122,7 @@ export function CharacterDetailModal({
   
   // Separate user-uploaded references from generated poses for better organization
   // 🔥 FIX: Filter out AI-generated images from character.references - they should only be in poseReferences
+  // CRITICAL: If an image is in poseReferences, it's AI-generated and should NOT be in userReferences
   const userReferences = [
     character.baseReference ? {
       id: 'base',
@@ -134,13 +135,19 @@ export function CharacterDetailModal({
     } : null,
     ...character.references
       .filter(ref => {
-        // Filter out AI-generated images - check if this reference is in poseReferences or has AI metadata
-        const isInPoseReferences = character.poseReferences?.some(poseRef => 
-          (typeof poseRef === 'string' ? poseRef === ref.s3Key : poseRef.s3Key === ref.s3Key)
-        );
-        if (isInPoseReferences) return false;
+        // 🔥 CRITICAL FIX: Check if this reference is in poseReferences FIRST
+        // If it's in poseReferences, it's AI-generated and should NOT be in userReferences
+        const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
+          const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
+          const refS3Key = ref.s3Key;
+          return poseS3Key === refS3Key;
+        });
+        if (isInPoseReferences) {
+          console.log('[CharacterDetailModal] Filtering out AI-generated image from userReferences:', ref.s3Key);
+          return false;
+        }
         
-        // Also check context images to see if it's AI-generated
+        // Also check context images to see if it's AI-generated (for legacy data)
         const contextImage = allImagesFromContext.find((img: any) => 
           (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key)
         );
@@ -149,6 +156,10 @@ export function CharacterDetailModal({
                               contextImage?.metadata?.uploadMethod === 'pose-generation' ||
                               contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') ||
                               contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon');
+        
+        if (isAIGenerated) {
+          console.log('[CharacterDetailModal] Filtering out AI-generated image (legacy) from userReferences:', ref.s3Key);
+        }
         
         // Only include user-uploaded references (not AI-generated)
         return !isAIGenerated;
@@ -190,26 +201,31 @@ export function CharacterDetailModal({
     poseId?: string; // Pose definition ID for regeneration
   };
 
+  // 🔥 CRITICAL FIX: All images in poseReferences are AI-generated poses
+  // They should ALWAYS be treated as created in Production Hub, regardless of metadata
   const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map(ref => {
     // Extract outfit from S3 key or metadata
     const outfitFromS3 = extractOutfitFromS3Key(ref.s3Key);
-    // Also check context images for outfit metadata
-    // 🔥 FIX: Check both source and uploadMethod for pose-generation
+    // Also check context images for outfit metadata (if pose was added to images array)
     const contextImage = allImagesFromContext.find((img: any) => {
-      const s3KeyMatch = img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key;
-      const isPoseGenerated = img.metadata?.source === 'pose-generation' || 
-                              img.metadata?.uploadMethod === 'pose-generation';
-      return s3KeyMatch && isPoseGenerated;
+      const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+      const imgS3Key = img.metadata?.s3Key || img.s3Key;
+      return imgS3Key === refS3Key;
     });
     const outfitFromMetadata = contextImage?.metadata?.outfitName;
     const outfitName = outfitFromMetadata || outfitFromS3;
     const poseId = contextImage?.metadata?.poseId; // Extract poseId from metadata
     
+    // Handle both string and object formats for poseReferences
+    const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+    const refId = typeof ref === 'string' ? `pose_${refS3Key}` : ref.id;
+    const refImageUrl = typeof ref === 'string' ? '' : ref.imageUrl;
+    
     return {
-      id: ref.id,
-      imageUrl: ref.imageUrl,
-      s3Key: ref.s3Key,
-      label: ref.label || 'Pose',
+      id: refId,
+      imageUrl: refImageUrl, // Will be populated from context or generated presigned URL
+      s3Key: refS3Key,
+      label: (typeof ref === 'string' ? 'Pose' : ref.label) || 'Pose',
       isBase: false,
       isPose: true,
       outfitName: outfitName, // Store outfit name for grouping
@@ -239,14 +255,42 @@ export function CharacterDetailModal({
     }
   });
   
+  // 🔥 FIX: Generate presigned URLs for pose references if they're missing imageUrl
+  // Also find context images for metadata (outfit, poseId)
   poseReferences.forEach((ref, idx) => {
     if (ref.s3Key) {
-      // 🔥 FIX: Check both source and uploadMethod for pose-generation
+      // Find context image for metadata (outfit, poseId)
+      const contextImage = allImagesFromContext.find((img: any) => {
+        const imgS3Key = img.metadata?.s3Key || img.s3Key;
+        return imgS3Key === ref.s3Key;
+      });
+      
+      // If imageUrl is missing, try to get it from context or generate presigned URL
+      if (!ref.imageUrl && ref.s3Key) {
+        // Try context first
+        if (contextImage?.imageUrl) {
+          ref.imageUrl = contextImage.imageUrl;
+        } else {
+          // Generate presigned URL on-demand (will be done via usePresignedUrl hook if needed)
+          // For now, set empty string - the image component will handle loading
+          ref.imageUrl = '';
+        }
+      }
+      
+      // Update outfit and poseId from context if found
+      if (contextImage) {
+        if (contextImage.metadata?.outfitName && !ref.outfitName) {
+          ref.outfitName = contextImage.metadata.outfitName;
+        }
+        if (contextImage.metadata?.poseId && !ref.poseId) {
+          ref.poseId = contextImage.metadata.poseId;
+        }
+      }
+      
+      // Set index for display
       const contextIndex = allImagesFromContext.findIndex((img: any) => {
-        const s3KeyMatch = img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key;
-        const isPoseGenerated = img.metadata?.source === 'pose-generation' || 
-                                img.metadata?.uploadMethod === 'pose-generation';
-        return s3KeyMatch && isPoseGenerated;
+        const imgS3Key = img.metadata?.s3Key || img.s3Key;
+        return imgS3Key === ref.s3Key;
       });
       ref.index = contextIndex >= 0 ? contextIndex : -1;
     }
@@ -571,13 +615,23 @@ export function CharacterDetailModal({
                             </button>
                               {/* Three-dot menu for actions (mobile-friendly) */}
                               {(() => {
-                                // Find the corresponding context image to check where it was created
+                                // 🔥 CRITICAL FIX: Check if image is in poseReferences FIRST
+                                // If it's in poseReferences, it's ALWAYS AI-generated in Production Hub
+                                const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
+                                  const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
+                                  return poseS3Key === img.s3Key;
+                                });
+                                
+                                // Also check context image for metadata (legacy support)
                                 const contextImage = allImagesFromContext.find((ctxImg: any) => 
                                   (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
                                 );
-                                // 🔥 LOGIC: Check if image was created/uploaded in Production Hub
-                                // Created in Production Hub if: pose-generation, image-generation, or createdIn === 'production-hub'
-                                const createdInProductionHub = contextImage?.metadata?.source === 'pose-generation' || 
+                                
+                                // 🔥 LOGIC: Image was created in Production Hub if:
+                                // 1. It's in poseReferences (AI-generated poses) OR
+                                // 2. Context metadata indicates pose-generation/image-generation
+                                const createdInProductionHub = isInPoseReferences || 
+                                                              contextImage?.metadata?.source === 'pose-generation' || 
                                                               contextImage?.metadata?.source === 'image-generation' ||
                                                               contextImage?.metadata?.uploadMethod === 'pose-generation' ||
                                                               contextImage?.metadata?.createdIn === 'production-hub';
@@ -870,17 +924,22 @@ export function CharacterDetailModal({
                                         
                                         const actualIndex = currentImages.findIndex((image: any) => {
                                           const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                          // ImageAsset has s3Key in metadata, not at top level
-                                          // 🔥 FIX: Check both source and uploadMethod for pose-generation
-                                          // Also check if it's in poseReferences array (AI-generated poses)
+                                          if (imgS3Key !== deleteS3Key) return false;
+                                          
+                                          // 🔥 CRITICAL FIX: Check poseReferences FIRST (most reliable)
+                                          // If s3Key is in poseReferences, it's definitely an AI-generated pose
+                                          const isInPoseReferences = character.poseReferences?.some((ref: any) => {
+                                            const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                            return refS3Key === deleteS3Key;
+                                          });
+                                          
+                                          if (isInPoseReferences) return true;
+                                          
+                                          // Fallback: Check metadata (for legacy data or images that were added to images array)
                                           const isPoseGenerated = image.metadata?.source === 'pose-generation' || 
                                                                   image.metadata?.source === 'image-generation' ||
                                                                   image.metadata?.uploadMethod === 'pose-generation';
-                                          // Also check if this s3Key is in character.poseReferences (additional check)
-                                          const isInPoseReferences = character.poseReferences?.some((ref: any) => 
-                                            (typeof ref === 'string' ? ref === deleteS3Key : ref.s3Key === deleteS3Key)
-                                          );
-                                          return imgS3Key === deleteS3Key && (isPoseGenerated || isInPoseReferences);
+                                          return isPoseGenerated;
                                         });
                                         
                                         if (actualIndex < 0) {

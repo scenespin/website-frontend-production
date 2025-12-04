@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface WorkflowJob {
   jobId: string;
@@ -67,6 +68,7 @@ type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
 
 export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   const { getToken, userId } = useAuth();
+  const queryClient = useQueryClient();
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -194,6 +196,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
   /**
    * Poll running jobs every 5 seconds
+   * 🔥 NEW: Refresh character data when pose generation jobs complete
    */
   useEffect(() => {
     const hasRunningJobs = jobs.some(job => job.status === 'running' || job.status === 'queued');
@@ -210,6 +213,26 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
     return () => clearInterval(interval);
   }, [jobs]);
+  
+  /**
+   * 🔥 NEW: Watch for completed pose generation jobs and refresh character data immediately
+   */
+  useEffect(() => {
+    const completedPoseJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'pose-generation' &&
+      job.results?.poses &&
+      job.results.poses.length > 0
+    );
+    
+    if (completedPoseJobs.length > 0) {
+      // Trigger character refresh via window event (ProductionPageLayout listens to this)
+      window.dispatchEvent(new CustomEvent('refreshCharacters'));
+      
+      // Also invalidate React Query cache for media files
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+    }
+  }, [jobs, projectId, queryClient]);
 
   /**
    * Retry failed job

@@ -232,6 +232,17 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     return () => clearInterval(refreshInterval);
   }, [projectId, isLoaded, isSignedIn]);
   
+  // 🔥 NEW: Listen for immediate refresh requests (e.g., when pose generation completes)
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('[ProductionPageLayout] Refreshing characters due to pose generation completion');
+      loadCharacters();
+    };
+    
+    window.addEventListener('refreshCharacters', handleRefresh);
+    return () => window.removeEventListener('refreshCharacters', handleRefresh);
+  }, []);
+  
   // Watch video generation progress (real polling)
   useEffect(() => {
     if (currentClipIndex >= 0 && videoGeneration.isPolling) {
