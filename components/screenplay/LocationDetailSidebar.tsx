@@ -12,6 +12,7 @@ import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface LocationDetailSidebarProps {
   location?: Location | null
@@ -37,6 +38,7 @@ export default function LocationDetailSidebar({
   const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateLocation, screenplayId, locations } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
+  const queryClient = useQueryClient() // 🔥 NEW: For invalidating Media Library cache
   
   // Check if location is in script (if editing existing location) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -749,6 +751,11 @@ export default function LocationDetailSidebar({
                             
                             // Update via API
                             await updateLocation(location.id, { images: updatedImages });
+                            
+                            // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
+                            if (screenplayId) {
+                              queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                            }
                             
                             // 🔥 FIX: Don't sync from context immediately after deletion
                             // The useEffect hook will handle syncing when context actually updates

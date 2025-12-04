@@ -21,6 +21,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -56,6 +57,7 @@ export function CharacterDetailModal({
   const { getToken } = useAuth();
   const { updateCharacter, characters, isEntityInScript } = useScreenplay();
   const { state: editorState } = useEditor();
+  const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   
   // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
   const charactersRef = useRef(characters);
@@ -580,6 +582,9 @@ export function CharacterDetailModal({
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
                                     await updateCharacter(character.id, { images: updatedImages });
                                     
+                                    // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
+                                    queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                    
                                     // 🔥 FIX: Don't sync from context immediately after deletion
                                     // The useEffect hook will handle syncing when context actually updates
                                     // This prevents overwriting the optimistic update with stale data
@@ -746,6 +751,9 @@ export function CharacterDetailModal({
                                     // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
                                     await updateCharacter(character.id, { images: updatedImages });
+                                    
+                                    // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears
+                                    queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
                                     
                                     // 🔥 FIX: Don't sync from context immediately after deletion
                                     // The useEffect hook will handle syncing when context actually updates

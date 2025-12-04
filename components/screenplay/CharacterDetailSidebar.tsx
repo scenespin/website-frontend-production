@@ -12,6 +12,7 @@ import { ImagePromptModal } from '@/components/images/ImagePromptModal'
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface CharacterDetailSidebarProps {
   character?: Character | null
@@ -39,6 +40,7 @@ export default function CharacterDetailSidebar({
   const { getEntityImages, removeImageFromEntity, isEntityInScript, addImageToEntity, updateCharacter, screenplayId, characters } = useScreenplay()
   const { state: editorState } = useEditor()
   const { getToken } = useAuth()
+  const queryClient = useQueryClient() // 🔥 NEW: For invalidating Media Library cache
   
   // Check if character is in script (if editing existing character) - memoized to prevent render loops
   const isInScript = useMemo(() => {
@@ -1036,6 +1038,11 @@ export default function CharacterDetailSidebar({
                                 
                                 await updateCharacter(character.id, { images: updatedImages });
                                 
+                                // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
+                                if (screenplayId) {
+                                  queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                }
+                                
                                 // 🔥 FIX: Don't sync from context immediately after deletion
                                 // The useEffect hook will handle syncing when context actually updates
                                 // This prevents overwriting the optimistic update with stale data if user clicks Save quickly
@@ -1101,6 +1108,11 @@ export default function CharacterDetailSidebar({
                                 }));
                                 
                                 await updateCharacter(character.id, { images: updatedImages });
+                                
+                                // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears
+                                if (screenplayId) {
+                                  queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                }
                                 
                                 // Sync from context after update (with delay for DynamoDB consistency)
                                 await new Promise(resolve => setTimeout(resolve, 500));
