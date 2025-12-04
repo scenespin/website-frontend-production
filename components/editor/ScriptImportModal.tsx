@@ -19,7 +19,7 @@ interface ScriptImportModalProps {
 export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModalProps) {
     const { getToken } = useAuth();
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
-    const { setContent, saveNow } = useEditor();
+    const { setContent, saveNow, content: editorContent } = useEditor();
     const screenplay = useScreenplay();
     
     const [content, setContentLocal] = useState('');
@@ -58,10 +58,12 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         }
         
         // 🔥 NEW: Check if user has existing data
-        // Always clear on import to prevent duplicates (even if just default 8 beats exist)
+        // Only show warning if there's actual content (not just default 8-beat template)
+        // Check: characters, locations, scenes, OR editor has content
         const hasExistingData = screenplay.characters.length > 0 
             || screenplay.locations.length > 0 
-            || screenplay.beats.length > 0; // ANY beats means we need to clear first
+            || screenplay.scenes.length > 0
+            || (editorContent && editorContent.trim().length > 0); // Editor has actual content
         
         if (hasExistingData && !showWarning) {
             // Show warning first
@@ -271,7 +273,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
         } finally {
             setIsImporting(false);
         }
-    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning]);
+    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent]);
     
     if (!isOpen) return null;
     
@@ -372,8 +374,11 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                         {screenplay.locations.length > 0 && (
                                                             <li><strong>{screenplay.locations.length} locations</strong></li>
                                                         )}
-                                                        {screenplay.beats.length > 8 && (
-                                                            <li><strong>{screenplay.beats.length} story beats</strong></li>
+                                                        {screenplay.scenes.length > 0 && (
+                                                            <li><strong>{screenplay.scenes.length} scenes</strong></li>
+                                                        )}
+                                                        {editorContent && editorContent.trim().length > 0 && (
+                                                            <li><strong>Screenplay content in editor</strong></li>
                                                         )}
                                                     </ul>
                                                     <p className="mt-2">

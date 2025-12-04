@@ -219,17 +219,10 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
             <p className="text-lg font-medium text-[#B3B3B3]">No assets yet</p>
             <p className="text-sm text-[#808080] mt-2">
               {selectedCategory === 'all' 
-                ? 'Create your first asset to get started'
+                ? 'Assets are created in the Write/Create section'
                 : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`
               }
             </p>
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors mt-4 flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Asset
-            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
