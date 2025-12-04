@@ -1116,6 +1116,125 @@ export default function MediaLibrary({
     }
   };
 
+  /**
+   * 🔥 NEW: Sync single file to cloud storage
+   */
+  const handleSyncFileToCloud = async (fileId: string) => {
+    if (!projectId) {
+      toast.error('Project ID required');
+      return;
+    }
+
+    const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
+      c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
+    );
+
+    if (!activeConnection) {
+      toast.error('No cloud storage connection found. Please connect Google Drive or Dropbox first.');
+      return;
+    }
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const response = await fetch(`${BACKEND_API_URL}/api/storage/sync-file-to-cloud`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          screenplayId: projectId,
+          fileId,
+          provider: activeConnection.provider
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || error.message || 'Failed to sync file');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('File synced to cloud storage successfully');
+        await refetchFiles();
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+      } else {
+        toast.error(result.error || 'Failed to sync file');
+      }
+
+    } catch (error: any) {
+      console.error('[MediaLibrary] Sync file error:', error);
+      toast.error(`Failed to sync file: ${error.message}`);
+    }
+  };
+
+  /**
+   * 🔥 NEW: Sync folder to cloud storage
+   */
+  const handleSyncFolderToCloud = async (folderId: string) => {
+    if (!projectId) {
+      toast.error('Project ID required');
+      return;
+    }
+
+    const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
+      c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
+    );
+
+    if (!activeConnection) {
+      toast.error('No cloud storage connection found. Please connect Google Drive or Dropbox first.');
+      return;
+    }
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const response = await fetch(`${BACKEND_API_URL}/api/storage/sync-folder-to-cloud`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          screenplayId: projectId,
+          folderId,
+          provider: activeConnection.provider
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || error.message || 'Failed to sync folder');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success(`Successfully synced ${result.syncedFiles} file${result.syncedFiles === 1 ? '' : 's'} from folder to cloud storage`, {
+          description: result.failedFiles > 0 
+            ? `${result.failedFiles} file${result.failedFiles === 1 ? '' : 's'} failed to sync`
+            : undefined
+        });
+        await refetchFiles();
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'folders', projectId] });
+      } else {
+        toast.error(`Sync completed with errors: ${result.failedFiles} file${result.failedFiles === 1 ? '' : 's'} failed`, {
+          description: result.errors.length > 0 ? result.errors[0].error : undefined
+        });
+      }
+
+    } catch (error: any) {
+      console.error('[MediaLibrary] Sync folder error:', error);
+      toast.error(`Failed to sync folder: ${error.message}`);
+    }
+  };
+
   const handleConnectDrive = async (storageType: 'google-drive' | 'dropbox') => {
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -1231,7 +1350,7 @@ export default function MediaLibrary({
     // 🔥 NEW: Get cloud storage folders (for identical experience across storage providers)
     if (screenplayData?.cloudStorageProvider && cloudConnections.length > 0) {
       const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
-        c => c.provider === screenplayData.cloudStorageProvider && (c.connected || c.status === 'active')
+        c => c.provider === screenplayData.cloudStorageProvider && c.connected
       );
       
       if (activeConnection && !selectedFolderId) {

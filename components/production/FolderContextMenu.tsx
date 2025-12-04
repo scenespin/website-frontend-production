@@ -60,7 +60,7 @@ export function FolderActionsMenu({
     }
 
     const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
-      c => (c.connected || c.status === 'active') && (c.provider === 'google-drive' || c.provider === 'dropbox')
+      c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
     );
 
     if (!activeConnection) {
