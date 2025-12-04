@@ -50,6 +50,7 @@ export interface ImageAsset {
         angle?: string; // For character headshots: 'front' | 'side' | 'three-quarter'
         s3Key?: string; // S3 key for the uploaded file
         source?: string; // Source of image: 'pose-generation' | 'user-upload' | etc.
+        outfitName?: string; // Phase 3: Outfit name for pose organization (e.g., 'business-casual', 'default')
     };
 }
 
