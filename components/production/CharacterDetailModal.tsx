@@ -720,7 +720,8 @@ export function CharacterDetailModal({
                                     return;
                                   }
                                   
-                                  const currentImages = currentCharacter.images || [];
+                                  // Type guard: Character has images, CharacterProfile doesn't
+                                  const currentImages = ('images' in currentCharacter ? currentCharacter.images : allImagesFromContext) || [];
                                   
                                   // Store original images for rollback
                                   const originalImages = [...currentImages];
