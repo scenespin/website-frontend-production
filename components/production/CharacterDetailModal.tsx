@@ -711,29 +711,56 @@ export function CharacterDetailModal({
                                   if (!confirm('Delete generated pose?')) {
                                     return;
                                   }
-                                  // Get current character from context to ensure we have latest images
-                                  // Use same pattern as CharacterDetailSidebar: characters.find() with fallback
-                                  // Note: context character has 'images' property, CharacterProfile doesn't
-                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id);
-                                  const currentImages = currentCharacter?.images || [];
                                   
-                                  // Store original images for rollback (same pattern as CharacterDetailSidebar)
+                                  // 🔥 COPY PATTERN FROM CharacterDetailSidebar (working code)
+                                  // Get current character from context to ensure we have latest images
+                                  const currentCharacter = charactersRef.current.find(c => c.id === character.id) || character;
+                                  if (!currentCharacter) {
+                                    toast.error('Character not found');
+                                    return;
+                                  }
+                                  
+                                  const currentImages = currentCharacter.images || [];
+                                  
+                                  // Store original images for rollback
                                   const originalImages = [...currentImages];
                                   
                                   try {
+                                    // 🔥 KEY FIX: Match the same way CharacterDetailSidebar does
+                                    // img is a PoseReferenceWithOutfit which has s3Key at top level (from CharacterReference)
+                                    // In CharacterDetailSidebar, it uses imageToDelete.metadata?.s3Key because images come from getEntityImages
+                                    // But here, img comes from character.poseReferences which has s3Key at top level
+                                    const deleteS3Key = img.s3Key; // PoseReferenceWithOutfit has s3Key at top level
                                     
-                                    // Find the actual index in the full images array by matching s3Key
+                                    if (!deleteS3Key) {
+                                      throw new Error('Pose image missing S3 key');
+                                    }
+                                    
+                                    // Find the actual index in the full images array
                                     // Same pattern as CharacterDetailSidebar (for AI-generated images)
-                                    // Note: img comes from poseReferences array which has s3Key directly, not in metadata
+                                    // Context images have s3Key in metadata.s3Key (ImageAsset structure)
                                     const actualIndex = currentImages.findIndex((image: any) => {
                                       const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                      const deleteS3Key = img.s3Key; // poseReferences items have s3Key directly
+                                      // ImageAsset has s3Key in metadata, not at top level (per CharacterDetailSidebar comment)
                                       return imgS3Key === deleteS3Key && 
                                         (image.metadata?.source === 'pose-generation' || image.metadata?.source === 'image-generation');
                                     });
                                     
                                     if (actualIndex < 0) {
-                                      throw new Error('Image not found in character data');
+                                      console.error('[CharacterDetailModal] Pose not found in character data:', {
+                                        deleteS3Key,
+                                        imgId: img.id,
+                                        imgUrl: img.imageUrl,
+                                        imgMetadata: img.metadata,
+                                        currentImageCount: currentImages.length,
+                                        currentImages: currentImages.map((img: any, idx: number) => ({
+                                          idx,
+                                          s3Key: img.metadata?.s3Key || img.s3Key,
+                                          source: img.metadata?.source,
+                                          imageUrl: img.imageUrl?.substring(0, 50)
+                                        }))
+                                      });
+                                      throw new Error('Pose image not found in character data');
                                     }
                                     
                                     // Simple index-based deletion (same pattern as CharacterDetailSidebar)
@@ -753,13 +780,13 @@ export function CharacterDetailModal({
                                     
                                     toast.success('Pose deleted');
                                   } catch (error: any) {
-                                    console.error('Failed to delete pose:', error);
+                                    console.error('[CharacterDetailModal] Failed to delete pose:', error);
                                     // Rollback on error (same pattern as CharacterDetailSidebar)
                                     try {
                                       await updateCharacter(character.id, { images: originalImages });
                                       await onUpdate(character.id, {});
                                     } catch (rollbackError) {
-                                      console.error('Failed to rollback pose deletion:', rollbackError);
+                                      console.error('[CharacterDetailModal] Failed to rollback pose deletion:', rollbackError);
                                     }
                                     toast.error(`Failed to delete pose: ${error.message}`);
                                   }
