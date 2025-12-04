@@ -58,6 +58,7 @@ import { EditorContextBanner } from './EditorContextBanner';
 import { SceneSelector } from './SceneSelector';
 import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
+import { OutfitSelector } from './OutfitSelector';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -130,6 +131,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [dialogueMode, setDialogueMode] = useState<'talking-head' | 'user-video'>('talking-head');
   const [dialogueText, setDialogueText] = useState('');
   const [drivingVideoUrl, setDrivingVideoUrl] = useState<string | null>(null);
+  
+  // Outfit selection state (Phase 3)
+  const [selectedOutfit, setSelectedOutfit] = useState<string | undefined>(undefined);
+  const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
   
   // Wizard flow state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -343,6 +348,47 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     checkVoiceProfile();
   }, [selectedCharacterId, projectId, getToken]);
+  
+  // Fetch character's default outfit when character is selected (Phase 3)
+  useEffect(() => {
+    async function fetchCharacterOutfit() {
+      if (!selectedCharacterId || !projectId) {
+        setCharacterDefaultOutfit(undefined);
+        setSelectedOutfit(undefined);
+        return;
+      }
+      
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        
+        const response = await fetch(`/api/screenplays/${projectId}/characters/${selectedCharacterId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const outfit = data.data?.physicalAttributes?.typicalClothing;
+          if (outfit) {
+            setCharacterDefaultOutfit(outfit);
+            // Auto-select default outfit if none selected
+            if (!selectedOutfit) {
+              setSelectedOutfit(undefined); // undefined means use character default
+            }
+          } else {
+            setCharacterDefaultOutfit(undefined);
+          }
+        }
+      } catch (error) {
+        console.error('[SceneBuilder] Failed to fetch character outfit:', error);
+        // Non-fatal - continue without default
+      }
+    }
+    
+    fetchCharacterOutfit();
+  }, [selectedCharacterId, projectId, getToken, selectedOutfit]);
   
   // Poll workflow status every 3 seconds
   useEffect(() => {
@@ -1146,6 +1192,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Add optional fields if available
       if (selectedSceneId) {
         workflowRequest.sceneId = selectedSceneId;
+      }
+      
+      // Phase 3: Add outfit selection if character is selected
+      if (selectedCharacterId && selectedOutfit !== undefined) {
+        // undefined means use character default, otherwise use selected outfit
+        workflowRequest.typicalClothing = selectedOutfit;
       }
       
       // Feature 0109: Style matching support (if backend supports it)
@@ -2054,6 +2106,23 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                             </>
                           )}
                         </div>
+                      </div>
+                    )}
+                    
+                    {/* Outfit Selection (Phase 3) */}
+                    {selectedCharacterId && (
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block text-[#FFFFFF]">Character Outfit</Label>
+                        <OutfitSelector
+                          value={selectedOutfit}
+                          defaultValue={characterDefaultOutfit}
+                          onChange={(outfit) => setSelectedOutfit(outfit)}
+                          label=""
+                          showDefaultOption={true}
+                        />
+                        <p className="text-xs text-[#808080] mt-2">
+                          Select the outfit the character should wear in this scene
+                        </p>
                       </div>
                     )}
                     
