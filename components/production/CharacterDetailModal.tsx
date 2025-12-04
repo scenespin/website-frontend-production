@@ -20,6 +20,7 @@ import { PerformanceControls, type PerformanceSettings } from '../characters/Per
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
+import { cn } from '@/lib/utils';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
