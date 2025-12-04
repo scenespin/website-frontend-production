@@ -13,6 +13,7 @@ import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import { EditorProvider } from "@/contexts/EditorContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
+import { QueryClientProvider } from "@/providers/QueryClientProvider";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 
 // Auth Initializer: Sets up Clerk token getter for API calls
@@ -100,13 +101,15 @@ const DataMigration = () => {
 // 8. EditorProvider: Provides editor context for script content (shared across all pages)
 // 9. DrawerProvider: Provides drawer context for AI chat drawer
 // 10. ChatProvider: Provides chat context for AI workflows
+// 11. QueryClientProvider: Provides React Query client for Media Library and other queries
 // Note: No SessionProvider needed - Clerk handles auth via ClerkProvider in layout.js
 const ClientLayout = ({ children }) => {
   return (
-    <ScreenplayProvider>
-      <EditorProvider>
-        <DrawerProvider>
-          <ChatProvider>
+    <QueryClientProvider>
+      <ScreenplayProvider>
+        <EditorProvider>
+          <DrawerProvider>
+            <ChatProvider>
           {/* Run data migration FIRST to fix corrupted beats */}
           <DataMigration />
           
@@ -138,6 +141,7 @@ const ClientLayout = ({ children }) => {
         </DrawerProvider>
       </EditorProvider>
     </ScreenplayProvider>
+    </QueryClientProvider>
   );
 };
 
