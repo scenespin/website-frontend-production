@@ -39,7 +39,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         relationships, 
         isLoading, 
         hasInitializedFromDynamoDB, 
-        isEntityInScript, 
+        isEntityInScript,
+        screenplayId, 
         addImageToEntity,
         canEditScript,
         canUseAI
