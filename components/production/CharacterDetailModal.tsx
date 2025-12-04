@@ -752,7 +752,7 @@ export function CharacterDetailModal({
                                         deleteS3Key,
                                         imgId: img.id,
                                         imgUrl: img.imageUrl,
-                                        imgMetadata: img.metadata,
+                                        outfitName: img.outfitName,
                                         currentImageCount: currentImages.length,
                                         currentImages: currentImages.map((img: any, idx: number) => ({
                                           idx,
