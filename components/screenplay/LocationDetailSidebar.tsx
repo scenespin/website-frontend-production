@@ -749,12 +749,9 @@ export default function LocationDetailSidebar({
                             // Update via API
                             await updateLocation(location.id, { images: updatedImages });
                             
-                            // Sync from context after update (with delay for DynamoDB consistency)
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                            const updatedLocationFromContext = locations.find(l => l.id === location.id);
-                            if (updatedLocationFromContext) {
-                              setFormData({ ...updatedLocationFromContext });
-                            }
+                            // 🔥 FIX: Don't sync from context immediately after deletion
+                            // The useEffect hook will handle syncing when context actually updates
+                            // This prevents overwriting the optimistic update with stale data if user clicks Save quickly
                             
                             toast.success('Image removed');
                           } catch (error: any) {

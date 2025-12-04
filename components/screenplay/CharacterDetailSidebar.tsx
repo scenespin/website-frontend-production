@@ -1036,12 +1036,9 @@ export default function CharacterDetailSidebar({
                                 
                                 await updateCharacter(character.id, { images: updatedImages });
                                 
-                                // Sync from context after update (with delay for DynamoDB consistency)
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                                const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-                                if (updatedCharacterFromContext) {
-                                  setFormData({ ...updatedCharacterFromContext });
-                                }
+                                // 🔥 FIX: Don't sync from context immediately after deletion
+                                // The useEffect hook will handle syncing when context actually updates
+                                // This prevents overwriting the optimistic update with stale data if user clicks Save quickly
                                 
                                 toast.success('Image removed');
                               } catch (error: any) {
