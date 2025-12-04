@@ -135,6 +135,21 @@ export function ImageGallery({
                             src={image.imageUrl}
                             alt={`${entityType} image ${index + 1}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                                console.error('[ImageGallery] Failed to load image:', {
+                                    index,
+                                    imageUrl: image.imageUrl,
+                                    s3Key: image.metadata?.s3Key,
+                                    entityType,
+                                    entityId
+                                });
+                                // Show broken image placeholder
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'w-full h-full flex items-center justify-center bg-red-900/20 text-red-400 text-xs';
+                                placeholder.textContent = 'Image failed to load';
+                                (e.target as HTMLImageElement).parentElement?.appendChild(placeholder);
+                            }}
                         />
 
                         {/* Hover Overlay */}

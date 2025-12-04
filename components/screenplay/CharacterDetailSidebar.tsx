@@ -350,18 +350,36 @@ export default function CharacterDetailSidebar({
           images: imagesArray
         });
 
-        // Transform images to frontend format (no angle metadata needed)
-        const transformedImages = imagesArray.map((img: any) => ({
-          imageUrl: img.imageUrl || img.url,
-          createdAt: img.createdAt || new Date().toISOString(),
-          metadata: {
-            s3Key: img.s3Key || img.metadata?.s3Key,
-            prompt: img.prompt || img.metadata?.prompt,
-            modelUsed: img.modelUsed || img.metadata?.modelUsed,
-            isEdited: img.isEdited || img.metadata?.isEdited,
-            originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
+        // Transform images to frontend format (preserve all metadata from backend)
+        const transformedImages = imagesArray.map((img: any) => {
+          // Backend returns { imageUrl, s3Key, createdAt, metadata: { s3Key, source } }
+          const imageUrl = img.imageUrl || img.url;
+          if (!imageUrl) {
+            console.warn('[CharacterDetailSidebar] Image missing URL:', img);
           }
-        }));
+          return {
+            imageUrl: imageUrl || '', // Preserve empty string if URL generation failed
+            createdAt: img.createdAt || new Date().toISOString(),
+            metadata: {
+              s3Key: img.s3Key || img.metadata?.s3Key,
+              source: img.metadata?.source || 'user-upload', // Preserve source metadata (user-upload or pose-generation)
+              prompt: img.prompt || img.metadata?.prompt,
+              modelUsed: img.modelUsed || img.metadata?.modelUsed,
+              isEdited: img.isEdited || img.metadata?.isEdited,
+              originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
+              angle: img.angle || img.metadata?.angle, // Preserve angle if present
+            }
+          };
+        }).filter((img: any) => {
+          if (!img.imageUrl) {
+            console.warn('[CharacterDetailSidebar] Filtering out image with missing URL:', {
+              s3Key: img.metadata?.s3Key,
+              img
+            });
+            return false;
+          }
+          return true;
+        }); // Filter out images with missing URLs
 
         console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
           count: transformedImages.length,
