@@ -166,10 +166,13 @@ export function CharacterDetailModal({
     // Extract outfit from S3 key or metadata
     const outfitFromS3 = extractOutfitFromS3Key(ref.s3Key);
     // Also check context images for outfit metadata
-    const contextImage = allImagesFromContext.find((img: any) => 
-      (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key) &&
-      img.metadata?.source === 'pose-generation'
-    );
+    // 🔥 FIX: Check both source and uploadMethod for pose-generation
+    const contextImage = allImagesFromContext.find((img: any) => {
+      const s3KeyMatch = img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key;
+      const isPoseGenerated = img.metadata?.source === 'pose-generation' || 
+                              img.metadata?.uploadMethod === 'pose-generation';
+      return s3KeyMatch && isPoseGenerated;
+    });
     const outfitFromMetadata = contextImage?.metadata?.outfitName;
     const outfitName = outfitFromMetadata || outfitFromS3;
     const poseId = contextImage?.metadata?.poseId; // Extract poseId from metadata
@@ -210,10 +213,13 @@ export function CharacterDetailModal({
   
   poseReferences.forEach((ref, idx) => {
     if (ref.s3Key) {
-      const contextIndex = allImagesFromContext.findIndex((img: any) => 
-        (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key) &&
-        img.metadata?.source === 'pose-generation'
-      );
+      // 🔥 FIX: Check both source and uploadMethod for pose-generation
+      const contextIndex = allImagesFromContext.findIndex((img: any) => {
+        const s3KeyMatch = img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key;
+        const isPoseGenerated = img.metadata?.source === 'pose-generation' || 
+                                img.metadata?.uploadMethod === 'pose-generation';
+        return s3KeyMatch && isPoseGenerated;
+      });
       ref.index = contextIndex >= 0 ? contextIndex : -1;
     }
   });
@@ -541,8 +547,10 @@ export function CharacterDetailModal({
                                 const contextImage = allImagesFromContext.find((ctxImg: any) => 
                                   (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
                                 );
+                                // 🔥 FIX: Check both source and uploadMethod for AI-generated images
                                 const isAIGenerated = contextImage?.metadata?.source === 'pose-generation' || 
-                                                      contextImage?.metadata?.source === 'image-generation';
+                                                      contextImage?.metadata?.source === 'image-generation' ||
+                                                      contextImage?.metadata?.uploadMethod === 'pose-generation';
                                 return isAIGenerated;
                               })() ? (
                                 <button
@@ -816,11 +824,16 @@ export function CharacterDetailModal({
                                     const actualIndex = currentImages.findIndex((image: any) => {
                                       const imgS3Key = image.metadata?.s3Key || image.s3Key;
                                       // ImageAsset has s3Key in metadata, not at top level
-                                      // Check both source and uploadMethod for pose-generation
+                                      // 🔥 FIX: Check both source and uploadMethod for pose-generation
+                                      // Also check if it's in poseReferences array (AI-generated poses)
                                       const isPoseGenerated = image.metadata?.source === 'pose-generation' || 
                                                               image.metadata?.source === 'image-generation' ||
                                                               image.metadata?.uploadMethod === 'pose-generation';
-                                      return imgS3Key === deleteS3Key && isPoseGenerated;
+                                      // Also check if this s3Key is in character.poseReferences (additional check)
+                                      const isInPoseReferences = character.poseReferences?.some((ref: any) => 
+                                        (typeof ref === 'string' ? ref === deleteS3Key : ref.s3Key === deleteS3Key)
+                                      );
+                                      return imgS3Key === deleteS3Key && (isPoseGenerated || isInPoseReferences);
                                     });
                                     
                                     if (actualIndex < 0) {
@@ -843,9 +856,19 @@ export function CharacterDetailModal({
                                     // Simple index-based deletion (same pattern as CharacterDetailSidebar)
                                     const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
                                     
+                                    // 🔥 FIX: Also remove from poseReferences array if it's a pose
+                                    const currentPoseReferences = currentCharacter.poseReferences || [];
+                                    const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                                      const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                      return refS3Key !== deleteS3Key;
+                                    });
+                                    
                                     // Optimistic UI update - remove image immediately
                                     // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
-                                    await updateCharacter(character.id, { images: updatedImages });
+                                    await updateCharacter(character.id, { 
+                                      images: updatedImages,
+                                      poseReferences: updatedPoseReferences // 🔥 FIX: Also update poseReferences
+                                    });
                                     
                                     // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears
                                     queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
