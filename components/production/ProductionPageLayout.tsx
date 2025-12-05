@@ -243,6 +243,30 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     return () => window.removeEventListener('refreshCharacters', handleRefresh);
   }, []);
   
+  // 🔥 NEW: Listen for location angle generation completion
+  useEffect(() => {
+    const handleRefreshLocations = () => {
+      console.log('[ProductionPageLayout] Refreshing locations due to angle generation completion');
+      loadLocations();
+    };
+    
+    window.addEventListener('refreshLocations', handleRefreshLocations);
+    return () => window.removeEventListener('refreshLocations', handleRefreshLocations);
+  }, []);
+  
+  // 🔥 NEW: Listen for asset angle generation completion
+  useEffect(() => {
+    const handleRefreshAssets = () => {
+      console.log('[ProductionPageLayout] Refreshing assets due to angle generation completion');
+      // Assets are loaded via ScreenplayContext
+      // Trigger a reload by calling initializeData if available, or reload the screenplay
+      // The event will also be handled by AssetBankPanel as a backup
+    };
+    
+    window.addEventListener('refreshAssets', handleRefreshAssets);
+    return () => window.removeEventListener('refreshAssets', handleRefreshAssets);
+  }, []);
+  
   // Watch video generation progress (real polling)
   useEffect(() => {
     if (currentClipIndex >= 0 && videoGeneration.isPolling) {

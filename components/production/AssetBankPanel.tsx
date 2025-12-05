@@ -60,6 +60,20 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       setLoading(false);
     }
   }, [projectId]); // Only fetch when projectId changes
+  
+  // 🔥 NEW: Listen for asset angle generation completion and refresh assets
+  useEffect(() => {
+    const handleRefreshAssets = async () => {
+      console.log('[AssetBankPanel] Refreshing assets due to angle generation completion');
+      // Reload assets from API to get newly generated angle images
+      await fetchAssets();
+      // Also trigger a context refresh by reloading the screenplay
+      // The context will pick up the updated assets from the API
+    };
+    
+    window.addEventListener('refreshAssets', handleRefreshAssets);
+    return () => window.removeEventListener('refreshAssets', handleRefreshAssets);
+  }, [projectId]);
 
   const fetchAssets = async () => {
     setLoading(true);
