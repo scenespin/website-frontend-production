@@ -17,6 +17,16 @@ import {
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface WorkflowJob {
   jobId: string;
@@ -52,6 +62,25 @@ interface WorkflowJob {
     }>;
     totalCreditsUsed: number;
     executionTime: number;
+    failedPoses?: Array<{
+      poseId: string;
+      poseName: string;
+      error: string;
+      errorCode?: string; // 'SAFETY_ERROR_USER_CHOICE' for safety errors
+      attemptedQuality?: string;
+    }>;
+    angleReferences?: Array<{
+      angle: string;
+      imageUrl: string;
+      s3Key: string;
+      creditsUsed: number;
+    }>;
+    failedAngles?: Array<{
+      angle: string;
+      error: string;
+      errorCode?: string; // 'SAFETY_ERROR_USER_CHOICE' for safety errors
+      attemptedQuality?: string;
+    }>;
   };
   error?: string;
   createdAt: string;
@@ -83,6 +112,20 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
     name: string;
     type: 'image' | 'video' | 'audio';
     metadata?: any;
+  } | null>(null);
+  
+  // Safety error dialog state
+  const [showSafetyDialog, setShowSafetyDialog] = useState(false);
+  const [safetyErrorData, setSafetyErrorData] = useState<{
+    jobId: string;
+    jobType: string;
+    failedItems: Array<{
+      id: string;
+      name: string;
+      error: string;
+    }>;
+    entityId?: string;
+    entityName?: string;
   } | null>(null);
 
   /**
@@ -233,6 +276,90 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
     }
   }, [jobs, projectId, queryClient]);
+  
+  /**
+   * 🔥 NEW: Watch for completed location/asset angle generation jobs and refresh data
+   */
+  useEffect(() => {
+    const completedAngleJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'image-generation' &&
+      job.results?.angleReferences &&
+      job.results.angleReferences.length > 0
+    );
+    
+    if (completedAngleJobs.length > 0) {
+      // Trigger location/asset refresh via window events
+      window.dispatchEvent(new CustomEvent('refreshLocations'));
+      window.dispatchEvent(new CustomEvent('refreshAssets'));
+      
+      // Also invalidate React Query cache for media files
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+    }
+  }, [jobs, projectId, queryClient]);
+  
+  /**
+   * 🔥 NEW: Check for safety errors in completed jobs and show dialog
+   */
+  useEffect(() => {
+    // Check for jobs with safety errors that haven't been shown yet
+    const jobsWithSafetyErrors = jobs.filter(job => {
+      if (job.status !== 'completed' || !job.results) return false;
+      
+      // Check for failed poses with safety errors (character poses)
+      if (job.jobType === 'pose-generation' && job.results.failedPoses) {
+        const safetyErrors = job.results.failedPoses.filter(fp => fp.errorCode === 'SAFETY_ERROR_USER_CHOICE');
+        return safetyErrors.length > 0;
+      }
+      
+      // Check for failed angles with safety errors (location/asset angles)
+      if (job.jobType === 'image-generation' && job.results.failedAngles) {
+        const safetyErrors = job.results.failedAngles.filter(fa => fa.errorCode === 'SAFETY_ERROR_USER_CHOICE');
+        return safetyErrors.length > 0;
+      }
+      
+      return false;
+    });
+    
+    // Show dialog for first job with safety errors (if not already shown)
+    if (jobsWithSafetyErrors.length > 0 && !showSafetyDialog) {
+      const job = jobsWithSafetyErrors[0];
+      const failedItems: Array<{ id: string; name: string; error: string }> = [];
+      
+      if (job.jobType === 'pose-generation' && job.results?.failedPoses) {
+        job.results.failedPoses
+          .filter(fp => fp.errorCode === 'SAFETY_ERROR_USER_CHOICE')
+          .forEach(fp => {
+            failedItems.push({
+              id: fp.poseId,
+              name: fp.poseName,
+              error: fp.error
+            });
+          });
+      } else if (job.jobType === 'image-generation' && job.results?.failedAngles) {
+        job.results.failedAngles
+          .filter(fa => fa.errorCode === 'SAFETY_ERROR_USER_CHOICE')
+          .forEach(fa => {
+            failedItems.push({
+              id: fa.angle,
+              name: fa.angle,
+              error: fa.error
+            });
+          });
+      }
+      
+      if (failedItems.length > 0) {
+        setSafetyErrorData({
+          jobId: job.jobId,
+          jobType: job.jobType || 'unknown',
+          failedItems,
+          entityId: job.metadata?.inputs?.characterId || job.metadata?.inputs?.locationId || job.metadata?.inputs?.assetId,
+          entityName: job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName
+        });
+        setShowSafetyDialog(true);
+      }
+    }
+  }, [jobs, showSafetyDialog]);
 
   /**
    * Retry failed job
@@ -711,6 +838,52 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         </div>
         )}
       </div>
+      
+      {/* Safety Error Dialog */}
+      <AlertDialog open={showSafetyDialog} onOpenChange={setShowSafetyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>4K Generation Failed</AlertDialogTitle>
+            <AlertDialogDescription>
+              {safetyErrorData?.failedItems.length || 0} item(s) failed due to safety restrictions.
+              <br /><br />
+              Would you like to:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li><strong>Retry 4K:</strong> Try generating in 4K quality again (may still fail if content is restricted)</li>
+                <li><strong>Use Standard (1080p):</strong> Generate with standard quality, which has fewer safety restrictions</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowSafetyDialog(false);
+              setSafetyErrorData(null);
+            }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                // TODO: Implement regenerate with standard quality
+                setShowSafetyDialog(false);
+                setSafetyErrorData(null);
+                toast.info('Regenerate with standard quality - coming soon');
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Use Standard (1080p)
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={async () => {
+                // TODO: Implement retry 4K
+                setShowSafetyDialog(false);
+                setSafetyErrorData(null);
+                toast.info('Retry 4K - coming soon');
+              }}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              Retry 4K
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {/* Storage Decision Modal */}
       {showStorageModal && selectedAsset && (

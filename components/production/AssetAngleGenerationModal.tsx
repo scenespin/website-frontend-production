@@ -12,6 +12,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, Package } from 'lucide-react';
 import AssetAnglePackageSelector from './AssetAnglePackageSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+// Safety errors are handled in job result monitoring (async pattern)
 
 interface AssetAngleGenerationModalProps {
   isOpen: boolean;
@@ -46,21 +47,16 @@ export default function AssetAngleGenerationModal({
   const [error, setError] = useState<string>('');
   const [jobId, setJobId] = useState<string | null>(null);
   
+  // Note: Safety errors are now handled in job results (async pattern)
+  // Frontend will check job status and show dialog when job completes with safety errors
+  
   const handleGenerate = async () => {
     setIsGenerating(true);
     setError('');
     setJobId(null);
-    setStep('generating');
     
     try {
-      // Show initial toast notification
-      toast.info('Starting angle generation...', {
-        id: 'asset-angle-gen-start',
-        duration: Infinity,
-        icon: <Loader2 className="w-4 h-4 animate-spin" />
-      });
-      
-      // Call backend API to generate angle package
+      // Call backend API to generate angle package (async job pattern)
       const token = await getToken({ template: 'wryda-backend' });
       
       if (!token) {
@@ -74,8 +70,6 @@ export default function AssetAngleGenerationModal({
       };
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
-      console.log('[AssetAngleGeneration] Request body:', requestBody);
-      console.log('[AssetAngleGeneration] Token available:', !!token);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -86,59 +80,23 @@ export default function AssetAngleGenerationModal({
         body: JSON.stringify(requestBody)
       });
       
-      console.log('[AssetAngleGeneration] Response status:', response.status, response.statusText);
-      
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          const text = await response.text();
-          console.error('[AssetAngleGeneration] Non-JSON error response:', text);
-          throw new Error(`Server error (${response.status}): ${text || response.statusText}`);
-        }
-        
-        console.error('[AssetAngleGeneration] Error response:', errorData);
-        
-        // Handle different error response formats
-        let errorMessage: string;
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = typeof errorData.error === 'string' ? errorData.error : 'Failed to generate angle package';
-        } else {
-          errorMessage = 'Failed to generate angle package';
-        }
-        
-        // Sanitize error message
-        errorMessage = errorMessage
-          .replace(/MODEL_NOT_FOUND:\s*\w+(-\w+)*/gi, 'Model not available')
-          .replace(/runway-gen-4/gi, 'image generation model')
-          .replace(/Failed to generate angle \w+:\s*/gi, 'Failed to generate angle: ');
-        
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => ({ error: 'Failed to start generation' }));
+        throw new Error(errorData.error?.message || errorData.error || 'Failed to start angle generation');
       }
       
       const result = await response.json();
       
-      // Store jobId if provided (for async job tracking)
+      // Store jobId and close modal immediately (async pattern - matches character poses and locations)
       if (result.jobId) {
         setJobId(result.jobId);
-        console.log('[AssetAngleGeneration] Job created:', result.jobId);
-      }
-      
-      // If angles are returned directly (synchronous), show them
-      if (result.angleReferences && result.angleReferences.length > 0) {
-        setGenerationResult(result);
-        setStep('complete');
-      } else {
-        // Async job - close modal and show success
+        console.log('[AssetAngleGeneration] Job started:', result.jobId);
+        
+        // Close modal immediately - job runs in background
         handleReset();
         onClose();
         
-        toast.dismiss('asset-angle-gen-start');
+        // Show success toast with link to Jobs tab
         toast.success('Angle generation started!', {
           description: 'View in Jobs tab to track progress.',
           action: {
@@ -149,11 +107,13 @@ export default function AssetAngleGenerationModal({
           },
           duration: 5000
         });
-      }
-      
-      // Call onComplete with result
-      if (onComplete) {
-        onComplete({ jobId: result.jobId, angleReferences: result.angleReferences || [] });
+        
+        // Call onComplete with jobId
+        if (onComplete) {
+          onComplete({ jobId: result.jobId, angleReferences: [] });
+        }
+      } else {
+        throw new Error('No job ID returned from server');
       }
       
     } catch (err: any) {
@@ -161,16 +121,15 @@ export default function AssetAngleGenerationModal({
       setError(err.message || 'An error occurred during generation');
       setStep('error');
       
-      // Dismiss initial toast and show error toast
-      toast.dismiss('asset-angle-gen-start');
-      toast.error('Angle generation failed!', {
+      toast.error('Failed to start angle generation!', {
         description: err.message || 'Please try again.',
-        duration: Infinity
+        duration: 5000
       });
-    } finally {
       setIsGenerating(false);
     }
   };
+  
+  // Safety error handling moved to job result monitoring (async pattern)
   
   const handleReset = () => {
     setStep('package');
@@ -418,6 +377,8 @@ export default function AssetAngleGenerationModal({
         </motion.div>
       )}
     </AnimatePresence>
+    
+    {/* Safety errors are handled in job result monitoring - see ProductionJobsPanel */}
     
   </>
   );

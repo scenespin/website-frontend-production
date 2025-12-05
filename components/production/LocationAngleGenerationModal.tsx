@@ -12,6 +12,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 import LocationAnglePackageSelector from './LocationAnglePackageSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+// Safety errors are handled in job result monitoring (async pattern)
 
 interface LocationAngleGenerationModalProps {
   isOpen: boolean;
@@ -46,6 +47,9 @@ export default function LocationAngleGenerationModal({
   const [error, setError] = useState<string>('');
   const [jobId, setJobId] = useState<string | null>(null);
   
+  // Note: Safety errors are now handled in job results (async pattern)
+  // Frontend will check job status and show dialog when job completes with safety errors
+  
   // Map package IDs to angle arrays
   const packageToAngles: Record<string, Array<{ angle: string }>> = {
     basic: [
@@ -79,20 +83,9 @@ export default function LocationAngleGenerationModal({
     setIsGenerating(true);
     setError('');
     setJobId(null);
-    setStep('generating');
     
     try {
-      // Show initial toast notification
-      toast.info('Starting angle generation...', {
-        id: 'angle-gen-start',
-        duration: Infinity,
-        icon: <Loader2 className="w-4 h-4 animate-spin" />
-      });
-      
-      // Get angles for selected package
-      const angles = packageToAngles[selectedPackageId] || packageToAngles.standard;
-      
-      // Call backend API to generate angle package
+      // Call backend API to generate angle package (async job pattern)
       const token = await getToken({ template: 'wryda-backend' });
       
       if (!token) {
@@ -102,16 +95,11 @@ export default function LocationAngleGenerationModal({
       const apiUrl = `/api/location-bank/generate-angles`;
       const requestBody = {
         locationProfile: locationProfile,
-        packageId: selectedPackageId, // NEW: Send packageId
-        angles: angles, // Send angles array for backward compatibility
-        quality: quality // 🔥 NEW: Send quality tier
+        packageId: selectedPackageId,
+        quality: quality
       };
       
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
-      console.log('[LocationAngleGeneration] Request body:', requestBody);
-      console.log('[LocationAngleGeneration] Token available:', !!token);
-      console.log('[LocationAngleGeneration] Token length:', token?.length || 0);
-      console.log('[LocationAngleGeneration] Token preview:', token ? `${token.substring(0, 20)}...` : 'none');
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -122,64 +110,23 @@ export default function LocationAngleGenerationModal({
         body: JSON.stringify(requestBody)
       });
       
-      console.log('[LocationAngleGeneration] Response status:', response.status, response.statusText);
-      console.log('[LocationAngleGeneration] Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          // If response is not JSON, get text
-          const text = await response.text();
-          console.error('[LocationAngleGeneration] Non-JSON error response:', text);
-          throw new Error(`Server error (${response.status}): ${text || response.statusText}`);
-        }
-        
-        console.error('[LocationAngleGeneration] Error response:', errorData);
-        
-        // Handle different error response formats
-        let errorMessage: string;
-        if (errorData.error?.message) {
-          // Backend format: { success: false, error: { message: '...', code: '...' } }
-          errorMessage = errorData.error.message;
-        } else if (errorData.message) {
-          // Direct message format: { message: '...' }
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          // String error format: { error: '...' }
-          errorMessage = typeof errorData.error === 'string' ? errorData.error : 'Authentication failed';
-        } else {
-          errorMessage = 'Failed to generate angle package';
-        }
-        
-        // Sanitize error message
-        errorMessage = errorMessage
-          .replace(/MODEL_NOT_FOUND:\s*\w+(-\w+)*/gi, 'Model not available')
-          .replace(/runway-gen-4/gi, 'image generation model')
-          .replace(/Failed to generate angle \w+:\s*/gi, 'Failed to generate angle: ');
-        
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => ({ error: 'Failed to start generation' }));
+        throw new Error(errorData.error?.message || errorData.error || 'Failed to start angle generation');
       }
       
       const result = await response.json();
       
-      // Store jobId if provided (for async job tracking)
+      // Store jobId and close modal immediately (async pattern - matches character poses)
       if (result.jobId) {
         setJobId(result.jobId);
-        console.log('[LocationAngleGeneration] Job created:', result.jobId);
-      }
-      
-      // If angles are returned directly (synchronous), show them
-      if (result.data?.angleVariations && result.data.angleVariations.length > 0) {
-        setGenerationResult(result.data);
-        setStep('complete');
-      } else {
-        // Async job - close modal and show success
+        console.log('[LocationAngleGeneration] Job started:', result.jobId);
+        
+        // Close modal immediately - job runs in background
         handleReset();
         onClose();
         
-        toast.dismiss('angle-gen-start');
+        // Show success toast with link to Jobs tab
         toast.success('Angle generation started!', {
           description: 'View in Jobs tab to track progress.',
           action: {
@@ -190,11 +137,13 @@ export default function LocationAngleGenerationModal({
           },
           duration: 5000
         });
-      }
-      
-      // Call onComplete with result
-      if (onComplete) {
-        onComplete({ jobId: result.jobId, angleVariations: result.data?.angleVariations || [] });
+        
+        // Call onComplete with jobId
+        if (onComplete) {
+          onComplete({ jobId: result.jobId, angleVariations: [] });
+        }
+      } else {
+        throw new Error('No job ID returned from server');
       }
       
     } catch (err: any) {
@@ -202,16 +151,15 @@ export default function LocationAngleGenerationModal({
       setError(err.message || 'An error occurred during generation');
       setStep('error');
       
-      // Dismiss initial toast and show error toast
-      toast.dismiss('angle-gen-start');
-      toast.error('Angle generation failed!', {
+      toast.error('Failed to start angle generation!', {
         description: err.message || 'Please try again.',
-        duration: Infinity // Keep error toast visible
+        duration: 5000
       });
-    } finally {
       setIsGenerating(false);
     }
   };
+  
+  // Safety error handling moved to job result monitoring (async pattern)
   
   const handleReset = () => {
     setStep('package');
@@ -420,6 +368,8 @@ export default function LocationAngleGenerationModal({
         </motion.div>
       )}
     </AnimatePresence>
+    
+    {/* Safety errors are handled in job result monitoring - see ProductionJobsPanel */}
     
   </>
   );

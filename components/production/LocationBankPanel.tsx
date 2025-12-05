@@ -236,25 +236,9 @@ export function LocationBankPanel({
           projectId={projectId}
           locationProfile={angleLocation}
           onComplete={async (result) => {
-            // Generation completes synchronously - angles are saved immediately
-            toast.success(`Angle generation completed for ${angleLocation.name}!`, {
-              description: `${result.angleVariations?.length || 0} angles generated.`
-            });
-            
-            setShowAngleModal(false);
-            setAngleLocation(null);
-            
-            // 🔥 NEW: Refresh immediately (angles are saved synchronously)
-            if (onLocationsUpdate) {
-              onLocationsUpdate();
-            }
-            
-            // Also refresh after a short delay to ensure UI updates
-            setTimeout(() => {
-              if (onLocationsUpdate) {
-                onLocationsUpdate();
-              }
-            }, 2000);
+            // Job started - modal already closed, job runs in background
+            // User can track progress in Jobs tab
+            // Location data will refresh automatically when job completes (via ProductionJobsPanel)
           }}
         />
       )}
