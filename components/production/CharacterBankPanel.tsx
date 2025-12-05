@@ -447,8 +447,8 @@ export function CharacterBankPanel({
             await uploadReference(characterId, file);
           }}
           onGenerate3D={async (characterId) => {
-            // TODO: Implement 3D generation
-            toast.info('3D generation coming soon');
+            // 3D generation is handled by CharacterDetailModal via Character3DExportModal
+            // This callback is kept for backward compatibility but the modal handles it
           }}
           onGenerateVariations={async (characterId) => {
             await generateReferences(characterId);

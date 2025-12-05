@@ -22,6 +22,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import Character3DExportModal from './Character3DExportModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,6 +85,7 @@ export function CharacterDetailModal({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating3D, setIsGenerating3D] = useState(false);
+  const [show3DModal, setShow3DModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(character.name);
   const [description, setDescription] = useState(character.description || '');
@@ -360,22 +362,9 @@ export function CharacterDetailModal({
     }
   };
 
-  const handleGenerate3D = async () => {
-    if (!onGenerate3D) {
-      toast.error('3D generation not available');
-      return;
-    }
-
-    setIsGenerating3D(true);
-    try {
-      await onGenerate3D(character.id);
-      toast.success('3D model generation started');
-    } catch (error) {
-      console.error('3D generation failed:', error);
-      toast.error('Failed to generate 3D model');
-    } finally {
-      setIsGenerating3D(false);
-    }
+  const handleGenerate3D = () => {
+    // Open 3D export modal
+    setShow3DModal(true);
   };
 
   if (!isOpen) return null;
@@ -1428,6 +1417,24 @@ export function CharacterDetailModal({
             </div>
           </motion.div>
         </>
+      )}
+      
+      {/* Character 3D Export Modal */}
+      {show3DModal && (
+        <Character3DExportModal
+          isOpen={show3DModal}
+          onClose={() => {
+            setShow3DModal(false);
+          }}
+          character={character}
+          onSuccess={() => {
+            setShow3DModal(false);
+            // Optionally refresh character data
+            if (onGenerate3D) {
+              // Parent can handle refresh if needed
+            }
+          }}
+        />
       )}
     </AnimatePresence>
   );

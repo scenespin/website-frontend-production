@@ -18,6 +18,8 @@ import React, { useState } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import LocationAngleGenerationModal from './LocationAngleGenerationModal';
+import Location3DExportModal from './Location3DExportModal';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
@@ -76,6 +78,8 @@ export function LocationDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating3D, setIsGenerating3D] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
+  const [showAngleModal, setShowAngleModal] = useState(false);
+  const [show3DModal, setShow3DModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(location.name);
   const [description, setDescription] = useState(location.description || '');
@@ -128,40 +132,14 @@ export function LocationDetailModal({
     }
   };
 
-  const handleGenerate3D = async () => {
-    if (!onGenerate3D) {
-      toast.error('3D generation not available');
-      return;
-    }
-
-    setIsGenerating3D(true);
-    try {
-      await onGenerate3D(location.locationId);
-      toast.success('3D model generation started');
-    } catch (error) {
-      console.error('3D generation failed:', error);
-      toast.error('Failed to generate 3D model');
-    } finally {
-      setIsGenerating3D(false);
-    }
+  const handleGenerate3D = () => {
+    // Open 3D export modal
+    setShow3DModal(true);
   };
 
-  const handleGenerateAngles = async () => {
-    if (!onGenerateAngles) {
-      toast.error('Angle generation not available');
-      return;
-    }
-
-    setIsGeneratingAngles(true);
-    try {
-      await onGenerateAngles(location.locationId);
-      toast.success('Location angle package generation started');
-    } catch (error) {
-      console.error('Angle generation failed:', error);
-      toast.error('Failed to generate location angles');
-    } finally {
-      setIsGeneratingAngles(false);
-    }
+  const handleGenerateAngles = () => {
+    // Open angle generation modal
+    setShowAngleModal(true);
   };
 
   if (!isOpen) return null;
@@ -382,12 +360,11 @@ export function LocationDetailModal({
                     <div className="space-y-2">
                       <button
                         onClick={handleGenerate3D}
-                        disabled={isGenerating3D}
-                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center"
                         title="Export 3D model for external use"
                       >
                         <Box className="w-4 h-4" />
-                        {isGenerating3D ? 'Generating...' : 'Export to 3D (1000 cr)'}
+                        Export to 3D (1000 cr)
                       </button>
                       <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
                         Use in AR/VR, game engines, 3D animation tools, and more
@@ -503,6 +480,56 @@ export function LocationDetailModal({
         </>
       )}
     </AnimatePresence>
+    
+    {/* Location Angle Generation Modal */}
+    {showAngleModal && (
+      <LocationAngleGenerationModal
+        isOpen={showAngleModal}
+        onClose={() => {
+          setShowAngleModal(false);
+        }}
+        locationId={location.locationId}
+        locationName={location.name}
+        projectId={projectId}
+        locationProfile={location}
+        onComplete={async (result) => {
+          // Job is created - generation happens asynchronously
+          // Angles will appear in Location Bank once job completes
+          toast.success(`Angle generation started for ${location.name}!`, {
+            description: 'Check the Jobs tab to track progress.'
+          });
+          
+          setShowAngleModal(false);
+          
+          // Refresh location data after delay to catch completed angles
+          if (onGenerateAngles) {
+            // Trigger parent refresh
+            setTimeout(() => {
+              // Parent will handle refresh via onLocationsUpdate
+            }, 5000);
+          }
+        }}
+      />
+    )}
+    
+    {/* Location 3D Export Modal */}
+    {show3DModal && (
+      <Location3DExportModal
+        isOpen={show3DModal}
+        onClose={() => {
+          setShow3DModal(false);
+        }}
+        location={location}
+        onSuccess={() => {
+          setShow3DModal(false);
+          // Optionally refresh location data
+          if (onGenerate3D) {
+            // Parent can handle refresh if needed
+          }
+        }}
+      />
+    )}
+  </>
   );
 }
 

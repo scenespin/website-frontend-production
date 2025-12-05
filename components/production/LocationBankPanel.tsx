@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
+import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
@@ -63,7 +64,8 @@ export function LocationBankPanel({
   const [isLoading, setIsLoading] = useState(propsIsLoading);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [showLocationDetail, setShowLocationDetail] = useState(false);
-  const [isGeneratingAngles, setIsGeneratingAngles] = useState<Record<string, boolean>>({});
+  const [showAngleModal, setShowAngleModal] = useState(false);
+  const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
   
   // Use locations from props (loaded by ProductionPageLayout from Location Bank API)
   useEffect(() => {
@@ -72,54 +74,12 @@ export function LocationBankPanel({
     console.log('[LocationBankPanel] Locations updated:', propsLocations.length);
   }, [propsLocations, propsIsLoading]);
 
-  // Generate angle variations (Feature 0142: Location Bank Unification)
-  async function generateAngles(locationId: string) {
-    console.log('[LocationBank] Generate angles clicked for location:', locationId);
-    setIsGeneratingAngles(prev => ({ ...prev, [locationId]: true }));
-    try {
-      const location = locations.find(l => l.locationId === locationId);
-      if (!location) {
-        throw new Error('Location not found');
-      }
-
-      // Call Next.js API route which will proxy to backend with auth
-      const response = await fetch('/api/location-bank/generate-angles', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          locationProfile: location,
-          angles: [
-            { angle: 'side' },
-            { angle: 'aerial' },
-            { angle: 'wide' },
-            { angle: 'detail' }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || errorData.message || 'Failed to generate angles');
-      }
-
-      const data = await response.json();
-      console.log('[LocationBank] Generate angles success:', data);
-      
-      if (data.success) {
-        toast.success(`Generated ${data.data?.angleVariations?.length || 0} angle variations!`);
-        if (onLocationsUpdate) {
-          onLocationsUpdate();
-        }
-      } else {
-        throw new Error(data.error || 'Generation failed');
-      }
-    } catch (error: any) {
-      console.error('[LocationBank] Generate angles failed:', error);
-      toast.error(error.message || 'Failed to generate angle variations');
-    } finally {
-      setIsGeneratingAngles(prev => ({ ...prev, [locationId]: false }));
+  // Open angle generation modal
+  function handleGenerateAngles(locationId: string) {
+    const location = locations.find(l => l.locationId === locationId);
+    if (location) {
+      setAngleLocation(location);
+      setShowAngleModal(true);
     }
   }
   
@@ -256,13 +216,44 @@ export function LocationBankPanel({
               toast.info('3D generation coming soon');
             }}
             onGenerateAngles={async (locationId) => {
-              // Feature 0142: Generate angle variations via Location Bank API
-              await generateAngles(locationId);
+              // Open angle generation modal
+              handleGenerateAngles(locationId);
             }}
           />
         ) : null;
       })()}
       
+      {/* Location Angle Generation Modal */}
+      {showAngleModal && angleLocation && (
+        <LocationAngleGenerationModal
+          isOpen={showAngleModal}
+          onClose={() => {
+            setShowAngleModal(false);
+            setAngleLocation(null);
+          }}
+          locationId={angleLocation.locationId}
+          locationName={angleLocation.name}
+          projectId={projectId}
+          locationProfile={angleLocation}
+          onComplete={async (result) => {
+            // Job is created - generation happens asynchronously
+            // Angles will appear in Location Bank once job completes
+            toast.success(`Angle generation started for ${angleLocation.name}!`, {
+              description: 'Check the Jobs tab to track progress.'
+            });
+            
+            setShowAngleModal(false);
+            setAngleLocation(null);
+            
+            // Refresh location data after delay to catch completed angles
+            setTimeout(() => {
+              if (onLocationsUpdate) {
+                onLocationsUpdate();
+              }
+            }, 5000);
+          }}
+        />
+      )}
     </div>
   );
 }
