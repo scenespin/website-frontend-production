@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { X, Trash2, Image as ImageIcon, Plus } from "lucide-react"
+import { X, Trash2, Image as ImageIcon, Plus, Package, Link2 } from "lucide-react"
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Scene, Character, Location } from '@/types/screenplay'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
+import SceneAssetLinker from '@/components/editor/SceneAssetLinker'
 
 interface SceneDetailSidebarProps {
   scene?: Scene | null
@@ -35,7 +36,8 @@ export default function SceneDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: SceneDetailSidebarProps) {
-  const { getEntityImages, removeImageFromEntity } = useScreenplay()
+  const { getEntityImages, removeImageFromEntity, linkAssetToScene, unlinkAssetFromScene, assets } = useScreenplay()
+  const [showAssetLinker, setShowAssetLinker] = useState(false)
   const [formData, setFormData] = useState<any>(
     scene ? { ...scene } : (initialData ? {
       number: initialData.number || 1,
@@ -249,6 +251,107 @@ export default function SceneDetailSidebar({
           </div>
         </div>
         
+        {/* Assets (Props) Section - Feature 0136: Asset-Scene Association */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+              Assets (Props)
+            </label>
+            {!isCreating && scene && (
+              <button
+                onClick={() => setShowAssetLinker(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105"
+                style={{ backgroundColor: '#14B8A6', color: 'white' }}
+              >
+                <Link2 size={12} />
+                Link Assets
+              </button>
+            )}
+          </div>
+          
+          {(() => {
+            const linkedAssetIds = formData.fountain?.tags?.props || []
+            const linkedAssets = assets.filter(a => linkedAssetIds.includes(a.id))
+            
+            if (linkedAssets.length === 0) {
+              return (
+                <div 
+                  className="flex flex-col items-center justify-center py-6 px-4 rounded-lg border-2 border-dashed"
+                  style={{ borderColor: '#2C2C2E', backgroundColor: '#0A0A0B' }}
+                >
+                  <Package size={24} style={{ color: '#4B5563' }} className="mb-2" />
+                  <p className="text-xs text-center" style={{ color: '#6B7280' }}>
+                    No assets linked
+                  </p>
+                  {!isCreating && scene && (
+                    <p className="text-xs text-center mt-1" style={{ color: '#4B5563' }}>
+                      Click &quot;Link Assets&quot; to add props
+                    </p>
+                  )}
+                </div>
+              )
+            }
+            
+            return (
+              <div className="flex flex-wrap gap-2">
+                {linkedAssets.map(asset => {
+                  const mainImage = asset.images?.[0]?.imageUrl
+                  return (
+                    <div
+                      key={asset.id}
+                      className="relative group flex items-center gap-2 px-3 py-2 rounded-lg border"
+                      style={{ 
+                        backgroundColor: '#2C2C2E', 
+                        borderColor: '#3F3F46',
+                        color: '#E5E7EB'
+                      }}
+                    >
+                      {mainImage ? (
+                        <img
+                          src={mainImage}
+                          alt={asset.name}
+                          className="w-8 h-8 rounded object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <Package size={16} style={{ color: '#6B7280' }} />
+                      )}
+                      <span className="text-xs font-medium">{asset.name}</span>
+                      {!isCreating && scene && (
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Unlink "${asset.name}" from this scene?`)) {
+                              await unlinkAssetFromScene(asset.id, scene.id)
+                              // Update formData to reflect the change
+                              const updatedProps = linkedAssetIds.filter(id => id !== asset.id)
+                              setFormData({
+                                ...formData,
+                                fountain: {
+                                  ...formData.fountain,
+                                  tags: {
+                                    ...(formData.fountain?.tags || {}),
+                                    props: updatedProps
+                                  }
+                                }
+                              })
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/20"
+                          style={{ color: '#DC2626' }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </div>
+        
         {/* Images Section - Only show for existing beats */}
         {!isCreating && scene && (
           <div>
@@ -366,6 +469,48 @@ export default function SceneDetailSidebar({
             type: 'scene',
             id: scene.id,
             name: scene.heading
+          }}
+        />
+      )}
+      
+      {/* Asset Linker Modal - Feature 0136 */}
+      {showAssetLinker && scene && (
+        <SceneAssetLinker
+          isOpen={showAssetLinker}
+          onClose={() => setShowAssetLinker(false)}
+          sceneId={scene.id}
+          linkedAssetIds={formData.fountain?.tags?.props || []}
+          onLink={async (assetId: string) => {
+            await linkAssetToScene(assetId, scene.id)
+            // Update formData to reflect the change
+            const currentProps = formData.fountain?.tags?.props || []
+            if (!currentProps.includes(assetId)) {
+              setFormData({
+                ...formData,
+                fountain: {
+                  ...formData.fountain,
+                  tags: {
+                    ...(formData.fountain?.tags || {}),
+                    props: [...currentProps, assetId]
+                  }
+                }
+              })
+            }
+          }}
+          onUnlink={async (assetId: string) => {
+            await unlinkAssetFromScene(assetId, scene.id)
+            // Update formData to reflect the change
+            const currentProps = formData.fountain?.tags?.props || []
+            setFormData({
+              ...formData,
+              fountain: {
+                ...formData.fountain,
+                tags: {
+                  ...(formData.fountain?.tags || {}),
+                  props: currentProps.filter(id => id !== assetId)
+                }
+              }
+            })
           }}
         />
       )}

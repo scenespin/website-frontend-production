@@ -98,6 +98,9 @@ interface ScreenplayContextType {
     updateAsset: (id: string, updates: Partial<Asset>) => Promise<void>;
     deleteAsset: (id: string) => Promise<void>;
     getAssetScenes: (assetId: string) => string[];
+    // Feature 0136: Asset-Scene Association
+    linkAssetToScene: (assetId: string, sceneId: string) => Promise<void>;
+    unlinkAssetFromScene: (assetId: string, sceneId: string) => Promise<void>;
     
     // Bulk Import
     bulkImportCharacters: (characterNames: string[], descriptions?: Map<string, string>, explicitScreenplayId?: string) => Promise<Character[]>;
@@ -875,6 +878,66 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             window.removeEventListener('storage', handleStorageChange);
         };
     }, [user]); // Re-run when user object changes (e.g., after metadata update)
+    
+    // 🔥 NEW: Listen for asset refresh events (e.g., when angle generation completes)
+    useEffect(() => {
+        if (!screenplayId) return;
+        
+        const handleRefreshAssets = async () => {
+            console.log('[ScreenplayContext] Refreshing assets due to refreshAssets event');
+            try {
+                const assetsData = await api.assetBank.list(screenplayId).catch(() => ({ assets: [] }));
+                const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
+                const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
+                
+                const activeAssets = assetsList.filter(asset => !asset.deleted_at);
+                const normalizedAssets = activeAssets.map(asset => ({
+                    ...asset,
+                    images: asset.images || []
+                }));
+                
+                // Merge with current state (same logic as initializeData)
+                setAssets(prev => {
+                    const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
+                    const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
+                    
+                    // Merge with current state to preserve recent updates
+                    const merged = [...filteredApiAssets];
+                    const currentStateAssets = prev.filter(a => {
+                        if (deletedAssetIdsRef.current.has(a.id)) return false;
+                        const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                        const now = Date.now();
+                        return (now - updatedAt) < 300000; // 5 minutes
+                    });
+                    
+                    for (const currentAsset of currentStateAssets) {
+                        const existing = merged.find(a => a.id === currentAsset.id);
+                        if (!existing) {
+                            merged.push(currentAsset);
+                        } else {
+                            const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                            const currentUpdatedAt = currentAsset.updatedAt ? new Date(currentAsset.updatedAt).getTime() : 0;
+                            if (currentUpdatedAt > existingUpdatedAt + 1000) {
+                                const index = merged.indexOf(existing);
+                                merged[index] = currentAsset;
+                            }
+                        }
+                    }
+                    
+                    return merged;
+                });
+                
+                console.log('[ScreenplayContext] ✅ Refreshed assets from API');
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to refresh assets:', error);
+            }
+        };
+        
+        window.addEventListener('refreshAssets', handleRefreshAssets);
+        return () => {
+            window.removeEventListener('refreshAssets', handleRefreshAssets);
+        };
+    }, [screenplayId]);
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
@@ -1493,6 +1556,62 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
         }
     }, [scenes, screenplayId, getToken]);
+    
+    // 🔥 Feature 0136: Asset-Scene Association - Link asset to scene
+    const linkAssetToScene = useCallback(async (assetId: string, sceneId: string) => {
+        const scene = scenes.find(s => s.id === sceneId);
+        if (!scene) {
+            console.error('[ScreenplayContext] Scene not found:', sceneId);
+            return;
+        }
+        
+        const currentProps = scene.fountain?.tags?.props || [];
+        if (currentProps.includes(assetId)) {
+            console.log('[ScreenplayContext] Asset already linked to scene');
+            return;
+        }
+        
+        const updatedProps = [...currentProps, assetId];
+        await updateScene(sceneId, {
+            fountain: {
+                ...scene.fountain,
+                tags: {
+                    ...(scene.fountain?.tags || {}),
+                    props: updatedProps
+                }
+            }
+        });
+        
+        console.log('[ScreenplayContext] ✅ Linked asset to scene:', { assetId, sceneId });
+    }, [scenes, updateScene]);
+    
+    // 🔥 Feature 0136: Asset-Scene Association - Unlink asset from scene
+    const unlinkAssetFromScene = useCallback(async (assetId: string, sceneId: string) => {
+        const scene = scenes.find(s => s.id === sceneId);
+        if (!scene) {
+            console.error('[ScreenplayContext] Scene not found:', sceneId);
+            return;
+        }
+        
+        const currentProps = scene.fountain?.tags?.props || [];
+        if (!currentProps.includes(assetId)) {
+            console.log('[ScreenplayContext] Asset not linked to scene');
+            return;
+        }
+        
+        const updatedProps = currentProps.filter(id => id !== assetId);
+        await updateScene(sceneId, {
+            fountain: {
+                ...scene.fountain,
+                tags: {
+                    ...(scene.fountain?.tags || {}),
+                    props: updatedProps
+                }
+            }
+        });
+        
+        console.log('[ScreenplayContext] ✅ Unlinked asset from scene:', { assetId, sceneId });
+    }, [scenes, updateScene]);
     
     // Helper: Recalculate page ranges for all beats based on scene timing
     const recalculateBeatPageRanges = (beats: StoryBeat[]): StoryBeat[] => {
@@ -4996,6 +5115,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         updateAsset,
         deleteAsset,
         getAssetScenes,
+        // Feature 0136: Asset-Scene Association
+        linkAssetToScene,
+        unlinkAssetFromScene,
         
         // Bulk Import
         bulkImportCharacters,
