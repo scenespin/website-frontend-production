@@ -156,6 +156,10 @@ export function CharacterDetailModal({
         const isAIGenerated = contextImage?.metadata?.source === 'pose-generation' || 
                               contextImage?.metadata?.source === 'image-generation' ||
                               contextImage?.metadata?.uploadMethod === 'pose-generation' ||
+                              contextImage?.metadata?.createdIn === 'production-hub' ||
+                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('nano-banana-pro') ||
+                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway-gen4') ||
+                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway') ||
                               contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') ||
                               contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon');
         
@@ -651,16 +655,19 @@ export function CharacterDetailModal({
                                 
                                 // 🔥 LOGIC: Image was created in Production Hub if:
                                 // 1. It's in poseReferences (AI-generated poses) OR
-                                // 2. Context metadata indicates pose-generation/image-generation
-                                // NOTE: Even if it's in userReferences, if metadata says it's AI-generated, it's deletable in Production Hub
+                                // 2. Context metadata indicates it was created/uploaded in Production Hub
+                                // NOTE: ANY image created/uploaded in Production Hub (AI-generated OR user-uploaded) is deletable there
+                                // Only images uploaded in Creation section require deletion there
                                 const createdInProductionHub = isInPoseReferences || 
-                                                              contextImage?.metadata?.source === 'pose-generation' || 
-                                                              contextImage?.metadata?.source === 'image-generation' ||
-                                                              contextImage?.metadata?.uploadMethod === 'pose-generation' ||
-                                                              contextImage?.metadata?.createdIn === 'production-hub' ||
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') ||
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon') ||
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('nano-banana');
+                                                              contextImage?.metadata?.createdIn === 'production-hub' || // User-uploaded in Production Hub
+                                                              contextImage?.metadata?.source === 'pose-generation' || // AI-generated poses
+                                                              contextImage?.metadata?.source === 'image-generation' || // AI-generated images
+                                                              contextImage?.metadata?.uploadMethod === 'pose-generation' || // Legacy pose generation
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('nano-banana-pro') || // Nano Banana Pro
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway-gen4') || // Runway Gen-4
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway') || // Any Runway model
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') || // Legacy Luma
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon'); // Legacy Photon
                                 
                                 if (createdInProductionHub) {
                                   // Can delete in Production Hub
