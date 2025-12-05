@@ -60,8 +60,21 @@ export default function AssetDetailModal({
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
 
   const categoryMeta = ASSET_CATEGORY_METADATA[category];
-  const canExport3D = asset.images.length >= 2 && asset.images.length <= 10;
-  const canGenerateAngles = asset.images.length >= 1; // Need at least 1 image for angle generation
+  const assetImages = asset.images || []; // Safety check for undefined images
+  const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
+  const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
+  
+  // Debug: Log asset images for troubleshooting
+  if (isOpen) {
+    console.log('[AssetDetailModal] Asset images:', {
+      assetId: asset.id,
+      assetName: asset.name,
+      imagesCount: assetImages.length,
+      images: assetImages,
+      canGenerateAngles,
+      canExport3D
+    });
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -79,7 +92,7 @@ export default function AssetDetailModal({
       // Upload each file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (asset.images.length >= 10) {
+        if (assetImages.length >= 10) {
           toast.error('Maximum 10 images per asset');
           break;
         }
@@ -137,7 +150,7 @@ export default function AssetDetailModal({
   };
   
   // Convert asset images to gallery format
-  const allImages = asset.images.map((img, idx) => ({
+  const allImages = assetImages.map((img, idx) => ({
     id: `img-${idx}`,
     imageUrl: img.url,
     label: `${asset.name} - Image ${idx + 1}`,
@@ -323,7 +336,7 @@ export default function AssetDetailModal({
                 }`}
               >
                 <Box className="w-4 h-4 inline mr-2" />
-                References ({asset.images.length})
+                References ({assetImages.length})
               </button>
             </div>
 
@@ -387,14 +400,14 @@ export default function AssetDetailModal({
                   <div className="flex flex-wrap gap-3">
                     <label className={`px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       <Upload className="w-4 h-4" />
-                      {isUploading ? 'Uploading...' : asset.images.length >= 10 ? 'Max Images (10/10)' : `Upload Image (${asset.images.length}/10)`}
+                      {isUploading ? 'Uploading...' : assetImages.length >= 10 ? 'Max Images (10/10)' : `Upload Image (${assetImages.length}/10)`}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
                         multiple
                         onChange={handleFileUpload}
-                        disabled={isUploading || asset.images.length >= 10}
+                        disabled={isUploading || assetImages.length >= 10}
                       />
                     </label>
                     
@@ -434,7 +447,7 @@ export default function AssetDetailModal({
                     
                     {!canExport3D && (
                       <div className="px-4 py-2 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg text-sm text-[#808080]">
-                        ⚠️ Need {2 - asset.images.length} more image{(2 - asset.images.length) !== 1 ? 's' : ''} for 3D export
+                        ⚠️ Need {2 - assetImages.length} more image{(2 - assetImages.length) !== 1 ? 's' : ''} for 3D export
                       </div>
                     )}
                   </div>
