@@ -502,14 +502,15 @@ export function LocationDetailModal({
           setShowAngleModal(false);
           
           // 🔥 NEW: Refresh immediately (angles are saved synchronously)
+          // Call onUpdate with location ID and empty updates to trigger parent refresh
           if (onUpdate) {
-            onUpdate();
+            onUpdate(location.locationId, {});
           }
           
           // Also refresh after a short delay to ensure UI updates
           setTimeout(() => {
             if (onUpdate) {
-              onUpdate();
+              onUpdate(location.locationId, {});
             }
           }, 2000);
         }}
