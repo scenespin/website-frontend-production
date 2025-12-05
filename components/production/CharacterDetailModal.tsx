@@ -1471,6 +1471,7 @@ export function CharacterDetailModal({
             setShow3DModal(false);
           }}
           character={character}
+          projectId={projectId}
           onSuccess={() => {
             setShow3DModal(false);
             // Optionally refresh character data

@@ -37,6 +37,7 @@ interface Character3DExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   character: CharacterProfile;
+  projectId?: string; // screenplayId for backend query
   onSuccess: () => void;
 }
 
@@ -55,7 +56,7 @@ interface Job3DStatus {
   daysRemaining?: number;
 }
 
-export default function Character3DExportModal({ isOpen, onClose, character, onSuccess }: Character3DExportModalProps) {
+export default function Character3DExportModal({ isOpen, onClose, character, projectId, onSuccess }: Character3DExportModalProps) {
   const { getToken } = useAuth();
   const [selectedFormats, setSelectedFormats] = useState<ExportFormat[]>(['glb', 'obj']);
   const [generating, setGenerating] = useState(false);
@@ -132,6 +133,7 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
         body: JSON.stringify({
           outputFormats: selectedFormats,
           quality: 'standard',
+          screenplayId: projectId, // Pass screenplayId for efficient query
         }),
       });
 
