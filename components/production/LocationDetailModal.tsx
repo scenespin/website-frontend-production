@@ -494,21 +494,24 @@ export function LocationDetailModal({
         projectId={projectId}
         locationProfile={location}
         onComplete={async (result) => {
-          // Job is created - generation happens asynchronously
-          // Angles will appear in Location Bank once job completes
-          toast.success(`Angle generation started for ${location.name}!`, {
-            description: 'Check the Jobs tab to track progress.'
+          // Generation completes synchronously - angles are saved immediately
+          toast.success(`Angle generation completed for ${location.name}!`, {
+            description: `${result.angleVariations?.length || 0} angles generated.`
           });
           
           setShowAngleModal(false);
           
-          // Refresh location data after delay to catch completed angles
-          if (onGenerateAngles) {
-            // Trigger parent refresh
-            setTimeout(() => {
-              // Parent will handle refresh via onLocationsUpdate
-            }, 5000);
+          // 🔥 NEW: Refresh immediately (angles are saved synchronously)
+          if (onUpdate) {
+            onUpdate();
           }
+          
+          // Also refresh after a short delay to ensure UI updates
+          setTimeout(() => {
+            if (onUpdate) {
+              onUpdate();
+            }
+          }, 2000);
         }}
       />
     )}
