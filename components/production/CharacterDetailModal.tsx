@@ -543,26 +543,59 @@ export function CharacterDetailModal({
             {/* Content */}
             <div className="flex-1 overflow-y-auto bg-[#0A0A0A]">
               {activeTab === 'gallery' && (
-                <div className="p-6 space-y-6">
-                  {/* Main Image Display */}
+                <div className="p-6">
                   {allImages.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="relative aspect-video bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] mb-4">
-                        <img
-                          src={allImages[selectedImageIndex]?.imageUrl}
-                          alt={allImages[selectedImageIndex]?.label}
-                          className="w-full h-full object-contain"
-                        />
-                        {allImages[selectedImageIndex]?.isBase && (
-                          <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
-                            Base Reference
-                          </div>
-                        )}
-                        {allImages[selectedImageIndex]?.isPose && (
-                          <div className="absolute top-4 left-4 px-3 py-1 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded-full text-xs font-medium">
-                            Generated Pose
-                          </div>
-                        )}
+                    <div className="flex gap-6">
+                      {/* Thumbnails on left */}
+                      <div className="flex-shrink-0 w-32 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
+                        {allImages.map((img, idx) => (
+                          <button
+                            key={img.id}
+                            onClick={() => setSelectedImageIndex(idx)}
+                            className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                              selectedImageIndex === idx
+                                ? 'border-[#DC143C] ring-2 ring-[#DC143C]/20'
+                                : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                            }`}
+                          >
+                            <img
+                              src={img.imageUrl}
+                              alt={img.label}
+                              className="w-full h-full object-cover"
+                            />
+                            {img.isBase && (
+                              <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#DC143C] text-white text-[10px] rounded">
+                                Base
+                              </div>
+                            )}
+                            {img.isPose && (
+                              <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#8B5CF6] text-white text-[10px] rounded">
+                                Pose
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Main image on right */}
+                      <div className="flex-1">
+                        <div className="relative bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] aspect-video max-h-[600px]">
+                          <img
+                            src={allImages[selectedImageIndex]?.imageUrl}
+                            alt={allImages[selectedImageIndex]?.label}
+                            className="w-full h-full object-contain"
+                          />
+                          {allImages[selectedImageIndex]?.isBase && (
+                            <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
+                              Base Reference
+                            </div>
+                          )}
+                          {allImages[selectedImageIndex]?.isPose && (
+                            <div className="absolute top-4 left-4 px-3 py-1 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded-full text-xs font-medium">
+                              Generated Pose
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -575,7 +608,7 @@ export function CharacterDetailModal({
                           <h3 className="text-sm font-semibold text-white mb-1">
                             User Uploaded Reference ({userReferences.length})
                           </h3>
-                          <p className="text-xs text-[#6B7280]">Created in Creation section - delete there</p>
+                          <p className="text-xs text-[#6B7280]">Uploaded in Creation section - delete there</p>
                         </div>
                       </div>
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
@@ -619,11 +652,15 @@ export function CharacterDetailModal({
                                 // 🔥 LOGIC: Image was created in Production Hub if:
                                 // 1. It's in poseReferences (AI-generated poses) OR
                                 // 2. Context metadata indicates pose-generation/image-generation
+                                // NOTE: Even if it's in userReferences, if metadata says it's AI-generated, it's deletable in Production Hub
                                 const createdInProductionHub = isInPoseReferences || 
                                                               contextImage?.metadata?.source === 'pose-generation' || 
                                                               contextImage?.metadata?.source === 'image-generation' ||
                                                               contextImage?.metadata?.uploadMethod === 'pose-generation' ||
-                                                              contextImage?.metadata?.createdIn === 'production-hub';
+                                                              contextImage?.metadata?.createdIn === 'production-hub' ||
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') ||
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon') ||
+                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('nano-banana');
                                 
                                 if (createdInProductionHub) {
                                   // Can delete in Production Hub

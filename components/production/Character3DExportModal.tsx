@@ -138,13 +138,13 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
       if (!response.ok) {
         const error = await response.json();
         
-        // Handle cloud storage requirement
+        // Cloud storage is now optional, so this error shouldn't occur
+        // But handle gracefully if it does
         if (error.action === 'CONNECT_CLOUD_STORAGE') {
-          toast.error('Please connect Dropbox or Google Drive before exporting 3D models', {
+          toast.warning('Cloud storage recommended but not required. Files can be downloaded directly.', {
             duration: 5000
           });
-          setGenerating(false);
-          return;
+          // Continue anyway - backend should allow it now
         }
         
         throw new Error(error.error || 'Failed to start 3D generation');
@@ -303,12 +303,12 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
                 </div>
               </div>
 
-              {/* Cloud Storage Requirement */}
+              {/* Cloud Storage Recommendation */}
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex gap-2">
                 <User className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 <div className="text-xs">
-                  <p className="text-blue-500 font-medium">Cloud Storage Required</p>
-                  <p className="text-[#808080]">Connect Dropbox or Google Drive before exporting.</p>
+                  <p className="text-blue-500 font-medium">Cloud Storage Recommended</p>
+                  <p className="text-[#808080]">Connect Dropbox or Google Drive to auto-save files. Files can also be downloaded directly.</p>
                 </div>
               </div>
 
