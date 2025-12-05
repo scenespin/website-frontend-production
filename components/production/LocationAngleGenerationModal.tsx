@@ -94,6 +94,11 @@ export default function LocationAngleGenerationModal({
       
       // Call backend API to generate angle package
       const token = await getToken({ template: 'wryda-backend' });
+      
+      if (!token) {
+        throw new Error('Failed to get backend token. Please try refreshing the page.');
+      }
+      
       const apiUrl = `/api/location-bank/generate-angles`;
       const requestBody = {
         locationProfile: locationProfile,
@@ -104,6 +109,7 @@ export default function LocationAngleGenerationModal({
       
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
       console.log('[LocationAngleGeneration] Request body:', requestBody);
+      console.log('[LocationAngleGeneration] Token available:', !!token);
       
       const response = await fetch(apiUrl, {
         method: 'POST',

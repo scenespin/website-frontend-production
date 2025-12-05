@@ -196,12 +196,12 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#141414] rounded-lg max-w-2xl w-full border border-[#3F3F46]">
+      <div className="bg-[#141414] rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#3F3F46]">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#3F3F46]">
+        <div className="flex items-center justify-between p-4 border-b border-[#3F3F46] sticky top-0 bg-[#141414] z-10">
           <div>
-            <h3 className="text-2xl font-bold text-[#FFFFFF] flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#DC143C]" />
+            <h3 className="text-lg font-bold text-[#FFFFFF] flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#DC143C]" />
               Generate 3D Model
             </h3>
             <p className="text-sm text-[#808080] mt-1">{character.name}</p>
@@ -216,18 +216,18 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4">
           {!jobId ? (
             // Format Selection
             <>
               {/* Character Info */}
-              <div className="bg-[#1F1F1F] rounded-lg p-4 border border-[#3F3F46]">
-                <div className="flex items-center gap-4">
+              <div className="bg-[#1F1F1F] rounded-lg p-3 border border-[#3F3F46]">
+                <div className="flex items-center gap-3">
                   {character.baseReference && (
                     <img
                       src={character.baseReference.imageUrl}
                       alt={character.name}
-                      className="w-20 h-20 rounded-lg object-cover"
+                      className="w-16 h-16 rounded-lg object-cover"
                     />
                   )}
                   <div className="flex-1">
@@ -250,19 +250,19 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
 
               {/* Format Selection */}
               <div>
-                <label className="block text-sm font-medium text-[#FFFFFF] mb-3">
-                  Export Formats (select all that you need)
+                <label className="block text-sm font-medium text-[#FFFFFF] mb-2">
+                  Export Formats
                 </label>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {[
-                    { id: 'glb' as ExportFormat, name: 'GLB', desc: 'Unity, Unreal, Three.js (Recommended)' },
+                    { id: 'glb' as ExportFormat, name: 'GLB', desc: 'Unity, Unreal, Three.js' },
                     { id: 'obj' as ExportFormat, name: 'OBJ', desc: 'Blender, Maya, 3ds Max' },
                     { id: 'usdz' as ExportFormat, name: 'USDZ', desc: 'Apple AR, iOS apps' },
                   ].map(format => (
                     <button
                       key={format.id}
                       onClick={() => toggleFormat(format.id)}
-                      className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                      className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                         selectedFormats.includes(format.id)
                           ? 'border-[#DC143C] bg-[#DC143C]/10'
                           : 'border-[#3F3F46] bg-[#1F1F1F] hover:border-[#808080]'
@@ -270,11 +270,11 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-semibold text-[#FFFFFF]">{format.name}</div>
-                          <div className="text-sm text-[#808080] mt-1">{format.desc}</div>
+                          <div className="font-semibold text-sm text-[#FFFFFF]">{format.name}</div>
+                          <div className="text-xs text-[#808080] mt-0.5">{format.desc}</div>
                         </div>
                         {selectedFormats.includes(format.id) && (
-                          <CheckCircle className="w-5 h-5 text-[#DC143C]" />
+                          <CheckCircle className="w-4 h-4 text-[#DC143C]" />
                         )}
                       </div>
                     </button>
@@ -283,36 +283,32 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
               </div>
 
               {/* Pricing */}
-              <div className="bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
+              <div className="bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-[#FFFFFF]">Cost:</span>
-                  <span className="text-xl font-bold text-[#FFFFFF]">{credits} credits ({priceUSD})</span>
+                  <span className="text-lg font-bold text-[#FFFFFF]">{credits} credits ({priceUSD})</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#808080]">Estimated Time:</span>
-                  <span className="text-[#FFFFFF]">20-40 minutes</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#808080]">Time:</span>
+                  <span className="text-[#FFFFFF]">20-40 min</span>
                 </div>
               </div>
 
               {/* Warning */}
-              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="text-orange-500 font-medium mb-1">Files expire in 7 days</p>
-                  <p className="text-[#808080]">
-                    3D models are stored temporarily. Download immediately or save to your cloud storage.
-                  </p>
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 flex gap-2">
+                <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="text-orange-500 font-medium">Files expire in 7 days</p>
+                  <p className="text-[#808080]">Download immediately or save to cloud storage.</p>
                 </div>
               </div>
 
               {/* Cloud Storage Requirement */}
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex gap-3">
-                <User className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="text-blue-500 font-medium mb-1">Cloud Storage Required</p>
-                  <p className="text-[#808080]">
-                    You must connect Dropbox or Google Drive before exporting 3D models. Files will be saved to your cloud storage.
-                  </p>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex gap-2">
+                <User className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="text-xs">
+                  <p className="text-blue-500 font-medium">Cloud Storage Required</p>
+                  <p className="text-[#808080]">Connect Dropbox or Google Drive before exporting.</p>
                 </div>
               </div>
 
@@ -338,10 +334,10 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
             // Job Status
             <>
               {jobStatus?.status === 'processing' && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                  <h4 className="text-xl font-bold text-[#FFFFFF] mb-2">Generating 3D Model...</h4>
-                  <p className="text-[#808080] mb-4">Processing typically takes 20-40 minutes</p>
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <h4 className="text-lg font-bold text-[#FFFFFF] mb-2">Generating 3D Model...</h4>
+                  <p className="text-sm text-[#808080] mb-4">Processing typically takes 20-40 minutes</p>
                   {jobStatus.progress > 0 && (
                     <div className="max-w-md mx-auto">
                       <div className="w-full bg-[#1F1F1F] rounded-full h-2 mb-2">
@@ -361,12 +357,12 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
               )}
 
               {jobStatus?.status === 'completed' && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="w-10 h-10 text-green-500" />
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-500" />
                   </div>
-                  <h4 className="text-xl font-bold text-[#FFFFFF] mb-2">3D Model Ready!</h4>
-                  <p className="text-[#808080] mb-6">Your 3D model has been generated successfully</p>
+                  <h4 className="text-lg font-bold text-[#FFFFFF] mb-2">3D Model Ready!</h4>
+                  <p className="text-sm text-[#808080] mb-4">Your 3D model has been generated successfully</p>
 
                   {/* Download Links */}
                   <div className="space-y-3 max-w-md mx-auto">
@@ -403,12 +399,12 @@ export default function Character3DExportModal({ isOpen, onClose, character, onS
               )}
 
               {jobStatus?.status === 'failed' && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <AlertCircle className="w-10 h-10 text-red-500" />
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="w-8 h-8 text-red-500" />
                   </div>
-                  <h4 className="text-xl font-bold text-[#FFFFFF] mb-2">Generation Failed</h4>
-                  <p className="text-[#808080] mb-6">
+                  <h4 className="text-lg font-bold text-[#FFFFFF] mb-2">Generation Failed</h4>
+                  <p className="text-sm text-[#808080] mb-4">
                     {jobStatus.error || 'Something went wrong. Please try again.'}
                   </p>
                   <button
