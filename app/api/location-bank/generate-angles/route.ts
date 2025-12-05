@@ -14,8 +14,12 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the token from the Authorization header that the client sent
+    const authHeader = request.headers.get('authorization');
+    const clientToken = authHeader?.replace('Bearer ', '');
+    
     // Verify user is authenticated with Clerk
-    const { userId, getToken } = await auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
@@ -23,8 +27,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get Clerk token for backend API
-    const token = await getToken({ template: 'wryda-backend' });
+    // Use the token from the client if available, otherwise get a new one
+    // This matches the pattern used in character-bank/list route
+    let token = clientToken;
+    if (!token) {
+      const { getToken } = await auth();
+      token = await getToken({ template: 'wryda-backend' });
+    }
+    
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized - Failed to get backend token' },
@@ -34,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { locationProfile, angles } = body;
+    const { locationProfile, packageId, angles, quality } = body; // NEW: Include packageId and quality
 
     if (!locationProfile) {
       return NextResponse.json(
@@ -43,16 +53,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!angles || !Array.isArray(angles)) {
-      return NextResponse.json(
-        { error: 'angles array is required' },
-        { status: 400 }
-      );
-    }
-
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
     const url = `${backendUrl}/api/location-bank/generate-angles`;
+
+    console.log('[Location Bank Generate Angles] Forwarding to backend:', { 
+      url, 
+      hasLocationProfile: !!locationProfile,
+      packageId,
+      quality,
+      anglesCount: angles?.length || 0
+    });
 
     const response = await fetch(url, {
       method: 'POST',
@@ -62,7 +73,9 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         locationProfile,
-        angles
+        packageId, // NEW: Forward packageId
+        angles, // Keep for backward compatibility
+        quality // NEW: Forward quality tier
       }),
     });
 
