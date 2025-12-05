@@ -145,7 +145,8 @@ export function LocationDetailModal({
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
       {isOpen && (
         <>
           {/* Backdrop */}
@@ -479,11 +480,11 @@ export function LocationDetailModal({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
-    
-    {/* Location Angle Generation Modal */}
-    {showAngleModal && (
-      <LocationAngleGenerationModal
+      </AnimatePresence>
+      
+      {/* Location Angle Generation Modal */}
+      {showAngleModal && (
+        <LocationAngleGenerationModal
         isOpen={showAngleModal}
         onClose={() => {
           setShowAngleModal(false);
