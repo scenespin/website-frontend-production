@@ -23,6 +23,7 @@ import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import AssetAngleGenerationModal from './AssetAngleGenerationModal';
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -55,9 +56,12 @@ export default function AssetDetailModal({
   const [saving, setSaving] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [showAngleModal, setShowAngleModal] = useState(false);
+  const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
 
   const categoryMeta = ASSET_CATEGORY_METADATA[category];
   const canExport3D = asset.images.length >= 2 && asset.images.length <= 10;
+  const canGenerateAngles = asset.images.length >= 1; // Need at least 1 image for angle generation
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -198,6 +202,7 @@ export default function AssetDetailModal({
   };
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -393,6 +398,24 @@ export default function AssetDetailModal({
                       />
                     </label>
                     
+                    {/* Generate Angle Package Button */}
+                    {canGenerateAngles && (
+                      <button
+                        onClick={() => setShowAngleModal(true)}
+                        disabled={isGeneratingAngles}
+                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        {isGeneratingAngles ? 'Generating...' : 'Generate Angle Package'}
+                      </button>
+                    )}
+                    
+                    {!canGenerateAngles && (
+                      <div className="px-4 py-2 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg text-sm text-[#808080]">
+                        ⚠️ Upload at least 1 image to generate angle package
+                      </div>
+                    )}
+                    
                     {canExport3D && !asset.has3DModel && (
                       <div className="space-y-2">
                         <button
@@ -557,5 +580,32 @@ export default function AssetDetailModal({
         </>
       )}
     </AnimatePresence>
+    
+    {/* Asset Angle Generation Modal */}
+    {showAngleModal && (
+      <AssetAngleGenerationModal
+        isOpen={showAngleModal}
+        onClose={() => {
+          setShowAngleModal(false);
+        }}
+        assetId={asset.id}
+        assetName={asset.name}
+        projectId={screenplayId || ''}
+        asset={asset}
+        onComplete={async (result) => {
+          toast.success(`Angle generation started for ${asset.name}!`, {
+            description: 'Check the Jobs tab to track progress.'
+          });
+          setShowAngleModal(false);
+          setIsGeneratingAngles(false);
+          
+          // Refresh asset data after delay to catch completed angles
+          setTimeout(() => {
+            onUpdate();
+          }, 5000);
+        }}
+      />
+    )}
+  </>
   );
 }
