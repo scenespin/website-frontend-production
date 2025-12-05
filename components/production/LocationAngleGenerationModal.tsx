@@ -137,7 +137,21 @@ export default function LocationAngleGenerationModal({
         }
         
         console.error('[LocationAngleGeneration] Error response:', errorData);
-        let errorMessage = errorData.message || errorData.error || 'Failed to generate angle package';
+        
+        // Handle different error response formats
+        let errorMessage: string;
+        if (errorData.error?.message) {
+          // Backend format: { success: false, error: { message: '...', code: '...' } }
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          // Direct message format: { message: '...' }
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          // String error format: { error: '...' }
+          errorMessage = typeof errorData.error === 'string' ? errorData.error : 'Authentication failed';
+        } else {
+          errorMessage = 'Failed to generate angle package';
+        }
         
         // Sanitize error message
         errorMessage = errorMessage
