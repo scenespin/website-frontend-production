@@ -14,7 +14,7 @@ export const runtime = 'nodejs';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ assetId: string }> }
 ) {
   try {
     // Get the token from the Authorization header that the client sent
@@ -62,7 +62,8 @@ export async function POST(
       );
     }
 
-    const { assetId } = params;
+    // Next.js 15: params is now a Promise
+    const { assetId } = await params;
 
     // Forward request to backend
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
