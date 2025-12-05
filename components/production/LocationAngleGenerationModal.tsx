@@ -110,6 +110,8 @@ export default function LocationAngleGenerationModal({
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
       console.log('[LocationAngleGeneration] Request body:', requestBody);
       console.log('[LocationAngleGeneration] Token available:', !!token);
+      console.log('[LocationAngleGeneration] Token length:', token?.length || 0);
+      console.log('[LocationAngleGeneration] Token preview:', token ? `${token.substring(0, 20)}...` : 'none');
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -121,9 +123,20 @@ export default function LocationAngleGenerationModal({
       });
       
       console.log('[LocationAngleGeneration] Response status:', response.status, response.statusText);
+      console.log('[LocationAngleGeneration] Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          // If response is not JSON, get text
+          const text = await response.text();
+          console.error('[LocationAngleGeneration] Non-JSON error response:', text);
+          throw new Error(`Server error (${response.status}): ${text || response.statusText}`);
+        }
+        
+        console.error('[LocationAngleGeneration] Error response:', errorData);
         let errorMessage = errorData.message || errorData.error || 'Failed to generate angle package';
         
         // Sanitize error message
