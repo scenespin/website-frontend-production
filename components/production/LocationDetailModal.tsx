@@ -15,11 +15,19 @@
  */
 
 import React, { useState } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save, MoreVertical, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import Location3DExportModal from './Location3DExportModal';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
@@ -73,6 +81,8 @@ export function LocationDetailModal({
   onGenerate3D,
   onGenerateAngles
 }: LocationDetailModalProps) {
+  const { updateLocation, locations } = useScreenplay();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -456,23 +466,114 @@ export function LocationDetailModal({
               {activeTab === 'references' && (
                 <div className="p-6">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {allImages.map((img) => (
-                      <div
-                        key={img.id}
-                        className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                      >
-                        <img
-                          src={img.imageUrl}
-                          alt={img.label}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute bottom-2 left-2 right-2">
-                            <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                    {allImages.map((img, idx) => {
+                      // Find the actual LocationReference for this image
+                      const locationRef = img.isBase 
+                        ? location.baseReference 
+                        : location.angleVariations.find(v => v.id === img.id);
+                      
+                      // Check if image was created in Production Hub (AI-generated angles)
+                      const isAIGenerated = locationRef?.generationMethod === 'ai-generated' || 
+                                           locationRef?.generationMethod === 'angle-variation' ||
+                                           (!img.isBase); // Angle variations are AI-generated
+                      
+                      // Check if image was created in Creation section (user uploads)
+                      const createdInCreation = locationRef?.generationMethod === 'upload' && img.isBase;
+                      
+                      return (
+                        <div
+                          key={img.id}
+                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                        >
+                          <img
+                            src={img.imageUrl}
+                            alt={img.label}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-2 left-2 right-2">
+                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                            </div>
+                            {/* Delete button - only show for Production Hub images */}
+                            {isAIGenerated && !img.isBase && (
+                              <div className="absolute top-2 right-2">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreVertical className="w-3 h-3 text-white" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          // Remove from angleVariations
+                                          const updatedAngleVariations = location.angleVariations.filter(
+                                            (v: LocationReference) => v.id !== img.id
+                                          );
+                                          
+                                          // Update location via onUpdate
+                                          await onUpdate(location.locationId, {
+                                            angleVariations: updatedAngleVariations
+                                          });
+                                          
+                                          // Also update ScreenplayContext if location exists there
+                                          const contextLocation = locations.find(l => l.id === location.locationId);
+                                          if (contextLocation && locationRef?.s3Key) {
+                                            const updatedImages = (contextLocation.images || []).filter((image: any) => {
+                                              const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                              return imgS3Key !== locationRef.s3Key;
+                                            });
+                                            
+                                            // Update locationBankProfile.angleVariations
+                                            let updatedLocationBankProfile = contextLocation.locationBankProfile;
+                                            if (updatedLocationBankProfile?.angleVariations) {
+                                              updatedLocationBankProfile = {
+                                                ...updatedLocationBankProfile,
+                                                angleVariations: updatedLocationBankProfile.angleVariations.filter(
+                                                  (variation: any) => variation.s3Key !== locationRef.s3Key
+                                                )
+                                              };
+                                            }
+                                            
+                                            await updateLocation(location.locationId, {
+                                              images: updatedImages,
+                                              locationBankProfile: updatedLocationBankProfile
+                                            });
+                                          }
+                                          
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                          toast.success('Angle image deleted');
+                                        } catch (error: any) {
+                                          console.error('[LocationDetailModal] Failed to delete angle image:', error);
+                                          toast.error(`Failed to delete image: ${error.message}`);
+                                        }
+                                      }}
+                                      className="text-red-500"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                            {/* Info icon for Creation section images (cannot delete from Production Hub) */}
+                            {createdInCreation && (
+                              <div className="absolute top-2 right-2">
+                                <div className="p-1.5 bg-[#DC143C]/20 rounded-lg" title="This image was uploaded in the Create section and can only be deleted there">
+                                  <Info className="w-3 h-3 text-[#DC143C]" />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

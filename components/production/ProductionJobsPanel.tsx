@@ -683,6 +683,36 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                     </div>
                   )}
 
+                  {/* 🔥 NEW: Display angleReferences for location/asset angle generation jobs */}
+                  {job.jobType === 'image-generation' && job.results.angleReferences && job.results.angleReferences.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      {job.results.angleReferences.map((angleRef, index) => (
+                        <div
+                          key={index}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
+                        >
+                          {angleRef.imageUrl ? (
+                            <img
+                              src={angleRef.imageUrl}
+                              alt={`${angleRef.angle} view`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-xs">
+                              No image
+                            </div>
+                          )}
+                          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-xs text-white">
+                            {angleRef.angle}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Action buttons based on job type */}
                   <div className="flex flex-wrap gap-2">
                     {/* Pose generation: Save button */}
@@ -739,6 +769,35 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                       >
                         <Save className="w-3 h-3" />
                         Save Images
+                      </button>
+                    )}
+                    
+                    {/* 🔥 NEW: Angle generation: Save button for location/asset angles */}
+                    {job.jobType === 'image-generation' && job.results.angleReferences && job.results.angleReferences.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const firstAngle = job.results!.angleReferences![0];
+                          setSelectedAsset({
+                            url: firstAngle.imageUrl,
+                            s3Key: firstAngle.s3Key,
+                            name: `${job.metadata?.inputs?.entityName || 'Entity'} - ${firstAngle.angle} view`,
+                            type: 'image',
+                            metadata: {
+                              entityType: job.metadata?.inputs?.entityType || 'location',
+                              entityId: job.metadata?.inputs?.entityId,
+                              entityName: job.metadata?.inputs?.entityName || 'Location',
+                              angleGeneration: true,
+                              allAngles: job.results!.angleReferences
+                            }
+                          });
+                          setShowStorageModal(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                 bg-[#DC143C] text-white text-xs font-medium
+                                 hover:bg-[#B91238] transition-colors"
+                      >
+                        <Save className="w-3 h-3" />
+                        Save Angles
                       </button>
                     )}
                     

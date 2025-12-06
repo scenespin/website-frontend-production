@@ -463,8 +463,8 @@ export function CharacterBankPanel({
               if (updates.description !== undefined) apiUpdates.description = updates.description;
               if (updates.type !== undefined) apiUpdates.type = updates.type;
               
-              // Call Character Bank API
-              const response = await fetch(`/api/character-bank/${characterId}`, {
+              // Call Character Bank API with screenplayId in query params (for new format character IDs)
+              const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`,
