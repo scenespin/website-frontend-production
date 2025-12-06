@@ -20,7 +20,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import Location3DExportModal from './Location3DExportModal';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DropdownMenu,
@@ -85,7 +84,6 @@ export function LocationDetailModal({
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
-  const { locations } = useScreenplay(); // 🔥 FIX: Call hook at top level, get locations directly
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -98,8 +96,7 @@ export function LocationDetailModal({
   const [description, setDescription] = useState(location.description || '');
   const [type, setType] = useState<LocationProfile['type']>(location.type);
   
-  // 🔥 FIX: Get ALL Creation images from Location Bank API
-  // Location Bank API now provides creationImages array with all Creation images
+  // 🔥 SIMPLIFIED: Get Creation images directly from location prop (backend already provides this)
   const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
   
   // Add baseReference (first Creation image)
@@ -113,7 +110,7 @@ export function LocationDetailModal({
     });
   }
   
-  // 🔥 NEW: Add additional Creation images from Location Bank API
+  // Add additional Creation images from Location Bank API
   if (location.creationImages && Array.isArray(location.creationImages)) {
     location.creationImages.forEach((img: LocationReference) => {
       allCreationImages.push({
@@ -126,109 +123,12 @@ export function LocationDetailModal({
     });
   }
   
-  // 🔥 FALLBACK: If Location Bank API doesn't have creationImages yet, try ScreenplayContext
-  // This is a temporary fallback until all locations are updated
-  if (allCreationImages.length === 1 && location.baseReference) {
-    const contextLocation = locations?.find(l => l.id === location.locationId);
-    if (contextLocation?.images && Array.isArray(contextLocation.images)) {
-      contextLocation.images.forEach((img: any, idx: number) => {
-        // Skip if this is already the baseReference
-        if (img.s3Key === location.baseReference?.s3Key || 
-            img.metadata?.s3Key === location.baseReference?.s3Key) {
-          return;
-        }
-        // Only include Creation images (createdIn: 'creation' or source: 'user-upload')
-        const isCreationImage = img.metadata?.createdIn === 'creation' || 
-                               img.metadata?.source === 'user-upload' ||
-                               !img.metadata?.createdIn; // Default to Creation if no metadata
-        if (isCreationImage && (img.s3Key || img.metadata?.s3Key)) {
-          allCreationImages.push({
-            id: `ref_${img.s3Key || img.metadata?.s3Key}_${idx}`,
-            imageUrl: img.imageUrl || img.url || '',
-            label: `${location.name} - Reference ${idx + 1}`,
-            isBase: false,
-            s3Key: img.s3Key || img.metadata?.s3Key
-          });
-        }
-      });
-    }
-  }
+  // 🔥 SIMPLIFIED: Get angleVariations directly from location prop (backend already provides this with presigned URLs)
+  // Backend LocationBankService already enriches angleVariations with imageUrl and all metadata
+  const angleVariations = location.angleVariations || [];
   
-  // Convert baseReference and angleVariations to image objects for gallery
+  // Convert angleVariations to image objects for gallery
   const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [...allCreationImages];
-  
-  // 🔥 FIX: Get angleVariations from ScreenplayContext (same pattern as characters)
-  // First try from location prop, then from context
-  // 🔥 CRITICAL: Try multiple ID matching strategies (locationId might be different from id)
-  const contextLocation = locations?.find(l => 
-    l.id === location.locationId || 
-    l.id === location.id ||
-    l.name === location.name
-  );
-  
-  // 🔥 DEBUG: Log context location matching
-  React.useEffect(() => {
-    if (isOpen) {
-      console.log('[LocationDetailModal] 🔍 Context location search:', {
-        locationId: location.locationId,
-        locationName: location.name,
-        allLocationIds: locations?.map(l => ({ id: l.id, name: l.name })),
-        contextLocationFound: !!contextLocation,
-        contextLocationId: contextLocation?.id,
-        contextLocationName: contextLocation?.name,
-        contextLocationImagesCount: contextLocation?.images?.length || 0,
-        contextLocationImages: contextLocation?.images?.map((img: any) => ({
-          hasMetadata: !!img.metadata,
-          source: img.metadata?.source,
-          angle: img.metadata?.angle,
-          s3Key: img.s3Key || img.metadata?.s3Key
-        })) || []
-      });
-    }
-  }, [isOpen, location.locationId, location.name, contextLocation?.id, contextLocation?.images?.length]);
-  
-  const contextAngleImages = (contextLocation?.images || []).filter((img: any) => 
-    (img.metadata as any)?.source === 'angle-generation' || (img.metadata as any)?.source === 'image-generation'
-  );
-  
-  // Get angleVariations from new format or old format
-  const angleVariations = location.angleVariations || 
-    (location as any).locationBankProfile?.angleVariations?.map((v: any) => ({
-      id: `ref_${v.s3Key}`,
-      imageUrl: '', // Will be enriched
-      s3Key: v.s3Key,
-      angle: v.angle,
-      timeOfDay: v.timeOfDay,
-      weather: v.weather,
-      season: v.season,
-      generationMethod: v.generationMethod,
-      creditsUsed: v.creditsUsed,
-      createdAt: v.createdAt
-    })) || [];
-  
-  // 🔥 FIX: Also add angle images from context (from API with production-hub context)
-  contextAngleImages.forEach((img: any, idx: number) => {
-    // Check if already in angleVariations to avoid duplicates
-    const alreadyAdded = angleVariations.some((v: any) => 
-      (v.s3Key === img.s3Key || v.s3Key === img.metadata?.s3Key) ||
-      (img.s3Key === v.s3Key || img.metadata?.s3Key === v.s3Key)
-    );
-    
-    if (!alreadyAdded) {
-      angleVariations.push({
-        id: `ref_${img.s3Key || img.metadata?.s3Key || `angle-${idx}`}`,
-        imageUrl: img.imageUrl || img.url || '',
-        s3Key: img.s3Key || img.metadata?.s3Key || '',
-        angle: img.metadata?.angle || 'front',
-        timeOfDay: img.metadata?.timeOfDay,
-        weather: img.metadata?.weather,
-        season: img.metadata?.season,
-        generationMethod: 'angle-variation',
-        creditsUsed: img.metadata?.creditsUsed || 0,
-        createdAt: img.createdAt || new Date().toISOString()
-      });
-    }
-  });
   
   angleVariations.forEach((variation: any) => {
     allImages.push({
@@ -239,25 +139,6 @@ export function LocationDetailModal({
       s3Key: variation.s3Key
     });
   });
-  
-  // 🔥 DEBUG: Log angle variations for troubleshooting
-  React.useEffect(() => {
-    if (isOpen) {
-      console.log('[LocationDetailModal] Location angle variations:', {
-        locationId: location.locationId,
-        locationName: location.name,
-        angleVariationsCount: angleVariations.length,
-        contextAngleImagesCount: contextAngleImages.length,
-        angleVariations: angleVariations.map((v: any) => ({
-          id: v.id,
-          angle: v.angle,
-          s3Key: v.s3Key,
-          imageUrl: v.imageUrl ? `${v.imageUrl.substring(0, 50)}...` : 'MISSING',
-          hasImageUrl: !!v.imageUrl
-        }))
-      });
-    }
-  }, [isOpen, location.locationId, angleVariations.length, contextAngleImages.length]);
   
   // Convert type for display
   const typeLabel = location.type === 'interior' ? 'INT.' : 

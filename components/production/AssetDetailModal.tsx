@@ -22,7 +22,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
 import {
   DropdownMenu,
@@ -54,7 +53,6 @@ export default function AssetDetailModal({
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
-  const { assets: contextAssets } = useScreenplay(); // 🔥 FIX: Get assets from ScreenplayContext for angle images
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
   const screenplayId = asset?.screenplayId || asset?.projectId;
@@ -81,43 +79,14 @@ export default function AssetDetailModal({
   const categoryMeta = ASSET_CATEGORY_METADATA[category];
   const assetImages = asset.images || []; // Safety check for undefined images
   
-  // 🔥 FIX: Get angle images from ScreenplayContext (same pattern as locations)
-  // First try from asset prop, then from context
-  // 🔥 CRITICAL: Try multiple ID matching strategies (asset.id might be different)
-  const contextAsset = contextAssets?.find(a => 
-    a.id === asset.id || 
-    a.name === asset.name
-  );
-  
-  // 🔥 DEBUG: Log context asset matching
-  React.useEffect(() => {
-    if (isOpen) {
-      console.log('[AssetDetailModal] 🔍 Context asset search:', {
-        assetId: asset.id,
-        assetName: asset.name,
-        allAssetIds: contextAssets?.map(a => ({ id: a.id, name: a.name })),
-        contextAssetFound: !!contextAsset,
-        contextAssetId: contextAsset?.id,
-        contextAssetName: contextAsset?.name,
-        contextAssetImagesCount: contextAsset?.images?.length || 0,
-        contextAssetImages: contextAsset?.images?.map((img: any) => ({
-          hasMetadata: !!img.metadata,
-          source: img.metadata?.source,
-          angle: img.metadata?.angle,
-          s3Key: img.s3Key || img.metadata?.s3Key
-        })) || []
-      });
-    }
-  }, [isOpen, asset.id, asset.name, contextAsset?.id, contextAsset?.images?.length]);
-  
-  const contextAngleImages = (contextAsset?.images || []).filter((img: any) => 
-    (img.metadata as any)?.source === 'angle-generation' || (img.metadata as any)?.source === 'image-generation'
-  );
+  // 🔥 SIMPLIFIED: Get angleReferences directly from asset prop (backend already provides this with presigned URLs)
+  // Backend AssetBankService already enriches angleReferences with imageUrl and all metadata
+  const angleReferences = asset.angleReferences || [];
   
   const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
   const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
   
-  // 🔥 FIX: Separate Creation images from Production Hub angles (same pattern as characters/locations)
+  // 🔥 SIMPLIFIED: Separate Creation images from Production Hub angles
   // Creation images: source='user-upload' OR no source
   // Production Hub images: source='angle-generation' or 'image-generation' (AI-generated angles)
   const creationImages = assetImages.filter((img: any) => {
@@ -125,34 +94,19 @@ export default function AssetDetailModal({
     return !source || source === 'user-upload';
   });
   
-  let angleImages = assetImages.filter((img: any) => {
-    const source = img.metadata?.source;
-    return source === 'angle-generation' || source === 'image-generation'; // Match location pattern
-  });
-  
-  // 🔥 FIX: Also add angle images from context (from API with production-hub context)
-  contextAngleImages.forEach((img: any, idx: number) => {
-    // Check if already in angleImages to avoid duplicates
-    const alreadyAdded = angleImages.some((existingImg: any) => 
-      (existingImg.s3Key === img.s3Key || existingImg.s3Key === img.metadata?.s3Key) ||
-      (img.s3Key === existingImg.s3Key || img.metadata?.s3Key === existingImg.s3Key) ||
-      (existingImg.metadata?.s3Key === img.s3Key || existingImg.metadata?.s3Key === img.metadata?.s3Key)
-    );
-    
-    if (!alreadyAdded) {
-      angleImages.push({
-        url: img.imageUrl || img.url || '',
-        s3Key: img.s3Key || img.metadata?.s3Key || '',
-        uploadedAt: img.createdAt || img.uploadedAt || new Date().toISOString(),
-        metadata: {
-          ...img.metadata,
-          source: img.metadata?.source || 'angle-generation',
-          angle: img.metadata?.angle || 'front',
-          creditsUsed: img.metadata?.creditsUsed || 0
-        }
-      });
+  // 🔥 SIMPLIFIED: Convert angleReferences to angleImages format (backend already provides imageUrl)
+  const angleImages = angleReferences.map((ref: any) => ({
+    url: ref.imageUrl || '',
+    s3Key: ref.s3Key || '',
+    uploadedAt: ref.createdAt || new Date().toISOString(),
+    metadata: {
+      s3Key: ref.s3Key,
+      angle: ref.angle,
+      source: 'angle-generation', // Backend marks these as angle-generation
+      createdIn: 'production-hub',
+      creditsUsed: ref.creditsUsed || 0
     }
-  });
+  }));
   
   // Convert Creation images to gallery format
   const userImages = creationImages.map((img, idx) => ({
@@ -185,15 +139,9 @@ export default function AssetDetailModal({
         assetName: asset.name,
         totalImagesCount: assetImages.length,
         creationImagesCount: creationImages.length,
+        angleReferencesCount: angleReferences.length,
         angleImagesCount: angleImages.length,
-        contextAngleImagesCount: contextAngleImages.length,
         angleImageObjectsCount: angleImageObjects.length,
-        contextAssetFound: !!contextAsset,
-        contextAssetImages: contextAsset?.images?.map((img: any) => ({
-          source: img.metadata?.source,
-          angle: img.metadata?.angle,
-          s3Key: img.s3Key || img.metadata?.s3Key
-        })) || [],
         creationImages: creationImages.map((img: any, idx: number) => ({
           index: idx,
           url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
