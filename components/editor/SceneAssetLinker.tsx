@@ -167,7 +167,7 @@ export default function SceneAssetLinker({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {filteredAssets.map(asset => {
                   const linked = isLinked(asset.id)
-                  const mainImage = asset.images?.[0]?.imageUrl
+                  const mainImage = asset.images?.[0]?.url
                   
                   return (
                     <button
