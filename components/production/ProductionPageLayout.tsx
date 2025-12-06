@@ -178,6 +178,39 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   // Device detection (Feature 0069)
   const [isMobileView, setIsMobileView] = useState(false);
   
+  /**
+   * Load characters from Character Bank
+   */
+  const loadCharacters = useCallback(async () => {
+    setIsLoadingCharacters(true);
+    try {
+      // Get auth token and set it for the API client
+      const { api, setAuthTokenGetter } = await import('@/lib/api');
+      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      
+      const token = await getToken({ template: 'wryda-backend' });
+      console.log('[ProductionPage] Loading characters with auth token:', token ? 'TOKEN_PRESENT' : 'NO_TOKEN');
+      
+      const response = await fetch(`/api/character-bank/list?screenplayId=${projectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      console.log('[ProductionPage] Character load response:', response.status, data);
+      
+      if (data.success) {
+        setCharacters(data.data?.characters || []);
+      }
+    } catch (error) {
+      console.error('[ProductionPage] Failed to load characters:', error);
+    } finally {
+      setIsLoadingCharacters(false);
+    }
+  }, [projectId, getToken]);
+  
   // Load contextual scene/character from editor
   useEffect(() => {
     if (editorContext.currentSceneName) {
@@ -232,7 +265,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       loadCharacters();
       loadLocations(); // Feature 0142: Load locations from Location Bank
     }
-  }, [projectId, isLoaded, isSignedIn]);
+  }, [projectId, isLoaded, isSignedIn, loadCharacters]);
   
   // Refresh characters periodically to catch newly generated poses
   useEffect(() => {
@@ -243,7 +276,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     }, 15000); // Refresh every 15 seconds
     
     return () => clearInterval(refreshInterval);
-  }, [projectId, isLoaded, isSignedIn]);
+  }, [projectId, isLoaded, isSignedIn, loadCharacters]);
   
   // 🔥 NEW: Listen for immediate refresh requests (e.g., when pose generation completes)
   useEffect(() => {
@@ -343,39 +376,6 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       }
     }
   }, [selectedBeatId, screenplay.beats]);
-
-  /**
-   * Load characters from Character Bank
-   */
-  const loadCharacters = useCallback(async () => {
-    setIsLoadingCharacters(true);
-    try {
-      // Get auth token and set it for the API client
-      const { api, setAuthTokenGetter } = await import('@/lib/api');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
-      
-      const token = await getToken({ template: 'wryda-backend' });
-      console.log('[ProductionPage] Loading characters with auth token:', token ? 'TOKEN_PRESENT' : 'NO_TOKEN');
-      
-      const response = await fetch(`/api/character-bank/list?screenplayId=${projectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      
-      console.log('[ProductionPage] Character load response:', response.status, data);
-      
-      if (data.success) {
-        setCharacters(data.data?.characters || []);
-      }
-    } catch (error) {
-      console.error('[ProductionPage] Failed to load characters:', error);
-    } finally {
-      setIsLoadingCharacters(false);
-    }
-  }, [projectId, getToken]);
 
   /**
    * Load locations from Location Bank (Feature 0142: Location Bank Unification)
