@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useAuth } from '@clerk/nextjs';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
@@ -59,7 +59,7 @@ export function LocationBankPanel({
   isLoading: propsIsLoading = false,
   onLocationsUpdate
 }: LocationBankPanelProps) {
-  const { updateLocation } = useScreenplay();
+  const { getToken } = useAuth();
   const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
   const [isLoading, setIsLoading] = useState(propsIsLoading);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
@@ -184,26 +184,51 @@ export function LocationBankPanel({
               setSelectedLocationId(null);
             }}
             onUpdate={async (locationId, updates) => {
-              // Handle location updates via ScreenplayContext
+              // 🔥 FIX: Update LocationProfile via Location Bank API (not ScreenplayContext)
+              // Production Hub changes should NOT sync back to Creation section
               try {
-                // Map LocationProfile type to LocationType
-                const locationUpdates: any = { ...updates };
-                if (updates.type) {
-                  // Convert 'interior' | 'exterior' | 'mixed' to 'INT' | 'EXT' | 'INT/EXT'
-                  const typeMap: Record<string, 'INT' | 'EXT' | 'INT/EXT'> = {
-                    'interior': 'INT',
-                    'exterior': 'EXT',
-                    'mixed': 'INT/EXT'
-                  };
-                  locationUpdates.type = typeMap[updates.type] || updates.type;
+                const token = await getToken({ template: 'wryda-backend' });
+                if (!token) {
+                  throw new Error('Not authenticated');
                 }
-                await updateLocation(locationId, locationUpdates);
+                
+                // Convert LocationProfile updates to API format
+                const apiUpdates: any = {};
+                
+                // Handle angleVariations - pass directly (Location Bank API expects LocationReference[])
+                if (updates.angleVariations !== undefined) {
+                  apiUpdates.angleVariations = updates.angleVariations;
+                }
+                
+                // Handle other fields
+                if (updates.name !== undefined) apiUpdates.name = updates.name;
+                if (updates.description !== undefined) apiUpdates.description = updates.description;
+                if (updates.type !== undefined) apiUpdates.type = updates.type;
+                
+                // Call Location Bank API with screenplayId in query params
+                const response = await fetch(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(projectId)}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(apiUpdates),
+                });
+                
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({}));
+                  throw new Error(errorData.error || `Failed to update location: ${response.status}`);
+                }
+                
+                // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
+                
                 if (onLocationsUpdate) {
                   onLocationsUpdate();
                 }
-              } catch (error) {
+                toast.success('Location updated successfully');
+              } catch (error: any) {
                 console.error('[LocationBank] Failed to update location:', error);
-                toast.error('Failed to update location');
+                toast.error(`Failed to update location: ${error.message}`);
               }
             }}
             projectId={projectId}
