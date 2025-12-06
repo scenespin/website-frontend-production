@@ -1267,14 +1267,16 @@ export function CharacterDetailModal({
                                         }
                                         
                                         try {
-                                          if (!img.s3Key) {
+                                          // 🔥 FIX: Extract s3Key from multiple possible locations
+                                          const imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
+                                          if (!imgS3Key) {
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
                                           // Check if it's a pose reference (AI-generated) or user reference
                                           const isPoseRef = character.poseReferences?.some((poseRef: any) => {
                                             const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
-                                            return poseS3Key === img.s3Key;
+                                            return poseS3Key === imgS3Key;
                                           });
                                           
                                           if (isPoseRef) {
@@ -1282,7 +1284,7 @@ export function CharacterDetailModal({
                                             const currentPoseReferences = character.poseReferences || [];
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                              return refS3Key !== img.s3Key;
+                                              return refS3Key !== imgS3Key;
                                             });
                                             
                                             await onUpdate(character.id, { 
@@ -1293,7 +1295,7 @@ export function CharacterDetailModal({
                                             const currentReferences = character.references || [];
                                             const updatedReferences = currentReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                              return refS3Key !== img.s3Key;
+                                              return refS3Key !== imgS3Key;
                                             });
                                             
                                             await onUpdate(character.id, { 

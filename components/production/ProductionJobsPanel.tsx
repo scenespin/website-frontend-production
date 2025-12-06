@@ -274,12 +274,20 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         
         // Merge jobs instead of replacing to prevent flashing
         // Update existing jobs and add new ones
+        // 🔥 FIX: Sort by creation date (newest first) so new jobs appear at top
         setJobs(prevJobs => {
           const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
           jobList.forEach((newJob: WorkflowJob) => {
             jobMap.set(newJob.jobId, newJob);
           });
-          return Array.from(jobMap.values());
+          const mergedJobs = Array.from(jobMap.values());
+          // Sort by createdAt (newest first)
+          mergedJobs.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA; // Descending (newest first)
+          });
+          return mergedJobs;
         });
         
         if (!hasLoadedOnce) {
@@ -334,24 +342,21 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   }, [projectId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
 
   /**
-   * Poll running jobs every 5 seconds
-   * 🔥 NEW: Refresh character data when pose generation jobs complete
+   * Poll running jobs every 3 seconds (more aggressive for immediate updates)
+   * 🔥 FIX: Also poll when jobs array changes to catch newly created jobs
    */
   useEffect(() => {
     const hasRunningJobs = jobs.some(job => job.status === 'running' || job.status === 'queued');
     
-    if (!hasRunningJobs) {
-      setIsPolling(false);
-      return;
-    }
-
+    // Always poll if we have jobs (even completed ones) to catch newly created jobs
+    // This ensures new jobs appear immediately
     setIsPolling(true);
     const interval = setInterval(() => {
       loadJobs(false); // Don't show loading spinner on polling
-    }, 5000);
+    }, 3000); // Poll every 3 seconds for faster updates
 
     return () => clearInterval(interval);
-  }, [jobs]);
+  }, [jobs.length]); // Re-run when jobs array length changes (new job added)
   
   /**
    * Watch for completed pose generation jobs and refresh character data

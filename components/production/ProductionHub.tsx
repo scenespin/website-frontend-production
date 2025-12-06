@@ -429,45 +429,68 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
                 projectId={projectId}
-                locations={(screenplay.locations || []).map(loc => ({
-                  locationId: loc.id,
-                  screenplayId: projectId,
-                  projectId: projectId,
-                  name: loc.name,
-                  type: (loc.type as 'interior' | 'exterior' | 'mixed') || 'mixed',
-                  description: loc.description || '',
-                  baseReference: loc.images?.[0] ? {
-                    id: `ref-${loc.id}-base`,
+                locations={(screenplay.locations || []).map(loc => {
+                  // 🔥 FIX: Separate Creation images from Production Hub angles (same pattern as characters)
+                  const allImages = loc.images || [];
+                  // Production Hub images: source='angle-generation'
+                  // Creation images: source='user-upload' OR no source
+                  const angleVariations = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source === 'angle-generation'
+                  );
+                  const creationImages = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source !== 'angle-generation'
+                  );
+                  
+                  return {
                     locationId: loc.id,
-                    imageUrl: loc.images[0].imageUrl,
-                    s3Key: (loc.images[0] as any).metadata?.s3Key || '',
-                    angle: 'front' as const,
-                    generationMethod: 'upload' as const,
-                    creditsUsed: 0,
-                    createdAt: loc.images[0].createdAt || new Date().toISOString()
-                  } : {
-                    id: `ref-${loc.id}-base`,
-                    locationId: loc.id,
-                    imageUrl: '',
-                    s3Key: '',
-                    angle: 'front' as const,
-                    generationMethod: 'upload' as const,
-                    creditsUsed: 0,
-                    createdAt: new Date().toISOString()
-                  },
-                  angleVariations: (loc.images || []).slice(1).map((img, idx) => ({
-                    id: `ref-${loc.id}-${idx}`,
-                    locationId: loc.id,
-                    imageUrl: img.imageUrl,
-                    s3Key: (img as any).metadata?.s3Key || '',
-                    angle: ((img as any).metadata?.angle as any) || 'front',
-                    generationMethod: 'upload' as const,
-                    creditsUsed: 0,
-                    createdAt: img.createdAt || new Date().toISOString()
-                  })),
-                  createdAt: loc.createdAt || new Date().toISOString(),
-                  updatedAt: loc.updatedAt || new Date().toISOString()
-                }))}
+                    screenplayId: projectId,
+                    projectId: projectId,
+                    name: loc.name,
+                    type: (loc.type as 'interior' | 'exterior' | 'mixed') || 'mixed',
+                    description: loc.description || '',
+                    baseReference: creationImages?.[0] ? {
+                      id: `ref-${loc.id}-base`,
+                      locationId: loc.id,
+                      imageUrl: creationImages[0].imageUrl,
+                      s3Key: (creationImages[0] as any).metadata?.s3Key || (creationImages[0] as any).s3Key || '',
+                      angle: 'front' as const,
+                      generationMethod: 'upload' as const,
+                      creditsUsed: 0,
+                      createdAt: creationImages[0].createdAt || new Date().toISOString()
+                    } : {
+                      id: `ref-${loc.id}-base`,
+                      locationId: loc.id,
+                      imageUrl: '',
+                      s3Key: '',
+                      angle: 'front' as const,
+                      generationMethod: 'upload' as const,
+                      creditsUsed: 0,
+                      createdAt: new Date().toISOString()
+                    },
+                    creationImages: creationImages.slice(1).map((img, idx) => ({
+                      id: `ref-${loc.id}-creation-${idx}`,
+                      locationId: loc.id,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).metadata?.s3Key || (img as any).s3Key || '',
+                      angle: ((img as any).metadata?.angle as any) || 'front',
+                      generationMethod: 'upload' as const,
+                      creditsUsed: 0,
+                      createdAt: img.createdAt || new Date().toISOString()
+                    })),
+                    angleVariations: angleVariations.map((img, idx) => ({
+                      id: `ref-${loc.id}-angle-${idx}`,
+                      locationId: loc.id,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).metadata?.s3Key || (img as any).s3Key || '',
+                      angle: ((img as any).metadata?.angle as any) || 'front',
+                      generationMethod: 'ai-generated' as const,
+                      creditsUsed: (img.metadata as any)?.creditsUsed || 0,
+                      createdAt: img.createdAt || new Date().toISOString()
+                    })),
+                    createdAt: loc.createdAt || new Date().toISOString(),
+                    updatedAt: loc.updatedAt || new Date().toISOString()
+                  };
+                })}
                 isLoading={screenplay.isLoading}
                 onLocationsUpdate={() => {
                   // LocationBankPanel uses useScreenplay() internally and will update context automatically
@@ -730,45 +753,68 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
                 projectId={projectId}
-                locations={(screenplay.locations || []).map(loc => ({
-                  locationId: loc.id,
-                  screenplayId: projectId,
-                  projectId: projectId,
-                  name: loc.name,
-                  type: (loc.type as 'interior' | 'exterior' | 'mixed') || 'mixed',
-                  description: loc.description || '',
-                  baseReference: loc.images?.[0] ? {
-                    id: `ref-${loc.id}-base`,
+                locations={(screenplay.locations || []).map(loc => {
+                  // 🔥 FIX: Separate Creation images from Production Hub angles (same pattern as characters)
+                  const allImages = loc.images || [];
+                  // Production Hub images: source='angle-generation'
+                  // Creation images: source='user-upload' OR no source
+                  const angleVariations = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source === 'angle-generation'
+                  );
+                  const creationImages = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source !== 'angle-generation'
+                  );
+                  
+                  return {
                     locationId: loc.id,
-                    imageUrl: loc.images[0].imageUrl,
-                    s3Key: (loc.images[0] as any).metadata?.s3Key || '',
-                    angle: 'front' as const,
-                    generationMethod: 'upload' as const,
-                    creditsUsed: 0,
-                    createdAt: loc.images[0].createdAt || new Date().toISOString()
-                  } : {
-                    id: `ref-${loc.id}-base`,
-                    locationId: loc.id,
-                    imageUrl: '',
-                    s3Key: '',
-                    angle: 'front' as const,
-                    generationMethod: 'upload' as const,
-                    creditsUsed: 0,
-                    createdAt: new Date().toISOString()
-                  },
-                  angleVariations: (loc.images || []).slice(1).map((img, idx) => ({
-                    id: `ref-${loc.id}-${idx}`,
-                    locationId: loc.id,
-                    imageUrl: img.imageUrl,
-                    s3Key: (img as any).metadata?.s3Key || '',
-                    angle: ((img as any).metadata?.angle as any) || 'front',
-                    generationMethod: 'upload' as const,
-                    creditsUsed: 0,
-                    createdAt: img.createdAt || new Date().toISOString()
-                  })),
-                  createdAt: loc.createdAt || new Date().toISOString(),
-                  updatedAt: loc.updatedAt || new Date().toISOString()
-                }))}
+                    screenplayId: projectId,
+                    projectId: projectId,
+                    name: loc.name,
+                    type: (loc.type as 'interior' | 'exterior' | 'mixed') || 'mixed',
+                    description: loc.description || '',
+                    baseReference: creationImages?.[0] ? {
+                      id: `ref-${loc.id}-base`,
+                      locationId: loc.id,
+                      imageUrl: creationImages[0].imageUrl,
+                      s3Key: (creationImages[0] as any).metadata?.s3Key || (creationImages[0] as any).s3Key || '',
+                      angle: 'front' as const,
+                      generationMethod: 'upload' as const,
+                      creditsUsed: 0,
+                      createdAt: creationImages[0].createdAt || new Date().toISOString()
+                    } : {
+                      id: `ref-${loc.id}-base`,
+                      locationId: loc.id,
+                      imageUrl: '',
+                      s3Key: '',
+                      angle: 'front' as const,
+                      generationMethod: 'upload' as const,
+                      creditsUsed: 0,
+                      createdAt: new Date().toISOString()
+                    },
+                    creationImages: creationImages.slice(1).map((img, idx) => ({
+                      id: `ref-${loc.id}-creation-${idx}`,
+                      locationId: loc.id,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).metadata?.s3Key || (img as any).s3Key || '',
+                      angle: ((img as any).metadata?.angle as any) || 'front',
+                      generationMethod: 'upload' as const,
+                      creditsUsed: 0,
+                      createdAt: img.createdAt || new Date().toISOString()
+                    })),
+                    angleVariations: angleVariations.map((img, idx) => ({
+                      id: `ref-${loc.id}-angle-${idx}`,
+                      locationId: loc.id,
+                      imageUrl: img.imageUrl,
+                      s3Key: (img as any).metadata?.s3Key || (img as any).s3Key || '',
+                      angle: ((img as any).metadata?.angle as any) || 'front',
+                      generationMethod: 'ai-generated' as const,
+                      creditsUsed: (img.metadata as any)?.creditsUsed || 0,
+                      createdAt: img.createdAt || new Date().toISOString()
+                    })),
+                    createdAt: loc.createdAt || new Date().toISOString(),
+                    updatedAt: loc.updatedAt || new Date().toISOString()
+                  };
+                })}
                 isLoading={screenplay.isLoading}
                 onLocationsUpdate={() => {
                   // LocationBankPanel uses useScreenplay() internally and will update context automatically
