@@ -82,18 +82,34 @@ export default function AssetDetailModal({
   const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
   
   // Debug: Log asset images for troubleshooting
-  if (isOpen) {
-    console.log('[AssetDetailModal] Asset images:', {
-      assetId: asset.id,
-      assetName: asset.name,
-      imagesCount: assetImages.length,
-      angleReferencesCount: asset.angleReferences?.length || 0,
-      images: assetImages,
-      angleReferences: asset.angleReferences,
-      canGenerateAngles,
-      canExport3D
-    });
-  }
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[AssetDetailModal] Asset images:', {
+        assetId: asset.id,
+        assetName: asset.name,
+        imagesCount: assetImages.length,
+        assetImages: assetImages.map((img: any, idx: number) => ({
+          index: idx,
+          url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
+          s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
+          hasUrl: !!img.url,
+          hasS3Key: !!(img.s3Key || img.metadata?.s3Key),
+          metadata: img.metadata
+        })),
+        angleReferencesCount: asset.angleReferences?.length || 0,
+        angleReferences: asset.angleReferences?.map((ref: any) => ({
+          id: ref.id,
+          angle: ref.angle,
+          s3Key: ref.s3Key,
+          imageUrl: ref.imageUrl ? `${ref.imageUrl.substring(0, 50)}...` : 'MISSING',
+          hasImageUrl: !!ref.imageUrl
+        })),
+        userImagesCount: userImages.length,
+        canGenerateAngles,
+        canExport3D
+      });
+    }
+  }, [isOpen, asset.id, asset.angleReferences, assetImages.length, userImages.length]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

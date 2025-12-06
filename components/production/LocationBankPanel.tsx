@@ -73,6 +73,20 @@ export function LocationBankPanel({
     setIsLoading(propsIsLoading);
     console.log('[LocationBankPanel] Locations updated:', propsLocations.length);
   }, [propsLocations, propsIsLoading]);
+  
+  // 🔥 NEW: Listen for location angle generation completion and refresh locations
+  useEffect(() => {
+    const handleRefreshLocations = async () => {
+      console.log('[LocationBankPanel] Refreshing locations due to angle generation completion');
+      // Trigger parent refresh via callback
+      if (onLocationsUpdate) {
+        onLocationsUpdate();
+      }
+    };
+    
+    window.addEventListener('refreshLocations', handleRefreshLocations);
+    return () => window.removeEventListener('refreshLocations', handleRefreshLocations);
+  }, [onLocationsUpdate]);
 
   // Open angle generation modal
   function handleGenerateAngles(locationId: string) {

@@ -96,12 +96,13 @@ export function LocationDetailModal({
   const [description, setDescription] = useState(location.description || '');
   const [type, setType] = useState<LocationProfile['type']>(location.type);
   
-  // Convert baseReference and angleVariations to image objects
-  // Check new format (angleVariations directly) first, then fall back to old format (locationBankProfile)
-  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
+  // 🔥 FIX: Get ALL Creation images from Location Bank API
+  // Location Bank API now provides creationImages array with all Creation images
+  const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
   
+  // Add baseReference (first Creation image)
   if (location.baseReference) {
-    allImages.push({
+    allCreationImages.push({
       id: location.baseReference.id,
       imageUrl: location.baseReference.imageUrl,
       label: `${location.name} - Base Reference`,
@@ -109,6 +110,51 @@ export function LocationDetailModal({
       s3Key: location.baseReference.s3Key
     });
   }
+  
+  // 🔥 NEW: Add additional Creation images from Location Bank API
+  if (location.creationImages && Array.isArray(location.creationImages)) {
+    location.creationImages.forEach((img: LocationReference) => {
+      allCreationImages.push({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        label: `${location.name} - Reference`,
+        isBase: false,
+        s3Key: img.s3Key
+      });
+    });
+  }
+  
+  // 🔥 FALLBACK: If Location Bank API doesn't have creationImages yet, try ScreenplayContext
+  // This is a temporary fallback until all locations are updated
+  if (allCreationImages.length === 1 && location.baseReference) {
+    const { screenplay } = useScreenplay();
+    const contextLocation = screenplay?.locations?.find(l => l.id === location.locationId);
+    if (contextLocation?.images && Array.isArray(contextLocation.images)) {
+      contextLocation.images.forEach((img: any, idx: number) => {
+        // Skip if this is already the baseReference
+        if (img.s3Key === location.baseReference?.s3Key || 
+            img.metadata?.s3Key === location.baseReference?.s3Key) {
+          return;
+        }
+        // Only include Creation images (createdIn: 'creation' or source: 'user-upload')
+        const isCreationImage = img.metadata?.createdIn === 'creation' || 
+                               img.metadata?.source === 'user-upload' ||
+                               !img.metadata?.createdIn; // Default to Creation if no metadata
+        if (isCreationImage && (img.s3Key || img.metadata?.s3Key)) {
+          allCreationImages.push({
+            id: `ref_${img.s3Key || img.metadata?.s3Key}_${idx}`,
+            imageUrl: img.imageUrl || img.url || '',
+            label: `${location.name} - Reference ${idx + 1}`,
+            isBase: false,
+            s3Key: img.s3Key || img.metadata?.s3Key
+          });
+        }
+      });
+    }
+  }
+  
+  // Convert baseReference and angleVariations to image objects for gallery
+  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [...allCreationImages];
   
   // Get angleVariations from new format or old format
   const angleVariations = location.angleVariations || 
@@ -134,6 +180,24 @@ export function LocationDetailModal({
       s3Key: variation.s3Key
     });
   });
+  
+  // 🔥 DEBUG: Log angle variations for troubleshooting
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('[LocationDetailModal] Location angle variations:', {
+        locationId: location.locationId,
+        locationName: location.name,
+        angleVariationsCount: angleVariations.length,
+        angleVariations: angleVariations.map((v: any) => ({
+          id: v.id,
+          angle: v.angle,
+          s3Key: v.s3Key,
+          imageUrl: v.imageUrl ? `${v.imageUrl.substring(0, 50)}...` : 'MISSING',
+          hasImageUrl: !!v.imageUrl
+        }))
+      });
+    }
+  }, [isOpen, location.locationId, angleVariations.length]);
   
   // Convert type for display
   const typeLabel = location.type === 'interior' ? 'INT.' : 
@@ -571,36 +635,41 @@ export function LocationDetailModal({
                     </div>
                   )}
                   
-                  {/* 🔥 SEPARATION: Creation Section Images - Base Reference (Read-Only) */}
-                  {location.baseReference && (
+                  {/* 🔥 SEPARATION: Creation Section Images - All Reference Images (Read-Only) */}
+                  {allCreationImages.length > 0 && (
                     <div className="p-4 bg-[#0F0F0F] rounded-lg border border-[#3F3F46]">
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#3F3F46]">
                         <div>
                           <h3 className="text-sm font-semibold text-white mb-1">
-                            Reference Image from Creation (1)
+                            Reference Images from Creation ({allCreationImages.length})
                           </h3>
                           <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        <div className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75">
-                          <img
-                            src={location.baseReference.imageUrl}
-                            alt={`${location.name} - Base Reference`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="absolute bottom-2 left-2 right-2">
-                              <p className="text-xs text-[#FFFFFF] truncate">{location.name} - Base Reference</p>
-                            </div>
-                            {/* Info icon - read-only indicator */}
-                            <div className="absolute top-2 right-2">
-                              <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
-                                <Info className="w-3 h-3 text-[#808080]" />
+                        {allCreationImages.map((img) => (
+                          <div
+                            key={img.id}
+                            className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
+                          >
+                            <img
+                              src={img.imageUrl}
+                              alt={img.label}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute bottom-2 left-2 right-2">
+                                <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                              </div>
+                              {/* Info icon - read-only indicator */}
+                              <div className="absolute top-2 right-2">
+                                <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
+                                  <Info className="w-3 h-3 text-[#808080]" />
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   )}
