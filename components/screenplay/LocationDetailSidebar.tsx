@@ -764,7 +764,7 @@ export default function LocationDetailSidebar({
                             // 🔥 FIX: Always check angleVariations and remove by s3Key if it exists there
                             // This ensures angle-generated images are removed from both arrays
                             let updatedAngleVariations = currentLocation.angleVariations || [];
-                            const deletedS3Key = imageToDelete?.metadata?.s3Key || imageToDelete?.s3Key;
+                            const deletedS3Key = imageToDelete?.metadata?.s3Key;
                             if (deletedS3Key) {
                               // Check if this image exists in angleVariations (by s3Key matching)
                               const existsInAngleVariations = updatedAngleVariations.some(
