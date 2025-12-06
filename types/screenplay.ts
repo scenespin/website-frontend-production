@@ -209,6 +209,23 @@ export interface Location {
     setRequirements?: string;
     productionNotes?: string;
     images?: ImageAsset[]; // Associated images (location photos, set designs)
+    locationBankProfile?: {
+        baseReferenceS3Key?: string;
+        angleVariations?: Array<{
+            s3Key: string;
+            angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+            timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+            weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
+            season?: 'spring' | 'summer' | 'fall' | 'winter';
+            generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
+            creditsUsed: number;
+            createdAt: string;
+        }>;
+        totalCreditsSpent?: number;
+        consistencyRating?: number;
+        createdAt: string;
+        updatedAt: string;
+    };
     githubIssueNumber?: number;
     createdAt: string;
     updatedAt: string;
