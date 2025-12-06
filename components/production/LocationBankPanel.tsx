@@ -74,19 +74,9 @@ export function LocationBankPanel({
     console.log('[LocationBankPanel] Locations updated:', propsLocations.length);
   }, [propsLocations, propsIsLoading]);
   
-  // 🔥 NEW: Listen for location angle generation completion and refresh locations
-  useEffect(() => {
-    const handleRefreshLocations = async () => {
-      console.log('[LocationBankPanel] Refreshing locations due to angle generation completion');
-      // Trigger parent refresh via callback
-      if (onLocationsUpdate) {
-        onLocationsUpdate();
-      }
-    };
-    
-    window.addEventListener('refreshLocations', handleRefreshLocations);
-    return () => window.removeEventListener('refreshLocations', handleRefreshLocations);
-  }, [onLocationsUpdate]);
+  // NOTE: Location refresh is handled by ScreenplayContext's refreshLocations listener
+  // ProductionHub uses screenplay.locations from context, so it will automatically update
+  // The onLocationsUpdate callback is kept for backward compatibility but is not needed
 
   // Open angle generation modal
   function handleGenerateAngles(locationId: string) {

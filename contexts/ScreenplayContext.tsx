@@ -910,6 +910,38 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         };
     }, [screenplayId, getToken, transformCharactersFromAPI]);
     
+    // 🔥 NEW: Listen for location refresh events (e.g., when angle generation completes)
+    useEffect(() => {
+        if (!screenplayId) return;
+        
+        const handleRefreshLocations = async () => {
+            console.log('[ScreenplayContext] Refreshing locations due to refreshLocations event');
+            try {
+                const locationsData = await listLocations(screenplayId, getToken);
+                const transformedLocations = transformLocationsFromAPI(locationsData);
+                setLocations(transformedLocations);
+                console.log('[ScreenplayContext] ✅ Refreshed locations from API:', transformedLocations.length, 'locations');
+                // Log angle references for debugging
+                transformedLocations.forEach((loc: any) => {
+                    const angleImages = (loc.images || []).filter((img: any) => 
+                        (img.metadata as any)?.source === 'angle-generation' || 
+                        (img.metadata as any)?.angle
+                    );
+                    if (angleImages.length > 0) {
+                        console.log(`[ScreenplayContext] Location ${loc.name} has ${angleImages.length} angle images:`, angleImages);
+                    }
+                });
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to refresh locations:', error);
+            }
+        };
+        
+        window.addEventListener('refreshLocations', handleRefreshLocations);
+        return () => {
+            window.removeEventListener('refreshLocations', handleRefreshLocations);
+        };
+    }, [screenplayId, getToken, transformLocationsFromAPI]);
+    
     // 🔥 NEW: Listen for asset refresh events (e.g., when angle generation completes)
     useEffect(() => {
         if (!screenplayId) return;
