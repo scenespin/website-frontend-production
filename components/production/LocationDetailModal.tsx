@@ -96,23 +96,41 @@ export function LocationDetailModal({
   const [type, setType] = useState<LocationProfile['type']>(location.type);
   
   // Convert baseReference and angleVariations to image objects
-  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean }> = [];
+  // Check new format (angleVariations directly) first, then fall back to old format (locationBankProfile)
+  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
   
   if (location.baseReference) {
     allImages.push({
       id: location.baseReference.id,
       imageUrl: location.baseReference.imageUrl,
       label: `${location.name} - Base Reference`,
-      isBase: true
+      isBase: true,
+      s3Key: location.baseReference.s3Key
     });
   }
   
-  location.angleVariations.forEach((variation) => {
+  // Get angleVariations from new format or old format
+  const angleVariations = location.angleVariations || 
+    (location as any).locationBankProfile?.angleVariations?.map((v: any) => ({
+      id: `ref_${v.s3Key}`,
+      imageUrl: '', // Will be enriched
+      s3Key: v.s3Key,
+      angle: v.angle,
+      timeOfDay: v.timeOfDay,
+      weather: v.weather,
+      season: v.season,
+      generationMethod: v.generationMethod,
+      creditsUsed: v.creditsUsed,
+      createdAt: v.createdAt
+    })) || [];
+  
+  angleVariations.forEach((variation: any) => {
     allImages.push({
-      id: variation.id,
-      imageUrl: variation.imageUrl,
+      id: variation.id || `ref_${variation.s3Key}`,
+      imageUrl: variation.imageUrl || '',
       label: `${location.name} - ${variation.angle} view`,
-      isBase: false
+      isBase: false,
+      s3Key: variation.s3Key
     });
   });
   
@@ -511,12 +529,12 @@ export function LocationDetailModal({
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         try {
-                                          // Remove from angleVariations
-                                          const updatedAngleVariations = location.angleVariations.filter(
-                                            (v: LocationReference) => v.id !== img.id
+                                          // Remove from angleVariations (use the angleVariations variable defined above)
+                                          const updatedAngleVariations = angleVariations.filter(
+                                            (v: any) => (v.id || `ref_${v.s3Key}`) !== img.id
                                           );
                                           
-                                          // Update location via onUpdate
+                                          // Update location via onUpdate (new format)
                                           await onUpdate(location.locationId, {
                                             angleVariations: updatedAngleVariations
                                           });
@@ -529,20 +547,14 @@ export function LocationDetailModal({
                                               return imgS3Key !== locationRef.s3Key;
                                             });
                                             
-                                            // Update locationBankProfile.angleVariations
-                                            let updatedLocationBankProfile = contextLocation.locationBankProfile;
-                                            if (updatedLocationBankProfile?.angleVariations) {
-                                              updatedLocationBankProfile = {
-                                                ...updatedLocationBankProfile,
-                                                angleVariations: updatedLocationBankProfile.angleVariations.filter(
-                                                  (variation: any) => variation.s3Key !== locationRef.s3Key
-                                                )
-                                              };
-                                            }
+                                            // Update angleVariations directly (new format)
+                                            const updatedAngleVariationsForContext = (contextLocation.angleVariations || []).filter(
+                                              (variation: any) => variation.s3Key !== locationRef.s3Key
+                                            );
                                             
                                             await updateLocation(location.locationId, {
                                               images: updatedImages,
-                                              locationBankProfile: updatedLocationBankProfile
+                                              angleVariations: updatedAngleVariationsForContext // NEW: Direct format
                                             });
                                           }
                                           

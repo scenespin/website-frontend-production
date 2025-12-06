@@ -761,32 +761,27 @@ export default function LocationDetailSidebar({
                             
                             const updatedImages = (currentLocation.images || []).filter((_, i) => i !== index);
                             
-                            // 🔥 NEW: If deleting an angle-generated image, also remove from angleVariations
-                            let updatedLocationBankProfile = currentLocation.locationBankProfile;
+                            // 🔥 NEW: If deleting an angle-generated image, also remove from angleVariations (new format)
+                            let updatedAngleVariations = currentLocation.angleVariations || [];
                             if (imageToDelete?.metadata?.source === 'angle-generation' && imageToDelete?.metadata?.s3Key) {
                               const deletedS3Key = imageToDelete.metadata.s3Key;
-                              if (updatedLocationBankProfile?.angleVariations) {
-                                updatedLocationBankProfile = {
-                                  ...updatedLocationBankProfile,
-                                  angleVariations: updatedLocationBankProfile.angleVariations.filter(
-                                    (variation: any) => variation.s3Key !== deletedS3Key
-                                  )
-                                };
-                                console.log('[LocationDetailSidebar] 🗑️ Removing angle variation:', deletedS3Key);
-                              }
+                              updatedAngleVariations = updatedAngleVariations.filter(
+                                (variation: any) => variation.s3Key !== deletedS3Key
+                              );
+                              console.log('[LocationDetailSidebar] 🗑️ Removing angle variation:', deletedS3Key);
                             }
                             
                             // Optimistic UI update - remove image immediately
                             setFormData(prev => ({
                               ...prev,
                               images: updatedImages,
-                              locationBankProfile: updatedLocationBankProfile
+                              angleVariations: updatedAngleVariations // NEW: Direct format
                             }));
                             
-                            // Update via API - include locationBankProfile if it was modified
+                            // Update via API - include angleVariations (new format)
                             const updateData: any = { images: updatedImages };
-                            if (updatedLocationBankProfile) {
-                              updateData.locationBankProfile = updatedLocationBankProfile;
+                            if (updatedAngleVariations.length !== (currentLocation.angleVariations?.length || 0)) {
+                              updateData.angleVariations = updatedAngleVariations;
                             }
                             await updateLocation(location.id, updateData);
                             
@@ -805,7 +800,7 @@ export default function LocationDetailSidebar({
                             setFormData(prev => ({
                               ...prev,
                               images: location.images || [],
-                              locationBankProfile: location.locationBankProfile
+                              angleVariations: location.angleVariations || [] // NEW: Direct format
                             }));
                             toast.error(`Failed to remove image: ${error.message}`);
                           }

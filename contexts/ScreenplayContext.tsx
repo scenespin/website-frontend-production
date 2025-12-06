@@ -2022,7 +2022,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                     // Separate images by source: user-uploaded vs pose-generated
                     const referenceImageKeys: string[] = [];
-                    const poseReferenceKeys: string[] = [];
+                    const poseReferences: Array<{ // NEW: Store full objects like assets
+                        id: string;
+                        imageUrl?: string;
+                        s3Key: string;
+                        referenceType: 'pose';
+                        label: string;
+                        generationMethod: 'pose-generation';
+                        creditsUsed: number;
+                        metadata?: {
+                            poseId?: string;
+                            poseName?: string;
+                            outfitName?: string;
+                            packageId?: string;
+                        };
+                        createdAt: string;
+                    }> = [];
                     
                     // 🔥 CRITICAL FIX: Always process images array, even if empty
                     // This ensures that deleting all images (images: []) properly clears the arrays
@@ -2037,7 +2052,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             if (s3Key && s3Key.length <= 1024) {
                                 const source = img.metadata?.source;
                                 if (source === 'pose-generation') {
-                                    poseReferenceKeys.push(s3Key);
+                                    // NEW: Store full pose reference object
+                                    poseReferences.push({
+                                        id: img.metadata?.poseId ? `ref_${id}_pose_${img.metadata.poseId}` : `ref_${id}_pose_${Date.now()}`,
+                                        imageUrl: img.imageUrl,
+                                        s3Key: s3Key,
+                                        referenceType: 'pose',
+                                        label: img.metadata?.poseName || 'Pose',
+                                        generationMethod: 'pose-generation',
+                                        creditsUsed: img.metadata?.creditsUsed || 0,
+                                        metadata: {
+                                            poseId: img.metadata?.poseId,
+                                            poseName: img.metadata?.poseName,
+                                            outfitName: img.metadata?.outfitName,
+                                            packageId: img.metadata?.packageId
+                                        },
+                                        createdAt: img.createdAt || new Date().toISOString()
+                                    });
                                 } else {
                                     // Default to user-uploaded (including undefined/null source)
                                     referenceImageKeys.push(s3Key);
@@ -2046,7 +2077,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         });
                         
                         apiUpdates.referenceImages = referenceImageKeys;
-                        apiUpdates.poseReferences = poseReferenceKeys;
+                        apiUpdates.poseReferences = poseReferences; // NEW: Full objects
                     }
                     
                     console.log('[ScreenplayContext] 📤 Separated images:', {
