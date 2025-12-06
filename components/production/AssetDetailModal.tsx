@@ -592,14 +592,17 @@ export default function AssetDetailModal({
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {allImages.map((img) => {
                       // Check if image was created in Production Hub (AI-generated angles)
+                      // Angle references are always AI-generated, otherwise check metadata
                       const isAIGenerated = img.isAngleReference || 
-                                           img.metadata?.createdIn === 'production-hub' ||
-                                           img.metadata?.source === 'angle-generation';
+                                           ('metadata' in img && img.metadata?.createdIn === 'production-hub') ||
+                                           ('metadata' in img && img.metadata?.source === 'angle-generation');
                       
                       // Check if image was created in Creation section (user uploads)
                       const createdInCreation = !img.isAngleReference && 
-                                               (img.metadata?.createdIn === 'creation' || 
-                                                !img.metadata?.createdIn);
+                                               ('metadata' in img && (
+                                                 img.metadata?.createdIn === 'creation' || 
+                                                 !img.metadata?.createdIn
+                                               ));
                       
                       return (
                         <div
