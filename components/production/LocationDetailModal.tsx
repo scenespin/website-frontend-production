@@ -499,87 +499,118 @@ export function LocationDetailModal({
                         {angleVariations.map((variation: any) => {
                           const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
                           if (!img) return null;
-                      
-                      return (
-                        <div
-                          key={img.id}
-                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                        >
+                          
+                          return (
+                            <div
+                              key={img.id}
+                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                            >
+                              <img
+                                src={img.imageUrl}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                </div>
+                                {/* Delete button - all Production Hub images can be deleted */}
+                                <div className="absolute top-2 right-2">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <MoreVertical className="w-3 h-3 text-white" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (!confirm('Delete this angle image? This action cannot be undone.')) {
+                                            return;
+                                          }
+                                          
+                                          try {
+                                            if (!variation.s3Key) {
+                                              throw new Error('Missing S3 key for image');
+                                            }
+                                            
+                                            // Remove from angleVariations by matching s3Key
+                                            const updatedAngleVariations = angleVariations.filter(
+                                              (v: any) => v.s3Key !== variation.s3Key
+                                            );
+                                            
+                                            // 🔥 ONE-WAY SYNC: Only update Production Hub backend
+                                            await onUpdate(location.locationId, {
+                                              angleVariations: updatedAngleVariations
+                                            });
+                                            
+                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                            toast.success('Angle image deleted');
+                                          } catch (error: any) {
+                                            console.error('[LocationDetailModal] Failed to delete angle image:', error);
+                                            toast.error(`Failed to delete image: ${error.message}`);
+                                          }
+                                        }}
+                                        className="text-red-500"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 🔥 SEPARATION: Creation Section Images - Base Reference (Read-Only) */}
+                  {location.baseReference && (
+                    <div className="p-4 bg-[#0F0F0F] rounded-lg border border-[#3F3F46]">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#3F3F46]">
+                        <div>
+                          <h3 className="text-sm font-semibold text-white mb-1">
+                            Reference Image from Creation (1)
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <div className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75">
                           <img
-                            src={img.imageUrl}
-                            alt={img.label}
+                            src={location.baseReference.imageUrl}
+                            alt={`${location.name} - Base Reference`}
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="absolute bottom-2 left-2 right-2">
-                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                              <p className="text-xs text-[#FFFFFF] truncate">{location.name} - Base Reference</p>
                             </div>
-                            {/* Delete button - only show for Production Hub images */}
-                            {isAIGenerated && !img.isBase && (
-                              <div className="absolute top-2 right-2">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreVertical className="w-3 h-3 text-white" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (!confirm('Delete this angle image? This action cannot be undone.')) {
-                                          return;
-                                        }
-                                        
-                                        try {
-                                          if (!locationRef?.s3Key) {
-                                            throw new Error('Missing S3 key for image');
-                                          }
-                                          
-                                          // 🔥 FIX: Use s3Key for matching (more reliable than id)
-                                          // Remove from angleVariations by matching s3Key
-                                          const updatedAngleVariations = angleVariations.filter(
-                                            (v: any) => v.s3Key !== locationRef.s3Key
-                                          );
-                                          
-                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend
-                                          // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
-                                          await onUpdate(location.locationId, {
-                                            angleVariations: updatedAngleVariations
-                                          });
-                                          
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-                                          toast.success('Angle image deleted');
-                                        } catch (error: any) {
-                                          console.error('[LocationDetailModal] Failed to delete angle image:', error);
-                                          toast.error(`Failed to delete image: ${error.message}`);
-                                        }
-                                      }}
-                                      className="text-red-500"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                            {/* Info icon - read-only indicator */}
+                            <div className="absolute top-2 right-2">
+                              <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
+                                <Info className="w-3 h-3 text-[#808080]" />
                               </div>
-                            )}
-                            {/* Info icon for Creation section images (cannot delete from Production Hub) */}
-                            {createdInCreation && (
-                              <div className="absolute top-2 right-2">
-                                <div className="p-1.5 bg-[#DC143C]/20 rounded-lg" title="This image was uploaded in the Create section and can only be deleted there">
-                                  <Info className="w-3 h-3 text-[#DC143C]" />
-                                </div>
-                              </div>
-                            )}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {angleVariations.length === 0 && !location.baseReference && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
+                      <p className="text-[#808080] mb-4">No reference images yet</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
