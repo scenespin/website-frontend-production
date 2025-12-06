@@ -995,7 +995,7 @@ export function CharacterDetailModal({
                                           // Remove pose from context images if it exists there
                                           const updatedContextImages = contextImages.filter((image: any) => {
                                             const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                            return imgS3Key !== pose.s3Key;
+                                            return imgS3Key !== deleteS3Key;
                                           });
                                           
                                           if (updatedContextImages.length !== contextImages.length) {
