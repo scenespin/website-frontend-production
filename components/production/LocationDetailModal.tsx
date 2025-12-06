@@ -157,6 +157,13 @@ export function LocationDetailModal({
   // Convert baseReference and angleVariations to image objects for gallery
   const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [...allCreationImages];
   
+  // 🔥 FIX: Get angleVariations from ScreenplayContext (same pattern as characters)
+  // First try from location prop, then from context
+  const contextLocation = locations?.find(l => l.id === location.locationId);
+  const contextAngleImages = (contextLocation?.images || []).filter((img: any) => 
+    (img.metadata as any)?.source === 'angle-generation'
+  );
+  
   // Get angleVariations from new format or old format
   const angleVariations = location.angleVariations || 
     (location as any).locationBankProfile?.angleVariations?.map((v: any) => ({
@@ -171,6 +178,30 @@ export function LocationDetailModal({
       creditsUsed: v.creditsUsed,
       createdAt: v.createdAt
     })) || [];
+  
+  // 🔥 FIX: Also add angle images from context (from API with production-hub context)
+  contextAngleImages.forEach((img: any, idx: number) => {
+    // Check if already in angleVariations to avoid duplicates
+    const alreadyAdded = angleVariations.some((v: any) => 
+      (v.s3Key === img.s3Key || v.s3Key === img.metadata?.s3Key) ||
+      (img.s3Key === v.s3Key || img.metadata?.s3Key === v.s3Key)
+    );
+    
+    if (!alreadyAdded) {
+      angleVariations.push({
+        id: `ref_${img.s3Key || img.metadata?.s3Key || `angle-${idx}`}`,
+        imageUrl: img.imageUrl || img.url || '',
+        s3Key: img.s3Key || img.metadata?.s3Key || '',
+        angle: img.metadata?.angle || 'front',
+        timeOfDay: img.metadata?.timeOfDay,
+        weather: img.metadata?.weather,
+        season: img.metadata?.season,
+        generationMethod: 'angle-variation',
+        creditsUsed: img.metadata?.creditsUsed || 0,
+        createdAt: img.createdAt || new Date().toISOString()
+      });
+    }
+  });
   
   angleVariations.forEach((variation: any) => {
     allImages.push({

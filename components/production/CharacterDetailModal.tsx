@@ -21,7 +21,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
 import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import Character3DExportModal from './Character3DExportModal';
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useMediaFiles } from '@/hooks/useMediaLibrary';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -330,13 +331,55 @@ export function CharacterDetailModal({
     return grouped;
   }, [poseReferences]);
   
+  // 🔥 FIX: Query Media Library to get actual outfit folder names
+  // Media Library organizes as: Characters/[Character Name]/Outfits/[Outfit Name]/
+  const { data: mediaFiles = [] } = useMediaFiles(projectId, undefined, isOpen);
+  
+  // Extract outfit names from Media Library folder paths
+  const mediaLibraryOutfitNames = useMemo(() => {
+    const outfitSet = new Set<string>();
+    const characterName = character.name;
+    
+    mediaFiles.forEach((file: any) => {
+      // Check if file belongs to this character
+      const metadata = file.metadata || {};
+      if (metadata.entityType === 'character' && metadata.entityId === character.id) {
+        // Extract outfit from folderPath: ['Characters', 'Character Name', 'Outfits', 'Outfit Name']
+        if (file.folderPath && Array.isArray(file.folderPath)) {
+          const outfitsIndex = file.folderPath.indexOf('Outfits');
+          if (outfitsIndex >= 0 && outfitsIndex + 1 < file.folderPath.length) {
+            const outfitName = file.folderPath[outfitsIndex + 1];
+            if (outfitName && outfitName !== 'Outfits') {
+              outfitSet.add(outfitName);
+            }
+          }
+        }
+        // Also check metadata.outfitName (from pose generation)
+        if (metadata.outfitName) {
+          outfitSet.add(metadata.outfitName);
+        }
+      }
+    });
+    
+    return Array.from(outfitSet);
+  }, [mediaFiles, character.id, character.name]);
+  
   // Get outfit names sorted (default first, then alphabetically)
+  // Combine Media Library folder names with posesByOutfit keys
   const outfitNames = useMemo(() => {
-    const outfits = Object.keys(posesByOutfit);
-    const defaultOutfit = outfits.find(o => o === 'default');
-    const otherOutfits = outfits.filter(o => o !== 'default').sort();
+    const allOutfits = new Set<string>();
+    
+    // Add outfits from Media Library folders
+    mediaLibraryOutfitNames.forEach(outfit => allOutfits.add(outfit));
+    
+    // Add outfits from posesByOutfit (from pose metadata)
+    Object.keys(posesByOutfit).forEach(outfit => allOutfits.add(outfit));
+    
+    const outfits = Array.from(allOutfits);
+    const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');
+    const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
     return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
-  }, [posesByOutfit]);
+  }, [posesByOutfit, mediaLibraryOutfitNames]);
   
   // Selected outfit tab state - null means show all outfits
   const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);
@@ -1287,6 +1330,21 @@ export function CharacterDetailModal({
                                             }
                                           }
                                           
+                                          // 🔥 FIX: If still not found, try to extract from img.id if it's a string s3Key
+                                          if (!imgS3Key && img.id && typeof img.id === 'string' && img.id.startsWith('pose_')) {
+                                            // img.id might be 'pose_{s3Key}', extract the s3Key
+                                            const extractedS3Key = img.id.replace(/^pose_/, '');
+                                            if (extractedS3Key && extractedS3Key.length > 0) {
+                                              imgS3Key = extractedS3Key;
+                                            }
+                                          }
+                                          
+                                          // 🔥 FIX: Last resort - check if img.id itself is an s3Key (for string refs)
+                                          if (!imgS3Key && img.id && typeof img.id === 'string' && !img.id.startsWith('pose_') && !img.id.startsWith('ref_')) {
+                                            // Might be a direct s3Key
+                                            imgS3Key = img.id;
+                                          }
+                                          
                                           if (!imgS3Key) {
                                             console.error('[CharacterDetailModal] Missing S3 key for image:', {
                                               imgId: img.id,
@@ -1294,7 +1352,8 @@ export function CharacterDetailModal({
                                               imgKeys: Object.keys(img),
                                               imgS3Key: img.s3Key,
                                               imgMetadata: (img as any).metadata,
-                                              characterPoseRefs: character.poseReferences
+                                              characterPoseRefs: character.poseReferences,
+                                              imgFull: img
                                             });
                                             throw new Error('Missing S3 key for image');
                                           }
