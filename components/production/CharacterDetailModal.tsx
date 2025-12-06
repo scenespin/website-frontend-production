@@ -1263,19 +1263,8 @@ export function CharacterDetailModal({
                                             });
                                           }
                                           
-                                          // Also update in ScreenplayContext if character exists there (for sync)
-                                          const contextCharacter = charactersRef.current.find(c => c.id === character.id);
-                                          if (contextCharacter && img.s3Key) {
-                                            const contextImages = contextCharacter.images || [];
-                                            const updatedContextImages = contextImages.filter((image: any) => {
-                                              const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                              return imgS3Key !== img.s3Key;
-                                            });
-                                            
-                                            if (updatedContextImages.length !== contextImages.length) {
-                                              await updateCharacter(character.id, { images: updatedContextImages });
-                                            }
-                                          }
+                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend
+                                          // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
                                           toast.success('Image deleted');

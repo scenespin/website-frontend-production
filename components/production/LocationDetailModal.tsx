@@ -81,7 +81,8 @@ export function LocationDetailModal({
   onGenerate3D,
   onGenerateAngles
 }: LocationDetailModalProps) {
-  const { updateLocation, locations } = useScreenplay();
+  // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
+  // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -543,35 +544,11 @@ export function LocationDetailModal({
                                             (v: any) => v.s3Key !== locationRef.s3Key
                                           );
                                           
-                                          // Update location via onUpdate (Production Hub - primary update)
+                                          // 🔥 ONE-WAY SYNC: Only update Production Hub backend
+                                          // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           await onUpdate(location.locationId, {
                                             angleVariations: updatedAngleVariations
                                           });
-                                          
-                                          // 🔥 FIX: Only update ScreenplayContext if location exists there
-                                          // Use s3Key matching to prevent duplicates
-                                          const contextLocation = locations.find(l => l.id === location.locationId);
-                                          if (contextLocation) {
-                                            // Update angleVariations in context (new format)
-                                            const updatedAngleVariationsForContext = (contextLocation.angleVariations || []).filter(
-                                              (variation: any) => variation.s3Key !== locationRef.s3Key
-                                            );
-                                            
-                                            // Update images array (remove matching image by s3Key)
-                                            const updatedImages = (contextLocation.images || []).filter((image: any) => {
-                                              const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                              return imgS3Key !== locationRef.s3Key;
-                                            });
-                                            
-                                            // 🔥 FIX: Only update if there are actual changes to prevent unnecessary API calls
-                                            if (updatedAngleVariationsForContext.length !== (contextLocation.angleVariations?.length || 0) ||
-                                                updatedImages.length !== (contextLocation.images?.length || 0)) {
-                                              await updateLocation(location.locationId, {
-                                                images: updatedImages,
-                                                angleVariations: updatedAngleVariationsForContext
-                                              });
-                                            }
-                                          }
                                           
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
                                           toast.success('Angle image deleted');
