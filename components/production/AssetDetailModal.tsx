@@ -68,6 +68,14 @@ export default function AssetDetailModal({
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
 
+  // 🔥 FIX: Sync local state when asset prop changes (e.g., after deletion refresh)
+  useEffect(() => {
+    setName(asset.name);
+    setDescription(asset.description || '');
+    setCategory(asset.category);
+    setTags(asset.tags.join(', '));
+  }, [asset.id, asset.name, asset.description, asset.category, asset.tags]);
+
   const categoryMeta = ASSET_CATEGORY_METADATA[category];
   const assetImages = asset.images || []; // Safety check for undefined images
   const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
@@ -79,7 +87,9 @@ export default function AssetDetailModal({
       assetId: asset.id,
       assetName: asset.name,
       imagesCount: assetImages.length,
+      angleReferencesCount: asset.angleReferences?.length || 0,
       images: assetImages,
+      angleReferences: asset.angleReferences,
       canGenerateAngles,
       canExport3D
     });
