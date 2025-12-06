@@ -433,13 +433,69 @@ export function CharacterBankPanel({
             setSelectedCharacterId(null);
           }}
           onUpdate={async (characterId, updates) => {
-            // Handle character updates via ScreenplayContext
+            // 🔥 FIX: Update CharacterProfile via Character Bank API (not ScreenplayContext)
+            // CharacterProfile has references/poseReferences, Character has referenceImages/poseReferences (arrays of s3Keys)
             try {
-              await updateCharacter(characterId, updates);
+              const token = await getToken({ template: 'wryda-backend' });
+              if (!token) {
+                throw new Error('Not authenticated');
+              }
+              
+              // Convert CharacterProfile updates to Character format for API
+              const apiUpdates: any = {};
+              
+              // Handle references array - convert CharacterReference[] to s3Key[]
+              if (updates.references !== undefined) {
+                apiUpdates.referenceImages = updates.references
+                  .map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
+                  .filter(Boolean);
+              }
+              
+              // Handle poseReferences array - convert CharacterReference[] to s3Key[]
+              if (updates.poseReferences !== undefined) {
+                apiUpdates.poseReferences = updates.poseReferences
+                  .map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
+                  .filter(Boolean);
+              }
+              
+              // Handle other fields
+              if (updates.name !== undefined) apiUpdates.name = updates.name;
+              if (updates.description !== undefined) apiUpdates.description = updates.description;
+              if (updates.type !== undefined) apiUpdates.type = updates.type;
+              
+              // Call Character Bank API
+              const response = await fetch(`/api/character-bank/${characterId}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(apiUpdates),
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `Failed to update character: ${response.status}`);
+              }
+              
+              // Also sync with ScreenplayContext if character exists there
+              const contextCharacter = updateCharacter ? await updateCharacter(characterId, {
+                images: updates.references?.map((ref: any) => ({
+                  imageUrl: typeof ref === 'string' ? '' : ref.imageUrl,
+                  createdAt: typeof ref === 'string' ? new Date().toISOString() : ref.createdAt || new Date().toISOString(),
+                  metadata: {
+                    s3Key: typeof ref === 'string' ? ref : ref.s3Key,
+                    createdIn: 'production-hub',
+                    source: 'user-upload'
+                  }
+                })) || []
+              }).catch(() => null) : null;
+              
               onCharactersUpdate();
-            } catch (error) {
+              toast.success('Character updated successfully');
+            } catch (error: any) {
               console.error('[CharacterBank] Failed to update character:', error);
-              toast.error('Failed to update character');
+              toast.error(`Failed to update character: ${error.message}`);
             }
           }}
           projectId={projectId}

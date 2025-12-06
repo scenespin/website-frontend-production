@@ -654,20 +654,19 @@ export function CharacterDetailModal({
                                 );
                                 
                                 // 🔥 LOGIC: Image was created in Production Hub if:
-                                // 1. It's in poseReferences (AI-generated poses) OR
-                                // 2. Context metadata indicates it was created/uploaded in Production Hub
-                                // NOTE: ANY image created/uploaded in Production Hub (AI-generated OR user-uploaded) is deletable there
-                                // Only images uploaded in Creation section require deletion there
-                                const createdInProductionHub = isInPoseReferences || 
-                                                              contextImage?.metadata?.createdIn === 'production-hub' || // User-uploaded in Production Hub
-                                                              contextImage?.metadata?.source === 'pose-generation' || // AI-generated poses
-                                                              contextImage?.metadata?.source === 'image-generation' || // AI-generated images
-                                                              contextImage?.metadata?.uploadMethod === 'pose-generation' || // Legacy pose generation
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('nano-banana-pro') || // Nano Banana Pro
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway-gen4') || // Runway Gen-4
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway') || // Any Runway model
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') || // Legacy Luma
-                                                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon'); // Legacy Photon
+                                // 1. It's in poseReferences (AI-generated poses) - ALWAYS Production Hub
+                                // 2. It's in character.references (user-uploaded in Production Hub) - check if NOT in context with createdIn: 'creation'
+                                // 3. Context metadata indicates createdIn: 'production-hub'
+                                // Primary check: Is it in poseReferences? (definitely Production Hub)
+                                // Secondary: Check if it's in character.references but NOT marked as createdIn: 'creation' in context
+                                const isInReferences = character.references?.some((ref: any) => {
+                                  const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                  return refS3Key === img.s3Key;
+                                });
+                                
+                                const createdInProductionHub = isInPoseReferences || // AI-generated poses are always Production Hub
+                                                              (isInReferences && contextImage?.metadata?.createdIn !== 'creation') || // In Production Hub references, not marked as creation
+                                                              contextImage?.metadata?.createdIn === 'production-hub'; // Explicitly marked
                                 
                                 if (createdInProductionHub) {
                                   // Can delete in Production Hub
@@ -691,68 +690,47 @@ export function CharacterDetailModal({
                                             }
                                           
                                             try {
-                                              // 🔥 FIX: Use exact same pattern as CharacterDetailSidebar
-                                              // Get current character from context to ensure we have latest images
-                                              const currentCharacter = charactersRef.current.find(c => c.id === character.id);
-                                              if (!currentCharacter) {
-                                                throw new Error('Character not found');
-                                              }
-                                              
-                                              const currentImages = currentCharacter.images || [];
-                                              
-                                              // Find the actual index in the full images array by matching s3Key
-                                              // Same pattern as CharacterDetailSidebar: match by s3Key from metadata
-                                              const actualIndex = currentImages.findIndex((image: any) => {
-                                                const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                                // ImageAsset has s3Key in metadata, not at top level
-                                                const deleteS3Key = img.s3Key;
-                                                if (!imgS3Key || !deleteS3Key) return false;
-                                                
-                                                // Match by s3Key
-                                                if (imgS3Key === deleteS3Key) {
-                                                  // For base reference, check if it's the base
-                                                  if (img.isBase) {
-                                                    return image.metadata?.isBase || image.isBase || false;
-                                                  }
-                                                  // For user-uploaded references, check source
-                                                  return !image.metadata?.source || image.metadata?.source === 'user-upload';
-                                                }
-                                                return false;
+                                              // 🔥 FIX: Production Hub uses CharacterProfile with references array, not Character with images array
+                                              // Delete from character.references array (user-uploaded references)
+                                              const currentReferences = character.references || [];
+                                              const referenceIndex = currentReferences.findIndex((ref: any) => {
+                                                const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                                return refS3Key === img.s3Key;
                                               });
                                               
-                                              if (actualIndex < 0) {
-                                                console.error('[CharacterDetailModal] Image not found:', {
-                                                  imgId: img.id,
-                                                  imgS3Key: img.s3Key,
-                                                  imgIsBase: img.isBase,
-                                                  currentImageCount: currentImages.length,
-                                                  currentImages: currentImages.map((img: any) => ({
-                                                    id: img.id,
-                                                    s3Key: img.metadata?.s3Key || img.s3Key,
-                                                    source: img.metadata?.source,
-                                                    isBase: img.metadata?.isBase || img.isBase
-                                                  }))
-                                                });
-                                                throw new Error('Image not found in character data');
+                                              if (referenceIndex < 0) {
+                                                throw new Error('Reference image not found in character profile');
                                               }
                                               
-                                              // Simple index-based deletion (same pattern as CharacterDetailSidebar)
-                                              const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
+                                              // Remove from references array
+                                              const updatedReferences = currentReferences.filter((_: any, i: number) => i !== referenceIndex);
                                               
-                                              // Optimistic UI update - remove image immediately
-                                              // Call updateCharacter from context (follows the same pattern as CharacterDetailSidebar)
-                                              await updateCharacter(character.id, { images: updatedImages });
+                                              // Also update in ScreenplayContext if character exists there (for sync)
+                                              const contextCharacter = charactersRef.current.find(c => c.id === character.id);
+                                              if (contextCharacter) {
+                                                const contextImages = contextCharacter.images || [];
+                                                const contextImageIndex = contextImages.findIndex((image: any) => {
+                                                  const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                                  return imgS3Key === img.s3Key;
+                                                });
+                                                
+                                                if (contextImageIndex >= 0) {
+                                                  const updatedContextImages = contextImages.filter((_: any, i: number) => i !== contextImageIndex);
+                                                  await updateCharacter(character.id, { images: updatedContextImages });
+                                                }
+                                              }
+                                              
+                                              // Update CharacterProfile via onUpdate callback
+                                              await onUpdate(character.id, { 
+                                                references: updatedReferences 
+                                              });
                                               
                                               // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
                                               queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
                                               
-                                              // 🔥 FIX: Don't sync from context immediately after deletion
-                                              // The useEffect hook will handle syncing when context actually updates
-                                              // This prevents overwriting the optimistic update with stale data
-                                              
                                               toast.success('Reference image deleted');
                                             } catch (error: any) {
-                                              console.error('Failed to delete reference image:', error);
+                                              console.error('[CharacterDetailModal] Failed to delete reference image:', error);
                                               toast.error(`Failed to delete image: ${error.message}`);
                                             }
                                           }}
@@ -1004,15 +982,27 @@ export function CharacterDetailModal({
                                         });
                                         
                                         // Optimistic UI update - remove image immediately
-                                        // Call updateCharacter from context for images (Character type)
-                                        await updateCharacter(character.id, { 
-                                          images: updatedImages
+                                        // 🔥 FIX: Production Hub uses CharacterProfile - update poseReferences via onUpdate
+                                        // This is the primary update for Production Hub
+                                        await onUpdate(character.id, { 
+                                          poseReferences: updatedPoseReferences
                                         });
-                                        // Also update poseReferences via onUpdate (CharacterProfile type)
-                                        if (updatedPoseReferences.length !== currentPoseReferences.length) {
-                                          await onUpdate(character.id, { 
-                                            poseReferences: updatedPoseReferences // 🔥 FIX: Update poseReferences via CharacterProfile update
+                                        
+                                        // Also sync with ScreenplayContext if character exists there (for consistency)
+                                        const contextCharacter = charactersRef.current.find(c => c.id === character.id);
+                                        if (contextCharacter) {
+                                          const contextImages = contextCharacter.images || [];
+                                          // Remove pose from context images if it exists there
+                                          const updatedContextImages = contextImages.filter((image: any) => {
+                                            const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                            return imgS3Key !== pose.s3Key;
                                           });
+                                          
+                                          if (updatedContextImages.length !== contextImages.length) {
+                                            await updateCharacter(character.id, { 
+                                              images: updatedContextImages
+                                            });
+                                          }
                                         }
                                         
                                         // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears

@@ -486,23 +486,66 @@ export default function AssetDetailSidebar({
       const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
       const currentImages = currentAsset.images || [];
       
+      const imageToDelete = currentImages[index];
+      const imageS3Key = imageToDelete?.metadata?.s3Key || imageToDelete?.s3Key;
+      const isAngleGenerated = imageToDelete?.metadata?.source === 'angle-generation' || 
+                                imageToDelete?.metadata?.angle ||
+                                imageToDelete?.angle;
+      
+      // 🔥 LOGIC: Creation section can delete anything NOT created in Production Hub
+      // Primary check: createdIn metadata (most reliable)
+      // Fallback: check source for legacy images without createdIn
+      const createdInProductionHub = imageToDelete?.metadata?.createdIn === 'production-hub' ||
+                                    (imageToDelete?.metadata?.createdIn !== 'creation' && (
+                                      imageToDelete?.metadata?.source === 'pose-generation' || 
+                                      imageToDelete?.metadata?.source === 'image-generation' ||
+                                      imageToDelete?.metadata?.source === 'angle-generation' ||
+                                      imageToDelete?.metadata?.uploadMethod === 'pose-generation'
+                                    ));
+      
+      if (createdInProductionHub) {
+        toast.error('Images created in Production Hub can only be deleted there');
+        deletingImageRef.current = null;
+        return;
+      }
+      
       console.log('[AssetDetailSidebar] 🗑️ Deleting image:', {
         assetId: asset.id,
         currentImageCount: currentImages.length,
         deletingIndex: index,
-        imageUrl: currentImages[index]?.url
+        imageUrl: imageToDelete?.url,
+        imageS3Key,
+        isAngleGenerated,
+        createdInProductionHub
       });
       
       const updatedImages = currentImages.filter((_, i) => i !== index);
       
+      // 🔥 FIX: If deleting an angle-generated image, also remove from angleReferences
+      // This prevents the image from being added back when enrichAssetWithPresignedUrls runs
+      let updateData: any = { images: updatedImages };
+      if (isAngleGenerated && imageS3Key && currentAsset.angleReferences) {
+        const updatedAngleReferences = currentAsset.angleReferences.filter(
+          (ref: any) => ref.s3Key !== imageS3Key
+        );
+        if (updatedAngleReferences.length !== currentAsset.angleReferences.length) {
+          updateData.angleReferences = updatedAngleReferences;
+          console.log('[AssetDetailSidebar] 🗑️ Also removing from angleReferences:', {
+            removedS3Key: imageS3Key,
+            remainingAngleRefs: updatedAngleReferences.length
+          });
+        }
+      }
+      
       // 🔥 FIX: Optimistic UI update - remove image immediately
       setFormData(prev => ({
         ...prev,
-        images: updatedImages
+        images: updatedImages,
+        ...(updateData.angleReferences !== undefined && { angleReferences: updateData.angleReferences })
       }));
       
       // Update via API
-      await updateAsset(asset.id, { images: updatedImages });
+      await updateAsset(asset.id, updateData);
       
       // Sync from context after update (with delay for DynamoDB consistency)
       await new Promise(resolve => setTimeout(resolve, 500));

@@ -1213,19 +1213,31 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                 merged.push(sessionAsset);
                                 console.log('[ScreenplayContext] 🔄 Adding new asset from sessionStorage (not in API yet):', sessionAsset.id);
                             } else {
-                                // Asset exists in both - compare timestamps to see which is newer
+                                // Asset exists in both - compare timestamps AND image counts
                                 const apiUpdatedAt = existingApiAsset.updatedAt ? new Date(existingApiAsset.updatedAt).getTime() : 0;
                                 const sessionUpdatedAt = sessionAsset.updatedAt ? new Date(sessionAsset.updatedAt).getTime() : new Date(sessionAsset.createdAt).getTime();
+                                const apiImageCount = existingApiAsset.images?.length || 0;
+                                const sessionImageCount = sessionAsset.images?.length || 0;
                                 
-                                if (sessionUpdatedAt > apiUpdatedAt + 1000) {
+                                // 🔥 FIX: If API has fewer images and is newer, prefer API (image was deleted)
+                                // This prevents old sessionStorage versions with more images from overwriting correct deletions
+                                if (apiImageCount < sessionImageCount && apiUpdatedAt >= sessionUpdatedAt - 5000) {
+                                    // API has fewer images and is recent - keep API version (deletion was successful)
+                                    console.log('[ScreenplayContext] ⏭️ Keeping API version (has fewer images, deletion successful):', sessionAsset.id, {
+                                        apiImages: apiImageCount,
+                                        sessionImages: sessionImageCount,
+                                        apiUpdatedAt: new Date(apiUpdatedAt).toISOString(),
+                                        sessionUpdatedAt: new Date(sessionUpdatedAt).toISOString()
+                                    });
+                                } else if (sessionUpdatedAt > apiUpdatedAt + 1000) {
                                     // SessionStorage version is newer - replace API version
                                     const index = merged.indexOf(existingApiAsset);
                                     merged[index] = sessionAsset;
                                     console.log('[ScreenplayContext] 🔄 Replacing API asset with newer sessionStorage version:', sessionAsset.id, {
                                         apiUpdatedAt: new Date(apiUpdatedAt).toISOString(),
                                         sessionUpdatedAt: new Date(sessionUpdatedAt).toISOString(),
-                                        apiImages: existingApiAsset.images?.length || 0,
-                                        sessionImages: sessionAsset.images?.length || 0
+                                        apiImages: apiImageCount,
+                                        sessionImages: sessionImageCount
                                     });
                                 } else {
                                     // API version is newer or same - keep API version

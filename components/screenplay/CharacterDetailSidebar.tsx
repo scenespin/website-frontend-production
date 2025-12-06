@@ -428,6 +428,7 @@ export default function CharacterDetailSidebar({
               isEdited: img.isEdited || img.metadata?.isEdited,
               originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
               angle: img.angle || img.metadata?.angle, // Preserve angle if present
+              createdIn: img.metadata?.createdIn || 'creation', // 🔥 FIX: Mark images uploaded in Create section
             }
           };
         }).filter((img: any) => {
@@ -1021,11 +1022,14 @@ export default function CharacterDetailSidebar({
                                   // ImageAsset has s3Key in metadata, not at top level
                                   const deleteS3Key = imageToDelete.metadata?.s3Key;
                                   // 🔥 LOGIC: Creation section can delete anything NOT created in Production Hub
-                                  // Created in Production Hub if: pose-generation, image-generation, or createdIn === 'production-hub'
-                                  const createdInProductionHub = img.metadata?.source === 'pose-generation' || 
-                                                                img.metadata?.source === 'image-generation' ||
-                                                                img.metadata?.uploadMethod === 'pose-generation' ||
-                                                                img.metadata?.createdIn === 'production-hub';
+                                  // Primary check: createdIn metadata (most reliable)
+                                  // Fallback: check source for legacy images without createdIn
+                                  const createdInProductionHub = img.metadata?.createdIn === 'production-hub' ||
+                                                                (img.metadata?.createdIn !== 'creation' && (
+                                                                  img.metadata?.source === 'pose-generation' || 
+                                                                  img.metadata?.source === 'image-generation' ||
+                                                                  img.metadata?.uploadMethod === 'pose-generation'
+                                                                ));
                                   return imgS3Key === deleteS3Key && !createdInProductionHub;
                                 });
                                 
