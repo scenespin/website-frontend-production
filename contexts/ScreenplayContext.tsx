@@ -1576,6 +1576,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             fountain: {
                 ...scene.fountain,
                 tags: {
+                    characters: scene.fountain?.tags?.characters || [],
                     ...(scene.fountain?.tags || {}),
                     props: updatedProps
                 }
@@ -1604,8 +1605,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             fountain: {
                 ...scene.fountain,
                 tags: {
+                    characters: scene.fountain?.tags?.characters || [],
                     ...(scene.fountain?.tags || {}),
-                    props: updatedProps
+                    props: updatedProps.length > 0 ? updatedProps : undefined
                 }
             }
         });
