@@ -381,11 +381,13 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 characters={(screenplay.characters || []).map(char => {
                   // Separate user-uploaded references from generated poses
                   const allImages = char.images || [];
-                  const userReferences = allImages.filter((img: any) => 
-                    !(img.metadata as any)?.source || (img.metadata as any)?.source === 'user-upload'
-                  );
+                  // Production Hub images: source='pose-generation'
+                  // Creation images: source='user-upload' OR no source
                   const poseReferences = allImages.filter((img: any) => 
                     (img.metadata as any)?.source === 'pose-generation'
+                  );
+                  const userReferences = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source !== 'pose-generation'
                   );
                   
                   return {
@@ -680,11 +682,13 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                 characters={(screenplay.characters || []).map(char => {
                   // Separate user-uploaded references from generated poses
                   const allImages = char.images || [];
-                  const userReferences = allImages.filter((img: any) => 
-                    !(img.metadata as any)?.source || (img.metadata as any)?.source === 'user-upload'
-                  );
+                  // Production Hub images: source='pose-generation'
+                  // Creation images: source='user-upload' OR no source
                   const poseReferences = allImages.filter((img: any) => 
                     (img.metadata as any)?.source === 'pose-generation'
+                  );
+                  const userReferences = allImages.filter((img: any) => 
+                    (img.metadata as any)?.source !== 'pose-generation'
                   );
                   
                   return {

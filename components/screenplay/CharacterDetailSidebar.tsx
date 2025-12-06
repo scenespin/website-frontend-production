@@ -904,14 +904,18 @@ export default function CharacterDetailSidebar({
               createdAt: new Date().toISOString()
             }))
             
-            // Separate user-uploaded images from AI-generated images for better organization
+            // 🔥 FIX: Filter out Production Hub images (pose-generation) from Creation section
+            // Creation section should only show Creation images
+            // Production Hub images have source='pose-generation'
             const userUploadedImages = allImages.filter(img => 
-              !img.metadata?.source || img.metadata?.source === 'user-upload'
+              (img.metadata as any)?.source !== 'pose-generation'
             );
-            const aiGeneratedImages = allImages.filter(img => 
-              img.metadata?.source === 'pose-generation' || 
-              img.metadata?.source === 'image-generation'
-            );
+            const aiGeneratedImages = allImages.filter(img => {
+              const metadata = img.metadata || {};
+              // Only show AI-generated images that are NOT Production Hub pose images
+              return (metadata.source === 'image-generation' || metadata.modelUsed) && 
+                     metadata.source !== 'pose-generation';
+            });
             
             return (
               <div className="space-y-4">
