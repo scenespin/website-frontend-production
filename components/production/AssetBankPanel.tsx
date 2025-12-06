@@ -43,22 +43,21 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   const [show3DExportModal, setShow3DExportModal] = useState(false);
   const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
 
-  // 🔥 FIX: Use context assets directly for real-time sync (like characters/locations)
-  // Filter by category
-  const assets = contextAssets && contextAssets.length > 0
+  // 🔥 FIX: Use local assets (Production Hub) with fallback to context assets (Creation section)
+  // Production Hub should have its own state, but can show Creation section assets as read-only
+  const assets = localAssets.length > 0
     ? (selectedCategory === 'all' 
-        ? contextAssets 
-        : contextAssets.filter(a => a.category === selectedCategory))
-    : [];
+        ? localAssets 
+        : localAssets.filter(a => a.category === selectedCategory))
+    : (contextAssets && contextAssets.length > 0
+        ? (selectedCategory === 'all' 
+            ? contextAssets 
+            : contextAssets.filter(a => a.category === selectedCategory))
+        : []);
 
-  // 🔥 FIX: Only fetch on initial mount if context is empty (for backward compatibility)
-  // Don't fetch on category change - context handles all updates
+  // 🔥 FIX: Always fetch assets on mount for Production Hub (independent of Creation section)
   useEffect(() => {
-    if (!contextAssets || contextAssets.length === 0) {
-      fetchAssets();
-    } else {
-      setLoading(false);
-    }
+    fetchAssets();
   }, [projectId]); // Only fetch when projectId changes
   
   // 🔥 NEW: Listen for asset angle generation completion and refresh assets
@@ -75,6 +74,10 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
     return () => window.removeEventListener('refreshAssets', handleRefreshAssets);
   }, [projectId]);
 
+  // 🔥 FIX: Store assets in local state for Production Hub (not just ScreenplayContext)
+  // Production Hub should have its own asset state, not rely on Creation section's context
+  const [localAssets, setLocalAssets] = useState<Asset[]>([]);
+  
   const fetchAssets = async () => {
     setLoading(true);
     try {
@@ -98,8 +101,16 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
 
       if (response.ok) {
         const data = await response.json();
-        // Don't set local state - context will handle it
-        // This is just for initial load if context is empty
+        // 🔥 FIX: Update local state with fresh asset data from API
+        setLocalAssets(data.assets || []);
+        
+        // 🔥 FIX: If selectedAsset is open, refresh it with fresh data
+        if (selectedAsset) {
+          const refreshedAsset = data.assets?.find((a: Asset) => a.id === selectedAsset.id);
+          if (refreshedAsset) {
+            setSelectedAsset(refreshedAsset);
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to fetch assets:', error);
@@ -332,6 +343,12 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
           asset={selectedAsset}
           onUpdate={fetchAssets}
           onDelete={fetchAssets}
+          onAssetUpdate={(updatedAsset) => {
+            // 🔥 FIX: Update selectedAsset with fresh data from backend
+            setSelectedAsset(updatedAsset);
+            // Also update in localAssets array
+            setLocalAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
+          }}
           onGenerate3D={(asset) => {
             setShowDetailModal(false);
             setAssetFor3DExport(asset);

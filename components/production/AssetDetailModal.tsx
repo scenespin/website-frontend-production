@@ -14,7 +14,7 @@
  * Consistent with CharacterDetailModal and LocationDetailModal
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info } from 'lucide-react';
@@ -38,6 +38,7 @@ interface AssetDetailModalProps {
   onDelete?: () => void; // 🔥 Made optional - delete removed from Production Hub
   onGenerate3D: (asset: Asset) => void;
   isMobile?: boolean;
+  onAssetUpdate?: (updatedAsset: Asset) => void; // 🔥 NEW: Callback to update asset in parent
 }
 
 export default function AssetDetailModal({ 
@@ -47,7 +48,8 @@ export default function AssetDetailModal({
   onUpdate, 
   onDelete,
   onGenerate3D,
-  isMobile = false
+  isMobile = false,
+  onAssetUpdate
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
@@ -684,7 +686,25 @@ export default function AssetDetailModal({
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          onUpdate(); // Refresh asset data
+                                          
+                                          // 🔥 FIX: Fetch fresh asset data after deletion to ensure UI reflects backend state
+                                          try {
+                                            const refreshResponse = await fetch(`/api/asset-bank/${asset.id}`, {
+                                              headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                              },
+                                            });
+                                            if (refreshResponse.ok) {
+                                              const refreshData = await refreshResponse.json();
+                                              if (refreshData.asset && onAssetUpdate) {
+                                                onAssetUpdate(refreshData.asset);
+                                              }
+                                            }
+                                          } catch (refreshError) {
+                                            console.error('[AssetDetailModal] Failed to refresh asset after deletion:', refreshError);
+                                          }
+                                          
+                                          onUpdate(); // Refresh asset list in parent
                                           toast.success('Image deleted');
                                         } catch (error: any) {
                                           console.error('[AssetDetailModal] Failed to delete image:', error);
