@@ -22,6 +22,19 @@ export interface AssetImage {
   };
 }
 
+export interface AssetReference {
+  id: string;
+  imageUrl: string;
+  s3Key: string;
+  angle: 'front' | 'side' | 'top' | 'back' | 'detail' | 'context' | 'close-up' | 'lighting-variation' | 'context-variation' | 'aerial';
+  cameraPosition?: string;
+  lighting?: string;
+  context?: string;
+  generationMethod: 'ai-generated';
+  creditsUsed: number;
+  createdAt: string;
+}
+
 export interface Asset {
   id: string;
   userId: string;
@@ -31,6 +44,7 @@ export interface Asset {
   description?: string;
   tags: string[];
   images: AssetImage[];
+  angleReferences?: AssetReference[]; // AI-generated angle references
   has3DModel: boolean;
   model3DJobId?: string;
   createdAt: string;
