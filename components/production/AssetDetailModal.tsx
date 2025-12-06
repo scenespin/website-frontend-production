@@ -117,13 +117,13 @@ export default function AssetDetailModal({
       angleImages.push({
         url: img.imageUrl || img.url || '',
         s3Key: img.s3Key || img.metadata?.s3Key || '',
+        uploadedAt: img.createdAt || img.uploadedAt || new Date().toISOString(),
         metadata: {
           ...img.metadata,
           source: img.metadata?.source || 'angle-generation',
           angle: img.metadata?.angle || 'front',
           creditsUsed: img.metadata?.creditsUsed || 0
-        },
-        createdAt: img.createdAt || new Date().toISOString()
+        }
       });
     }
   });
