@@ -464,6 +464,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 physicalAttributes: char.physicalAttributes || undefined, // 🔥 FIX: Include physicalAttributes from API
                 // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
                 // 🔥 FIX: Preserve angle metadata from existing character state by matching s3Key
+                // 🔥 CRITICAL FIX: Preserve ALL metadata from API (including source, poseId, etc.) for proper image filtering
                 images: (char.images || []).map((img: any) => {
                     const s3Key = img.s3Key;
                     const preservedAngle = s3Key ? angleMap.get(s3Key) : undefined;
@@ -474,8 +475,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         imageUrl: img.imageUrl || img.url || '',
                         description: '',
                         metadata: {
-                            s3Key: s3Key, // Preserve s3Key for regenerating presigned URLs if needed
-                            angle: angle // 🔥 FIX: Preserve angle metadata from existing state or backend response
+                            // Preserve ALL metadata from API response (source, poseId, poseName, outfitName, etc.)
+                            ...(img.metadata || {}),
+                            s3Key: s3Key, // Ensure s3Key is set (may be in metadata or top-level)
+                            angle: angle // Preserve angle metadata from existing state or backend response
                         }
                     };
                 }),
@@ -525,11 +528,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             description: loc.description || '',
             type: (loc.type as 'INT' | 'EXT' | 'INT/EXT') || 'INT', // 🔥 FIXED: Preserve type from DynamoDB, default to 'INT'
             // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
+            // 🔥 CRITICAL FIX: Preserve ALL metadata from API (including source, angle, etc.) for proper image filtering
             images: (loc.images || []).map((img: any) => ({
                 imageUrl: img.imageUrl || img.url || '',
                 description: '',
                 metadata: {
-                    s3Key: img.s3Key // Preserve s3Key for regenerating presigned URLs if needed
+                    // Preserve ALL metadata from API response (source, angle, etc.)
+                    ...(img.metadata || {}),
+                    s3Key: img.s3Key || img.metadata?.s3Key // Ensure s3Key is set (may be in metadata or top-level)
                 }
             })),
             address: loc.address || '', // 🔥 NEW: Include address
