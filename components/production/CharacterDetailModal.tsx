@@ -1128,20 +1128,33 @@ export function CharacterDetailModal({
                 <div className="p-6">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {allImages.map((img) => {
-                      // Check if image was created in Production Hub
+                      // 🔥 FIX: Check if image was created in Production Hub
+                      // PRIMARY CHECK: If image is in poseReferences, it's ALWAYS Production Hub (AI-generated poses)
                       const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
                         const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
                         return poseS3Key === img.s3Key;
                       });
                       
+                      // SECONDARY CHECK: If image is in character.references (user-uploaded), check if it was uploaded in Production Hub
+                      const isInUserReferences = character.references?.some((ref: any) => {
+                        const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                        return refS3Key === img.s3Key;
+                      });
+                      
+                      // Check context for metadata (fallback for legacy data or images not in character.references/poseReferences)
                       const contextImage = allImagesFromContext.find((ctxImg: any) => 
                         (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
                       );
                       
+                      // 🔥 FIX: Prioritize poseReferences check - if image is in poseReferences, it's ALWAYS Production Hub
+                      // For user-uploaded references, check metadata to determine if created in Production Hub
                       const createdInProductionHub = isInPoseReferences || 
-                                                     contextImage?.metadata?.createdIn === 'production-hub';
+                                                     (isInUserReferences && contextImage?.metadata?.createdIn === 'production-hub') ||
+                                                     (!isInUserReferences && !isInPoseReferences && contextImage?.metadata?.createdIn === 'production-hub');
                       
-                      const createdInCreation = contextImage?.metadata?.createdIn === 'creation';
+                      // Only mark as created in Creation if it's NOT in poseReferences and explicitly marked as 'creation'
+                      const createdInCreation = !isInPoseReferences && 
+                                                contextImage?.metadata?.createdIn === 'creation';
                       
                       return (
                         <div
