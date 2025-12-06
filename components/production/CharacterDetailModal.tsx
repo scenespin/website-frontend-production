@@ -1171,11 +1171,14 @@ export function CharacterDetailModal({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     {/* Regenerate option - only show for poses with poseId */}
-                                    {img.poseId && (
+                                    {'poseId' in img && img.poseId && (
                                       <DropdownMenuItem
                                         onClick={async (e) => {
                                           e.stopPropagation();
-                                          if (!img.poseId || !img.s3Key) {
+                                          const poseId = 'poseId' in img ? img.poseId : undefined;
+                                          const outfitName = 'outfitName' in img ? img.outfitName : 'default';
+                                          
+                                          if (!poseId || !img.s3Key) {
                                             toast.error('Missing pose information for regeneration');
                                             return;
                                           }
@@ -1193,9 +1196,9 @@ export function CharacterDetailModal({
                                                 'Authorization': `Bearer ${token}`
                                               },
                                               body: JSON.stringify({
-                                                poseId: img.poseId,
+                                                poseId: poseId,
                                                 existingPoseS3Key: img.s3Key,
-                                                outfitName: img.outfitName || 'default'
+                                                outfitName: outfitName
                                               })
                                             });
                                             
