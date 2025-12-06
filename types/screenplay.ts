@@ -53,6 +53,7 @@ export interface ImageAsset {
         outfitName?: string; // Phase 3: Outfit name for pose organization (e.g., 'business-casual', 'default')
         poseId?: string; // Pose definition ID for AI-generated poses (e.g., 'front-facing', 'three-quarter-left')
         poseName?: string; // Name/label for the pose (e.g., 'Front-facing', 'Three-quarter-left')
+        packageId?: string; // Package ID for pose generation (e.g., 'pose-package-123')
         creditsUsed?: number; // Credits used for AI generation
         uploadMethod?: string; // Upload method: 'pose-generation' | 'manual' | 'user-upload'
         createdIn?: string; // Where image was created/uploaded: 'creation' | 'production-hub'
