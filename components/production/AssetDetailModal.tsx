@@ -81,6 +81,18 @@ export default function AssetDetailModal({
   const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
   const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
   
+  // Convert asset images to gallery format
+  // Include both user-uploaded images and AI-generated angle references
+  const userImages = assetImages.map((img, idx) => ({
+    id: `img-${idx}`,
+    imageUrl: img.url,
+    label: `${asset.name} - Image ${idx + 1}`,
+    isBase: idx === 0,
+    s3Key: img.s3Key || img.metadata?.s3Key,
+    isAngleReference: false,
+    metadata: img.metadata
+  }));
+  
   // Debug: Log asset images for troubleshooting
   useEffect(() => {
     if (isOpen) {
@@ -169,18 +181,6 @@ export default function AssetDetailModal({
       if (e.target) e.target.value = '';
     }
   };
-  
-  // Convert asset images to gallery format
-  // Include both user-uploaded images and AI-generated angle references
-  const userImages = assetImages.map((img, idx) => ({
-    id: `img-${idx}`,
-    imageUrl: img.url,
-    label: `${asset.name} - Image ${idx + 1}`,
-    isBase: idx === 0,
-    s3Key: img.s3Key || img.metadata?.s3Key,
-    isAngleReference: false,
-    metadata: img.metadata
-  }));
   
   const angleImages = (asset.angleReferences || []).map((ref, idx) => ({
     id: ref.id || `angle-${idx}`,

@@ -886,7 +886,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const handleRefreshAssets = async () => {
             console.log('[ScreenplayContext] Refreshing assets due to refreshAssets event');
             try {
-                const assetsData = await api.assetBank.list(screenplayId).catch(() => ({ assets: [] }));
+                const assetsData = await api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })); // Load assets for Creation section (filters out Production Hub images)
                 const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
                 const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
                 
@@ -987,7 +987,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         listScenes(screenplayId, getToken),
                         listCharacters(screenplayId, getToken),
                         listLocations(screenplayId, getToken),
-                        api.assetBank.list(screenplayId).catch(() => ({ assets: [] })) // Load assets, default to empty on error
+                        api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })) // Load assets for Creation section (filters out Production Hub images)
                     ]);
                     
                     console.log('[ScreenplayContext] 📦 Raw API response:', {
@@ -2928,7 +2928,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Update via API
         if (screenplayId) {
             try {
-                const response = await api.assetBank.update(id, updates);
+                const response = await api.assetBank.update(id, updates, 'creation'); // Creation section context - filters out Production Hub images
                 
                 // Extract asset from response (API returns { success: true, asset } or just asset)
                 const updatedAsset = response.asset || response;
@@ -2952,7 +2952,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     try {
                         // Small delay to allow DynamoDB to be consistent
                         await new Promise(resolve => setTimeout(resolve, 300));
-                        const refetched = await api.assetBank.get(id);
+                        const refetched = await api.assetBank.get(id, 'creation'); // Creation section context - filters out Production Hub images
                         finalAsset = refetched.asset || refetched;
                         console.log('[ScreenplayContext] ✅ Refetched asset with', finalAsset.images?.length || 0, 'images after image update');
                     } catch (refetchError) {
@@ -2962,7 +2962,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Non-image update but response missing images - refetch
                     console.log('[ScreenplayContext] ⚠️ Response missing images, refetching asset...');
                     try {
-                        const refetched = await api.assetBank.get(id);
+                        const refetched = await api.assetBank.get(id, 'creation'); // Creation section context - filters out Production Hub images
                         finalAsset = refetched.asset || refetched;
                         console.log('[ScreenplayContext] ✅ Refetched asset with', finalAsset.images?.length || 0, 'images');
                     } catch (refetchError) {

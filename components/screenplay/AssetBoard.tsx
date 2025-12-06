@@ -382,7 +382,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                             const formData = new FormData();
                                                             formData.append('image', file);
                                                             
-                                                            await api.assetBank.uploadImage(newAsset.id, formData);
+                                                            await api.assetBank.uploadImage(newAsset.id, formData, 'creation'); // Creation section context
                                                         }
                                                     } catch (uploadError: any) {
                                                         console.error('Failed to process image:', uploadError);
