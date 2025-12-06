@@ -501,8 +501,7 @@ export default function AssetDetailSidebar({
         deletingIndex: index,
         imageUrl: imageToDelete?.url,
         imageS3Key,
-        isAngleGenerated,
-        createdInProductionHub
+        isAngleGenerated
       });
       
       const updatedImages = currentImages.filter((_, i) => i !== index);
