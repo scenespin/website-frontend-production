@@ -639,120 +639,6 @@ export function CharacterDetailModal({
                                 </div>
                               )}
                             </button>
-                              {/* Three-dot menu for actions (mobile-friendly) */}
-                              {(() => {
-                                // 🔥 CRITICAL FIX: Check if image is in poseReferences FIRST
-                                // If it's in poseReferences, it's ALWAYS AI-generated in Production Hub
-                                const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
-                                  const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
-                                  return poseS3Key === img.s3Key;
-                                });
-                                
-                                // Also check context image for metadata (legacy support)
-                                const contextImage = allImagesFromContext.find((ctxImg: any) => 
-                                  (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
-                                );
-                                
-                                // 🔥 LOGIC: Image was created in Production Hub if:
-                                // 1. It's in poseReferences (AI-generated poses) - ALWAYS Production Hub
-                                // 2. It's in character.references (user-uploaded in Production Hub) - check if NOT in context with createdIn: 'creation'
-                                // 3. Context metadata indicates createdIn: 'production-hub'
-                                // Primary check: Is it in poseReferences? (definitely Production Hub)
-                                // Secondary: Check if it's in character.references but NOT marked as createdIn: 'creation' in context
-                                const isInReferences = character.references?.some((ref: any) => {
-                                  const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                  return refS3Key === img.s3Key;
-                                });
-                                
-                                const createdInProductionHub = isInPoseReferences || // AI-generated poses are always Production Hub
-                                                              (isInReferences && contextImage?.metadata?.createdIn !== 'creation') || // In Production Hub references, not marked as creation
-                                                              contextImage?.metadata?.createdIn === 'production-hub'; // Explicitly marked
-                                
-                                if (createdInProductionHub) {
-                                  // Can delete in Production Hub
-                                  return (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <button
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="absolute top-1 right-1 p-1 bg-[#1F1F1F]/80 hover:bg-[#2A2A2A] rounded text-white transition-colors"
-                                          title="Actions"
-                                        >
-                                          <MoreVertical className="w-4 h-4" />
-                                        </button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="bg-[#1F1F1F] border border-[#3F3F46]">
-                                        <DropdownMenuItem
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            if (!confirm(`Delete ${img.isBase ? 'base reference' : 'reference image'}?`)) {
-                                              return;
-                                            }
-                                          
-                                            try {
-                                              // 🔥 FIX: Production Hub uses CharacterProfile with references array, not Character with images array
-                                              // Delete from character.references array (user-uploaded references)
-                                              const currentReferences = character.references || [];
-                                              const referenceIndex = currentReferences.findIndex((ref: any) => {
-                                                const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                                return refS3Key === img.s3Key;
-                                              });
-                                              
-                                              if (referenceIndex < 0) {
-                                                throw new Error('Reference image not found in character profile');
-                                              }
-                                              
-                                              // Remove from references array
-                                              const updatedReferences = currentReferences.filter((_: any, i: number) => i !== referenceIndex);
-                                              
-                                              // Also update in ScreenplayContext if character exists there (for sync)
-                                              const contextCharacter = charactersRef.current.find(c => c.id === character.id);
-                                              if (contextCharacter) {
-                                                const contextImages = contextCharacter.images || [];
-                                                const contextImageIndex = contextImages.findIndex((image: any) => {
-                                                  const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                                  return imgS3Key === img.s3Key;
-                                                });
-                                                
-                                                if (contextImageIndex >= 0) {
-                                                  const updatedContextImages = contextImages.filter((_: any, i: number) => i !== contextImageIndex);
-                                                  await updateCharacter(character.id, { images: updatedContextImages });
-                                                }
-                                              }
-                                              
-                                              // Update CharacterProfile via onUpdate callback
-                                              await onUpdate(character.id, { 
-                                                references: updatedReferences 
-                                              });
-                                              
-                                              // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
-                                              queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-                                              
-                                              toast.success('Reference image deleted');
-                                            } catch (error: any) {
-                                              console.error('[CharacterDetailModal] Failed to delete reference image:', error);
-                                              toast.error(`Failed to delete image: ${error.message}`);
-                                            }
-                                          }}
-                                          className="text-red-400 hover:text-red-300 hover:bg-[#2A2A2A] cursor-pointer"
-                                        >
-                                          <Trash2 className="w-4 h-4 mr-2" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  );
-                                } else {
-                                  // Image created in Creation section - show info only
-                                  return (
-                                    <div className="absolute top-1 right-1 p-1 bg-[#3F3F46]/80 rounded text-white cursor-help"
-                                      title="Images created/uploaded in Creation section can only be deleted there"
-                                    >
-                                      <Info className="w-4 h-4" />
-                                    </div>
-                                  );
-                                }
-                              })()}
                             </div>
                           );
                         })}
@@ -838,193 +724,6 @@ export function CharacterDetailModal({
                                   Pose
                                 </div>
                               </button>
-                              {/* Three-dot menu for actions (mobile-friendly) */}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="absolute top-1 right-1 p-1 bg-[#1F1F1F]/80 hover:bg-[#2A2A2A] rounded text-white transition-colors"
-                                    title="Actions"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="bg-[#1F1F1F] border border-[#3F3F46]">
-                                  {/* Regenerate option - only show if poseId exists */}
-                                  {img.poseId && (
-                                    <DropdownMenuItem
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (!img.poseId || !img.s3Key) {
-                                          toast.error('Missing pose information for regeneration');
-                                          return;
-                                        }
-                                        
-                                        if (!confirm(`Regenerate this pose? This will cost credits.`)) {
-                                          return;
-                                        }
-                                        
-                                        try {
-                                          const token = await getToken({ template: 'wryda-backend' });
-                                          const response = await fetch(`/api/projects/${projectId}/characters/${character.id}/regenerate-pose`, {
-                                            method: 'POST',
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                              'Authorization': `Bearer ${token}`
-                                            },
-                                            body: JSON.stringify({
-                                              poseId: img.poseId,
-                                              existingPoseS3Key: img.s3Key,
-                                              outfitName: img.outfitName || 'default'
-                                            })
-                                          });
-                                          
-                                          if (!response.ok) {
-                                            const error = await response.json();
-                                            throw new Error(error.message || 'Failed to regenerate pose');
-                                          }
-                                          
-                                          const result = await response.json();
-                                          
-                                          // Show success message
-                                          toast.success('Pose regeneration started. Check the Jobs panel for progress.');
-                                          
-                                          // Invalidate queries to refresh character data
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-                                          
-                                          // Refresh character data from context
-                                          await onUpdate(character.id, {});
-                                          
-                                        } catch (error: any) {
-                                          console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
-                                          toast.error(`Failed to regenerate pose: ${error.message}`);
-                                        }
-                                      }}
-                                      className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
-                                    >
-                                      <Sparkles className="w-4 h-4 mr-2" />
-                                      Regenerate
-                                    </DropdownMenuItem>
-                                  )}
-                                  {/* Delete option */}
-                                  <DropdownMenuItem
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      if (!confirm('Delete generated pose?')) {
-                                        return;
-                                      }
-                                      
-                                      try {
-                                        // 🔥 FIX: Use exact same pattern as CharacterDetailSidebar (for AI-generated images)
-                                        // Get current character from context to ensure we have latest images
-                                        const currentCharacter = charactersRef.current.find(c => c.id === character.id);
-                                        if (!currentCharacter) {
-                                          throw new Error('Character not found');
-                                        }
-                                        
-                                        const currentImages = currentCharacter.images || [];
-                                        
-                                        // Find the actual index in the full images array by matching s3Key
-                                        // Same pattern as CharacterDetailSidebar: match by s3Key from metadata
-                                        // img is a PoseReferenceWithOutfit which has s3Key at top level (from CharacterReference)
-                                        const deleteS3Key = img.s3Key;
-                                        
-                                        if (!deleteS3Key) {
-                                          throw new Error('Pose image missing S3 key');
-                                        }
-                                        
-                                        const actualIndex = currentImages.findIndex((image: any) => {
-                                          const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                          if (imgS3Key !== deleteS3Key) return false;
-                                          
-                                          // 🔥 CRITICAL FIX: Check poseReferences FIRST (most reliable)
-                                          // If s3Key is in poseReferences, it's definitely an AI-generated pose
-                                          const isInPoseReferences = character.poseReferences?.some((ref: any) => {
-                                            const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                            return refS3Key === deleteS3Key;
-                                          });
-                                          
-                                          if (isInPoseReferences) return true;
-                                          
-                                          // Fallback: Check metadata (for legacy data or images that were added to images array)
-                                          const isPoseGenerated = image.metadata?.source === 'pose-generation' || 
-                                                                  image.metadata?.source === 'image-generation' ||
-                                                                  image.metadata?.uploadMethod === 'pose-generation';
-                                          return isPoseGenerated;
-                                        });
-                                        
-                                        if (actualIndex < 0) {
-                                          console.error('[CharacterDetailModal] Pose not found in character data:', {
-                                            deleteS3Key,
-                                            imgId: img.id,
-                                            imgUrl: img.imageUrl,
-                                            outfitName: img.outfitName,
-                                            currentImageCount: currentImages.length,
-                                            currentImages: currentImages.map((img: any, idx: number) => ({
-                                              idx,
-                                              s3Key: img.metadata?.s3Key || img.s3Key,
-                                              source: img.metadata?.source,
-                                              imageUrl: img.imageUrl?.substring(0, 50)
-                                            }))
-                                          });
-                                          throw new Error('Pose image not found in character data');
-                                        }
-                                        
-                                        // Simple index-based deletion (same pattern as CharacterDetailSidebar)
-                                        const updatedImages = currentImages.filter((_, i) => i !== actualIndex);
-                                        
-                                        // 🔥 FIX: Also remove from poseReferences array if it's a pose
-                                        // Note: character is CharacterProfile (has poseReferences), currentCharacter is Character (from context, doesn't have poseReferences)
-                                        const currentPoseReferences = character.poseReferences || [];
-                                        const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
-                                          const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                                          return refS3Key !== deleteS3Key;
-                                        });
-                                        
-                                        // Optimistic UI update - remove image immediately
-                                        // 🔥 FIX: Production Hub uses CharacterProfile - update poseReferences via onUpdate
-                                        // This is the primary update for Production Hub
-                                        await onUpdate(character.id, { 
-                                          poseReferences: updatedPoseReferences
-                                        });
-                                        
-                                        // Also sync with ScreenplayContext if character exists there (for consistency)
-                                        const contextCharacter = charactersRef.current.find(c => c.id === character.id);
-                                        if (contextCharacter) {
-                                          const contextImages = contextCharacter.images || [];
-                                          // Remove pose from context images if it exists there
-                                          const updatedContextImages = contextImages.filter((image: any) => {
-                                            const imgS3Key = image.metadata?.s3Key || image.s3Key;
-                                            return imgS3Key !== deleteS3Key;
-                                          });
-                                          
-                                          if (updatedContextImages.length !== contextImages.length) {
-                                            await updateCharacter(character.id, { 
-                                              images: updatedContextImages
-                                            });
-                                          }
-                                        }
-                                        
-                                        // 🔥 NEW: Invalidate Media Library cache so deleted pose disappears
-                                        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-                                        
-                                        // 🔥 FIX: Don't sync from context immediately after deletion
-                                        // The useEffect hook will handle syncing when context actually updates
-                                        // This prevents overwriting the optimistic update with stale data
-                                        
-                                        toast.success('Pose deleted');
-                                      } catch (error: any) {
-                                        console.error('[CharacterDetailModal] Failed to delete pose:', error);
-                                        toast.error(`Failed to delete pose: ${error.message}`);
-                                      }
-                                    }}
-                                    className="text-red-400 hover:text-red-300 hover:bg-[#2A2A2A] cursor-pointer"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
                             </div>
                           );
                         })}
@@ -1428,23 +1127,181 @@ export function CharacterDetailModal({
               {activeTab === 'references' && (
                 <div className="p-6">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {character.references.map((ref) => (
-                      <div
-                        key={ref.id}
-                        className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                      >
-                        <img
-                          src={ref.imageUrl}
-                          alt={ref.label}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute bottom-2 left-2 right-2">
-                            <p className="text-xs text-[#FFFFFF] truncate">{ref.label}</p>
+                    {allImages.map((img) => {
+                      // Check if image was created in Production Hub
+                      const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
+                        const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
+                        return poseS3Key === img.s3Key;
+                      });
+                      
+                      const contextImage = allImagesFromContext.find((ctxImg: any) => 
+                        (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
+                      );
+                      
+                      const createdInProductionHub = isInPoseReferences || 
+                                                     contextImage?.metadata?.createdIn === 'production-hub';
+                      
+                      const createdInCreation = contextImage?.metadata?.createdIn === 'creation';
+                      
+                      return (
+                        <div
+                          key={img.id}
+                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                        >
+                          <img
+                            src={img.imageUrl}
+                            alt={img.label}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-2 left-2 right-2">
+                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                            </div>
+                            {/* Delete button - only show for Production Hub images */}
+                            {createdInProductionHub && !createdInCreation && !img.isBase && (
+                              <div className="absolute top-2 right-2">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreVertical className="w-3 h-3 text-white" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {/* Regenerate option - only show for poses with poseId */}
+                                    {img.poseId && (
+                                      <DropdownMenuItem
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (!img.poseId || !img.s3Key) {
+                                            toast.error('Missing pose information for regeneration');
+                                            return;
+                                          }
+                                          
+                                          if (!confirm(`Regenerate this pose? This will cost credits.`)) {
+                                            return;
+                                          }
+                                          
+                                          try {
+                                            const token = await getToken({ template: 'wryda-backend' });
+                                            const response = await fetch(`/api/projects/${projectId}/characters/${character.id}/regenerate-pose`, {
+                                              method: 'POST',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`
+                                              },
+                                              body: JSON.stringify({
+                                                poseId: img.poseId,
+                                                existingPoseS3Key: img.s3Key,
+                                                outfitName: img.outfitName || 'default'
+                                              })
+                                            });
+                                            
+                                            if (!response.ok) {
+                                              const error = await response.json();
+                                              throw new Error(error.message || 'Failed to regenerate pose');
+                                            }
+                                            
+                                            toast.success('Pose regeneration started. Check the Jobs panel for progress.');
+                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                            await onUpdate(character.id, {});
+                                          } catch (error: any) {
+                                            console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
+                                            toast.error(`Failed to regenerate pose: ${error.message}`);
+                                          }
+                                        }}
+                                        className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
+                                      >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Regenerate
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!confirm('Delete this image? This action cannot be undone.')) {
+                                          return;
+                                        }
+                                        
+                                        try {
+                                          if (!img.s3Key) {
+                                            throw new Error('Missing S3 key for image');
+                                          }
+                                          
+                                          // Check if it's a pose reference (AI-generated) or user reference
+                                          const isPoseRef = character.poseReferences?.some((poseRef: any) => {
+                                            const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
+                                            return poseS3Key === img.s3Key;
+                                          });
+                                          
+                                          if (isPoseRef) {
+                                            // Delete from poseReferences (AI-generated poses)
+                                            const currentPoseReferences = character.poseReferences || [];
+                                            const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                                              const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                              return refS3Key !== img.s3Key;
+                                            });
+                                            
+                                            await onUpdate(character.id, { 
+                                              poseReferences: updatedPoseReferences
+                                            });
+                                          } else {
+                                            // Delete from character.references array (user-uploaded references in Production Hub)
+                                            const currentReferences = character.references || [];
+                                            const updatedReferences = currentReferences.filter((ref: any) => {
+                                              const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                                              return refS3Key !== img.s3Key;
+                                            });
+                                            
+                                            await onUpdate(character.id, { 
+                                              references: updatedReferences 
+                                            });
+                                          }
+                                          
+                                          // Also update in ScreenplayContext if character exists there (for sync)
+                                          const contextCharacter = charactersRef.current.find(c => c.id === character.id);
+                                          if (contextCharacter && img.s3Key) {
+                                            const contextImages = contextCharacter.images || [];
+                                            const updatedContextImages = contextImages.filter((image: any) => {
+                                              const imgS3Key = image.metadata?.s3Key || image.s3Key;
+                                              return imgS3Key !== img.s3Key;
+                                            });
+                                            
+                                            if (updatedContextImages.length !== contextImages.length) {
+                                              await updateCharacter(character.id, { images: updatedContextImages });
+                                            }
+                                          }
+                                          
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                          toast.success('Image deleted');
+                                        } catch (error: any) {
+                                          console.error('[CharacterDetailModal] Failed to delete image:', error);
+                                          toast.error(`Failed to delete image: ${error.message}`);
+                                        }
+                                      }}
+                                      className="text-red-500"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                            {/* Info icon for Creation section images (cannot delete from Production Hub) */}
+                            {createdInCreation && (
+                              <div className="absolute top-2 right-2">
+                                <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
+                                  <Info className="w-3 h-3 text-[#808080]" />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

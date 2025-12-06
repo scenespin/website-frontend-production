@@ -528,34 +528,49 @@ export function LocationDetailModal({
                                     <DropdownMenuItem
                                       onClick={async (e) => {
                                         e.stopPropagation();
+                                        if (!confirm('Delete this angle image? This action cannot be undone.')) {
+                                          return;
+                                        }
+                                        
                                         try {
-                                          // Remove from angleVariations (use the angleVariations variable defined above)
+                                          if (!locationRef?.s3Key) {
+                                            throw new Error('Missing S3 key for image');
+                                          }
+                                          
+                                          // 🔥 FIX: Use s3Key for matching (more reliable than id)
+                                          // Remove from angleVariations by matching s3Key
                                           const updatedAngleVariations = angleVariations.filter(
-                                            (v: any) => (v.id || `ref_${v.s3Key}`) !== img.id
+                                            (v: any) => v.s3Key !== locationRef.s3Key
                                           );
                                           
-                                          // Update location via onUpdate (new format)
+                                          // Update location via onUpdate (Production Hub - primary update)
                                           await onUpdate(location.locationId, {
                                             angleVariations: updatedAngleVariations
                                           });
                                           
-                                          // Also update ScreenplayContext if location exists there
+                                          // 🔥 FIX: Only update ScreenplayContext if location exists there
+                                          // Use s3Key matching to prevent duplicates
                                           const contextLocation = locations.find(l => l.id === location.locationId);
-                                          if (contextLocation && locationRef?.s3Key) {
+                                          if (contextLocation) {
+                                            // Update angleVariations in context (new format)
+                                            const updatedAngleVariationsForContext = (contextLocation.angleVariations || []).filter(
+                                              (variation: any) => variation.s3Key !== locationRef.s3Key
+                                            );
+                                            
+                                            // Update images array (remove matching image by s3Key)
                                             const updatedImages = (contextLocation.images || []).filter((image: any) => {
                                               const imgS3Key = image.metadata?.s3Key || image.s3Key;
                                               return imgS3Key !== locationRef.s3Key;
                                             });
                                             
-                                            // Update angleVariations directly (new format)
-                                            const updatedAngleVariationsForContext = (contextLocation.angleVariations || []).filter(
-                                              (variation: any) => variation.s3Key !== locationRef.s3Key
-                                            );
-                                            
-                                            await updateLocation(location.locationId, {
-                                              images: updatedImages,
-                                              angleVariations: updatedAngleVariationsForContext // NEW: Direct format
-                                            });
+                                            // 🔥 FIX: Only update if there are actual changes to prevent unnecessary API calls
+                                            if (updatedAngleVariationsForContext.length !== (contextLocation.angleVariations?.length || 0) ||
+                                                updatedImages.length !== (contextLocation.images?.length || 0)) {
+                                              await updateLocation(location.locationId, {
+                                                images: updatedImages,
+                                                angleVariations: updatedAngleVariationsForContext
+                                              });
+                                            }
                                           }
                                           
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });

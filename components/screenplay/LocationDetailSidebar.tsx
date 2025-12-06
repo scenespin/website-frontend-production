@@ -761,14 +761,22 @@ export default function LocationDetailSidebar({
                             
                             const updatedImages = (currentLocation.images || []).filter((_, i) => i !== index);
                             
-                            // 🔥 NEW: If deleting an angle-generated image, also remove from angleVariations (new format)
+                            // 🔥 FIX: Always check angleVariations and remove by s3Key if it exists there
+                            // This ensures angle-generated images are removed from both arrays
                             let updatedAngleVariations = currentLocation.angleVariations || [];
-                            if (imageToDelete?.metadata?.source === 'angle-generation' && imageToDelete?.metadata?.s3Key) {
-                              const deletedS3Key = imageToDelete.metadata.s3Key;
-                              updatedAngleVariations = updatedAngleVariations.filter(
-                                (variation: any) => variation.s3Key !== deletedS3Key
+                            const deletedS3Key = imageToDelete?.metadata?.s3Key || imageToDelete?.s3Key;
+                            if (deletedS3Key) {
+                              // Check if this image exists in angleVariations (by s3Key matching)
+                              const existsInAngleVariations = updatedAngleVariations.some(
+                                (variation: any) => variation.s3Key === deletedS3Key
                               );
-                              console.log('[LocationDetailSidebar] 🗑️ Removing angle variation:', deletedS3Key);
+                              
+                              if (existsInAngleVariations) {
+                                updatedAngleVariations = updatedAngleVariations.filter(
+                                  (variation: any) => variation.s3Key !== deletedS3Key
+                                );
+                                console.log('[LocationDetailSidebar] 🗑️ Removing angle variation:', deletedS3Key);
+                              }
                             }
                             
                             // Optimistic UI update - remove image immediately

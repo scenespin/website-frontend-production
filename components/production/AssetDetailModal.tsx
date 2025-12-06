@@ -17,13 +17,19 @@
 import { useState } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText } from 'lucide-react';
+import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -46,7 +52,7 @@ export default function AssetDetailModal({
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
-  const { updateAsset, screenplayId } = useScreenplay(); // 🔥 NEW: Use context for real-time sync
+  const { updateAsset, screenplayId, assets } = useScreenplay(); // 🔥 NEW: Use context for real-time sync
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(asset.name);
@@ -150,12 +156,28 @@ export default function AssetDetailModal({
   };
   
   // Convert asset images to gallery format
-  const allImages = assetImages.map((img, idx) => ({
+  // Include both user-uploaded images and AI-generated angle references
+  const userImages = assetImages.map((img, idx) => ({
     id: `img-${idx}`,
     imageUrl: img.url,
     label: `${asset.name} - Image ${idx + 1}`,
-    isBase: idx === 0
+    isBase: idx === 0,
+    s3Key: img.s3Key || img.metadata?.s3Key,
+    isAngleReference: false,
+    metadata: img.metadata
   }));
+  
+  const angleImages = (asset.angleReferences || []).map((ref, idx) => ({
+    id: ref.id || `angle-${idx}`,
+    imageUrl: ref.imageUrl,
+    label: `${asset.name} - ${ref.angle}`,
+    isBase: false,
+    s3Key: ref.s3Key,
+    isAngleReference: true,
+    angleRef: ref
+  }));
+  
+  const allImages = [...userImages, ...angleImages];
 
   const handleSave = async () => {
     setSaving(true);
@@ -568,23 +590,161 @@ export default function AssetDetailModal({
               {activeTab === 'references' && (
                 <div className="p-6">
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {allImages.map((img) => (
-                      <div
-                        key={img.id}
-                        className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                      >
-                        <img
-                          src={img.imageUrl}
-                          alt={img.label}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="absolute bottom-2 left-2 right-2">
-                            <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                    {allImages.map((img) => {
+                      // Check if image was created in Production Hub (AI-generated angles)
+                      const isAIGenerated = img.isAngleReference || 
+                                           img.metadata?.createdIn === 'production-hub' ||
+                                           img.metadata?.source === 'angle-generation';
+                      
+                      // Check if image was created in Creation section (user uploads)
+                      const createdInCreation = !img.isAngleReference && 
+                                               (img.metadata?.createdIn === 'creation' || 
+                                                !img.metadata?.createdIn);
+                      
+                      return (
+                        <div
+                          key={img.id}
+                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                        >
+                          <img
+                            src={img.imageUrl}
+                            alt={img.label}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute bottom-2 left-2 right-2">
+                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                            </div>
+                            {/* Delete button - only show for Production Hub images (angle references) */}
+                            {isAIGenerated && !img.isBase && (
+                              <div className="absolute top-2 right-2">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreVertical className="w-3 h-3 text-white" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!confirm('Delete this angle image? This action cannot be undone.')) {
+                                          return;
+                                        }
+                                        
+                                        try {
+                                          if (!img.s3Key) {
+                                            throw new Error('Missing S3 key for image');
+                                          }
+                                          
+                                          const token = await getToken({ template: 'wryda-backend' });
+                                          if (!token) {
+                                            toast.error('Authentication required');
+                                            return;
+                                          }
+                                          
+                                          // Remove from angleReferences if it's an angle reference
+                                          if (img.isAngleReference) {
+                                            const updatedAngleReferences = (asset.angleReferences || []).filter(
+                                              (ref: any) => ref.s3Key !== img.s3Key
+                                            );
+                                            
+                                            // Update asset via API
+                                            const response = await fetch(`/api/asset-bank/${asset.id}`, {
+                                              method: 'PUT',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`,
+                                              },
+                                              body: JSON.stringify({
+                                                angleReferences: updatedAngleReferences
+                                              }),
+                                            });
+                                            
+                                            if (!response.ok) {
+                                              throw new Error('Failed to delete angle reference');
+                                            }
+                                          } else {
+                                            // Remove from images array (user-uploaded but created in Production Hub)
+                                            const updatedImages = assetImages.filter((assetImg: any) => {
+                                              const imgS3Key = assetImg.s3Key || assetImg.metadata?.s3Key;
+                                              return imgS3Key !== img.s3Key;
+                                            });
+                                            
+                                            // Update asset via API
+                                            const response = await fetch(`/api/asset-bank/${asset.id}`, {
+                                              method: 'PUT',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`,
+                                              },
+                                              body: JSON.stringify({
+                                                images: updatedImages
+                                              }),
+                                            });
+                                            
+                                            if (!response.ok) {
+                                              throw new Error('Failed to delete image');
+                                            }
+                                          }
+                                          
+                                          // Also update ScreenplayContext if asset exists there
+                                          const contextAsset = assets.find(a => a.id === asset.id);
+                                          if (contextAsset && img.s3Key) {
+                                            // Update angleReferences in context
+                                            if (img.isAngleReference) {
+                                              const updatedAngleReferences = (contextAsset.angleReferences || []).filter(
+                                                (ref: any) => ref.s3Key !== img.s3Key
+                                              );
+                                              
+                                              await updateAsset(asset.id, {
+                                                angleReferences: updatedAngleReferences
+                                              });
+                                            } else {
+                                              // Update images array
+                                              const updatedImages = (contextAsset.images || []).filter((assetImg: any) => {
+                                                const imgS3Key = assetImg.s3Key || assetImg.metadata?.s3Key;
+                                                return imgS3Key !== img.s3Key;
+                                              });
+                                              
+                                              await updateAsset(asset.id, {
+                                                images: updatedImages
+                                              });
+                                            }
+                                          }
+                                          
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          onUpdate(); // Refresh asset data
+                                          toast.success('Image deleted');
+                                        } catch (error: any) {
+                                          console.error('[AssetDetailModal] Failed to delete image:', error);
+                                          toast.error(`Failed to delete image: ${error.message}`);
+                                        }
+                                      }}
+                                      className="text-red-500"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                            {/* Info icon for Creation section images (cannot delete from Production Hub) */}
+                            {createdInCreation && (
+                              <div className="absolute top-2 right-2">
+                                <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
+                                  <Info className="w-3 h-3 text-[#808080]" />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
