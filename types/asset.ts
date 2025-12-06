@@ -38,7 +38,8 @@ export interface AssetReference {
 export interface Asset {
   id: string;
   userId: string;
-  projectId: string;
+  projectId: string; // Backward compatibility - use screenplayId instead
+  screenplayId: string; // Primary identifier - screenplay this asset belongs to
   name: string;
   category: AssetCategory;
   description?: string;

@@ -52,8 +52,8 @@ export default function AssetDetailModal({
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
-  // Get projectId from asset for Media Library cache invalidation
-  const projectId = asset?.projectId;
+  // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
+  const screenplayId = asset?.screenplayId || asset?.projectId;
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(asset.name);
@@ -124,8 +124,8 @@ export default function AssetDetailModal({
       toast.success(`Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`);
       
       // 🔥 NEW: Invalidate Media Library cache so new image appears
-      if (projectId) {
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+      if (screenplayId) {
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       }
       
       // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
@@ -684,7 +684,7 @@ export default function AssetDetailModal({
                                           // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                           onUpdate(); // Refresh asset data
                                           toast.success('Image deleted');
                                         } catch (error: any) {
@@ -731,7 +731,7 @@ export default function AssetDetailModal({
         }}
         assetId={asset.id}
         assetName={asset.name}
-        projectId={projectId || asset.projectId || ''}
+        projectId={screenplayId || asset.projectId || ''}
         asset={asset}
         onComplete={async (result) => {
           toast.success(`Angle generation started for ${asset.name}!`, {
