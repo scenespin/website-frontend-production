@@ -429,6 +429,12 @@ export function CharacterBankPanel({
               if (updates.description !== undefined) apiUpdates.description = updates.description;
               if (updates.type !== undefined) apiUpdates.type = updates.type;
               
+              // Handle Creation section fields (arcStatus, arcNotes, physicalAttributes)
+              // These are stored in CharacterProfile but don't sync back to Character in Creation section
+              if (updates.arcStatus !== undefined) apiUpdates.arcStatus = updates.arcStatus;
+              if (updates.arcNotes !== undefined) apiUpdates.arcNotes = updates.arcNotes;
+              if (updates.physicalAttributes !== undefined) apiUpdates.physicalAttributes = updates.physicalAttributes;
+              
               // Call Character Bank API with screenplayId in query params (for new format character IDs)
               const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
                 method: 'PUT',

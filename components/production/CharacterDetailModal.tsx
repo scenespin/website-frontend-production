@@ -444,19 +444,20 @@ export function CharacterDetailModal({
                     <button
                       onClick={async () => {
                         try {
-                          // Use updateCharacter from ScreenplayContext to ensure all fields are synced
-                          if (contextCharacter) {
-                            await updateCharacter(contextCharacter.id, {
-                              name: isInScript ? contextCharacter.name : name, // Don't update name if locked
-                              description,
-                              type,
-                              arcStatus,
-                              arcNotes,
-                              physicalAttributes
-                            });
-                            // Also call onUpdate for CharacterProfile updates
-                            await onUpdate(character.id, { name: isInScript ? character.name : name, description, type });
-                          }
+                          // 🔥 ONE-WAY SYNC: Only update Production Hub (Character Bank API)
+                          // Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
+                          // Note: arcStatus, arcNotes, physicalAttributes are Creation section fields
+                          // They can be edited here but won't sync back to Creation section (one-way sync)
+                          await onUpdate(character.id, { 
+                            name: isInScript ? character.name : name, // Don't update name if locked
+                            description, 
+                            type,
+                            // Include Creation section fields in CharacterProfile update
+                            // These will be stored in CharacterProfile but won't sync to Character in Creation section
+                            arcStatus,
+                            arcNotes,
+                            physicalAttributes
+                          });
                           setEditing(false);
                           toast.success('Character updated successfully');
                         } catch (error) {
