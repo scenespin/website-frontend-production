@@ -102,6 +102,19 @@ export interface CharacterProfile {
     facialPerformance: number;      // 0-2 range: 0=subtle, 1=natural (default), 2=dramatic
     animationStyle: 'full-body' | 'face-only';
   };
+  
+  // Creation section fields (read from Character, stored in CharacterProfile but don't sync back)
+  arcStatus?: 'introduced' | 'developing' | 'resolved';
+  arcNotes?: string;
+  physicalAttributes?: {
+    height?: 'short' | 'average' | 'tall';
+    bodyType?: 'slim' | 'athletic' | 'muscular' | 'heavyset' | 'average';
+    eyeColor?: string;
+    hairColor?: string;
+    hairLength?: 'bald' | 'very-short' | 'short' | 'medium' | 'long';
+    hairStyle?: string;
+    typicalClothing?: string;
+  };
 }
 
 export interface CharacterReference {
