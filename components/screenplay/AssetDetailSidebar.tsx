@@ -492,22 +492,8 @@ export default function AssetDetailSidebar({
                                 imageToDelete?.metadata?.angle ||
                                 imageToDelete?.angle;
       
-      // 🔥 LOGIC: Creation section can delete anything NOT created in Production Hub
-      // Primary check: createdIn metadata (most reliable)
-      // Fallback: check source for legacy images without createdIn
-      const createdInProductionHub = imageToDelete?.metadata?.createdIn === 'production-hub' ||
-                                    (imageToDelete?.metadata?.createdIn !== 'creation' && (
-                                      imageToDelete?.metadata?.source === 'pose-generation' || 
-                                      imageToDelete?.metadata?.source === 'image-generation' ||
-                                      imageToDelete?.metadata?.source === 'angle-generation' ||
-                                      imageToDelete?.metadata?.uploadMethod === 'pose-generation'
-                                    ));
-      
-      if (createdInProductionHub) {
-        toast.error('Images created in Production Hub can only be deleted there');
-        deletingImageRef.current = null;
-        return;
-      }
+      // 🔥 SEPARATION: Backend now only returns Creation images, so no Production Hub filtering needed
+      // All images in Creation section can be deleted
       
       console.log('[AssetDetailSidebar] 🗑️ Deleting image:', {
         assetId: asset.id,

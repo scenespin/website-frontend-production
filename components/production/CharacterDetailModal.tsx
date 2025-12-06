@@ -1125,69 +1125,77 @@ export function CharacterDetailModal({
               )}
 
               {activeTab === 'references' && (
-                <div className="p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {allImages.map((img) => {
-                      // 🔥 FIX: Check if image was created in Production Hub
-                      // PRIMARY CHECK: If img.isPose is true, it's ALWAYS Production Hub (AI-generated poses from poseReferences)
-                      // This is the most reliable check since poseReferences are built with isPose: true
-                      const isPoseImage = img.isPose === true;
+                <div className="p-6 space-y-6">
+                  {/* 🔥 SEPARATION: Production Hub Images - Organized by Outfit/Style (Editable/Deletable) */}
+                  {poseReferences.length > 0 && (
+                    <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
+                        <div>
+                          <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
+                            Production Hub Images ({poseReferences.length})
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">AI-generated poses organized by outfit - can be edited/deleted here</p>
+                        </div>
+                      </div>
                       
-                      // SECONDARY CHECK: Check if image is in the poseReferences array we built (by ID or s3Key)
-                      // This is more reliable than checking character.poseReferences directly
-                      const isInBuiltPoseReferences = poseReferences.some((poseRef) => 
-                        poseRef.id === img.id || poseRef.s3Key === img.s3Key
-                      );
+                      {/* Outfit Selector */}
+                      {outfitNames.length > 1 && (
+                        <div className="mb-4">
+                          <p className="text-xs text-[#808080] mb-2">Organized by outfit type:</p>
+                          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
+                            {outfitNames.map((outfitName) => {
+                              let outfitDisplayName: string;
+                              if (outfitName === 'default') {
+                                outfitDisplayName = physicalAttributes?.typicalClothing 
+                                  ? physicalAttributes.typicalClothing
+                                  : 'Default Outfit';
+                              } else {
+                                outfitDisplayName = outfitName
+                                  .split('-')
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              }
+                              const poseCount = posesByOutfit[outfitName]?.length || 0;
+                              
+                              return (
+                                <button
+                                  key={outfitName}
+                                  onClick={() => setSelectedOutfit(outfitName)}
+                                  className={cn(
+                                    "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0",
+                                    selectedOutfit === outfitName
+                                      ? "bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20"
+                                      : "bg-[#1F1F23] text-[#B3B3B3] hover:bg-[#2C2C2E] border border-[#3F3F46]"
+                                  )}
+                                >
+                                  {outfitDisplayName} <span className="opacity-75">({poseCount})</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                       
-                      // TERTIARY CHECK: If image is in character.poseReferences array (by s3Key match)
-                      // This handles cases where isPose might not be set correctly
-                      const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
-                        const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
-                        return poseS3Key === img.s3Key;
-                      });
-                      
-                      // QUATERNARY CHECK: If image is in character.references (user-uploaded), check if it was uploaded in Production Hub
-                      const isInUserReferences = character.references?.some((ref: any) => {
-                        const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
-                        return refS3Key === img.s3Key;
-                      });
-                      
-                      // Check context for metadata (fallback for legacy data or images not in character.references/poseReferences)
-                      const contextImage = allImagesFromContext.find((ctxImg: any) => 
-                        (ctxImg.metadata?.s3Key === img.s3Key || ctxImg.s3Key === img.s3Key)
-                      );
-                      
-                      // 🔥 FIX: Prioritize isPose and isInBuiltPoseReferences checks - these are the most reliable
-                      // If img.isPose is true OR it's in poseReferences array, it's ALWAYS Production Hub
-                      // Then check character.poseReferences, then user references with metadata
-                      const createdInProductionHub = isPoseImage || 
-                                                     isInBuiltPoseReferences ||
-                                                     isInPoseReferences || 
-                                                     (isInUserReferences && contextImage?.metadata?.createdIn === 'production-hub') ||
-                                                     (!isInUserReferences && !isInPoseReferences && !isPoseImage && !isInBuiltPoseReferences && contextImage?.metadata?.createdIn === 'production-hub');
-                      
-                      // Only mark as created in Creation if it's NOT a pose and explicitly marked as 'creation'
-                      const createdInCreation = !isPoseImage && 
-                                                !isInBuiltPoseReferences &&
-                                                !isInPoseReferences && 
-                                                contextImage?.metadata?.createdIn === 'creation';
-                      
-                      return (
-                        <div
-                          key={img.id}
-                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                        >
-                          <img
-                            src={img.imageUrl}
-                            alt={img.label}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="absolute bottom-2 left-2 right-2">
-                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
-                            </div>
-                            {/* Delete button - only show for Production Hub images */}
-                            {createdInProductionHub && !createdInCreation && !img.isBase && (
+                      {/* Production Hub Images Grid - Organized by Outfit */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {(selectedOutfit ? posesByOutfit[selectedOutfit] || [] : poseReferences).map((img) => {
+                          // All images in poseReferences are Production Hub images (editable/deletable)
+                          return (
+                            <div
+                              key={img.id}
+                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                            >
+                              <img
+                                src={img.imageUrl}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                </div>
+                                {/* Delete button - all Production Hub images can be deleted */}
+                                {!img.isBase && (
                               <div className="absolute top-2 right-2">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -1311,19 +1319,61 @@ export function CharacterDetailModal({
                                 </DropdownMenu>
                               </div>
                             )}
-                            {/* Info icon for Creation section images (cannot delete from Production Hub) */}
-                            {createdInCreation && (
-                              <div className="absolute top-2 right-2">
-                                <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
-                                  <Info className="w-3 h-3 text-[#808080]" />
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 🔥 SEPARATION: Creation Section Images - Read-Only References */}
+                  {userReferences.length > 0 && (
+                    <div className="p-4 bg-[#0F0F0F] rounded-lg border border-[#3F3F46]">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#3F3F46]">
+                        <div>
+                          <h3 className="text-sm font-semibold text-white mb-1">
+                            Reference Images from Creation ({userReferences.length})
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {userReferences.map((img) => {
+                          return (
+                            <div
+                              key={img.id}
+                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
+                            >
+                              <img
+                                src={img.imageUrl}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                </div>
+                                {/* Info icon - read-only indicator */}
+                                <div className="absolute top-2 right-2">
+                                  <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
+                                    <Info className="w-3 h-3 text-[#808080]" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {poseReferences.length === 0 && userReferences.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
+                      <p className="text-[#808080] mb-4">No reference images yet</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

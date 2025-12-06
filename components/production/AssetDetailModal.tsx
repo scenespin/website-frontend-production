@@ -575,21 +575,21 @@ export default function AssetDetailModal({
               )}
 
               {activeTab === 'references' && (
-                <div className="p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {allImages.map((img) => {
-                      // Check if image was created in Production Hub (AI-generated angles)
-                      // Angle references are always AI-generated, otherwise check metadata
-                      const isAIGenerated = img.isAngleReference || 
-                                           ('metadata' in img && img.metadata?.createdIn === 'production-hub') ||
-                                           ('metadata' in img && img.metadata?.source === 'angle-generation');
-                      
-                      // Check if image was created in Creation section (user uploads)
-                      const createdInCreation = !img.isAngleReference && 
-                                               ('metadata' in img && (
-                                                 img.metadata?.createdIn === 'creation' || 
-                                                 !img.metadata?.createdIn
-                                               ));
+                <div className="p-6 space-y-6">
+                  {/* 🔥 SEPARATION: Production Hub Images - Angle References (Editable/Deletable) */}
+                  {angleImages.length > 0 && (
+                    <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
+                        <div>
+                          <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
+                            Production Hub Images ({angleImages.length})
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {angleImages.map((img) => {
+                          const isAIGenerated = img.isAngleReference;
                       
                       return (
                         <div

@@ -483,21 +483,22 @@ export function LocationDetailModal({
               )}
 
               {activeTab === 'references' && (
-                <div className="p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {allImages.map((img, idx) => {
-                      // Find the actual LocationReference for this image
-                      const locationRef = img.isBase 
-                        ? location.baseReference 
-                        : location.angleVariations.find(v => v.id === img.id);
-                      
-                      // Check if image was created in Production Hub (AI-generated angles)
-                      const isAIGenerated = locationRef?.generationMethod === 'ai-generated' || 
-                                           locationRef?.generationMethod === 'angle-variation' ||
-                                           (!img.isBase); // Angle variations are AI-generated
-                      
-                      // Check if image was created in Creation section (user uploads)
-                      const createdInCreation = locationRef?.generationMethod === 'upload' && img.isBase;
+                <div className="p-6 space-y-6">
+                  {/* 🔥 SEPARATION: Production Hub Images - Angle Variations (Editable/Deletable) */}
+                  {angleVariations.length > 0 && (
+                    <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
+                        <div>
+                          <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
+                            Production Hub Images ({angleVariations.length})
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {angleVariations.map((variation: any) => {
+                          const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
+                          if (!img) return null;
                       
                       return (
                         <div

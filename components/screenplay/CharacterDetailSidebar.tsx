@@ -1021,16 +1021,9 @@ export default function CharacterDetailSidebar({
                                   const imgS3Key = img.metadata?.s3Key || img.s3Key;
                                   // ImageAsset has s3Key in metadata, not at top level
                                   const deleteS3Key = imageToDelete.metadata?.s3Key;
-                                  // 🔥 LOGIC: Creation section can delete anything NOT created in Production Hub
-                                  // Primary check: createdIn metadata (most reliable)
-                                  // Fallback: check source for legacy images without createdIn
-                                  const createdInProductionHub = img.metadata?.createdIn === 'production-hub' ||
-                                                                (img.metadata?.createdIn !== 'creation' && (
-                                                                  img.metadata?.source === 'pose-generation' || 
-                                                                  img.metadata?.source === 'image-generation' ||
-                                                                  img.metadata?.uploadMethod === 'pose-generation'
-                                                                ));
-                                  return imgS3Key === deleteS3Key && !createdInProductionHub;
+                                  // 🔥 SEPARATION: Backend now only returns Creation images, so no Production Hub filtering needed
+                                  // Keep simple matching by s3Key
+                                  return imgS3Key === deleteS3Key;
                                 });
                                 
                                 if (actualIndex < 0) {
