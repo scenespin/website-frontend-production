@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
 import {
   DropdownMenu,
@@ -53,6 +54,7 @@ export default function AssetDetailModal({
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
+  const { assets: contextAssets } = useScreenplay(); // 🔥 FIX: Get assets from ScreenplayContext for angle images
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
   const screenplayId = asset?.screenplayId || asset?.projectId;
@@ -78,20 +80,52 @@ export default function AssetDetailModal({
 
   const categoryMeta = ASSET_CATEGORY_METADATA[category];
   const assetImages = asset.images || []; // Safety check for undefined images
+  
+  // 🔥 FIX: Get angle images from ScreenplayContext (same pattern as locations)
+  // First try from asset prop, then from context
+  const contextAsset = contextAssets?.find(a => a.id === asset.id);
+  const contextAngleImages = (contextAsset?.images || []).filter((img: any) => 
+    (img.metadata as any)?.source === 'angle-generation' || (img.metadata as any)?.source === 'image-generation'
+  );
+  
   const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
   const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
   
   // 🔥 FIX: Separate Creation images from Production Hub angles (same pattern as characters/locations)
   // Creation images: source='user-upload' OR no source
-  // Production Hub images: source='angle-generation' (AI-generated angles)
+  // Production Hub images: source='angle-generation' or 'image-generation' (AI-generated angles)
   const creationImages = assetImages.filter((img: any) => {
     const source = img.metadata?.source;
     return !source || source === 'user-upload';
   });
   
-  const angleImages = assetImages.filter((img: any) => {
+  let angleImages = assetImages.filter((img: any) => {
     const source = img.metadata?.source;
-    return source === 'angle-generation'; // Match location pattern
+    return source === 'angle-generation' || source === 'image-generation'; // Match location pattern
+  });
+  
+  // 🔥 FIX: Also add angle images from context (from API with production-hub context)
+  contextAngleImages.forEach((img: any, idx: number) => {
+    // Check if already in angleImages to avoid duplicates
+    const alreadyAdded = angleImages.some((existingImg: any) => 
+      (existingImg.s3Key === img.s3Key || existingImg.s3Key === img.metadata?.s3Key) ||
+      (img.s3Key === existingImg.s3Key || img.metadata?.s3Key === existingImg.s3Key) ||
+      (existingImg.metadata?.s3Key === img.s3Key || existingImg.metadata?.s3Key === img.metadata?.s3Key)
+    );
+    
+    if (!alreadyAdded) {
+      angleImages.push({
+        url: img.imageUrl || img.url || '',
+        s3Key: img.s3Key || img.metadata?.s3Key || '',
+        metadata: {
+          ...img.metadata,
+          source: img.metadata?.source || 'angle-generation',
+          angle: img.metadata?.angle || 'front',
+          creditsUsed: img.metadata?.creditsUsed || 0
+        },
+        createdAt: img.createdAt || new Date().toISOString()
+      });
+    }
   });
   
   // Convert Creation images to gallery format
