@@ -83,7 +83,33 @@ export default function AssetDetailModal({
   
   // 🔥 FIX: Get angle images from ScreenplayContext (same pattern as locations)
   // First try from asset prop, then from context
-  const contextAsset = contextAssets?.find(a => a.id === asset.id);
+  // 🔥 CRITICAL: Try multiple ID matching strategies (asset.id might be different)
+  const contextAsset = contextAssets?.find(a => 
+    a.id === asset.id || 
+    a.name === asset.name
+  );
+  
+  // 🔥 DEBUG: Log context asset matching
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('[AssetDetailModal] 🔍 Context asset search:', {
+        assetId: asset.id,
+        assetName: asset.name,
+        allAssetIds: contextAssets?.map(a => ({ id: a.id, name: a.name })),
+        contextAssetFound: !!contextAsset,
+        contextAssetId: contextAsset?.id,
+        contextAssetName: contextAsset?.name,
+        contextAssetImagesCount: contextAsset?.images?.length || 0,
+        contextAssetImages: contextAsset?.images?.map((img: any) => ({
+          hasMetadata: !!img.metadata,
+          source: img.metadata?.source,
+          angle: img.metadata?.angle,
+          s3Key: img.s3Key || img.metadata?.s3Key
+        })) || []
+      });
+    }
+  }, [isOpen, asset.id, asset.name, contextAsset?.id, contextAsset?.images?.length]);
+  
   const contextAngleImages = (contextAsset?.images || []).filter((img: any) => 
     (img.metadata as any)?.source === 'angle-generation' || (img.metadata as any)?.source === 'image-generation'
   );
@@ -151,7 +177,7 @@ export default function AssetDetailModal({
     metadata: img.metadata
   }));
   
-  // Debug: Log asset images for troubleshooting
+  // 🔥 DEBUG: Log asset images for troubleshooting
   useEffect(() => {
     if (isOpen) {
       console.log('[AssetDetailModal] Asset images:', {
@@ -160,6 +186,14 @@ export default function AssetDetailModal({
         totalImagesCount: assetImages.length,
         creationImagesCount: creationImages.length,
         angleImagesCount: angleImages.length,
+        contextAngleImagesCount: contextAngleImages.length,
+        angleImageObjectsCount: angleImageObjects.length,
+        contextAssetFound: !!contextAsset,
+        contextAssetImages: contextAsset?.images?.map((img: any) => ({
+          source: img.metadata?.source,
+          angle: img.metadata?.angle,
+          s3Key: img.s3Key || img.metadata?.s3Key
+        })) || [],
         creationImages: creationImages.map((img: any, idx: number) => ({
           index: idx,
           url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',

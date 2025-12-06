@@ -378,8 +378,26 @@ export function CharacterDetailModal({
     const outfits = Array.from(allOutfits);
     const defaultOutfit = outfits.find(o => o === 'default' || o.toLowerCase() === 'default');
     const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
-    return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
-  }, [posesByOutfit, mediaLibraryOutfitNames]);
+    const result = defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
+    
+    // 🔥 DEBUG: Log outfit names for troubleshooting
+    if (isOpen && poseReferences.length > 0) {
+      console.log('[CharacterDetailModal] 🔍 Outfit organization:', {
+        mediaLibraryOutfitNames: Array.from(mediaLibraryOutfitNames),
+        posesByOutfitKeys: Object.keys(posesByOutfit),
+        allOutfits: Array.from(allOutfits),
+        outfitNames: result,
+        outfitNamesCount: result.length,
+        poseReferencesCount: poseReferences.length,
+        posesByOutfit: Object.keys(posesByOutfit).reduce((acc, key) => {
+          acc[key] = posesByOutfit[key].length;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+    }
+    
+    return result;
+  }, [posesByOutfit, mediaLibraryOutfitNames, isOpen, poseReferences.length]);
   
   // Selected outfit tab state - null means show all outfits
   const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);

@@ -159,9 +159,36 @@ export function LocationDetailModal({
   
   // 🔥 FIX: Get angleVariations from ScreenplayContext (same pattern as characters)
   // First try from location prop, then from context
-  const contextLocation = locations?.find(l => l.id === location.locationId);
+  // 🔥 CRITICAL: Try multiple ID matching strategies (locationId might be different from id)
+  const contextLocation = locations?.find(l => 
+    l.id === location.locationId || 
+    l.id === location.id ||
+    l.name === location.name
+  );
+  
+  // 🔥 DEBUG: Log context location matching
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('[LocationDetailModal] 🔍 Context location search:', {
+        locationId: location.locationId,
+        locationName: location.name,
+        allLocationIds: locations?.map(l => ({ id: l.id, name: l.name })),
+        contextLocationFound: !!contextLocation,
+        contextLocationId: contextLocation?.id,
+        contextLocationName: contextLocation?.name,
+        contextLocationImagesCount: contextLocation?.images?.length || 0,
+        contextLocationImages: contextLocation?.images?.map((img: any) => ({
+          hasMetadata: !!img.metadata,
+          source: img.metadata?.source,
+          angle: img.metadata?.angle,
+          s3Key: img.s3Key || img.metadata?.s3Key
+        })) || []
+      });
+    }
+  }, [isOpen, location.locationId, location.name, contextLocation?.id, contextLocation?.images?.length]);
+  
   const contextAngleImages = (contextLocation?.images || []).filter((img: any) => 
-    (img.metadata as any)?.source === 'angle-generation'
+    (img.metadata as any)?.source === 'angle-generation' || (img.metadata as any)?.source === 'image-generation'
   );
   
   // Get angleVariations from new format or old format
@@ -220,6 +247,7 @@ export function LocationDetailModal({
         locationId: location.locationId,
         locationName: location.name,
         angleVariationsCount: angleVariations.length,
+        contextAngleImagesCount: contextAngleImages.length,
         angleVariations: angleVariations.map((v: any) => ({
           id: v.id,
           angle: v.angle,
@@ -229,7 +257,7 @@ export function LocationDetailModal({
         }))
       });
     }
-  }, [isOpen, location.locationId, angleVariations.length]);
+  }, [isOpen, location.locationId, angleVariations.length, contextAngleImages.length]);
   
   // Convert type for display
   const typeLabel = location.type === 'interior' ? 'INT.' : 
