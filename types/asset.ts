@@ -12,6 +12,14 @@ export interface AssetImage {
   angle?: string;
   uploadedAt: string;
   s3Key?: string; // S3 key for regenerating presigned URLs when expired
+  metadata?: {
+    s3Key?: string;
+    source?: string;
+    createdIn?: 'creation' | 'production-hub';
+    uploadMethod?: string;
+    angle?: string;
+    [key: string]: any; // Allow additional metadata fields
+  };
 }
 
 export interface Asset {
