@@ -741,16 +741,37 @@ export default function LocationDetailSidebar({
                           // 🔥 FIX: Use updateLocation directly (like assets/characters) instead of removeImageFromEntity
                             // Get current location from context to ensure we have latest images
                             const currentLocation = locations.find(l => l.id === location.id) || location;
+                            const imageToDelete = (currentLocation.images || [])[index];
                             const updatedImages = (currentLocation.images || []).filter((_, i) => i !== index);
+                            
+                            // 🔥 NEW: If deleting an angle-generated image, also remove from angleVariations
+                            let updatedLocationBankProfile = currentLocation.locationBankProfile;
+                            if (imageToDelete?.metadata?.source === 'angle-generation' && imageToDelete?.metadata?.s3Key) {
+                              const deletedS3Key = imageToDelete.metadata.s3Key;
+                              if (updatedLocationBankProfile?.angleVariations) {
+                                updatedLocationBankProfile = {
+                                  ...updatedLocationBankProfile,
+                                  angleVariations: updatedLocationBankProfile.angleVariations.filter(
+                                    (variation: any) => variation.s3Key !== deletedS3Key
+                                  )
+                                };
+                                console.log('[LocationDetailSidebar] 🗑️ Removing angle variation:', deletedS3Key);
+                              }
+                            }
                             
                             // Optimistic UI update - remove image immediately
                             setFormData(prev => ({
                               ...prev,
-                              images: updatedImages
+                              images: updatedImages,
+                              locationBankProfile: updatedLocationBankProfile
                             }));
                             
-                            // Update via API
-                            await updateLocation(location.id, { images: updatedImages });
+                            // Update via API - include locationBankProfile if it was modified
+                            const updateData: any = { images: updatedImages };
+                            if (updatedLocationBankProfile) {
+                              updateData.locationBankProfile = updatedLocationBankProfile;
+                            }
+                            await updateLocation(location.id, updateData);
                             
                             // 🔥 NEW: Invalidate Media Library cache so deleted image disappears
                             if (screenplayId) {
@@ -766,7 +787,8 @@ export default function LocationDetailSidebar({
                             // Rollback on error
                             setFormData(prev => ({
                               ...prev,
-                              images: location.images || []
+                              images: location.images || [],
+                              locationBankProfile: location.locationBankProfile
                             }));
                             toast.error(`Failed to remove image: ${error.message}`);
                           }

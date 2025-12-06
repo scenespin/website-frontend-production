@@ -2482,6 +2482,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 if (updates.atmosphereNotes !== undefined) apiUpdates.atmosphereNotes = updates.atmosphereNotes; // 🔥 NEW: Include atmosphere notes
                 if (updates.setRequirements !== undefined) apiUpdates.setRequirements = updates.setRequirements; // 🔥 NEW: Include set requirements
                 if (updates.productionNotes !== undefined) apiUpdates.productionNotes = updates.productionNotes; // 🔥 NEW: Include production notes
+                // 🔥 NEW: Include locationBankProfile if it's being updated (e.g., when deleting angle variations)
+                if (updates.locationBankProfile !== undefined) apiUpdates.locationBankProfile = updates.locationBankProfile;
                 
                 const updatedLocation = await apiUpdateLocation(screenplayId, id, apiUpdates, getToken);
                 
