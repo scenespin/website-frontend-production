@@ -90,5 +90,12 @@ export interface CharacterReference {
   s3Key: string;
   label: string;
   referenceType: 'base' | 'angle' | 'expression' | 'action' | 'pose'; // Added 'pose' for AI-generated pose images
+  metadata?: {
+    outfitName?: string;
+    poseId?: string;
+    poseName?: string;
+    packageId?: string;
+    [key: string]: any; // Allow additional metadata fields
+  };
 }
 
