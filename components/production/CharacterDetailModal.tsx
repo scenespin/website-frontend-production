@@ -210,17 +210,27 @@ export function CharacterDetailModal({
   // 🔥 CRITICAL FIX: All images in poseReferences are AI-generated poses
   // They should ALWAYS be treated as created in Production Hub, regardless of metadata
   const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map(ref => {
-    // Extract outfit from S3 key or metadata
-    const outfitFromS3 = extractOutfitFromS3Key(ref.s3Key);
+    // 🔥 FIX: Extract outfit from poseReference metadata first (most reliable)
+    // Backend saves outfitName in ref.metadata.outfitName when generating poses
+    const refObj = typeof ref === 'string' ? null : ref;
+    const outfitFromRefMetadata = refObj?.metadata?.outfitName;
+    
+    // Fallback: Extract outfit from S3 key path
+    const outfitFromS3 = extractOutfitFromS3Key(refObj?.s3Key || (typeof ref === 'string' ? ref : ''));
+    
     // Also check context images for outfit metadata (if pose was added to images array)
     const contextImage = allImagesFromContext.find((img: any) => {
-      const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+      const refS3Key = typeof ref === 'string' ? ref : refObj?.s3Key;
       const imgS3Key = img.metadata?.s3Key || img.s3Key;
       return imgS3Key === refS3Key;
     });
-    const outfitFromMetadata = contextImage?.metadata?.outfitName;
-    const outfitName = outfitFromMetadata || outfitFromS3;
-    const poseId = contextImage?.metadata?.poseId; // Extract poseId from metadata
+    const outfitFromContextMetadata = contextImage?.metadata?.outfitName;
+    
+    // Priority: ref.metadata.outfitName > context.metadata.outfitName > S3 key path > 'default'
+    const outfitName = outfitFromRefMetadata || outfitFromContextMetadata || outfitFromS3 || 'default';
+    
+    // Extract poseId from ref metadata or context
+    const poseId = refObj?.metadata?.poseId || contextImage?.metadata?.poseId;
     
     // Handle both string and object formats for poseReferences
     const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
