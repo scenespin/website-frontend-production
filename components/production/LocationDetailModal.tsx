@@ -52,6 +52,7 @@ interface LocationProfile {
   description: string;
   baseReference: LocationReference;
   angleVariations: LocationReference[];
+  creationImages?: LocationReference[]; // 🔥 NEW: All images uploaded in Creation section
   totalCreditsSpent?: number;
   consistencyRating?: number;
   createdAt: string;
