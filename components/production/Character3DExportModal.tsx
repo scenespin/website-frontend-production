@@ -12,7 +12,7 @@ import { X, Sparkles, Download, Clock, AlertCircle, CheckCircle, User, Loader } 
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 
-// CharacterProfile type from ProductionPageLayout
+// CharacterReference type (similar to types.ts)
 interface CharacterReference {
   id: string;
   imageUrl: string;

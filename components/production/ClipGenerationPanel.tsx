@@ -17,7 +17,7 @@ import type {
   AISuggestion, 
   ClipAssignment, 
   CharacterProfile 
-} from './ProductionPageLayout';
+} from './types';
 import { 
   Sparkles, 
   Upload, 

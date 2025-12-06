@@ -24,7 +24,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { StoryBeatsPanel } from './StoryBeatsPanel';
 import { ClipGenerationPanel } from './ClipGenerationPanel';
 import { CharacterBankPanel } from './CharacterBankPanel';
-import type { ClipAssignment, CharacterProfile, AISuggestion } from './ProductionPageLayout';
+import type { ClipAssignment, CharacterProfile, AISuggestion } from './types';
 import { toast } from 'sonner';
 
 interface MobileSceneBuilderPanelProps {

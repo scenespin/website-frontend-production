@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import type { CharacterProfile } from './ProductionPageLayout';
+import type { CharacterProfile } from './types';
 import type { Character } from '@/types/screenplay';
 import { 
   User, 

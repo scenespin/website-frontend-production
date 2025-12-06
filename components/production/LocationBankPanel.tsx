@@ -67,7 +67,7 @@ export function LocationBankPanel({
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
   
-  // Use locations from props (loaded by ProductionPageLayout from Location Bank API)
+  // Use locations from props (loaded from Location Bank API)
   useEffect(() => {
     setLocations(propsLocations);
     setIsLoading(propsIsLoading);

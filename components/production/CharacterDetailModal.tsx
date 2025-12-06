@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save, Info, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { CharacterProfile } from './ProductionPageLayout';
+import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
 import { PerformanceControls, type PerformanceSettings } from '../characters/PerformanceControls';
 import { useAuth } from '@clerk/nextjs';
