@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef } from "react"
-import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles, Package } from "lucide-react"
+import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles, Package, Search, Check } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Asset, AssetCategory } from '@/types/asset'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
@@ -34,7 +34,7 @@ export default function AssetDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
-  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset } = useScreenplay()
+  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene } = useScreenplay()
   // 🔥 FIX: Use ref to track latest assets to avoid stale closures in async functions
   const assetsRef = useRef(assets);
   useEffect(() => {
@@ -550,8 +550,119 @@ export default function AssetDetailSidebar({
     });
   }
 
-  // Get scenes where asset is used
-  const assetScenes = asset ? getAssetScenes(asset.id) : [];
+  // Get scenes where asset is used (returns scene IDs)
+  const assetSceneIds = asset ? getAssetScenes(asset.id) : [];
+  // Get actual scene objects for display
+  const linkedScenes = assetSceneIds
+    .map(sceneId => scenes.find(s => s.id === sceneId))
+    .filter((s): s is NonNullable<typeof s> => s !== undefined);
+  
+  // Multi-select state for scene linking
+  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<string>>(new Set(assetSceneIds));
+  const [sceneSearchTerm, setSceneSearchTerm] = useState('');
+  const [isApplyingSceneChanges, setIsApplyingSceneChanges] = useState(false);
+  
+  // Update selected scenes when asset changes
+  useEffect(() => {
+    if (asset) {
+      setSelectedSceneIds(new Set(assetSceneIds));
+    }
+  }, [asset?.id, assetSceneIds.join(',')]);
+  
+  // Filter scenes by search term
+  const filteredScenes = useMemo(() => {
+    return scenes.filter(scene => {
+      const searchLower = sceneSearchTerm.toLowerCase();
+      const heading = (scene.heading || '').toLowerCase();
+      const synopsis = (scene.synopsis || '').toLowerCase();
+      const number = scene.number?.toString() || '';
+      return heading.includes(searchLower) || synopsis.includes(searchLower) || number.includes(searchLower);
+    }).sort((a, b) => {
+      // Sort by scene number if available, otherwise by heading
+      if (a.number && b.number) return a.number - b.number;
+      if (a.number) return -1;
+      if (b.number) return 1;
+      return (a.heading || '').localeCompare(b.heading || '');
+    });
+  }, [scenes, sceneSearchTerm]);
+  
+  // Handle checkbox toggle
+  const handleSceneToggle = (sceneId: string) => {
+    setSelectedSceneIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sceneId)) {
+        newSet.delete(sceneId);
+      } else {
+        newSet.add(sceneId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Handle select all / deselect all
+  const handleSelectAllScenes = () => {
+    setSelectedSceneIds(new Set(filteredScenes.map(s => s.id)));
+  };
+  
+  const handleDeselectAllScenes = () => {
+    setSelectedSceneIds(new Set());
+  };
+  
+  // Apply scene changes (link/unlink all selected scenes)
+  const handleApplySceneChanges = async () => {
+    if (!asset) return;
+    
+    setIsApplyingSceneChanges(true);
+    try {
+      const currentlyLinked = new Set(assetSceneIds);
+      const toLink = new Set<string>();
+      const toUnlink = new Set<string>();
+      
+      // Determine what needs to be linked/unlinked
+      selectedSceneIds.forEach(sceneId => {
+        if (!currentlyLinked.has(sceneId)) {
+          toLink.add(sceneId);
+        }
+      });
+      
+      currentlyLinked.forEach(sceneId => {
+        if (!selectedSceneIds.has(sceneId)) {
+          toUnlink.add(sceneId);
+        }
+      });
+      
+      // Apply all changes
+      const linkPromises = Array.from(toLink).map(sceneId => linkAssetToScene(asset.id, sceneId));
+      const unlinkPromises = Array.from(toUnlink).map(sceneId => unlinkAssetFromScene(asset.id, sceneId));
+      
+      await Promise.all([...linkPromises, ...unlinkPromises]);
+      
+      const totalChanges = toLink.size + toUnlink.size;
+      if (totalChanges > 0) {
+        toast.success(`Updated ${totalChanges} scene link${totalChanges === 1 ? '' : 's'}`);
+      } else {
+        toast.info('No changes to apply');
+      }
+    } catch (error) {
+      console.error('[AssetDetailSidebar] Error applying scene changes:', error);
+      toast.error('Failed to update scene links');
+    } finally {
+      setIsApplyingSceneChanges(false);
+    }
+  };
+  
+  // Check if there are pending changes
+  const hasPendingChanges = useMemo(() => {
+    const currentlyLinked = new Set(assetSceneIds);
+    if (selectedSceneIds.size !== currentlyLinked.size) return true;
+    for (const sceneId of selectedSceneIds) {
+      if (!currentlyLinked.has(sceneId)) return true;
+    }
+    for (const sceneId of currentlyLinked) {
+      if (!selectedSceneIds.has(sceneId)) return true;
+    }
+    return false;
+  }, [selectedSceneIds, assetSceneIds]);
 
   return (
     <>
@@ -696,17 +807,129 @@ export default function AssetDetailSidebar({
               )}
             </div>
 
-            {/* Scenes Where Used (Read-only) */}
-            {!isCreating && asset && assetScenes.length > 0 && (
+            {/* Linked Scenes Section - Feature 0136 (Multi-Select) */}
+            {!isCreating && asset && (
               <div>
-                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9CA3AF' }}>
-                  Used in Scenes ({assetScenes.length})
-                </label>
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#2C2C2E' }}>
-                  <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                    This asset is referenced in {assetScenes.length} scene(s) via @props: tags
-                  </p>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                    Linked Scenes ({selectedSceneIds.size} selected)
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSelectAllScenes}
+                      className="px-2 py-1 rounded text-xs font-medium transition-colors"
+                      style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB', border: '1px solid #3F3F46' }}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={handleDeselectAllScenes}
+                      className="px-2 py-1 rounded text-xs font-medium transition-colors"
+                      style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB', border: '1px solid #3F3F46' }}
+                    >
+                      Deselect All
+                    </button>
+                  </div>
                 </div>
+                
+                {/* Search Box */}
+                {scenes.length > 5 && (
+                  <div className="mb-3 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search scenes..."
+                      value={sceneSearchTerm}
+                      onChange={(e) => setSceneSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      style={{ backgroundColor: '#2C2C2E', color: '#E5E7EB', border: '1px solid #3F3F46' }}
+                    />
+                  </div>
+                )}
+                
+                {/* Scene Checkbox List */}
+                {filteredScenes.length > 0 ? (
+                  <div className="max-h-64 overflow-y-auto space-y-2 mb-3" style={{ scrollbarWidth: 'thin' }}>
+                    {filteredScenes.map(scene => {
+                      const isSelected = selectedSceneIds.has(scene.id);
+                      const isCurrentlyLinked = assetSceneIds.includes(scene.id);
+                      
+                      return (
+                        <label
+                          key={scene.id}
+                          className="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors hover:bg-opacity-50"
+                          style={{ 
+                            backgroundColor: isSelected ? '#3F3F46' : '#2C2C2E',
+                            border: `1px solid ${isSelected ? '#8B5CF6' : '#3F3F46'}`
+                          }}
+                        >
+                          <div className="relative flex-shrink-0">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleSceneToggle(scene.id)}
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                                isSelected ? 'bg-purple-600 border-purple-600' : 'border-slate-500'
+                              }`}
+                            >
+                              {isSelected && <Check size={12} className="text-white" />}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium" style={{ color: '#E5E7EB' }}>
+                              {scene.number ? `Scene ${scene.number}: ` : ''}{scene.heading || 'Untitled Scene'}
+                            </div>
+                            {scene.synopsis && (
+                              <div className="text-xs truncate mt-0.5" style={{ color: '#9CA3AF' }}>
+                                {scene.synopsis}
+                              </div>
+                            )}
+                          </div>
+                          {isCurrentlyLinked && !isSelected && (
+                            <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: '#1F2937', color: '#9CA3AF' }}>
+                              Currently linked
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div 
+                    className="flex flex-col items-center justify-center py-6 px-4 rounded-lg border-2 border-dashed mb-3"
+                    style={{ borderColor: '#2C2C2E', backgroundColor: '#0A0A0B' }}
+                  >
+                    <Package size={24} style={{ color: '#4B5563' }} className="mb-2" />
+                    <p className="text-xs text-center" style={{ color: '#6B7280' }}>
+                      {sceneSearchTerm ? 'No scenes match your search' : 'No scenes available'}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Apply Changes Button */}
+                {hasPendingChanges && (
+                  <button
+                    onClick={handleApplySceneChanges}
+                    disabled={isApplyingSceneChanges}
+                    className="w-full px-4 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    style={{ backgroundColor: '#8B5CF6', color: 'white' }}
+                  >
+                    {isApplyingSceneChanges ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Applying...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        Apply Changes ({selectedSceneIds.size} scene{selectedSceneIds.size === 1 ? '' : 's'})
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
 
