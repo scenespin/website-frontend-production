@@ -1011,27 +1011,84 @@ export default function AssetDetailSidebar({
                 </div>
                 
                 {/* Image Gallery */}
-                {asset && asset.images && asset.images.length > 0 && (
-                  <ImageGallery
-                    images={asset.images.map((img, idx) => {
-                      // Use regenerated URL if available, otherwise use original URL
-                      const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
-                        ? regeneratedImageUrls[img.s3Key] 
-                        : img.url;
+                {asset && asset.images && asset.images.length > 0 && (() => {
+                  // 🔥 FIX: Filter images by source (same pattern as CharacterDetailSidebar)
+                  // Creation section should only show user-uploaded images, not Production Hub angle images
+                  const allImages = asset.images.map((img, idx) => {
+                    // Use regenerated URL if available, otherwise use original URL
+                    const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] 
+                      ? regeneratedImageUrls[img.s3Key] 
+                      : img.url;
+                    
+                    return {
+                      id: `asset-img-${idx}`,
+                      imageUrl: imageUrl,
+                      createdAt: img.uploadedAt,
+                      metadata: {
+                        ...(img.s3Key ? { s3Key: img.s3Key } : {}),
+                        ...(img.metadata || {}), // Preserve all metadata (source, angle, etc.)
+                        source: img.metadata?.source || (img.s3Key ? undefined : 'user-upload')
+                      }
+                    };
+                  });
+                  
+                  // Filter: User-uploaded images (Creation section can delete these)
+                  const userUploadedImages = allImages.filter(img => {
+                    const source = (img.metadata as any)?.source;
+                    // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
+                    return !source || source === 'user-upload';
+                  });
+                  
+                  // Filter: AI-generated Production Hub images (read-only in Creation section)
+                  const aiGeneratedImages = allImages.filter(img => {
+                    const source = (img.metadata as any)?.source;
+                    // Show Production Hub generated images (angle-generation, image-generation)
+                    return source === 'angle-generation' || source === 'image-generation';
+                  });
+                  
+                  return (
+                    <div className="space-y-4">
+                      {/* User-Uploaded Images */}
+                      {userUploadedImages.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                              Reference Images ({userUploadedImages.length})
+                            </label>
+                            <span className="text-xs" style={{ color: '#6B7280' }}>User uploaded</span>
+                          </div>
+                          <ImageGallery
+                            images={userUploadedImages}
+                            entityType="asset"
+                            entityId={asset.id}
+                            entityName={formData.name || 'Asset'}
+                            onDeleteImage={handleRemoveImage}
+                          />
+                        </div>
+                      )}
                       
-                      return {
-                        id: `asset-img-${idx}`,
-                        imageUrl: imageUrl,
-                        createdAt: img.uploadedAt,
-                        metadata: img.s3Key ? { s3Key: img.s3Key } : undefined // Store s3Key in metadata for future regeneration
-                      };
-                    })}
-                    entityType="asset"
-                    entityId={asset.id}
-                    entityName={formData.name || 'Asset'}
-                    onDeleteImage={handleRemoveImage}
-                  />
-                )}
+                      {/* AI Generated Angle Images */}
+                      {aiGeneratedImages.length > 0 && (
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2 pb-2 border-b" style={{ borderColor: '#3F3F46' }}>
+                            <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
+                              AI Generated Angles ({aiGeneratedImages.length})
+                            </label>
+                            <span className="text-xs" style={{ color: '#6B7280' }}>Delete in Production Hub</span>
+                          </div>
+                          <ImageGallery
+                            images={aiGeneratedImages}
+                            entityType="asset"
+                            entityId={asset.id}
+                            entityName={formData.name || 'Asset'}
+                            readOnly={true} // 🔥 RESTRICTION: Creation section cannot delete AI-generated angles - only Production Hub can
+                            // Note: onDeleteImage is not provided, so ImageGallery won't show delete button
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 
                 {isCreating && pendingImages.length > 0 && (
                   <ImageGallery
@@ -1050,13 +1107,25 @@ export default function AssetDetailSidebar({
                   />
                 )}
                 
-                {(!asset || !asset.images || asset.images.length === 0) && pendingImages.length === 0 && (
-                  <div className="text-xs text-center space-y-1" style={{ color: '#6B7280' }}>
-                    <p>Add images to create this asset</p>
-                    <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                      <strong style={{ color: '#DC143C' }}>3D export required for scene generation</strong>
-                      <br />
-                      • Minimum: 2 images (required)
+                {(!asset || !asset.images || asset.images.length === 0) && pendingImages.length === 0 && (() => {
+                  // Check if there are any user-uploaded images (after filtering)
+                  const hasUserImages = asset && asset.images && asset.images.some((img: any) => {
+                    const source = img.metadata?.source;
+                    return !source || source === 'user-upload';
+                  });
+                  
+                  if (hasUserImages) {
+                    // Has images but they're all AI-generated (filtered out)
+                    return null; // Will be handled by the filtered sections above
+                  }
+                  
+                  return (
+                    <div className="text-xs text-center space-y-1" style={{ color: '#6B7280' }}>
+                      <p>Add images to create this asset</p>
+                      <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                        <strong style={{ color: '#DC143C' }}>3D export required for scene generation</strong>
+                        <br />
+                        • Minimum: 2 images (required)
                       <br />
                       • Recommended: 5-8 images (best quality)
                       <br />

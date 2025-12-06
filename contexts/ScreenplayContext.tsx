@@ -1059,7 +1059,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         listScenes(screenplayId, getToken),
                         listCharacters(screenplayId, getToken, 'production-hub'), // 🔥 FIX: Use production-hub context to get both referenceImages and poseReferences
                         listLocations(screenplayId, getToken, 'production-hub'), // 🔥 FIX: Use production-hub context to get both referenceImages and angleVariations
-                        api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })) // Load assets for Creation section (filters out Production Hub images)
+                        api.assetBank.list(screenplayId, 'production-hub').catch(() => ({ assets: [] })) // 🔥 FIX: Use production-hub context to get both Creation and Production Hub images (same pattern as characters/locations)
                     ]);
                     
                     console.log('[ScreenplayContext] 📦 Raw API response:', {
