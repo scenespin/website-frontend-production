@@ -2782,7 +2782,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const optimisticAsset: Asset = {
             id: `asset-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
             userId: userId,
-            projectId: screenplayId,
+            projectId: screenplayId, // Backward compatibility
+            screenplayId: screenplayId, // Primary identifier
             name: asset.name.trim(),
             category: asset.category,
             description: asset.description?.trim(),
