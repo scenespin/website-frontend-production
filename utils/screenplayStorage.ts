@@ -450,13 +450,14 @@ export async function getScreenplayCount(
  */
 export async function listCharacters(
   screenplayId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
+  getToken: ReturnType<typeof useAuth>['getToken'],
+  context: 'creation' | 'production-hub' = 'production-hub' // 🔥 NEW: Support context parameter, default to production-hub for Production Hub
 ): Promise<Character[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  console.error('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/characters');
+  console.error('[screenplayStorage] 🎯 GET /api/screenplays/' + screenplayId + '/characters?context=' + context);
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/characters`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/characters?context=${context}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -651,11 +652,12 @@ export async function deleteCharacter(
  */
 export async function listLocations(
   screenplayId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
+  getToken: ReturnType<typeof useAuth>['getToken'],
+  context: 'creation' | 'production-hub' = 'production-hub' // 🔥 NEW: Support context parameter, default to production-hub for Production Hub
 ): Promise<Location[]> {
   const token = await getToken({ template: 'wryda-backend' });
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/locations`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/locations?context=${context}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
