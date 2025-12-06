@@ -589,24 +589,23 @@ export default function AssetDetailModal({
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {angleImages.map((img) => {
-                          const isAIGenerated = img.isAngleReference;
-                      
-                      return (
-                        <div
-                          key={img.id}
-                          className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
-                        >
-                          <img
-                            src={img.imageUrl}
-                            alt={img.label}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="absolute bottom-2 left-2 right-2">
-                              <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
-                            </div>
-                            {/* Delete button - only show for Production Hub images (angle references) */}
-                            {isAIGenerated && !img.isBase && (
+                          // All angleImages are Production Hub images (editable/deletable)
+                          return (
+                            <div
+                              key={img.id}
+                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                            >
+                              <img
+                                src={img.imageUrl}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                </div>
+                                {/* Delete button - all Production Hub images can be deleted */}
+                                {!img.isBase && (
                               <div className="absolute top-2 right-2">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -701,19 +700,61 @@ export default function AssetDetailModal({
                                 </DropdownMenu>
                               </div>
                             )}
-                            {/* Info icon for Creation section images (cannot delete from Production Hub) */}
-                            {createdInCreation && (
-                              <div className="absolute top-2 right-2">
-                                <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
-                                  <Info className="w-3 h-3 text-[#808080]" />
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 🔥 SEPARATION: Creation Section Images - User Uploaded (Read-Only) */}
+                  {userImages.length > 0 && (
+                    <div className="p-4 bg-[#0F0F0F] rounded-lg border border-[#3F3F46]">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#3F3F46]">
+                        <div>
+                          <h3 className="text-sm font-semibold text-white mb-1">
+                            Reference Images from Creation ({userImages.length})
+                          </h3>
+                          <p className="text-xs text-[#6B7280]">Uploaded in Creation section - view only (delete in Creation section)</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {userImages.map((img) => {
+                          return (
+                            <div
+                              key={img.id}
+                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden opacity-75"
+                            >
+                              <img
+                                src={img.imageUrl}
+                                alt={img.label}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                </div>
+                                {/* Info icon - read-only indicator */}
+                                <div className="absolute top-2 right-2">
+                                  <div className="p-1.5 bg-[#1F1F1F]/80 rounded-lg" title="Uploaded in Creation section - delete there">
+                                    <Info className="w-3 h-3 text-[#808080]" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {angleImages.length === 0 && userImages.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <ImageIcon className="w-16 h-16 text-[#808080] mb-4" />
+                      <p className="text-[#808080] mb-4">No reference images yet</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
