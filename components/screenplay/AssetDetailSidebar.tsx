@@ -1107,32 +1107,31 @@ export default function AssetDetailSidebar({
                   />
                 )}
                 
-                {(!asset || !asset.images || asset.images.length === 0) && pendingImages.length === 0 && (() => {
-                  // Check if there are any user-uploaded images (after filtering)
-                  const hasUserImages = asset && asset.images && asset.images.some((img: any) => {
+                {(() => {
+                  // Show empty state if no user-uploaded images (regardless of AI-generated images)
+                  const hasUserUploadedImages = asset && asset.images && asset.images.some((img: any) => {
                     const source = img.metadata?.source;
                     return !source || source === 'user-upload';
                   });
                   
-                  if (hasUserImages) {
-                    // Has images but they're all AI-generated (filtered out)
-                    return null; // Will be handled by the filtered sections above
+                  if (!hasUserUploadedImages && pendingImages.length === 0) {
+                    return (
+                      <div className="text-xs text-center space-y-1" style={{ color: '#6B7280' }}>
+                        <p>Add images to create this asset</p>
+                        <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                          <strong style={{ color: '#DC143C' }}>3D export required for scene generation</strong>
+                          <br />
+                          • Minimum: 2 images (required)
+                          <br />
+                          • Recommended: 5-8 images (best quality)
+                          <br />
+                          • Maximum: 10 images
+                        </p>
+                      </div>
+                    );
                   }
-                  
-                  return (
-                    <div className="text-xs text-center space-y-1" style={{ color: '#6B7280' }}>
-                      <p>Add images to create this asset</p>
-                      <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                        <strong style={{ color: '#DC143C' }}>3D export required for scene generation</strong>
-                        <br />
-                        • Minimum: 2 images (required)
-                      <br />
-                      • Recommended: 5-8 images (best quality)
-                      <br />
-                      • Maximum: 10 images
-                    </p>
-                  </div>
-                )}
+                  return null;
+                })()}
               </div>
             </div>
           </>
