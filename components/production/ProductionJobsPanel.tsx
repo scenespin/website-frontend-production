@@ -713,11 +713,13 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                     </div>
                   )}
 
-                  {/* 🔥 REMOVED: Save buttons - all generation jobs auto-save to their respective entities
-                      - Poses auto-save to character.poseReferences
-                      - Location angles auto-save to location.locationBankProfile.angleVariations
-                      - Asset angles auto-save to asset.angleReferences
-                  */}
+                  {/* Action buttons based on job type */}
+                  <div className="flex flex-wrap gap-2">
+                    {/* 🔥 REMOVED: Save buttons - all generation jobs auto-save to their respective entities
+                        - Poses auto-save to character.poseReferences
+                        - Location angles auto-save to location.locationBankProfile.angleVariations
+                        - Asset angles auto-save to asset.angleReferences
+                    */}
                     
                     {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
                       <button
