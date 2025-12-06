@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils';
 import { PerformanceControls, PerformanceSettings } from '../characters/PerformanceControls';
 import PoseGenerationModal from '../character-bank/PoseGenerationModal';
 import { toast } from 'sonner';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { CharacterDetailModal } from './CharacterDetailModal';
@@ -45,7 +44,7 @@ export function CharacterBankPanel({
   onCharactersUpdate
 }: CharacterBankPanelProps) {
   
-  const { updateCharacter, deleteCharacter } = useScreenplay();
+  // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   const { getToken } = useAuth();
   
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
@@ -189,43 +188,10 @@ export function CharacterBankPanel({
           references: references.map((r: any) => ({ label: r.label, type: r.referenceType }))
         });
         
-        // Update character in context if we have the updated character and references
-        if (character && updateCharacter && references.length > 0) {
-          try {
-            // Map the character profile and generated references to the Character type expected by context
-            // The backend returns references as a separate array, not nested in character
-            const characterUpdates: Partial<Character> = {
-              images: [
-                ...(character.baseReference ? [{
-                  imageUrl: character.baseReference.imageUrl,
-                  s3Key: character.baseReference.s3Key,
-                  createdAt: new Date().toISOString(),
-                  metadata: { 
-                    s3Key: character.baseReference.s3Key,
-                    uploadedFileName: 'Base Reference' 
-                  }
-                }] : []),
-                ...references.map((ref: any) => ({
-                  imageUrl: ref.imageUrl,
-                  s3Key: ref.s3Key,
-                  createdAt: new Date().toISOString(),
-                  metadata: { 
-                    s3Key: ref.s3Key,
-                    uploadedFileName: ref.label || ref.referenceType || 'Reference',
-                    referenceType: ref.referenceType
-                  }
-                }))
-              ]
-            };
-            
-            console.log('[CharacterBank] Updating character with', characterUpdates.images?.length || 0, 'images');
-            await updateCharacter(characterId, characterUpdates);
-            console.log('[CharacterBank] ✅ Character updated in context');
-          } catch (error) {
-            console.error('[CharacterBank] Failed to update character in context:', error);
-            toast.error('Generated variations but failed to update character. Please refresh.');
-          }
-        } else if (references.length === 0) {
+        // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
+        // Production Hub image uploads should NOT sync back to Creation section
+        
+        if (references.length === 0) {
           console.warn('[CharacterBank] No references generated - backend may have failed silently');
           toast.warning('Generation completed but no variations were created. Check backend logs.');
         }
@@ -478,18 +444,8 @@ export function CharacterBankPanel({
                 throw new Error(errorData.error || `Failed to update character: ${response.status}`);
               }
               
-              // Also sync with ScreenplayContext if character exists there
-              const contextCharacter = updateCharacter ? await updateCharacter(characterId, {
-                images: updates.references?.map((ref: any) => ({
-                  imageUrl: typeof ref === 'string' ? '' : ref.imageUrl,
-                  createdAt: typeof ref === 'string' ? new Date().toISOString() : ref.createdAt || new Date().toISOString(),
-                  metadata: {
-                    s3Key: typeof ref === 'string' ? ref : ref.s3Key,
-                    createdIn: 'production-hub',
-                    source: 'user-upload'
-                  }
-                })) || []
-              }).catch(() => null) : null;
+              // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
+              // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
               
               onCharactersUpdate();
               toast.success('Character updated successfully');

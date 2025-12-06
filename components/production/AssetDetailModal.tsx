@@ -22,7 +22,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useScreenplay } from '@/contexts/ScreenplayContext';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
 import {
   DropdownMenu,
@@ -52,7 +51,9 @@ export default function AssetDetailModal({
 }: AssetDetailModalProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
-  const { updateAsset, screenplayId, assets } = useScreenplay(); // 🔥 NEW: Use context for real-time sync
+  // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
+  // Get projectId from asset for Media Library cache invalidation
+  const projectId = asset?.projectId;
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(asset.name);
@@ -123,26 +124,12 @@ export default function AssetDetailModal({
       toast.success(`Successfully uploaded ${files.length} image${files.length > 1 ? 's' : ''}`);
       
       // 🔥 NEW: Invalidate Media Library cache so new image appears
-      if (screenplayId) {
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
       }
       
-      // 🔥 NEW: Update asset in context for real-time sync
-      if (updateAsset) {
-        // Refetch asset to get updated images
-        try {
-          const token = await getToken({ template: 'wryda-backend' });
-          const response = await fetch(`/api/asset-bank/${asset.id}`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            await updateAsset(asset.id, data.asset || data);
-          }
-        } catch (error) {
-          console.error('Failed to sync asset update:', error);
-        }
-      }
+      // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
+      // Production Hub image uploads should NOT sync back to Creation section
       
       onUpdate(); // Refresh asset data
     } catch (error: any) {
@@ -694,32 +681,10 @@ export default function AssetDetailModal({
                                             }
                                           }
                                           
-                                          // Also update ScreenplayContext if asset exists there
-                                          const contextAsset = assets.find(a => a.id === asset.id);
-                                          if (contextAsset && img.s3Key) {
-                                            // Update angleReferences in context
-                                            if (img.isAngleReference) {
-                                              const updatedAngleReferences = (contextAsset.angleReferences || []).filter(
-                                                (ref: any) => ref.s3Key !== img.s3Key
-                                              );
-                                              
-                                              await updateAsset(asset.id, {
-                                                angleReferences: updatedAngleReferences
-                                              });
-                                            } else {
-                                              // Update images array
-                                              const updatedImages = (contextAsset.images || []).filter((assetImg: any) => {
-                                                const imgS3Key = assetImg.s3Key || assetImg.metadata?.s3Key;
-                                                return imgS3Key !== img.s3Key;
-                                              });
-                                              
-                                              await updateAsset(asset.id, {
-                                                images: updatedImages
-                                              });
-                                            }
-                                          }
+                                          // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
+                                          // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
                                           onUpdate(); // Refresh asset data
                                           toast.success('Image deleted');
                                         } catch (error: any) {
@@ -766,7 +731,7 @@ export default function AssetDetailModal({
         }}
         assetId={asset.id}
         assetName={asset.name}
-        projectId={screenplayId || ''}
+        projectId={projectId || asset.projectId || ''}
         asset={asset}
         onComplete={async (result) => {
           toast.success(`Angle generation started for ${asset.name}!`, {
