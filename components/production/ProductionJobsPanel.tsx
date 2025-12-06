@@ -195,7 +195,6 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false); // Track if we've successfully loaded jobs at least once
-  const [processedJobIds, setProcessedJobIds] = useState<Set<string>>(new Set()); // Track which jobs have already triggered refreshes
   
   // Storage modal state
   const [showStorageModal, setShowStorageModal] = useState(false);
@@ -273,13 +272,18 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         // But also check for direct jobs property for backwards compatibility
         const jobList = data.data?.jobs || data.jobs || [];
         
-        // Always update jobs on successful response to reflect current state
-        // Only update if we have jobs OR if this is the initial load (prevents clearing on refresh)
-        if (jobList.length > 0 || !hasLoadedOnce) {
-          setJobs(jobList);
-          if (!hasLoadedOnce) {
-            setHasLoadedOnce(true); // Mark that we've successfully loaded at least once
-          }
+        // Merge jobs instead of replacing to prevent flashing
+        // Update existing jobs and add new ones
+        setJobs(prevJobs => {
+          const jobMap = new Map(prevJobs.map(j => [j.jobId, j]));
+          jobList.forEach((newJob: WorkflowJob) => {
+            jobMap.set(newJob.jobId, newJob);
+          });
+          return Array.from(jobMap.values());
+        });
+        
+        if (!hasLoadedOnce) {
+          setHasLoadedOnce(true);
         }
         
         if (jobList.length === 0) {
@@ -350,38 +354,27 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   }, [jobs]);
   
   /**
-   * 🔥 NEW: Watch for completed pose generation jobs and refresh character data immediately
-   * Track which jobs have already triggered a refresh to avoid duplicate refreshes
+   * Watch for completed pose generation jobs and refresh character data
+   * Simplified: Just refresh immediately when job completes
    */
   useEffect(() => {
     const completedPoseJobs = jobs.filter(job => 
       job.status === 'completed' && 
       job.jobType === 'pose-generation' &&
       job.results?.poses && 
-      job.results.poses.length > 0 &&
-      !processedJobIds.has(job.jobId) // Only process jobs we haven't seen before
+      job.results.poses.length > 0
     );
     
     if (completedPoseJobs.length > 0) {
-      console.log('[ProductionJobsPanel] Pose generation completed, refreshing characters...', completedPoseJobs.length);
+      console.log('[ProductionJobsPanel] Pose generation completed, refreshing characters immediately...', completedPoseJobs.length);
       
-      // Mark these jobs as processed
-      setProcessedJobIds(prev => {
-        const newSet = new Set(prev);
-        completedPoseJobs.forEach(job => newSet.add(job.jobId));
-        return newSet;
-      });
+      // Refresh immediately - backend should have saved by the time job status is 'completed'
+      window.dispatchEvent(new CustomEvent('refreshCharacters'));
       
-      // Add a small delay to ensure backend has finished saving poses to DynamoDB
-      setTimeout(() => {
-        // Trigger character refresh via window event (ProductionPageLayout listens to this)
-        window.dispatchEvent(new CustomEvent('refreshCharacters'));
-        
-        // Also invalidate React Query cache for media files
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-      }, 2000); // 2 second delay to allow backend to save poses
+      // Also invalidate React Query cache for media files
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
     }
-  }, [jobs, projectId, queryClient, processedJobIds]);
+  }, [jobs, projectId, queryClient]);
   
   /**
    * 🔥 NEW: Watch for completed location/asset angle generation jobs and refresh data

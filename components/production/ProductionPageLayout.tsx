@@ -182,6 +182,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
    * Load characters from Character Bank
    */
   const loadCharacters = useCallback(async () => {
+    console.log('[ProductionPageLayout] loadCharacters called');
     setIsLoadingCharacters(true);
     try {
       // Get auth token and set it for the API client
@@ -202,7 +203,17 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
       console.log('[ProductionPage] Character load response:', response.status, data);
       
       if (data.success) {
-        setCharacters(data.data?.characters || []);
+        const charactersList = data.data?.characters || [];
+        console.log('[ProductionPage] Setting characters:', charactersList.length, 'characters');
+        // Log pose references for debugging
+        charactersList.forEach((char: any) => {
+          if (char.poseReferences && char.poseReferences.length > 0) {
+            console.log(`[ProductionPage] Character ${char.name} has ${char.poseReferences.length} pose references:`, char.poseReferences);
+          }
+        });
+        setCharacters(charactersList);
+      } else {
+        console.error('[ProductionPage] Character load failed:', data.error);
       }
     } catch (error) {
       console.error('[ProductionPage] Failed to load characters:', error);
