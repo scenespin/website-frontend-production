@@ -289,16 +289,8 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     return () => clearInterval(refreshInterval);
   }, [projectId, isLoaded, isSignedIn, loadCharacters]);
   
-  // 🔥 NEW: Listen for immediate refresh requests (e.g., when pose generation completes)
-  useEffect(() => {
-    const handleRefresh = () => {
-      console.log('[ProductionPageLayout] Refreshing characters due to pose generation completion');
-      loadCharacters();
-    };
-    
-    window.addEventListener('refreshCharacters', handleRefresh);
-    return () => window.removeEventListener('refreshCharacters', handleRefresh);
-  }, [loadCharacters]); // 🔥 FIX: Include loadCharacters dependency to ensure we use the latest version
+  // NOTE: ProductionPageLayout is not currently used - ProductionHub is used instead
+  // Character refresh is handled by ScreenplayContext's refreshCharacters listener
   
   // 🔥 NEW: Listen for location angle generation completion
   useEffect(() => {
