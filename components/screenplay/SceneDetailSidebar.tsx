@@ -295,7 +295,7 @@ export default function SceneDetailSidebar({
             return (
               <div className="flex flex-wrap gap-2">
                 {linkedAssets.map(asset => {
-                  const mainImage = asset.images?.[0]?.imageUrl
+                  const mainImage = asset.images?.[0]?.url
                   return (
                     <div
                       key={asset.id}
