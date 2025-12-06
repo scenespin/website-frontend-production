@@ -356,9 +356,8 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
     const completedPoseJobs = jobs.filter(job => 
       job.status === 'completed' && 
       job.jobType === 'pose-generation' &&
-      (job.results?.poses || job.results?.poseReferences) && // 🔥 FIX: Check both possible result structures
-      ((job.results?.poses && job.results.poses.length > 0) || 
-       (job.results?.poseReferences && job.results.poseReferences.length > 0))
+      job.results?.poses && 
+      job.results.poses.length > 0
     );
     
     if (completedPoseJobs.length > 0) {
