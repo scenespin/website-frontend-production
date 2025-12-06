@@ -713,93 +713,11 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                     </div>
                   )}
 
-                  {/* Action buttons based on job type */}
-                  <div className="flex flex-wrap gap-2">
-                    {/* Pose generation: Save button */}
-                    {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const firstPose = job.results!.poses![0];
-                          setSelectedAsset({
-                            url: firstPose.imageUrl,
-                            s3Key: firstPose.s3Key,
-                            name: `${job.metadata?.inputs?.characterName || 'Character'} - ${firstPose.poseName}`,
-                            type: 'image',
-                            metadata: {
-                              entityType: 'character',
-                              entityId: job.metadata?.inputs?.characterId,
-                              entityName: job.metadata?.inputs?.characterName,
-                              poseGeneration: true,
-                              allPoses: job.results!.poses // Pass all poses for batch save
-                            }
-                          });
-                          setShowStorageModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                 bg-[#DC143C] text-white text-xs font-medium
-                                 hover:bg-[#B91238] transition-colors"
-                      >
-                        <Save className="w-3 h-3" />
-                        Save Poses
-                      </button>
-                    )}
-                    
-                    {/* Image generation: Save button */}
-                    {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const firstImage = job.results!.images![0];
-                          setSelectedAsset({
-                            url: firstImage.imageUrl,
-                            s3Key: firstImage.s3Key,
-                            name: firstImage.label || 'Generated Image',
-                            type: 'image',
-                            metadata: {
-                              entityType: job.metadata?.inputs?.entityType || 'asset',
-                              entityId: job.metadata?.inputs?.entityId,
-                              entityName: job.metadata?.inputs?.entityName || 'Asset',
-                              allImages: job.results!.images
-                            }
-                          });
-                          setShowStorageModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                 bg-[#DC143C] text-white text-xs font-medium
-                                 hover:bg-[#B91238] transition-colors"
-                      >
-                        <Save className="w-3 h-3" />
-                        Save Images
-                      </button>
-                    )}
-                    
-                    {/* 🔥 NEW: Angle generation: Save button for location/asset angles */}
-                    {job.jobType === 'image-generation' && job.results.angleReferences && job.results.angleReferences.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const firstAngle = job.results!.angleReferences![0];
-                          setSelectedAsset({
-                            url: firstAngle.imageUrl,
-                            s3Key: firstAngle.s3Key,
-                            name: `${job.metadata?.inputs?.entityName || 'Entity'} - ${firstAngle.angle} view`,
-                            type: 'image',
-                            metadata: {
-                              entityType: job.metadata?.inputs?.entityType || 'location',
-                              entityId: job.metadata?.inputs?.entityId,
-                              entityName: job.metadata?.inputs?.entityName || 'Location',
-                              angleGeneration: true,
-                              allAngles: job.results!.angleReferences
-                            }
-                          });
-                          setShowStorageModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                 bg-[#DC143C] text-white text-xs font-medium
-                                 hover:bg-[#B91238] transition-colors"
-                      >
-                        <Save className="w-3 h-3" />
-                        Save Angles
-                      </button>
-                    )}
+                  {/* 🔥 REMOVED: Save buttons - all generation jobs auto-save to their respective entities
+                      - Poses auto-save to character.poseReferences
+                      - Location angles auto-save to location.locationBankProfile.angleVariations
+                      - Asset angles auto-save to asset.angleReferences
+                  */}
                     
                     {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
                       <button
