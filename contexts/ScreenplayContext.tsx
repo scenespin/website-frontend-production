@@ -879,6 +879,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         };
     }, [user]); // Re-run when user object changes (e.g., after metadata update)
     
+    // 🔥 NEW: Listen for character refresh events (e.g., when pose generation completes)
+    useEffect(() => {
+        if (!screenplayId) return;
+        
+        const handleRefreshCharacters = async () => {
+            console.log('[ScreenplayContext] Refreshing characters due to refreshCharacters event');
+            try {
+                const charactersData = await listCharacters(screenplayId, getToken);
+                const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
+                setCharacters(transformedCharacters);
+                console.log('[ScreenplayContext] ✅ Refreshed characters from API:', transformedCharacters.length, 'characters');
+                // Log pose references for debugging
+                transformedCharacters.forEach((char: any) => {
+                    const poseImages = (char.images || []).filter((img: any) => 
+                        (img.metadata as any)?.source === 'pose-generation'
+                    );
+                    if (poseImages.length > 0) {
+                        console.log(`[ScreenplayContext] Character ${char.name} has ${poseImages.length} pose images:`, poseImages);
+                    }
+                });
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to refresh characters:', error);
+            }
+        };
+        
+        window.addEventListener('refreshCharacters', handleRefreshCharacters);
+        return () => {
+            window.removeEventListener('refreshCharacters', handleRefreshCharacters);
+        };
+    }, [screenplayId, getToken, transformCharactersFromAPI]);
+    
     // 🔥 NEW: Listen for asset refresh events (e.g., when angle generation completes)
     useEffect(() => {
         if (!screenplayId) return;
