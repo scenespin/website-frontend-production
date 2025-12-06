@@ -957,7 +957,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const handleRefreshAssets = async () => {
             console.log('[ScreenplayContext] Refreshing assets due to refreshAssets event');
             try {
-                const assetsData = await api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })); // Load assets for Creation section (filters out Production Hub images)
+                // 🔥 FIX: Use production-hub context to get both Creation and Production Hub images (same pattern as characters/locations)
+                const assetsData = await api.assetBank.list(screenplayId, 'production-hub').catch(() => ({ assets: [] }));
                 const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
                 const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
                 
