@@ -85,6 +85,7 @@ export function LocationDetailModal({
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
+  const { locations } = useScreenplay(); // 🔥 FIX: Call hook at top level, get locations directly
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -128,8 +129,7 @@ export function LocationDetailModal({
   // 🔥 FALLBACK: If Location Bank API doesn't have creationImages yet, try ScreenplayContext
   // This is a temporary fallback until all locations are updated
   if (allCreationImages.length === 1 && location.baseReference) {
-    const { screenplay } = useScreenplay();
-    const contextLocation = screenplay?.locations?.find(l => l.id === location.locationId);
+    const contextLocation = locations?.find(l => l.id === location.locationId);
     if (contextLocation?.images && Array.isArray(contextLocation.images)) {
       contextLocation.images.forEach((img: any, idx: number) => {
         // Skip if this is already the baseReference
