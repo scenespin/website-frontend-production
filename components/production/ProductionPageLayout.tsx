@@ -13,7 +13,7 @@
  * Desktop: Full 4-tab interface
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEditorContext } from '@/lib/contextStore';
@@ -254,7 +254,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     
     window.addEventListener('refreshCharacters', handleRefresh);
     return () => window.removeEventListener('refreshCharacters', handleRefresh);
-  }, [projectId]); // 🔥 FIX: Include projectId dependency
+  }, [loadCharacters]); // 🔥 FIX: Include loadCharacters dependency to ensure we use the latest version
   
   // 🔥 NEW: Listen for location angle generation completion
   useEffect(() => {
@@ -347,7 +347,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
   /**
    * Load characters from Character Bank
    */
-  async function loadCharacters() {
+  const loadCharacters = useCallback(async () => {
     setIsLoadingCharacters(true);
     try {
       // Get auth token and set it for the API client
@@ -375,7 +375,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     } finally {
       setIsLoadingCharacters(false);
     }
-  }
+  }, [projectId, getToken]);
 
   /**
    * Load locations from Location Bank (Feature 0142: Location Bank Unification)
