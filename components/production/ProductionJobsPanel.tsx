@@ -95,6 +95,98 @@ interface ProductionJobsPanelProps {
 
 type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
 
+/**
+ * Helper component to display image thumbnail from S3 key
+ * Generates presigned URL on mount, with fallback to provided URL
+ */
+function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; alt: string; fallbackUrl?: string }) {
+  const { getToken } = useAuth();
+  const [imageUrl, setImageUrl] = useState<string | null>(fallbackUrl || null);
+  const [isLoading, setIsLoading] = useState(!fallbackUrl); // If fallbackUrl exists, don't show loading initially
+  const [useFallback, setUseFallback] = useState(!!fallbackUrl);
+
+  useEffect(() => {
+    async function fetchPresignedUrl() {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Call API to get presigned URL
+        const response = await fetch('/api/s3/download-url', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: s3Key,
+            expiresIn: 3600, // 1 hour
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.downloadUrl) {
+            setImageUrl(data.downloadUrl);
+            setUseFallback(false); // Use fresh presigned URL
+          }
+        }
+      } catch (error) {
+        console.error('[ImageThumbnail] Failed to fetch presigned URL:', error);
+        // Keep fallbackUrl if available
+        if (!fallbackUrl) {
+          setImageUrl(null);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (s3Key) {
+      // Always fetch fresh presigned URL, but use fallbackUrl immediately if available
+      fetchPresignedUrl();
+    } else {
+      setIsLoading(false);
+    }
+  }, [s3Key, getToken, fallbackUrl]);
+
+  if (isLoading && !useFallback) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500">
+        <Loader2 className="w-3 h-3 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!imageUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]">
+        No image
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={alt}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        // If fallback failed and we have s3Key, try to fetch again
+        if (useFallback && s3Key) {
+          // Will be handled by useEffect
+          setUseFallback(false);
+        } else {
+          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
+        }
+      }}
+    />
+  );
+}
+
 export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
   const { getToken, userId } = useAuth();
   const queryClient = useQueryClient();
@@ -264,11 +356,13 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
     const completedPoseJobs = jobs.filter(job => 
       job.status === 'completed' && 
       job.jobType === 'pose-generation' &&
-      job.results?.poses &&
-      job.results.poses.length > 0
+      (job.results?.poses || job.results?.poseReferences) && // 🔥 FIX: Check both possible result structures
+      ((job.results?.poses && job.results.poses.length > 0) || 
+       (job.results?.poseReferences && job.results.poseReferences.length > 0))
     );
     
     if (completedPoseJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Pose generation completed, refreshing characters...', completedPoseJobs.length);
       // Trigger character refresh via window event (ProductionPageLayout listens to this)
       window.dispatchEvent(new CustomEvent('refreshCharacters'));
       
@@ -285,10 +379,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       job.status === 'completed' && 
       job.jobType === 'image-generation' &&
       job.results?.angleReferences &&
+      Array.isArray(job.results.angleReferences) &&
       job.results.angleReferences.length > 0
     );
     
     if (completedAngleJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Angle generation completed, refreshing locations and assets...', completedAngleJobs.length);
       // Trigger location/asset refresh via window events
       window.dispatchEvent(new CustomEvent('refreshLocations'));
       window.dispatchEvent(new CustomEvent('refreshAssets'));
@@ -589,11 +685,21 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                         {job.results.poses.length} pose(s)
                       </span>
                     )}
-                    {job.jobType === 'image-generation' && job.results.images && (
-                      <span className="flex items-center gap-1">
-                        <Image className="w-3 h-3" />
-                        {job.results.images.length} image(s)
-                      </span>
+                    {job.jobType === 'image-generation' && (
+                      <>
+                        {job.results.angleReferences && job.results.angleReferences.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Image className="w-3 h-3" />
+                            {job.results.angleReferences.length} angle(s)
+                          </span>
+                        )}
+                        {job.results.images && job.results.images.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Image className="w-3 h-3" />
+                            {job.results.images.length} image(s)
+                          </span>
+                        )}
+                      </>
                     )}
                     {job.jobType === 'audio-generation' && job.results.audio && (
                       <span className="flex items-center gap-1">
@@ -625,46 +731,60 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                     </span>
                   </div>
 
-                  {/* Pose Image Thumbnails */}
+                  {/* 🔥 FIX: Display images for ALL job types with smaller thumbnails (half size) */}
+                  {/* Pose Image Thumbnails - Character Poses */}
                   {job.jobType === 'pose-generation' && job.results.poses && job.results.poses.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 mt-3">
+                    <div className="grid grid-cols-6 gap-1.5 mt-3">
                       {job.results.poses.map((pose, index) => (
                         <div
                           key={pose.poseId || index}
                           className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
                         >
-                          {pose.imageUrl ? (
+                          {pose.s3Key ? (
+                            // 🔥 FIX: Always use s3Key-based component to ensure fresh presigned URLs
+                            <ImageThumbnailFromS3Key 
+                              s3Key={pose.s3Key} 
+                              alt={pose.poseName || `Pose ${index + 1}`}
+                              fallbackUrl={pose.imageUrl} // Try imageUrl first if available
+                            />
+                          ) : pose.imageUrl ? (
                             <img
                               src={pose.imageUrl}
                               alt={pose.poseName || `Pose ${index + 1}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                // Show placeholder on error
                                 (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-xs">
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]">
                               No image
                             </div>
                           )}
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
-                            <p className="text-xs text-white truncate">{pose.poseName || `Pose ${index + 1}`}</p>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                            <p className="text-[10px] text-white truncate">{pose.poseName || `Pose ${index + 1}`}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Image Generation Thumbnails */}
+                  {/* Image Generation Thumbnails - Generic Images */}
                   {job.jobType === 'image-generation' && job.results.images && job.results.images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 mt-3">
+                    <div className="grid grid-cols-6 gap-1.5 mt-3">
                       {job.results.images.map((img, index) => (
                         <div
                           key={index}
                           className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
                         >
-                          {img.imageUrl ? (
+                          {img.s3Key ? (
+                            // 🔥 FIX: Always use s3Key-based component to ensure fresh presigned URLs
+                            <ImageThumbnailFromS3Key 
+                              s3Key={img.s3Key} 
+                              alt={img.label || `Image ${index + 1}`}
+                              fallbackUrl={img.imageUrl} // Try imageUrl first if available
+                            />
+                          ) : img.imageUrl ? (
                             <img
                               src={img.imageUrl}
                               alt={img.label || `Image ${index + 1}`}
@@ -674,8 +794,13 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-xs">
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]">
                               No image
+                            </div>
+                          )}
+                          {img.label && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                              <p className="text-[10px] text-white truncate">{img.label}</p>
                             </div>
                           )}
                         </div>
@@ -683,15 +808,23 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                     </div>
                   )}
 
-                  {/* 🔥 NEW: Display angleReferences for location/asset angle generation jobs */}
+                  {/* 🔥 FIX: Display angleReferences for location/asset angle generation jobs - ALWAYS show when present */}
                   {job.jobType === 'image-generation' && job.results.angleReferences && job.results.angleReferences.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2 mt-3">
+                    <div className="grid grid-cols-6 gap-1.5 mt-3">
                       {job.results.angleReferences.map((angleRef, index) => (
                         <div
-                          key={index}
+                          key={angleRef.s3Key || index}
                           className="relative aspect-square rounded-lg overflow-hidden border border-slate-700/50 bg-slate-900/50"
                         >
-                          {angleRef.imageUrl ? (
+                          {angleRef.s3Key ? (
+                            // 🔥 FIX: Always use s3Key-based component to ensure fresh presigned URLs
+                            // This handles expired imageUrl presigned URLs
+                            <ImageThumbnailFromS3Key 
+                              s3Key={angleRef.s3Key} 
+                              alt={`${angleRef.angle} view`}
+                              fallbackUrl={angleRef.imageUrl} // Try imageUrl first if available
+                            />
+                          ) : angleRef.imageUrl ? (
                             <img
                               src={angleRef.imageUrl}
                               alt={`${angleRef.angle} view`}
@@ -701,12 +834,12 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-xs">
+                            <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-500 text-[10px]">
                               No image
                             </div>
                           )}
-                          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-xs text-white">
-                            {angleRef.angle}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-1 py-0.5">
+                            <p className="text-[10px] text-white truncate capitalize">{angleRef.angle || `Angle ${index + 1}`}</p>
                           </div>
                         </div>
                       ))}

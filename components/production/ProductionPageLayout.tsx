@@ -254,7 +254,7 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     
     window.addEventListener('refreshCharacters', handleRefresh);
     return () => window.removeEventListener('refreshCharacters', handleRefresh);
-  }, []);
+  }, [projectId]); // 🔥 FIX: Include projectId dependency
   
   // 🔥 NEW: Listen for location angle generation completion
   useEffect(() => {
@@ -265,20 +265,20 @@ export function ProductionPageLayout({ projectId }: ProductionPageLayoutProps) {
     
     window.addEventListener('refreshLocations', handleRefreshLocations);
     return () => window.removeEventListener('refreshLocations', handleRefreshLocations);
-  }, []);
+  }, [projectId]); // 🔥 FIX: Include projectId dependency
   
   // 🔥 NEW: Listen for asset angle generation completion
   useEffect(() => {
     const handleRefreshAssets = () => {
       console.log('[ProductionPageLayout] Refreshing assets due to angle generation completion');
-      // Assets are loaded via ScreenplayContext
-      // Trigger a reload by calling initializeData if available, or reload the screenplay
-      // The event will also be handled by AssetBankPanel as a backup
+      // Assets are loaded via ScreenplayContext - trigger refresh via event
+      // AssetBankPanel will handle the actual refresh
+      window.dispatchEvent(new CustomEvent('refreshAssetBank'));
     };
     
     window.addEventListener('refreshAssets', handleRefreshAssets);
     return () => window.removeEventListener('refreshAssets', handleRefreshAssets);
-  }, []);
+  }, [projectId]); // 🔥 FIX: Include projectId dependency
   
   // Watch video generation progress (real polling)
   useEffect(() => {

@@ -74,8 +74,17 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       // The context will pick up the updated assets from the API
     };
     
+    const handleRefreshAssetBank = async () => {
+      console.log('[AssetBankPanel] Refreshing assets via refreshAssetBank event');
+      await fetchAssets();
+    };
+    
     window.addEventListener('refreshAssets', handleRefreshAssets);
-    return () => window.removeEventListener('refreshAssets', handleRefreshAssets);
+    window.addEventListener('refreshAssetBank', handleRefreshAssetBank);
+    return () => {
+      window.removeEventListener('refreshAssets', handleRefreshAssets);
+      window.removeEventListener('refreshAssetBank', handleRefreshAssetBank);
+    };
   }, [projectId]);
   
   const fetchAssets = async () => {

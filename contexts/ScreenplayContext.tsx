@@ -3022,6 +3022,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 console.log('[ScreenplayContext] ✅ Updated asset in API and synced local state');
                 
+                // 🔥 NEW: Trigger Production Hub refresh when asset is updated in Creation section
+                // This ensures Production Hub shows updated Creation images immediately
+                if (wasImageUpdate && typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('refreshAssetBank'));
+                    console.log('[ScreenplayContext] 🔄 Triggered Production Hub asset refresh after image update');
+                }
+                
                 // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
                 // The force reload was causing data loss for locations (address field disappeared)
                 // Instead, we rely on the state sync above which uses the actual API response
