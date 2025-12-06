@@ -97,32 +97,31 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
         return;
       }
       
-      const params = new URLSearchParams({ screenplayId: projectId }); // projectId prop is actually screenplayId
-      if (selectedCategory !== 'all') {
-        params.append('category', selectedCategory);
-      }
-
-      const response = await fetch(`/api/asset-bank?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // 🔥 FIX: Update local state with fresh asset data from API
-        setLocalAssets(data.assets || []);
-        
-        // 🔥 FIX: If selectedAsset is open, refresh it with fresh data
-        if (selectedAsset) {
-          const refreshedAsset = data.assets?.find((a: Asset) => a.id === selectedAsset.id);
-          if (refreshedAsset) {
-            setSelectedAsset(refreshedAsset);
-          }
+      // 🔥 FIX: Use api.assetBank.list with context='production-hub' to get both Creation and Production Hub images
+      const { api } = await import('@/lib/api');
+      const assetsData = await api.assetBank.list(projectId, 'production-hub');
+      const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
+      const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
+      
+      // Filter by category if needed
+      const filteredAssets = selectedCategory === 'all' 
+        ? assetsList 
+        : assetsList.filter((a: Asset) => a.category === selectedCategory);
+      
+      // 🔥 FIX: Update local state with fresh asset data from API
+      setLocalAssets(filteredAssets);
+      
+      // 🔥 FIX: If selectedAsset is open, refresh it with fresh data
+      if (selectedAsset) {
+        const refreshedAsset = filteredAssets.find((a: Asset) => a.id === selectedAsset.id);
+        if (refreshedAsset) {
+          setSelectedAsset(refreshedAsset);
         }
       }
+      
+      console.log('[AssetBankPanel] ✅ Fetched assets with production-hub context:', filteredAssets.length, 'assets');
     } catch (error) {
-      console.error('Failed to fetch assets:', error);
+      console.error('[AssetBankPanel] Failed to fetch assets:', error);
     } finally {
       setLoading(false);
     }

@@ -81,9 +81,21 @@ export default function AssetDetailModal({
   const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
   const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
   
-  // Convert asset images to gallery format
-  // Include both user-uploaded images and AI-generated angle references
-  const userImages = assetImages.map((img, idx) => ({
+  // 🔥 FIX: Separate Creation images from Production Hub angles (same pattern as characters/locations)
+  // Creation images: source='user-upload' OR no source
+  // Production Hub images: source='angle-generation' (AI-generated angles)
+  const creationImages = assetImages.filter((img: any) => {
+    const source = img.metadata?.source;
+    return !source || source === 'user-upload';
+  });
+  
+  const angleImages = assetImages.filter((img: any) => {
+    const source = img.metadata?.source;
+    return source === 'angle-generation'; // Match location pattern
+  });
+  
+  // Convert Creation images to gallery format
+  const userImages = creationImages.map((img, idx) => ({
     id: `img-${idx}`,
     imageUrl: img.url,
     label: `${asset.name} - Image ${idx + 1}`,
@@ -93,35 +105,49 @@ export default function AssetDetailModal({
     metadata: img.metadata
   }));
   
+  // Convert Production Hub angle images to gallery format
+  const angleImageObjects = angleImages.map((img, idx) => ({
+    id: `angle-${idx}`,
+    imageUrl: img.url,
+    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'Angle'} view`,
+    isBase: false,
+    s3Key: img.s3Key || img.metadata?.s3Key,
+    isAngleReference: true,
+    angle: img.metadata?.angle || img.angle,
+    metadata: img.metadata
+  }));
+  
   // Debug: Log asset images for troubleshooting
   useEffect(() => {
     if (isOpen) {
       console.log('[AssetDetailModal] Asset images:', {
         assetId: asset.id,
         assetName: asset.name,
-        imagesCount: assetImages.length,
-        assetImages: assetImages.map((img: any, idx: number) => ({
+        totalImagesCount: assetImages.length,
+        creationImagesCount: creationImages.length,
+        angleImagesCount: angleImages.length,
+        creationImages: creationImages.map((img: any, idx: number) => ({
           index: idx,
           url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
           s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-          hasUrl: !!img.url,
-          hasS3Key: !!(img.s3Key || img.metadata?.s3Key),
-          metadata: img.metadata
+          source: img.metadata?.source || 'user-upload',
+          hasUrl: !!img.url
         })),
-        angleReferencesCount: asset.angleReferences?.length || 0,
-        angleReferences: asset.angleReferences?.map((ref: any) => ({
-          id: ref.id,
-          angle: ref.angle,
-          s3Key: ref.s3Key,
-          imageUrl: ref.imageUrl ? `${ref.imageUrl.substring(0, 50)}...` : 'MISSING',
-          hasImageUrl: !!ref.imageUrl
+        angleImages: angleImages.map((img: any, idx: number) => ({
+          index: idx,
+          url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
+          s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
+          source: img.metadata?.source,
+          angle: img.metadata?.angle || img.angle,
+          hasUrl: !!img.url
         })),
         userImagesCount: userImages.length,
+        angleImageObjectsCount: angleImageObjects.length,
         canGenerateAngles,
         canExport3D
       });
     }
-  }, [isOpen, asset.id, asset.angleReferences, assetImages.length, userImages.length]);
+  }, [isOpen, asset.id, assetImages.length, creationImages.length, angleImages.length]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -182,17 +208,8 @@ export default function AssetDetailModal({
     }
   };
   
-  const angleImages = (asset.angleReferences || []).map((ref, idx) => ({
-    id: ref.id || `angle-${idx}`,
-    imageUrl: ref.imageUrl,
-    label: `${asset.name} - ${ref.angle}`,
-    isBase: false,
-    s3Key: ref.s3Key,
-    isAngleReference: true,
-    angleRef: ref
-  }));
-  
-  const allImages = [...userImages, ...angleImages];
+  // Combined for main display (all images)
+  const allImages = [...userImages, ...angleImageObjects];
 
   const handleSave = async () => {
     setSaving(true);
@@ -605,18 +622,18 @@ export default function AssetDetailModal({
               {activeTab === 'references' && (
                 <div className="p-6 space-y-6">
                   {/* 🔥 SEPARATION: Production Hub Images - Angle References (Editable/Deletable) */}
-                  {angleImages.length > 0 && (
+                  {angleImageObjects.length > 0 && (
                     <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#8B5CF6]/20">
                         <div>
                           <h3 className="text-sm font-semibold text-[#8B5CF6] mb-1">
-                            Production Hub Images ({angleImages.length})
+                            Production Hub Images ({angleImageObjects.length})
                           </h3>
                           <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {angleImages.map((img) => {
+                        {angleImageObjects.map((img) => {
                           // All angleImages are Production Hub images (editable/deletable)
                           return (
                             <div
@@ -663,49 +680,36 @@ export default function AssetDetailModal({
                                             return;
                                           }
                                           
-                                          // Remove from angleReferences if it's an angle reference
+                                          // 🔥 FIX: Remove from images array (both Creation and Production Hub images are in images array now)
+                                          // Filter by s3Key to remove the deleted image
+                                          const updatedImages = assetImages.filter((assetImg: any) => {
+                                            const imgS3Key = assetImg.s3Key || assetImg.metadata?.s3Key;
+                                            return imgS3Key !== img.s3Key;
+                                          });
+                                          
+                                          // Also update angleReferences if it's an angle reference (for backward compatibility)
+                                          let updatedAngleReferences = asset.angleReferences || [];
                                           if (img.isAngleReference) {
-                                            const updatedAngleReferences = (asset.angleReferences || []).filter(
+                                            updatedAngleReferences = updatedAngleReferences.filter(
                                               (ref: any) => ref.s3Key !== img.s3Key
                                             );
-                                            
-                                            // Update asset via API
-                                            const response = await fetch(`/api/asset-bank/${asset.id}`, {
-                                              method: 'PUT',
-                                              headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${token}`,
-                                              },
-                                              body: JSON.stringify({
-                                                angleReferences: updatedAngleReferences
-                                              }),
-                                            });
-                                            
-                                            if (!response.ok) {
-                                              throw new Error('Failed to delete angle reference');
-                                            }
-                                          } else {
-                                            // Remove from images array (user-uploaded but created in Production Hub)
-                                            const updatedImages = assetImages.filter((assetImg: any) => {
-                                              const imgS3Key = assetImg.s3Key || assetImg.metadata?.s3Key;
-                                              return imgS3Key !== img.s3Key;
-                                            });
-                                            
-                                            // Update asset via API
-                                            const response = await fetch(`/api/asset-bank/${asset.id}`, {
-                                              method: 'PUT',
-                                              headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${token}`,
-                                              },
-                                              body: JSON.stringify({
-                                                images: updatedImages
-                                              }),
-                                            });
-                                            
-                                            if (!response.ok) {
-                                              throw new Error('Failed to delete image');
-                                            }
+                                          }
+                                          
+                                          // Update asset via API
+                                          const response = await fetch(`/api/asset-bank/${asset.id}`, {
+                                            method: 'PUT',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              'Authorization': `Bearer ${token}`,
+                                            },
+                                            body: JSON.stringify({
+                                              images: updatedImages,
+                                              angleReferences: updatedAngleReferences // Update for backward compatibility
+                                            }),
+                                          });
+                                          
+                                          if (!response.ok) {
+                                            throw new Error('Failed to delete image');
                                           }
                                           
                                           // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub

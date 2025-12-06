@@ -205,6 +205,7 @@ export function CharacterDetailModal({
     outfitName: string;
     index: number;
     poseId?: string; // Pose definition ID for regeneration
+    metadata?: any; // Preserve metadata for deletion logic
   };
 
   // 🔥 CRITICAL FIX: All images in poseReferences are AI-generated poses
@@ -233,20 +234,24 @@ export function CharacterDetailModal({
     const poseId = refObj?.metadata?.poseId || contextImage?.metadata?.poseId;
     
     // Handle both string and object formats for poseReferences
-    const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+    // 🔥 FIX: Extract s3Key from multiple possible locations (same as deletion logic)
+    const refS3Key = typeof ref === 'string' 
+      ? ref 
+      : (ref.s3Key || (ref as any).metadata?.s3Key);
     const refId = typeof ref === 'string' ? `pose_${refS3Key}` : ref.id;
     const refImageUrl = typeof ref === 'string' ? '' : ref.imageUrl;
     
     return {
       id: refId,
       imageUrl: refImageUrl, // Will be populated from context or generated presigned URL
-      s3Key: refS3Key,
+      s3Key: refS3Key, // 🔥 FIX: Now correctly extracts from ref.s3Key or ref.metadata.s3Key
       label: (typeof ref === 'string' ? 'Pose' : ref.label) || 'Pose',
       isBase: false,
       isPose: true,
       outfitName: outfitName, // Store outfit name for grouping
       index: -1, // Will be set below
-      poseId: poseId // Store poseId for regeneration
+      poseId: poseId, // Store poseId for regeneration
+      metadata: refObj?.metadata // Preserve all metadata for deletion logic
     };
   });
   
@@ -333,15 +338,8 @@ export function CharacterDetailModal({
     return defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
   }, [posesByOutfit]);
   
-  // Selected outfit tab state
+  // Selected outfit tab state - null means show all outfits
   const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);
-  
-  // Set default outfit when poses change
-  useEffect(() => {
-    if (outfitNames.length > 0 && !selectedOutfit) {
-      setSelectedOutfit(outfitNames[0]);
-    }
-  }, [outfitNames, selectedOutfit]);
   
   // Combined for main display (all images, not grouped)
   const allImages = [...userReferences, ...poseReferences];
@@ -1149,32 +1147,42 @@ export function CharacterDetailModal({
                         </div>
                       </div>
                       
-                      {/* Production Hub Images - Organized by Outfit in Separate Rows */}
-                      {outfitNames.map((outfitName) => {
-                        const outfitPoses = posesByOutfit[outfitName] || [];
-                        if (outfitPoses.length === 0) return null;
-                        
-                        let outfitDisplayName: string;
-                        if (outfitName === 'default') {
-                          outfitDisplayName = physicalAttributes?.typicalClothing 
-                            ? physicalAttributes.typicalClothing
-                            : 'Default Outfit';
-                        } else {
-                          outfitDisplayName = outfitName
-                            .split('-')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                        }
-                        
-                        return (
-                          <div key={outfitName} className="mb-6 last:mb-0">
-                            <div className="mb-3 pb-2 border-b border-[#8B5CF6]/20">
-                              <h4 className="text-sm font-semibold text-[#8B5CF6]">
-                                {outfitDisplayName} <span className="text-[#6B7280] font-normal">({outfitPoses.length})</span>
-                              </h4>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                              {outfitPoses.map((img) => {
+                      {/* Outfit Dropdown Selector - Show one outfit at a time */}
+                      {outfitNames.length > 1 && (
+                        <div className="mb-4">
+                          <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
+                          <select
+                            value={selectedOutfit || ''}
+                            onChange={(e) => setSelectedOutfit(e.target.value || null)}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none"
+                          >
+                            <option value="">All Outfits ({poseReferences.length})</option>
+                            {outfitNames.map((outfitName) => {
+                              const outfitPoses = posesByOutfit[outfitName] || [];
+                              let outfitDisplayName: string;
+                              if (outfitName === 'default') {
+                                outfitDisplayName = physicalAttributes?.typicalClothing 
+                                  ? physicalAttributes.typicalClothing
+                                  : 'Default Outfit';
+                              } else {
+                                outfitDisplayName = outfitName
+                                  .split('-')
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              }
+                              return (
+                                <option key={outfitName} value={outfitName}>
+                                  {outfitDisplayName} ({outfitPoses.length})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      )}
+                      
+                      {/* Production Hub Images Grid - Filtered by selected outfit */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {(selectedOutfit ? posesByOutfit[selectedOutfit] || [] : poseReferences).map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
                           return (
                             <div
@@ -1263,8 +1271,31 @@ export function CharacterDetailModal({
                                         
                                         try {
                                           // 🔥 FIX: Extract s3Key from multiple possible locations
-                                          const imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
+                                          // Check img.s3Key first, then img.metadata.s3Key, then try to extract from poseReferences
+                                          let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
+                                          
+                                          // If still not found, try to find it in character.poseReferences
+                                          if (!imgS3Key && img.id) {
+                                            const poseRef = character.poseReferences?.find((ref: any) => {
+                                              const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
+                                              return refId === img.id;
+                                            });
+                                            if (poseRef) {
+                                              imgS3Key = typeof poseRef === 'string' 
+                                                ? poseRef 
+                                                : (poseRef.s3Key || poseRef.metadata?.s3Key);
+                                            }
+                                          }
+                                          
                                           if (!imgS3Key) {
+                                            console.error('[CharacterDetailModal] Missing S3 key for image:', {
+                                              imgId: img.id,
+                                              imgLabel: img.label,
+                                              imgKeys: Object.keys(img),
+                                              imgS3Key: img.s3Key,
+                                              imgMetadata: (img as any).metadata,
+                                              characterPoseRefs: character.poseReferences
+                                            });
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
@@ -1320,11 +1351,8 @@ export function CharacterDetailModal({
                           </div>
                         </div>
                       );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                        })}
+                      </div>
                     </div>
                   )}
                   

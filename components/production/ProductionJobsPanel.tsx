@@ -819,7 +819,19 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
                   )}
 
                   {/* 🔥 FIX: Display angleReferences for location/asset angle generation jobs - ALWAYS show when present */}
-                  {job.jobType === 'image-generation' && job.results.angleReferences && job.results.angleReferences.length > 0 && (
+                  {/* Debug logging */}
+                  {job.jobType === 'image-generation' && (() => {
+                    console.log('[ProductionJobsPanel] Image generation job results:', {
+                      jobId: job.jobId,
+                      hasResults: !!job.results,
+                      hasAngleReferences: !!job.results?.angleReferences,
+                      angleReferencesCount: job.results?.angleReferences?.length || 0,
+                      angleReferences: job.results?.angleReferences,
+                      allResultsKeys: job.results ? Object.keys(job.results) : []
+                    });
+                    return null;
+                  })()}
+                  {job.jobType === 'image-generation' && job.results?.angleReferences && job.results.angleReferences.length > 0 && (
                     <div className="grid grid-cols-6 gap-1.5 mt-3">
                       {job.results.angleReferences.map((angleRef, index) => (
                         <div
