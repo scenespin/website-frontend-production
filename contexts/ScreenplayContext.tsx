@@ -894,7 +894,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             try {
                 // 🔥 FIX: Use production-hub context to get both referenceImages and poseReferences
                 const charactersData = await listCharacters(screenplayId, getToken, 'production-hub');
-                const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
+                // 🔥 FIX: Use charactersRef.current to avoid stale closures and remove transformCharactersFromAPI from deps
+                const transformedCharacters = transformCharactersFromAPI(charactersData, charactersRef.current);
                 setCharacters(transformedCharacters);
                 console.log('[ScreenplayContext] ✅ Refreshed characters from API:', transformedCharacters.length, 'characters');
                 // Log pose references for debugging
@@ -915,7 +916,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return () => {
             window.removeEventListener('refreshCharacters', handleRefreshCharacters);
         };
-    }, [screenplayId, getToken, transformCharactersFromAPI]);
+        // 🔥 FIX: Remove transformCharactersFromAPI from deps - it's a stable useCallback and including it causes hooks mismatch
+    }, [screenplayId, getToken]);
     
     // 🔥 NEW: Listen for location refresh events (e.g., when angle generation completes)
     useEffect(() => {
@@ -948,7 +950,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         return () => {
             window.removeEventListener('refreshLocations', handleRefreshLocations);
         };
-    }, [screenplayId, getToken, transformLocationsFromAPI]);
+        // 🔥 FIX: Remove transformLocationsFromAPI from deps - it's a stable useCallback and including it causes hooks mismatch
+    }, [screenplayId, getToken]);
     
     // 🔥 NEW: Listen for asset refresh events (e.g., when angle generation completes)
     useEffect(() => {
