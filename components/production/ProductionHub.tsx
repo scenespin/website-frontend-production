@@ -174,7 +174,7 @@ export function ProductionHub({}: ProductionHubProps) {
           return;
         }
         
-        const response = await fetch(`/api/workflows/list?projectId=${projectId}&status=running&limit=100`, {
+        const response = await fetch(`/api/workflows/list?projectId=${screenplayId}&status=running&limit=100`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
