@@ -127,6 +127,23 @@ export function LocationDetailModal({
   // Backend LocationBankService already enriches angleVariations with imageUrl and all metadata
   const angleVariations = location.angleVariations || [];
   
+  // 🔥 DEBUG: Log angleVariations when location prop changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[LocationDetailModal] Location prop updated:', {
+        locationId: location.locationId,
+        locationName: location.name,
+        angleVariationsCount: angleVariations.length,
+        angleVariations: angleVariations.map(v => ({
+          id: v.id,
+          angle: v.angle,
+          s3Key: v.s3Key,
+          imageUrl: v.imageUrl ? `${v.imageUrl.substring(0, 50)}...` : 'MISSING'
+        }))
+      });
+    }
+  }, [isOpen, location.locationId, location.angleVariations?.length, angleVariations.length]);
+  
   // Convert angleVariations to image objects for gallery
   const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [...allCreationImages];
   

@@ -115,13 +115,9 @@ export function LocationBankPanel({
       
       setLocations(locationsList);
       
-      // 🔥 FIX: If selectedLocation is open, refresh it with fresh data
-      if (selectedLocationId) {
-        const refreshedLocation = locationsList.find((l: LocationProfile) => l.locationId === selectedLocationId);
-        if (refreshedLocation) {
-          // Location will be updated when modal re-renders
-        }
-      }
+      // 🔥 FIX: If selectedLocation is open, the modal will automatically re-render with fresh data
+      // because it uses locations.find() which will get the updated location from locationsList
+      // No need to explicitly update - React will handle the re-render when locations state changes
       
       console.log('[LocationBankPanel] ✅ Fetched locations from Location Bank API:', locationsList.length, 'locations');
     } catch (error) {
@@ -233,7 +229,7 @@ export function LocationBankPanel({
       {showLocationDetail && selectedLocationId && (() => {
         const selectedLocation = locations.find(l => l.locationId === selectedLocationId);
         return selectedLocation ? (
-          <LocationDetailModal
+            <LocationDetailModal
             location={selectedLocation}
             isOpen={showLocationDetail}
             onClose={() => {
@@ -279,6 +275,8 @@ export function LocationBankPanel({
                 
                 // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
                 
+                // 🔥 FIX: Refresh locations from API (same pattern as CharacterBankPanel)
+                await fetchLocations();
                 if (onLocationsUpdate) {
                   onLocationsUpdate();
                 }
