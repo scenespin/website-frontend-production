@@ -501,9 +501,15 @@ export function CharacterBankPanel({
               }
               
               // Handle poseReferences array - convert CharacterReference[] to s3Key[]
+              // Backend accepts both string[] (s3Keys) and object[] (with s3Key property)
               if (updates.poseReferences !== undefined) {
                 apiUpdates.poseReferences = updates.poseReferences
-                  .map((ref: any) => typeof ref === 'string' ? ref : ref.s3Key)
+                  .map((ref: any) => {
+                    // If it's already a string (s3Key), return it
+                    if (typeof ref === 'string') return ref;
+                    // If it's an object, extract s3Key
+                    return ref.s3Key || ref.metadata?.s3Key;
+                  })
                   .filter(Boolean);
               }
               

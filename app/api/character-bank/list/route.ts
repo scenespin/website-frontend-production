@@ -31,11 +31,11 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('projectId') || 'default';
+    const screenplayId = searchParams.get('screenplayId') || searchParams.get('projectId') || 'default';
 
-    // Forward request to backend
+    // Forward request to backend (backend accepts both screenplayId and projectId for backward compatibility)
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-    const url = `${backendUrl}/api/character-bank/list?projectId=${projectId}`;
+    const url = `${backendUrl}/api/character-bank/list?screenplayId=${screenplayId}`;
 
     const response = await fetch(url, {
       method: 'GET',

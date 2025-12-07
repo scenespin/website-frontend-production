@@ -1175,10 +1175,18 @@ export function CharacterDetailModal({
                                       <DropdownMenuItem
                                         onClick={async (e) => {
                                           e.stopPropagation();
-                                          const poseId = 'poseId' in img ? img.poseId : undefined;
-                                          const outfitName = 'outfitName' in img ? img.outfitName : 'default';
+                                          // 🔥 FIX: Extract poseId and s3Key from multiple possible locations
+                                          const poseId = 'poseId' in img ? img.poseId : (img as any).metadata?.poseId;
+                                          const outfitName = 'outfitName' in img ? img.outfitName : (img as any).metadata?.outfitName || 'default';
+                                          const imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
                                           
-                                          if (!poseId || !img.s3Key) {
+                                          if (!poseId || !imgS3Key) {
+                                            console.error('[CharacterDetailModal] Missing pose information:', {
+                                              poseId,
+                                              s3Key: imgS3Key,
+                                              imgKeys: Object.keys(img),
+                                              imgMetadata: (img as any).metadata
+                                            });
                                             toast.error('Missing pose information for regeneration');
                                             return;
                                           }
@@ -1197,7 +1205,7 @@ export function CharacterDetailModal({
                                               },
                                               body: JSON.stringify({
                                                 poseId: poseId,
-                                                existingPoseS3Key: img.s3Key,
+                                                existingPoseS3Key: imgS3Key,
                                                 outfitName: outfitName
                                               })
                                             });
