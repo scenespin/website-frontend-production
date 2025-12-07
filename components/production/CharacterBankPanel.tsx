@@ -79,7 +79,10 @@ export function CharacterBankPanel({
   const fetchCharacters = useCallback(async () => {
     if (!screenplayId) return; // Early return inside function is OK
     
-    setIsLoading(true);
+    // 🔥 FIX: Defer setIsLoading to prevent React error #300
+    setTimeout(() => {
+      setIsLoading(true);
+    }, 0);
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
