@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   
+  // Enable source maps for better error debugging (shows unminified errors)
+  productionBrowserSourceMaps: true,
+  
   // Force new build ID to invalidate cache
   generateBuildId: async () => {
     return `build-${Date.now()}`;

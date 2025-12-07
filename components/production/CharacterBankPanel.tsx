@@ -102,20 +102,23 @@ export function CharacterBankPanel({
       const data = await response.json();
       const charactersList = data.characters || data.data?.characters || [];
       
-      // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-      startTransition(() => {
-        setCharacters(charactersList);
-        
-        // 🔥 FIX: If selectedCharacter is open, refresh it with fresh data
-        if (selectedCharacterId) {
-          const refreshedCharacter = charactersList.find((c: CharacterProfile) => c.id === selectedCharacterId);
-          if (!refreshedCharacter) {
-            // Character was deleted, close modal
-            setSelectedCharacterId(null);
-            setShowCharacterDetail(false);
+      // 🔥 FIX: Defer state updates using setTimeout to prevent React error #300
+      // This ensures state updates happen after the current render cycle completes
+      setTimeout(() => {
+        startTransition(() => {
+          setCharacters(charactersList);
+          
+          // 🔥 FIX: If selectedCharacter is open, refresh it with fresh data
+          if (selectedCharacterId) {
+            const refreshedCharacter = charactersList.find((c: CharacterProfile) => c.id === selectedCharacterId);
+            if (!refreshedCharacter) {
+              // Character was deleted, close modal
+              setSelectedCharacterId(null);
+              setShowCharacterDetail(false);
+            }
           }
-        }
-      });
+        });
+      }, 0);
       
       console.log('[CharacterBankPanel] ✅ Fetched characters from Character Bank API:', charactersList.length, 'characters');
     } catch (error) {
