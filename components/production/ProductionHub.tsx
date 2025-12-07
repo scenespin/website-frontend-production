@@ -355,7 +355,7 @@ export function ProductionHub({}: ProductionHubProps) {
               <OverviewTab 
                 projectId={screenplayId}
                 onStartExample={handleStartExample}
-                onNavigate={setActiveTab}
+                onNavigate={handleTabChange}
                 onOpenChat={() => openDrawer('workflows')}
                 isMobile={true}
               />
@@ -564,7 +564,7 @@ export function ProductionHub({}: ProductionHubProps) {
             <OverviewTab 
               projectId={screenplayId}
               onStartExample={handleStartExample}
-              onNavigate={setActiveTab}
+              onNavigate={handleTabChange}
               onOpenChat={() => openDrawer('workflows')}
               isMobile={false}
             />
