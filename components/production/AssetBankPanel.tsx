@@ -45,6 +45,11 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   const [show3DExportModal, setShow3DExportModal] = useState(false);
   const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
   
+  // 🔥 FIX: Store assets in local state for Production Hub (not just ScreenplayContext)
+  // Production Hub should have its own asset state, not rely on Creation section's context
+  // ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN
+  const [localAssets, setLocalAssets] = useState<Asset[]>([]);
+  
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
     return (
@@ -56,10 +61,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
       </div>
     );
   }
-
-  // 🔥 FIX: Store assets in local state for Production Hub (not just ScreenplayContext)
-  // Production Hub should have its own asset state, not rely on Creation section's context
-  const [localAssets, setLocalAssets] = useState<Asset[]>([]);
 
   // 🔥 FIX: Use local assets (Production Hub) with fallback to context assets (Creation section)
   // Production Hub should have its own state, but can show Creation section assets as read-only
