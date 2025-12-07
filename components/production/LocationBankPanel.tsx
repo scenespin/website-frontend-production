@@ -1,56 +1,28 @@
 'use client';
 
 /**
- * Location Bank Panel - Feature 0098 Phase 3
+ * Location Bank Panel - Simplified React Query Version
  * 
- * Manages location references for consistent location rendering
- * REDESIGNED to match CharacterBankPanel exactly for UI consistency
+ * Production Hub Simplification Plan - Phase 1
+ * Reduced from ~358 lines to ~200 lines using React Query
  */
 
-import React, { useState, useEffect, startTransition } from 'react';
+import React, { useState } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
-
-// Location Profile from Location Bank API (Feature 0142: Unified storage)
-interface LocationReference {
-  id: string;
-  locationId: string;
-  imageUrl: string;
-  s3Key: string;
-  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
-  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
-  weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
-  generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
-  creditsUsed: number;
-  createdAt: string;
-}
-
-interface LocationProfile {
-  locationId: string;
-  screenplayId: string;
-  projectId: string; // Backward compatibility
-  name: string;
-  type: 'interior' | 'exterior' | 'mixed';
-  description: string;
-  baseReference: LocationReference;
-  angleVariations: LocationReference[];
-  totalCreditsSpent?: number;
-  consistencyRating?: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import { useLocations, type LocationProfile } from '@/hooks/useLocationBank';
 
 interface LocationBankPanelProps {
-  // Removed projectId prop - screenplayId comes from ScreenplayContext
   className?: string;
-  locations?: LocationProfile[]; // Locations from Location Bank API
-  isLoading?: boolean; // Loading state
-  onLocationsUpdate?: () => void; // Callback to refresh locations
+  locations?: LocationProfile[];
+  isLoading?: boolean;
+  onLocationsUpdate?: () => void;
 }
 
 export function LocationBankPanel({
@@ -59,46 +31,26 @@ export function LocationBankPanel({
   isLoading: propsIsLoading = false,
   onLocationsUpdate
 }: LocationBankPanelProps) {
-  // 🔥 FIX: Get screenplayId from context instead of props
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
-  
   const { getToken } = useAuth();
-  const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
-  const [isLoading, setIsLoading] = useState(propsIsLoading);
+  const queryClient = useQueryClient();
+
+  // React Query for fetching locations
+  const { data: locations = propsLocations, isLoading: queryLoading } = useLocations(
+    screenplayId || '',
+    !!screenplayId
+  );
+
+  const isLoading = queryLoading || propsIsLoading;
+
+  // Local UI state only
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [showLocationDetail, setShowLocationDetail] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
-  
-  // 🔥 SIMPLIFIED: Fetch locations directly from Location Bank API (like AssetBankPanel)
-  // ✅ FIX: All hooks must be called BEFORE early return
-  useEffect(() => {
-    if (screenplayId) {
-      fetchLocations();
-    }
-  }, [screenplayId]);
-  
-  // 🔥 NEW: Listen for location refresh events (e.g., when angle generation completes)
-  useEffect(() => {
-    if (!screenplayId) return;
-    
-    const handleRefreshLocations = async () => {
-      console.log('[LocationBankPanel] Refreshing locations due to refreshLocations event');
-      await fetchLocations();
-      // If a location detail modal is open, refresh the selected location
-      if (selectedLocationId) {
-        await fetchLocations();
-      }
-    };
-    
-    window.addEventListener('refreshLocations', handleRefreshLocations);
-    return () => {
-      window.removeEventListener('refreshLocations', handleRefreshLocations);
-    };
-  }, [screenplayId, selectedLocationId]);
-  
-  // 🔥 CRITICAL: Early return AFTER all hooks are called
+
+  // Early return after all hooks
   if (!screenplayId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -109,57 +61,8 @@ export function LocationBankPanel({
       </div>
     );
   }
-  
-  const fetchLocations = async () => {
-    setTimeout(() => {
-      setIsLoading(true);
-    }, 0);
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        console.log('[LocationBankPanel] No auth token available');
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 0);
-        return;
-      }
-      
-      // 🔥 SIMPLIFIED: Fetch from Location Bank API directly (backend already provides angleVariations)
-      const response = await fetch(`/api/location-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch locations');
-      }
-      
-      const data = await response.json();
-      const locationsList = data.locations || data.data?.locations || [];
-      
-      // 🔥 FIX: Defer state updates to prevent React error #300
-      setTimeout(() => {
-        startTransition(() => {
-          setLocations(locationsList);
-        });
-      }, 0);
-      
-      // 🔥 FIX: If selectedLocation is open, the modal will automatically re-render with fresh data
-      // because it uses locations.find() which will get the updated location from locationsList
-      // No need to explicitly update - React will handle the re-render when locations state changes
-      
-      console.log('[LocationBankPanel] ✅ Fetched locations from Location Bank API:', locationsList.length, 'locations');
-    } catch (error) {
-      console.error('[LocationBankPanel] Failed to fetch locations:', error);
-    } finally {
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 0);
-    }
-  };
 
-  // Open angle generation modal
+  // Helper functions
   function handleGenerateAngles(locationId: string) {
     const location = locations.find(l => l.locationId === locationId);
     if (location) {
@@ -167,7 +70,45 @@ export function LocationBankPanel({
       setShowAngleModal(true);
     }
   }
-  
+
+  async function updateLocation(locationId: string, updates: Partial<LocationProfile>) {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const apiUpdates: any = {};
+      
+      if (updates.angleVariations !== undefined) {
+        apiUpdates.angleVariations = updates.angleVariations;
+      }
+      if (updates.name !== undefined) apiUpdates.name = updates.name;
+      if (updates.description !== undefined) apiUpdates.description = updates.description;
+      if (updates.type !== undefined) apiUpdates.type = updates.type;
+
+      const response = await fetch(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiUpdates),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update location: ${response.status}`);
+      }
+
+      toast.success('Location updated successfully');
+      // Invalidate React Query cache
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+      if (onLocationsUpdate) onLocationsUpdate();
+    } catch (error: any) {
+      console.error('[LocationBank] Failed to update location:', error);
+      toast.error(`Failed to update location: ${error.message}`);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center h-full ${className}`}>
@@ -175,15 +116,15 @@ export function LocationBankPanel({
       </div>
     );
   }
-  
+
+  const selectedLocation = locations.find(l => l.locationId === selectedLocationId);
+
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-[#FFFFFF]">
-            Location Bank
-          </h2>
+          <h2 className="text-lg font-semibold text-[#FFFFFF]">Location Bank</h2>
         </div>
         <p className="text-xs text-[#808080]">
           {locations.length} location{locations.length !== 1 ? 's' : ''}
@@ -194,20 +135,16 @@ export function LocationBankPanel({
       {locations.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <MapPin className="w-12 h-12 text-[#808080] mb-3" />
-          <p className="text-sm font-medium text-[#B3B3B3] mb-1">
-            No locations yet
-          </p>
+          <p className="text-sm font-medium text-[#B3B3B3] mb-1">No locations yet</p>
           <p className="text-xs text-[#808080] mb-4">
             Locations can only be added in the Create section. Use this panel to view and edit existing locations.
           </p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          {/* Location Cards Grid - Smaller cards with more spacing */}
           <div className="p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {locations.map((location) => {
-                // Convert baseReference and angleVariations to CinemaCardImage format
                 const allReferences: CinemaCardImage[] = [];
                 
                 if (location.baseReference) {
@@ -226,7 +163,6 @@ export function LocationBankPanel({
                   });
                 });
 
-                // Determine location type for badge
                 const locationType = location.type;
                 const typeLabel = location.type === 'interior' ? 'INT.' : 
                                  location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
@@ -258,81 +194,26 @@ export function LocationBankPanel({
       )}
       
       {/* Location Detail Modal */}
-      {showLocationDetail && selectedLocationId && (() => {
-        const selectedLocation = locations.find(l => l.locationId === selectedLocationId);
-        return selectedLocation ? (
-            <LocationDetailModal
-            location={selectedLocation}
-            isOpen={showLocationDetail}
-            onClose={() => {
-              setShowLocationDetail(false);
-              setSelectedLocationId(null);
-            }}
-            onUpdate={async (locationId, updates) => {
-              // 🔥 FIX: Update LocationProfile via Location Bank API (not ScreenplayContext)
-              // Production Hub changes should NOT sync back to Creation section
-              try {
-                const token = await getToken({ template: 'wryda-backend' });
-                if (!token) {
-                  throw new Error('Not authenticated');
-                }
-                
-                // Convert LocationProfile updates to API format
-                const apiUpdates: any = {};
-                
-                // Handle angleVariations - pass directly (Location Bank API expects LocationReference[])
-                if (updates.angleVariations !== undefined) {
-                  apiUpdates.angleVariations = updates.angleVariations;
-                }
-                
-                // Handle other fields
-                if (updates.name !== undefined) apiUpdates.name = updates.name;
-                if (updates.description !== undefined) apiUpdates.description = updates.description;
-                if (updates.type !== undefined) apiUpdates.type = updates.type;
-                
-                // Call Location Bank API with screenplayId in query params
-                const response = await fetch(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(apiUpdates),
-                });
-                
-                if (!response.ok) {
-                  const errorData = await response.json().catch(() => ({}));
-                  throw new Error(errorData.error || `Failed to update location: ${response.status}`);
-                }
-                
-                // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
-                
-                // 🔥 FIX: Refresh locations from API (same pattern as CharacterBankPanel)
-                await fetchLocations();
-                if (onLocationsUpdate) {
-                  onLocationsUpdate();
-                }
-                toast.success('Location updated successfully');
-              } catch (error: any) {
-                console.error('[LocationBank] Failed to update location:', error);
-                toast.error(`Failed to update location: ${error.message}`);
-              }
-            }}
-            onUploadImage={async (locationId, file) => {
-              // TODO: Implement location image upload via Location Bank API
-              toast.info('Location image upload coming soon');
-            }}
-            onGenerate3D={async (locationId) => {
-              // TODO: Implement 3D generation
-              toast.info('3D generation coming soon');
-            }}
-            onGenerateAngles={async (locationId) => {
-              // Open angle generation modal
-              handleGenerateAngles(locationId);
-            }}
-          />
-        ) : null;
-      })()}
+      {showLocationDetail && selectedLocation && (
+        <LocationDetailModal
+          location={selectedLocation}
+          isOpen={showLocationDetail}
+          onClose={() => {
+            setShowLocationDetail(false);
+            setSelectedLocationId(null);
+          }}
+          onUpdate={updateLocation}
+          onUploadImage={async (locationId, file) => {
+            toast.info('Location image upload coming soon');
+          }}
+          onGenerate3D={async (locationId) => {
+            toast.info('3D generation coming soon');
+          }}
+          onGenerateAngles={async (locationId) => {
+            handleGenerateAngles(locationId);
+          }}
+        />
+      )}
       
       {/* Location Angle Generation Modal */}
       {showAngleModal && angleLocation && (
@@ -346,10 +227,12 @@ export function LocationBankPanel({
           locationName={angleLocation.name}
           projectId={screenplayId}
           locationProfile={angleLocation}
-          onComplete={async (result) => {
-            // Job started - modal already closed, job runs in background
-            // User can track progress in Jobs tab
-            // Location data will refresh automatically when job completes (via ProductionJobsPanel)
+          onComplete={async () => {
+            // Job started - refresh locations after delay
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+              if (onLocationsUpdate) onLocationsUpdate();
+            }, 5000);
           }}
         />
       )}

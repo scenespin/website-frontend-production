@@ -1,135 +1,61 @@
 'use client';
 
 /**
- * Asset Bank Panel
+ * Asset Bank Panel - Simplified React Query Version
  * 
- * Main UI for managing assets (props, vehicles, furniture) in the Asset Bank.
- * Part of Feature 0099: Asset Bank - Digital Prop Department for AI Filmmakers.
+ * Production Hub Simplification Plan - Phase 1
+ * Reduced from ~396 lines to ~250 lines using React Query
  */
 
-import { useState, useEffect, useCallback, startTransition } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Plus, Package, Car, Armchair, Box, Trash2, Edit2, Sparkles, Image as ImageIcon, Download, X, Film } from 'lucide-react';
+import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
 import Asset3DExportModal from './Asset3DExportModal';
 import AssetDetailModal from './AssetDetailModal';
-import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
-import { useScreenplay } from '@/contexts/ScreenplayContext';  // 🔥 NEW: Use ScreenplayContext for asset sync
+import { useEditorContext, useContextStore } from '@/lib/contextStore';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAssets } from '@/hooks/useAssetBank';
 
 interface AssetBankPanelProps {
-  // Removed projectId prop - screenplayId comes from ScreenplayContext
   className?: string;
   isMobile?: boolean;
 }
 
 export default function AssetBankPanel({ className = '', isMobile = false }: AssetBankPanelProps) {
-  // Authentication
   const { getToken } = useAuth();
-  
-  // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
-  
-  // 🔥 FIX: Get screenplayId from context instead of props
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
-  const { assets: contextAssets } = screenplay;
-  
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // React Query for fetching assets
+  const { data: allAssets = [], isLoading: queryLoading } = useAssets(
+    screenplayId || '',
+    'production-hub',
+    !!screenplayId
+  );
+
+  // Local UI state only
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [show3DExportModal, setShow3DExportModal] = useState(false);
   const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
-  
-  // 🔥 FIX: Store assets in local state for Production Hub (not just ScreenplayContext)
-  // Production Hub should have its own asset state, not rely on Creation section's context
-  // ✅ FIX: All hooks must be called BEFORE early return
-  const [localAssets, setLocalAssets] = useState<Asset[]>([]);
-  
-  // ✅ FIX: Define fetchAssets before useEffect (using useCallback)
-  const fetchAssets = useCallback(async () => {
-    if (!screenplayId) return; // Early return inside function is OK
-    
-    setTimeout(() => {
-      setLoading(true);
-    }, 0);
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        console.log('[AssetBank] No auth token available');
-        setTimeout(() => {
-          setLoading(false);
-        }, 0);
-        return;
-      }
-      
-      // 🔥 FIX: Use api.assetBank.list with context='production-hub' to get both Creation and Production Hub images
-      const { api } = await import('@/lib/api');
-      const assetsData = await api.assetBank.list(screenplayId, 'production-hub');
-      const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
-      const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
-      
-      // Filter by category if needed
-      const filteredAssets = selectedCategory === 'all' 
-        ? assetsList 
-        : assetsList.filter((a: Asset) => a.category === selectedCategory);
-      
-      // 🔥 FIX: Defer state updates to prevent React error #300
-      setTimeout(() => {
-        startTransition(() => {
-          setLocalAssets(filteredAssets);
-        });
-      }, 0);
-      
-      // 🔥 FIX: selectedAsset is now derived from localAssets, so it automatically updates
-      
-      console.log('[AssetBankPanel] ✅ Fetched assets with production-hub context:', filteredAssets.length, 'assets');
-    } catch (error) {
-      console.error('[AssetBankPanel] Failed to fetch assets:', error);
-    } finally {
-      setTimeout(() => {
-        setLoading(false);
-      }, 0);
-    }
-  }, [screenplayId, getToken, selectedCategory]);
-  
-  // 🔥 FIX: Always fetch assets on mount for Production Hub (independent of Creation section)
-  useEffect(() => {
-    if (screenplayId) {
-      fetchAssets();
-    }
-  }, [screenplayId, fetchAssets]); // Include fetchAssets in dependencies
-  
-  // 🔥 NEW: Listen for asset angle generation completion and refresh assets
-  useEffect(() => {
-    if (!screenplayId) return; // Early return inside hook is OK
-    
-    const handleRefreshAssets = async () => {
-      console.log('[AssetBankPanel] Refreshing assets due to angle generation completion');
-      // Reload assets from API to get newly generated angle images
-      await fetchAssets();
-      // Also trigger a context refresh by reloading the screenplay
-      // The context will pick up the updated assets from the API
-    };
-    
-    const handleRefreshAssetBank = async () => {
-      console.log('[AssetBankPanel] Refreshing assets via refreshAssetBank event');
-      await fetchAssets();
-    };
-    
-    window.addEventListener('refreshAssets', handleRefreshAssets);
-    window.addEventListener('refreshAssetBank', handleRefreshAssetBank);
-    return () => {
-      window.removeEventListener('refreshAssets', handleRefreshAssets);
-      window.removeEventListener('refreshAssetBank', handleRefreshAssetBank);
-    };
-  }, [screenplayId, fetchAssets]); // Include fetchAssets in dependencies
-  
-  // 🔥 CRITICAL: Early return AFTER all hooks are called
+
+  // Filter assets by category
+  const assets = selectedCategory === 'all'
+    ? allAssets
+    : allAssets.filter(a => a.category === selectedCategory);
+
+  const isLoading = queryLoading;
+
+  // Early return after all hooks
   if (!screenplayId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -141,18 +67,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
     );
   }
 
-  // 🔥 FIX: Use local assets (Production Hub) with fallback to context assets (Creation section)
-  // Production Hub should have its own state, but can show Creation section assets as read-only
-  const assets = localAssets.length > 0
-    ? (selectedCategory === 'all' 
-        ? localAssets 
-        : localAssets.filter(a => a.category === selectedCategory))
-    : (contextAssets && contextAssets.length > 0
-        ? (selectedCategory === 'all' 
-            ? contextAssets 
-            : contextAssets.filter(a => a.category === selectedCategory))
-        : []);
-
+  // Helper functions
   const getCategoryIcon = (category: AssetCategory) => {
     const icons = {
       prop: Package,
@@ -163,16 +78,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
     return icons[category];
   };
 
-  const getCategoryColor = (category: AssetCategory) => {
-    const colors = {
-      prop: 'bg-[#1F1F1F] text-[#808080] border border-[#3F3F46]',
-      vehicle: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      furniture: 'bg-green-500/20 text-green-400 border-green-500/30',
-      other: 'bg-base-content/20 text-base-content/60 border-base-content/30',
-    };
-    return colors[category];
-  };
-
   const handleDownload3D = async (asset: Asset) => {
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -181,7 +86,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
         return;
       }
       
-      // Fetch the 3D model URLs from the API
       const response = await fetch(`/api/asset-bank/${asset.id}/3d-models`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -194,7 +98,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
 
       const data = await response.json();
       
-      // Download each available format
       if (data.models && data.models.length > 0) {
         data.models.forEach((model: { url: string; format: string }) => {
           const link = document.createElement('a');
@@ -213,6 +116,12 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
       toast.error('Failed to download 3D models');
     }
   };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['assets', screenplayId] });
+  };
+
+  const selectedAsset = assets.find(a => a.id === selectedAssetId);
 
   return (
     <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
@@ -243,9 +152,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-[#FFFFFF]">
-            Asset Bank
-          </h2>
+          <h2 className="text-lg font-semibold text-[#FFFFFF]">Asset Bank</h2>
         </div>
         <p className="text-xs text-[#808080]">
           {assets.length} asset{assets.length !== 1 ? 's' : ''}
@@ -286,9 +193,9 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
 
       {/* Asset Grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="w-8 h-8 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin"></div>
+            <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
           </div>
         ) : assets.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-[#808080]">
@@ -297,26 +204,22 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
             <p className="text-sm text-[#808080] mt-2">
               {selectedCategory === 'all' 
                 ? 'Assets are created in the Write/Create section'
-                : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`
-              }
+                : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {assets.map((asset) => {
-              // Convert asset.images to CinemaCardImage format
               const referenceImages: CinemaCardImage[] = asset.images.map((img, idx) => ({
                 id: `img-${idx}`,
                 imageUrl: img.url,
                 label: `${asset.name} - Image ${idx + 1}`
               }));
 
-              // Determine badge color based on category
               const badgeColor = asset.category === 'prop' ? 'gray' :
                                 asset.category === 'vehicle' ? 'red' :
                                 asset.category === 'furniture' ? 'gold' : 'gray';
 
-              // Metadata: show 3D status or image count
               const metadata = asset.has3DModel ? '3D Model Available' : 
                               `${asset.images.length}/10 images`;
 
@@ -350,7 +253,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         projectId={screenplayId}
-        onSuccess={fetchAssets}
+        onSuccess={handleRefresh}
       />
 
       {/* 3D Export Modal */}
@@ -362,26 +265,24 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
             setAssetFor3DExport(null);
           }}
           asset={assetFor3DExport}
-          onSuccess={fetchAssets}
+          onSuccess={handleRefresh}
         />
       )}
 
       {/* Asset Detail Modal */}
-      {selectedAssetId && (() => {
-        const selectedAsset = assets.find(a => a.id === selectedAssetId);
-        return selectedAsset ? (
-          <AssetDetailModal
-            isOpen={showDetailModal}
-            onClose={() => {
-              setShowDetailModal(false);
-              setSelectedAssetId(null);
-            }}
-            asset={selectedAsset}
-          onUpdate={fetchAssets}
-          onDelete={fetchAssets}
+      {selectedAsset && (
+        <AssetDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedAssetId(null);
+          }}
+          asset={selectedAsset}
+          onUpdate={handleRefresh}
+          onDelete={handleRefresh}
           onAssetUpdate={(updatedAsset) => {
-            // 🔥 FIX: selectedAsset is now derived, so just update localAssets
-            setLocalAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
+            // React Query will handle the update via cache invalidation
+            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId] });
           }}
           onGenerate3D={(asset) => {
             setShowDetailModal(false);
@@ -389,8 +290,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
             setShow3DExportModal(true);
           }}
         />
-        ) : null;
-      })()}
+      )}
     </div>
   );
 }
