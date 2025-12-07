@@ -10,7 +10,7 @@
  * - Generation controls
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { CharacterProfile } from './types';
 import type { Character } from '@/types/screenplay';
 import { 
@@ -75,45 +75,10 @@ export function CharacterBankPanel({
   });
   
   // 🔥 SIMPLIFIED: Fetch characters directly from Character Bank API (like LocationBankPanel/AssetBankPanel)
-  // ✅ FIX: All hooks must be called BEFORE early return
-  useEffect(() => {
-    if (screenplayId) {
-      fetchCharacters();
-    }
-  }, [screenplayId]);
-  
-  // 🔥 NEW: Listen for character refresh events (e.g., when pose generation completes)
-  useEffect(() => {
-    if (!screenplayId) return;
+  // ✅ FIX: Define fetchCharacters BEFORE useEffect hooks using useCallback to prevent React error #300
+  const fetchCharacters = useCallback(async () => {
+    if (!screenplayId) return; // Early return inside function is OK
     
-    const handleRefreshCharacters = async () => {
-      console.log('[CharacterBankPanel] Refreshing characters due to refreshCharacters event');
-      await fetchCharacters();
-      // If a character detail modal is open, refresh the selected character
-      if (selectedCharacterId) {
-        await fetchCharacters();
-      }
-    };
-    
-    window.addEventListener('refreshCharacters', handleRefreshCharacters);
-    return () => {
-      window.removeEventListener('refreshCharacters', handleRefreshCharacters);
-    };
-  }, [screenplayId, selectedCharacterId]);
-  
-  // 🔥 CRITICAL: Early return AFTER all hooks are called
-  if (!screenplayId) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-gray-400 text-sm">Loading characters...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  const fetchCharacters = async () => {
     setIsLoading(true);
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -142,29 +107,43 @@ export function CharacterBankPanel({
       // 🔥 FIX: If selectedCharacter is open, refresh it with fresh data
       if (selectedCharacterId) {
         const refreshedCharacter = charactersList.find((c: CharacterProfile) => c.id === selectedCharacterId);
-        if (refreshedCharacter) {
-          // Character will be updated when modal re-renders
+        if (!refreshedCharacter) {
+          // Character was deleted, close modal
+          setSelectedCharacterId(null);
+          setShowCharacterDetail(false);
         }
       }
       
       console.log('[CharacterBankPanel] ✅ Fetched characters from Character Bank API:', charactersList.length, 'characters');
     } catch (error) {
       console.error('[CharacterBankPanel] Failed to fetch characters:', error);
+      toast.error('Failed to load characters');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [screenplayId, getToken, selectedCharacterId]);
 
-  const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+  // ✅ FIX: All hooks must be called BEFORE early return
+  useEffect(() => {
+    if (screenplayId) {
+      fetchCharacters();
+    }
+  }, [screenplayId, fetchCharacters]);
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className={`flex items-center justify-center h-full ${className}`}>
-        <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
-      </div>
-    );
-  }
+  // 🔥 NEW: Listen for character refresh events (e.g., when pose generation completes)
+  useEffect(() => {
+    if (!screenplayId) return;
+    
+    const handleRefreshCharacters = async () => {
+      console.log('[CharacterBankPanel] Refreshing characters due to refreshCharacters event');
+      await fetchCharacters();
+    };
+    
+    window.addEventListener('refreshCharacters', handleRefreshCharacters);
+    return () => {
+      window.removeEventListener('refreshCharacters', handleRefreshCharacters);
+    };
+  }, [screenplayId, fetchCharacters]);
 
   // Check if advanced features are available (silent check)
   useEffect(() => {
@@ -186,6 +165,20 @@ export function CharacterBankPanel({
     checkAdvancedFeatures();
   }, [getToken]);
 
+  // 🔥 CRITICAL: Early return AFTER all hooks are called
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading characters...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+
   // Load performance settings when character is selected
   useEffect(() => {
     if (selectedCharacter) {
@@ -196,6 +189,15 @@ export function CharacterBankPanel({
       });
     }
   }, [selectedCharacter]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center h-full ${className}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
+      </div>
+    );
+  }
 
   // Save performance settings when they change
   useEffect(() => {

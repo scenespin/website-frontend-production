@@ -293,8 +293,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) return;
         
-        // Load characters from Character Bank
-        const response = await fetch(`/api/characters/bank/${projectId}`, {
+        // Load characters from Character Bank (use new endpoint format)
+        const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(projectId)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
