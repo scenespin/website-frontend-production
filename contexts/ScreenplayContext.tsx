@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode, startTransition } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
@@ -929,7 +929,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Use production-hub context to get both referenceImages and angleVariations
                 const locationsData = await listLocations(screenplayId, getToken, 'production-hub');
                 const transformedLocations = transformLocationsFromAPI(locationsData);
-                setLocations(transformedLocations);
+                // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                startTransition(() => {
+                    setLocations(transformedLocations);
+                });
                 console.log('[ScreenplayContext] ✅ Refreshed locations from API:', transformedLocations.length, 'locations');
                 // Log angle references for debugging
                 transformedLocations.forEach((loc: any) => {
@@ -972,34 +975,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }));
                 
                 // Merge with current state (same logic as initializeData)
-                setAssets(prev => {
-                    const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
-                    const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
-                    
-                    // Merge with current state to preserve recent updates
-                    const merged = [...filteredApiAssets];
-                    const currentStateAssets = prev.filter(a => {
-                        if (deletedAssetIdsRef.current.has(a.id)) return false;
-                        const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-                        const now = Date.now();
-                        return (now - updatedAt) < 300000; // 5 minutes
-                    });
-                    
-                    for (const currentAsset of currentStateAssets) {
-                        const existing = merged.find(a => a.id === currentAsset.id);
-                        if (!existing) {
-                            merged.push(currentAsset);
-                        } else {
-                            const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-                            const currentUpdatedAt = currentAsset.updatedAt ? new Date(currentAsset.updatedAt).getTime() : 0;
-                            if (currentUpdatedAt > existingUpdatedAt + 1000) {
-                                const index = merged.indexOf(existing);
-                                merged[index] = currentAsset;
+                // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                startTransition(() => {
+                    setAssets(prev => {
+                        const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
+                        const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
+                        
+                        // Merge with current state to preserve recent updates
+                        const merged = [...filteredApiAssets];
+                        const currentStateAssets = prev.filter(a => {
+                            if (deletedAssetIdsRef.current.has(a.id)) return false;
+                            const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                            const now = Date.now();
+                            return (now - updatedAt) < 300000; // 5 minutes
+                        });
+                        
+                        for (const currentAsset of currentStateAssets) {
+                            const existing = merged.find(a => a.id === currentAsset.id);
+                            if (!existing) {
+                                merged.push(currentAsset);
+                            } else {
+                                const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                                const currentUpdatedAt = currentAsset.updatedAt ? new Date(currentAsset.updatedAt).getTime() : 0;
+                                if (currentUpdatedAt > existingUpdatedAt + 1000) {
+                                    const index = merged.indexOf(existing);
+                                    merged[index] = currentAsset;
+                                }
                             }
                         }
-                    }
-                    
-                    return merged;
+                        
+                        return merged;
+                    });
                 });
                 
                 console.log('[ScreenplayContext] ✅ Refreshed assets from API');
@@ -1149,7 +1155,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Transform and set characters
                     // 🔥 FIX: Pass existing characters to preserve angle metadata when reloading
                     const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
-                    setCharacters(transformedCharacters);
+                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                    startTransition(() => {
+                        setCharacters(transformedCharacters);
+                    });
                     console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Character names:', transformedCharacters.map(c => c.name));
                     
@@ -1161,7 +1170,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         address: l.address, 
                         hasAddress: !!l.address 
                     })));
-                    setLocations(transformedLocations);
+                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                    startTransition(() => {
+                        setLocations(transformedLocations);
+                    });
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
@@ -1197,60 +1209,62 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                     }
                     
-                    setAssets(prev => {
-                        // Filter out deleted assets from API response (eventual consistency protection)
-                        const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
-                        
-                        // Get IDs of assets from filtered API response
-                        const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
-                        
-                        // 🔥 CRITICAL FIX: Load ALL recently updated assets from sessionStorage
-                        // This includes both newly created AND recently updated assets
-                        // The sessionStorage is updated by both createAsset and updateAsset
-                        const sessionStorageAssets: Asset[] = [];
-                        if (screenplayId && typeof window !== 'undefined') {
-                            try {
-                                const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
-                                if (stored) {
-                                    const storedAssets = JSON.parse(stored) as Asset[];
-                                    const now = Date.now();
-                                    // Include assets that were created OR updated recently (within last 5 minutes)
-                                    sessionStorageAssets.push(...storedAssets.filter(a => {
-                                        // Use updatedAt if available (for updated assets), otherwise createdAt (for new assets)
-                                        const timestamp = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
-                                        const age = now - timestamp;
-                                        return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
-                                    }));
-                                    console.log('[ScreenplayContext] 📦 Loaded', sessionStorageAssets.length, 'assets from sessionStorage (includes updated assets)');
+                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                    startTransition(() => {
+                        setAssets(prev => {
+                            // Filter out deleted assets from API response (eventual consistency protection)
+                            const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
+                            
+                            // Get IDs of assets from filtered API response
+                            const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
+                            
+                            // 🔥 CRITICAL FIX: Load ALL recently updated assets from sessionStorage
+                            // This includes both newly created AND recently updated assets
+                            // The sessionStorage is updated by both createAsset and updateAsset
+                            const sessionStorageAssets: Asset[] = [];
+                            if (screenplayId && typeof window !== 'undefined') {
+                                try {
+                                    const stored = sessionStorage.getItem(`optimistic-assets-${screenplayId}`);
+                                    if (stored) {
+                                        const storedAssets = JSON.parse(stored) as Asset[];
+                                        const now = Date.now();
+                                        // Include assets that were created OR updated recently (within last 5 minutes)
+                                        sessionStorageAssets.push(...storedAssets.filter(a => {
+                                            // Use updatedAt if available (for updated assets), otherwise createdAt (for new assets)
+                                            const timestamp = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+                                            const age = now - timestamp;
+                                            return age < 300000; // 5 minutes (300 seconds) - accounts for GSI eventual consistency
+                                        }));
+                                        console.log('[ScreenplayContext] 📦 Loaded', sessionStorageAssets.length, 'assets from sessionStorage (includes updated assets)');
+                                    }
+                                } catch (e) {
+                                    console.warn('[ScreenplayContext] Failed to load assets from sessionStorage:', e);
                                 }
-                            } catch (e) {
-                                console.warn('[ScreenplayContext] Failed to load assets from sessionStorage:', e);
-                            }
-                        }
-                        
-                        // Combine prev state and sessionStorage assets
-                        // 🔥 CRITICAL: prev might be empty if state was reset, so sessionStorage is crucial
-                        const allOptimistic = [...prev, ...sessionStorageAssets];
-                        
-                        // Find assets that aren't in API response OR have been updated more recently
-                        // This includes both newly created assets and recently updated assets
-                        const optimisticAssets = allOptimistic.filter(a => {
-                            if (deletedAssetIdsRef.current.has(a.id)) {
-                                return false; // Was deleted, don't keep
                             }
                             
-                            // Check if asset exists in API response
-                            const apiAsset = filteredApiAssets.find(api => api.id === a.id);
-                            if (!apiAsset) {
-                                // Asset not in API - keep if recently created (within last 5 minutes)
-                                const createdAt = new Date(a.createdAt).getTime();
-                                const now = Date.now();
-                                const age = now - createdAt;
-                                return age < 300000; // 5 minutes - handles GSI eventual consistency
-                            } else {
-                                // Asset exists in API - keep if our version is newer (updated more recently)
-                                const apiUpdatedAt = apiAsset.updatedAt ? new Date(apiAsset.updatedAt).getTime() : 0;
-                                const ourUpdatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+                            // Combine prev state and sessionStorage assets
+                            // 🔥 CRITICAL: prev might be empty if state was reset, so sessionStorage is crucial
+                            const allOptimistic = [...prev, ...sessionStorageAssets];
+                            
+                            // Find assets that aren't in API response OR have been updated more recently
+                            // This includes both newly created assets and recently updated assets
+                            const optimisticAssets = allOptimistic.filter(a => {
+                                if (deletedAssetIdsRef.current.has(a.id)) {
+                                    return false; // Was deleted, don't keep
+                                }
+                                
+                                // Check if asset exists in API response
+                                const apiAsset = filteredApiAssets.find(api => api.id === a.id);
+                                if (!apiAsset) {
+                                    // Asset not in API - keep if recently created (within last 5 minutes)
+                                    const createdAt = new Date(a.createdAt).getTime();
+                                    const now = Date.now();
+                                    const age = now - createdAt;
+                                    return age < 300000; // 5 minutes - handles GSI eventual consistency
+                                } else {
+                                    // Asset exists in API - keep if our version is newer (updated more recently)
+                                    const apiUpdatedAt = apiAsset.updatedAt ? new Date(apiAsset.updatedAt).getTime() : 0;
+                                    const ourUpdatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
                                 const isNewer = ourUpdatedAt > apiUpdatedAt + 1000; // More than 1 second newer
                                 
                                 if (isNewer) {
@@ -1450,6 +1464,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         });
                         
                         return unique;
+                        });
                     });
                     console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API (filtered', assetsList.length - normalizedAssets.length, 'soft-deleted)');
                     
