@@ -158,7 +158,6 @@ export default function AssetDetailModal({
           hasUrl: !!img.url
         })),
         userImagesCount: userImages.length,
-        angleImageObjectsCount: angleImageObjects.length,
         canGenerateAngles,
         canExport3D
       });
