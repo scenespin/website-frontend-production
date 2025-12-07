@@ -7,7 +7,7 @@
  * Part of Feature 0099: Asset Bank - Digital Prop Department for AI Filmmakers.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Plus, Package, Car, Armchair, Box, Trash2, Edit2, Sparkles, Image as ImageIcon, Download, X, Film } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
@@ -47,64 +47,13 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   
   // 🔥 FIX: Store assets in local state for Production Hub (not just ScreenplayContext)
   // Production Hub should have its own asset state, not rely on Creation section's context
-  // ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN
+  // ✅ FIX: All hooks must be called BEFORE early return
   const [localAssets, setLocalAssets] = useState<Asset[]>([]);
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
-  if (!screenplayId) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-gray-400 text-sm">Loading assets...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🔥 FIX: Use local assets (Production Hub) with fallback to context assets (Creation section)
-  // Production Hub should have its own state, but can show Creation section assets as read-only
-  const assets = localAssets.length > 0
-    ? (selectedCategory === 'all' 
-        ? localAssets 
-        : localAssets.filter(a => a.category === selectedCategory))
-    : (contextAssets && contextAssets.length > 0
-        ? (selectedCategory === 'all' 
-            ? contextAssets 
-            : contextAssets.filter(a => a.category === selectedCategory))
-        : []);
-
-  // 🔥 FIX: Always fetch assets on mount for Production Hub (independent of Creation section)
-  useEffect(() => {
-    if (screenplayId) {
-      fetchAssets();
-    }
-  }, [screenplayId]); // Only fetch when screenplayId changes
-  
-  // 🔥 NEW: Listen for asset angle generation completion and refresh assets
-  useEffect(() => {
-    const handleRefreshAssets = async () => {
-      console.log('[AssetBankPanel] Refreshing assets due to angle generation completion');
-      // Reload assets from API to get newly generated angle images
-      await fetchAssets();
-      // Also trigger a context refresh by reloading the screenplay
-      // The context will pick up the updated assets from the API
-    };
+  // ✅ FIX: Define fetchAssets before useEffect (using useCallback)
+  const fetchAssets = useCallback(async () => {
+    if (!screenplayId) return; // Early return inside function is OK
     
-    const handleRefreshAssetBank = async () => {
-      console.log('[AssetBankPanel] Refreshing assets via refreshAssetBank event');
-      await fetchAssets();
-    };
-    
-    window.addEventListener('refreshAssets', handleRefreshAssets);
-    window.addEventListener('refreshAssetBank', handleRefreshAssetBank);
-    return () => {
-      window.removeEventListener('refreshAssets', handleRefreshAssets);
-      window.removeEventListener('refreshAssetBank', handleRefreshAssetBank);
-    };
-  }, [screenplayId]);
-  
-  const fetchAssets = async () => {
     setLoading(true);
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -136,7 +85,63 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
     } finally {
       setLoading(false);
     }
-  };
+  }, [screenplayId, getToken, selectedCategory]);
+  
+  // 🔥 FIX: Always fetch assets on mount for Production Hub (independent of Creation section)
+  useEffect(() => {
+    if (screenplayId) {
+      fetchAssets();
+    }
+  }, [screenplayId, fetchAssets]); // Include fetchAssets in dependencies
+  
+  // 🔥 NEW: Listen for asset angle generation completion and refresh assets
+  useEffect(() => {
+    if (!screenplayId) return; // Early return inside hook is OK
+    
+    const handleRefreshAssets = async () => {
+      console.log('[AssetBankPanel] Refreshing assets due to angle generation completion');
+      // Reload assets from API to get newly generated angle images
+      await fetchAssets();
+      // Also trigger a context refresh by reloading the screenplay
+      // The context will pick up the updated assets from the API
+    };
+    
+    const handleRefreshAssetBank = async () => {
+      console.log('[AssetBankPanel] Refreshing assets via refreshAssetBank event');
+      await fetchAssets();
+    };
+    
+    window.addEventListener('refreshAssets', handleRefreshAssets);
+    window.addEventListener('refreshAssetBank', handleRefreshAssetBank);
+    return () => {
+      window.removeEventListener('refreshAssets', handleRefreshAssets);
+      window.removeEventListener('refreshAssetBank', handleRefreshAssetBank);
+    };
+  }, [screenplayId, fetchAssets]); // Include fetchAssets in dependencies
+  
+  // 🔥 CRITICAL: Early return AFTER all hooks are called
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading assets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 FIX: Use local assets (Production Hub) with fallback to context assets (Creation section)
+  // Production Hub should have its own state, but can show Creation section assets as read-only
+  const assets = localAssets.length > 0
+    ? (selectedCategory === 'all' 
+        ? localAssets 
+        : localAssets.filter(a => a.category === selectedCategory))
+    : (contextAssets && contextAssets.length > 0
+        ? (selectedCategory === 'all' 
+            ? contextAssets 
+            : contextAssets.filter(a => a.category === selectedCategory))
+        : []);
 
   const getCategoryIcon = (category: AssetCategory) => {
     const icons = {

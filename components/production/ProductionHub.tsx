@@ -108,20 +108,7 @@ export function ProductionHub({}: ProductionHubProps) {
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
   
-  // 🔥 CRITICAL: Don't render child components until screenplayId is available (after all hooks are called)
-  if (!screenplayId) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading screenplay...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Location bank state - REMOVED: Now using screenplay.locations from context like characters
-
+  // ✅ FIX: All hooks must be called BEFORE early return
   // Sync activeTab with URL params
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
@@ -130,22 +117,7 @@ export function ProductionHub({}: ProductionHubProps) {
     }
   }, [searchParams]);
 
-  // Update URL when activeTab changes
-  const handleTabChange = (tab: ProductionTab) => {
-    setActiveTab(tab);
-    const newUrl = new URL(window.location.href);
-    if (tab === 'overview') {
-      newUrl.searchParams.delete('tab');
-    } else {
-      newUrl.searchParams.set('tab', tab);
-    }
-    window.history.pushState({}, '', newUrl.toString());
-  };
-
-  // ============================================================================
-  // RESPONSIVE DETECTION
-  // ============================================================================
-
+  // Responsive detection
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -156,16 +128,10 @@ export function ProductionHub({}: ProductionHubProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // ============================================================================
-  // LOCATIONS - Now using screenplay.locations from context (like characters)
-  // Feature 0142: Location Bank Unification - Locations persist via ScreenplayContext
-  // ============================================================================
-
-  // ============================================================================
-  // POLL FOR ACTIVE JOBS
-  // ============================================================================
-
+  // Poll for active jobs
   useEffect(() => {
+    if (!screenplayId) return; // Early return inside hook is OK
+    
     const fetchActiveJobs = async () => {
       try {
         const token = await getToken({ template: 'wryda-backend' });
@@ -200,6 +166,32 @@ export function ProductionHub({}: ProductionHubProps) {
     
     return () => clearInterval(interval);
   }, [screenplayId, getToken]);
+  
+  // 🔥 CRITICAL: Early return AFTER all hooks are called
+  if (!screenplayId) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading screenplay...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Location bank state - REMOVED: Now using screenplay.locations from context like characters
+
+  // Update URL when activeTab changes
+  const handleTabChange = (tab: ProductionTab) => {
+    setActiveTab(tab);
+    const newUrl = new URL(window.location.href);
+    if (tab === 'overview') {
+      newUrl.searchParams.delete('tab');
+    } else {
+      newUrl.searchParams.set('tab', tab);
+    }
+    window.history.pushState({}, '', newUrl.toString());
+  };
 
   // ============================================================================
   // TAB CONFIGURATION
