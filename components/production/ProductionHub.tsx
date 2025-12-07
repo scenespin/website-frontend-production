@@ -20,7 +20,7 @@
  * Build: 2024-11-09-10:30 UTC (cache bust)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -104,9 +104,18 @@ export function ProductionHub({}: ProductionHubProps) {
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
   
+  // 🔥 FIX: Use ref to prevent circular updates when we programmatically change the tab
+  const isUpdatingTabRef = useRef(false);
+  
   // ✅ FIX: All hooks must be called BEFORE early return
   // Sync activeTab with URL params (prevent circular updates and React error #300)
   useEffect(() => {
+    // Skip if we're in the middle of programmatically updating the tab
+    if (isUpdatingTabRef.current) {
+      isUpdatingTabRef.current = false;
+      return;
+    }
+    
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     if (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) {
       // Only update if different to prevent React error #300 (circular updates)
@@ -183,16 +192,21 @@ export function ProductionHub({}: ProductionHubProps) {
 
   // Update URL when activeTab changes (use Next.js router to prevent React error #300)
   const handleTabChange = (tab: ProductionTab) => {
+    // 🔥 FIX: Set flag to prevent useEffect from running when we update the tab programmatically
+    isUpdatingTabRef.current = true;
     setActiveTab(tab);
     // Use Next.js router to update URL (prevents React error #300 from synchronous URL updates)
-    const newUrl = new URL(window.location.href);
-    if (tab === 'overview') {
-      newUrl.searchParams.delete('tab');
-    } else {
-      newUrl.searchParams.set('tab', tab);
-    }
-    // Use router.push instead of window.history.pushState to let Next.js handle it properly
-    router.push(newUrl.pathname + newUrl.search, { scroll: false });
+    // Use setTimeout to ensure router.push happens after state update, preventing render conflicts
+    setTimeout(() => {
+      const newUrl = new URL(window.location.href);
+      if (tab === 'overview') {
+        newUrl.searchParams.delete('tab');
+      } else {
+        newUrl.searchParams.set('tab', tab);
+      }
+      // Use router.push instead of window.history.pushState to let Next.js handle it properly
+      router.push(newUrl.pathname + newUrl.search, { scroll: false });
+    }, 0);
   };
 
   // ============================================================================
