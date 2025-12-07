@@ -597,7 +597,7 @@ export function CharacterBankPanel({
             
             // Refresh character data after delay to catch completed poses
             // Jobs panel will show progress, Character Bank will update when poses are saved
-            setTimeout(() => {
+            setTimeout(async () => {
               // 🔥 SIMPLIFIED: Refresh characters from API
               await fetchCharacters();
               if (onCharactersUpdate) onCharactersUpdate();
