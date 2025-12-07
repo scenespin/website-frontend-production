@@ -267,20 +267,30 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   useEffect(() => {
     if (sceneDescription.trim()) {
       const detected = detectDialogue(sceneDescription);
-      setHasDialogue(detected.hasDialogue);
-      
-      // If dialogue detected and no character selected, try to extract character name
-      if (detected.hasDialogue && !selectedCharacterId && detected.characterName) {
-        // Try to find matching character
-        const matchingChar = characters.find(c => 
-          c.name?.toLowerCase() === detected.characterName?.toLowerCase()
-        );
-        if (matchingChar) {
-          setSelectedCharacterId(matchingChar.id);
-        }
-      }
+      // 🔥 FIX: Defer state updates to prevent React error #300
+      setTimeout(() => {
+        startTransition(() => {
+          setHasDialogue(detected.hasDialogue);
+          
+          // If dialogue detected and no character selected, try to extract character name
+          if (detected.hasDialogue && !selectedCharacterId && detected.characterName) {
+            // Try to find matching character
+            const matchingChar = characters.find(c => 
+              c.name?.toLowerCase() === detected.characterName?.toLowerCase()
+            );
+            if (matchingChar) {
+              setSelectedCharacterId(matchingChar.id);
+            }
+          }
+        });
+      }, 0);
     } else {
-      setHasDialogue(false);
+      // 🔥 FIX: Defer state update to prevent React error #300
+      setTimeout(() => {
+        startTransition(() => {
+          setHasDialogue(false);
+        });
+      }, 0);
     }
   }, [sceneDescription, characters, selectedCharacterId]);
   
