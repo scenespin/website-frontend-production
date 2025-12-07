@@ -194,11 +194,15 @@ export function CharacterBankPanel({
   // Load performance settings when character is selected
   useEffect(() => {
     if (selectedCharacter) {
-      // Load from character profile if available
-      setPerformanceSettings(selectedCharacter.performanceSettings || {
-        facialPerformance: 1.0,
-        animationStyle: 'full-body'
-      });
+      // 🔥 FIX: Defer setPerformanceSettings to prevent React error #300
+      setTimeout(() => {
+        startTransition(() => {
+          setPerformanceSettings(selectedCharacter.performanceSettings || {
+            facialPerformance: 1.0,
+            animationStyle: 'full-body'
+          });
+        });
+      }, 0);
     }
   }, [selectedCharacter]);
 
