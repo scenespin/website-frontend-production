@@ -97,23 +97,23 @@ export function ProductionHub({}: ProductionHubProps) {
   const screenplayId = screenplay.screenplayId;
   
   // State - sync with URL params (ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN)
-  const [activeTab, setActiveTab] = useState<ProductionTab>(() => {
-    const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
-    return (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) 
-      ? tabFromUrl 
-      : 'overview';
-  });
+  // 🔥 FIX: Initialize with default, then sync from URL in useEffect to prevent React error #300
+  const [activeTab, setActiveTab] = useState<ProductionTab>('overview');
   const [isMobile, setIsMobile] = useState(false);
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
   
   // ✅ FIX: All hooks must be called BEFORE early return
-  // Sync activeTab with URL params
+  // Sync activeTab with URL params (prevent circular updates and React error #300)
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     if (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl);
+      // Only update if different to prevent React error #300 (circular updates)
+      setActiveTab(prevTab => prevTab !== tabFromUrl ? tabFromUrl : prevTab);
+    } else {
+      // If no tab in URL, set to 'overview' (but only if not already 'overview' to prevent unnecessary updates)
+      setActiveTab(prevTab => prevTab !== 'overview' ? 'overview' : prevTab);
     }
   }, [searchParams]);
 
@@ -181,16 +181,18 @@ export function ProductionHub({}: ProductionHubProps) {
   
   // Location bank state - REMOVED: Now using screenplay.locations from context like characters
 
-  // Update URL when activeTab changes
+  // Update URL when activeTab changes (use Next.js router to prevent React error #300)
   const handleTabChange = (tab: ProductionTab) => {
     setActiveTab(tab);
+    // Use Next.js router to update URL (prevents React error #300 from synchronous URL updates)
     const newUrl = new URL(window.location.href);
     if (tab === 'overview') {
       newUrl.searchParams.delete('tab');
     } else {
       newUrl.searchParams.set('tab', tab);
     }
-    window.history.pushState({}, '', newUrl.toString());
+    // Use router.push instead of window.history.pushState to let Next.js handle it properly
+    router.push(newUrl.pathname + newUrl.search, { scroll: false });
   };
 
   // ============================================================================
