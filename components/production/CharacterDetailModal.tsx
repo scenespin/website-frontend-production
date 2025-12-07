@@ -37,7 +37,7 @@ interface CharacterDetailModalProps {
   onClose: () => void;
   onUpdate: (characterId: string, updates: Partial<CharacterProfile>) => void;
   onDelete?: (characterId: string) => void;
-  projectId: string;
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
   onUploadImage?: (characterId: string, file: File) => Promise<void>;
   onGenerate3D?: (characterId: string) => Promise<void>;
   onGenerateVariations?: (characterId: string) => Promise<void>;
@@ -53,7 +53,6 @@ export function CharacterDetailModal({
   onClose,
   onUpdate,
   onDelete,
-  projectId,
   onUploadImage,
   onGenerate3D,
   onGenerateVariations,
@@ -63,9 +62,16 @@ export function CharacterDetailModal({
   onPerformanceSettingsChange
 }: CharacterDetailModalProps) {
   const { getToken } = useAuth();
-  const { updateCharacter, characters, isEntityInScript } = useScreenplay(); // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  const { updateCharacter, characters, isEntityInScript } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available
+  if (!screenplayId) {
+    return null;
+  }
   
   // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
   const charactersRef = useRef(characters);
@@ -232,7 +238,8 @@ export function CharacterDetailModal({
   // 🔥 FIX: Query Media Library to get actual outfit folder names
   // Media Library organizes as: Characters/[Character Name]/Outfits/[Outfit Name]/
   // Always call the hook (React rules), but disable the query when modal is closed
-  const { data: mediaFiles = [] } = useMediaFiles(projectId || '', undefined, isOpen && !!projectId);
+  // 🔥 FIX: No more empty string fallback - screenplayId is guaranteed to exist at this point
+  const { data: mediaFiles = [] } = useMediaFiles(screenplayId, undefined, isOpen && !!screenplayId);
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
@@ -1198,7 +1205,7 @@ export function CharacterDetailModal({
                                           
                                           try {
                                             const token = await getToken({ template: 'wryda-backend' });
-                                            const response = await fetch(`/api/projects/${projectId}/characters/${character.id}/regenerate-pose`, {
+                                            const response = await fetch(`/api/projects/${screenplayId}/characters/${character.id}/regenerate-pose`, {
                                               method: 'POST',
                                               headers: {
                                                 'Content-Type': 'application/json',
@@ -1217,7 +1224,7 @@ export function CharacterDetailModal({
                                             }
                                             
                                             toast.success('Pose regeneration started. Check the Jobs panel for progress.');
-                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                             await onUpdate(character.id, {});
                                           } catch (error: any) {
                                             console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
@@ -1316,7 +1323,7 @@ export function CharacterDetailModal({
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                           toast.success('Image deleted');
                                         } catch (error: any) {
                                           console.error('[CharacterDetailModal] Failed to delete image:', error);
@@ -1402,7 +1409,7 @@ export function CharacterDetailModal({
             setShow3DModal(false);
           }}
           character={character}
-          projectId={projectId}
+          projectId={screenplayId}
           onSuccess={() => {
             setShow3DModal(false);
             // Optionally refresh character data

@@ -71,7 +71,7 @@ type ProductionTab =
   // Note: AI Chat is now a drawer (not a tab) - triggered from various buttons
 
 interface ProductionHubProps {
-  projectId: string;
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
 }
 
 interface TabConfig {
@@ -86,15 +86,27 @@ interface TabConfig {
 // MAIN COMPONENT
 // ============================================================================
 
-export function ProductionHub({ projectId }: ProductionHubProps) {
+export function ProductionHub({}: ProductionHubProps) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const screenplay = useScreenplay();
   const { openDrawer } = useDrawer();
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // 🔥 FIX: Use screenplayId from context (primary) with projectId as fallback (legacy)
-  const screenplayId = screenplay.screenplayId || projectId;
+  // 🔥 FIX: Get screenplayId from context only - no fallbacks, no props
+  const screenplayId = screenplay.screenplayId;
+  
+  // 🔥 CRITICAL: Don't render child components until screenplayId is available
+  if (!screenplayId) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading screenplay...</p>
+        </div>
+      </div>
+    );
+  }
 
   // State - sync with URL params
   const [activeTab, setActiveTab] = useState<ProductionTab>(() => {
@@ -407,7 +419,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto p-4">
-              <ProductionJobsPanel projectId={projectId} />
+              <ProductionJobsPanel projectId={screenplayId} />
             </div>
           )}
         </div>
@@ -557,7 +569,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'scene-builder' && (
             <div className="h-full overflow-y-auto">
               <SceneBuilderPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 isMobile={false}
                 simplified={false}
               />

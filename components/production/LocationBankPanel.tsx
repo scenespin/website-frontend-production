@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
@@ -45,7 +46,7 @@ interface LocationProfile {
 }
 
 interface LocationBankPanelProps {
-  projectId: string;
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
   className?: string;
   locations?: LocationProfile[]; // Locations from Location Bank API
   isLoading?: boolean; // Loading state
@@ -53,12 +54,27 @@ interface LocationBankPanelProps {
 }
 
 export function LocationBankPanel({
-  projectId,
   className = '',
   locations: propsLocations = [],
   isLoading: propsIsLoading = false,
   onLocationsUpdate
 }: LocationBankPanelProps) {
+  // 🔥 FIX: Get screenplayId from context instead of props
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading locations...</p>
+        </div>
+      </div>
+    );
+  }
+  
   const { getToken } = useAuth();
   const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
   const [isLoading, setIsLoading] = useState(propsIsLoading);
@@ -69,11 +85,15 @@ export function LocationBankPanel({
   
   // 🔥 SIMPLIFIED: Fetch locations directly from Location Bank API (like AssetBankPanel)
   useEffect(() => {
-    fetchLocations();
-  }, [projectId]);
+    if (screenplayId) {
+      fetchLocations();
+    }
+  }, [screenplayId]);
   
   // 🔥 NEW: Listen for location refresh events (e.g., when angle generation completes)
   useEffect(() => {
+    if (!screenplayId) return;
+    
     const handleRefreshLocations = async () => {
       console.log('[LocationBankPanel] Refreshing locations due to refreshLocations event');
       await fetchLocations();
@@ -87,7 +107,7 @@ export function LocationBankPanel({
     return () => {
       window.removeEventListener('refreshLocations', handleRefreshLocations);
     };
-  }, [projectId, selectedLocationId]);
+  }, [screenplayId, selectedLocationId]);
   
   const fetchLocations = async () => {
     setIsLoading(true);
@@ -100,7 +120,7 @@ export function LocationBankPanel({
       }
       
       // 🔥 SIMPLIFIED: Fetch from Location Bank API directly (backend already provides angleVariations)
-      const response = await fetch(`/api/location-bank/list?screenplayId=${encodeURIComponent(projectId)}`, {
+      const response = await fetch(`/api/location-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -259,7 +279,7 @@ export function LocationBankPanel({
                 if (updates.type !== undefined) apiUpdates.type = updates.type;
                 
                 // Call Location Bank API with screenplayId in query params
-                const response = await fetch(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(projectId)}`, {
+                const response = await fetch(`/api/location-bank/${locationId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                   method: 'PUT',
                   headers: {
                     'Authorization': `Bearer ${token}`,
@@ -286,7 +306,7 @@ export function LocationBankPanel({
                 toast.error(`Failed to update location: ${error.message}`);
               }
             }}
-            projectId={projectId}
+            projectId={screenplayId}
             onUploadImage={async (locationId, file) => {
               // TODO: Implement location image upload via Location Bank API
               toast.info('Location image upload coming soon');
@@ -313,7 +333,7 @@ export function LocationBankPanel({
           }}
           locationId={angleLocation.locationId}
           locationName={angleLocation.name}
-          projectId={projectId}
+          projectId={screenplayId}
           locationProfile={angleLocation}
           onComplete={async (result) => {
             // Job started - modal already closed, job runs in background

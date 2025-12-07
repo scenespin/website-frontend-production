@@ -5,8 +5,8 @@ import { ProductionHub } from '@/components/production/ProductionHub';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { QueryClientProvider } from '@/providers/QueryClientProvider';
 
-function ProductionHubWrapper({ projectId }) {
-  return <ProductionHub projectId={projectId} />;
+function ProductionHubWrapper() {
+  return <ProductionHub />;
 }
 
 export default function ProductionPageClient() {
@@ -39,7 +39,7 @@ export default function ProductionPageClient() {
           </div>
         </div>
       }>
-        <ProductionHubWrapper projectId={screenplay.screenplayId || 'default'} />
+        <ProductionHubWrapper />
       </Suspense>
     </QueryClientProvider>
   );

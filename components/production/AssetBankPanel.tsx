@@ -20,20 +20,34 @@ import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 
 interface AssetBankPanelProps {
-  projectId: string;
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
   className?: string;
   isMobile?: boolean;
 }
 
-export default function AssetBankPanel({ projectId, className = '', isMobile = false }: AssetBankPanelProps) {
+export default function AssetBankPanel({ className = '', isMobile = false }: AssetBankPanelProps) {
   // Authentication
   const { getToken } = useAuth();
   
   // Contextual navigation - Get current scene context from editor
   const editorContext = useEditorContext();
   
-  // 🔥 FIX: Use ScreenplayContext assets directly for real-time sync (like characters/locations)
-  const { assets: contextAssets } = useScreenplay();
+  // 🔥 FIX: Get screenplayId from context instead of props
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  const { assets: contextAssets } = screenplay;
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading assets...</p>
+        </div>
+      </div>
+    );
+  }
   
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
@@ -61,8 +75,10 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
 
   // 🔥 FIX: Always fetch assets on mount for Production Hub (independent of Creation section)
   useEffect(() => {
-    fetchAssets();
-  }, [projectId]); // Only fetch when projectId changes
+    if (screenplayId) {
+      fetchAssets();
+    }
+  }, [screenplayId]); // Only fetch when screenplayId changes
   
   // 🔥 NEW: Listen for asset angle generation completion and refresh assets
   useEffect(() => {
@@ -85,7 +101,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       window.removeEventListener('refreshAssets', handleRefreshAssets);
       window.removeEventListener('refreshAssetBank', handleRefreshAssetBank);
     };
-  }, [projectId]);
+  }, [screenplayId]);
   
   const fetchAssets = async () => {
     setLoading(true);
@@ -99,7 +115,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       
       // 🔥 FIX: Use api.assetBank.list with context='production-hub' to get both Creation and Production Hub images
       const { api } = await import('@/lib/api');
-      const assetsData = await api.assetBank.list(projectId, 'production-hub');
+      const assetsData = await api.assetBank.list(screenplayId, 'production-hub');
       const assetsResponse = assetsData.assets || assetsData.data?.assets || [];
       const assetsList = Array.isArray(assetsResponse) ? assetsResponse : [];
       
@@ -317,7 +333,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       <AssetUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        projectId={projectId}
+        projectId={screenplayId}
         onSuccess={fetchAssets}
       />
 

@@ -28,11 +28,12 @@ import { PerformanceControls, PerformanceSettings } from '../characters/Performa
 import PoseGenerationModal from '../character-bank/PoseGenerationModal';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { CharacterDetailModal } from './CharacterDetailModal';
 
 interface CharacterBankPanelProps {
-  projectId: string; // Actually screenplayId - kept as projectId for backward compatibility
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
   className?: string;
   characters?: CharacterProfile[]; // Optional - panel will fetch if not provided
   isLoading?: boolean; // Optional - panel manages its own loading state
@@ -40,12 +41,27 @@ interface CharacterBankPanelProps {
 }
 
 export function CharacterBankPanel({
-  projectId,
   className = '',
   characters: propsCharacters = [],
   isLoading: propsIsLoading = false,
   onCharactersUpdate
 }: CharacterBankPanelProps) {
+  
+  // 🔥 FIX: Get screenplayId from context instead of props
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading characters...</p>
+        </div>
+      </div>
+    );
+  }
   
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   const { getToken } = useAuth();
@@ -72,11 +88,15 @@ export function CharacterBankPanel({
 
   // 🔥 SIMPLIFIED: Fetch characters directly from Character Bank API (like LocationBankPanel/AssetBankPanel)
   useEffect(() => {
-    fetchCharacters();
-  }, [projectId]);
+    if (screenplayId) {
+      fetchCharacters();
+    }
+  }, [screenplayId]);
   
   // 🔥 NEW: Listen for character refresh events (e.g., when pose generation completes)
   useEffect(() => {
+    if (!screenplayId) return;
+    
     const handleRefreshCharacters = async () => {
       console.log('[CharacterBankPanel] Refreshing characters due to refreshCharacters event');
       await fetchCharacters();
@@ -90,7 +110,7 @@ export function CharacterBankPanel({
     return () => {
       window.removeEventListener('refreshCharacters', handleRefreshCharacters);
     };
-  }, [projectId, selectedCharacterId]);
+  }, [screenplayId, selectedCharacterId]);
   
   const fetchCharacters = async () => {
     setIsLoading(true);
@@ -103,7 +123,7 @@ export function CharacterBankPanel({
       }
       
       // 🔥 SIMPLIFIED: Fetch from Character Bank API directly (backend already provides poseReferences with presigned URLs)
-      const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(projectId)}`, {
+      const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -188,7 +208,7 @@ export function CharacterBankPanel({
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              screenplayId: projectId, // projectId prop is actually screenplayId
+              screenplayId: screenplayId,
               characterId: selectedCharacter.id,
               performanceSettings
             })
@@ -200,14 +220,14 @@ export function CharacterBankPanel({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [performanceSettings, selectedCharacter, projectId, hasAdvancedFeatures]);
+  }, [performanceSettings, selectedCharacter, screenplayId, hasAdvancedFeatures]);
 
   async function generateReferences(characterId: string) {
     console.log('[CharacterBank] Generate references clicked for character:', characterId);
     setIsGeneratingRefs(prev => ({ ...prev, [characterId]: true }));
     try {
       console.log('[CharacterBank] Calling generate-variations API with:', {
-        screenplayId: projectId,
+        screenplayId: screenplayId,
         characterId,
         variations: ['front', 'profile', 'three-quarter', 'happy', 'sad', 'action']
       });
@@ -219,7 +239,7 @@ export function CharacterBankPanel({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          screenplayId: projectId, // Use screenplayId (projectId prop is actually screenplayId)
+          screenplayId: screenplayId,
           characterId,
           variations: ['front', 'profile', 'three-quarter', 'happy', 'sad', 'action']
         })
@@ -304,7 +324,7 @@ export function CharacterBankPanel({
         `fileName=${encodeURIComponent(file.name)}` +
         `&fileType=${encodeURIComponent(file.type)}` +
         `&fileSize=${file.size}` +
-        `&screenplayId=${encodeURIComponent(projectId)}` +
+        `&screenplayId=${encodeURIComponent(screenplayId)}` +
         `&characterId=${encodeURIComponent(characterId)}`,
         {
           headers: {
@@ -364,7 +384,7 @@ export function CharacterBankPanel({
           },
           body: JSON.stringify({
             s3Key,
-            screenplayId: projectId,
+            screenplayId: screenplayId,
             characterId: characterId,
             fileName: file.name,
             fileType: file.type,
@@ -525,7 +545,7 @@ export function CharacterBankPanel({
               if (updates.physicalAttributes !== undefined) apiUpdates.physicalAttributes = updates.physicalAttributes;
               
               // Call Character Bank API with screenplayId in query params (for new format character IDs)
-              const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(projectId)}`, {
+              const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -551,7 +571,7 @@ export function CharacterBankPanel({
               toast.error(`Failed to update character: ${error.message}`);
             }
           }}
-          projectId={projectId}
+          projectId={screenplayId}
           onUploadImage={async (characterId, file) => {
             await uploadReference(characterId, file);
           }}
@@ -589,7 +609,7 @@ export function CharacterBankPanel({
           }}
           characterId={poseCharacter.id}
           characterName={poseCharacter.name}
-          projectId={projectId}
+          projectId={screenplayId}
           baseReferenceS3Key={poseCharacter.baseReferenceS3Key}
           onComplete={async (result) => {
             // Job is created - generation happens asynchronously
