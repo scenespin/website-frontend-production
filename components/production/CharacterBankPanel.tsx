@@ -192,19 +192,23 @@ export function CharacterBankPanel({
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
 
   // Load performance settings when character is selected
+  // 🔥 FIX: Use selectedCharacterId as dependency instead of selectedCharacter to prevent unnecessary re-runs
   useEffect(() => {
-    if (selectedCharacter) {
-      // 🔥 FIX: Defer setPerformanceSettings to prevent React error #300
-      setTimeout(() => {
-        startTransition(() => {
-          setPerformanceSettings(selectedCharacter.performanceSettings || {
-            facialPerformance: 1.0,
-            animationStyle: 'full-body'
+    if (selectedCharacterId) {
+      const character = characters.find(c => c.id === selectedCharacterId);
+      if (character) {
+        // 🔥 FIX: Defer setPerformanceSettings to prevent React error #300
+        setTimeout(() => {
+          startTransition(() => {
+            setPerformanceSettings(character.performanceSettings || {
+              facialPerformance: 1.0,
+              animationStyle: 'full-body'
+            });
           });
-        });
-      }, 0);
+        }, 0);
+      }
     }
-  }, [selectedCharacter]);
+  }, [selectedCharacterId, characters]);
 
   // Show loading state
   if (isLoading) {

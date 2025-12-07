@@ -11,7 +11,7 @@
  * - Advanced options
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save, Info, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
@@ -104,27 +104,33 @@ export function CharacterDetailModal({
     typicalClothing: undefined
   });
   
+  // 🔥 CRITICAL: All hooks must be called BEFORE early return to prevent React error #300
   // Update state when character changes
   useEffect(() => {
     if (contextCharacter) {
-      setName(contextCharacter.name);
-      setDescription(contextCharacter.description || '');
-      setType(contextCharacter.type);
-      setArcStatus(contextCharacter.arcStatus || 'introduced');
-      setArcNotes(contextCharacter.arcNotes || '');
-      setPhysicalAttributes(contextCharacter.physicalAttributes || {
-        height: undefined,
-        bodyType: undefined,
-        eyeColor: undefined,
-        hairColor: undefined,
-        hairLength: undefined,
-        hairStyle: undefined,
-        typicalClothing: undefined
-      });
+      // 🔥 FIX: Defer all state updates to prevent React error #300
+      setTimeout(() => {
+        startTransition(() => {
+          setName(contextCharacter.name);
+          setDescription(contextCharacter.description || '');
+          setType(contextCharacter.type);
+          setArcStatus(contextCharacter.arcStatus || 'introduced');
+          setArcNotes(contextCharacter.arcNotes || '');
+          setPhysicalAttributes(contextCharacter.physicalAttributes || {
+            height: undefined,
+            bodyType: undefined,
+            eyeColor: undefined,
+            hairColor: undefined,
+            hairLength: undefined,
+            hairStyle: undefined,
+            typicalClothing: undefined
+          });
+        });
+      }, 0);
     }
   }, [contextCharacter]);
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
+  // 🔥 CRITICAL: Early return AFTER all hooks are called
   if (!screenplayId) {
     return null;
   }
