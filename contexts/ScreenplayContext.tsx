@@ -896,7 +896,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const charactersData = await listCharacters(screenplayId, getToken, 'production-hub');
                 // 🔥 FIX: Use charactersRef.current to avoid stale closures and remove transformCharactersFromAPI from deps
                 const transformedCharacters = transformCharactersFromAPI(charactersData, charactersRef.current);
-                setCharacters(transformedCharacters);
+                // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                startTransition(() => {
+                    setCharacters(transformedCharacters);
+                });
                 console.log('[ScreenplayContext] ✅ Refreshed characters from API:', transformedCharacters.length, 'characters');
                 // Log pose references for debugging
                 transformedCharacters.forEach((char: any) => {
@@ -1140,12 +1143,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                     
                     // 🔥 Beats removed - store scenes directly (deduplicated and renumbered)
-                    setScenes(renumberedScenes);
+                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+                    startTransition(() => {
+                        setScenes(renumberedScenes);
+                        // Keep beats as empty UI templates (if needed for backward compatibility)
+                        const defaultBeats = createDefaultBeats();
+                        setBeats(defaultBeats);
+                    });
                     console.log('[ScreenplayContext] ✅ Loaded', renumberedScenes.length, 'scenes directly (beats removed, deduplicated, renumbered)');
-                    
-                    // Keep beats as empty UI templates (if needed for backward compatibility)
-                    const defaultBeats = createDefaultBeats();
-                    setBeats(defaultBeats);
                     
                     // Mark that we loaded scenes from DB to prevent auto-creation
                     if (transformedScenes.length > 0) {
