@@ -199,7 +199,7 @@ export function ProductionHub({}: ProductionHubProps) {
     const interval = setInterval(fetchActiveJobs, 10000);
     
     return () => clearInterval(interval);
-  }, [projectId, getToken]);
+  }, [screenplayId, getToken]);
 
   // ============================================================================
   // TAB CONFIGURATION
