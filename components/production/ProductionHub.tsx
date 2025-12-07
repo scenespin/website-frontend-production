@@ -96,19 +96,7 @@ export function ProductionHub({}: ProductionHubProps) {
   // 🔥 FIX: Get screenplayId from context only - no fallbacks, no props
   const screenplayId = screenplay.screenplayId;
   
-  // 🔥 CRITICAL: Don't render child components until screenplayId is available
-  if (!screenplayId) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading screenplay...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // State - sync with URL params
+  // State - sync with URL params (ALL HOOKS MUST BE CALLED BEFORE EARLY RETURN)
   const [activeTab, setActiveTab] = useState<ProductionTab>(() => {
     const tabFromUrl = searchParams.get('tab') as ProductionTab | null;
     return (tabFromUrl && ['overview', 'scene-builder', 'media', 'characters', 'locations', 'assets', 'jobs'].includes(tabFromUrl)) 
@@ -119,6 +107,18 @@ export function ProductionHub({}: ProductionHubProps) {
   const [showStyleAnalyzer, setShowStyleAnalyzer] = useState(false);
   const [activeJobs, setActiveJobs] = useState<number>(0);
   const [showJobsBanner, setShowJobsBanner] = useState(true);
+  
+  // 🔥 CRITICAL: Don't render child components until screenplayId is available (after all hooks are called)
+  if (!screenplayId) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading screenplay...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Location bank state - REMOVED: Now using screenplay.locations from context like characters
 
