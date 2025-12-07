@@ -92,6 +92,9 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
   const { openDrawer } = useDrawer();
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // 🔥 FIX: Use screenplayId from context (primary) with projectId as fallback (legacy)
+  const screenplayId = screenplay.screenplayId || projectId;
 
   // State - sync with URL params
   const [activeTab, setActiveTab] = useState<ProductionTab>(() => {
@@ -330,7 +333,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'overview' && (
             <div className="h-full overflow-y-auto p-4">
               <OverviewTab 
-                projectId={projectId}
+                projectId={screenplayId}
                 onStartExample={handleStartExample}
                 onNavigate={setActiveTab}
                 onOpenChat={() => openDrawer('workflows')}
@@ -342,7 +345,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'scene-builder' && (
             <div className="h-full overflow-y-auto">
               <SceneBuilderPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 isMobile={true}
                 simplified={true}
               />
@@ -352,7 +355,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'media' && (
             <div className="h-full overflow-y-auto p-4">
               <MediaLibrary
-                projectId={projectId}
+                projectId={screenplayId}
                 onSelectFile={handleMediaSelect}
                 className="mb-4"
               />
@@ -367,7 +370,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
               {showStyleAnalyzer && (
                 <div className="mt-4">
                   <StyleAnalyzer
-                    projectId={projectId}
+                    projectId={screenplayId}
                     onAnalysisComplete={handleStyleAnalysisComplete}
                   />
                 </div>
@@ -378,7 +381,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -387,7 +390,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -396,7 +399,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
               <AssetBankPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -542,7 +545,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'overview' && (
             <div className="h-full overflow-y-auto">
             <OverviewTab 
-              projectId={projectId}
+              projectId={screenplayId}
               onStartExample={handleStartExample}
               onNavigate={setActiveTab}
               onOpenChat={() => openDrawer('workflows')}
@@ -565,7 +568,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
             <div className="h-full overflow-y-auto">
               <div className="p-6">
                 <MediaLibrary
-                  projectId={projectId}
+                  projectId={screenplayId}
                   onSelectFile={handleMediaSelect}
                   className="mb-6"
                 />
@@ -582,7 +585,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
                       </button>
                     </div>
                     <StyleAnalyzer
-                      projectId={projectId}
+                      projectId={screenplayId}
                       onAnalysisComplete={handleStyleAnalysisComplete}
                     />
                   </div>
@@ -594,7 +597,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -603,7 +606,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -612,7 +615,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
               <AssetBankPanel
-                projectId={projectId}
+                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -621,7 +624,7 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto">
               <div className="p-6">
-                <ProductionJobsPanel projectId={projectId} />
+                <ProductionJobsPanel projectId={screenplayId} />
               </div>
             </div>
           )}
