@@ -231,7 +231,8 @@ export function CharacterDetailModal({
   
   // 🔥 FIX: Query Media Library to get actual outfit folder names
   // Media Library organizes as: Characters/[Character Name]/Outfits/[Outfit Name]/
-  const { data: mediaFiles = [] } = useMediaFiles(projectId, undefined, isOpen);
+  // Always call the hook (React rules), but disable the query when modal is closed
+  const { data: mediaFiles = [] } = useMediaFiles(projectId || '', undefined, isOpen && !!projectId);
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
