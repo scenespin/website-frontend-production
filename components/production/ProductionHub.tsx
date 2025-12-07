@@ -393,7 +393,6 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -402,7 +401,6 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
-                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -411,7 +409,6 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
               <AssetBankPanel
-                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -609,7 +606,6 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -618,7 +614,6 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
               <LocationBankPanel
-                projectId={screenplayId}
                 className="h-full"
               />
             </div>
@@ -627,7 +622,6 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
               <AssetBankPanel
-                projectId={screenplayId}
                 className="h-full"
               />
             </div>

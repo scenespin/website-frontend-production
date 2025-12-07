@@ -332,7 +332,6 @@ export function MobileSceneBuilderPanel({ projectId }: MobileSceneBuilderPanelPr
               <CharacterBankPanel
                 characters={characters}
                 isLoading={isLoadingCharacters}
-                projectId={projectId}
                 onCharactersUpdate={loadCharacters}
               />
             </div>
