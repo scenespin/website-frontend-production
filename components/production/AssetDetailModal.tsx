@@ -127,7 +127,7 @@ export default function AssetDetailModal({
     isBase: false,
     s3Key: img.s3Key || img.metadata?.s3Key,
     isAngleReference: true,
-    angle: img.metadata?.angle || img.angle,
+    angle: img.metadata?.angle,
     metadata: img.metadata
   }));
   
