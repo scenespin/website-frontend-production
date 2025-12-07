@@ -10,7 +10,7 @@
  * - Generation controls
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, startTransition } from 'react';
 import type { CharacterProfile } from './types';
 import type { Character } from '@/types/screenplay';
 import { 
@@ -102,17 +102,20 @@ export function CharacterBankPanel({
       const data = await response.json();
       const charactersList = data.characters || data.data?.characters || [];
       
-      setCharacters(charactersList);
-      
-      // 🔥 FIX: If selectedCharacter is open, refresh it with fresh data
-      if (selectedCharacterId) {
-        const refreshedCharacter = charactersList.find((c: CharacterProfile) => c.id === selectedCharacterId);
-        if (!refreshedCharacter) {
-          // Character was deleted, close modal
-          setSelectedCharacterId(null);
-          setShowCharacterDetail(false);
+      // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
+      startTransition(() => {
+        setCharacters(charactersList);
+        
+        // 🔥 FIX: If selectedCharacter is open, refresh it with fresh data
+        if (selectedCharacterId) {
+          const refreshedCharacter = charactersList.find((c: CharacterProfile) => c.id === selectedCharacterId);
+          if (!refreshedCharacter) {
+            // Character was deleted, close modal
+            setSelectedCharacterId(null);
+            setShowCharacterDetail(false);
+          }
         }
-      }
+      });
       
       console.log('[CharacterBankPanel] ✅ Fetched characters from Character Bank API:', charactersList.length, 'characters');
     } catch (error) {
