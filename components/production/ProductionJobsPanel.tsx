@@ -365,7 +365,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   
   /**
    * Watch for completed pose generation jobs and refresh character data
-   * Simplified: Just refresh immediately when job completes
+   * 🔥 FIX: Use setTimeout to defer event dispatch and prevent React error #300
    */
   useEffect(() => {
     const completedPoseJobs = jobs.filter(job => 
@@ -378,16 +378,18 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     if (completedPoseJobs.length > 0) {
       console.log('[ProductionJobsPanel] Pose generation completed, refreshing characters immediately...', completedPoseJobs.length);
       
-      // Refresh immediately - backend should have saved by the time job status is 'completed'
-      window.dispatchEvent(new CustomEvent('refreshCharacters'));
-      
-      // Also invalidate React Query cache for media files
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // 🔥 FIX: Defer event dispatch to prevent React error #300 (state updates during render)
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('refreshCharacters'));
+        // Also invalidate React Query cache for media files
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      }, 0);
     }
   }, [jobs, screenplayId, queryClient]);
   
   /**
    * 🔥 NEW: Watch for completed location/asset angle generation jobs and refresh data
+   * 🔥 FIX: Use setTimeout to defer event dispatch and prevent React error #300
    */
   useEffect(() => {
     const completedAngleJobs = jobs.filter(job => 
@@ -400,12 +402,15 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     
     if (completedAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Angle generation completed, refreshing locations and assets...', completedAngleJobs.length);
-      // Trigger location/asset refresh via window events
-      window.dispatchEvent(new CustomEvent('refreshLocations'));
-      window.dispatchEvent(new CustomEvent('refreshAssets'));
       
-      // Also invalidate React Query cache for media files
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // 🔥 FIX: Defer event dispatch to prevent React error #300 (state updates during render)
+      setTimeout(() => {
+        // Trigger location/asset refresh via window events
+        window.dispatchEvent(new CustomEvent('refreshLocations'));
+        window.dispatchEvent(new CustomEvent('refreshAssets'));
+        // Also invalidate React Query cache for media files
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      }, 0);
     }
   }, [jobs, screenplayId, queryClient]);
   
