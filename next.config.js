@@ -64,6 +64,16 @@ const nextConfig = {
   // Cache-Control headers for optimal CloudFront caching
   async headers() {
     return [
+      // Source map files - no cache to ensure latest maps are always available
+      {
+        source: '/_next/static/chunks/:hash*.js.map',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
       // Static assets with content hash - cache aggressively (1 year)
       // Next.js automatically adds content hashes to these files
       {
