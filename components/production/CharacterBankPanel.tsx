@@ -571,7 +571,6 @@ export function CharacterBankPanel({
               toast.error(`Failed to update character: ${error.message}`);
             }
           }}
-          projectId={screenplayId}
           onUploadImage={async (characterId, file) => {
             await uploadReference(characterId, file);
           }}

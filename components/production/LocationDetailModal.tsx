@@ -18,6 +18,7 @@ import React, { useState } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save, MoreVertical, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import Location3DExportModal from './Location3DExportModal';
 import { useQueryClient } from '@tanstack/react-query';
@@ -64,7 +65,7 @@ interface LocationDetailModalProps {
   onClose: () => void;
   onUpdate: (locationId: string, updates: Partial<LocationProfile>) => void;
   onDelete?: (locationId: string) => void;
-  projectId: string;
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
   onUploadImage?: (locationId: string, file: File) => Promise<void>;
   onGenerate3D?: (locationId: string) => Promise<void>;
   onGenerateAngles?: (locationId: string) => Promise<void>;
@@ -76,11 +77,19 @@ export function LocationDetailModal({
   onClose,
   onUpdate,
   onDelete,
-  projectId,
   onUploadImage,
   onGenerate3D,
   onGenerateAngles
 }: LocationDetailModalProps) {
+  // 🔥 FIX: Get screenplayId from context instead of props
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available
+  if (!screenplayId) {
+    return null;
+  }
+  
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
@@ -553,7 +562,7 @@ export function LocationDetailModal({
                                               angleVariations: updatedAngleVariations
                                             });
                                             
-                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
                                             toast.success('Angle image deleted');
                                           } catch (error: any) {
                                             console.error('[LocationDetailModal] Failed to delete angle image:', error);
@@ -638,7 +647,7 @@ export function LocationDetailModal({
         }}
         locationId={location.locationId}
         locationName={location.name}
-        projectId={projectId}
+        projectId={screenplayId}
         locationProfile={location}
         onComplete={async (result) => {
           // Job started - modal already closed, job runs in background

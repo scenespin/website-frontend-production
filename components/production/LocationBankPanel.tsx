@@ -306,7 +306,6 @@ export function LocationBankPanel({
                 toast.error(`Failed to update location: ${error.message}`);
               }
             }}
-            projectId={screenplayId}
             onUploadImage={async (locationId, file) => {
               // TODO: Implement location image upload via Location Bank API
               toast.info('Location image upload coming soon');
