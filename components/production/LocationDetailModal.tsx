@@ -85,11 +85,6 @@ export function LocationDetailModal({
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available
-  if (!screenplayId) {
-    return null;
-  }
-  
   // 🔥 ONE-WAY SYNC: Production Hub reads from ScreenplayContext but doesn't update it
   // Removed updateLocation - Production Hub changes stay in Production Hub
   const queryClient = useQueryClient();
@@ -104,6 +99,11 @@ export function LocationDetailModal({
   const [name, setName] = useState(location.name);
   const [description, setDescription] = useState(location.description || '');
   const [type, setType] = useState<LocationProfile['type']>(location.type);
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
+  if (!screenplayId) {
+    return null;
+  }
   
   // 🔥 SIMPLIFIED: Get Creation images directly from location prop (backend already provides this)
   const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];

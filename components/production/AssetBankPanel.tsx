@@ -37,7 +37,15 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   const screenplayId = screenplay.screenplayId;
   const { assets: contextAssets } = screenplay;
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [show3DExportModal, setShow3DExportModal] = useState(false);
+  const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -48,14 +56,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
       </div>
     );
   }
-  
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [show3DExportModal, setShow3DExportModal] = useState(false);
-  const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
 
   // 🔥 FIX: Store assets in local state for Production Hub (not just ScreenplayContext)
   // Production Hub should have its own asset state, not rely on Creation section's context

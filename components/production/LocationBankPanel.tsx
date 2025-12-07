@@ -63,7 +63,15 @@ export function LocationBankPanel({
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available
+  const { getToken } = useAuth();
+  const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
+  const [isLoading, setIsLoading] = useState(propsIsLoading);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [showLocationDetail, setShowLocationDetail] = useState(false);
+  const [showAngleModal, setShowAngleModal] = useState(false);
+  const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -74,14 +82,6 @@ export function LocationBankPanel({
       </div>
     );
   }
-  
-  const { getToken } = useAuth();
-  const [locations, setLocations] = useState<LocationProfile[]>(propsLocations);
-  const [isLoading, setIsLoading] = useState(propsIsLoading);
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-  const [showLocationDetail, setShowLocationDetail] = useState(false);
-  const [showAngleModal, setShowAngleModal] = useState(false);
-  const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
   
   // 🔥 SIMPLIFIED: Fetch locations directly from Location Bank API (like AssetBankPanel)
   useEffect(() => {

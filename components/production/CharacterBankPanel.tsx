@@ -51,18 +51,6 @@ export function CharacterBankPanel({
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available
-  if (!screenplayId) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-gray-400 text-sm">Loading characters...</p>
-        </div>
-      </div>
-    );
-  }
-  
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   const { getToken } = useAuth();
   
@@ -85,6 +73,18 @@ export function CharacterBankPanel({
     facialPerformance: 1.0,
     animationStyle: 'full-body'
   });
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading characters...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 🔥 SIMPLIFIED: Fetch characters directly from Character Bank API (like LocationBankPanel/AssetBankPanel)
   useEffect(() => {

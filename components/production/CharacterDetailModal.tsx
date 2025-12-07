@@ -68,11 +68,6 @@ export function CharacterDetailModal({
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available
-  if (!screenplayId) {
-    return null;
-  }
-  
   // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
   const charactersRef = useRef(characters);
   useEffect(() => {
@@ -128,6 +123,11 @@ export function CharacterDetailModal({
       });
     }
   }, [contextCharacter]);
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
+  if (!screenplayId) {
+    return null;
+  }
   
   // 🔥 SIMPLIFIED: Get user-uploaded references directly from character prop (backend already provides this)
   // Backend Character Bank API already enriches baseReference and references with presigned URLs
@@ -237,9 +237,9 @@ export function CharacterDetailModal({
   
   // 🔥 FIX: Query Media Library to get actual outfit folder names
   // Media Library organizes as: Characters/[Character Name]/Outfits/[Outfit Name]/
-  // Always call the hook (React rules), but disable the query when modal is closed
-  // 🔥 FIX: No more empty string fallback - screenplayId is guaranteed to exist at this point
-  const { data: mediaFiles = [] } = useMediaFiles(screenplayId, undefined, isOpen && !!screenplayId);
+  // Always call the hook (React rules), but disable the query when modal is closed or screenplayId is missing
+  // 🔥 FIX: Use empty string as fallback for hook call (React requires consistent hook calls)
+  const { data: mediaFiles = [] } = useMediaFiles(screenplayId || '', undefined, isOpen && !!screenplayId);
   
   // Extract outfit names from Media Library folder paths
   const mediaLibraryOutfitNames = useMemo(() => {
@@ -310,6 +310,11 @@ export function CharacterDetailModal({
   
   // Combined for main display (all images, not grouped)
   const allImages = [...userReferences, ...poseReferences];
+  
+  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
+  if (!screenplayId) {
+    return null;
+  }
 
   // Headshot angle labels for multiple headshots (matching Create section)
   const headshotAngles = [
