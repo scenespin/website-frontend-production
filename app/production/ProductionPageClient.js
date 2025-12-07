@@ -4,9 +4,14 @@ import { useEffect, useState, Suspense } from 'react';
 import { ProductionHub } from '@/components/production/ProductionHub';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { QueryClientProvider } from '@/providers/QueryClientProvider';
+import { ProductionErrorBoundary } from '@/components/production/ProductionErrorBoundary';
 
 function ProductionHubWrapper() {
-  return <ProductionHub />;
+  return (
+    <ProductionErrorBoundary componentName="Production Hub">
+      <ProductionHub />
+    </ProductionErrorBoundary>
+  );
 }
 
 export default function ProductionPageClient() {

@@ -55,6 +55,7 @@ import AssetBankPanel from './AssetBankPanel';
 import { ProductionJobsPanel } from './ProductionJobsPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { QuickActions } from './QuickActions';
+import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 
 // ============================================================================
 // TYPES
@@ -400,31 +401,39 @@ export function ProductionHub({}: ProductionHubProps) {
 
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
-              <CharacterBankPanel
-                className="h-full"
-              />
+              <ProductionErrorBoundary componentName="Character Bank">
+                <CharacterBankPanel
+                  className="h-full"
+                />
+              </ProductionErrorBoundary>
             </div>
           )}
 
           {activeTab === 'locations' && (
             <div className="h-full overflow-y-auto">
-              <LocationBankPanel
-                className="h-full"
-              />
+              <ProductionErrorBoundary componentName="Location Bank">
+                <LocationBankPanel
+                  className="h-full"
+                />
+              </ProductionErrorBoundary>
             </div>
           )}
 
           {activeTab === 'assets' && (
             <div className="h-full overflow-y-auto">
-              <AssetBankPanel
-                className="h-full"
-              />
+              <ProductionErrorBoundary componentName="Asset Bank">
+                <AssetBankPanel
+                  className="h-full"
+                />
+              </ProductionErrorBoundary>
             </div>
           )}
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto p-4">
-              <ProductionJobsPanel />
+              <ProductionErrorBoundary componentName="Production Jobs">
+                <ProductionJobsPanel />
+              </ProductionErrorBoundary>
             </div>
           )}
         </div>
