@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { useQueryClient } from '@tanstack/react-query';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,7 +91,7 @@ interface WorkflowJob {
 }
 
 interface ProductionJobsPanelProps {
-  projectId: string;
+  // Removed projectId prop - screenplayId comes from ScreenplayContext
 }
 
 type StatusFilter = 'all' | 'running' | 'completed' | 'failed';
@@ -187,7 +188,11 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
   );
 }
 
-export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
+export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
+  // ✅ FIX: Get screenplayId from context instead of props
+  const screenplay = useScreenplay();
+  const screenplayId = screenplay.screenplayId;
+  
   const { getToken, userId } = useAuth();
   const queryClient = useQueryClient();
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
@@ -225,9 +230,9 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
    */
   const loadJobs = async (showLoading: boolean = false) => {
     try {
-      // Validate projectId - don't load if invalid
-      if (!projectId || projectId === 'default' || projectId.trim() === '') {
-        console.log('[JobsPanel] Skipping load - invalid projectId:', projectId);
+      // Validate screenplayId - don't load if invalid
+      if (!screenplayId || screenplayId === 'default' || screenplayId.trim() === '') {
+        console.log('[JobsPanel] Skipping load - invalid screenplayId:', screenplayId);
         return;
       }
       
@@ -246,7 +251,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
 
       // Use the new executions endpoint instead of list endpoint
       const statusParam = statusFilter === 'all' ? '' : statusFilter;
-      const url = `/api/workflows/executions?projectId=${projectId}${statusParam ? `&status=${statusParam}` : ''}&limit=50`;
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}${statusParam ? `&status=${statusParam}` : ''}&limit=50`;
       
       console.log('[JobsPanel] Loading jobs from:', url);
       
@@ -263,7 +268,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         jobCount: data.data?.jobs?.length || data.jobs?.length || 0, 
         jobs: data.data?.jobs || data.jobs,
         fullResponse: data,
-        projectId,
+        screenplayId,
         userId 
       });
 
@@ -296,7 +301,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
         
         if (jobList.length === 0) {
           console.log('[JobsPanel] No jobs found - this might be expected if no jobs have been created yet');
-          console.log('[JobsPanel] Checking filters:', { projectId, statusFilter });
+          console.log('[JobsPanel] Checking filters:', { screenplayId, statusFilter });
         } else {
           console.log('[JobsPanel] ✅ Loaded jobs:', jobList.map(j => ({ id: j.jobId, type: j.jobType, status: j.status })));
         }
@@ -339,7 +344,7 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       clearInterval(refreshInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
+  }, [screenplayId, statusFilter]); // loadJobs is stable, but we want to reload when filters change
 
   /**
    * Poll running jobs every 3 seconds (more aggressive for immediate updates)
@@ -377,9 +382,9 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       window.dispatchEvent(new CustomEvent('refreshCharacters'));
       
       // Also invalidate React Query cache for media files
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
     }
-  }, [jobs, projectId, queryClient]);
+  }, [jobs, screenplayId, queryClient]);
   
   /**
    * 🔥 NEW: Watch for completed location/asset angle generation jobs and refresh data
@@ -400,9 +405,9 @@ export function ProductionJobsPanel({ projectId }: ProductionJobsPanelProps) {
       window.dispatchEvent(new CustomEvent('refreshAssets'));
       
       // Also invalidate React Query cache for media files
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
     }
-  }, [jobs, projectId, queryClient]);
+  }, [jobs, screenplayId, queryClient]);
   
   /**
    * 🔥 NEW: Check for safety errors in completed jobs and show dialog

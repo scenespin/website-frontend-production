@@ -71,19 +71,8 @@ export function LocationBankPanel({
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
   
-  // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
-  if (!screenplayId) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-gray-400 text-sm">Loading locations...</p>
-        </div>
-      </div>
-    );
-  }
-  
   // 🔥 SIMPLIFIED: Fetch locations directly from Location Bank API (like AssetBankPanel)
+  // ✅ FIX: All hooks must be called BEFORE early return
   useEffect(() => {
     if (screenplayId) {
       fetchLocations();
@@ -108,6 +97,18 @@ export function LocationBankPanel({
       window.removeEventListener('refreshLocations', handleRefreshLocations);
     };
   }, [screenplayId, selectedLocationId]);
+  
+  // 🔥 CRITICAL: Early return AFTER all hooks are called
+  if (!screenplayId) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-gray-400 text-sm">Loading locations...</p>
+        </div>
+      </div>
+    );
+  }
   
   const fetchLocations = async () => {
     setIsLoading(true);

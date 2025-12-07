@@ -174,7 +174,7 @@ export function ProductionHub({}: ProductionHubProps) {
           return;
         }
         
-        const response = await fetch(`/api/workflows/list?projectId=${screenplayId}&status=running&limit=100`, {
+        const response = await fetch(`/api/workflows/executions?screenplayId=${screenplayId}&status=running&limit=100`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -416,7 +416,7 @@ export function ProductionHub({}: ProductionHubProps) {
 
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto p-4">
-              <ProductionJobsPanel projectId={screenplayId} />
+              <ProductionJobsPanel />
             </div>
           )}
         </div>
@@ -630,7 +630,7 @@ export function ProductionHub({}: ProductionHubProps) {
           {activeTab === 'jobs' && (
             <div className="h-full overflow-y-auto">
               <div className="p-6">
-                <ProductionJobsPanel projectId={screenplayId} />
+                <ProductionJobsPanel />
               </div>
             </div>
           )}
