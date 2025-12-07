@@ -1142,12 +1142,14 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         console.log(`[ScreenplayContext] 🔍 Deduplicated ${transformedScenes.length - renumberedScenes.length} duplicate scenes on load`);
                     }
                     
+                    // Keep beats as empty UI templates (if needed for backward compatibility)
+                    // 🔥 FIX: Create defaultBeats before startTransition so it's available for buildRelationshipsFromScenes
+                    const defaultBeats = createDefaultBeats();
+                    
                     // 🔥 Beats removed - store scenes directly (deduplicated and renumbered)
                     // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
                     startTransition(() => {
                         setScenes(renumberedScenes);
-                        // Keep beats as empty UI templates (if needed for backward compatibility)
-                        const defaultBeats = createDefaultBeats();
                         setBeats(defaultBeats);
                     });
                     console.log('[ScreenplayContext] ✅ Loaded', renumberedScenes.length, 'scenes directly (beats removed, deduplicated, renumbered)');
