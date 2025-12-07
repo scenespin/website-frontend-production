@@ -1483,8 +1483,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         
                         return unique;
                         });
-                    }, 0);
                     });
+                }, 0);
                     console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API (filtered', assetsList.length - normalizedAssets.length, 'soft-deleted)');
                     
                     // 🔥 NEW: Build relationships from scenes so scene counts work
