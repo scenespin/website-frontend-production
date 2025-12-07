@@ -896,10 +896,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const charactersData = await listCharacters(screenplayId, getToken, 'production-hub');
                 // 🔥 FIX: Use charactersRef.current to avoid stale closures and remove transformCharactersFromAPI from deps
                 const transformedCharacters = transformCharactersFromAPI(charactersData, charactersRef.current);
-                // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                startTransition(() => {
-                    setCharacters(transformedCharacters);
-                });
+                // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                setTimeout(() => {
+                    startTransition(() => {
+                        setCharacters(transformedCharacters);
+                    });
+                }, 0);
                 console.log('[ScreenplayContext] ✅ Refreshed characters from API:', transformedCharacters.length, 'characters');
                 // Log pose references for debugging
                 transformedCharacters.forEach((char: any) => {
@@ -932,10 +934,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Use production-hub context to get both referenceImages and angleVariations
                 const locationsData = await listLocations(screenplayId, getToken, 'production-hub');
                 const transformedLocations = transformLocationsFromAPI(locationsData);
-                // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                startTransition(() => {
-                    setLocations(transformedLocations);
-                });
+                // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                setTimeout(() => {
+                    startTransition(() => {
+                        setLocations(transformedLocations);
+                    });
+                }, 0);
                 console.log('[ScreenplayContext] ✅ Refreshed locations from API:', transformedLocations.length, 'locations');
                 // Log angle references for debugging
                 transformedLocations.forEach((loc: any) => {
@@ -978,38 +982,40 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }));
                 
                 // Merge with current state (same logic as initializeData)
-                // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                startTransition(() => {
-                    setAssets(prev => {
-                        const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
-                        const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
-                        
-                        // Merge with current state to preserve recent updates
-                        const merged = [...filteredApiAssets];
-                        const currentStateAssets = prev.filter(a => {
-                            if (deletedAssetIdsRef.current.has(a.id)) return false;
-                            const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-                            const now = Date.now();
-                            return (now - updatedAt) < 300000; // 5 minutes
-                        });
-                        
-                        for (const currentAsset of currentStateAssets) {
-                            const existing = merged.find(a => a.id === currentAsset.id);
-                            if (!existing) {
-                                merged.push(currentAsset);
-                            } else {
-                                const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-                                const currentUpdatedAt = currentAsset.updatedAt ? new Date(currentAsset.updatedAt).getTime() : 0;
-                                if (currentUpdatedAt > existingUpdatedAt + 1000) {
-                                    const index = merged.indexOf(existing);
-                                    merged[index] = currentAsset;
+                // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                setTimeout(() => {
+                    startTransition(() => {
+                        setAssets(prev => {
+                            const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
+                            const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
+                            
+                            // Merge with current state to preserve recent updates
+                            const merged = [...filteredApiAssets];
+                            const currentStateAssets = prev.filter(a => {
+                                if (deletedAssetIdsRef.current.has(a.id)) return false;
+                                const updatedAt = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                                const now = Date.now();
+                                return (now - updatedAt) < 300000; // 5 minutes
+                            });
+                            
+                            for (const currentAsset of currentStateAssets) {
+                                const existing = merged.find(a => a.id === currentAsset.id);
+                                if (!existing) {
+                                    merged.push(currentAsset);
+                                } else {
+                                    const existingUpdatedAt = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                                    const currentUpdatedAt = currentAsset.updatedAt ? new Date(currentAsset.updatedAt).getTime() : 0;
+                                    if (currentUpdatedAt > existingUpdatedAt + 1000) {
+                                        const index = merged.indexOf(existing);
+                                        merged[index] = currentAsset;
+                                    }
                                 }
                             }
-                        }
-                        
-                        return merged;
+                            
+                            return merged;
+                        });
                     });
-                });
+                }, 0);
                 
                 console.log('[ScreenplayContext] ✅ Refreshed assets from API');
             } catch (error) {
@@ -1162,10 +1168,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Transform and set characters
                     // 🔥 FIX: Pass existing characters to preserve angle metadata when reloading
                     const transformedCharacters = transformCharactersFromAPI(charactersData, characters);
-                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                    startTransition(() => {
-                        setCharacters(transformedCharacters);
-                    });
+                    // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                    setTimeout(() => {
+                        startTransition(() => {
+                            setCharacters(transformedCharacters);
+                        });
+                    }, 0);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedCharacters.length, 'characters from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Character names:', transformedCharacters.map(c => c.name));
                     
@@ -1177,10 +1185,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         address: l.address, 
                         hasAddress: !!l.address 
                     })));
-                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                    startTransition(() => {
-                        setLocations(transformedLocations);
-                    });
+                    // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                    setTimeout(() => {
+                        startTransition(() => {
+                            setLocations(transformedLocations);
+                        });
+                    }, 0);
                     console.log('[ScreenplayContext] ✅ Loaded', transformedLocations.length, 'locations from DynamoDB');
                     console.log('[ScreenplayContext] 🔍 Location names:', transformedLocations.map(l => l.name));
                     
@@ -1216,17 +1226,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                     }
                     
-                    // 🔥 FIX: Use startTransition to prevent React error #300 (state updates during render)
-                    startTransition(() => {
-                        setAssets(prev => {
-                            // Filter out deleted assets from API response (eventual consistency protection)
-                            const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
-                            
-                            // Get IDs of assets from filtered API response
-                            const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
-                            
-                            // 🔥 CRITICAL FIX: Load ALL recently updated assets from sessionStorage
-                            // This includes both newly created AND recently updated assets
+                    // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
+                    setTimeout(() => {
+                        startTransition(() => {
+                            setAssets(prev => {
+                                // Filter out deleted assets from API response (eventual consistency protection)
+                                const filteredApiAssets = normalizedAssets.filter(a => !deletedAssetIdsRef.current.has(a.id));
+                                
+                                // Get IDs of assets from filtered API response
+                                const apiAssetIds = new Set(filteredApiAssets.map(a => a.id));
+                                
+                                // 🔥 CRITICAL FIX: Load ALL recently updated assets from sessionStorage
+                                // This includes both newly created AND recently updated assets
                             // The sessionStorage is updated by both createAsset and updateAsset
                             const sessionStorageAssets: Asset[] = [];
                             if (screenplayId && typeof window !== 'undefined') {
@@ -1472,6 +1483,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         
                         return unique;
                         });
+                    }, 0);
                     });
                     console.log('[ScreenplayContext] ✅ Loaded', normalizedAssets.length, 'assets from API (filtered', assetsList.length - normalizedAssets.length, 'soft-deleted)');
                     
