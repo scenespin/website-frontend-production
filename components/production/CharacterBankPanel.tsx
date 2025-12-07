@@ -20,7 +20,8 @@ import {
   Upload,
   Eye,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PerformanceControls, PerformanceSettings } from '../characters/PerformanceControls';
@@ -31,22 +32,27 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { CharacterDetailModal } from './CharacterDetailModal';
 
 interface CharacterBankPanelProps {
-  characters: CharacterProfile[];
-  isLoading: boolean;
   projectId: string; // Actually screenplayId - kept as projectId for backward compatibility
-  onCharactersUpdate: () => void;
+  className?: string;
+  characters?: CharacterProfile[]; // Optional - panel will fetch if not provided
+  isLoading?: boolean; // Optional - panel manages its own loading state
+  onCharactersUpdate?: () => void; // Optional - kept for backward compatibility
 }
 
 export function CharacterBankPanel({
-  characters,
-  isLoading,
   projectId,
+  className = '',
+  characters: propsCharacters = [],
+  isLoading: propsIsLoading = false,
   onCharactersUpdate
 }: CharacterBankPanelProps) {
   
   // 🔥 ONE-WAY SYNC: Removed ScreenplayContext sync - Production Hub changes stay in Production Hub
   const { getToken } = useAuth();
   
+  // 🔥 SIMPLIFIED: Store characters in local state (fetched from Character Bank API)
+  const [characters, setCharacters] = useState<CharacterProfile[]>(propsCharacters);
+  const [isLoading, setIsLoading] = useState(propsIsLoading);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [isGeneratingRefs, setIsGeneratingRefs] = useState<Record<string, boolean>>({});
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
@@ -64,7 +70,80 @@ export function CharacterBankPanel({
     animationStyle: 'full-body'
   });
 
+  // 🔥 SIMPLIFIED: Fetch characters directly from Character Bank API (like LocationBankPanel/AssetBankPanel)
+  useEffect(() => {
+    fetchCharacters();
+  }, [projectId]);
+  
+  // 🔥 NEW: Listen for character refresh events (e.g., when pose generation completes)
+  useEffect(() => {
+    const handleRefreshCharacters = async () => {
+      console.log('[CharacterBankPanel] Refreshing characters due to refreshCharacters event');
+      await fetchCharacters();
+      // If a character detail modal is open, refresh the selected character
+      if (selectedCharacterId) {
+        await fetchCharacters();
+      }
+    };
+    
+    window.addEventListener('refreshCharacters', handleRefreshCharacters);
+    return () => {
+      window.removeEventListener('refreshCharacters', handleRefreshCharacters);
+    };
+  }, [projectId, selectedCharacterId]);
+  
+  const fetchCharacters = async () => {
+    setIsLoading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        console.log('[CharacterBankPanel] No auth token available');
+        setIsLoading(false);
+        return;
+      }
+      
+      // 🔥 SIMPLIFIED: Fetch from Character Bank API directly (backend already provides poseReferences with presigned URLs)
+      const response = await fetch(`/api/character-bank/list?screenplayId=${encodeURIComponent(projectId)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch characters');
+      }
+      
+      const data = await response.json();
+      const charactersList = data.characters || data.data?.characters || [];
+      
+      setCharacters(charactersList);
+      
+      // 🔥 FIX: If selectedCharacter is open, refresh it with fresh data
+      if (selectedCharacterId) {
+        const refreshedCharacter = charactersList.find((c: CharacterProfile) => c.id === selectedCharacterId);
+        if (refreshedCharacter) {
+          // Character will be updated when modal re-renders
+        }
+      }
+      
+      console.log('[CharacterBankPanel] ✅ Fetched characters from Character Bank API:', charactersList.length, 'characters');
+    } catch (error) {
+      console.error('[CharacterBankPanel] Failed to fetch characters:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center h-full ${className}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
+      </div>
+    );
+  }
 
   // Check if advanced features are available (silent check)
   useEffect(() => {
@@ -199,7 +278,9 @@ export function CharacterBankPanel({
         if (referencesCount > 0) {
           toast.success(`Generated ${referencesCount} reference variation${referencesCount > 1 ? 's' : ''}!`);
         }
-        onCharactersUpdate();
+        // 🔥 SIMPLIFIED: Refresh characters from API instead of relying on callback
+        await fetchCharacters();
+        if (onCharactersUpdate) onCharactersUpdate();
       } else {
         throw new Error(data.error?.message || data.error || 'Generation failed');
       }
@@ -301,7 +382,9 @@ export function CharacterBankPanel({
       
       if (data.success && data.data) {
         toast.success('Image uploaded successfully');
-        onCharactersUpdate();
+        // 🔥 SIMPLIFIED: Refresh characters from API
+        await fetchCharacters();
+        if (onCharactersUpdate) onCharactersUpdate();
       } else {
         console.error('[CharacterBank] Upload failed:', data.error || 'Unknown error');
         toast.error(data.error?.message || data.error || 'Failed to upload image');
@@ -453,7 +536,9 @@ export function CharacterBankPanel({
               // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
               // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
               
-              onCharactersUpdate();
+              // 🔥 SIMPLIFIED: Refresh characters from API
+              await fetchCharacters();
+              if (onCharactersUpdate) onCharactersUpdate();
               toast.success('Character updated successfully');
             } catch (error: any) {
               console.error('[CharacterBank] Failed to update character:', error);
@@ -513,7 +598,9 @@ export function CharacterBankPanel({
             // Refresh character data after delay to catch completed poses
             // Jobs panel will show progress, Character Bank will update when poses are saved
             setTimeout(() => {
-              onCharactersUpdate();
+              // 🔥 SIMPLIFIED: Refresh characters from API
+              await fetchCharacters();
+              if (onCharactersUpdate) onCharactersUpdate();
             }, 5000); // Longer delay since generation is async
           }}
         />

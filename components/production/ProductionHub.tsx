@@ -378,49 +378,8 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={(screenplay.characters || []).map(char => {
-                  // Separate user-uploaded references from generated poses
-                  const allImages = char.images || [];
-                  // Production Hub images: source='pose-generation'
-                  // Creation images: source='user-upload' OR no source
-                  const poseReferences = allImages.filter((img: any) => 
-                    (img.metadata as any)?.source === 'pose-generation'
-                  );
-                  const userReferences = allImages.filter((img: any) => 
-                    (img.metadata as any)?.source !== 'pose-generation'
-                  );
-                  
-                  return {
-                    id: char.id,
-                    name: char.name,
-                    type: char.type,
-                    baseReference: userReferences[0] ? {
-                      imageUrl: userReferences[0].imageUrl,
-                      s3Key: (userReferences[0] as any).s3Key
-                    } : undefined,
-                    references: userReferences.slice(1).map((img, idx) => ({
-                      id: (img as any).id || `ref-${idx}`,
-                      imageUrl: img.imageUrl,
-                      s3Key: (img as any).s3Key || '',
-                      label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
-                      referenceType: 'base' as const
-                    })),
-                    poseReferences: poseReferences.map((img, idx) => ({
-                      id: (img as any).id || `pose-${idx}`,
-                      imageUrl: img.imageUrl,
-                      s3Key: (img as any).s3Key || '',
-                      label: (img.metadata as any)?.poseName || `Pose ${idx + 1}`,
-                      referenceType: 'pose' as const
-                    })),
-                    referenceCount: (userReferences.length + poseReferences.length) || 0
-                  };
-                })}
-                isLoading={screenplay.isLoading}
                 projectId={projectId}
-                onCharactersUpdate={() => {
-                  // CharacterBankPanel uses useScreenplay() internally and will update context automatically
-                  // No refresh needed - context updates when CRUD operations happen
-                }}
+                className="h-full"
               />
             </div>
           )}
@@ -635,49 +594,8 @@ export function ProductionHub({ projectId }: ProductionHubProps) {
           {activeTab === 'characters' && (
             <div className="h-full overflow-y-auto">
               <CharacterBankPanel
-                characters={(screenplay.characters || []).map(char => {
-                  // Separate user-uploaded references from generated poses
-                  const allImages = char.images || [];
-                  // Production Hub images: source='pose-generation'
-                  // Creation images: source='user-upload' OR no source
-                  const poseReferences = allImages.filter((img: any) => 
-                    (img.metadata as any)?.source === 'pose-generation'
-                  );
-                  const userReferences = allImages.filter((img: any) => 
-                    (img.metadata as any)?.source !== 'pose-generation'
-                  );
-                  
-                  return {
-                    id: char.id,
-                    name: char.name,
-                    type: char.type,
-                    baseReference: userReferences[0] ? {
-                      imageUrl: userReferences[0].imageUrl,
-                      s3Key: (userReferences[0] as any).s3Key
-                    } : undefined,
-                    references: userReferences.slice(1).map((img, idx) => ({
-                      id: (img as any).id || `ref-${idx}`,
-                      imageUrl: img.imageUrl,
-                      s3Key: (img as any).s3Key || '',
-                      label: (img.metadata as any)?.uploadedFileName || `Reference ${idx + 1}`,
-                      referenceType: 'base' as const
-                    })),
-                    poseReferences: poseReferences.map((img, idx) => ({
-                      id: (img as any).id || `pose-${idx}`,
-                      imageUrl: img.imageUrl,
-                      s3Key: (img as any).s3Key || '',
-                      label: (img.metadata as any)?.poseName || `Pose ${idx + 1}`,
-                      referenceType: 'pose' as const
-                    })),
-                    referenceCount: (userReferences.length + poseReferences.length) || 0
-                  };
-                })}
-                isLoading={screenplay.isLoading}
                 projectId={projectId}
-                onCharactersUpdate={() => {
-                  // CharacterBankPanel uses useScreenplay() internally and will update context automatically
-                  // No refresh needed - context updates when CRUD operations happen
-                }}
+                className="h-full"
               />
             </div>
           )}

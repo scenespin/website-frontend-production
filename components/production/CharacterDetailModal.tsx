@@ -63,7 +63,7 @@ export function CharacterDetailModal({
   onPerformanceSettingsChange
 }: CharacterDetailModalProps) {
   const { getToken } = useAuth();
-  const { updateCharacter, characters, isEntityInScript } = useScreenplay();
+  const { updateCharacter, characters, isEntityInScript } = useScreenplay(); // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   
@@ -74,8 +74,8 @@ export function CharacterDetailModal({
   }, [characters]);
   
   // Get the full Character from context (has arcStatus, physicalAttributes, arcNotes)
+  // 🔥 SIMPLIFIED: Only use context for Creation section fields, NOT for images
   const contextCharacter = characters.find(c => c.id === character.id);
-  const allImagesFromContext = contextCharacter?.images || [];
   
   // Check if character is in script (for locking mechanism)
   const isInScript = useMemo(() => {
@@ -123,62 +123,37 @@ export function CharacterDetailModal({
     }
   }, [contextCharacter]);
   
-  // Separate user-uploaded references from generated poses for better organization
-  // 🔥 FIX: Filter out AI-generated images from character.references - they should only be in poseReferences
-  // CRITICAL: If an image is in poseReferences, it's AI-generated and should NOT be in userReferences
+  // 🔥 SIMPLIFIED: Get user-uploaded references directly from character prop (backend already provides this)
+  // Backend Character Bank API already enriches baseReference and references with presigned URLs
   const userReferences = [
     character.baseReference ? {
       id: 'base',
-      imageUrl: character.baseReference.imageUrl,
+      imageUrl: character.baseReference.imageUrl || '',
       s3Key: character.baseReference.s3Key,
       label: 'Base Reference',
       isBase: true,
       isPose: false,
-      index: -1 // Will be set below
+      index: 0
     } : null,
-    ...character.references
+    ...(character.references || [])
       .filter(ref => {
-        // 🔥 CRITICAL FIX: Check if this reference is in poseReferences FIRST
-        // If it's in poseReferences, it's AI-generated and should NOT be in userReferences
+        // 🔥 CRITICAL: Check if this reference is in poseReferences - if so, exclude it
+        // poseReferences are AI-generated and should NOT be in userReferences
         const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
-          const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
-          const refS3Key = ref.s3Key;
+          const poseS3Key = typeof poseRef === 'string' ? poseRef : (poseRef.s3Key || poseRef.metadata?.s3Key);
+          const refS3Key = ref.s3Key || ref.metadata?.s3Key;
           return poseS3Key === refS3Key;
         });
-        if (isInPoseReferences) {
-          console.log('[CharacterDetailModal] Filtering out AI-generated image from userReferences:', ref.s3Key);
-          return false;
-        }
-        
-        // Also check context images to see if it's AI-generated (for legacy data)
-        const contextImage = allImagesFromContext.find((img: any) => 
-          (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key)
-        );
-        const isAIGenerated = contextImage?.metadata?.source === 'pose-generation' || 
-                              contextImage?.metadata?.source === 'image-generation' ||
-                              contextImage?.metadata?.uploadMethod === 'pose-generation' ||
-                              contextImage?.metadata?.createdIn === 'production-hub' ||
-                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('nano-banana-pro') ||
-                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway-gen4') ||
-                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('runway') ||
-                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('luma') ||
-                              contextImage?.metadata?.modelUsed?.toLowerCase().includes('photon');
-        
-        if (isAIGenerated) {
-          console.log('[CharacterDetailModal] Filtering out AI-generated image (legacy) from userReferences:', ref.s3Key);
-        }
-        
-        // Only include user-uploaded references (not AI-generated)
-        return !isAIGenerated;
+        return !isInPoseReferences;
       })
-      .map(ref => ({
-        id: ref.id,
-        imageUrl: ref.imageUrl,
-        s3Key: ref.s3Key,
+      .map((ref, idx) => ({
+        id: ref.id || `ref-${idx}`,
+        imageUrl: ref.imageUrl || '',
+        s3Key: ref.s3Key || ref.metadata?.s3Key,
         label: ref.label || 'Reference',
         isBase: false,
         isPose: false,
-        index: -1 // Will be set below
+        index: idx + 1
       }))
   ].filter(Boolean) as Array<{id: string; imageUrl: string; s3Key?: string; label: string; isBase: boolean; isPose: boolean; index: number}>;
   
@@ -209,113 +184,36 @@ export function CharacterDetailModal({
     metadata?: any; // Preserve metadata for deletion logic
   };
 
-  // 🔥 CRITICAL FIX: All images in poseReferences are AI-generated poses
-  // They should ALWAYS be treated as created in Production Hub, regardless of metadata
-  const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map(ref => {
-    // 🔥 FIX: Extract outfit from poseReference metadata first (most reliable)
-    // Backend saves outfitName in ref.metadata.outfitName when generating poses
+  // 🔥 SIMPLIFIED: Get poseReferences directly from character prop (backend already provides presigned URLs and metadata)
+  // Backend Character Bank API already enriches poseReferences with imageUrl, outfitName, poseId, etc.
+  const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map((ref, idx) => {
+    // Handle both string and object formats for poseReferences (backend may return either)
     const refObj = typeof ref === 'string' ? null : ref;
-    const outfitFromRefMetadata = refObj?.metadata?.outfitName;
+    const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
+    const refId = typeof ref === 'string' ? `pose_${refS3Key}` : (ref.id || `pose-${idx}`);
+    const refImageUrl = typeof ref === 'string' ? '' : (ref.imageUrl || '');
     
-    // Fallback: Extract outfit from S3 key path
-    const outfitFromS3 = extractOutfitFromS3Key(refObj?.s3Key || (typeof ref === 'string' ? ref : ''));
+    // 🔥 PRESERVE: Extract outfit from metadata (backend saves this during pose generation)
+    // Priority: ref.metadata.outfitName > S3 key path > 'default'
+    const outfitFromMetadata = refObj?.metadata?.outfitName;
+    const outfitFromS3 = extractOutfitFromS3Key(refS3Key);
+    const outfitName = outfitFromMetadata || outfitFromS3 || 'default';
     
-    // Also check context images for outfit metadata (if pose was added to images array)
-    const contextImage = allImagesFromContext.find((img: any) => {
-      const refS3Key = typeof ref === 'string' ? ref : refObj?.s3Key;
-      const imgS3Key = img.metadata?.s3Key || img.s3Key;
-      return imgS3Key === refS3Key;
-    });
-    const outfitFromContextMetadata = contextImage?.metadata?.outfitName;
-    
-    // Priority: ref.metadata.outfitName > context.metadata.outfitName > S3 key path > 'default'
-    const outfitName = outfitFromRefMetadata || outfitFromContextMetadata || outfitFromS3 || 'default';
-    
-    // Extract poseId from ref metadata or context
-    const poseId = refObj?.metadata?.poseId || contextImage?.metadata?.poseId;
-    
-    // Handle both string and object formats for poseReferences
-    // 🔥 FIX: Extract s3Key from multiple possible locations (same as deletion logic)
-    const refS3Key = typeof ref === 'string' 
-      ? ref 
-      : (ref.s3Key || (ref as any).metadata?.s3Key);
-    const refId = typeof ref === 'string' ? `pose_${refS3Key}` : ref.id;
-    const refImageUrl = typeof ref === 'string' ? '' : ref.imageUrl;
+    // Extract poseId from ref metadata (backend saves this)
+    const poseId = refObj?.metadata?.poseId;
     
     return {
       id: refId,
-      imageUrl: refImageUrl, // Will be populated from context or generated presigned URL
-      s3Key: refS3Key, // 🔥 FIX: Now correctly extracts from ref.s3Key or ref.metadata.s3Key
-      label: (typeof ref === 'string' ? 'Pose' : ref.label) || 'Pose',
+      imageUrl: refImageUrl, // Backend already provides presigned URL
+      s3Key: refS3Key,
+      label: (typeof ref === 'string' ? 'Pose' : ref.label) || refObj?.metadata?.poseName || 'Pose',
       isBase: false,
       isPose: true,
       outfitName: outfitName, // Store outfit name for grouping
-      index: -1, // Will be set below
+      index: userReferences.length + idx, // Set index for display
       poseId: poseId, // Store poseId for regeneration
-      metadata: refObj?.metadata // Preserve all metadata for deletion logic
+      metadata: refObj?.metadata || {} // Preserve all metadata for deletion logic
     };
-  });
-  
-  // Map to context images array to get the actual index and source
-  // Find each image in the context's images array by s3Key
-  userReferences.forEach((ref, idx) => {
-    if (ref.s3Key) {
-      const contextImage = allImagesFromContext.find((img: any) => 
-        (img.metadata?.s3Key === ref.s3Key || img.s3Key === ref.s3Key) &&
-        (!img.metadata?.source || img.metadata?.source === 'user-upload')
-      );
-      if (contextImage) {
-        const contextIndex = allImagesFromContext.indexOf(contextImage);
-        ref.index = contextIndex >= 0 ? contextIndex : -1;
-        // 🔥 NEW: Add metadata to userReferences so we can check source for deletion restrictions
-        (ref as any).metadata = { source: contextImage.metadata?.source || 'user-upload' };
-      } else {
-        ref.index = -1;
-        // Default to user-upload if not found (safer assumption)
-        (ref as any).metadata = { source: 'user-upload' };
-      }
-    }
-  });
-  
-  // 🔥 FIX: Generate presigned URLs for pose references if they're missing imageUrl
-  // Also find context images for metadata (outfit, poseId)
-  poseReferences.forEach((ref, idx) => {
-    if (ref.s3Key) {
-      // Find context image for metadata (outfit, poseId)
-      const contextImage = allImagesFromContext.find((img: any) => {
-        const imgS3Key = img.metadata?.s3Key || img.s3Key;
-        return imgS3Key === ref.s3Key;
-      });
-      
-      // If imageUrl is missing, try to get it from context or generate presigned URL
-      if (!ref.imageUrl && ref.s3Key) {
-        // Try context first
-        if (contextImage?.imageUrl) {
-          ref.imageUrl = contextImage.imageUrl;
-        } else {
-          // Generate presigned URL on-demand (will be done via usePresignedUrl hook if needed)
-          // For now, set empty string - the image component will handle loading
-          ref.imageUrl = '';
-        }
-      }
-      
-      // Update outfit and poseId from context if found
-      if (contextImage) {
-        if (contextImage.metadata?.outfitName && !ref.outfitName) {
-          ref.outfitName = contextImage.metadata.outfitName;
-        }
-        if (contextImage.metadata?.poseId && !ref.poseId) {
-          ref.poseId = contextImage.metadata.poseId;
-        }
-      }
-      
-      // Set index for display
-      const contextIndex = allImagesFromContext.findIndex((img: any) => {
-        const imgS3Key = img.metadata?.s3Key || img.s3Key;
-        return imgS3Key === ref.s3Key;
-      });
-      ref.index = contextIndex >= 0 ? contextIndex : -1;
-    }
   });
   
   // 🔥 NEW: Group poses by outfit

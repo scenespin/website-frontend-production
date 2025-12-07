@@ -123,7 +123,7 @@ export default function AssetDetailModal({
   const angleImageObjects = angleImages.map((img, idx) => ({
     id: `angle-${idx}`,
     imageUrl: img.url,
-    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'Angle'} view`,
+    label: `${asset.name} - ${img.metadata?.angle || 'Angle'} view`,
     isBase: false,
     s3Key: img.s3Key || img.metadata?.s3Key,
     isAngleReference: true,
