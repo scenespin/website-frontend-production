@@ -84,7 +84,10 @@ export function CharacterBankPanel({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         console.log('[CharacterBankPanel] No auth token available');
-        setIsLoading(false);
+        // 🔥 FIX: Defer setIsLoading to prevent React error #300
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 0);
         return;
       }
       
@@ -125,7 +128,10 @@ export function CharacterBankPanel({
       console.error('[CharacterBankPanel] Failed to fetch characters:', error);
       toast.error('Failed to load characters');
     } finally {
-      setIsLoading(false);
+      // 🔥 FIX: Defer setIsLoading to prevent React error #300
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 0);
     }
   }, [screenplayId, getToken, selectedCharacterId]);
 
