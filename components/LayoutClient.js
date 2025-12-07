@@ -90,6 +90,64 @@ const DataMigration = () => {
   return null;
 };
 
+// Global Error Handler: Captures full unminified stack traces for debugging
+const GlobalErrorHandler = () => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Capture unhandled errors
+    const handleError = (event) => {
+      const error = event.error || event.reason;
+      if (error) {
+        console.error('🔴 [GlobalErrorHandler] Unhandled Error:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          componentStack: error.componentStack,
+          // Try to get source map info
+          fileName: error.fileName,
+          lineNumber: error.lineNumber,
+          columnNumber: error.columnNumber
+        });
+      }
+    };
+    
+    // Capture unhandled promise rejections
+    const handleUnhandledRejection = (event) => {
+      const error = event.reason;
+      console.error('🔴 [GlobalErrorHandler] Unhandled Promise Rejection:', {
+        reason: error,
+        message: error?.message,
+        stack: error?.stack
+      });
+    };
+    
+    // Override console.error to capture React errors with full stack
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      // Check if it's a React error
+      if (args[0]?.includes?.('Minified React error') || args[0]?.includes?.('React error')) {
+        console.error('🔴 [GlobalErrorHandler] React Error Detected:', {
+          args: args,
+          stack: new Error().stack
+        });
+      }
+      originalConsoleError.apply(console, args);
+    };
+    
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      console.error = originalConsoleError;
+    };
+  }, []);
+  
+  return null;
+};
+
 // All the client wrappers are here (they can't be in server components)
 // 1. DataMigration: Fix corrupted beats data (MUST RUN FIRST)
 // 2. AuthInitializer: Set up Clerk auth token for API calls
@@ -112,6 +170,9 @@ const ClientLayout = ({ children }) => {
             <ChatProvider>
           {/* Run data migration FIRST to fix corrupted beats */}
           <DataMigration />
+          
+          {/* Global error handler to capture full stack traces */}
+          <GlobalErrorHandler />
           
           {/* Initialize auth token getter before any API calls */}
           <AuthInitializer />
