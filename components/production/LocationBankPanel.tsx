@@ -67,16 +67,69 @@ export function LocationBankPanel({
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [angleLocation, setAngleLocation] = useState<LocationProfile | null>(null);
   
-  // Use locations from props (loaded from Location Bank API)
+  // 🔥 SIMPLIFIED: Fetch locations directly from Location Bank API (like AssetBankPanel)
   useEffect(() => {
-    setLocations(propsLocations);
-    setIsLoading(propsIsLoading);
-    console.log('[LocationBankPanel] Locations updated:', propsLocations.length);
-  }, [propsLocations, propsIsLoading]);
+    fetchLocations();
+  }, [projectId]);
   
-  // NOTE: Location refresh is handled by ScreenplayContext's refreshLocations listener
-  // ProductionHub uses screenplay.locations from context, so it will automatically update
-  // The onLocationsUpdate callback is kept for backward compatibility but is not needed
+  // 🔥 NEW: Listen for location refresh events (e.g., when angle generation completes)
+  useEffect(() => {
+    const handleRefreshLocations = async () => {
+      console.log('[LocationBankPanel] Refreshing locations due to refreshLocations event');
+      await fetchLocations();
+      // If a location detail modal is open, refresh the selected location
+      if (selectedLocationId) {
+        await fetchLocations();
+      }
+    };
+    
+    window.addEventListener('refreshLocations', handleRefreshLocations);
+    return () => {
+      window.removeEventListener('refreshLocations', handleRefreshLocations);
+    };
+  }, [projectId, selectedLocationId]);
+  
+  const fetchLocations = async () => {
+    setIsLoading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        console.log('[LocationBankPanel] No auth token available');
+        setIsLoading(false);
+        return;
+      }
+      
+      // 🔥 SIMPLIFIED: Fetch from Location Bank API directly (backend already provides angleVariations)
+      const response = await fetch(`/api/location-bank/list?screenplayId=${encodeURIComponent(projectId)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+      
+      const data = await response.json();
+      const locationsList = data.locations || data.data?.locations || [];
+      
+      setLocations(locationsList);
+      
+      // 🔥 FIX: If selectedLocation is open, refresh it with fresh data
+      if (selectedLocationId) {
+        const refreshedLocation = locationsList.find((l: LocationProfile) => l.locationId === selectedLocationId);
+        if (refreshedLocation) {
+          // Location will be updated when modal re-renders
+        }
+      }
+      
+      console.log('[LocationBankPanel] ✅ Fetched locations from Location Bank API:', locationsList.length, 'locations');
+    } catch (error) {
+      console.error('[LocationBankPanel] Failed to fetch locations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Open angle generation modal
   function handleGenerateAngles(locationId: string) {
