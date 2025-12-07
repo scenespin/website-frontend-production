@@ -7,7 +7,7 @@
  * Part of Feature 0099: Asset Bank - Digital Prop Department for AI Filmmakers.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { Plus, Package, Car, Armchair, Box, Trash2, Edit2, Sparkles, Image as ImageIcon, Download, X, Film } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
@@ -54,12 +54,16 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   const fetchAssets = useCallback(async () => {
     if (!screenplayId) return; // Early return inside function is OK
     
-    setLoading(true);
+    setTimeout(() => {
+      setLoading(true);
+    }, 0);
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         console.log('[AssetBank] No auth token available');
-        setLoading(false);
+        setTimeout(() => {
+          setLoading(false);
+        }, 0);
         return;
       }
       
@@ -74,8 +78,12 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
         ? assetsList 
         : assetsList.filter((a: Asset) => a.category === selectedCategory);
       
-      // 🔥 FIX: Update local state with fresh asset data from API
-      setLocalAssets(filteredAssets);
+      // 🔥 FIX: Defer state updates to prevent React error #300
+      setTimeout(() => {
+        startTransition(() => {
+          setLocalAssets(filteredAssets);
+        });
+      }, 0);
       
       // 🔥 FIX: selectedAsset is now derived from localAssets, so it automatically updates
       
@@ -83,7 +91,9 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
     } catch (error) {
       console.error('[AssetBankPanel] Failed to fetch assets:', error);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 0);
     }
   }, [screenplayId, getToken, selectedCategory]);
   

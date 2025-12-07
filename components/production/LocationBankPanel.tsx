@@ -7,7 +7,7 @@
  * REDESIGNED to match CharacterBankPanel exactly for UI consistency
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -111,12 +111,16 @@ export function LocationBankPanel({
   }
   
   const fetchLocations = async () => {
-    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(true);
+    }, 0);
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         console.log('[LocationBankPanel] No auth token available');
-        setIsLoading(false);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 0);
         return;
       }
       
@@ -134,7 +138,12 @@ export function LocationBankPanel({
       const data = await response.json();
       const locationsList = data.locations || data.data?.locations || [];
       
-      setLocations(locationsList);
+      // 🔥 FIX: Defer state updates to prevent React error #300
+      setTimeout(() => {
+        startTransition(() => {
+          setLocations(locationsList);
+        });
+      }, 0);
       
       // 🔥 FIX: If selectedLocation is open, the modal will automatically re-render with fresh data
       // because it uses locations.find() which will get the updated location from locationsList
@@ -144,7 +153,9 @@ export function LocationBankPanel({
     } catch (error) {
       console.error('[LocationBankPanel] Failed to fetch locations:', error);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 0);
     }
   };
 

@@ -16,7 +16,7 @@
  * - Asset library for timeline integration
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -300,7 +300,12 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         if (response.ok) {
           const data = await response.json();
-          setCharacters(data.characters || []);
+          // 🔥 FIX: Defer state update to prevent React error #300
+          setTimeout(() => {
+            startTransition(() => {
+              setCharacters(data.characters || []);
+            });
+          }, 0);
         }
       } catch (error) {
         console.error('[SceneBuilder] Failed to load characters:', error);

@@ -3121,9 +3121,12 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 // 🔥 NEW: Trigger Production Hub refresh when asset is updated in Creation section
                 // This ensures Production Hub shows updated Creation images immediately
+                // 🔥 FIX: Defer event dispatch to prevent React error #300
                 if (wasImageUpdate && typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('refreshAssetBank'));
-                    console.log('[ScreenplayContext] 🔄 Triggered Production Hub asset refresh after image update');
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('refreshAssetBank'));
+                        console.log('[ScreenplayContext] 🔄 Triggered Production Hub asset refresh after image update');
+                    }, 0);
                 }
                 
                 // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
