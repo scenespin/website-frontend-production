@@ -38,7 +38,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [show3DExportModal, setShow3DExportModal] = useState(false);
   const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
@@ -111,13 +111,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       // 🔥 FIX: Update local state with fresh asset data from API
       setLocalAssets(filteredAssets);
       
-      // 🔥 FIX: If selectedAsset is open, refresh it with fresh data
-      if (selectedAsset) {
-        const refreshedAsset = filteredAssets.find((a: Asset) => a.id === selectedAsset.id);
-        if (refreshedAsset) {
-          setSelectedAsset(refreshedAsset);
-        }
-      }
+      // 🔥 FIX: selectedAsset is now derived from localAssets, so it automatically updates
       
       console.log('[AssetBankPanel] ✅ Fetched assets with production-hub context:', filteredAssets.length, 'assets');
     } catch (error) {
@@ -309,7 +303,7 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
                   cardType="asset"
                   typeBadgeColor={badgeColor as 'red' | 'blue' | 'gold' | 'gray'}
                   onClick={() => {
-                    setSelectedAsset(asset);
+                    setSelectedAssetId(asset.id);
                     setShowDetailModal(true);
                   }}
                 />
@@ -341,20 +335,20 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
       )}
 
       {/* Asset Detail Modal */}
-      {selectedAsset && (
-        <AssetDetailModal
-          isOpen={showDetailModal}
-          onClose={() => {
-            setShowDetailModal(false);
-            setSelectedAsset(null);
-          }}
-          asset={selectedAsset}
+      {selectedAssetId && (() => {
+        const selectedAsset = assets.find(a => a.id === selectedAssetId);
+        return selectedAsset ? (
+          <AssetDetailModal
+            isOpen={showDetailModal}
+            onClose={() => {
+              setShowDetailModal(false);
+              setSelectedAssetId(null);
+            }}
+            asset={selectedAsset}
           onUpdate={fetchAssets}
           onDelete={fetchAssets}
           onAssetUpdate={(updatedAsset) => {
-            // 🔥 FIX: Update selectedAsset with fresh data from backend
-            setSelectedAsset(updatedAsset);
-            // Also update in localAssets array
+            // 🔥 FIX: selectedAsset is now derived, so just update localAssets
             setLocalAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
           }}
           onGenerate3D={(asset) => {
@@ -363,7 +357,8 @@ export default function AssetBankPanel({ projectId, className = '', isMobile = f
             setShow3DExportModal(true);
           }}
         />
-      )}
+        ) : null;
+      })()}
     </div>
   );
 }
