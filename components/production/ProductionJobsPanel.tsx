@@ -365,7 +365,8 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   
   /**
    * Watch for completed pose generation jobs and refresh character data
-   * 🔥 FIX: Use setTimeout to defer event dispatch and prevent React error #300
+   * Also check for character reference generation jobs (image-generation with characterId metadata)
+   * 🔥 SIMPLIFIED: Use React Query cache invalidation instead of window events
    */
   useEffect(() => {
     const completedPoseJobs = jobs.filter(job => 
@@ -375,21 +376,29 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       job.results.poses.length > 0
     );
     
-    if (completedPoseJobs.length > 0) {
-      console.log('[ProductionJobsPanel] Pose generation completed, refreshing characters immediately...', completedPoseJobs.length);
+    // Also check for character reference generation (image-generation with characterId in metadata)
+    const completedCharacterRefJobs = jobs.filter(job =>
+      job.status === 'completed' &&
+      job.jobType === 'image-generation' &&
+      job.metadata?.characterId &&
+      (job.results?.images?.length > 0 || job.results?.angleReferences?.length > 0)
+    );
+    
+    if (completedPoseJobs.length > 0 || completedCharacterRefJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Character image generation completed, refreshing characters...', {
+        poseJobs: completedPoseJobs.length,
+        refJobs: completedCharacterRefJobs.length
+      });
       
-      // 🔥 FIX: Defer event dispatch to prevent React error #300 (state updates during render)
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('refreshCharacters'));
-        // Also invalidate React Query cache for media files
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      }, 0);
+      // Invalidate React Query cache for characters and media files
+      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
     }
   }, [jobs, screenplayId, queryClient]);
   
   /**
-   * 🔥 NEW: Watch for completed location/asset angle generation jobs and refresh data
-   * 🔥 FIX: Use setTimeout to defer event dispatch and prevent React error #300
+   * Watch for completed location/asset angle generation jobs and refresh data
+   * 🔥 SIMPLIFIED: Use React Query cache invalidation instead of window events
    */
   useEffect(() => {
     const completedAngleJobs = jobs.filter(job => 
@@ -403,14 +412,10 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     if (completedAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Angle generation completed, refreshing locations and assets...', completedAngleJobs.length);
       
-      // 🔥 FIX: Defer event dispatch to prevent React error #300 (state updates during render)
-      setTimeout(() => {
-        // Trigger location/asset refresh via window events
-        window.dispatchEvent(new CustomEvent('refreshLocations'));
-        window.dispatchEvent(new CustomEvent('refreshAssets'));
-        // Also invalidate React Query cache for media files
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      }, 0);
+      // Invalidate React Query cache for locations, assets, and media files
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
     }
   }, [jobs, screenplayId, queryClient]);
   
