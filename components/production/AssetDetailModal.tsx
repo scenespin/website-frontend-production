@@ -22,6 +22,7 @@ import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
+import { RegenerateAngleModal } from './RegenerateAngleModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +59,8 @@ export default function AssetDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [regeneratingAngle, setRegeneratingAngle] = useState<{ angleId: string; s3Key: string; angle: string } | null>(null);
 
 
   const categoryMeta = ASSET_CATEGORY_METADATA[asset.category];
@@ -484,6 +487,29 @@ export default function AssetDetailModal({
                                     </button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Find the angle reference to get angle info
+                                        const angleRef = angleReferences.find((ref: any) => ref.s3Key === img.s3Key);
+                                        if (!angleRef) {
+                                          toast.error('Angle reference not found');
+                                          return;
+                                        }
+                                        
+                                        // Open regenerate modal with angle info
+                                        setRegeneratingAngle({
+                                          angleId: angleRef.id || `angle_${img.s3Key}`,
+                                          s3Key: img.s3Key,
+                                          angle: angleRef.angle || img.metadata?.angle || 'unknown'
+                                        });
+                                        setShowRegenerateModal(true);
+                                      }}
+                                      className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
+                                    >
+                                      <Sparkles className="w-4 h-4 mr-2" />
+                                      Regenerate...
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={async (e) => {
                                         e.stopPropagation();
