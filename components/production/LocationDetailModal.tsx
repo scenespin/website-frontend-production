@@ -310,34 +310,12 @@ export function LocationDetailModal({
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <MapPin className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
-                      <label className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        Upload Image
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          disabled={isUploading}
-                        />
-                      </label>
+                      <p className="text-xs text-[#6B7280]">Upload images in the Creation section</p>
                     </div>
                   )}
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3">
-                    <label className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      {isUploading ? 'Uploading...' : 'Upload Image'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        disabled={isUploading}
-                      />
-                    </label>
-                    
                     <button
                       onClick={handleGenerateAngles}
                       disabled={isGeneratingAngles}

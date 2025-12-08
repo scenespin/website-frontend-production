@@ -486,11 +486,24 @@ export default function AssetDetailSidebar({
       const currentAsset = assetsRef.current.find(a => a.id === asset.id) || asset;
       const currentImages = currentAsset.images || [];
       
-      const imageToDelete = currentImages[index];
-      const imageS3Key = imageToDelete?.metadata?.s3Key || imageToDelete?.s3Key;
-      const isAngleGenerated = imageToDelete?.metadata?.source === 'angle-generation' || 
-                                imageToDelete?.metadata?.angle ||
-                                imageToDelete?.angle;
+      // 🔥 FIX: Filter to only user-uploaded images (matches the filtered array shown in UI)
+      const userUploadedImages = currentImages.filter((img: any) => {
+        const source = img.metadata?.source;
+        return !source || source === 'user-upload';
+      });
+      
+      // Get the image to delete from the filtered array
+      const imageToDelete = userUploadedImages[index];
+      if (!imageToDelete) {
+        console.error('[AssetDetailSidebar] Image not found at index:', index);
+        toast.error('Image not found');
+        return;
+      }
+      
+      const imageS3Key = imageToDelete.metadata?.s3Key || imageToDelete.s3Key;
+      const isAngleGenerated = imageToDelete.metadata?.source === 'angle-generation' || 
+                                imageToDelete.metadata?.angle ||
+                                imageToDelete.angle;
       
       // 🔥 SEPARATION: Backend now only returns Creation images, so no Production Hub filtering needed
       // All images in Creation section can be deleted
@@ -498,13 +511,18 @@ export default function AssetDetailSidebar({
       console.log('[AssetDetailSidebar] 🗑️ Deleting image:', {
         assetId: asset.id,
         currentImageCount: currentImages.length,
+        userUploadedCount: userUploadedImages.length,
         deletingIndex: index,
         imageUrl: imageToDelete?.url,
         imageS3Key,
         isAngleGenerated
       });
       
-      const updatedImages = currentImages.filter((_, i) => i !== index);
+      // Remove from full images array by matching s3Key
+      const updatedImages = currentImages.filter((img: any) => {
+        const imgS3Key = img.metadata?.s3Key || img.s3Key;
+        return imgS3Key !== imageS3Key;
+      });
       
       // 🔥 FIX: If deleting an angle-generated image, also remove from angleReferences
       // This prevents the image from being added back when enrichAssetWithPresignedUrls runs

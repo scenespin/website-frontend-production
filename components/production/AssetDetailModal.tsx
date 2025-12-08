@@ -360,19 +360,6 @@ export default function AssetDetailModal({
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3">
-                    <label className={`px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg cursor-pointer transition-colors inline-flex items-center gap-2 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                      <Upload className="w-4 h-4" />
-                      {isUploading ? 'Uploading...' : assetImages.length >= 10 ? 'Max Images (10/10)' : `Upload Image (${assetImages.length}/10)`}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        multiple
-                        onChange={handleFileUpload}
-                        disabled={isUploading || assetImages.length >= 10}
-                      />
-                    </label>
-                    
                     {/* Generate Angle Package Button */}
                     {canGenerateAngles && (
                       <button
