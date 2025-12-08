@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { RegeneratePoseModal } from './RegeneratePoseModal';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
