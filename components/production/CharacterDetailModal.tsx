@@ -882,7 +882,7 @@ export function CharacterDetailModal({
                                     {/* Regenerate option - only show for poses with poseId */}
                                     {'poseId' in img && img.poseId && (
                                       <DropdownMenuItem
-                                        onClick={async (e) => {
+                                        onClick={(e) => {
                                           e.stopPropagation();
                                           // 🔥 FIX: Extract poseId and s3Key from multiple possible locations
                                           const poseId = 'poseId' in img ? img.poseId : (img as any).metadata?.poseId;
@@ -900,42 +900,18 @@ export function CharacterDetailModal({
                                             return;
                                           }
                                           
-                                          if (!confirm(`Regenerate this pose? This will cost credits.`)) {
-                                            return;
-                                          }
-                                          
-                                          try {
-                                            const token = await getToken({ template: 'wryda-backend' });
-                                            const response = await fetch(`/api/projects/${screenplayId}/characters/${character.id}/regenerate-pose`, {
-                                              method: 'POST',
-                                              headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${token}`
-                                              },
-                                              body: JSON.stringify({
-                                                poseId: poseId,
-                                                existingPoseS3Key: imgS3Key,
-                                                outfitName: outfitName
-                                              })
-                                            });
-                                            
-                                            if (!response.ok) {
-                                              const error = await response.json();
-                                              throw new Error(error.message || 'Failed to regenerate pose');
-                                            }
-                                            
-                                            toast.success('Pose regeneration started. Check the Jobs panel for progress.');
-                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                            await onUpdate(character.id, {});
-                                          } catch (error: any) {
-                                            console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
-                                            toast.error(`Failed to regenerate pose: ${error.message}`);
-                                          }
+                                          // Open regenerate modal with model selection
+                                          setRegeneratingPose({
+                                            poseId: poseId,
+                                            s3Key: imgS3Key,
+                                            outfitName: outfitName
+                                          });
+                                          setShowRegenerateModal(true);
                                         }}
                                         className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
-                                        Regenerate
+                                        Regenerate...
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
@@ -1132,6 +1108,43 @@ export function CharacterDetailModal({
         </>
       )}
       
+      {/* Regenerate Pose Modal */}
+      <RegeneratePoseModal
+        isOpen={showRegenerateModal}
+        onClose={() => {
+          setShowRegenerateModal(false);
+          setRegeneratingPose(null);
+        }}
+        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality') => {
+          if (!regeneratingPose) return;
+          
+          const token = await getToken({ template: 'wryda-backend' });
+          const response = await fetch(`/api/projects/${screenplayId}/characters/${character.id}/regenerate-pose`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              poseId: regeneratingPose.poseId,
+              existingPoseS3Key: regeneratingPose.s3Key,
+              outfitName: regeneratingPose.outfitName,
+              providerId: providerId, // 🔥 NEW: Pass selected model
+              quality: quality // 🔥 NEW: Pass quality tier
+            })
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to regenerate pose');
+          }
+          
+          toast.success('Pose regeneration started. Check the Jobs panel for progress.');
+          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+          await onUpdate(character.id, {});
+        }}
+        poseName={regeneratingPose?.poseId ? `Pose: ${regeneratingPose.poseId}` : 'this pose'}
+      />
     </AnimatePresence>
   );
 }
