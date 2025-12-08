@@ -93,16 +93,37 @@ export function CharacterBankPanel({
       // Backend expects full objects with metadata (outfitName, poseId, etc.)
       if (updates.poseReferences !== undefined) {
         apiUpdates.poseReferences = updates.poseReferences;
+        console.log('[CharacterBankPanel] 🔍 Updating poseReferences:', {
+          characterId,
+          count: updates.poseReferences.length,
+          poseRefs: updates.poseReferences.map((r: any) => ({
+            s3Key: typeof r === 'string' ? r : r.s3Key,
+            id: typeof r === 'string' ? undefined : r.id
+          }))
+        });
       }
       
       // 🔥 FIX: Also handle angleReferences (backend may use either name)
       if ((updates as any).angleReferences !== undefined) {
         apiUpdates.poseReferences = (updates as any).angleReferences;
+        console.log('[CharacterBankPanel] 🔍 Updating angleReferences (as poseReferences):', {
+          characterId,
+          count: (updates as any).angleReferences.length
+        });
       }
       
       if (updates.name !== undefined) apiUpdates.name = updates.name;
       if (updates.description !== undefined) apiUpdates.description = updates.description;
       if (updates.type !== undefined) apiUpdates.type = updates.type;
+
+      console.log('[CharacterBankPanel] 🚀 Sending PUT request:', {
+        characterId,
+        screenplayId,
+        apiUpdates: {
+          ...apiUpdates,
+          poseReferences: apiUpdates.poseReferences ? `${apiUpdates.poseReferences.length} items` : undefined
+        }
+      });
 
       const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
         method: 'PUT',
@@ -113,14 +134,23 @@ export function CharacterBankPanel({
         body: JSON.stringify(apiUpdates),
       });
 
+      console.log('[CharacterBankPanel] 📡 Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[CharacterBankPanel] ❌ Update failed:', errorData);
         throw new Error(errorData.error || `Failed to update character: ${response.status}`);
       }
 
+      const responseData = await response.json().catch(() => ({}));
+      console.log('[CharacterBankPanel] ✅ Update successful:', {
+        characterId,
+        poseReferencesCount: responseData.character?.poseReferences?.length || responseData.character?.angleReferences?.length
+      });
+
       toast.success('Character updated successfully');
-      // Invalidate React Query cache
-      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+      // Invalidate React Query cache and refetch immediately
+      await queryClient.refetchQueries({ queryKey: ['characters', screenplayId] });
       if (onCharactersUpdate) onCharactersUpdate();
     } catch (error: any) {
       console.error('[CharacterBank] Failed to update character:', error);

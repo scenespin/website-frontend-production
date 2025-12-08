@@ -1306,17 +1306,35 @@ export function CharacterDetailModal({
                                           if (isPoseRef) {
                                             // Delete from poseReferences (AI-generated poses)
                                             const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
+                                            console.log('[CharacterDetailModal] 🔍 Before deletion:', {
+                                              currentCount: currentPoseReferences.length,
+                                              imgS3Key,
+                                              allS3Keys: currentPoseReferences.map((r: any) => typeof r === 'string' ? r : r.s3Key)
+                                            });
+                                            
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== imgS3Key;
                                             });
                                             
+                                            console.log('[CharacterDetailModal] 🔍 After filtering:', {
+                                              updatedCount: updatedPoseReferences.length,
+                                              removed: currentPoseReferences.length - updatedPoseReferences.length
+                                            });
+                                            
                                             await onUpdate(character.id, { 
                                               poseReferences: updatedPoseReferences
                                             });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ Update call completed');
                                           } else {
                                             // Delete from character.references array (user-uploaded references in Production Hub)
                                             const currentReferences = character.references || [];
+                                            console.log('[CharacterDetailModal] 🔍 Deleting from references:', {
+                                              currentCount: currentReferences.length,
+                                              imgS3Key
+                                            });
+                                            
                                             const updatedReferences = currentReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== imgS3Key;
@@ -1325,14 +1343,21 @@ export function CharacterDetailModal({
                                             await onUpdate(character.id, { 
                                               references: updatedReferences 
                                             });
+                                            
+                                            console.log('[CharacterDetailModal] ✅ Update call completed');
                                           }
                                           
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
                                           // Invalidate both media and characters queries to refresh the UI
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+                                          // Use refetch instead of just invalidate to ensure immediate update
+                                          await Promise.all([
+                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] }),
+                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId] })
+                                          ]);
+                                          
+                                          console.log('[CharacterDetailModal] ✅ Queries invalidated and refetched');
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
