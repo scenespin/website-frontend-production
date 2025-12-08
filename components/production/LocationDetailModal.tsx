@@ -19,7 +19,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
+import { RegenerateAngleModal } from './RegenerateAngleModal';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@clerk/nextjs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,6 +91,9 @@ export function LocationDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [regeneratingAngle, setRegeneratingAngle] = useState<{ angleId: string; s3Key: string; angle: string; timeOfDay?: string; weather?: string } | null>(null);
+  const { getToken } = useAuth();
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -409,6 +414,24 @@ export function LocationDetailModal({
                                       </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Open regenerate modal with angle info
+                                          setRegeneratingAngle({
+                                            angleId: variation.id || `angle_${variation.s3Key}`,
+                                            s3Key: variation.s3Key,
+                                            angle: variation.angle,
+                                            timeOfDay: variation.timeOfDay,
+                                            weather: variation.weather
+                                          });
+                                          setShowRegenerateModal(true);
+                                        }}
+                                        className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
+                                      >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Regenerate...
+                                      </DropdownMenuItem>
                                       <DropdownMenuItem
                                         onClick={async (e) => {
                                           e.stopPropagation();
