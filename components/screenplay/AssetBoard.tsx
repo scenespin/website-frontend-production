@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Package, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEditor } from '@/contexts/EditorContext';
 import type { Asset, AssetCategory } from '@/types/asset';
 import AssetDetailSidebar from './AssetDetailSidebar';
@@ -37,8 +38,10 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
         isEntityInScript, 
         addImageToEntity,
         canEditScript,
-        canUseAI
+        canUseAI,
+        screenplayId
     } = useScreenplay();
+    const queryClient = useQueryClient();
     const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<AssetColumn[]>([]);
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -357,6 +360,12 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                 tags: assetData.tags || []
                                             });
                                             
+                                            // 🔥 FIX: Refetch Production Hub asset cache so new asset appears immediately
+                                            if (screenplayId) {
+                                                // Use refetchQueries for immediate update (matches deletion pattern)
+                                                queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+                                            }
+                                            
                                             // Add pending images after asset creation
                                             // Images are already uploaded to S3 via presigned URLs, just need to register them
                                             if (pendingImages && pendingImages.length > 0 && newAsset) {
@@ -402,10 +411,26 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                                         ]
                                                     });
                                                     console.log('[AssetBoard] ✅ Images registered successfully');
+                                                    
+                                                    // 🔥 FIX: Refresh asset from context after images are registered
+                                                    // Wait a bit for backend processing and context update
+                                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                                    const updatedAsset = assets.find(a => a.id === newAsset.id);
+                                                    if (updatedAsset) {
+                                                        setSelectedAsset(updatedAsset);
+                                                    } else {
+                                                        setSelectedAsset(newAsset);
+                                                    }
                                                 }
+                                            } else {
+                                                // No pending images - just set the new asset
+                                                setSelectedAsset(newAsset);
                                             }
                                             
+                                            // 🔥 FIX: Keep sidebar open with newly created asset so uploads work immediately
+                                            // Match Character pattern: set selectedAsset and close creating mode
                                             setIsCreating(false);
+                                            setIsEditing(false); // Don't set isEditing - just close creating mode
                                             toast.success('Asset created successfully');
                                         } catch (err: any) {
                                             toast.error(`Error creating asset: ${err.message}`);
