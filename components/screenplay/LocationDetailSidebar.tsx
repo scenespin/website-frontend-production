@@ -350,9 +350,9 @@ export default function LocationDetailSidebar({
 
         console.log(`[LocationDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
 
-        // Step 3: If location exists, register the uploaded image with the location via backend
-        // 🔥 FIX: Also check if we're in edit mode (location was just created)
-        if (location && (!isCreating || location.id !== 'new')) {
+        // Step 3: Register the uploaded image with the location via backend (only if location exists)
+        // 🔥 FIX: If creating, skip registration and store in pendingImages instead
+        if (location && !isCreating) {
           const registerResponse = await fetch(
             `/api/screenplays/${screenplayId}/locations/${location.id}/images`,
             {
@@ -388,8 +388,7 @@ export default function LocationDetailSidebar({
             }
           }));
         } else if (isCreating) {
-          // New location - store temporarily with s3Key
-          // Generate presigned URL for display via backend
+          // 🔥 FIX: During creation, generate presigned URL for display and store in pendingImages
           try {
             const presignedUrlResponse = await fetch(
               `/api/s3/download-url`,
@@ -453,9 +452,20 @@ export default function LocationDetailSidebar({
         }
       }
 
-      // Step 4: Update UI
-      // 🔥 FIX: Match AssetDetailSidebar pattern - check if location exists (not isCreating state)
-      if (location) {
+      // Step 4: Handle uploaded images based on whether we're creating or editing
+      // 🔥 FIX: Check isCreating first to handle pendingImages correctly (matches CharacterDetailSidebar pattern)
+      if (isCreating && uploadedImages.length > 0) {
+        // New location - store temporarily, will be added after location creation
+        setPendingImages(prev => [...prev, ...uploadedImages]);
+        
+        // Update formData to show images in UI (preview before save)
+        setFormData(prev => ({
+          ...prev,
+          images: [...(prev.images || []), ...uploadedImages]
+        }));
+        
+        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''} - will be added when location is created`);
+      } else if (location && uploadedImages.length > 0) {
         // Existing location - register all images with location API
         try {
           // Update formData immediately for UI update
@@ -489,10 +499,6 @@ export default function LocationDetailSidebar({
           console.error('[LocationDetailSidebar] Failed to register images:', error);
           toast.error(`Failed to register images: ${error.message}`);
         }
-      } else if (isCreating) {
-        // New location - store temporarily, will be added after location creation
-        setPendingImages(prev => [...prev, ...uploadedImages]);
-        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''} - will be added when location is created`);
       }
 
     } catch (error: any) {
