@@ -458,6 +458,21 @@ export default function CharacterDetailSidebar({
           }));
           
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} ready - will be added when character is created`);
+          
+          // 🔥 FIX: Show storage modal for first uploaded image during creation
+          // Images are in temporary S3 storage, user can choose to save permanently
+          if (transformedImages.length > 0) {
+            const firstImage = transformedImages[0];
+            if (firstImage.s3Key && firstImage.imageUrl) {
+              setSelectedAsset({
+                url: firstImage.imageUrl,
+                s3Key: firstImage.s3Key,
+                name: fileArray[0].name,
+                type: 'image'
+              });
+              setShowStorageModal(true);
+            }
+          }
         } else if (lastEnrichedCharacter && character) {
           // Existing character - backend already updated character, use enriched character data
           const enrichedCharacter = lastEnrichedCharacter;

@@ -465,6 +465,21 @@ export default function LocationDetailSidebar({
         }));
         
         toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''} - will be added when location is created`);
+        
+        // 🔥 FIX: Show storage modal for first uploaded image during creation
+        // Images are in temporary S3 storage, user can choose to save permanently
+        if (uploadedImages.length > 0) {
+          const firstImage = uploadedImages[0];
+          if (firstImage.metadata?.s3Key && firstImage.imageUrl) {
+            setSelectedAsset({
+              url: firstImage.imageUrl,
+              s3Key: firstImage.metadata.s3Key,
+              name: fileArray[0].name,
+              type: 'image'
+            });
+            setShowStorageModal(true);
+          }
+        }
       } else if (location && uploadedImages.length > 0) {
         // Existing location - register all images with location API
         try {
