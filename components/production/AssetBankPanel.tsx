@@ -4,7 +4,7 @@
  * Asset Bank Panel - Simplified React Query Version
  * 
  * Production Hub Simplification Plan - Phase 1
- * Reduced from ~396 lines to ~250 lines using React Query
+ * Matches LocationBankPanel pattern exactly
  */
 
 import { useState } from 'react';
@@ -12,7 +12,6 @@ import { useAuth } from '@clerk/nextjs';
 import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
-import Asset3DExportModal from './Asset3DExportModal';
 import AssetDetailModal from './AssetDetailModal';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -34,26 +33,19 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   const queryClient = useQueryClient();
 
   // React Query for fetching assets
-  const { data: allAssets = [], isLoading: queryLoading } = useAssets(
+  const { data: assets = [], isLoading: queryLoading } = useAssets(
     screenplayId || '',
     'production-hub',
     !!screenplayId
   );
+
+  const isLoading = queryLoading;
 
   // Local UI state only
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [show3DExportModal, setShow3DExportModal] = useState(false);
-  const [assetFor3DExport, setAssetFor3DExport] = useState<Asset | null>(null);
-
-  // Filter assets by category
-  const assets = selectedCategory === 'all'
-    ? allAssets
-    : allAssets.filter(a => a.category === selectedCategory);
-
-  const isLoading = queryLoading;
 
   // Early return after all hooks
   if (!screenplayId) {
@@ -78,50 +70,52 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
     return icons[category];
   };
 
-  const handleDownload3D = async (asset: Asset) => {
+  async function updateAsset(assetId: string, updates: Partial<Asset>) {
     try {
       const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        toast.error('Authentication required');
-        return;
-      }
+      if (!token) throw new Error('Not authenticated');
+
+      const apiUpdates: any = {};
       
-      const response = await fetch(`/api/asset-bank/${asset.id}/3d-models`, {
+      if (updates.name !== undefined) apiUpdates.name = updates.name;
+      if (updates.description !== undefined) apiUpdates.description = updates.description;
+      if (updates.category !== undefined) apiUpdates.category = updates.category;
+
+      const response = await fetch(`/api/asset-bank/${assetId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(apiUpdates),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch 3D models');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update asset: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      if (data.models && data.models.length > 0) {
-        data.models.forEach((model: { url: string; format: string }) => {
-          const link = document.createElement('a');
-          link.href = model.url;
-          link.download = `${asset.name.replace(/\s+/g, '_')}.${model.format}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
-        toast.success('3D models downloaded');
-      } else {
-        toast.error('No 3D models available');
-      }
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Failed to download 3D models');
+      toast.success('Asset updated successfully');
+      // Invalidate React Query cache
+      queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+    } catch (error: any) {
+      console.error('[AssetBank] Failed to update asset:', error);
+      toast.error(`Failed to update asset: ${error.message}`);
     }
-  };
+  }
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-  };
+  const filteredAssets = selectedCategory === 'all'
+    ? assets
+    : assets.filter(a => a.category === selectedCategory);
 
-  const selectedAsset = assets.find(a => a.id === selectedAssetId);
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center h-full ${className}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
+      </div>
+    );
+  }
+
 
   return (
     <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
@@ -148,14 +142,14 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
           </div>
         </div>
       )}
-      
+
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46]">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-semibold text-[#FFFFFF]">Asset Bank</h2>
         </div>
         <p className="text-xs text-[#808080]">
-          {assets.length} asset{assets.length !== 1 ? 's' : ''}
+          {filteredAssets.length} asset{filteredAssets.length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -193,35 +187,44 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
 
       {/* Asset Grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-[#DC143C]" />
-          </div>
-        ) : assets.length === 0 ? (
+        {filteredAssets.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-[#808080]">
             <Package className="w-16 h-16 mb-4 opacity-50" />
             <p className="text-lg font-medium text-[#B3B3B3]">No assets yet</p>
             <p className="text-sm text-[#808080] mt-2">
-              {selectedCategory === 'all' 
+              {selectedCategory === 'all'
                 ? 'Assets are created in the Write/Create section'
-                : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`}
+                : `No ${ASSET_CATEGORY_METADATA[selectedCategory as AssetCategory]?.label.toLowerCase()} found`
+              }
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {assets.map((asset) => {
-              const referenceImages: CinemaCardImage[] = (asset.images || []).map((img, idx) => ({
-                id: `img-${idx}`,
-                imageUrl: img.url,
-                label: `${asset.name} - Image ${idx + 1}`
-              }));
+            {filteredAssets.map((asset) => {
+              const allReferences: CinemaCardImage[] = [];
+              
+              // Add base images
+              if (asset.images && asset.images.length > 0) {
+                asset.images.forEach((img, idx) => {
+                  allReferences.push({
+                    id: img.s3Key || `img-${asset.id}-${idx}`,
+                    imageUrl: img.url,
+                    label: `${asset.name} - Image ${idx + 1}`
+                  });
+                });
+              }
+              
+              // Add angle references (like locations add angleVariations)
+              (asset.angleReferences || []).forEach((ref, idx) => {
+                allReferences.push({
+                  id: ref.s3Key || `angle-${asset.id}-${idx}`,
+                  imageUrl: ref.imageUrl,
+                  label: `${asset.name} - ${ref.angle} view`
+                });
+              });
 
-              const badgeColor = asset.category === 'prop' ? 'gray' :
-                                asset.category === 'vehicle' ? 'red' :
-                                asset.category === 'furniture' ? 'gold' : 'gray';
-
-              const metadata = asset.has3DModel ? '3D Model Available' : 
-                              `${(asset.images || []).length}/10 images`;
+              const metadata = asset.has3DModel ? '3D Model Available' :
+                              `${allReferences.length} images`;
 
               return (
                 <CinemaCard
@@ -230,13 +233,12 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
                   name={asset.name}
                   type={asset.category}
                   typeLabel={ASSET_CATEGORY_METADATA[asset.category].label}
-                  mainImage={referenceImages.length > 0 ? referenceImages[0] : null}
-                  referenceImages={referenceImages.slice(1)}
-                  referenceCount={referenceImages.length}
+                  mainImage={allReferences.length > 0 ? allReferences[0] : null}
+                  referenceImages={allReferences.slice(1)}
+                  referenceCount={allReferences.length}
                   metadata={metadata}
                   description={asset.description}
                   cardType="asset"
-                  typeBadgeColor={badgeColor as 'red' | 'blue' | 'gold' | 'gray'}
                   onClick={() => {
                     setSelectedAssetId(asset.id);
                     setShowDetailModal(true);
@@ -253,25 +255,12 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         projectId={screenplayId}
-        onSuccess={handleRefresh}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
       />
-
-      {/* 3D Export Modal */}
-      {assetFor3DExport && (
-        <Asset3DExportModal
-          isOpen={show3DExportModal}
-          onClose={() => {
-            setShow3DExportModal(false);
-            setAssetFor3DExport(null);
-          }}
-          asset={assetFor3DExport}
-          onSuccess={handleRefresh}
-        />
-      )}
 
       {/* Asset Detail Modal */}
       {showDetailModal && selectedAssetId && (() => {
-        const selectedAsset = assets.find(a => a.id === selectedAssetId);
+        const selectedAsset = filteredAssets.find(a => a.id === selectedAssetId);
         return selectedAsset ? (
           <AssetDetailModal
             isOpen={showDetailModal}
@@ -280,16 +269,11 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
               setSelectedAssetId(null);
             }}
             asset={selectedAsset}
-            onUpdate={handleRefresh}
-            onDelete={handleRefresh}
-            onAssetUpdate={(updatedAsset) => {
-              // React Query will handle the update via cache invalidation
-              queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-            }}
-            onGenerate3D={(asset) => {
-              setShowDetailModal(false);
-              setAssetFor3DExport(asset);
-              setShow3DExportModal(true);
+            onUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
+            onDelete={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
+            onAssetUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
+            onGenerate3D={async (asset) => {
+              toast.info('3D generation coming soon');
             }}
           />
         ) : null;
@@ -297,4 +281,3 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
     </div>
   );
 }
-
