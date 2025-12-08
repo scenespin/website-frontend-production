@@ -34,7 +34,7 @@ export default function AssetDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
-  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene, getEntityImages } = useScreenplay()
+  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene } = useScreenplay()
   // 🔥 FIX: Use ref to track latest assets to avoid stale closures in async functions
   const assetsRef = useRef(assets);
   useEffect(() => {
@@ -244,7 +244,8 @@ export default function AssetDetailSidebar({
     const fileArray = Array.from(files);
 
     // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
-    const currentImages = asset ? getEntityImages('asset', asset.id) : [];
+    // Assets have images directly on the asset object, not via getEntityImages
+    const currentImages = asset?.images || [];
     const currentCount = currentImages.filter(img => {
       const source = (img.metadata as any)?.source;
       return !source || source === 'user-upload';
