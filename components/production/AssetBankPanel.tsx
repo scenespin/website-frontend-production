@@ -210,7 +210,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {assets.map((asset) => {
-              const referenceImages: CinemaCardImage[] = asset.images.map((img, idx) => ({
+              const referenceImages: CinemaCardImage[] = (asset.images || []).map((img, idx) => ({
                 id: `img-${idx}`,
                 imageUrl: img.url,
                 label: `${asset.name} - Image ${idx + 1}`
@@ -221,7 +221,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
                                 asset.category === 'furniture' ? 'gold' : 'gray';
 
               const metadata = asset.has3DModel ? '3D Model Available' : 
-                              `${asset.images.length}/10 images`;
+                              `${(asset.images || []).length}/10 images`;
 
               return (
                 <CinemaCard

@@ -322,7 +322,7 @@ export function CharacterBankPanel({
           <div className="p-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {characters.map(character => {
-                const referenceImages: CinemaCardImage[] = character.references.map(ref => ({
+                const referenceImages: CinemaCardImage[] = (character.references || []).map(ref => ({
                   id: ref.id,
                   imageUrl: ref.imageUrl,
                   label: ref.label

@@ -155,7 +155,7 @@ export function LocationBankPanel({
                   });
                 }
                 
-                location.angleVariations.forEach((variation) => {
+                (location.angleVariations || []).forEach((variation) => {
                   allReferences.push({
                     id: variation.id,
                     imageUrl: variation.imageUrl,
