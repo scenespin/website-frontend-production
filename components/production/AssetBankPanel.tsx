@@ -215,12 +215,20 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
               }
               
               // Add angle references (like locations add angleVariations)
-              (asset.angleReferences || []).forEach((ref, idx) => {
-                allReferences.push({
-                  id: ref.s3Key || `angle-${asset.id}-${idx}`,
-                  imageUrl: ref.imageUrl,
-                  label: `${asset.name} - ${ref.angle} view`
-                });
+              const angleRefs = asset.angleReferences || [];
+              if (angleRefs.length > 0) {
+                console.log(`[AssetBankPanel] Found ${angleRefs.length} angle references for ${asset.name}:`, angleRefs);
+              }
+              angleRefs.forEach((ref, idx) => {
+                if (ref && ref.imageUrl) {
+                  allReferences.push({
+                    id: ref.s3Key || `angle-${asset.id}-${idx}`,
+                    imageUrl: ref.imageUrl,
+                    label: `${asset.name} - ${ref.angle || 'angle'} view`
+                  });
+                } else if (ref && !ref.imageUrl) {
+                  console.warn(`[AssetBankPanel] Angle reference missing imageUrl for ${asset.name}:`, ref);
+                }
               });
 
               const metadata = asset.has3DModel ? '3D Model Available' :
