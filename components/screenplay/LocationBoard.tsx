@@ -78,6 +78,19 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         return map;
     }, [locations, scriptContent, isEntityInScript]);
     
+    // 🔥 FIX: Sync selectedLocation with latest location from context (for immediate UI updates)
+    // This ensures changes from Production Hub Location Bank sync to Writing Section
+    // Also ensures card displays update immediately after image registration
+    useEffect(() => {
+        if (selectedLocation?.id) {
+            const updatedLocation = locations.find(l => l.id === selectedLocation.id);
+            if (updatedLocation) {
+                // Update selectedLocation to reflect changes from context (e.g., after image registration)
+                setSelectedLocation(updatedLocation);
+            }
+        }
+    }, [locations, selectedLocation?.id]);
+    
     // Listen for external trigger to add location
     useEffect(() => {
         if (triggerAdd) {
@@ -384,6 +397,34 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                     }));
                                     
                                     console.log('[LocationBoard] 📸 Registering', imageEntries.length, 'images with location:', newLocation.id);
+                                    
+                                    // 🔥 FIX: Use specific location image upload endpoint (like AssetBoard uses updateAsset)
+                                    // This ensures backend updates correctly and context syncs immediately
+                                    const token = await getToken({ template: 'wryda-backend' });
+                                    if (token && screenplayId) {
+                                        // Use the specific endpoint for location images (matches LocationDetailSidebar pattern)
+                                        for (const img of imageEntries) {
+                                            if (img.metadata?.s3Key) {
+                                                try {
+                                                    await fetch(`/api/screenplays/${screenplayId}/locations/${newLocation.id}/images`, {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Authorization': `Bearer ${token}`,
+                                                            'Content-Type': 'application/json',
+                                                        },
+                                                        body: JSON.stringify({
+                                                            s3Key: img.metadata.s3Key,
+                                                            imageUrl: img.imageUrl
+                                                        }),
+                                                    });
+                                                } catch (error) {
+                                                    console.error('[LocationBoard] Failed to register image:', error);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Also call updateLocation for context update (optimistic update)
                                     await updateLocation(newLocation.id, {
                                         images: [
                                             ...(newLocation.images || []), // Use images from the real location returned by createLocation
@@ -393,7 +434,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                     console.log('[LocationBoard] ✅ Images registered successfully');
                                     
                                     // 🔥 FIX: Refresh location from context after images are registered
-                                    // Wait a bit for backend processing and context update
+                                    // Wait a bit for backend processing and context update (matches AssetBoard pattern)
                                     await new Promise(resolve => setTimeout(resolve, 500));
                                     const updatedLocation = locations.find(l => l.id === newLocation.id);
                                     if (updatedLocation) {

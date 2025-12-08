@@ -346,6 +346,34 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 }));
                                 
                                 console.log('[CharacterBoard] 📸 Registering', imageEntries.length, 'images with character:', newCharacter.id);
+                                
+                                // 🔥 FIX: Use specific character image upload endpoint (like AssetBoard uses updateAsset)
+                                // This ensures backend updates correctly and context syncs immediately
+                                const token = await getToken({ template: 'wryda-backend' });
+                                if (token && screenplayId) {
+                                    // Use the specific endpoint for character images (matches CharacterDetailSidebar pattern)
+                                    for (const img of imageEntries) {
+                                        if (img.metadata?.s3Key) {
+                                            try {
+                                                await fetch(`/api/screenplays/${screenplayId}/characters/${newCharacter.id}/images`, {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Authorization': `Bearer ${token}`,
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        s3Key: img.metadata.s3Key,
+                                                        imageUrl: img.imageUrl
+                                                    }),
+                                                });
+                                            } catch (error) {
+                                                console.error('[CharacterBoard] Failed to register image:', error);
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Also call updateCharacter for context update (optimistic update)
                                 await updateCharacter(newCharacter.id, {
                                     images: [
                                         ...(newCharacter.images || []), // Use images from the real character returned by createCharacter
@@ -355,7 +383,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 console.log('[CharacterBoard] ✅ Images registered successfully');
                                 
                                 // 🔥 FIX: Refresh character from context after images are registered
-                                // Wait a bit for backend processing and context update
+                                // Wait a bit for backend processing and context update (matches AssetBoard pattern)
                                 await new Promise(resolve => setTimeout(resolve, 500));
                                 const updatedCharacter = characters.find(c => c.id === newCharacter.id);
                                 if (updatedCharacter) {
