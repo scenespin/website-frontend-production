@@ -299,10 +299,43 @@ export default function AssetAngleGenerationModal({
                     </div>
                   </div>
                   
+                  {/* Model Selection - NEW */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 2: Select Model
+                    </h3>
+                    {isLoadingModels ? (
+                      <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
+                        Loading models...
+                      </div>
+                    ) : models.length === 0 ? (
+                      <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
+                        No models available for this quality tier
+                      </div>
+                    ) : (
+                      <select
+                        value={providerId}
+                        onChange={(e) => setProviderId(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]"
+                      >
+                        {models.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name} ({model.referenceLimit} refs, {model.quality}, {model.credits} credits)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {models.find(m => m.id === providerId) && (
+                      <p className="mt-2 text-xs text-base-content/50">
+                        {models.find(m => m.id === providerId)?.referenceLimit} reference images • {models.find(m => m.id === providerId)?.quality} • {models.find(m => m.id === providerId)?.credits} credits per image
+                      </p>
+                    )}
+                  </div>
+                  
                   {/* Package Selection */}
                   <div>
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 2: Select Package
+                      Step 3: Select Package
                     </h3>
                     <AssetAnglePackageSelector
                       assetName={assetName}
