@@ -274,9 +274,6 @@ export function CharacterBankPanel({
           onUploadImage={async (characterId, file) => {
             toast.info('Character image upload coming soon');
           }}
-          onGenerate3D={async (characterId) => {
-            toast.info('3D generation coming soon');
-          }}
           onGenerateVariations={async (characterId) => {
             toast.info('Reference generation coming soon');
           }}

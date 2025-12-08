@@ -206,9 +206,6 @@ export function LocationBankPanel({
           onUploadImage={async (locationId, file) => {
             toast.info('Location image upload coming soon');
           }}
-          onGenerate3D={async (locationId) => {
-            toast.info('3D generation coming soon');
-          }}
           onGenerateAngles={async (locationId) => {
             handleGenerateAngles(locationId);
           }}

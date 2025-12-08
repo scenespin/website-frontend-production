@@ -5,7 +5,6 @@
  * 
  * Features:
  * - Image gallery (main + references with thumbnail grid)
- * - 3D image button/display
  * - Description and info
  * - Uploaded images management
  * - Three tabs: Gallery, Info, References
@@ -36,7 +35,6 @@ interface AssetDetailModalProps {
   asset: Asset;
   onUpdate: () => void;
   onDelete?: () => void; // 🔥 Made optional - delete removed from Production Hub
-  onGenerate3D: (asset: Asset) => void;
   isMobile?: boolean;
   onAssetUpdate?: (updatedAsset: Asset) => void; // 🔥 NEW: Callback to update asset in parent
 }
@@ -45,9 +43,8 @@ export default function AssetDetailModal({
   isOpen, 
   onClose, 
   asset, 
-  onUpdate, 
+  onUpdate,
   onDelete,
-  onGenerate3D,
   isMobile = false,
   onAssetUpdate
 }: AssetDetailModalProps) {
@@ -70,7 +67,6 @@ export default function AssetDetailModal({
   // Backend AssetBankService already enriches angleReferences with imageUrl and all metadata
   const angleReferences = asset.angleReferences || [];
   
-  const canExport3D = assetImages.length >= 2 && assetImages.length <= 10;
   const canGenerateAngles = assetImages.length >= 1; // Need at least 1 image for angle generation
   
   // 🔥 SIMPLIFIED: Separate Creation images from Production Hub angles
@@ -146,7 +142,6 @@ export default function AssetDetailModal({
         })),
         userImagesCount: userImages.length,
         canGenerateAngles,
-        canExport3D
       });
     }
   }, [isOpen, asset.id, assetImages.length, creationImages.length, angleImages.length]);
@@ -254,11 +249,6 @@ export default function AssetDetailModal({
                   <h2 className="text-xl font-bold text-[#FFFFFF]">{asset.name}</h2>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-sm text-[#808080]">{categoryMeta.label}</span>
-                    {asset.has3DModel && (
-                      <span className="px-2 py-0.5 bg-[#DC143C]/20 text-[#DC143C] text-xs rounded-lg font-medium">
-                        3D Model Available
-                      </span>
-                    )}
                     {/* 🔥 READ-ONLY BADGE */}
                     <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
                       Read-only - Edit in Creation section
@@ -365,7 +355,6 @@ export default function AssetDetailModal({
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <Box className="w-16 h-16 text-[#808080] mb-4" />
                       <p className="text-[#808080] mb-4">No images yet</p>
-                      <p className="text-sm text-[#808080] mb-4">Upload 2-10 images for 3D generation</p>
                     </div>
                   )}
 
@@ -402,27 +391,6 @@ export default function AssetDetailModal({
                       </div>
                     )}
                     
-                    {canExport3D && !asset.has3DModel && (
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => onGenerate3D(asset)}
-                          className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center"
-                          title="Required: Generate 3D model to render multiple angles for consistent prop appearance in scenes"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                          Generate 3D Model for Scene Generation ({categoryMeta.priceUSD})
-                        </button>
-                        <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
-                          3D export required for scene generation. The model will be used to render reference images at different angles.
-                        </p>
-                      </div>
-                    )}
-                    
-                    {!canExport3D && (
-                      <div className="px-4 py-2 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg text-sm text-[#808080]">
-                        ⚠️ Need {2 - assetImages.length} more image{(2 - assetImages.length) !== 1 ? 's' : ''} for 3D export
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -480,10 +448,6 @@ export default function AssetDetailModal({
                       <div className="flex justify-between">
                         <span className="text-[#808080]">Last Updated:</span>
                         <span className="text-[#FFFFFF]">{new Date(asset.updatedAt).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-[#808080]">3D Export Cost:</span>
-                        <span className="text-[#FFFFFF]">{categoryMeta.priceUSD} ({categoryMeta.credits} credits)</span>
                       </div>
                     </div>
                   </div>

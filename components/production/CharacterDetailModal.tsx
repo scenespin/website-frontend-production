@@ -5,7 +5,6 @@
  * 
  * Features:
  * - Image gallery (main + references)
- * - 3D image button/display
  * - Description and info from script
  * - Uploaded images management
  * - Advanced options
@@ -22,7 +21,6 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
 import { cn } from '@/lib/utils';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import Character3DExportModal from './Character3DExportModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +37,6 @@ interface CharacterDetailModalProps {
   onDelete?: (characterId: string) => void;
   // Removed projectId prop - screenplayId comes from ScreenplayContext
   onUploadImage?: (characterId: string, file: File) => Promise<void>;
-  onGenerate3D?: (characterId: string) => Promise<void>;
   onGenerateVariations?: (characterId: string) => Promise<void>;
   onGeneratePosePackage?: (characterId: string) => void;
   hasAdvancedFeatures?: boolean;
@@ -54,7 +51,6 @@ export function CharacterDetailModal({
   onUpdate,
   onDelete,
   onUploadImage,
-  onGenerate3D,
   onGenerateVariations,
   onGeneratePosePackage,
   hasAdvancedFeatures = false,
@@ -86,8 +82,6 @@ export function CharacterDetailModal({
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isGenerating3D, setIsGenerating3D] = useState(false);
-  const [show3DModal, setShow3DModal] = useState(false);
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -331,10 +325,6 @@ export function CharacterDetailModal({
     }
   };
 
-  const handleGenerate3D = () => {
-    // Open 3D export modal
-    setShow3DModal(true);
-  };
 
   if (!isOpen) return null;
 
@@ -676,16 +666,6 @@ export function CharacterDetailModal({
                       <span className="px-0.5 py-0 rounded text-[9px] font-medium bg-[#DC143C] text-white ml-0.5">NEW</span>
                     </button>
                     
-                    <button
-                      onClick={handleGenerate3D}
-                      disabled={isGenerating3D}
-                      className="px-2.5 py-1 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#808080]/50 text-[#808080] hover:text-[#FFFFFF] rounded transition-colors inline-flex items-center gap-1 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Export 3D model (500 credits)"
-                    >
-                      <Box className="w-3 h-3" />
-                      3D
-                      <span className="text-[9px] text-[#808080] ml-0.5">500cr</span>
-                    </button>
                   </div>
 
                   {/* Performance Controls - Compact, only if advanced features available */}
@@ -1165,24 +1145,6 @@ export function CharacterDetailModal({
         </>
       )}
       
-      {/* Character 3D Export Modal */}
-      {show3DModal && (
-        <Character3DExportModal
-          isOpen={show3DModal}
-          onClose={() => {
-            setShow3DModal(false);
-          }}
-          character={character}
-          projectId={screenplayId}
-          onSuccess={() => {
-            setShow3DModal(false);
-            // Optionally refresh character data
-            if (onGenerate3D) {
-              // Parent can handle refresh if needed
-            }
-          }}
-        />
-      )}
     </AnimatePresence>
   );
 }

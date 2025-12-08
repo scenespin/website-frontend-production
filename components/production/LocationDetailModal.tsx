@@ -5,7 +5,6 @@
  * 
  * Features:
  * - Image gallery (main + references with thumbnail grid)
- * - 3D image button/display (placeholder for future implementation)
  * - Description and info from script
  * - Uploaded images management
  * - Three tabs: Gallery, Info, References
@@ -20,7 +19,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
-import Location3DExportModal from './Location3DExportModal';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DropdownMenu,
@@ -67,7 +65,6 @@ interface LocationDetailModalProps {
   onDelete?: (locationId: string) => void;
   // Removed projectId prop - screenplayId comes from ScreenplayContext
   onUploadImage?: (locationId: string, file: File) => Promise<void>;
-  onGenerate3D?: (locationId: string) => Promise<void>;
   onGenerateAngles?: (locationId: string) => Promise<void>;
 }
 
@@ -78,7 +75,6 @@ export function LocationDetailModal({
   onUpdate,
   onDelete,
   onUploadImage,
-  onGenerate3D,
   onGenerateAngles
 }: LocationDetailModalProps) {
   // 🔥 FIX: Get screenplayId from context instead of props
@@ -91,10 +87,8 @@ export function LocationDetailModal({
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isGenerating3D, setIsGenerating3D] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
-  const [show3DModal, setShow3DModal] = useState(false);
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -171,10 +165,6 @@ export function LocationDetailModal({
     }
   };
 
-  const handleGenerate3D = () => {
-    // Open 3D export modal
-    setShow3DModal(true);
-  };
 
   const handleGenerateAngles = () => {
     // Open angle generation modal
@@ -347,20 +337,6 @@ export function LocationDetailModal({
                         disabled={isUploading}
                       />
                     </label>
-                    
-                    <div className="space-y-2">
-                      <button
-                        onClick={handleGenerate3D}
-                        className="px-4 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF] rounded-lg transition-colors inline-flex items-center gap-2 w-full justify-center"
-                        title="Export 3D model for external use"
-                      >
-                        <Box className="w-4 h-4" />
-                        Export to 3D (1000 cr)
-                      </button>
-                      <p className="text-xs text-center" style={{ color: '#9CA3AF' }}>
-                        Use in AR/VR, game engines, 3D animation tools, and more
-                      </p>
-                    </div>
                     
                     <button
                       onClick={handleGenerateAngles}
@@ -572,23 +548,6 @@ export function LocationDetailModal({
       />
     )}
     
-    {/* Location 3D Export Modal */}
-    {show3DModal && (
-      <Location3DExportModal
-        isOpen={show3DModal}
-        onClose={() => {
-          setShow3DModal(false);
-        }}
-        location={location}
-        onSuccess={() => {
-          setShow3DModal(false);
-          // Optionally refresh location data
-          if (onGenerate3D) {
-            // Parent can handle refresh if needed
-          }
-        }}
-      />
-    )}
   </>
   );
 }

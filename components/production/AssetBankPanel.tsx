@@ -273,8 +273,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
                 console.log(`[AssetBankPanel] Full images array:`, asset.images);
               }
 
-              const metadata = asset.has3DModel ? '3D Model Available' :
-                              `${allReferences.length} images`;
+              const metadata = `${allReferences.length} images`;
 
               return (
                 <CinemaCard
@@ -322,9 +321,6 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
             onUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
             onDelete={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
             onAssetUpdate={() => queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })}
-            onGenerate3D={async (asset) => {
-              toast.info('3D generation coming soon');
-            }}
           />
         ) : null;
       })()}
