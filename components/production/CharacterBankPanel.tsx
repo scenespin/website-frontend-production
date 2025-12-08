@@ -183,7 +183,12 @@ export function CharacterBankPanel({
                 });
                 
                 // Add AI-generated pose references (like locations add angleVariations)
-                (character.poseReferences || []).forEach((poseRef) => {
+                // Backend may return as angleReferences OR poseReferences - check both!
+                const poseRefs = (character as any).angleReferences || character.poseReferences || [];
+                if (poseRefs.length > 0) {
+                  console.log(`[CharacterBankPanel] Found ${poseRefs.length} pose/angle references for ${character.name}:`, poseRefs);
+                }
+                poseRefs.forEach((poseRef: any) => {
                   const ref = typeof poseRef === 'string' ? null : poseRef;
                   if (ref && ref.imageUrl) {
                     allReferences.push({
@@ -191,6 +196,8 @@ export function CharacterBankPanel({
                       imageUrl: ref.imageUrl,
                       label: ref.label || 'Pose'
                     });
+                  } else if (ref && !ref.imageUrl) {
+                    console.warn(`[CharacterBankPanel] Pose reference missing imageUrl for ${character.name}:`, ref);
                   }
                 });
 
