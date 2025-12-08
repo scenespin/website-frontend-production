@@ -530,6 +530,47 @@ export function LocationDetailModal({
       )}
       </AnimatePresence>
       
+      {/* Regenerate Angle Modal */}
+      <RegenerateAngleModal
+        isOpen={showRegenerateModal}
+        onClose={() => {
+          setShowRegenerateModal(false);
+          setRegeneratingAngle(null);
+        }}
+        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality') => {
+          if (!regeneratingAngle) return;
+          
+          const token = await getToken({ template: 'wryda-backend' });
+          const response = await fetch(`/api/location-bank/${location.locationId}/regenerate-angle?screenplayId=${encodeURIComponent(screenplayId)}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              angleId: regeneratingAngle.angleId,
+              existingAngleS3Key: regeneratingAngle.s3Key,
+              angle: regeneratingAngle.angle,
+              timeOfDay: regeneratingAngle.timeOfDay,
+              weather: regeneratingAngle.weather,
+              providerId: providerId,
+              quality: quality
+            })
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to regenerate angle');
+          }
+          
+          toast.success('Angle regeneration started. Check the Jobs panel for progress.');
+          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+          await onUpdate(location.locationId, {});
+        }}
+        angleName={`Angle: ${regeneratingAngle?.angle || 'unknown'}`}
+        entityType="location"
+      />
+      
       {/* Location Angle Generation Modal */}
       {showAngleModal && (
         <LocationAngleGenerationModal
