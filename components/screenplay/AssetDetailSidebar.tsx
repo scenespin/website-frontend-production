@@ -1067,25 +1067,8 @@ export default function AssetDetailSidebar({
                         </div>
                       )}
                       
-                      {/* AI Generated Angle Images */}
-                      {aiGeneratedImages.length > 0 && (
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-2 pb-2 border-b" style={{ borderColor: '#3F3F46' }}>
-                            <label className="text-xs font-medium block" style={{ color: '#9CA3AF' }}>
-                              AI Generated Angles ({aiGeneratedImages.length})
-                            </label>
-                            <span className="text-xs" style={{ color: '#6B7280' }}>Delete in Production Hub</span>
-                          </div>
-                          <ImageGallery
-                            images={aiGeneratedImages}
-                            entityType="asset"
-                            entityId={asset.id}
-                            entityName={formData.name || 'Asset'}
-                            readOnly={true} // 🔥 RESTRICTION: Creation section cannot delete AI-generated angles - only Production Hub can
-                            // Note: onDeleteImage is not provided, so ImageGallery won't show delete button
-                          />
-                        </div>
-                      )}
+                      {/* 🔥 REMOVED: AI Generated Angle Images - not shown in Creation area for consistency */}
+                      {/* AI-generated images are only visible in Production Hub */}
                     </div>
                   );
                 })()}
