@@ -64,7 +64,20 @@ export function useAssets(screenplayId: string, context: 'creation' | 'productio
 
       const data = await response.json();
       const assetsResponse = data.assets || data.data?.assets || [];
-      return Array.isArray(assetsResponse) ? assetsResponse : [];
+      const assets = Array.isArray(assetsResponse) ? assetsResponse : [];
+      
+      // 🔥 DEBUG: Log angleReferences for troubleshooting
+      assets.forEach((asset: any) => {
+        if (asset.angleReferences && asset.angleReferences.length > 0) {
+          console.log(`[useAssetBank] Asset ${asset.name} has ${asset.angleReferences.length} angleReferences:`, asset.angleReferences);
+        } else if (asset.angleReferences === undefined) {
+          console.log(`[useAssetBank] Asset ${asset.name} has no angleReferences field`);
+        } else {
+          console.log(`[useAssetBank] Asset ${asset.name} has empty angleReferences array`);
+        }
+      });
+      
+      return assets;
     },
     enabled: enabled && !!screenplayId,
     staleTime: 30000, // 30 seconds
