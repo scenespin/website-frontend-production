@@ -258,7 +258,10 @@ export default function CharacterDetailSidebar({
       }
     }
 
-    if (!character) {
+    // 🔥 FIX: Allow uploads during creation - use temporary characterId if creating
+    const characterId = character?.id || 'new';
+    
+    if (!character && !isCreating) {
       toast.error('Character not found');
       return;
     }
@@ -280,7 +283,7 @@ export default function CharacterDetailSidebar({
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         
-        console.log(`[CharacterDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB, replaceBase: ${replaceBase && i === 0})`);
+        console.log(`[CharacterDetailSidebar] 📤 Uploading file ${i + 1}/${fileArray.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB, replaceBase: ${replaceBase && i === 0}, isCreating: ${isCreating})`);
 
         // Step 1: Get presigned POST URL for direct S3 upload
         const presignedResponse = await fetch(
@@ -289,7 +292,7 @@ export default function CharacterDetailSidebar({
           `&fileType=${encodeURIComponent(file.type)}` +
           `&fileSize=${file.size}` +
           `&screenplayId=${encodeURIComponent(screenplayId)}` +
-          `&characterId=${encodeURIComponent(character.id)}`,
+          `&characterId=${encodeURIComponent(characterId)}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -337,29 +340,99 @@ export default function CharacterDetailSidebar({
 
         console.log(`[CharacterDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
 
-        // Step 3: Register the uploaded image with the character via backend
-        const registerResponse = await fetch(
-          `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              s3Key,
-              replaceBase: replaceBase && i === 0, // Only replace base on first file if replaceBase=true
-            }),
+        // Step 3: Register the uploaded image with the character via backend (only if character exists)
+        // 🔥 FIX: If creating, skip registration and store in pendingImages instead
+        if (character && !isCreating) {
+          const registerResponse = await fetch(
+            `/api/screenplays/${screenplayId}/characters/${character.id}/images`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key,
+                replaceBase: replaceBase && i === 0, // Only replace base on first file if replaceBase=true
+              }),
+            }
+          );
+
+          if (!registerResponse.ok) {
+            const errorData = await registerResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
           }
-        );
 
-        if (!registerResponse.ok) {
-          const errorData = await registerResponse.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
+          const registerData = await registerResponse.json();
+          lastEnrichedCharacter = registerData.data;
+        } else if (isCreating) {
+          // 🔥 FIX: During creation, generate presigned URL for display and store in pendingImages
+          try {
+            const presignedUrlResponse = await fetch(
+              `/api/s3/download-url`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  s3Key,
+                  expiresIn: 3600,
+                }),
+              }
+            );
+            
+            if (presignedUrlResponse.ok) {
+              const { downloadUrl } = await presignedUrlResponse.json();
+              // Store in pendingImages for later registration after character creation
+              if (!lastEnrichedCharacter) {
+                lastEnrichedCharacter = { images: [] };
+              }
+              lastEnrichedCharacter.images.push({
+                imageUrl: downloadUrl,
+                s3Key: s3Key,
+                createdAt: new Date().toISOString(),
+                metadata: {
+                  s3Key: s3Key
+                }
+              });
+            } else {
+              // Fallback: use S3 URL directly
+              const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+              const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+              const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+              if (!lastEnrichedCharacter) {
+                lastEnrichedCharacter = { images: [] };
+              }
+              lastEnrichedCharacter.images.push({
+                imageUrl: s3Url,
+                s3Key: s3Key,
+                createdAt: new Date().toISOString(),
+                metadata: {
+                  s3Key: s3Key
+                }
+              });
+            }
+          } catch (urlError) {
+            console.warn('[CharacterDetailSidebar] Failed to get presigned URL, using S3 URL:', urlError);
+            // Fallback: use S3 URL directly
+            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
+            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+            const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+            if (!lastEnrichedCharacter) {
+              lastEnrichedCharacter = { images: [] };
+            }
+            lastEnrichedCharacter.images.push({
+              imageUrl: s3Url,
+              s3Key: s3Key,
+              createdAt: new Date().toISOString(),
+              metadata: {
+                s3Key: s3Key
+              }
+            });
+          }
         }
-
-        const registerData = await registerResponse.json();
-        lastEnrichedCharacter = registerData.data;
         
         // Add delay between uploads to allow DynamoDB eventual consistency
         if (fileArray.length > 1 && i < fileArray.length - 1) {
@@ -367,71 +440,87 @@ export default function CharacterDetailSidebar({
         }
       }
 
-        // Step 4: Backend already updated character - use enriched character data from last upload
-        // The backend endpoint returns the enriched character with presigned URLs in images array
-        if (lastEnrichedCharacter) {
-        const enrichedCharacter = lastEnrichedCharacter;
-        
-        // Backend returns images array with { imageUrl, s3Key, createdAt }
-        // We need to transform to match frontend ImageAsset format
-        const imagesArray = enrichedCharacter.images || [];
-        console.log('[CharacterDetailSidebar] 📸 Processing images:', {
-          count: imagesArray.length,
-          images: imagesArray
-        });
-
-        // Transform images to frontend format (preserve all metadata from backend)
-        const transformedImages = imagesArray.map((img: any) => {
-          // Backend returns { imageUrl, s3Key, createdAt, metadata: { s3Key, source } }
-          const imageUrl = img.imageUrl || img.url;
-          if (!imageUrl) {
-            console.warn('[CharacterDetailSidebar] Image missing URL:', img);
-          }
-          return {
-            imageUrl: imageUrl || '', // Preserve empty string if URL generation failed
-            createdAt: img.createdAt || new Date().toISOString(),
-            metadata: {
-              s3Key: img.s3Key || img.metadata?.s3Key,
-              source: img.metadata?.source || 'user-upload', // Preserve source metadata (user-upload or pose-generation)
-              prompt: img.prompt || img.metadata?.prompt,
-              modelUsed: img.modelUsed || img.metadata?.modelUsed,
-              isEdited: img.isEdited || img.metadata?.isEdited,
-              originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
-              angle: img.angle || img.metadata?.angle, // Preserve angle if present
-              createdIn: img.metadata?.createdIn || 'creation', // 🔥 FIX: Mark images uploaded in Create section
-            }
-          };
-        }).filter((img: any) => {
-          if (!img.imageUrl) {
-            console.warn('[CharacterDetailSidebar] Filtering out image with missing URL:', {
-              s3Key: img.metadata?.s3Key,
-              img
-            });
-            return false;
-          }
-          return true;
-        }); // Filter out images with missing URLs
-
-        console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
-          count: transformedImages.length,
-          images: transformedImages
-        });
-
-        // Update formData immediately for UI update
-        setFormData(prev => {
-          const updated = {
+        // Step 4: Handle uploaded images based on whether we're creating or editing
+        // 🔥 FIX: Check isCreating first to handle pendingImages correctly
+        if (isCreating && lastEnrichedCharacter) {
+          // New character - store temporarily, will be added after character creation
+          const imagesArray = lastEnrichedCharacter.images || [];
+          const transformedImages = imagesArray.map((img: any) => ({
+            imageUrl: img.imageUrl || img.url,
+            s3Key: img.s3Key || img.metadata?.s3Key
+          }));
+          setPendingImages(prev => [...prev, ...transformedImages]);
+          
+          // Update formData to show images in UI (preview before save)
+          setFormData(prev => ({
             ...prev,
-            images: transformedImages
-          };
-          console.log('[CharacterDetailSidebar] 📝 Updated formData:', {
-            imageCount: updated.images.length,
-            images: updated.images
+            images: [...(prev.images || []), ...transformedImages]
+          }));
+          
+          toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} ready - will be added when character is created`);
+        } else if (lastEnrichedCharacter && character) {
+          // Existing character - backend already updated character, use enriched character data
+          const enrichedCharacter = lastEnrichedCharacter;
+          
+          // Backend returns images array with { imageUrl, s3Key, createdAt }
+          // We need to transform to match frontend ImageAsset format
+          const imagesArray = enrichedCharacter.images || [];
+          console.log('[CharacterDetailSidebar] 📸 Processing images:', {
+            count: imagesArray.length,
+            images: imagesArray
           });
-          return updated;
-        });
 
-        // Update character in context to trigger re-render
-        if (character) {
+          // Transform images to frontend format (preserve all metadata from backend)
+          const transformedImages = imagesArray.map((img: any) => {
+            // Backend returns { imageUrl, s3Key, createdAt, metadata: { s3Key, source } }
+            const imageUrl = img.imageUrl || img.url;
+            if (!imageUrl) {
+              console.warn('[CharacterDetailSidebar] Image missing URL:', img);
+            }
+            return {
+              imageUrl: imageUrl || '', // Preserve empty string if URL generation failed
+              createdAt: img.createdAt || new Date().toISOString(),
+              metadata: {
+                s3Key: img.s3Key || img.metadata?.s3Key,
+                source: img.metadata?.source || 'user-upload', // Preserve source metadata (user-upload or pose-generation)
+                prompt: img.prompt || img.metadata?.prompt,
+                modelUsed: img.modelUsed || img.metadata?.modelUsed,
+                isEdited: img.isEdited || img.metadata?.isEdited,
+                originalImageUrl: img.originalImageUrl || img.metadata?.originalImageUrl,
+                angle: img.angle || img.metadata?.angle, // Preserve angle if present
+                createdIn: img.metadata?.createdIn || 'creation', // 🔥 FIX: Mark images uploaded in Create section
+              }
+            };
+          }).filter((img: any) => {
+            if (!img.imageUrl) {
+              console.warn('[CharacterDetailSidebar] Filtering out image with missing URL:', {
+                s3Key: img.metadata?.s3Key,
+                img
+              });
+              return false;
+            }
+            return true;
+          }); // Filter out images with missing URLs
+
+          console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
+            count: transformedImages.length,
+            images: transformedImages
+          });
+
+          // Update formData immediately for UI update
+          setFormData(prev => {
+            const updated = {
+              ...prev,
+              images: transformedImages
+            };
+            console.log('[CharacterDetailSidebar] 📝 Updated formData:', {
+              imageCount: updated.images.length,
+              images: updated.images
+            });
+            return updated;
+          });
+
+          // Update character in context to trigger re-render
           console.log('[CharacterDetailSidebar] 🔄 Updating character in context:', {
             characterId: character.id,
             imageCount: transformedImages.length
@@ -440,62 +529,49 @@ export default function CharacterDetailSidebar({
             images: transformedImages
           });
           console.log('[CharacterDetailSidebar] ✅ Character updated in context');
-        }
 
-        toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
+          toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
 
-        // Step 5: Show StorageDecisionModal for first newly uploaded image
-        // If replaceBase, show first image (the replaced headshot)
-        // If additional references, find the newly uploaded image by comparing with initial images
-        if (transformedImages.length > 0) {
-          let imageToShow;
-          if (replaceBase) {
-            // For headshot replacement, show the first image (the new headshot)
-            imageToShow = transformedImages[0];
-          } else {
-            // For additional references, find the first image that wasn't in the initial set
-            // Compare by s3Key to identify newly uploaded images
-            const initialS3Keys = new Set(
-              (character?.images || []).slice(0, initialImageCount).map((img: any) => 
-                img.metadata?.s3Key || img.s3Key
-              ).filter(Boolean)
-            );
+          // Step 5: Show StorageDecisionModal for first newly uploaded image
+          // If replaceBase, show first image (the replaced headshot)
+          // If additional references, find the newly uploaded image by comparing with initial images
+          if (transformedImages.length > 0) {
+            let imageToShow;
+            if (replaceBase) {
+              // For headshot replacement, show the first image (the new headshot)
+              imageToShow = transformedImages[0];
+            } else {
+              // For additional references, find the first image that wasn't in the initial set
+              // Compare by s3Key to identify newly uploaded images
+              const initialS3Keys = new Set(
+                (character?.images || []).slice(0, initialImageCount).map((img: any) => 
+                  img.metadata?.s3Key || img.s3Key
+                ).filter(Boolean)
+              );
+              
+              // Find first image that's not in the initial set
+              imageToShow = transformedImages.find((img: any) => {
+                const imgS3Key = img.metadata?.s3Key || img.s3Key;
+                return imgS3Key && !initialS3Keys.has(imgS3Key);
+              });
+              
+              // Fallback to last image if no new image found
+              if (!imageToShow) {
+                imageToShow = transformedImages[transformedImages.length - 1];
+              }
+            }
             
-            // Find first image that's not in the initial set
-            imageToShow = transformedImages.find((img: any) => {
-              const imgS3Key = img.metadata?.s3Key || img.s3Key;
-              return imgS3Key && !initialS3Keys.has(imgS3Key);
-            });
-            
-            // Fallback to last image if no new image found
-            if (!imageToShow) {
-              imageToShow = transformedImages[transformedImages.length - 1];
+            if (imageToShow) {
+              setSelectedAsset({
+                url: imageToShow.imageUrl,
+                s3Key: imageToShow.metadata?.s3Key || imageToShow.s3Key,
+                name: fileArray[0].name,
+                type: 'image'
+              });
+              setShowStorageModal(true);
             }
           }
-          
-          if (imageToShow) {
-            setSelectedAsset({
-              url: imageToShow.imageUrl,
-              s3Key: imageToShow.metadata?.s3Key || imageToShow.s3Key,
-              name: fileArray[0].name,
-              type: 'image'
-            });
-            setShowStorageModal(true);
-          }
         }
-      } else if (isCreating) {
-        // New character - store temporarily, will be added after character creation
-        // Extract image data from enriched character response
-        if (lastEnrichedCharacter && lastEnrichedCharacter.images) {
-          const imagesArray = lastEnrichedCharacter.images || [];
-          const transformedImages = imagesArray.map((img: any) => ({
-            imageUrl: img.imageUrl || img.url,
-            s3Key: img.s3Key || img.metadata?.s3Key
-          }));
-          setPendingImages(prev => [...prev, ...transformedImages]);
-        }
-        toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} ready - will be added when character is created`);
-      }
 
     } catch (error: any) {
       console.error('[CharacterDetailSidebar] Upload error:', error);
