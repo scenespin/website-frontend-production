@@ -2056,6 +2056,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     return updated;
                 });
                 
+                // 🔥 FIX: Update relationships to use the real character ID instead of optimistic ID
+                if (transformedCharacter.id !== newCharacter.id) {
+                    setRelationships(prev => {
+                        const { [newCharacter.id]: oldRel, ...restChars } = prev.characters || {};
+                        return {
+                            ...prev,
+                            characters: {
+                                ...restChars,
+                                [transformedCharacter.id]: oldRel || {
+                                    type: 'character',
+                                    appearsInScenes: [],
+                                    relatedBeats: []
+                                }
+                            }
+                        };
+                    });
+                }
+                
+                // 🔥 CRITICAL FIX: Return the transformed character from API (with real ID) instead of optimistic one
+                // This ensures CharacterBoard uses the correct ID when registering images
+                return transformedCharacter;
+                
                 // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
                 // The force reload was causing data loss for locations (address field disappeared)
                 // Characters now have complex fields (physicalAttributes, referenceLibrary) that could have the same issue
@@ -2066,9 +2088,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create character in DynamoDB:', error);
+                // If API call fails, return optimistic character as fallback
             }
         }
         
+        // Return optimistic character only if API call wasn't made or failed
         return newCharacter;
     }, [screenplayId, getToken]);
     
@@ -2554,6 +2578,27 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     return updated;
                 });
                 
+                // 🔥 FIX: Update relationships to use the real location ID instead of optimistic ID
+                if (transformedLocation.id !== newLocation.id) {
+                    setRelationships(prev => {
+                        const { [newLocation.id]: oldRel, ...restLocs } = prev.locations || {};
+                        return {
+                            ...prev,
+                            locations: {
+                                ...restLocs,
+                                [transformedLocation.id]: oldRel || {
+                                    type: 'location',
+                                    scenes: []
+                                }
+                            }
+                        };
+                    });
+                }
+                
+                // 🔥 CRITICAL FIX: Return the transformed location from API (with real ID) instead of optimistic one
+                // This ensures LocationBoard uses the correct ID when registering images
+                return transformedLocation;
+                
                 // 🔥 FIX: Don't force reload immediately - we've already synced state with API response
                 // The force reload was causing the address to disappear because it was happening
                 // before DynamoDB had fully written the item, or the address wasn't in the list response
@@ -2563,9 +2608,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // setReloadTrigger(prev => prev + 1);
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to create location in DynamoDB:', error);
+                // If API call fails, return optimistic location as fallback
             }
         }
         
+        // Return optimistic location only if API call wasn't made or failed
         return newLocation;
     }, [screenplayId, getToken]);
     
