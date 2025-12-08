@@ -338,11 +338,23 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                         s3Key: img.s3Key // S3 key for file management
                                     });
                                 }
+                                
+                                // 🔥 FIX: Refresh character from context after images are registered
+                                // Wait a bit for backend processing and context update
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                const updatedCharacter = characters.find(c => c.id === newCharacter.id);
+                                if (updatedCharacter) {
+                                    setSelectedCharacter(updatedCharacter);
+                                } else {
+                                    setSelectedCharacter(newCharacter);
+                                }
+                            } else {
+                                // No pending images - just set the new character
+                                setSelectedCharacter(newCharacter);
                             }
                             
                             // 🔥 FIX: Keep sidebar open with newly created character so uploads work immediately
                             // Match AssetBoard pattern: set selectedCharacter and close creating mode
-                            setSelectedCharacter(newCharacter);
                             setIsCreating(false);
                             setIsEditing(false); // Don't set isEditing - just close creating mode
                         } catch (err: any) {
