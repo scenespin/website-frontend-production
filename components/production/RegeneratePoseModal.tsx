@@ -108,8 +108,9 @@ export function RegeneratePoseModal({
   }, [selectedQuality]);
 
   const selectedModel = models.find(m => m.id === selectedModelId);
+  // Only show clothing upload for Gen-4 and Nano Banana Pro (not Photon)
   const supportsClothing = selectedModel?.supportsClothingImages ?? false;
-  const maxClothingRefs = selectedModel ? Math.min(selectedModel.referenceLimit - 1, 3) : 0; // Reserve 1 for character, max 3 for clothing
+  const maxClothingRefs = selectedModel && supportsClothing ? Math.min(selectedModel.referenceLimit - 1, 3) : 0; // Reserve 1 for character, max 3 for clothing
 
   // Reset clothing images when modal closes or model changes
   useEffect(() => {

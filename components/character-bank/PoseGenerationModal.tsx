@@ -6,9 +6,9 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon } from 'lucide-react';
 import PosePackageSelector from './PosePackageSelector';
 import { OutfitSelector } from '../production/OutfitSelector';
 import { useAuth } from '@clerk/nextjs';
@@ -40,8 +40,14 @@ export default function PoseGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
+  const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
   const [typicalClothing, setTypicalClothing] = useState<string | undefined>(undefined);
   const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
+  const [clothingImages, setClothingImages] = useState<Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }>>([]);
+  const [isUploadingClothing, setIsUploadingClothing] = useState(false);
+  const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean; supportsClothingImages?: boolean }>>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const clothingFileInputRef = useRef<HTMLInputElement>(null);
   
   // Input data
   const [headshotFile, setHeadshotFile] = useState<File | null>(null);
@@ -49,7 +55,7 @@ export default function PoseGenerationModal({
   const [screenplayContent, setScreenplayContent] = useState<string>('');
   const [manualDescription, setManualDescription] = useState<string>('');
   
-  // Fetch character's default outfit on mount
+  // Fetch character's default outfit and load models on mount
   useEffect(() => {
     if (isOpen && characterId && projectId) {
       const fetchCharacterOutfit = async () => {
@@ -76,6 +82,56 @@ export default function PoseGenerationModal({
       fetchCharacterOutfit();
     }
   }, [isOpen, characterId, projectId, getToken]);
+
+  // Load available models when quality changes
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    async function loadModels() {
+      setIsLoadingModels(true);
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          toast.error('Authentication required');
+          return;
+        }
+
+        const response = await fetch(`/api/model-selection/characters/${quality}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load models');
+        }
+
+        const data = await response.json();
+        const availableModels = data.data?.models || data.models || [];
+        setModels(availableModels.filter((m: any) => m.enabled));
+        
+        // Auto-select first model
+        if (availableModels.length > 0 && !providerId) {
+          setProviderId(availableModels[0].id);
+        }
+      } catch (error: any) {
+        console.error('[PoseGenerationModal] Failed to load models:', error);
+        toast.error('Failed to load available models');
+      } finally {
+        setIsLoadingModels(false);
+      }
+    }
+
+    loadModels();
+  }, [isOpen, quality, getToken]);
+
+  // Reset providerId when quality changes
+  useEffect(() => {
+    if (isOpen) {
+      setProviderId('');
+      setClothingImages([]);
+    }
+  }, [quality, isOpen]);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -112,15 +168,39 @@ export default function PoseGenerationModal({
       // Backend will create a job automatically
       const token = await getToken({ template: 'wryda-backend' });
       const apiUrl = `/api/projects/${projectId}/characters/${characterId}/generate-poses`;
+      
+      // Upload clothing images and get presigned URLs
+      const clothingReferences: string[] = [];
+      
+      if (clothingImages.length > 0 && projectId && characterId) {
+        for (const clothingImage of clothingImages) {
+          if (clothingImage.presignedUrl) {
+            clothingReferences.push(clothingImage.presignedUrl);
+          } else if (clothingImage.s3Key) {
+            // Get presigned URL for existing S3 key
+            const downloadResponse = await fetch(
+              `/api/s3/get-download-url?s3Key=${encodeURIComponent(clothingImage.s3Key)}`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            if (downloadResponse.ok) {
+              const { downloadUrl } = await downloadResponse.json();
+              clothingReferences.push(downloadUrl);
+            }
+          }
+        }
+      }
+
       const requestBody = {
         characterName,
         packageId: packageId,
         quality: quality, // 🔥 NEW: Quality tier
+        providerId: providerId || undefined, // 🔥 NEW: Model selection
         headshotS3Key: baseReferenceS3Key || undefined,
         headshotUrl: headshotFile ? headshotPreview : undefined,
         screenplayContent: screenplayContent || undefined,
         manualDescription: manualDescription || undefined,
         typicalClothing: typicalClothing,
+        clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined, // 🔥 NEW: Clothing references
       };
       
       console.log('[PoseGeneration] 🔥 Calling API:', apiUrl);
@@ -310,7 +390,7 @@ export default function PoseGenerationModal({
                       >
                         <div className="font-semibold text-base-content mb-1">High Quality (4K)</div>
                         <div className="text-xs text-base-content/60 mb-2">
-                          60 credits per image
+                          40 credits per image
                         </div>
                         <div className="text-xs text-base-content/50">
                           Maximum resolution and quality. Best for final production.

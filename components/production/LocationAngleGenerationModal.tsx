@@ -261,7 +261,7 @@ export default function LocationAngleGenerationModal({
                       >
                         <div className="font-semibold text-base-content mb-1">High Quality (4K)</div>
                         <div className="text-xs text-base-content/60 mb-2">
-                          60 credits per image
+                          40 credits per image
                         </div>
                         <div className="text-xs text-base-content/50">
                           Maximum resolution and quality. Best for final production.
