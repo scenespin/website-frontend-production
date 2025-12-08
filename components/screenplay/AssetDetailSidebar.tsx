@@ -1004,20 +1004,29 @@ export default function AssetDetailSidebar({
               </div>
               <div className="space-y-3">
                 {/* Upload Buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading || userUploadedImages.length >= 5}
-                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    style={{ 
-                      backgroundColor: userUploadedImages.length >= 5 ? '#2C2C2E' : '#DC143C',
-                      color: 'white',
-                      border: `1px solid ${userUploadedImages.length >= 5 ? '#3F3F46' : '#DC143C'}`
-                    }}
-                  >
-                    {uploading ? 'Uploading...' : userUploadedImages.length >= 5 ? `Max Images (${userUploadedImages.length}/5)` : `Upload Photo (${userUploadedImages.length}/5)`}
-                  </button>
-                  <input
+                {(() => {
+                  // Calculate user-uploaded image count for the upload button
+                  const currentImages = asset?.images || [];
+                  const userUploadedCount = currentImages.filter((img: any) => {
+                    const source = img.metadata?.source;
+                    return !source || source === 'user-upload';
+                  }).length;
+                  
+                  return (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading || userUploadedCount >= 5}
+                        className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        style={{ 
+                          backgroundColor: userUploadedCount >= 5 ? '#2C2C2E' : '#DC143C',
+                          color: 'white',
+                          border: `1px solid ${userUploadedCount >= 5 ? '#3F3F46' : '#DC143C'}`
+                        }}
+                      >
+                        {uploading ? 'Uploading...' : userUploadedCount >= 5 ? `Max Images (${userUploadedCount}/5)` : `Upload Photo (${userUploadedCount}/5)`}
+                      </button>
+                      <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
@@ -1042,7 +1051,9 @@ export default function AssetDetailSidebar({
                   >
                     Create Photo with AI
                   </button>
-                </div>
+                    </div>
+                  );
+                })()}
                 
                 {/* Image Gallery */}
                 {asset && asset.images && asset.images.length > 0 && (() => {
