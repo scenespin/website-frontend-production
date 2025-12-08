@@ -710,6 +710,20 @@ export default function LocationDetailSidebar({
               },
               createdAt: new Date().toISOString()
             }))
+            
+            // 🔥 FIX: Filter out Production Hub angle-generated images from Creation section
+            // Creation section should only show user-uploaded images, not AI-generated Production Hub images
+            const userUploadedImages = allImages.filter(img => {
+              const source = (img.metadata as any)?.source;
+              const createdIn = (img.metadata as any)?.createdIn;
+              // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
+              // Exclude angle-generation and production-hub images
+              return source !== 'angle-generation' && 
+                     source !== 'image-generation' && 
+                     createdIn !== 'production-hub' &&
+                     (!source || source === 'user-upload');
+            });
+            
             return (
               <div className="space-y-3">
                 {/* Upload Buttons */}
@@ -756,9 +770,9 @@ export default function LocationDetailSidebar({
                 </div>
                 
                 {/* Image Gallery - Show if images exist */}
-                {allImages.length > 0 && (
+                {userUploadedImages.length > 0 && (
                   <ImageGallery
-                    images={allImages}
+                    images={userUploadedImages}
                     entityType="location"
                     entityId={location?.id || 'new'}
                     entityName={formData.name || 'New Location'}
@@ -769,12 +783,26 @@ export default function LocationDetailSidebar({
                           // 🔥 FIX: Use updateLocation directly (like assets/characters) instead of removeImageFromEntity
                             // Get current location from context to ensure we have latest images
                             const currentLocation = locations.find(l => l.id === location.id) || location;
-                            const imageToDelete = (currentLocation.images || [])[index];
+                            // 🔥 FIX: Filter to only Creation images before indexing (matches userUploadedImages filter)
+                            const creationImages = (currentLocation.images || []).filter((img: any) => {
+                              const source = img.metadata?.source;
+                              const createdIn = img.metadata?.createdIn;
+                              return source !== 'angle-generation' && 
+                                     source !== 'image-generation' && 
+                                     createdIn !== 'production-hub' &&
+                                     (!source || source === 'user-upload');
+                            });
+                            const imageToDelete = creationImages[index];
                             
                             // 🔥 SEPARATION: Backend now only returns Creation images, so no Production Hub filtering needed
                             // All images in Creation section can be deleted
                             
-                            const updatedImages = (currentLocation.images || []).filter((_, i) => i !== index);
+                            // Find the actual index in the full images array by matching s3Key
+                            const imageS3Key = imageToDelete?.metadata?.s3Key;
+                            const updatedImages = (currentLocation.images || []).filter((img: any) => {
+                              const imgS3Key = img.metadata?.s3Key;
+                              return imgS3Key !== imageS3Key;
+                            });
                             
                             // 🔥 FIX: Always check angleVariations and remove by s3Key if it exists there
                             // This ensures angle-generated images are removed from both arrays
