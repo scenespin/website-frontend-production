@@ -40,6 +40,8 @@ export default function LocationAngleGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
+  const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>(''); // 🔥 NEW: Time of day
+  const [weather, setWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>(''); // 🔥 NEW: Weather
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -96,7 +98,13 @@ export default function LocationAngleGenerationModal({
       const requestBody = {
         locationProfile: locationProfile,
         packageId: selectedPackageId,
-        quality: quality
+        quality: quality,
+        // Apply timeOfDay and weather to all angles in the package
+        angles: packageToAngles[selectedPackageId].map(angle => ({
+          angle: angle.angle,
+          timeOfDay: timeOfDay || undefined,
+          weather: weather || undefined
+        }))
       };
       
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
@@ -165,6 +173,8 @@ export default function LocationAngleGenerationModal({
     setStep('package');
     setSelectedPackageId('standard');
     setQuality('standard'); // Reset quality
+    setTimeOfDay(''); // Reset timeOfDay
+    setWeather(''); // Reset weather
     setGenerationResult(null);
     setError('');
     setIsGenerating(false);
@@ -272,6 +282,48 @@ export default function LocationAngleGenerationModal({
                       }}
                       selectedPackageId={selectedPackageId}
                     />
+                  </div>
+                  
+                  {/* Time of Day and Weather Selection */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 3: Optional - Lighting & Atmosphere
+                    </h3>
+                    <p className="text-xs text-[#808080] mb-4 italic">
+                      Note: These settings will affect the generated images in Production Hub
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Time of Day */}
+                      <div>
+                        <label className="text-xs text-base-content/60 mb-2 block">Time of Day (Optional)</label>
+                        <select
+                          value={timeOfDay}
+                          onChange={(e) => setTimeOfDay(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:border-[#DC143C]"
+                        >
+                          <option value="">None</option>
+                          <option value="morning">Morning</option>
+                          <option value="afternoon">Afternoon</option>
+                          <option value="evening">Evening</option>
+                          <option value="night">Night</option>
+                        </select>
+                      </div>
+                      {/* Weather */}
+                      <div>
+                        <label className="text-xs text-base-content/60 mb-2 block">Weather (Optional)</label>
+                        <select
+                          value={weather}
+                          onChange={(e) => setWeather(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:border-[#DC143C]"
+                        >
+                          <option value="">None</option>
+                          <option value="sunny">Sunny</option>
+                          <option value="cloudy">Cloudy</option>
+                          <option value="rainy">Rainy</option>
+                          <option value="snowy">Snowy</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Generate Button */}
