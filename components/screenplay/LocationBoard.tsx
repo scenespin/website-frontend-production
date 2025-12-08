@@ -371,45 +371,35 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 // Add pending images after location creation
                                 // Images are already uploaded to S3 via presigned URLs, just need to register them
                                 if (pendingImages && pendingImages.length > 0 && newLocation) {
-                                    const token = await getToken({ template: 'wryda-backend' });
-                                    if (token) {
-                                        for (const img of pendingImages) {
-                                            if (img.s3Key) {
-                                                // Register image with location using direct S3 upload registration (correct endpoint)
-                                                await fetch(
-                                                    `/api/screenplays/${screenplayId}/locations/${newLocation.id}/images`,
-                                                    {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'Authorization': `Bearer ${token}`,
-                                                            'Content-Type': 'application/json',
-                                                        },
-                                                        body: JSON.stringify({
-                                                            s3Key: img.s3Key,
-                                                            fileName: 'uploaded-image.jpg',
-                                                            fileType: 'image/jpeg',
-                                                            fileSize: 0,
-                                                        }),
-                                                    }
-                                                );
-                                                
-                                                // 🔥 FIX: Also update context state via addImageToEntity (so cards refresh immediately)
-                                                // This matches the character pattern and ensures UI updates
-                                                await addImageToEntity('location', newLocation.id, img.imageUrl, {
-                                                    s3Key: img.s3Key
-                                                });
-                                            }
+                                    // 🔥 FIX: Build images array and use updateLocation (like assets use updateAsset)
+                                    // This does optimistic update FIRST, then calls API - ensures immediate UI update
+                                    const imageEntries = pendingImages.map(img => ({
+                                        imageUrl: img.imageUrl,
+                                        createdAt: new Date().toISOString(),
+                                        metadata: {
+                                            s3Key: img.s3Key,
+                                            source: 'user-upload',
+                                            createdIn: 'creation'
                                         }
-                                        
-                                        // 🔥 FIX: Refresh location from context after images are registered
-                                        // Wait a bit for backend processing and context update
-                                        await new Promise(resolve => setTimeout(resolve, 500));
-                                        const updatedLocation = locations.find(l => l.id === newLocation.id);
-                                        if (updatedLocation) {
-                                            setSelectedLocation(updatedLocation);
-                                        } else {
-                                            setSelectedLocation(newLocation);
-                                        }
+                                    }));
+                                    
+                                    console.log('[LocationBoard] 📸 Registering', imageEntries.length, 'images with location:', newLocation.id);
+                                    await updateLocation(newLocation.id, {
+                                        images: [
+                                            ...(newLocation.images || []), // Use images from the real location returned by createLocation
+                                            ...imageEntries
+                                        ]
+                                    });
+                                    console.log('[LocationBoard] ✅ Images registered successfully');
+                                    
+                                    // 🔥 FIX: Refresh location from context after images are registered
+                                    // Wait a bit for backend processing and context update
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                    const updatedLocation = locations.find(l => l.id === newLocation.id);
+                                    if (updatedLocation) {
+                                        setSelectedLocation(updatedLocation);
+                                    } else {
+                                        setSelectedLocation(newLocation);
                                     }
                                 } else {
                                     // No pending images - just set the new location

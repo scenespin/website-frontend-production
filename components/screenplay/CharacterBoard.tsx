@@ -330,46 +330,38 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                             // Add pending images after character creation
                             // Images are already uploaded to S3 via presigned URLs, just need to register them
                             if (pendingImages && pendingImages.length > 0 && newCharacter) {
-                                const token = await getToken({ template: 'wryda-backend' });
-                                if (token) {
-                                    for (const img of pendingImages) {
-                                        if (img.s3Key) {
-                                            // Register image with character using specific endpoint (correct endpoint)
-                                            await fetch(
-                                                `/api/screenplays/${screenplayId}/characters/${newCharacter.id}/images`,
-                                                {
-                                                    method: 'POST',
-                                                    headers: {
-                                                        'Authorization': `Bearer ${token}`,
-                                                        'Content-Type': 'application/json',
-                                                    },
-                                                    body: JSON.stringify({
-                                                        s3Key: img.s3Key,
-                                                        replaceBase: false, // Additional references, not base headshot
-                                                    }),
-                                                }
-                                            );
-                                            
-                                            // 🔥 FIX: Also update context state via addImageToEntity (so cards refresh immediately)
-                                            // This matches the location pattern and ensures UI updates
-                                            await addImageToEntity('character', newCharacter.id, img.imageUrl, {
-                                                prompt: img.prompt,
-                                                modelUsed: img.modelUsed,
-                                                angle: img.angle, // For character headshot angle
-                                                s3Key: img.s3Key // S3 key for file management
-                                            });
-                                        }
+                                // 🔥 FIX: Build images array and use updateCharacter (like assets use updateAsset)
+                                // This does optimistic update FIRST, then calls API - ensures immediate UI update
+                                const imageEntries = pendingImages.map(img => ({
+                                    imageUrl: img.imageUrl,
+                                    createdAt: new Date().toISOString(),
+                                    metadata: {
+                                        s3Key: img.s3Key,
+                                        source: 'user-upload',
+                                        createdIn: 'creation',
+                                        prompt: img.prompt,
+                                        modelUsed: img.modelUsed,
+                                        angle: img.angle
                                     }
-                                    
-                                    // 🔥 FIX: Refresh character from context after images are registered
-                                    // Wait a bit for backend processing and context update
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                    const updatedCharacter = characters.find(c => c.id === newCharacter.id);
-                                    if (updatedCharacter) {
-                                        setSelectedCharacter(updatedCharacter);
-                                    } else {
-                                        setSelectedCharacter(newCharacter);
-                                    }
+                                }));
+                                
+                                console.log('[CharacterBoard] 📸 Registering', imageEntries.length, 'images with character:', newCharacter.id);
+                                await updateCharacter(newCharacter.id, {
+                                    images: [
+                                        ...(newCharacter.images || []), // Use images from the real character returned by createCharacter
+                                        ...imageEntries
+                                    ]
+                                });
+                                console.log('[CharacterBoard] ✅ Images registered successfully');
+                                
+                                // 🔥 FIX: Refresh character from context after images are registered
+                                // Wait a bit for backend processing and context update
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                const updatedCharacter = characters.find(c => c.id === newCharacter.id);
+                                if (updatedCharacter) {
+                                    setSelectedCharacter(updatedCharacter);
+                                } else {
+                                    setSelectedCharacter(newCharacter);
                                 }
                             } else {
                                 // No pending images - just set the new character
