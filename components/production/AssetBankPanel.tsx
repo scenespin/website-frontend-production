@@ -203,6 +203,22 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
             {filteredAssets.map((asset) => {
               const allReferences: CinemaCardImage[] = [];
               
+              // 🔥 DEBUG: Log full asset structure
+              if (asset.name === 'coffee cup') {
+                console.log(`[AssetBankPanel] Full asset data for ${asset.name}:`, {
+                  id: asset.id,
+                  name: asset.name,
+                  imagesCount: asset.images?.length || 0,
+                  angleReferencesCount: asset.angleReferences?.length || 0,
+                  angleReferences: asset.angleReferences,
+                  images: asset.images?.map((img: any) => ({
+                    url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
+                    s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
+                    source: img.metadata?.source || 'unknown'
+                  }))
+                });
+              }
+              
               // Add base images
               if (asset.images && asset.images.length > 0) {
                 asset.images.forEach((img, idx) => {
@@ -218,6 +234,13 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
               const angleRefs = asset.angleReferences || [];
               if (angleRefs.length > 0) {
                 console.log(`[AssetBankPanel] Found ${angleRefs.length} angle references for ${asset.name}:`, angleRefs);
+              } else if (asset.name === 'coffee cup') {
+                console.warn(`[AssetBankPanel] ⚠️ No angleReferences found for ${asset.name}, but checking if they're in images array...`);
+                // Check if angle references are in images array instead
+                const angleImages = asset.images?.filter((img: any) => 
+                  img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation'
+                ) || [];
+                console.log(`[AssetBankPanel] Found ${angleImages.length} angle images in images array:`, angleImages);
               }
               angleRefs.forEach((ref, idx) => {
                 if (ref && ref.imageUrl) {
