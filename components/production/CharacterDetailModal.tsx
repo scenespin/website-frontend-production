@@ -60,7 +60,7 @@ export function CharacterDetailModal({
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
-  const { updateCharacter, characters, isEntityInScript, getEntityImages } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
+  const { updateCharacter, characters, isEntityInScript } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   
@@ -104,37 +104,9 @@ export function CharacterDetailModal({
     return null;
   }
   
-  // 🔥 SIMPLIFIED: Get user-uploaded references from both Character Bank API and ScreenplayContext
-  // Character Bank API provides baseReference, but additional references come from ScreenplayContext
+  // 🔥 SIMPLIFIED: Get user-uploaded references directly from Character Bank API
+  // Backend now returns all references (baseReference + references array) with presigned URLs
   const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
-  
-  // Get additional references from contextCharacter (Creation section uploads)
-  // Use getEntityImages to get all images, then filter out baseReference and poseReferences
-  const contextImages = contextCharacter ? getEntityImages('character', contextCharacter.id) : [];
-  const contextReferences = contextImages
-    .filter((img, idx) => {
-      // Skip first image (it's the baseReference)
-      if (idx === 0) return false;
-      // Check if this image is in poseReferences - if so, exclude it
-      const imgS3Key = (img.metadata as any)?.s3Key;
-      const source = (img.metadata as any)?.source;
-      // Exclude pose-generated images
-      if (source === 'pose-generation') return false;
-      const isInPoseReferences = allPoseRefs.some((poseRef: any) => {
-        const poseS3Key = typeof poseRef === 'string' ? poseRef : (poseRef.s3Key || poseRef.metadata?.s3Key);
-        return poseS3Key === imgS3Key;
-      });
-      return !isInPoseReferences;
-    })
-    .map((img, idx) => ({
-      id: (img as any).id || `ref-${idx}`,
-      imageUrl: img.imageUrl || '',
-      s3Key: (img.metadata as any)?.s3Key,
-      label: 'Reference',
-      isBase: false,
-      isPose: false,
-      index: idx + 1
-    }));
   
   const userReferences = [
     character.baseReference ? {
@@ -146,9 +118,10 @@ export function CharacterDetailModal({
       isPose: false,
       index: 0
     } : null,
-    // Also include character.references if they exist (from Character Bank API)
+    // Additional references from Character Bank API (user-uploaded in Creation section)
     ...(character.references || [])
       .filter(ref => {
+        // Exclude any references that are in poseReferences (AI-generated)
         const refS3Key = ref.s3Key || ref.metadata?.s3Key;
         const isInPoseReferences = allPoseRefs.some((poseRef: any) => {
           const poseS3Key = typeof poseRef === 'string' ? poseRef : (poseRef.s3Key || poseRef.metadata?.s3Key);
@@ -157,16 +130,14 @@ export function CharacterDetailModal({
         return !isInPoseReferences;
       })
       .map((ref, idx) => ({
-        id: ref.id || `ref-api-${idx}`,
+        id: ref.id || `ref-${idx}`,
         imageUrl: ref.imageUrl || '',
         s3Key: ref.s3Key || ref.metadata?.s3Key,
         label: ref.label || 'Reference',
         isBase: false,
         isPose: false,
-        index: idx + contextReferences.length + 1
-      })),
-    // Include additional references from ScreenplayContext
-    ...contextReferences
+        index: idx + 1
+      }))
   ].filter(Boolean) as Array<{id: string; imageUrl: string; s3Key?: string; label: string; isBase: boolean; isPose: boolean; index: number}>;
   
   /**
