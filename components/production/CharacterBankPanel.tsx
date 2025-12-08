@@ -357,34 +357,37 @@ export function CharacterBankPanel({
       )}
 
       {/* Character Detail Modal */}
-      {showCharacterDetail && selectedCharacter && (
-        <CharacterDetailModal
-          character={selectedCharacter}
-          isOpen={showCharacterDetail}
-          onClose={() => {
-            setShowCharacterDetail(false);
-            setSelectedCharacterId(null);
-          }}
-          onUpdate={updateCharacter}
-          onUploadImage={uploadReference}
-          onGenerate3D={async () => {}}
-          onGenerateVariations={generateReferences}
-          onGeneratePosePackage={(characterId) => {
-            const character = characters.find(c => c.id === characterId);
-            if (character) {
-              setPoseCharacter({
-                id: character.id,
-                name: character.name,
-                baseReferenceS3Key: character.baseReference?.s3Key
-              });
-              setShowPoseModal(true);
-            }
-          }}
-          hasAdvancedFeatures={hasAdvancedFeatures}
-          performanceSettings={performanceSettings}
-          onPerformanceSettingsChange={setPerformanceSettings}
-        />
-      )}
+      {showCharacterDetail && selectedCharacterId && (() => {
+        const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
+        return selectedCharacter ? (
+          <CharacterDetailModal
+            character={selectedCharacter}
+            isOpen={showCharacterDetail}
+            onClose={() => {
+              setShowCharacterDetail(false);
+              setSelectedCharacterId(null);
+            }}
+            onUpdate={updateCharacter}
+            onUploadImage={uploadReference}
+            onGenerate3D={async () => {}}
+            onGenerateVariations={generateReferences}
+            onGeneratePosePackage={(characterId) => {
+              const character = characters.find(c => c.id === characterId);
+              if (character) {
+                setPoseCharacter({
+                  id: character.id,
+                  name: character.name,
+                  baseReferenceS3Key: character.baseReference?.s3Key
+                });
+                setShowPoseModal(true);
+              }
+            }}
+            hasAdvancedFeatures={hasAdvancedFeatures}
+            performanceSettings={performanceSettings}
+            onPerformanceSettingsChange={setPerformanceSettings}
+          />
+        ) : null;
+      })()}
 
       {/* Pose Generation Modal */}
       {showPoseModal && poseCharacter && (

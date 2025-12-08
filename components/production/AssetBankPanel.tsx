@@ -118,7 +118,7 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['assets', screenplayId] });
+    queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
   };
 
   const selectedAsset = assets.find(a => a.id === selectedAssetId);
@@ -270,27 +270,30 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
       )}
 
       {/* Asset Detail Modal */}
-      {selectedAsset && (
-        <AssetDetailModal
-          isOpen={showDetailModal}
-          onClose={() => {
-            setShowDetailModal(false);
-            setSelectedAssetId(null);
-          }}
-          asset={selectedAsset}
-          onUpdate={handleRefresh}
-          onDelete={handleRefresh}
-          onAssetUpdate={(updatedAsset) => {
-            // React Query will handle the update via cache invalidation
-            queryClient.invalidateQueries({ queryKey: ['assets', screenplayId] });
-          }}
-          onGenerate3D={(asset) => {
-            setShowDetailModal(false);
-            setAssetFor3DExport(asset);
-            setShow3DExportModal(true);
-          }}
-        />
-      )}
+      {showDetailModal && selectedAssetId && (() => {
+        const selectedAsset = assets.find(a => a.id === selectedAssetId);
+        return selectedAsset ? (
+          <AssetDetailModal
+            isOpen={showDetailModal}
+            onClose={() => {
+              setShowDetailModal(false);
+              setSelectedAssetId(null);
+            }}
+            asset={selectedAsset}
+            onUpdate={handleRefresh}
+            onDelete={handleRefresh}
+            onAssetUpdate={(updatedAsset) => {
+              // React Query will handle the update via cache invalidation
+              queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+            }}
+            onGenerate3D={(asset) => {
+              setShowDetailModal(false);
+              setAssetFor3DExport(asset);
+              setShow3DExportModal(true);
+            }}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
