@@ -362,9 +362,6 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 const { pendingImages, ...locationData } = data;
                                 const newLocation = await createLocation(locationData);
                                 
-                                // 🔥 FIX: Set selectedLocation to newly created location so uploads work immediately
-                                setSelectedLocation(newLocation);
-                                
                                 // 🔥 FIX: Refetch Production Hub location cache so new location appears immediately
                                 if (screenplayId) {
                                     // Use refetchQueries for immediate update (matches deletion pattern)
@@ -378,7 +375,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                     if (token) {
                                         for (const img of pendingImages) {
                                             if (img.s3Key) {
-                                                // Register image with location using direct S3 upload registration
+                                                // Register image with location using direct S3 upload registration (correct endpoint)
                                                 await fetch(
                                                     `/api/screenplays/${screenplayId}/locations/${newLocation.id}/images`,
                                                     {
@@ -395,8 +392,15 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                         }),
                                                     }
                                                 );
+                                                
+                                                // 🔥 FIX: Also update context state via addImageToEntity (so cards refresh immediately)
+                                                // This matches the character pattern and ensures UI updates
+                                                await addImageToEntity('location', newLocation.id, img.imageUrl, {
+                                                    s3Key: img.s3Key
+                                                });
                                             }
                                         }
+                                        
                                         // 🔥 FIX: Refresh location from context after images are registered
                                         // Wait a bit for backend processing and context update
                                         await new Promise(resolve => setTimeout(resolve, 500));
@@ -413,7 +417,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 }
                                 
                                 // 🔥 FIX: Keep sidebar open with newly created location so uploads work immediately
-                                // Match AssetBoard pattern: set selectedLocation and close creating mode
+                                // Match Character pattern: set selectedLocation and close creating mode
                                 setIsCreating(false);
                                 setIsEditing(false); // Don't set isEditing - just close creating mode
                             } catch (err: any) {
