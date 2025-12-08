@@ -11,8 +11,8 @@
  * - Advanced options
  */
 
-import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Edit2, Save, Info, MoreVertical } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -88,13 +88,14 @@ export function CharacterDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating3D, setIsGenerating3D] = useState(false);
   const [show3DModal, setShow3DModal] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(character.name);
-  const [description, setDescription] = useState(character.description || '');
-  const [type, setType] = useState<CharacterProfile['type']>(character.type);
-  const [arcStatus, setArcStatus] = useState<'introduced' | 'developing' | 'resolved'>(contextCharacter?.arcStatus || 'introduced');
-  const [arcNotes, setArcNotes] = useState(contextCharacter?.arcNotes || '');
-  const [physicalAttributes, setPhysicalAttributes] = useState(contextCharacter?.physicalAttributes || {
+  
+  // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
+  const displayName = contextCharacter?.name || character.name;
+  const displayDescription = contextCharacter?.description || character.description || '';
+  const displayType = contextCharacter?.type || character.type;
+  const displayArcStatus = contextCharacter?.arcStatus || 'introduced';
+  const displayArcNotes = contextCharacter?.arcNotes || '';
+  const displayPhysicalAttributes = contextCharacter?.physicalAttributes || {
     height: undefined,
     bodyType: undefined,
     eyeColor: undefined,
@@ -102,33 +103,7 @@ export function CharacterDetailModal({
     hairLength: undefined,
     hairStyle: undefined,
     typicalClothing: undefined
-  });
-  
-  // 🔥 CRITICAL: All hooks must be called BEFORE early return to prevent React error #300
-  // Update state when character changes
-  useEffect(() => {
-    if (contextCharacter) {
-      // 🔥 FIX: Defer all state updates to prevent React error #300
-      setTimeout(() => {
-        startTransition(() => {
-          setName(contextCharacter.name);
-          setDescription(contextCharacter.description || '');
-          setType(contextCharacter.type);
-          setArcStatus(contextCharacter.arcStatus || 'introduced');
-          setArcNotes(contextCharacter.arcNotes || '');
-          setPhysicalAttributes(contextCharacter.physicalAttributes || {
-            height: undefined,
-            bodyType: undefined,
-            eyeColor: undefined,
-            hairColor: undefined,
-            hairLength: undefined,
-            hairStyle: undefined,
-            typicalClothing: undefined
-          });
-        });
-      }, 0);
-    }
-  }, [contextCharacter]);
+  };
   
   // 🔥 CRITICAL: Early return AFTER all hooks are called
   if (!screenplayId) {
@@ -390,111 +365,26 @@ export function CharacterDetailModal({
                   <User className="w-6 h-6 text-[#DC143C]" />
                 </div>
                 <div className="flex-1">
-                  {editing ? (
-                    <div className="w-full">
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        disabled={isInScript}
-                        className={`text-xl font-bold bg-[#1F1F1F] border border-[#3F3F46] rounded px-3 py-2 text-[#FFFFFF] w-full focus:border-[#DC143C] focus:outline-none ${
-                          isInScript ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        maxLength={100}
-                      />
-                      {isInScript && (
-                        <p className="text-xs text-[#808080] mt-1">
-                          Name cannot be changed because this character appears in your script. Edit the script directly to change the name.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <h2 className="text-xl font-bold text-[#FFFFFF]">{character.name}</h2>
-                      <p className="text-sm text-[#808080] capitalize">
-                        {character.type} character
-                        {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
-                      </p>
-                    </>
-                  )}
+                  <h2 className="text-xl font-bold text-[#FFFFFF]">{displayName}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-[#808080] capitalize">
+                      {displayType} character
+                      {isInScript && <span className="ml-2 text-[#6B7280]">(locked - appears in script)</span>}
+                    </p>
+                    {/* 🔥 READ-ONLY BADGE */}
+                    <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
+                      Read-only - Edit in Creation section
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {!editing && (
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
-                    title="Edit"
-                  >
-                    <Edit2 className="w-5 h-5" />
-                  </button>
-                )}
-                {editing && (
-                  <>
-                    <button
-                      onClick={async () => {
-                        try {
-                          // 🔥 ONE-WAY SYNC: Only update Production Hub (Character Bank API)
-                          // Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
-                          // Note: arcStatus, arcNotes, physicalAttributes are Creation section fields
-                          // They can be edited here but won't sync back to Creation section (one-way sync)
-                          await onUpdate(character.id, { 
-                            name: isInScript ? character.name : name, // Don't update name if locked
-                            description, 
-                            type,
-                            // Include Creation section fields in CharacterProfile update
-                            // These will be stored in CharacterProfile but won't sync to Character in Creation section
-                            arcStatus,
-                            arcNotes,
-                            physicalAttributes
-                          });
-                          setEditing(false);
-                          toast.success('Character updated successfully');
-                        } catch (error) {
-                          console.error('Update failed:', error);
-                          toast.error('Failed to update character');
-                        }
-                      }}
-                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#DC143C] hover:text-[#FFFFFF]"
-                      title="Save"
-                    >
-                      <Save className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (contextCharacter) {
-                          setName(contextCharacter.name);
-                          setDescription(contextCharacter.description || '');
-                          setType(contextCharacter.type);
-                          setArcStatus(contextCharacter.arcStatus || 'introduced');
-                          setArcNotes(contextCharacter.arcNotes || '');
-                          setPhysicalAttributes(contextCharacter.physicalAttributes || {
-                            height: undefined,
-                            bodyType: undefined,
-                            eyeColor: undefined,
-                            hairColor: undefined,
-                            hairLength: undefined,
-                            hairStyle: undefined,
-                            typicalClothing: undefined
-                          });
-                        }
-                        setEditing(false);
-                      }}
-                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
-                      title="Cancel"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </>
-                )}
-                {!editing && (
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
@@ -896,201 +786,40 @@ export function CharacterDetailModal({
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Name</label>
-                        {editing ? (
-                          <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
-                            maxLength={100}
-                          />
-                        ) : (
-                          <p className="text-[#FFFFFF]">{character.name}</p>
-                        )}
+                        <p className="text-[#FFFFFF]">{displayName}</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Type</label>
-                        {editing ? (
-                          <select
-                            value={type}
-                            onChange={(e) => setType(e.target.value as CharacterProfile['type'])}
-                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
-                          >
-                            <option value="lead">Lead</option>
-                            <option value="supporting">Supporting</option>
-                            <option value="minor">Minor</option>
-                          </select>
-                        ) : (
-                          <p className="text-[#FFFFFF] capitalize">{character.type}</p>
-                        )}
+                        <p className="text-[#FFFFFF] capitalize">{displayType}</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Description</label>
-                        {editing ? (
-                          <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none resize-none"
-                            rows={4}
-                            maxLength={500}
-                          />
-                        ) : (
-                          <p className="text-[#808080]">{character.description || 'No description'}</p>
-                        )}
+                        <p className="text-[#808080]">{displayDescription || 'No description'}</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Arc Status</label>
-                        {editing ? (
-                          <select
-                            value={arcStatus}
-                            onChange={(e) => setArcStatus(e.target.value as 'introduced' | 'developing' | 'resolved')}
-                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
-                          >
-                            <option value="introduced">Introduced</option>
-                            <option value="developing">Developing</option>
-                            <option value="resolved">Resolved</option>
-                          </select>
-                        ) : (
-                          <p className="text-[#FFFFFF] capitalize">{arcStatus}</p>
-                        )}
+                        <p className="text-[#FFFFFF] capitalize">{displayArcStatus}</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">
                           Physical Attributes <span className="text-[#6B7280] normal-case">(Optional)</span>
                         </label>
-                        {editing ? (
-                          <div className="space-y-2">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <select
-                                  value={physicalAttributes.height || ''}
-                                  onChange={(e) => setPhysicalAttributes({
-                                    ...physicalAttributes,
-                                    height: e.target.value as 'short' | 'average' | 'tall' | undefined || undefined
-                                  })}
-                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                >
-                                  <option value="">Height</option>
-                                  <option value="short">Short</option>
-                                  <option value="average">Average</option>
-                                  <option value="tall">Tall</option>
-                                </select>
-                              </div>
-                              <div>
-                                <select
-                                  value={physicalAttributes.bodyType || ''}
-                                  onChange={(e) => setPhysicalAttributes({
-                                    ...physicalAttributes,
-                                    bodyType: e.target.value as 'slim' | 'athletic' | 'muscular' | 'heavyset' | 'average' | undefined || undefined
-                                  })}
-                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                >
-                                  <option value="">Body Type</option>
-                                  <option value="slim">Slim</option>
-                                  <option value="athletic">Athletic</option>
-                                  <option value="muscular">Muscular</option>
-                                  <option value="heavyset">Heavyset</option>
-                                  <option value="average">Average</option>
-                                </select>
-                              </div>
-                              <div>
-                                <input
-                                  type="text"
-                                  value={physicalAttributes.eyeColor || ''}
-                                  onChange={(e) => setPhysicalAttributes({
-                                    ...physicalAttributes,
-                                    eyeColor: e.target.value || undefined
-                                  })}
-                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                  placeholder="Eye Color"
-                                />
-                              </div>
-                              <div>
-                                <input
-                                  type="text"
-                                  value={physicalAttributes.hairColor || ''}
-                                  onChange={(e) => setPhysicalAttributes({
-                                    ...physicalAttributes,
-                                    hairColor: e.target.value || undefined
-                                  })}
-                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                  placeholder="Hair Color"
-                                />
-                              </div>
-                              <div>
-                                <select
-                                  value={physicalAttributes.hairLength || ''}
-                                  onChange={(e) => setPhysicalAttributes({
-                                    ...physicalAttributes,
-                                    hairLength: e.target.value as 'bald' | 'very-short' | 'short' | 'medium' | 'long' | undefined || undefined
-                                  })}
-                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                >
-                                  <option value="">Hair Length</option>
-                                  <option value="bald">Bald</option>
-                                  <option value="very-short">Very Short</option>
-                                  <option value="short">Short</option>
-                                  <option value="medium">Medium</option>
-                                  <option value="long">Long</option>
-                                </select>
-                              </div>
-                              <div>
-                                <input
-                                  type="text"
-                                  value={physicalAttributes.hairStyle || ''}
-                                  onChange={(e) => setPhysicalAttributes({
-                                    ...physicalAttributes,
-                                    hairStyle: e.target.value || undefined
-                                  })}
-                                  className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                  placeholder="Hair Style (curly, straight, wavy)"
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <input
-                                type="text"
-                                value={physicalAttributes.typicalClothing || ''}
-                                onChange={(e) => setPhysicalAttributes({
-                                  ...physicalAttributes,
-                                  typicalClothing: e.target.value || undefined
-                                })}
-                                className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none text-sm"
-                                placeholder="Typical Clothing (e.g., 'business casual', 'military uniform', 'casual jeans and t-shirt')"
-                              />
-                            </div>
-                            <p className="text-xs text-[#6B7280] mt-1">
-                              💡 These help AI generate more accurate character images and pose packages
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            {physicalAttributes.height && <p className="text-[#808080] text-sm">Height: <span className="text-[#FFFFFF] capitalize">{physicalAttributes.height}</span></p>}
-                            {physicalAttributes.bodyType && <p className="text-[#808080] text-sm">Body Type: <span className="text-[#FFFFFF] capitalize">{physicalAttributes.bodyType}</span></p>}
-                            {physicalAttributes.eyeColor && <p className="text-[#808080] text-sm">Eye Color: <span className="text-[#FFFFFF]">{physicalAttributes.eyeColor}</span></p>}
-                            {physicalAttributes.hairColor && <p className="text-[#808080] text-sm">Hair Color: <span className="text-[#FFFFFF]">{physicalAttributes.hairColor}</span></p>}
-                            {physicalAttributes.hairLength && <p className="text-[#808080] text-sm">Hair Length: <span className="text-[#FFFFFF] capitalize">{physicalAttributes.hairLength}</span></p>}
-                            {physicalAttributes.hairStyle && <p className="text-[#808080] text-sm">Hair Style: <span className="text-[#FFFFFF]">{physicalAttributes.hairStyle}</span></p>}
-                            {physicalAttributes.typicalClothing && <p className="text-[#808080] text-sm">Typical Clothing: <span className="text-[#FFFFFF]">{physicalAttributes.typicalClothing}</span></p>}
-                            {!physicalAttributes.height && !physicalAttributes.bodyType && !physicalAttributes.eyeColor && !physicalAttributes.hairColor && !physicalAttributes.hairLength && !physicalAttributes.hairStyle && !physicalAttributes.typicalClothing && (
-                              <p className="text-[#808080] text-sm">No physical attributes set</p>
-                            )}
-                          </div>
-                        )}
+                        <div className="space-y-1">
+                          {displayPhysicalAttributes.height && <p className="text-[#808080] text-sm">Height: <span className="text-[#FFFFFF] capitalize">{displayPhysicalAttributes.height}</span></p>}
+                          {displayPhysicalAttributes.bodyType && <p className="text-[#808080] text-sm">Body Type: <span className="text-[#FFFFFF] capitalize">{displayPhysicalAttributes.bodyType}</span></p>}
+                          {displayPhysicalAttributes.eyeColor && <p className="text-[#808080] text-sm">Eye Color: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.eyeColor}</span></p>}
+                          {displayPhysicalAttributes.hairColor && <p className="text-[#808080] text-sm">Hair Color: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.hairColor}</span></p>}
+                          {displayPhysicalAttributes.hairLength && <p className="text-[#808080] text-sm">Hair Length: <span className="text-[#FFFFFF] capitalize">{displayPhysicalAttributes.hairLength}</span></p>}
+                          {displayPhysicalAttributes.hairStyle && <p className="text-[#808080] text-sm">Hair Style: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.hairStyle}</span></p>}
+                          {displayPhysicalAttributes.typicalClothing && <p className="text-[#808080] text-sm">Typical Clothing: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.typicalClothing}</span></p>}
+                          {!displayPhysicalAttributes.height && !displayPhysicalAttributes.bodyType && !displayPhysicalAttributes.eyeColor && !displayPhysicalAttributes.hairColor && !displayPhysicalAttributes.hairLength && !displayPhysicalAttributes.hairStyle && !displayPhysicalAttributes.typicalClothing && (
+                            <p className="text-[#808080] text-sm">No physical attributes set</p>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Arc Notes</label>
-                        {editing ? (
-                          <textarea
-                            value={arcNotes}
-                            onChange={(e) => setArcNotes(e.target.value)}
-                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none resize-none"
-                            rows={3}
-                            placeholder="Character arc development notes"
-                          />
-                        ) : (
-                          <p className="text-[#808080]">{arcNotes || 'No arc notes'}</p>
-                        )}
+                        <p className="text-[#808080]">{displayArcNotes || 'No arc notes'}</p>
                       </div>
                     </div>
                   </div>

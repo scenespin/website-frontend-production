@@ -130,38 +130,8 @@ export default function CharacterDetailSidebar({
     // Only reset when character.id actually changes (switching between characters or modes)
   }, [character, character?.id, character?.images]) // Watch full character object and images to catch updates
   
-  // 🔥 FIX: Sync formData when character in context changes (for immediate UI updates)
-  // This ensures the sidebar reflects changes immediately when ANY field is updated (not just images)
-  // Syncs changes from Production Hub Character Bank back to Writing Section
-  useEffect(() => {
-    if (character?.id && !isCreating) {
-      const updatedCharacterFromContext = characters.find(c => c.id === character.id);
-      if (updatedCharacterFromContext) {
-        // Check if ANY field has changed (not just images)
-        // Compare key fields that can be updated from Production Hub
-        const hasChanges = 
-          character.name !== updatedCharacterFromContext.name ||
-          character.description !== updatedCharacterFromContext.description ||
-          character.type !== updatedCharacterFromContext.type ||
-          character.arcStatus !== updatedCharacterFromContext.arcStatus ||
-          character.arcNotes !== updatedCharacterFromContext.arcNotes ||
-          JSON.stringify(character.physicalAttributes || {}) !== JSON.stringify(updatedCharacterFromContext.physicalAttributes || {}) ||
-          (character.images || []).length !== (updatedCharacterFromContext.images || []).length ||
-          (character.images || []).map(img => img.imageUrl).sort().join(',') !== (updatedCharacterFromContext.images || []).map(img => img.imageUrl).sort().join(',');
-        
-        if (hasChanges) {
-          // Context has newer data - update formData to reflect changes from Production Hub
-          console.log('[CharacterDetailSidebar] 🔄 Syncing character data from context (updated in Production Hub):', {
-            characterId: character.id,
-            name: updatedCharacterFromContext.name,
-            arcStatus: updatedCharacterFromContext.arcStatus,
-            hasPhysicalAttributes: !!updatedCharacterFromContext.physicalAttributes
-          });
-          setFormData({ ...updatedCharacterFromContext });
-        }
-      }
-    }
-  }, [characters, character?.id, character?.name, character?.description, character?.type, character?.arcStatus, character?.arcNotes, character?.physicalAttributes, character?.images, isCreating]) // Watch all character fields that can be updated
+  // 🔥 REMOVED: Sync from Production Hub - Production Hub is now read-only
+  // Production Hub no longer edits character data, so no sync needed
 
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key
   useEffect(() => {

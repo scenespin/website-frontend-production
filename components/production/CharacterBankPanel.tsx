@@ -145,7 +145,11 @@ export function CharacterBankPanel({
       const responseData = await response.json().catch(() => ({}));
       console.log('[CharacterBankPanel] ✅ Update successful:', {
         characterId,
-        poseReferencesCount: responseData.character?.poseReferences?.length || responseData.character?.angleReferences?.length
+        responseDataKeys: Object.keys(responseData),
+        characterKeys: responseData.character ? Object.keys(responseData.character) : 'no character',
+        poseReferencesCount: responseData.character?.poseReferences?.length,
+        angleReferencesCount: responseData.character?.angleReferences?.length,
+        fullCharacter: responseData.character
       });
 
       toast.success('Character updated successfully');

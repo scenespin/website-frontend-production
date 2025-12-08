@@ -491,9 +491,17 @@ function CharacterCardContent({
             {/* Stats - Compact */}
             <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: '#6B7280' }}>
                 <span>📝 {sceneCount}</span>
-                {character.images && character.images.length > 0 && (
-                    <span className="text-blue-400">🖼️ {character.images.length}</span>
-                )}
+                {(() => {
+                    // 🔥 FIX: Only count Creation images (user-uploaded), not AI-generated Production Hub images
+                    // Filter out images with source='pose-generation' or createdIn='production-hub'
+                    const creationImages = (character.images || []).filter((img: any) => {
+                        const metadata = img.metadata || {};
+                        return metadata.source !== 'pose-generation' && metadata.createdIn !== 'production-hub';
+                    });
+                    return creationImages.length > 0 ? (
+                        <span className="text-blue-400">🖼️ {creationImages.length}</span>
+                    ) : null;
+                })()}
             </div>
         </div>
     );

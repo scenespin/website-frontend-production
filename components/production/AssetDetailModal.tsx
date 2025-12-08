@@ -17,7 +17,7 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Edit2, Save, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
@@ -57,26 +57,13 @@ export default function AssetDetailModal({
   // 🔥 FIX: Use screenplayId (primary) with projectId fallback for backward compatibility
   const screenplayId = asset?.screenplayId || asset?.projectId;
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(asset.name);
-  const [description, setDescription] = useState(asset.description || '');
-  const [category, setCategory] = useState<AssetCategory>(asset.category);
-  const [tags, setTags] = useState(asset.tags.join(', '));
-  const [saving, setSaving] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
 
-  // 🔥 FIX: Sync local state when asset prop changes (e.g., after deletion refresh)
-  useEffect(() => {
-    setName(asset.name);
-    setDescription(asset.description || '');
-    setCategory(asset.category);
-    setTags(asset.tags.join(', '));
-  }, [asset.id, asset.name, asset.description, asset.category, asset.tags]);
 
-  const categoryMeta = ASSET_CATEGORY_METADATA[category];
+  const categoryMeta = ASSET_CATEGORY_METADATA[asset.category];
   const assetImages = asset.images || []; // Safety check for undefined images
   
   // 🔥 SIMPLIFIED: Get angleReferences directly from asset prop (backend already provides this with presigned URLs)
@@ -226,60 +213,13 @@ export default function AssetDetailModal({
   // Combined for main display (all images)
   const allImages = [...userImages, ...angleImageObjects];
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        toast.error('Authentication required. Please sign in.');
-        setSaving(false);
-        return;
-      }
-
-      const response = await fetch(`/api/asset-bank/${asset.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          category,
-          description: description.trim() || undefined,
-          tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-        }),
-      });
-
-      if (response.ok) {
-        setEditing(false);
-        onUpdate();
-        toast.success('Asset updated successfully');
-      } else {
-        throw new Error('Failed to update asset');
-      }
-    } catch (error) {
-      console.error('Update error:', error);
-      toast.error('Failed to update asset');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // 🔥 REMOVED: handleDelete function - assets should only be deleted from Create page
-
-  const handleCancel = () => {
-    setName(asset.name);
-    setDescription(asset.description || '');
-    setCategory(asset.category);
-    setTags(asset.tags.join(', '));
-    setEditing(false);
-  };
+  // 🔥 REMOVED: handleSave, handleCancel, handleDelete - assets should only be edited/deleted from Create page
 
   if (!isOpen) return null;
 
   const getCategoryIcon = () => {
     const icons = { prop: Package, vehicle: Car, furniture: Armchair, other: Box };
-    const Icon = icons[category];
+    const Icon = icons[asset.category];
     return <Icon className="w-6 h-6" />;
   };
 
@@ -311,17 +251,7 @@ export default function AssetDetailModal({
                   {getCategoryIcon()}
                 </div>
                 <div className="flex-1">
-                  {editing ? (
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="text-xl font-bold bg-[#1F1F1F] border border-[#3F3F46] rounded px-3 py-2 text-[#FFFFFF] w-full focus:border-[#DC143C] focus:outline-none"
-                      maxLength={100}
-                    />
-                  ) : (
-                    <h2 className="text-xl font-bold text-[#FFFFFF]">{asset.name}</h2>
-                  )}
+                  <h2 className="text-xl font-bold text-[#FFFFFF]">{asset.name}</h2>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-sm text-[#808080]">{categoryMeta.label}</span>
                     {asset.has3DModel && (
@@ -329,40 +259,14 @@ export default function AssetDetailModal({
                         3D Model Available
                       </span>
                     )}
+                    {/* 🔥 READ-ONLY BADGE */}
+                    <span className="px-2 py-0.5 bg-[#6B7280]/20 border border-[#6B7280]/50 rounded text-[10px] text-[#9CA3AF]">
+                      Read-only - Edit in Creation section
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {!editing && !isMobile && (
-                  <>
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    {/* 🔥 REMOVED: Delete button - assets should only be deleted from Create page */}
-                  </>
-                )}
-                {editing && !isMobile && (
-                  <>
-                    <button
-                      onClick={handleCancel}
-                      className="px-3 py-1.5 bg-[#1F1F1F] text-[#808080] border border-[#3F3F46] rounded-lg hover:bg-[#2A2A2A] transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving || !name.trim()}
-                      className="px-3 py-1.5 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91238] transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      {saving ? 'Saving...' : 'Save'}
-                    </button>
-                  </>
-                )}
                 <button
                   onClick={onClose}
                   className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
@@ -531,70 +435,22 @@ export default function AssetDetailModal({
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Name</label>
-                        {editing ? (
-                          <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] focus:border-[#DC143C] focus:outline-none"
-                            maxLength={100}
-                          />
-                        ) : (
-                          <p className="text-[#FFFFFF]">{asset.name}</p>
-                        )}
+                        <p className="text-[#FFFFFF]">{asset.name}</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Category</label>
-                        {editing ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(ASSET_CATEGORY_METADATA).map(([key, meta]) => (
-                              <button
-                                key={key}
-                                onClick={() => setCategory(key as AssetCategory)}
-                                className={`p-3 rounded-lg border-2 text-sm transition-all ${
-                                  category === key
-                                    ? 'border-[#DC143C] bg-[#DC143C]/10'
-                                    : 'border-[#3F3F46] bg-[#1F1F1F] hover:border-[#DC143C]/50'
-                                }`}
-                              >
-                                <div className="font-medium text-[#FFFFFF]">{meta.label}</div>
-                                <div className="text-xs text-[#808080] mt-1">{meta.priceUSD}</div>
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[#FFFFFF]">{categoryMeta.label}</p>
-                        )}
+                        <p className="text-[#FFFFFF]">{categoryMeta.label}</p>
                       </div>
-                      {description !== undefined && (
+                      {asset.description !== undefined && (
                         <div>
                           <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Description</label>
-                          {editing ? (
-                            <textarea
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
-                              className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:border-[#DC143C] focus:outline-none resize-none"
-                              rows={4}
-                              maxLength={500}
-                              placeholder="Describe the asset..."
-                            />
-                          ) : (
-                            <p className="text-[#808080]">{asset.description || <span className="italic">No description</span>}</p>
-                          )}
+                          <p className="text-[#808080]">{asset.description || <span className="italic">No description</span>}</p>
                         </div>
                       )}
-                      {tags !== undefined && (
+                      {asset.tags !== undefined && (
                         <div>
                           <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Tags</label>
-                          {editing ? (
-                            <input
-                              type="text"
-                              value={tags}
-                              onChange={(e) => setTags(e.target.value)}
-                              className="w-full px-4 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:border-[#DC143C] focus:outline-none"
-                              placeholder="weapon, gun, silver"
-                            />
-                          ) : asset.tags.length > 0 ? (
+                          {asset.tags.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {asset.tags.map((tag, index) => (
                                 <span
@@ -695,59 +551,37 @@ export default function AssetDetailModal({
                                             return;
                                           }
                                           
-                                          // 🔥 FIX: Remove from images array (both Creation and Production Hub images are in images array now)
-                                          // Filter by s3Key to remove the deleted image
-                                          const updatedImages = assetImages.filter((assetImg: any) => {
-                                            const imgS3Key = assetImg.s3Key || assetImg.metadata?.s3Key;
-                                            return imgS3Key !== img.s3Key;
-                                          });
+                                          // 🔥 FIX: For angle images, only update angleReferences (same pattern as LocationDetailModal)
+                                          // Angle images are stored in angleReferences, not in the images array
+                                          const updatedAngleReferences = (asset.angleReferences || []).filter(
+                                            (ref: any) => ref.s3Key !== img.s3Key
+                                          );
                                           
-                                          // Also update angleReferences if it's an angle reference (for backward compatibility)
-                                          let updatedAngleReferences = asset.angleReferences || [];
-                                          if (img.isAngleReference) {
-                                            updatedAngleReferences = updatedAngleReferences.filter(
-                                              (ref: any) => ref.s3Key !== img.s3Key
-                                            );
-                                          }
-                                          
-                                          // Update asset via API
-                                          const response = await fetch(`/api/asset-bank/${asset.id}`, {
+                                          // Update asset via API - only update angleReferences for angle images
+                                          const response = await fetch(`/api/asset-bank/${asset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                                             method: 'PUT',
                                             headers: {
                                               'Content-Type': 'application/json',
                                               'Authorization': `Bearer ${token}`,
                                             },
                                             body: JSON.stringify({
-                                              images: updatedImages,
-                                              angleReferences: updatedAngleReferences // Update for backward compatibility
+                                              angleReferences: updatedAngleReferences
                                             }),
                                           });
                                           
                                           if (!response.ok) {
-                                            throw new Error('Failed to delete image');
+                                            const errorData = await response.json().catch(() => ({}));
+                                            throw new Error(errorData.error || 'Failed to delete image');
                                           }
                                           
                                           // 🔥 ONE-WAY SYNC: Do NOT update ScreenplayContext - Production Hub changes stay in Production Hub
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
-                                          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-                                          
-                                          // 🔥 FIX: Fetch fresh asset data after deletion to ensure UI reflects backend state
-                                          try {
-                                            const refreshResponse = await fetch(`/api/asset-bank/${asset.id}`, {
-                                              headers: {
-                                                'Authorization': `Bearer ${token}`,
-                                              },
-                                            });
-                                            if (refreshResponse.ok) {
-                                              const refreshData = await refreshResponse.json();
-                                              if (refreshData.asset && onAssetUpdate) {
-                                                onAssetUpdate(refreshData.asset);
-                                              }
-                                            }
-                                          } catch (refreshError) {
-                                            console.error('[AssetDetailModal] Failed to refresh asset after deletion:', refreshError);
-                                          }
+                                          // 🔥 FIX: Use refetchQueries for immediate UI update (same pattern as CharacterDetailModal)
+                                          await Promise.all([
+                                            queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] }),
+                                            queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })
+                                          ]);
                                           
                                           onUpdate(); // Refresh asset list in parent
                                           toast.success('Image deleted');
