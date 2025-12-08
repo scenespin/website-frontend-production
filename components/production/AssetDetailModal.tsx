@@ -162,8 +162,8 @@ export default function AssetDetailModal({
       // Upload each file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (assetImages.length >= 10) {
-          toast.error('Maximum 10 images per asset');
+        if (assetImages.length >= 5) {
+          toast.error('Maximum 5 images per asset');
           break;
         }
 

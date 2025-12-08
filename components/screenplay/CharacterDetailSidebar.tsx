@@ -246,6 +246,27 @@ export default function CharacterDetailSidebar({
       return;
     }
 
+    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
+    const currentImages = character ? getEntityImages('character', character.id) : [];
+    const currentCount = currentImages.length;
+    const maxImages = 5;
+    
+    if (replaceBase) {
+      // Replacing base: currentCount stays same (replacing 1 with 1)
+      if (currentCount > maxImages) {
+        toast.error(`Maximum ${maxImages} images allowed. Please delete some images first.`);
+        return;
+      }
+    } else {
+      // Adding additional: check if adding would exceed limit
+      const wouldExceed = currentCount + fileArray.length > maxImages;
+      if (wouldExceed) {
+        const remaining = maxImages - currentCount;
+        toast.error(`Maximum ${maxImages} images allowed (${currentCount}/${maxImages}). You can add ${remaining} more.`);
+        return;
+      }
+    }
+
       // Validate all files
     for (const file of fileArray) {
       if (!file.type.startsWith('image/')) {
@@ -1016,15 +1037,15 @@ export default function CharacterDetailSidebar({
                     </label>
                     <button
                       onClick={() => additionalFileInputRef.current?.click()}
-                      disabled={uploading || allImages.length === 0}
+                      disabled={uploading || allImages.length === 0 || userUploadedImages.length >= 5}
                       className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ 
-                        backgroundColor: allImages.length === 0 ? '#2C2C2E' : '#DC143C',
+                        backgroundColor: allImages.length === 0 || userUploadedImages.length >= 5 ? '#2C2C2E' : '#DC143C',
                         color: 'white',
-                        border: `1px solid ${allImages.length === 0 ? '#3F3F46' : '#DC143C'}`
+                        border: `1px solid ${allImages.length === 0 || userUploadedImages.length >= 5 ? '#3F3F46' : '#DC143C'}`
                       }}
                     >
-                      {uploading ? 'Uploading...' : 'Add Additional Reference'}
+                      {uploading ? 'Uploading...' : userUploadedImages.length >= 5 ? `Max Images (${userUploadedImages.length}/5)` : `Add Additional Reference (${userUploadedImages.length}/5)`}
                     </button>
                     {/* Hidden file input for additional references - allows multiple files */}
                     <input

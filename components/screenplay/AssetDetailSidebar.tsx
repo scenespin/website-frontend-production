@@ -243,6 +243,21 @@ export default function AssetDetailSidebar({
     // Support multiple files - process all selected files
     const fileArray = Array.from(files);
 
+    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
+    const currentImages = asset ? getEntityImages('asset', asset.id) : [];
+    const currentCount = currentImages.filter(img => {
+      const source = (img.metadata as any)?.source;
+      return !source || source === 'user-upload';
+    }).length;
+    const maxImages = 5;
+    
+    const wouldExceed = currentCount + fileArray.length > maxImages;
+    if (wouldExceed) {
+      const remaining = maxImages - currentCount;
+      toast.error(`Maximum ${maxImages} images allowed (${currentCount}/${maxImages}). You can add ${remaining} more.`);
+      return;
+    }
+
     // Validate all files
     for (const file of fileArray) {
       if (!file.type.startsWith('image/')) {
@@ -991,15 +1006,15 @@ export default function AssetDetailSidebar({
                 <div className="flex gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    disabled={uploading || userUploadedImages.length >= 5}
                     className="flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 disabled:opacity-50"
                     style={{ 
-                      backgroundColor: '#DC143C',
+                      backgroundColor: userUploadedImages.length >= 5 ? '#2C2C2E' : '#DC143C',
                       color: 'white',
-                      border: '1px solid #DC143C'
+                      border: `1px solid ${userUploadedImages.length >= 5 ? '#3F3F46' : '#DC143C'}`
                     }}
                   >
-                    {uploading ? 'Uploading...' : 'Upload Photo'}
+                    {uploading ? 'Uploading...' : userUploadedImages.length >= 5 ? `Max Images (${userUploadedImages.length}/5)` : `Upload Photo (${userUploadedImages.length}/5)`}
                   </button>
                   <input
                     ref={fileInputRef}
@@ -1126,7 +1141,7 @@ export default function AssetDetailSidebar({
                           <br />
                           • Recommended: 5-8 images (best quality)
                           <br />
-                          • Maximum: 10 images
+                          • Maximum: 5 images
                         </p>
                       </div>
                     );
