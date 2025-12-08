@@ -1117,7 +1117,7 @@ export function CharacterDetailModal({
           setShowRegenerateModal(false);
           setRegeneratingPose(null);
         }}
-        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality') => {
+        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[]) => {
           if (!regeneratingPose) return;
           
           const token = await getToken({ template: 'wryda-backend' });
@@ -1132,7 +1132,8 @@ export function CharacterDetailModal({
               existingPoseS3Key: regeneratingPose.s3Key,
               outfitName: regeneratingPose.outfitName,
               providerId: providerId, // 🔥 NEW: Pass selected model
-              quality: quality // 🔥 NEW: Pass quality tier
+              quality: quality, // 🔥 NEW: Pass quality tier
+              clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined // 🔥 NEW: Pass clothing references for outfit consistency
             })
           });
           
@@ -1145,6 +1146,8 @@ export function CharacterDetailModal({
           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
           await onUpdate(character.id, {});
         }}
+        screenplayId={screenplayId}
+        characterId={character.id}
         poseName={regeneratingPose?.poseId ? `Pose: ${regeneratingPose.poseId}` : 'this pose'}
       />
     </AnimatePresence>

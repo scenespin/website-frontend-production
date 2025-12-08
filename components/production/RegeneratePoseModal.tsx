@@ -6,8 +6,8 @@
  * Part of Phase 0.5: Pose/Angle Regeneration with Model Selection
  */
 
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Sparkles, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 
@@ -21,12 +21,21 @@ interface Model {
   supportsClothingImages?: boolean;
 }
 
+interface ClothingImage {
+  file: File;
+  preview: string;
+  s3Key?: string;
+  presignedUrl?: string;
+}
+
 interface RegeneratePoseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegenerate: (providerId: string, quality: 'standard' | 'high-quality') => Promise<void>;
+  onRegenerate: (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[]) => Promise<void>;
   poseName?: string;
   qualityTier?: 'standard' | 'high-quality';
+  screenplayId?: string;
+  characterId?: string;
 }
 
 export function RegeneratePoseModal({
@@ -34,7 +43,9 @@ export function RegeneratePoseModal({
   onClose,
   onRegenerate,
   poseName = 'this pose',
-  qualityTier = 'standard'
+  qualityTier = 'standard',
+  screenplayId,
+  characterId
 }: RegeneratePoseModalProps) {
   const { getToken } = useAuth();
   const [models, setModels] = useState<Model[]>([]);
@@ -42,6 +53,9 @@ export function RegeneratePoseModal({
   const [selectedQuality, setSelectedQuality] = useState<'standard' | 'high-quality'>(qualityTier);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [clothingImages, setClothingImages] = useState<ClothingImage[]>([]);
+  const [isUploadingClothing, setIsUploadingClothing] = useState(false);
+  const clothingFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load available models
   useEffect(() => {
@@ -94,6 +108,122 @@ export function RegeneratePoseModal({
   }, [selectedQuality]);
 
   const selectedModel = models.find(m => m.id === selectedModelId);
+  const supportsClothing = selectedModel?.supportsClothingImages ?? false;
+  const maxClothingRefs = selectedModel ? Math.min(selectedModel.referenceLimit - 1, 3) : 0; // Reserve 1 for character, max 3 for clothing
+
+  // Reset clothing images when modal closes or model changes
+  useEffect(() => {
+    if (!isOpen) {
+      setClothingImages([]);
+    }
+  }, [isOpen]);
+
+  const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    
+    // Validate file count
+    if (clothingImages.length + fileArray.length > maxClothingRefs) {
+      toast.error(`Maximum ${maxClothingRefs} clothing/outfit images allowed for this model`);
+      return;
+    }
+
+    // Validate files
+    for (const file of fileArray) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image file`);
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 50MB.`);
+        return;
+      }
+    }
+
+    setIsUploadingClothing(true);
+    const newImages: ClothingImage[] = [];
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      for (const file of fileArray) {
+        // Create preview
+        const preview = URL.createObjectURL(file);
+        
+        // Upload to S3 if we have screenplayId and characterId
+        let s3Key: string | undefined;
+        let presignedUrl: string | undefined;
+
+        if (screenplayId && characterId) {
+          const presignedResponse = await fetch(
+            `/api/characters/upload/get-presigned-url?` +
+            `fileName=${encodeURIComponent(file.name)}` +
+            `&fileType=${encodeURIComponent(file.type)}` +
+            `&fileSize=${file.size}` +
+            `&screenplayId=${encodeURIComponent(screenplayId)}` +
+            `&characterId=${encodeURIComponent(characterId)}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (presignedResponse.ok) {
+            const { url, fields, s3Key: uploadedS3Key } = await presignedResponse.json();
+            s3Key = uploadedS3Key;
+
+            // Upload to S3
+            const s3FormData = new FormData();
+            Object.entries(fields).forEach(([key, value]) => {
+              if (key.toLowerCase() !== 'bucket') {
+                s3FormData.append(key, value as string);
+              }
+            });
+            s3FormData.append('file', file);
+
+            const s3Response = await fetch(url, { method: 'POST', body: s3FormData });
+            if (s3Response.ok) {
+              // Get presigned download URL
+              const downloadResponse = await fetch(
+                `/api/s3/get-download-url?s3Key=${encodeURIComponent(s3Key)}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+              );
+              if (downloadResponse.ok) {
+                const { downloadUrl } = await downloadResponse.json();
+                presignedUrl = downloadUrl;
+              }
+            }
+          }
+        }
+
+        newImages.push({ file, preview, s3Key, presignedUrl });
+      }
+
+      setClothingImages(prev => [...prev, ...newImages]);
+      toast.success(`Added ${fileArray.length} clothing/outfit image${fileArray.length > 1 ? 's' : ''}`);
+    } catch (error: any) {
+      console.error('[RegeneratePoseModal] Failed to upload clothing images:', error);
+      toast.error(error.message || 'Failed to upload clothing images');
+    } finally {
+      setIsUploadingClothing(false);
+      if (clothingFileInputRef.current) {
+        clothingFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveClothingImage = (index: number) => {
+    const image = clothingImages[index];
+    if (image.preview) {
+      URL.revokeObjectURL(image.preview);
+    }
+    setClothingImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleRegenerate = async () => {
     if (!selectedModelId) {
@@ -103,7 +233,31 @@ export function RegeneratePoseModal({
 
     setIsLoading(true);
     try {
-      await onRegenerate(selectedModelId, selectedQuality);
+      // Upload clothing images and get presigned URLs
+      const clothingReferences: string[] = [];
+      
+      if (clothingImages.length > 0 && screenplayId && characterId) {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) throw new Error('Not authenticated');
+
+        for (const clothingImage of clothingImages) {
+          if (clothingImage.presignedUrl) {
+            clothingReferences.push(clothingImage.presignedUrl);
+          } else if (clothingImage.s3Key) {
+            // Get presigned URL for existing S3 key
+            const response = await fetch(
+              `/api/s3/get-download-url?s3Key=${encodeURIComponent(clothingImage.s3Key)}`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            if (response.ok) {
+              const { downloadUrl } = await response.json();
+              clothingReferences.push(downloadUrl);
+            }
+          }
+        }
+      }
+
+      await onRegenerate(selectedModelId, selectedQuality, clothingReferences);
       toast.success('Pose regeneration started');
       onClose();
     } catch (error: any) {
@@ -193,9 +347,65 @@ export function RegeneratePoseModal({
             {selectedModel && (
               <p className="mt-2 text-xs text-[#808080]">
                 {selectedModel.referenceLimit} reference images • {selectedModel.quality} • {selectedModel.credits} credits per image
+                {supportsClothing && ` • Supports clothing/outfit images`}
               </p>
             )}
           </div>
+
+          {/* Clothing/Outfit Image Upload (only for models that support it) */}
+          {supportsClothing && selectedModel && (
+            <div>
+              <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
+                Clothing/Outfit Images (Optional)
+                <span className="ml-2 text-xs font-normal text-[#808080]">
+                  ({clothingImages.length}/{maxClothingRefs} - for hats, canes, accessories, etc.)
+                </span>
+              </label>
+              <div className="space-y-2">
+                {/* Upload Button */}
+                <button
+                  onClick={() => clothingFileInputRef.current?.click()}
+                  disabled={isUploadingClothing || clothingImages.length >= maxClothingRefs}
+                  className="w-full px-4 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#B3B3B3] text-sm hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isUploadingClothing ? 'Uploading...' : clothingImages.length >= maxClothingRefs ? `Max Images (${maxClothingRefs}/${maxClothingRefs})` : `Upload Clothing/Outfit Images`}
+                </button>
+                <input
+                  ref={clothingFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleClothingImageSelect}
+                  className="hidden"
+                />
+                
+                {/* Image Previews */}
+                {clothingImages.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {clothingImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img.preview}
+                          alt={`Clothing ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg border border-[#3F3F46]"
+                        />
+                        <button
+                          onClick={() => handleRemoveClothingImage(index)}
+                          className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-[#DC143C] rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-[#808080]">
+                Upload images of clothing, accessories, or props to maintain consistency across poses
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
