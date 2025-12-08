@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, MapPin, Film, MoreVertical, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext'
-import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Location, LocationType } from '@/types/screenplay';
@@ -29,7 +28,6 @@ interface LocationBoardProps {
 }
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
-    const { getToken } = useAuth();
     const queryClient = useQueryClient();
     const { 
         locations, 
@@ -384,8 +382,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 // Add pending images after location creation
                                 // Images are already uploaded to S3 via presigned URLs, just need to register them
                                 if (pendingImages && pendingImages.length > 0 && newLocation) {
-                                    // 🔥 FIX: Build images array and use updateLocation (like assets use updateAsset)
-                                    // This does optimistic update FIRST, then calls API - ensures immediate UI update
+                                    // 🔥 FIX: Match AssetBoard pattern - just use updateLocation directly (no separate API calls)
+                                    // updateLocation handles both backend update and context sync
                                     const imageEntries = pendingImages.map(img => ({
                                         imageUrl: img.imageUrl,
                                         createdAt: new Date().toISOString(),
@@ -398,33 +396,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                     
                                     console.log('[LocationBoard] 📸 Registering', imageEntries.length, 'images with location:', newLocation.id);
                                     
-                                    // 🔥 FIX: Use specific location image upload endpoint (like AssetBoard uses updateAsset)
-                                    // This ensures backend updates correctly and context syncs immediately
-                                    const token = await getToken({ template: 'wryda-backend' });
-                                    if (token && screenplayId) {
-                                        // Use the specific endpoint for location images (matches LocationDetailSidebar pattern)
-                                        for (const img of imageEntries) {
-                                            if (img.metadata?.s3Key) {
-                                                try {
-                                                    await fetch(`/api/screenplays/${screenplayId}/locations/${newLocation.id}/images`, {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'Authorization': `Bearer ${token}`,
-                                                            'Content-Type': 'application/json',
-                                                        },
-                                                        body: JSON.stringify({
-                                                            s3Key: img.metadata.s3Key,
-                                                            imageUrl: img.imageUrl
-                                                        }),
-                                                    });
-                                                } catch (error) {
-                                                    console.error('[LocationBoard] Failed to register image:', error);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Also call updateLocation for context update (optimistic update)
+                                    // Use updateLocation directly (like assets use updateAsset)
+                                    // This handles both backend update and context sync in one call
                                     await updateLocation(newLocation.id, {
                                         images: [
                                             ...(newLocation.images || []), // Use images from the real location returned by createLocation

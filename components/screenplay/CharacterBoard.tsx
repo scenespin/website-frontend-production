@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, MoreVertical, User, Users, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Character, ArcStatus } from '@/types/screenplay';
@@ -29,7 +28,6 @@ interface CharacterBoardProps {
 }
 
 export default function CharacterBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: CharacterBoardProps) {
-    const { getToken } = useAuth();
     const queryClient = useQueryClient();
     const { 
         characters, 
@@ -330,8 +328,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                             // Add pending images after character creation
                             // Images are already uploaded to S3 via presigned URLs, just need to register them
                             if (pendingImages && pendingImages.length > 0 && newCharacter) {
-                                // 🔥 FIX: Build images array and use updateCharacter (like assets use updateAsset)
-                                // This does optimistic update FIRST, then calls API - ensures immediate UI update
+                                // 🔥 FIX: Match AssetBoard pattern - just use updateCharacter directly (no separate API calls)
+                                // updateCharacter handles both backend update and context sync
                                 const imageEntries = pendingImages.map(img => ({
                                     imageUrl: img.imageUrl,
                                     createdAt: new Date().toISOString(),
@@ -347,33 +345,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 
                                 console.log('[CharacterBoard] 📸 Registering', imageEntries.length, 'images with character:', newCharacter.id);
                                 
-                                // 🔥 FIX: Use specific character image upload endpoint (like AssetBoard uses updateAsset)
-                                // This ensures backend updates correctly and context syncs immediately
-                                const token = await getToken({ template: 'wryda-backend' });
-                                if (token && screenplayId) {
-                                    // Use the specific endpoint for character images (matches CharacterDetailSidebar pattern)
-                                    for (const img of imageEntries) {
-                                        if (img.metadata?.s3Key) {
-                                            try {
-                                                await fetch(`/api/screenplays/${screenplayId}/characters/${newCharacter.id}/images`, {
-                                                    method: 'POST',
-                                                    headers: {
-                                                        'Authorization': `Bearer ${token}`,
-                                                        'Content-Type': 'application/json',
-                                                    },
-                                                    body: JSON.stringify({
-                                                        s3Key: img.metadata.s3Key,
-                                                        imageUrl: img.imageUrl
-                                                    }),
-                                                });
-                                            } catch (error) {
-                                                console.error('[CharacterBoard] Failed to register image:', error);
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                // Also call updateCharacter for context update (optimistic update)
+                                // Use updateCharacter directly (like assets use updateAsset)
+                                // This handles both backend update and context sync in one call
                                 await updateCharacter(newCharacter.id, {
                                     images: [
                                         ...(newCharacter.images || []), // Use images from the real character returned by createCharacter
