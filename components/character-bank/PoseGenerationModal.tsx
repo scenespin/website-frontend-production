@@ -399,10 +399,99 @@ export default function PoseGenerationModal({
                     </div>
                   </div>
                   
+                  {/* Model Selection - NEW */}
+                  <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                    <h3 className="text-sm font-semibold text-base-content mb-4">
+                      Step 3: Select Model
+                    </h3>
+                    {isLoadingModels ? (
+                      <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
+                        Loading models...
+                      </div>
+                    ) : models.length === 0 ? (
+                      <div className="px-4 py-3 bg-base-200 border border-base-content/20 rounded-lg text-base-content/60 text-sm">
+                        No models available for this quality tier
+                      </div>
+                    ) : (
+                      <select
+                        value={providerId}
+                        onChange={(e) => setProviderId(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/50 focus:border-[#8B5CF6]"
+                      >
+                        {models.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name} ({model.referenceLimit} refs, {model.quality}, {model.credits} credits)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {models.find(m => m.id === providerId) && (
+                      <p className="mt-2 text-xs text-base-content/50">
+                        {models.find(m => m.id === providerId)?.referenceLimit} reference images • {models.find(m => m.id === providerId)?.quality} • {models.find(m => m.id === providerId)?.credits} credits per image
+                        {models.find(m => m.id === providerId)?.supportsClothingImages && ` • Supports clothing/outfit images`}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Clothing/Outfit Image Upload (only for models that support it) */}
+                  {models.find(m => m.id === providerId)?.supportsClothingImages && (
+                    <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
+                      <h3 className="text-sm font-semibold text-base-content mb-4">
+                        Step 4: Clothing/Outfit Images (Optional)
+                        <span className="ml-2 text-xs font-normal text-base-content/50">
+                          ({clothingImages.length}/{Math.min((models.find(m => m.id === providerId)?.referenceLimit || 3) - 1, 3)} - for hats, canes, accessories, etc.)
+                        </span>
+                      </h3>
+                      <div className="space-y-2">
+                        {/* Upload Button */}
+                        <button
+                          onClick={() => clothingFileInputRef.current?.click()}
+                          disabled={isUploadingClothing || clothingImages.length >= Math.min((models.find(m => m.id === providerId)?.referenceLimit || 3) - 1, 3)}
+                          className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm hover:border-[#8B5CF6]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((models.find(m => m.id === providerId)?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
+                        </button>
+                        <input
+                          ref={clothingFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleClothingImageSelect}
+                          className="hidden"
+                        />
+                        
+                        {/* Image Previews */}
+                        {clothingImages.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {clothingImages.map((img, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={img.preview}
+                                  alt={`Clothing ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded-lg border border-base-content/20"
+                                />
+                                <button
+                                  onClick={() => handleRemoveClothingImage(index)}
+                                  className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Trash2 className="w-3 h-3 text-white" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs text-base-content/50">
+                        Upload images of clothing, accessories, or props to maintain consistency across poses
+                      </p>
+                    </div>
+                  )}
+
                   {/* Package Selection */}
                   <div>
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      Step 3: Select Package
+                      {models.find(m => m.id === providerId)?.supportsClothingImages ? 'Step 5' : 'Step 4'}: Select Package
                     </h3>
                     <PosePackageSelector
                       characterName={characterName}
