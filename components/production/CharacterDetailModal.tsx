@@ -553,8 +553,8 @@ export function CharacterDetailModal({
                               const outfitPoses = posesByOutfit[outfitName] || [];
                               let outfitDisplayName: string;
                               if (outfitName === 'default') {
-                                outfitDisplayName = physicalAttributes?.typicalClothing 
-                                  ? physicalAttributes.typicalClothing
+                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
+                                  ? displayPhysicalAttributes.typicalClothing
                                   : 'Default Outfit';
                               } else {
                                 outfitDisplayName = outfitName
@@ -862,8 +862,8 @@ export function CharacterDetailModal({
                               const outfitPoses = posesByOutfit[outfitName] || [];
                               let outfitDisplayName: string;
                               if (outfitName === 'default') {
-                                outfitDisplayName = physicalAttributes?.typicalClothing 
-                                  ? physicalAttributes.typicalClothing
+                                outfitDisplayName = displayPhysicalAttributes?.typicalClothing 
+                                  ? displayPhysicalAttributes.typicalClothing
                                   : 'Default Outfit';
                               } else {
                                 outfitDisplayName = outfitName
