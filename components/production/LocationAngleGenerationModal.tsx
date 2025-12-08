@@ -6,7 +6,7 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 import LocationAnglePackageSelector from './LocationAnglePackageSelector';
@@ -40,8 +40,11 @@ export default function LocationAngleGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard'); // 🔥 NEW: Quality tier
+  const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night' | ''>(''); // 🔥 NEW: Time of day
   const [weather, setWeather] = useState<'sunny' | 'cloudy' | 'rainy' | 'snowy' | ''>(''); // 🔥 NEW: Weather
+  const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,6 +54,55 @@ export default function LocationAngleGenerationModal({
   
   // Note: Safety errors are now handled in job results (async pattern)
   // Frontend will check job status and show dialog when job completes with safety errors
+
+  // Load available models when quality changes
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    async function loadModels() {
+      setIsLoadingModels(true);
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          toast.error('Authentication required');
+          return;
+        }
+
+        const response = await fetch(`/api/model-selection/locations/${quality}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load models');
+        }
+
+        const data = await response.json();
+        const availableModels = data.data?.models || data.models || [];
+        setModels(availableModels.filter((m: any) => m.enabled));
+        
+        // Auto-select first model
+        if (availableModels.length > 0 && !providerId) {
+          setProviderId(availableModels[0].id);
+        }
+      } catch (error: any) {
+        console.error('[LocationAngleGenerationModal] Failed to load models:', error);
+        toast.error('Failed to load available models');
+      } finally {
+        setIsLoadingModels(false);
+      }
+    }
+
+    loadModels();
+  }, [isOpen, quality, getToken]);
+
+  // Reset providerId when quality changes
+  useEffect(() => {
+    if (isOpen) {
+      setProviderId('');
+    }
+  }, [quality, isOpen]);
   
   // Map package IDs to angle arrays
   const packageToAngles: Record<string, Array<{ angle: string }>> = {
@@ -99,6 +151,7 @@ export default function LocationAngleGenerationModal({
         locationProfile: locationProfile,
         packageId: selectedPackageId,
         quality: quality,
+        providerId: providerId || undefined, // 🔥 NEW: Model selection
         // Apply timeOfDay and weather to all angles in the package
         angles: packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,

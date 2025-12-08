@@ -6,7 +6,7 @@
  * Similar to LocationAngleGenerationModal but for assets
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, CheckCircle2, AlertCircle, Package } from 'lucide-react';
 import AssetAnglePackageSelector from './AssetAnglePackageSelector';
@@ -40,6 +40,9 @@ export default function AssetAngleGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [quality, setQuality] = useState<'standard' | 'high-quality'>('standard');
+  const [providerId, setProviderId] = useState<string>(''); // 🔥 NEW: Model selection
+  const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -49,6 +52,55 @@ export default function AssetAngleGenerationModal({
   
   // Note: Safety errors are now handled in job results (async pattern)
   // Frontend will check job status and show dialog when job completes with safety errors
+
+  // Load available models when quality changes
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    async function loadModels() {
+      setIsLoadingModels(true);
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) {
+          toast.error('Authentication required');
+          return;
+        }
+
+        const response = await fetch(`/api/model-selection/assets/${quality}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load models');
+        }
+
+        const data = await response.json();
+        const availableModels = data.data?.models || data.models || [];
+        setModels(availableModels.filter((m: any) => m.enabled));
+        
+        // Auto-select first model
+        if (availableModels.length > 0 && !providerId) {
+          setProviderId(availableModels[0].id);
+        }
+      } catch (error: any) {
+        console.error('[AssetAngleGenerationModal] Failed to load models:', error);
+        toast.error('Failed to load available models');
+      } finally {
+        setIsLoadingModels(false);
+      }
+    }
+
+    loadModels();
+  }, [isOpen, quality, getToken]);
+
+  // Reset providerId when quality changes
+  useEffect(() => {
+    if (isOpen) {
+      setProviderId('');
+    }
+  }, [quality, isOpen]);
   
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -66,7 +118,8 @@ export default function AssetAngleGenerationModal({
       const apiUrl = `/api/asset-bank/${assetId}/generate-angles`;
       const requestBody = {
         packageId: selectedPackageId,
-        quality: quality
+        quality: quality,
+        providerId: providerId || undefined // 🔥 NEW: Model selection
       };
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
