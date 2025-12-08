@@ -150,6 +150,113 @@ export default function PoseGenerationModal({
       reader.readAsDataURL(file);
     }
   };
+
+  const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const selectedModel = models.find(m => m.id === providerId);
+    const maxClothingRefs = selectedModel ? Math.min(selectedModel.referenceLimit - 1, 3) : 0;
+    
+    // Validate file count
+    if (clothingImages.length + fileArray.length > maxClothingRefs) {
+      toast.error(`Maximum ${maxClothingRefs} clothing/outfit images allowed for this model`);
+      return;
+    }
+
+    // Validate files
+    for (const file of fileArray) {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} is not an image file`);
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 50MB.`);
+        return;
+      }
+    }
+
+    setIsUploadingClothing(true);
+    const newImages: Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }> = [];
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      for (const file of fileArray) {
+        // Create preview
+        const preview = URL.createObjectURL(file);
+        
+        // Upload to S3
+        let s3Key: string | undefined;
+        let presignedUrl: string | undefined;
+
+        const presignedResponse = await fetch(
+          `/api/characters/upload/get-presigned-url?` +
+          `fileName=${encodeURIComponent(file.name)}` +
+          `&fileType=${encodeURIComponent(file.type)}` +
+          `&fileSize=${file.size}` +
+          `&screenplayId=${encodeURIComponent(projectId)}` +
+          `&characterId=${encodeURIComponent(characterId)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (presignedResponse.ok) {
+          const { url, fields, s3Key: uploadedS3Key } = await presignedResponse.json();
+          s3Key = uploadedS3Key;
+
+          // Upload to S3
+          const s3FormData = new FormData();
+          Object.entries(fields).forEach(([key, value]) => {
+            if (key.toLowerCase() !== 'bucket') {
+              s3FormData.append(key, value as string);
+            }
+          });
+          s3FormData.append('file', file);
+
+          const s3Response = await fetch(url, { method: 'POST', body: s3FormData });
+          if (s3Response.ok) {
+            // Get presigned download URL
+            const downloadResponse = await fetch(
+              `/api/s3/get-download-url?s3Key=${encodeURIComponent(s3Key)}`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            if (downloadResponse.ok) {
+              const { downloadUrl } = await downloadResponse.json();
+              presignedUrl = downloadUrl;
+            }
+          }
+        }
+
+        newImages.push({ file, preview, s3Key, presignedUrl });
+      }
+
+      setClothingImages(prev => [...prev, ...newImages]);
+      toast.success(`Added ${fileArray.length} clothing/outfit image${fileArray.length > 1 ? 's' : ''}`);
+    } catch (error: any) {
+      console.error('[PoseGenerationModal] Failed to upload clothing images:', error);
+      toast.error(error.message || 'Failed to upload clothing images');
+    } finally {
+      setIsUploadingClothing(false);
+      if (clothingFileInputRef.current) {
+        clothingFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveClothingImage = (index: number) => {
+    const image = clothingImages[index];
+    if (image.preview) {
+      URL.revokeObjectURL(image.preview);
+    }
+    setClothingImages(prev => prev.filter((_, i) => i !== index));
+  };
   
   const handleGenerateWithPackage = async (packageId: string) => {
     setIsGenerating(true);
