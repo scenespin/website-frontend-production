@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Location, LocationType } from '@/types/screenplay';
 import LocationDetailSidebar from './LocationDetailSidebar';
 import { DeleteLocationDialog } from '../structure/DeleteConfirmDialog';
@@ -29,6 +30,7 @@ interface LocationBoardProps {
 
 export default function LocationBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: LocationBoardProps) {
     const { getToken } = useAuth();
+    const queryClient = useQueryClient();
     const { 
         locations, 
         updateLocation, 
@@ -362,6 +364,11 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 
                                 // 🔥 FIX: Set selectedLocation to newly created location so uploads work immediately
                                 setSelectedLocation(newLocation);
+                                
+                                // 🔥 FIX: Invalidate Production Hub location cache so new location appears immediately
+                                if (screenplayId) {
+                                    queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+                                }
                                 
                                 // Add pending images after location creation
                                 // Images are already uploaded to S3 via presigned URLs, just need to register them

@@ -5,6 +5,7 @@ import { Plus, MoreVertical, User, Users, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Character, ArcStatus } from '@/types/screenplay';
 import CharacterDetailSidebar from './CharacterDetailSidebar';
 import { DeleteCharacterDialog } from '../structure/DeleteConfirmDialog';
@@ -27,6 +28,7 @@ interface CharacterBoardProps {
 }
 
 export default function CharacterBoard({ showHeader = true, triggerAdd, initialData, onSwitchToChatImageMode }: CharacterBoardProps) {
+    const queryClient = useQueryClient();
     const { 
         characters, 
         updateCharacter, 
@@ -316,6 +318,11 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 customFields: []
                             });
                             
+                            // 🔥 FIX: Invalidate Production Hub character cache so new character appears immediately
+                            if (screenplayId) {
+                                queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+                            }
+                            
                             // Add pending images after character creation
                             // Images are already uploaded to S3 via presigned URLs, just need to register them
                             if (pendingImages && pendingImages.length > 0 && newCharacter) {
@@ -331,7 +338,10 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 }
                             }
                             
+                            // 🔥 FIX: Set selectedCharacter to newly created character so uploads work immediately
+                            setSelectedCharacter(newCharacter);
                             setIsCreating(false);
+                            setIsEditing(true); // Switch to edit mode so user can upload more images
                         } catch (err: any) {
                             alert(`Error creating character: ${err.message}`);
                         }
