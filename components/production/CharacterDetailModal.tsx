@@ -649,48 +649,38 @@ export function CharacterDetailModal({
                         </div>
                       </div>
                       
-                      {/* Outfit Selector - Always show for organization */}
-                      <div className="mb-4">
-                        <p className="text-xs text-[#808080] mb-2">
-                          {outfitNames.length > 1 ? 'Organized by outfit type:' : 'Outfit:'}
-                        </p>
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
-                          {outfitNames.map((outfitName) => {
-                            // Format outfit name for display
-                            // If default, use typicalClothing or "Default Outfit"
-                            // Otherwise, convert from sanitized format (e.g., "business-casual" -> "Business Casual")
-                            let outfitDisplayName: string;
-                            if (outfitName === 'default') {
-                              outfitDisplayName = physicalAttributes?.typicalClothing 
-                                ? physicalAttributes.typicalClothing
-                                : 'Default Outfit';
-                            } else {
-                              // Convert sanitized name back to readable format
-                              // e.g., "business-casual" -> "Business Casual"
-                              outfitDisplayName = outfitName
-                                .split('-')
-                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                .join(' ');
-                            }
-                            const poseCount = posesByOutfit[outfitName]?.length || 0;
-                            
-                            return (
-                              <button
-                                key={outfitName}
-                                onClick={() => setSelectedOutfit(outfitName)}
-                                className={cn(
-                                  "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-shrink-0",
-                                  selectedOutfit === outfitName
-                                    ? "bg-[#8B5CF6] text-white shadow-lg shadow-[#8B5CF6]/20"
-                                    : "bg-[#1F1F23] text-[#B3B3B3] hover:bg-[#2C2C2E] border border-[#3F3F46]"
-                                )}
-                              >
-                                {outfitDisplayName} <span className="opacity-75">({poseCount})</span>
-                              </button>
-                            );
-                          })}
+                      {/* Outfit Dropdown Selector - Same as References tab */}
+                      {outfitNames.length > 1 && (
+                        <div className="mb-4">
+                          <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
+                          <select
+                            value={selectedOutfit || ''}
+                            onChange={(e) => setSelectedOutfit(e.target.value || null)}
+                            className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none"
+                          >
+                            <option value="">All Outfits ({poseReferences.length})</option>
+                            {outfitNames.map((outfitName) => {
+                              const outfitPoses = posesByOutfit[outfitName] || [];
+                              let outfitDisplayName: string;
+                              if (outfitName === 'default') {
+                                outfitDisplayName = physicalAttributes?.typicalClothing 
+                                  ? physicalAttributes.typicalClothing
+                                  : 'Default Outfit';
+                              } else {
+                                outfitDisplayName = outfitName
+                                  .split('-')
+                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              }
+                              return (
+                                <option key={outfitName} value={outfitName}>
+                                  {outfitDisplayName} ({outfitPoses.length})
+                                </option>
+                              );
+                            })}
+                          </select>
                         </div>
-                      </div>
+                      )}
                       
                       {/* Poses Grid - Filtered by selected outfit */}
                       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
