@@ -882,7 +882,7 @@ export function CharacterDetailModal({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     {/* Regenerate option - only show for poses with poseId */}
-                                    {'poseId' in img && img.poseId && (
+                                    {(img.poseId || (img as any).metadata?.poseId) && (
                                       <DropdownMenuItem
                                         onClick={(e) => {
                                           e.stopPropagation();

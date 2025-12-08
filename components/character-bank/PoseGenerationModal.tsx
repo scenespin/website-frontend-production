@@ -132,6 +132,10 @@ export default function PoseGenerationModal({
       setClothingImages([]);
     }
   }, [quality, isOpen]);
+
+  // Get selected model for easier access
+  const selectedModel = models.find(m => m.id === providerId);
+  const supportsClothing = selectedModel?.supportsClothingImages ?? false;
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -156,7 +160,6 @@ export default function PoseGenerationModal({
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
-    const selectedModel = models.find(m => m.id === providerId);
     const maxClothingRefs = selectedModel ? Math.min(selectedModel.referenceLimit - 1, 3) : 0;
     
     // Validate file count
@@ -532,32 +535,32 @@ export default function PoseGenerationModal({
                         ))}
                       </select>
                     )}
-                    {models.find(m => m.id === providerId) && (
+                    {selectedModel && (
                       <p className="mt-2 text-xs text-base-content/50">
-                        {models.find(m => m.id === providerId)?.referenceLimit} reference images • {models.find(m => m.id === providerId)?.quality} • {models.find(m => m.id === providerId)?.credits} credits per image
-                        {models.find(m => m.id === providerId)?.supportsClothingImages && ` • Supports clothing/outfit images`}
+                        {selectedModel.referenceLimit} reference images • {selectedModel.quality} • {selectedModel.credits} credits per image
+                        {supportsClothing && ` • Supports clothing/outfit images`}
                       </p>
                     )}
                   </div>
 
                   {/* Clothing/Outfit Image Upload (only for models that support it) */}
-                  {models.find(m => m.id === providerId)?.supportsClothingImages && (
+                  {supportsClothing && (
                     <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                       <h3 className="text-sm font-semibold text-base-content mb-4">
                         Step 4: Clothing/Outfit Images (Optional)
                         <span className="ml-2 text-xs font-normal text-base-content/50">
-                          ({clothingImages.length}/{Math.min((models.find(m => m.id === providerId)?.referenceLimit || 3) - 1, 3)} - for hats, canes, accessories, etc.)
+                          ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)} - for hats, canes, accessories, etc.)
                         </span>
                       </h3>
                       <div className="space-y-2">
                         {/* Upload Button */}
                         <button
                           onClick={() => clothingFileInputRef.current?.click()}
-                          disabled={isUploadingClothing || clothingImages.length >= Math.min((models.find(m => m.id === providerId)?.referenceLimit || 3) - 1, 3)}
+                          disabled={isUploadingClothing || clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3)}
                           className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm hover:border-[#8B5CF6]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           <Upload className="w-4 h-4" />
-                          {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((models.find(m => m.id === providerId)?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
+                          {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
                         </button>
                         <input
                           ref={clothingFileInputRef}
@@ -598,7 +601,7 @@ export default function PoseGenerationModal({
                   {/* Package Selection */}
                   <div>
                     <h3 className="text-sm font-semibold text-base-content mb-4">
-                      {models.find(m => m.id === providerId)?.supportsClothingImages ? 'Step 5' : 'Step 4'}: Select Package
+                      {supportsClothing ? 'Step 5' : 'Step 4'}: Select Package
                     </h3>
                     <PosePackageSelector
                       characterName={characterName}
