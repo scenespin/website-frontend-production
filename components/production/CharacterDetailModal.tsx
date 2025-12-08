@@ -151,7 +151,9 @@ export function CharacterDetailModal({
       .filter(ref => {
         // 🔥 CRITICAL: Check if this reference is in poseReferences - if so, exclude it
         // poseReferences are AI-generated and should NOT be in userReferences
-        const isInPoseReferences = character.poseReferences?.some((poseRef: any) => {
+        // 🔥 FIX: Check both angleReferences and poseReferences
+        const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+        const isInPoseReferences = allPoseRefs.some((poseRef: any) => {
           const poseS3Key = typeof poseRef === 'string' ? poseRef : (poseRef.s3Key || poseRef.metadata?.s3Key);
           const refS3Key = ref.s3Key || ref.metadata?.s3Key;
           return poseS3Key === refS3Key;
@@ -198,7 +200,9 @@ export function CharacterDetailModal({
 
   // 🔥 SIMPLIFIED: Get poseReferences directly from character prop (backend already provides presigned URLs and metadata)
   // Backend Character Bank API already enriches poseReferences with imageUrl, outfitName, poseId, etc.
-  const poseReferences: PoseReferenceWithOutfit[] = (character.poseReferences || []).map((ref, idx) => {
+  // 🔥 FIX: Backend returns angleReferences, not poseReferences! Check both fields.
+  const rawPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+  const poseReferences: PoseReferenceWithOutfit[] = rawPoseRefs.map((ref: any, idx: number) => {
     // Handle both string and object formats for poseReferences (backend may return either)
     const refObj = typeof ref === 'string' ? null : ref;
     const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
@@ -1260,9 +1264,10 @@ export function CharacterDetailModal({
                                           // Check img.s3Key first, then img.metadata.s3Key, then try to extract from poseReferences
                                           let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
                                           
-                                          // If still not found, try to find it in character.poseReferences
+                                          // If still not found, try to find it in character.poseReferences or angleReferences
                                           if (!imgS3Key && img.id) {
-                                            const poseRef = character.poseReferences?.find((ref: any) => {
+                                            const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                            const poseRef = allPoseRefs.find((ref: any) => {
                                               const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
                                               return refId === img.id;
                                             });
@@ -1295,21 +1300,22 @@ export function CharacterDetailModal({
                                               imgKeys: Object.keys(img),
                                               imgS3Key: img.s3Key,
                                               imgMetadata: (img as any).metadata,
-                                              characterPoseRefs: character.poseReferences,
+                                              characterPoseRefs: (character as any).angleReferences || character.poseReferences,
                                               imgFull: img
                                             });
                                             throw new Error('Missing S3 key for image');
                                           }
                                           
                                           // Check if it's a pose reference (AI-generated) or user reference
-                                          const isPoseRef = character.poseReferences?.some((poseRef: any) => {
+                                          const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+                                          const isPoseRef = allPoseRefs.some((poseRef: any) => {
                                             const poseS3Key = typeof poseRef === 'string' ? poseRef : poseRef.s3Key;
                                             return poseS3Key === imgS3Key;
                                           });
                                           
                                           if (isPoseRef) {
                                             // Delete from poseReferences (AI-generated poses)
-                                            const currentPoseReferences = character.poseReferences || [];
+                                            const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
                                             const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
                                               const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
                                               return refS3Key !== imgS3Key;
