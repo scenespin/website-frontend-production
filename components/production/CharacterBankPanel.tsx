@@ -89,13 +89,15 @@ export function CharacterBankPanel({
           .filter(Boolean);
       }
       
+      // 🔥 FIX: Send full poseReferences objects (not just s3Keys)
+      // Backend expects full objects with metadata (outfitName, poseId, etc.)
       if (updates.poseReferences !== undefined) {
-        apiUpdates.poseReferences = updates.poseReferences
-          .map((ref: any) => {
-            if (typeof ref === 'string') return ref;
-            return ref.s3Key || ref.metadata?.s3Key;
-          })
-          .filter(Boolean);
+        apiUpdates.poseReferences = updates.poseReferences;
+      }
+      
+      // 🔥 FIX: Also handle angleReferences (backend may use either name)
+      if ((updates as any).angleReferences !== undefined) {
+        apiUpdates.poseReferences = (updates as any).angleReferences;
       }
       
       if (updates.name !== undefined) apiUpdates.name = updates.name;
