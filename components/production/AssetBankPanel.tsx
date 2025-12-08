@@ -214,7 +214,9 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
                   images: asset.images?.map((img: any) => ({
                     url: img.url ? `${img.url.substring(0, 50)}...` : 'MISSING',
                     s3Key: img.s3Key || img.metadata?.s3Key || 'MISSING',
-                    source: img.metadata?.source || 'unknown'
+                    source: img.metadata?.source || 'unknown',
+                    metadata: img.metadata, // 🔥 DEBUG: Show full metadata
+                    angle: img.angle || img.metadata?.angle
                   }))
                 });
               }
