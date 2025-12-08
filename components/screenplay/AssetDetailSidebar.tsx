@@ -34,7 +34,7 @@ export default function AssetDetailSidebar({
   onDelete,
   onSwitchToChatImageMode
 }: AssetDetailSidebarProps) {
-  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene } = useScreenplay()
+  const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene, getEntityImages } = useScreenplay()
   // 🔥 FIX: Use ref to track latest assets to avoid stale closures in async functions
   const assetsRef = useRef(assets);
   useEffect(() => {
