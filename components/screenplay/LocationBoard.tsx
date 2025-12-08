@@ -397,18 +397,23 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                                 );
                                             }
                                         }
-                                        // Refresh location from context after images are registered
+                                        // 🔥 FIX: Refresh location from context after images are registered
+                                        // Wait a bit for backend processing and context update
                                         await new Promise(resolve => setTimeout(resolve, 500));
                                         const updatedLocation = locations.find(l => l.id === newLocation.id);
                                         if (updatedLocation) {
                                             setSelectedLocation(updatedLocation);
+                                        } else {
+                                            setSelectedLocation(newLocation);
                                         }
                                     }
+                                } else {
+                                    // No pending images - just set the new location
+                                    setSelectedLocation(newLocation);
                                 }
                                 
                                 // 🔥 FIX: Keep sidebar open with newly created location so uploads work immediately
                                 // Match AssetBoard pattern: set selectedLocation and close creating mode
-                                setSelectedLocation(newLocation);
                                 setIsCreating(false);
                                 setIsEditing(false); // Don't set isEditing - just close creating mode
                             } catch (err: any) {
