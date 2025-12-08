@@ -303,7 +303,7 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
             <AnimatePresence>
             {(isCreating || isEditing || selectedCharacter) && (
                 <CharacterDetailSidebar
-                    character={isEditing || (!isCreating && selectedCharacter) ? selectedCharacter : null}
+                    character={selectedCharacter} // 🔥 FIX: Always pass selectedCharacter when not creating (matches AssetBoard pattern)
                     isCreating={isCreating}
                     initialData={isCreating ? initialData : undefined}
                     onClose={() => {
@@ -319,9 +319,10 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 customFields: []
                             });
                             
-                            // 🔥 FIX: Invalidate Production Hub character cache so new character appears immediately
+                            // 🔥 FIX: Refetch Production Hub character cache so new character appears immediately
                             if (screenplayId) {
-                                queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+                                // Use refetchQueries for immediate update (matches deletion pattern)
+                                queryClient.refetchQueries({ queryKey: ['characters', screenplayId] });
                             }
                             
                             // Add pending images after character creation
@@ -339,10 +340,11 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 }
                             }
                             
-                            // 🔥 FIX: Set selectedCharacter to newly created character so uploads work immediately
+                            // 🔥 FIX: Keep sidebar open with newly created character so uploads work immediately
+                            // Match AssetBoard pattern: set selectedCharacter and close creating mode
                             setSelectedCharacter(newCharacter);
                             setIsCreating(false);
-                            setIsEditing(true); // Switch to edit mode so user can upload more images
+                            setIsEditing(false); // Don't set isEditing - just close creating mode
                         } catch (err: any) {
                             alert(`Error creating character: ${err.message}`);
                         }

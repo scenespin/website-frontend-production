@@ -345,7 +345,7 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                     
                     <LocationDetailSidebar
                         key={isCreating ? `create-${selectedColumnType || 'default'}` : `edit-${selectedLocation?.id || 'none'}`} // 🔥 FIX: Force remount when column type changes
-                        location={isEditing || (!isCreating && selectedLocation) ? selectedLocation : null}
+                        location={selectedLocation} // 🔥 FIX: Always pass selectedLocation when not creating (matches AssetBoard pattern)
                         isCreating={isCreating}
                         initialData={isCreating ? {
                             ...initialData,
@@ -365,9 +365,10 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 // 🔥 FIX: Set selectedLocation to newly created location so uploads work immediately
                                 setSelectedLocation(newLocation);
                                 
-                                // 🔥 FIX: Invalidate Production Hub location cache so new location appears immediately
+                                // 🔥 FIX: Refetch Production Hub location cache so new location appears immediately
                                 if (screenplayId) {
-                                    queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+                                    // Use refetchQueries for immediate update (matches deletion pattern)
+                                    queryClient.refetchQueries({ queryKey: ['locations', screenplayId] });
                                 }
                                 
                                 // Add pending images after location creation
@@ -405,9 +406,11 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                     }
                                 }
                                 
-                                // 🔥 FIX: Don't close modal immediately - keep it open in edit mode so user can upload more images
+                                // 🔥 FIX: Keep sidebar open with newly created location so uploads work immediately
+                                // Match AssetBoard pattern: set selectedLocation and close creating mode
+                                setSelectedLocation(newLocation);
                                 setIsCreating(false);
-                                setIsEditing(true);
+                                setIsEditing(false); // Don't set isEditing - just close creating mode
                             } catch (err: any) {
                                 alert(`Error creating location: ${err.message}`);
                             }

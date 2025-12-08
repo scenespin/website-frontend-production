@@ -454,33 +454,40 @@ export default function LocationDetailSidebar({
       }
 
       // Step 4: Update UI
-      if (location && !isCreating) {
-        // Update formData immediately for UI update
-        setFormData(prev => ({
-          ...prev,
-          images: uploadedImages
-        }));
+      // 🔥 FIX: Match AssetDetailSidebar pattern - check if location exists (not isCreating state)
+      if (location) {
+        // Existing location - register all images with location API
+        try {
+          // Update formData immediately for UI update
+          setFormData(prev => ({
+            ...prev,
+            images: uploadedImages
+          }));
 
-        // Update location in context to trigger re-render
-        await updateLocation(location.id, {
-          images: uploadedImages
-        });
-
-        // Update parent component
-        const updatedLocation = { ...location, images: uploadedImages };
-        onUpdate(updatedLocation);
-
-        toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
-
-        // Show StorageDecisionModal for first uploaded image
-        if (uploadedImages.length > 0) {
-          setSelectedAsset({
-            url: uploadedImages[0].imageUrl,
-            s3Key: uploadedImages[0].metadata.s3Key,
-            name: fileArray[0].name,
-            type: 'image'
+          // Update location in context to trigger re-render
+          await updateLocation(location.id, {
+            images: uploadedImages
           });
-          setShowStorageModal(true);
+
+          // Update parent component
+          const updatedLocation = { ...location, images: uploadedImages };
+          onUpdate(updatedLocation);
+
+          toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
+
+          // Show StorageDecisionModal for first uploaded image
+          if (uploadedImages.length > 0) {
+            setSelectedAsset({
+              url: uploadedImages[0].imageUrl,
+              s3Key: uploadedImages[0].metadata.s3Key,
+              name: fileArray[0].name,
+              type: 'image'
+            });
+            setShowStorageModal(true);
+          }
+        } catch (error: any) {
+          console.error('[LocationDetailSidebar] Failed to register images:', error);
+          toast.error(`Failed to register images: ${error.message}`);
         }
       } else if (isCreating) {
         // New location - store temporarily, will be added after location creation
