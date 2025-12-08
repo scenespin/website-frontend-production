@@ -42,7 +42,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         isEntityInScript, 
         addImageToEntity,
         canEditScript,
-        canUseAI
+        canUseAI,
+        screenplayId
     } = useScreenplay();
     const { state: editorState } = useEditor();
     const [columns, setColumns] = useState<CharacterColumn[]>([]);
