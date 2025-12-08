@@ -531,7 +531,7 @@ export function CharacterDetailModal({
                 }`}
               >
                 <Box className="w-4 h-4 inline mr-2" />
-                References ({character.referenceCount})
+                References ({allImages.length})
               </button>
             </div>
 
@@ -1330,7 +1330,10 @@ export function CharacterDetailModal({
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
+                                          // Invalidate both media and characters queries to refresh the UI
                                           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                          queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+                                          
                                           toast.success('Image deleted');
                                         } catch (error: any) {
                                           console.error('[CharacterDetailModal] Failed to delete image:', error);
