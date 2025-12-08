@@ -555,9 +555,17 @@ function LocationCardContent({
                     <Film size={12} />
                     {sceneCount} scenes
                 </span>
-                {location.images && location.images.length > 0 && (
-                    <span className="text-blue-400">🖼️ {location.images.length}</span>
-                )}
+                {(() => {
+                    // 🔥 FIX: Only count Creation images (user-uploaded), not AI-generated Production Hub images
+                    // Filter out images with source='angle-generation' or createdIn='production-hub'
+                    const creationImages = (location.images || []).filter((img: any) => {
+                        const metadata = img.metadata || {};
+                        return metadata.source !== 'angle-generation' && metadata.createdIn !== 'production-hub';
+                    });
+                    return creationImages.length > 0 ? (
+                        <span className="text-blue-400">🖼️ {creationImages.length}</span>
+                    ) : null;
+                })()}
                 {location.githubIssueNumber && <span>🔗 #{location.githubIssueNumber}</span>}
             </div>
 

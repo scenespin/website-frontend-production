@@ -587,9 +587,17 @@ function AssetCardContent({
                 <span className="flex items-center gap-1">
                     📝 {sceneCount} {sceneCount === 1 ? 'scene' : 'scenes'}
                 </span>
-                {asset.images && asset.images.length > 0 && (
-                    <span className="text-blue-400">🖼️ {asset.images.length}</span>
-                )}
+                {(() => {
+                    // 🔥 FIX: Only count Creation images (user-uploaded), not AI-generated Production Hub images
+                    // Filter out images with source='angle-generation' or createdIn='production-hub'
+                    const creationImages = (asset.images || []).filter((img: any) => {
+                        const metadata = img.metadata || {};
+                        return metadata.source !== 'angle-generation' && metadata.createdIn !== 'production-hub';
+                    });
+                    return creationImages.length > 0 ? (
+                        <span className="text-blue-400">🖼️ {creationImages.length}</span>
+                    ) : null;
+                })()}
             </div>
 
             {/* Tags */}
