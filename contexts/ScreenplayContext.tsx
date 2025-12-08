@@ -2249,9 +2249,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // This ensures that deleting all images (images: []) is respected
                     if (optimisticCharacter && Array.isArray(optimisticCharacter.images)) {
                         transformedCharacter.images = optimisticCharacter.images;
-                        console.log('[ScreenplayContext] 🔄 Using images from explicit update:', {
+                        console.log('[ScreenplayContext] 🔄 Using images from explicit update (optimistic):', {
                             imageCount: optimisticCharacter.images.length,
                             wasEmpty: optimisticCharacter.images.length === 0
+                        });
+                    } else if (Array.isArray(updates.images)) {
+                        // 🔥 FIX: If optimistic character not found (e.g., just created), use images from updates directly
+                        transformedCharacter.images = updates.images;
+                        console.log('[ScreenplayContext] 🔄 Using images from explicit update (direct):', {
+                            imageCount: updates.images.length,
+                            wasEmpty: updates.images.length === 0
                         });
                     }
                 } else if (optimisticCharacter && optimisticCharacter.images && optimisticCharacter.images.length > 0) {
@@ -2316,25 +2323,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     imageCount: transformedCharacter.images?.length || 0
                 });
                 setCharacters(prev => {
-                    const updated = prev.map(char => {
-                        // Match by either the frontend id or the character_id from API
-                        const matches = char.id === id || char.id === transformedCharacter.id || 
-                                      (updatedCharacter as any)?.character_id === char.id ||
-                                      (updatedCharacter as any)?.id === char.id;
-                        if (matches) {
-                            console.log('[ScreenplayContext] ✅ Matched character for update:', { 
-                                oldId: char.id, 
-                                newId: transformedCharacter.id,
-                                oldArcStatus: char.arcStatus,
-                                newArcStatus: transformedCharacter.arcStatus,
-                                oldImageCount: char.images?.length || 0,
-                                newImageCount: transformedCharacter.images?.length || 0
-                            });
-                            return transformedCharacter;
-                        }
-                        return char;
-                    });
-                    return updated;
+                    // Check if character exists in current state
+                    const existingIndex = prev.findIndex(char => 
+                        char.id === id || 
+                        char.id === transformedCharacter.id || 
+                        (updatedCharacter as any)?.character_id === char.id ||
+                        (updatedCharacter as any)?.id === char.id
+                    );
+                    
+                    if (existingIndex >= 0) {
+                        // Character exists - update it
+                        const updated = [...prev];
+                        updated[existingIndex] = transformedCharacter;
+                        console.log('[ScreenplayContext] ✅ Matched character for update:', { 
+                            oldId: prev[existingIndex].id, 
+                            newId: transformedCharacter.id,
+                            oldArcStatus: prev[existingIndex].arcStatus,
+                            newArcStatus: transformedCharacter.arcStatus,
+                            oldImageCount: prev[existingIndex].images?.length || 0,
+                            newImageCount: transformedCharacter.images?.length || 0
+                        });
+                        return updated;
+                    } else {
+                        // Character not found - add it (this can happen if character was just created)
+                        console.log('[ScreenplayContext] ⚠️ Character not found in state, adding it:', {
+                            characterId: id,
+                            transformedId: transformedCharacter.id,
+                            imageCount: transformedCharacter.images?.length || 0
+                        });
+                        return [...prev, transformedCharacter];
+                    }
                 });
                 
                 console.log('[ScreenplayContext] ✅ Updated character in DynamoDB and synced local state');
@@ -2704,9 +2722,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // This ensures that deleting all images (images: []) is respected
                     if (optimisticLocation && Array.isArray(optimisticLocation.images)) {
                         transformedLocation.images = optimisticLocation.images;
-                        console.log('[ScreenplayContext] 🔄 Using images from explicit update:', {
+                        console.log('[ScreenplayContext] 🔄 Using images from explicit update (optimistic):', {
                             imageCount: optimisticLocation.images.length,
                             wasEmpty: optimisticLocation.images.length === 0
+                        });
+                    } else if (Array.isArray(updates.images)) {
+                        // 🔥 FIX: If optimistic location not found (e.g., just created), use images from updates directly
+                        transformedLocation.images = updates.images;
+                        console.log('[ScreenplayContext] 🔄 Using images from explicit update (direct):', {
+                            imageCount: updates.images.length,
+                            wasEmpty: updates.images.length === 0
                         });
                     }
                 } else if (optimisticLocation && optimisticLocation.images && optimisticLocation.images.length > 0) {
@@ -2732,25 +2757,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     imageCount: transformedLocation.images?.length || 0
                 });
                 setLocations(prev => {
-                    const updated = prev.map(loc => {
-                        // Match by either the frontend id or the location_id from API
-                        const matches = loc.id === id || loc.id === transformedLocation.id || 
-                                      (updatedLocation as any)?.location_id === loc.id ||
-                                      (updatedLocation as any)?.id === loc.id;
-                        if (matches) {
-                            console.log('[ScreenplayContext] ✅ Matched location for update:', { 
-                                oldId: loc.id, 
-                                newId: transformedLocation.id,
-                                oldType: loc.type,
-                                newType: transformedLocation.type,
-                                oldImageCount: loc.images?.length || 0,
-                                newImageCount: transformedLocation.images?.length || 0
-                            });
-                            return transformedLocation;
-                        }
-                        return loc;
-                    });
-                    return updated;
+                    // Check if location exists in current state
+                    const existingIndex = prev.findIndex(loc => 
+                        loc.id === id || 
+                        loc.id === transformedLocation.id || 
+                        (updatedLocation as any)?.location_id === loc.id ||
+                        (updatedLocation as any)?.id === loc.id
+                    );
+                    
+                    if (existingIndex >= 0) {
+                        // Location exists - update it
+                        const updated = [...prev];
+                        updated[existingIndex] = transformedLocation;
+                        console.log('[ScreenplayContext] ✅ Matched location for update:', { 
+                            oldId: prev[existingIndex].id, 
+                            newId: transformedLocation.id,
+                            oldType: prev[existingIndex].type,
+                            newType: transformedLocation.type,
+                            oldImageCount: prev[existingIndex].images?.length || 0,
+                            newImageCount: transformedLocation.images?.length || 0
+                        });
+                        return updated;
+                    } else {
+                        // Location not found - add it (this can happen if location was just created)
+                        console.log('[ScreenplayContext] ⚠️ Location not found in state, adding it:', {
+                            locationId: id,
+                            transformedId: transformedLocation.id,
+                            imageCount: transformedLocation.images?.length || 0
+                        });
+                        return [...prev, transformedLocation];
+                    }
                 });
                 
                 console.log('[ScreenplayContext] ✅ Updated location in DynamoDB and synced local state');
