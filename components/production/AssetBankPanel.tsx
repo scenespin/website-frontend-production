@@ -237,42 +237,41 @@ export default function AssetBankPanel({ className = '', isMobile = false }: Ass
               }
               
               // Add angle references (like locations add angleVariations)
-              // Backend may return as angleReferences OR merge into images array with source='angle-generation'
+              // 🔥 FIX: Use EITHER angleReferences OR angleImages from images array, but NOT both (prevents double-counting)
               const angleRefs = asset.angleReferences || [];
               const angleImages = asset.images?.filter((img: any) => 
                 img.metadata?.source === 'angle-generation' || img.metadata?.source === 'image-generation'
               ) || [];
               
+              // Prefer angleReferences if it exists and has items, otherwise use angleImages from images array
               if (angleRefs.length > 0) {
                 console.log(`[AssetBankPanel] Found ${angleRefs.length} angle references for ${asset.name}:`, angleRefs);
+                // Add angleReferences from dedicated field
+                angleRefs.forEach((ref, idx) => {
+                  if (ref && ref.imageUrl) {
+                    allReferences.push({
+                      id: ref.s3Key || `angle-${asset.id}-${idx}`,
+                      imageUrl: ref.imageUrl,
+                      label: `${asset.name} - ${ref.angle || 'angle'} view`
+                    });
+                  } else if (ref && !ref.imageUrl) {
+                    console.warn(`[AssetBankPanel] Angle reference missing imageUrl for ${asset.name}:`, ref);
+                  }
+                });
               } else if (angleImages.length > 0) {
                 console.log(`[AssetBankPanel] Found ${angleImages.length} angle images in images array for ${asset.name}:`, angleImages);
+                // Add angle images from images array (backend merges them here)
+                angleImages.forEach((img, idx) => {
+                  allReferences.push({
+                    id: img.s3Key || `angle-img-${asset.id}-${idx}`,
+                    imageUrl: img.url,
+                    label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
+                  });
+                });
               } else if (asset.name === 'coffee cup') {
                 console.warn(`[AssetBankPanel] ⚠️ No angleReferences or angle images found for ${asset.name}`);
                 console.log(`[AssetBankPanel] Full images array:`, asset.images);
               }
-              
-              // Add angleReferences from dedicated field
-              angleRefs.forEach((ref, idx) => {
-                if (ref && ref.imageUrl) {
-                  allReferences.push({
-                    id: ref.s3Key || `angle-${asset.id}-${idx}`,
-                    imageUrl: ref.imageUrl,
-                    label: `${asset.name} - ${ref.angle || 'angle'} view`
-                  });
-                } else if (ref && !ref.imageUrl) {
-                  console.warn(`[AssetBankPanel] Angle reference missing imageUrl for ${asset.name}:`, ref);
-                }
-              });
-              
-              // Add angle images from images array (backend merges them here)
-              angleImages.forEach((img, idx) => {
-                allReferences.push({
-                  id: img.s3Key || `angle-img-${asset.id}-${idx}`,
-                  imageUrl: img.url,
-                  label: `${asset.name} - ${img.metadata?.angle || img.angle || 'angle'} view`
-                });
-              });
 
               const metadata = asset.has3DModel ? '3D Model Available' :
                               `${allReferences.length} images`;
