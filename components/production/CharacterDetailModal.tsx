@@ -933,10 +933,14 @@ export function CharacterDetailModal({
                                       <MoreVertical className="w-3 h-3 text-white" />
                                     </button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
+                                  <DropdownMenuContent 
+                                    align="end"
+                                    className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                  >
                                     {/* Regenerate option - only show for poses with poseId */}
                                     {(img.poseId || (img as any).metadata?.poseId) && (
                                       <DropdownMenuItem
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A]"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           // 🔥 FIX: Extract poseId and s3Key from multiple possible locations
@@ -963,13 +967,14 @@ export function CharacterDetailModal({
                                           });
                                           setShowRegenerateModal(true);
                                         }}
-                                        className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
                                         Regenerate...
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
+                                      className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         if (!confirm('Delete this image? This action cannot be undone.')) {

@@ -413,8 +413,12 @@ export function LocationDetailModal({
                                         <MoreVertical className="w-3 h-3 text-white" />
                                       </button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuContent 
+                                      align="end"
+                                      className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                    >
                                       <DropdownMenuItem
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A]"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           // Open regenerate modal with angle info
@@ -427,12 +431,13 @@ export function LocationDetailModal({
                                           });
                                           setShowRegenerateModal(true);
                                         }}
-                                        className="text-[#8B5CF6] hover:text-[#7C3AED] hover:bg-[#2A2A2A] cursor-pointer"
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
                                         Regenerate...
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           if (!confirm('Delete this angle image? This action cannot be undone.')) {
