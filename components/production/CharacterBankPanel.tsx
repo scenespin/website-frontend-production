@@ -51,6 +51,9 @@ export function CharacterBankPanel({
   const [showCharacterDetail, setShowCharacterDetail] = useState(false);
   const [showPoseModal, setShowPoseModal] = useState(false);
   const [poseCharacter, setPoseCharacter] = useState<{id: string, name: string, baseReferenceS3Key?: string} | null>(null);
+  
+  // 🔥 FIX: Get selectedCharacter from query data (always up-to-date) instead of stale prop
+  const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
 
   // Early return after all hooks
   if (!screenplayId) {
@@ -155,8 +158,12 @@ export function CharacterBankPanel({
 
       toast.success('Character updated successfully');
       // Invalidate React Query cache and refetch immediately - Production Hub context only
+      // 🔥 FIX: Use refetchQueries to ensure immediate UI update
       await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       if (onCharactersUpdate) onCharactersUpdate();
+      
+      // 🔥 FIX: Return the updated character data so the modal can use it
+      return responseData.character;
     } catch (error: any) {
       console.error('[CharacterBank] Failed to update character:', error);
       toast.error(`Failed to update character: ${error.message}`);
@@ -170,8 +177,6 @@ export function CharacterBankPanel({
       </div>
     );
   }
-
-  const selectedCharacter = characters.find(c => c.id === selectedCharacterId);
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
@@ -263,6 +268,7 @@ export function CharacterBankPanel({
       )}
       
       {/* Character Detail Modal */}
+      {/* 🔥 FIX: Use selectedCharacter from query (always up-to-date) - will be null if characterId doesn't match */}
       {showCharacterDetail && selectedCharacter && (
         <CharacterDetailModal
           character={selectedCharacter}
@@ -271,7 +277,10 @@ export function CharacterBankPanel({
             setShowCharacterDetail(false);
             setSelectedCharacterId(null);
           }}
-          onUpdate={updateCharacter}
+          onUpdate={async (characterId, updates) => {
+            await updateCharacter(characterId, updates);
+            // 🔥 FIX: Modal will automatically get updated character from query after refetch
+          }}
           onUploadImage={async (characterId, file) => {
             toast.info('Character image upload coming soon');
           }}

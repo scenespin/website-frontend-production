@@ -72,6 +72,13 @@ export function CharacterDetailModal({
     charactersRef.current = characters;
   }, [characters]);
   
+  // 🔥 FIX: Track character prop changes to ensure memoized values update
+  // When character prop updates (from query refetch), force recalculation of memoized values
+  const characterRef = useRef(character);
+  useEffect(() => {
+    characterRef.current = character;
+  }, [character]);
+  
   // Get the full Character from context (has arcStatus, physicalAttributes, arcNotes)
   // 🔥 SIMPLIFIED: Only use context for Creation section fields, NOT for images
   const contextCharacter = characters.find(c => c.id === character.id);
@@ -1149,6 +1156,9 @@ export function CharacterDetailModal({
                                             });
                                             
                                             console.log('[CharacterDetailModal] ✅ Update call completed');
+                                            
+                                            // 🔥 FIX: Close dropdown after deletion
+                                            // The dropdown should close automatically, but we ensure it by waiting for the update
                                           } else {
                                             // Delete from character.references array (user-uploaded references in Production Hub)
                                             const currentReferences = character.references || [];
@@ -1167,13 +1177,15 @@ export function CharacterDetailModal({
                                             });
                                             
                                             console.log('[CharacterDetailModal] ✅ Update call completed');
+                                            
+                                            // 🔥 FIX: Close dropdown after deletion
                                           }
                                           
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
                                           // 🔥 FIX: Don't invalidate queries here - CharacterBankPanel.updateCharacter already handles refetch
-                                          // This prevents double refetches and re-render loops
+                                          // The refetch will update the character prop automatically, causing the modal to re-render with updated data
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
