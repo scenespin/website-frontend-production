@@ -2287,7 +2287,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 
                 // If this is a Creation section update (not explicitly updating poseReferences), preserve them
                 // poseReferences are only managed in Production Hub, not Creation section
-                if (existingCharacter && updates.poseReferences === undefined) {
+                if (existingCharacter && (updates as any).poseReferences === undefined) {
                     // Get poseReferences from existing character (they're stored in images with source='pose-generation')
                     const existingPoseRefs = existingCharacter.images?.filter((img: any) => 
                         img.metadata?.source === 'pose-generation' || 
