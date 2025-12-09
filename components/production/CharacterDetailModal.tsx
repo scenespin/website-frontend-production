@@ -212,16 +212,48 @@ export function CharacterDetailModal({
     };
   });
   
-  // 🔥 NEW: Group poses by outfit
+  // 🔥 NEW: Group poses by outfit, and pair regenerated poses with originals
   const posesByOutfit = useMemo(() => {
     const grouped: Record<string, PoseReferenceWithOutfit[]> = {};
+    
+    // First, separate original poses from regenerated ones
+    const originalPoses: PoseReferenceWithOutfit[] = [];
+    const regeneratedPoses: PoseReferenceWithOutfit[] = [];
+    
     poseReferences.forEach(pose => {
+      if (pose.isRegenerated && pose.regeneratedFrom) {
+        regeneratedPoses.push(pose);
+      } else {
+        originalPoses.push(pose);
+      }
+    });
+    
+    // Group original poses by outfit, and add regenerated versions right after each original
+    originalPoses.forEach(pose => {
       const outfit = pose.outfitName || 'default';
       if (!grouped[outfit]) {
         grouped[outfit] = [];
       }
       grouped[outfit].push(pose);
+      
+      // Find and add any regenerated versions of this pose right after it
+      const regeneratedVersions = regeneratedPoses.filter(r => r.regeneratedFrom === pose.s3Key);
+      if (regeneratedVersions.length > 0) {
+        grouped[outfit].push(...regeneratedVersions);
+      }
     });
+    
+    // Add any regenerated poses that don't have a matching original (shouldn't happen, but safety)
+    regeneratedPoses.forEach(regenerated => {
+      if (!originalPoses.some(orig => orig.s3Key === regenerated.regeneratedFrom)) {
+        const outfit = regenerated.outfitName || 'default';
+        if (!grouped[outfit]) {
+          grouped[outfit] = [];
+        }
+        grouped[outfit].push(regenerated);
+      }
+    });
+    
     return grouped;
   }, [poseReferences]);
   
@@ -584,6 +616,8 @@ export function CharacterDetailModal({
                                 className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                                   selectedImageIndex === globalIndex
                                     ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6]/20'
+                                    : img.isRegenerated
+                                    ? 'border-[#DC143C]/50 hover:border-[#DC143C]'
                                     : 'border-[#3F3F46] hover:border-[#8B5CF6]/50'
                                 }`}
                               >
@@ -592,8 +626,10 @@ export function CharacterDetailModal({
                                   alt={img.label}
                                   className="w-full h-full object-cover"
                                 />
-                                <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#8B5CF6] text-white text-[10px] rounded">
-                                  Pose
+                                <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                  img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                                }`}>
+                                  {img.isRegenerated ? 'Regenerated' : 'Pose'}
                                 </div>
                               </button>
                             </div>
