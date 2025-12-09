@@ -250,24 +250,11 @@ export function CharacterDetailModal({
     const refImageUrl = typeof ref === 'string' ? '' : (ref.imageUrl || '');
     
     // 🔥 PRESERVE: Extract outfit from metadata (backend saves this during pose generation)
-    // Priority: ref.outfitName (top-level) > ref.metadata.outfitName > S3 key path > 'default'
-    // Recovery script sets outfitName at top level, so check both locations
-    const outfitFromTopLevel = refObj?.outfitName;
+    // Priority: ref.metadata.outfitName > S3 key path > 'default'
+    // Note: Backend may set outfitName at top-level, but we use metadata for consistency
     const outfitFromMetadata = refObj?.metadata?.outfitName;
     const outfitFromS3 = extractOutfitFromS3Key(refS3Key);
-    const outfitName = outfitFromTopLevel || outfitFromMetadata || outfitFromS3 || 'default';
-    
-    // 🔥 DEBUG: Log outfit extraction for reimported images (if no outfit found)
-    if (!outfitFromTopLevel && !outfitFromMetadata && outfitName === 'default' && refS3Key) {
-      console.log('[CharacterDetailModal] ⚠️ Reimported image missing outfitName:', {
-        refId,
-        s3Key: refS3Key,
-        hasTopLevel: !!outfitFromTopLevel,
-        hasMetadata: !!outfitFromMetadata,
-        extractedFromS3: outfitFromS3 !== 'default',
-        refObj: refObj ? Object.keys(refObj) : null
-      });
-    }
+    const outfitName = outfitFromMetadata || outfitFromS3 || 'default';
     
     // Extract poseId from ref metadata (backend saves this)
     const poseId = refObj?.metadata?.poseId;
