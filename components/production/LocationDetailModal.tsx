@@ -14,12 +14,11 @@
  */
 
 import React, { useState } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
-import { RegenerateAngleModal } from './RegenerateAngleModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import {
@@ -91,8 +90,6 @@ export function LocationDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
-  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [regeneratingAngle, setRegeneratingAngle] = useState<{ angleId: string; s3Key: string; angle: string; timeOfDay?: string; weather?: string } | null>(null);
   const { getToken } = useAuth();
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
@@ -131,36 +128,31 @@ export function LocationDetailModal({
   // Backend LocationBankService already enriches angleVariations with imageUrl and all metadata
   const angleVariations = location.angleVariations || [];
   
-  // 🔥 NEW: Organize angles by timeOfDay and weather for filtering
-  const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string | null>(null);
-  const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
-  
-  // Extract unique timeOfDay and weather values
-  const timeOfDayOptions = Array.from(new Set(angleVariations
-    .map((v: any) => v.timeOfDay)
-    .filter(Boolean)
-  )).sort();
-  
-  const weatherOptions = Array.from(new Set(angleVariations
-    .map((v: any) => v.weather)
-    .filter(Boolean)
-  )).sort();
-  
-  // Filter angles by selected timeOfDay and weather
-  const filteredAngleVariations = angleVariations.filter((variation: any) => {
-    if (selectedTimeOfDay && variation.timeOfDay !== selectedTimeOfDay) return false;
-    if (selectedWeather && variation.weather !== selectedWeather) return false;
-    return true;
-  });
-  
-  // Group angles by timeOfDay and weather for folder-like organization
+  // 🔥 IMPROVED: Organize angles by metadata combinations (timeOfDay + weather) for better visual grouping
+  // Group all angles by their metadata combinations - no tag-based filtering, just visual organization
   const anglesByMetadata: Record<string, any[]> = {};
-  filteredAngleVariations.forEach((variation: any) => {
-    const key = `${variation.timeOfDay || 'any'}_${variation.weather || 'any'}`;
+  angleVariations.forEach((variation: any) => {
+    // Create a display-friendly key for grouping
+    const metadataParts = [
+      variation.timeOfDay ? variation.timeOfDay : null,
+      variation.weather ? variation.weather : null
+    ].filter(Boolean);
+    
+    const key = metadataParts.length > 0 
+      ? metadataParts.join(' • ') 
+      : 'No Metadata';
+    
     if (!anglesByMetadata[key]) {
       anglesByMetadata[key] = [];
     }
     anglesByMetadata[key].push(variation);
+  });
+  
+  // Sort groups: "No Metadata" last, then alphabetically
+  const sortedMetadataKeys = Object.keys(anglesByMetadata).sort((a, b) => {
+    if (a === 'No Metadata') return 1;
+    if (b === 'No Metadata') return -1;
+    return a.localeCompare(b);
   });
   
   // Convert angleVariations to image objects for gallery
@@ -415,94 +407,24 @@ export function LocationDetailModal({
                           <p className="text-xs text-[#6B7280]">AI-generated angle variations - can be edited/deleted here</p>
                         </div>
                       </div>
-                      {/* Filter by Time of Day and Weather */}
-                      {(timeOfDayOptions.length > 0 || weatherOptions.length > 0) && (
-                        <div className="mb-4 space-y-3">
-                          {timeOfDayOptions.length > 0 && (
-                            <div>
-                              <label className="text-xs text-[#808080] mb-2 block">Filter by Time of Day:</label>
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  onClick={() => setSelectedTimeOfDay(null)}
-                                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                                    selectedTimeOfDay === null
-                                      ? 'bg-[#DC143C] text-white border-[#DC143C]'
-                                      : 'bg-[#141414] text-[#B3B3B3] border-[#3F3F46] hover:border-[#DC143C]/50'
-                                  }`}
-                                >
-                                  All Times ({angleVariations.length})
-                                </button>
-                                {timeOfDayOptions.map((timeOfDay) => {
-                                  const count = angleVariations.filter((v: any) => v.timeOfDay === timeOfDay).length;
-                                  return (
-                                    <button
-                                      key={timeOfDay}
-                                      onClick={() => setSelectedTimeOfDay(timeOfDay)}
-                                      className={`px-3 py-1.5 text-xs rounded-lg border transition-colors capitalize ${
-                                        selectedTimeOfDay === timeOfDay
-                                          ? 'bg-[#DC143C] text-white border-[#DC143C]'
-                                          : 'bg-[#141414] text-[#B3B3B3] border-[#3F3F46] hover:border-[#DC143C]/50'
-                                      }`}
-                                    >
-                                      {timeOfDay} ({count})
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          {weatherOptions.length > 0 && (
-                            <div>
-                              <label className="text-xs text-[#808080] mb-2 block">Filter by Weather:</label>
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  onClick={() => setSelectedWeather(null)}
-                                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                                    selectedWeather === null
-                                      ? 'bg-[#DC143C] text-white border-[#DC143C]'
-                                      : 'bg-[#141414] text-[#B3B3B3] border-[#3F3F46] hover:border-[#DC143C]/50'
-                                  }`}
-                                >
-                                  All Weather ({angleVariations.length})
-                                </button>
-                                {weatherOptions.map((weather) => {
-                                  const count = angleVariations.filter((v: any) => v.weather === weather).length;
-                                  return (
-                                    <button
-                                      key={weather}
-                                      onClick={() => setSelectedWeather(weather)}
-                                      className={`px-3 py-1.5 text-xs rounded-lg border transition-colors capitalize ${
-                                        selectedWeather === weather
-                                          ? 'bg-[#DC143C] text-white border-[#DC143C]'
-                                          : 'bg-[#141414] text-[#B3B3B3] border-[#3F3F46] hover:border-[#DC143C]/50'
-                                      }`}
-                                    >
-                                      {weather} ({count})
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Organized by Metadata (Folder-like) */}
-                      {Object.keys(anglesByMetadata).length > 0 ? (
+                      {/* 🔥 IMPROVED: Organized by Metadata Combinations - Visual Card-based Grouping */}
+                      {sortedMetadataKeys.length > 0 ? (
                         <div className="space-y-6">
-                          {Object.entries(anglesByMetadata).map(([key, variations]) => {
-                            const [timeOfDay, weather] = key.split('_');
-                            const displayName = [
-                              timeOfDay !== 'any' ? timeOfDay : null,
-                              weather !== 'any' ? weather : null
-                            ].filter(Boolean).join(' • ') || 'No Metadata';
+                          {sortedMetadataKeys.map((displayName) => {
+                            const variations = anglesByMetadata[displayName];
                             
                             return (
-                              <div key={key} className="space-y-3">
+                              <div key={displayName} className="space-y-3">
+                                {/* Section Header with Metadata Badge */}
                                 <div className="flex items-center justify-between pb-2 border-b border-[#3F3F46]">
-                                  <h4 className="text-sm font-semibold text-[#8B5CF6] capitalize">
-                                    {displayName} ({variations.length})
-                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="text-sm font-semibold text-[#8B5CF6] capitalize">
+                                      {displayName}
+                                    </h4>
+                                    <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">
+                                      {variations.length} {variations.length === 1 ? 'image' : 'images'}
+                                    </span>
+                                  </div>
                                 </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                   {variations.map((variation: any) => {
@@ -536,28 +458,42 @@ export function LocationDetailModal({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent 
                                       align="end"
-                                      className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                      className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                      style={{ backgroundColor: '#0A0A0A' }}
                                     >
                                       <DropdownMenuItem
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          // Open regenerate modal with angle info
-                                          setRegeneratingAngle({
-                                            angleId: variation.id || `angle_${variation.s3Key}`,
-                                            s3Key: variation.s3Key,
-                                            angle: variation.angle,
-                                            timeOfDay: variation.timeOfDay,
-                                            weather: variation.weather
-                                          });
-                                          setShowRegenerateModal(true);
+                                          // Open image in new tab for viewing
+                                          window.open(img.imageUrl, '_blank');
                                         }}
                                       >
-                                        <Sparkles className="w-4 h-4 mr-2" />
-                                        Regenerate...
+                                        <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                                        View
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
-                                        className="text-red-500 hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          try {
+                                            // Download image
+                                            const link = document.createElement('a');
+                                            link.href = img.imageUrl;
+                                            link.download = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                          } catch (error: any) {
+                                            toast.error('Failed to download image');
+                                          }
+                                        }}
+                                      >
+                                        <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                                        Download
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           if (!confirm('Delete this angle image? This action cannot be undone.')) {
@@ -639,27 +575,147 @@ export function LocationDetailModal({
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent 
                                         align="end"
-                                        className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                        className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                        style={{ backgroundColor: '#0A0A0A' }}
                                       >
                                         <DropdownMenuItem
-                                          className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                          className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            setRegeneratingAngle({
-                                              angleId: variation.id || `angle_${variation.s3Key}`,
-                                              s3Key: variation.s3Key,
-                                              angle: variation.angle,
-                                              timeOfDay: variation.timeOfDay,
-                                              weather: variation.weather
-                                            });
-                                            setShowRegenerateModal(true);
+                                            // Open image in new tab for viewing
+                                            window.open(img.imageUrl, '_blank');
                                           }}
                                         >
-                                          <Sparkles className="w-4 h-4 mr-2" />
-                                          Regenerate...
+                                          <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                                          View
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                          className="text-red-500 hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                          className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                              // Download image
+                                              const link = document.createElement('a');
+                                              link.href = img.imageUrl;
+                                              link.download = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
+                                              document.body.appendChild(link);
+                                              link.click();
+                                              document.body.removeChild(link);
+                                            } catch (error: any) {
+                                              toast.error('Failed to download image');
+                                            }
+                                          }}
+                                        >
+                                          <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                                          Download
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            if (!confirm('Delete this angle image? This action cannot be undone.')) {
+                                              return;
+                                            }
+                                            
+                                            try {
+                                              if (!variation.s3Key) {
+                                                throw new Error('Missing S3 key for image');
+                                              }
+                                              
+                                              const updatedAngleVariations = angleVariations.filter(
+                                                (v: any) => v.s3Key !== variation.s3Key
+                                              );
+                                              
+                                              await onUpdate(location.locationId, {
+                                                angleVariations: updatedAngleVariations
+                                              });
+                                              
+                                              queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+                                              toast.success('Angle image deleted');
+                                            } catch (error: any) {
+                                              console.error('[LocationDetailModal] Failed to delete angle image:', error);
+                                              toast.error(`Failed to delete image: ${error.message}`);
+                                            }
+                                          }}
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        // Fallback: Show all angles in a single grid if no metadata
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {angleVariations.map((variation: any) => {
+                            const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
+                            if (!img) return null;
+                            
+                            return (
+                              <div
+                                key={img.id}
+                                className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                              >
+                                <img
+                                  src={img.imageUrl}
+                                  alt={img.label}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="absolute bottom-2 left-2 right-2">
+                                    <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
+                                  </div>
+                                  <div className="absolute top-2 right-2">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button
+                                          className="p-1.5 bg-[#DC143C]/80 hover:bg-[#DC143C] rounded-lg transition-colors"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <MoreVertical className="w-3 h-3 text-white" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent 
+                                        align="end"
+                                        className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                        style={{ backgroundColor: '#0A0A0A' }}
+                                      >
+                                        <DropdownMenuItem
+                                          className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(img.imageUrl, '_blank');
+                                          }}
+                                        >
+                                          <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                                          View
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                              const link = document.createElement('a');
+                                              link.href = img.imageUrl;
+                                              link.download = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
+                                              document.body.appendChild(link);
+                                              link.click();
+                                              document.body.removeChild(link);
+                                            } catch (error: any) {
+                                              toast.error('Failed to download image');
+                                            }
+                                          }}
+                                        >
+                                          <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                                          Download
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                           onClick={async (e) => {
                                             e.stopPropagation();
                                             if (!confirm('Delete this angle image? This action cannot be undone.')) {
@@ -754,47 +810,6 @@ export function LocationDetailModal({
         </>
       )}
       </AnimatePresence>
-      
-      {/* Regenerate Angle Modal */}
-      <RegenerateAngleModal
-        isOpen={showRegenerateModal}
-        onClose={() => {
-          setShowRegenerateModal(false);
-          setRegeneratingAngle(null);
-        }}
-        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality') => {
-          if (!regeneratingAngle) return;
-          
-          const token = await getToken({ template: 'wryda-backend' });
-          const response = await fetch(`/api/location-bank/${location.locationId}/regenerate-angle?screenplayId=${encodeURIComponent(screenplayId)}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              angleId: regeneratingAngle.angleId,
-              existingAngleS3Key: regeneratingAngle.s3Key,
-              angle: regeneratingAngle.angle,
-              timeOfDay: regeneratingAngle.timeOfDay,
-              weather: regeneratingAngle.weather,
-              providerId: providerId,
-              quality: quality
-            })
-          });
-          
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to regenerate angle');
-          }
-          
-          toast.success('Angle regeneration started. Check the Jobs panel for progress.');
-          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-          await onUpdate(location.locationId, {});
-        }}
-        angleName={`Angle: ${regeneratingAngle?.angle || 'unknown'}`}
-        entityType="location"
-      />
       
       {/* Location Angle Generation Modal */}
       {showAngleModal && (

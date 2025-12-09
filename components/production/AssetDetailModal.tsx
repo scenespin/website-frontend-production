@@ -16,13 +16,12 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import AssetAngleGenerationModal from './AssetAngleGenerationModal';
-import { RegenerateAngleModal } from './RegenerateAngleModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,8 +58,6 @@ export default function AssetDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
-  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [regeneratingAngle, setRegeneratingAngle] = useState<{ angleId: string; s3Key: string; angle: string } | null>(null);
 
 
   const categoryMeta = ASSET_CATEGORY_METADATA[asset.category];
@@ -488,33 +485,42 @@ export default function AssetDetailModal({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end"
-                                    className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                    className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                    style={{ backgroundColor: '#0A0A0A' }}
                                   >
                                     <DropdownMenuItem
-                                      className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        // Find the angle reference to get angle info
-                                        const angleRef = angleReferences.find((ref: any) => ref.s3Key === img.s3Key);
-                                        if (!angleRef) {
-                                          toast.error('Angle reference not found');
-                                          return;
-                                        }
-                                        
-                                        // Open regenerate modal with angle info
-                                        setRegeneratingAngle({
-                                          angleId: angleRef.id || `angle_${img.s3Key}`,
-                                          s3Key: img.s3Key,
-                                          angle: angleRef.angle || img.metadata?.angle || 'unknown'
-                                        });
-                                        setShowRegenerateModal(true);
+                                        // Open image in new tab for viewing
+                                        window.open(img.url || img.imageUrl, '_blank');
                                       }}
                                     >
-                                      <Sparkles className="w-4 h-4 mr-2" />
-                                      Regenerate...
+                                      <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                                      View
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      className="text-red-500 hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          // Download image
+                                          const link = document.createElement('a');
+                                          link.href = img.url || img.imageUrl;
+                                          link.download = `${asset.name}_${img.metadata?.angle || 'angle'}_${Date.now()}.jpg`;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        } catch (error: any) {
+                                          toast.error('Failed to download image');
+                                        }
+                                      }}
+                                    >
+                                      <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                                      Download
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         if (!confirm('Delete this angle image? This action cannot be undone.')) {
@@ -641,46 +647,6 @@ export default function AssetDetailModal({
         </>
       )}
     </AnimatePresence>
-    
-    {/* Regenerate Angle Modal */}
-    <RegenerateAngleModal
-      isOpen={showRegenerateModal}
-      onClose={() => {
-        setShowRegenerateModal(false);
-        setRegeneratingAngle(null);
-      }}
-      onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality') => {
-        if (!regeneratingAngle) return;
-        
-        const token = await getToken({ template: 'wryda-backend' });
-        const response = await fetch(`/api/asset-bank/${asset.id}/regenerate-angle?screenplayId=${encodeURIComponent(screenplayId)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            angleId: regeneratingAngle.angleId,
-            existingAngleS3Key: regeneratingAngle.s3Key,
-            angle: regeneratingAngle.angle,
-            providerId: providerId,
-            quality: quality
-          })
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to regenerate angle');
-        }
-        
-        toast.success('Angle regeneration started. Check the Jobs panel for progress.');
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-        onUpdate();
-      }}
-      angleName={`Angle: ${regeneratingAngle?.angle || 'unknown'}`}
-      entityType="asset"
-    />
     
     {/* Asset Angle Generation Modal */}
     {showAngleModal && (
