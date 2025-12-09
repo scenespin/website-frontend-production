@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * CharacterDetailModal - Full-screen character detail view
+ * image.pngCharacterDetailModal - Full-screen character detail view
  * 
  * Features:
  * - Image gallery (main + references)
@@ -1126,7 +1126,7 @@ export function CharacterDetailModal({
           setShowRegenerateModal(false);
           setRegeneratingPose(null);
         }}
-        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[]) => {
+        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[], typicalClothing?: string, outfitName?: string) => {
           if (!regeneratingPose) return;
           
           const token = await getToken({ template: 'wryda-backend' });
@@ -1139,7 +1139,8 @@ export function CharacterDetailModal({
             body: JSON.stringify({
               poseId: regeneratingPose.poseId,
               existingPoseS3Key: regeneratingPose.s3Key,
-              outfitName: regeneratingPose.outfitName,
+              outfitName: outfitName || regeneratingPose.outfitName, // Use selected outfit or current pose outfit
+              typicalClothing: typicalClothing, // 🔥 NEW: Pass custom outfit text description
               providerId: providerId, // 🔥 NEW: Pass selected model
               quality: quality, // 🔥 NEW: Pass quality tier
               clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined // 🔥 NEW: Pass clothing references for outfit consistency
@@ -1158,6 +1159,8 @@ export function CharacterDetailModal({
         screenplayId={screenplayId}
         characterId={character.id}
         poseName={regeneratingPose?.poseId ? `Pose: ${regeneratingPose.poseId}` : 'this pose'}
+        outfitNames={outfitNames}
+        currentOutfitName={regeneratingPose?.outfitName}
       />
     </AnimatePresence>
   );

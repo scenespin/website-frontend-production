@@ -31,11 +31,13 @@ interface ClothingImage {
 interface RegeneratePoseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegenerate: (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[]) => Promise<void>;
+  onRegenerate: (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[], typicalClothing?: string, outfitName?: string) => Promise<void>;
   poseName?: string;
   qualityTier?: 'standard' | 'high-quality';
   screenplayId?: string;
   characterId?: string;
+  outfitNames?: string[]; // Available outfit names from character
+  currentOutfitName?: string; // Current outfit name for this pose
 }
 
 export function RegeneratePoseModal({
@@ -45,7 +47,9 @@ export function RegeneratePoseModal({
   poseName = 'this pose',
   qualityTier = 'standard',
   screenplayId,
-  characterId
+  characterId,
+  outfitNames = [],
+  currentOutfitName
 }: RegeneratePoseModalProps) {
   const { getToken } = useAuth();
   const [models, setModels] = useState<Model[]>([]);
@@ -56,6 +60,11 @@ export function RegeneratePoseModal({
   const [clothingImages, setClothingImages] = useState<ClothingImage[]>([]);
   const [isUploadingClothing, setIsUploadingClothing] = useState(false);
   const clothingFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Outfit selection state
+  const [selectedOutfit, setSelectedOutfit] = useState<string>('default');
+  const [isCustomOutfit, setIsCustomOutfit] = useState(false);
+  const [customOutfitText, setCustomOutfitText] = useState<string>('');
 
   // Load available models
   useEffect(() => {
@@ -118,12 +127,18 @@ export function RegeneratePoseModal({
   const supportsClothing = selectedModel?.supportsClothingImages ?? false;
   const maxClothingRefs = selectedModel && supportsClothing ? Math.min(selectedModel.referenceLimit - 1, 3) : 0; // Reserve 1 for character, max 3 for clothing
 
-  // Reset clothing images when modal closes or model changes
+  // Reset clothing images and outfit selection when modal closes
   useEffect(() => {
     if (!isOpen) {
       setClothingImages([]);
+      setSelectedOutfit(currentOutfitName || 'default');
+      setIsCustomOutfit(false);
+      setCustomOutfitText('');
+    } else if (currentOutfitName) {
+      // Set initial outfit when modal opens
+      setSelectedOutfit(currentOutfitName);
     }
-  }, [isOpen]);
+  }, [isOpen, currentOutfitName]);
 
   const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -264,7 +279,11 @@ export function RegeneratePoseModal({
         }
       }
 
-      await onRegenerate(selectedModelId, selectedQuality, clothingReferences);
+      // Determine outfit name and typical clothing text
+      const finalOutfitName = isCustomOutfit ? undefined : selectedOutfit;
+      const finalTypicalClothing = isCustomOutfit ? customOutfitText : undefined;
+      
+      await onRegenerate(selectedModelId, selectedQuality, clothingReferences, finalTypicalClothing, finalOutfitName);
       toast.success('Pose regeneration started');
       onClose();
     } catch (error: any) {
