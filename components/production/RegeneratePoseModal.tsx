@@ -108,7 +108,7 @@ export function RegeneratePoseModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedModelId(''); // Reset selection - will be auto-selected when models load
-      setClothingImages([]); // Clear clothing images when quality changes
+      // 🔥 REMOVED: setClothingImages - clothing images removed from individual regeneration
     }
   }, [selectedQuality, isOpen]);
 
