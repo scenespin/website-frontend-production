@@ -251,21 +251,32 @@ export function RegeneratePoseModal({
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) throw new Error('Not authenticated');
 
+        console.log(`[RegeneratePoseModal] Processing ${clothingImages.length} clothing image(s)`);
         for (const clothingImage of clothingImages) {
           if (clothingImage.presignedUrl) {
+            console.log(`[RegeneratePoseModal] Using existing presigned URL for clothing image`);
             clothingReferences.push(clothingImage.presignedUrl);
           } else if (clothingImage.s3Key) {
             // Get presigned URL for existing S3 key
+            console.log(`[RegeneratePoseModal] Getting presigned URL for S3 key: ${clothingImage.s3Key}`);
             const response = await fetch(
               `/api/s3/get-download-url?s3Key=${encodeURIComponent(clothingImage.s3Key)}`,
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
             if (response.ok) {
               const { downloadUrl } = await response.json();
+              console.log(`[RegeneratePoseModal] Got presigned URL: ${downloadUrl.substring(0, 100)}...`);
               clothingReferences.push(downloadUrl);
+            } else {
+              console.error(`[RegeneratePoseModal] Failed to get presigned URL for S3 key: ${clothingImage.s3Key}`);
             }
+          } else {
+            console.warn(`[RegeneratePoseModal] Clothing image missing both presignedUrl and s3Key`);
           }
         }
+        console.log(`[RegeneratePoseModal] Prepared ${clothingReferences.length} clothing reference(s) for backend`);
+      } else {
+        console.log(`[RegeneratePoseModal] No clothing images to process (clothingImages: ${clothingImages.length}, screenplayId: ${screenplayId}, characterId: ${characterId})`);
       }
 
       // Only pass outfit if user explicitly entered text (empty string means use original)
