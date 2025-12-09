@@ -97,6 +97,31 @@ export function LocationDetailModal({
   if (!screenplayId) {
     return null;
   }
+
+  // Helper function for downloading images via blob (more reliable than download attribute)
+  const downloadImageAsBlob = async (imageUrl: string, filename: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error: any) {
+      console.error('[LocationDetailModal] Failed to download image:', error);
+      throw error;
+    }
+  };
   
   // 🔥 SIMPLIFIED: Get Creation images directly from location prop (backend already provides this)
   const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
@@ -476,13 +501,8 @@ export function LocationDetailModal({
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           try {
-                                            // Download image
-                                            const link = document.createElement('a');
-                                            link.href = img.imageUrl;
-                                            link.download = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
+                                            const filename = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
+                                            await downloadImageAsBlob(img.imageUrl, filename);
                                           } catch (error: any) {
                                             toast.error('Failed to download image');
                                           }
@@ -635,14 +655,14 @@ export function LocationDetailModal({
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  const link = document.createElement('a');
-                  link.href = previewImage.url;
-                  link.download = `${previewImage.label}_${Date.now()}.jpg`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
+                  try {
+                    const filename = `${previewImage.label}_${Date.now()}.jpg`;
+                    await downloadImageAsBlob(previewImage.url, filename);
+                  } catch (error: any) {
+                    toast.error('Failed to download image');
+                  }
                 }}
                 className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
               >

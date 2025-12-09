@@ -1057,8 +1057,31 @@ export default function MediaLibrary({
         return;
       }
 
-      // Open download URL in new tab
-      window.open(downloadUrl, '_blank');
+      // Professional blob-based download approach
+      // Fetch file as blob, create object URL, then download
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Determine file extension from file type or name
+      const fileExtension = file.fileName.split('.').pop() || 
+                           (file.fileType === 'image' ? 'jpg' : 
+                            file.fileType === 'video' ? 'mp4' : 
+                            file.fileType === 'audio' ? 'mp3' : 'bin');
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = file.fileName || `download.${fileExtension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (error) {
       console.error('[MediaLibrary] Download error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to download file');
