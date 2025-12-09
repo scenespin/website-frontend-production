@@ -2241,7 +2241,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] 📤 Separated images:', {
                         totalImages: updates.images.length,
                         referenceImages: apiUpdates.referenceImages.length,
-                        poseReferences: apiUpdates.poseReferences.length,
+                        poseReferences: apiUpdates.poseReferences ? apiUpdates.poseReferences.length : 'not included',
                         isEmpty: updates.images.length === 0
                     });
                 }

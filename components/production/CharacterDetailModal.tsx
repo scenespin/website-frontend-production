@@ -83,6 +83,7 @@ export function CharacterDetailModal({
   
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null); // 🔥 NEW: Track selected image by ID for Gallery section
   const [isUploading, setIsUploading] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   const [previewGroupName, setPreviewGroupName] = useState<string | null>(null);
@@ -389,7 +390,9 @@ export function CharacterDetailModal({
   }, [posesByOutfit, mediaLibraryOutfitNames, isOpen, poseReferences.length]);
   
   // Selected outfit tab state - null means show all outfits
-  const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);
+  // 🔥 FIX: Use separate state for Gallery vs References tabs to prevent conflicts
+  const [selectedOutfitGallery, setSelectedOutfitGallery] = useState<string | null>(null);
+  const [selectedOutfitReferences, setSelectedOutfitReferences] = useState<string | null>(null);
   
   // Combined for main display (all images, not grouped)
   const allImages = [...userReferences, ...poseReferences];
@@ -638,8 +641,13 @@ export function CharacterDetailModal({
                         <div className="mb-4">
                           <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
                           <select
-                            value={selectedOutfit || ''}
-                            onChange={(e) => setSelectedOutfit(e.target.value || null)}
+                            value={selectedOutfitGallery || ''}
+                            onChange={(e) => {
+                              const newValue = e.target.value || null;
+                              setSelectedOutfitGallery(newValue);
+                              // 🔥 FIX: Reset selected image when changing outfit filter
+                              setSelectedImageId(null);
+                            }}
                             className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none"
                           >
                             <option value="">All Outfits ({poseReferences.length})</option>
@@ -667,35 +675,45 @@ export function CharacterDetailModal({
                       )}
                       
                       {/* Poses Grid - Filtered by selected outfit */}
-                      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
-                        {(selectedOutfit ? posesByOutfit[selectedOutfit] || [] : poseReferences).map((img, idx) => {
-                          const globalIndex = allImages.findIndex(i => i.id === img.id);
-                          return (
-                            <div key={img.id} className="relative group">
-                              <button
-                                onClick={() => setSelectedImageIndex(globalIndex)}
-                                className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                                  selectedImageIndex === globalIndex
-                                    ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6]/20'
-                                    : img.isRegenerated
-                                    ? 'border-[#DC143C]/50 hover:border-[#DC143C]'
-                                    : 'border-[#3F3F46] hover:border-[#8B5CF6]/50'
-                                }`}
-                              >
-                                <img
-                                  src={img.imageUrl}
-                                  alt={img.label}
-                                  className="w-full h-full object-cover"
-                                />
-                                <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
-                                  img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
-                                }`}>
-                                  {img.isRegenerated ? 'Regenerated' : 'Pose'}
-                                </div>
-                              </button>
-                            </div>
-                          );
-                        })}
+                      {/* 🔥 FIX: Limit to 3 rows with scrolling for better navigation (approximately 24 images at 8 cols) */}
+                      <div className="max-h-[400px] overflow-y-auto pr-2">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                          {(selectedOutfitGallery ? posesByOutfit[selectedOutfitGallery] || [] : poseReferences).map((img, idx) => {
+                            // 🔥 FIX: Use image ID for selection instead of index to prevent multiple highlights
+                            const isSelected = selectedImageId === img.id;
+                            const globalIndex = allImages.findIndex(i => i.id === img.id);
+                            return (
+                              <div key={img.id} className="relative group">
+                                <button
+                                  onClick={() => {
+                                    setSelectedImageId(img.id);
+                                    if (globalIndex >= 0) {
+                                      setSelectedImageIndex(globalIndex);
+                                    }
+                                  }}
+                                  className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                                    isSelected
+                                      ? 'border-[#8B5CF6] ring-2 ring-[#8B5CF6]/20'
+                                      : img.isRegenerated
+                                      ? 'border-[#DC143C]/50 hover:border-[#DC143C]'
+                                      : 'border-[#3F3F46] hover:border-[#8B5CF6]/50'
+                                  }`}
+                                >
+                                  <img
+                                    src={img.imageUrl}
+                                    alt={img.label}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                    img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                                  }`}>
+                                    {img.isRegenerated ? 'Regenerated' : 'Pose'}
+                                  </div>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -927,8 +945,8 @@ export function CharacterDetailModal({
                         <div className="mb-4">
                           <label className="text-xs text-[#808080] mb-2 block">Filter by outfit:</label>
                           <select
-                            value={selectedOutfit || ''}
-                            onChange={(e) => setSelectedOutfit(e.target.value || null)}
+                            value={selectedOutfitReferences || ''}
+                            onChange={(e) => setSelectedOutfitReferences(e.target.value || null)}
                             className="w-full px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#8B5CF6] focus:outline-none"
                           >
                             <option value="">All Outfits ({poseReferences.length})</option>
@@ -957,7 +975,7 @@ export function CharacterDetailModal({
                       
                       {/* Production Hub Images Grid - Filtered by selected outfit */}
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {(selectedOutfit ? posesByOutfit[selectedOutfit] || [] : poseReferences).map((img) => {
+                        {(selectedOutfitReferences ? posesByOutfit[selectedOutfitReferences] || [] : poseReferences).map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
                           // Debug logging for poseId
                           if (img.poseId || (img as any).metadata?.poseId) {
