@@ -231,13 +231,13 @@ export default function PoseGenerationModal({
         let s3Key: string | undefined;
         let presignedUrl: string | undefined;
 
+        // Use same endpoint as annotation area (SceneBuilderPanel) - it's a general upload endpoint
         const presignedResponse = await fetch(
-          `/api/characters/upload/get-presigned-url?` +
+          `/api/video/upload/get-presigned-url?` +
           `fileName=${encodeURIComponent(file.name)}` +
           `&fileType=${encodeURIComponent(file.type)}` +
           `&fileSize=${file.size}` +
-          `&screenplayId=${encodeURIComponent(projectId)}` +
-          `&characterId=${encodeURIComponent(characterId)}`,
+          `&projectId=${encodeURIComponent(projectId)}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -261,15 +261,50 @@ export default function PoseGenerationModal({
 
           const s3Response = await fetch(url, { method: 'POST', body: s3FormData });
           if (s3Response.ok) {
-            // Get presigned download URL
-            const downloadResponse = await fetch(
-              `/api/s3/get-download-url?s3Key=${encodeURIComponent(s3Key)}`,
-              { headers: { 'Authorization': `Bearer ${token}` } }
-            );
-            if (downloadResponse.ok) {
-              const { downloadUrl } = await downloadResponse.json();
-              presignedUrl = downloadUrl;
+            console.log(`[PoseGenerationModal] ✅ Successfully uploaded clothing image to S3: ${s3Key}`);
+            
+            // Get presigned download URL immediately (same pattern as SceneBuilderPanel)
+            // Use POST /api/s3/download-url endpoint (not GET /api/s3/get-download-url)
+            const downloadUrlResponse = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key,
+                expiresIn: 3600 // 1 hour
+              }),
+            });
+            
+            if (!downloadUrlResponse.ok) {
+              const errorText = await downloadUrlResponse.text().catch(() => 'Unknown error');
+              console.error('[PoseGenerationModal] Failed to generate download URL:', {
+                status: downloadUrlResponse.status,
+                statusText: downloadUrlResponse.statusText,
+                error: errorText,
+                s3Key
+              });
+              throw new Error(
+                downloadUrlResponse.status === 401 
+                  ? 'Authentication failed. Please refresh and try again.'
+                  : downloadUrlResponse.status === 403
+                  ? 'Access denied. Please contact support if this persists.'
+                  : `Failed to generate image URL (${downloadUrlResponse.status}). Please try again.`
+              );
             }
+            
+            const downloadUrlData = await downloadUrlResponse.json();
+            
+            if (downloadUrlData.downloadUrl) {
+              presignedUrl = downloadUrlData.downloadUrl;
+              console.log(`[PoseGenerationModal] ✅ Got presigned URL for clothing image`);
+            } else {
+              console.error(`[PoseGenerationModal] ❌ No download URL returned from API`);
+            }
+          } else {
+            const errorText = await s3Response.text();
+            console.error(`[PoseGenerationModal] ❌ Failed to upload clothing image to S3: ${s3Response.status} - ${errorText}`);
           }
         }
 
@@ -323,11 +358,18 @@ export default function PoseGenerationModal({
           if (clothingImage.presignedUrl) {
             clothingReferences.push(clothingImage.presignedUrl);
           } else if (clothingImage.s3Key) {
-            // Get presigned URL for existing S3 key
-            const downloadResponse = await fetch(
-              `/api/s3/get-download-url?s3Key=${encodeURIComponent(clothingImage.s3Key)}`,
-              { headers: { 'Authorization': `Bearer ${token}` } }
-            );
+            // Get presigned URL for existing S3 key (use POST endpoint)
+            const downloadResponse = await fetch('/api/s3/download-url', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                s3Key: clothingImage.s3Key,
+                expiresIn: 3600 // 1 hour
+              }),
+            });
             if (downloadResponse.ok) {
               const { downloadUrl } = await downloadResponse.json();
               clothingReferences.push(downloadUrl);

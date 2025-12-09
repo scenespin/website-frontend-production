@@ -486,8 +486,12 @@ export default function AssetDetailModal({
                                       <MoreVertical className="w-3 h-3 text-white" />
                                     </button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
+                                  <DropdownMenuContent 
+                                    align="end"
+                                    className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                  >
                                     <DropdownMenuItem
+                                      className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         // Find the angle reference to get angle info
@@ -505,7 +509,6 @@ export default function AssetDetailModal({
                                         });
                                         setShowRegenerateModal(true);
                                       }}
-                                      className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                     >
                                       <Sparkles className="w-4 h-4 mr-2" />
                                       Regenerate...

@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
-import { RegeneratePoseModal } from './RegeneratePoseModal';
+// 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -83,8 +83,7 @@ export function CharacterDetailModal({
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
-  const [regeneratingPose, setRegeneratingPose] = useState<{ poseId: string; s3Key: string; outfitName?: string } | null>(null);
+  // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -937,41 +936,7 @@ export function CharacterDetailModal({
                                     align="end"
                                     className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
                                   >
-                                    {/* Regenerate option - only show for poses with poseId */}
-                                    {(img.poseId || (img as any).metadata?.poseId) && (
-                                      <DropdownMenuItem
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          // 🔥 FIX: Extract poseId and s3Key from multiple possible locations
-                                          const poseId = 'poseId' in img ? img.poseId : (img as any).metadata?.poseId;
-                                          const outfitName = 'outfitName' in img ? img.outfitName : (img as any).metadata?.outfitName || 'default';
-                                          const imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
-                                          
-                                          if (!poseId || !imgS3Key) {
-                                            console.error('[CharacterDetailModal] Missing pose information:', {
-                                              poseId,
-                                              s3Key: imgS3Key,
-                                              imgKeys: Object.keys(img),
-                                              imgMetadata: (img as any).metadata
-                                            });
-                                            toast.error('Missing pose information for regeneration');
-                                            return;
-                                          }
-                                          
-                                          // Open regenerate modal with model selection
-                                          setRegeneratingPose({
-                                            poseId: poseId,
-                                            s3Key: imgS3Key,
-                                            outfitName: outfitName
-                                          });
-                                          setShowRegenerateModal(true);
-                                        }}
-                                      >
-                                        <Sparkles className="w-4 h-4 mr-2" />
-                                        Regenerate...
-                                      </DropdownMenuItem>
-                                    )}
+                                    {/* 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses) */}
                                     <DropdownMenuItem
                                       className="text-red-500 hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       onClick={async (e) => {
@@ -1166,47 +1131,7 @@ export function CharacterDetailModal({
         </>
       )}
       
-      {/* Regenerate Pose Modal */}
-      <RegeneratePoseModal
-        isOpen={showRegenerateModal}
-        onClose={() => {
-          setShowRegenerateModal(false);
-          setRegeneratingPose(null);
-        }}
-        onRegenerate={async (providerId: string, quality: 'standard' | 'high-quality', clothingReferences: string[], typicalClothing?: string, outfitName?: string) => {
-          if (!regeneratingPose) return;
-          
-          const token = await getToken({ template: 'wryda-backend' });
-          const response = await fetch(`/api/projects/${screenplayId}/characters/${character.id}/regenerate-pose`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              poseId: regeneratingPose.poseId,
-              existingPoseS3Key: regeneratingPose.s3Key,
-              outfitName: outfitName || regeneratingPose.outfitName, // Use selected outfit or current pose outfit
-              typicalClothing: typicalClothing, // 🔥 NEW: Pass custom outfit text description
-              providerId: providerId, // 🔥 NEW: Pass selected model
-              quality: quality, // 🔥 NEW: Pass quality tier
-              clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined // 🔥 NEW: Pass clothing references for outfit consistency
-            })
-          });
-          
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to regenerate pose');
-          }
-          
-          // Don't show toast here - job completion will show it
-          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-          await onUpdate(character.id, {});
-        }}
-        screenplayId={screenplayId}
-        characterId={character.id}
-        poseName={regeneratingPose?.poseId ? `Pose: ${regeneratingPose.poseId}` : 'this pose'}
-      />
+      {/* 🔥 REMOVED: Individual pose regeneration modal - users must create pose packages (minimum 3 poses) */}
     </AnimatePresence>
   );
 }

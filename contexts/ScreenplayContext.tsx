@@ -2327,7 +2327,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const existingIndex = prev.findIndex(char => 
                         char.id === id || 
                         char.id === transformedCharacter.id || 
-                        (updatedCharacter as any)?.character_id === char.id ||
+                                      (updatedCharacter as any)?.character_id === char.id ||
                         (updatedCharacter as any)?.id === char.id
                     );
                     
@@ -2335,15 +2335,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         // Character exists - update it
                         const updated = [...prev];
                         updated[existingIndex] = transformedCharacter;
-                        console.log('[ScreenplayContext] ✅ Matched character for update:', { 
+                            console.log('[ScreenplayContext] ✅ Matched character for update:', { 
                             oldId: prev[existingIndex].id, 
-                            newId: transformedCharacter.id,
+                                newId: transformedCharacter.id,
                             oldArcStatus: prev[existingIndex].arcStatus,
-                            newArcStatus: transformedCharacter.arcStatus,
+                                newArcStatus: transformedCharacter.arcStatus,
                             oldImageCount: prev[existingIndex].images?.length || 0,
-                            newImageCount: transformedCharacter.images?.length || 0
-                        });
-                        return updated;
+                                newImageCount: transformedCharacter.images?.length || 0
+                    });
+                    return updated;
                     } else {
                         // Character not found - add it (this can happen if character was just created)
                         console.log('[ScreenplayContext] ⚠️ Character not found in state, adding it:', {
@@ -2761,7 +2761,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const existingIndex = prev.findIndex(loc => 
                         loc.id === id || 
                         loc.id === transformedLocation.id || 
-                        (updatedLocation as any)?.location_id === loc.id ||
+                                      (updatedLocation as any)?.location_id === loc.id ||
                         (updatedLocation as any)?.id === loc.id
                     );
                     
@@ -2769,15 +2769,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         // Location exists - update it
                         const updated = [...prev];
                         updated[existingIndex] = transformedLocation;
-                        console.log('[ScreenplayContext] ✅ Matched location for update:', { 
+                            console.log('[ScreenplayContext] ✅ Matched location for update:', { 
                             oldId: prev[existingIndex].id, 
-                            newId: transformedLocation.id,
+                                newId: transformedLocation.id,
                             oldType: prev[existingIndex].type,
-                            newType: transformedLocation.type,
+                                newType: transformedLocation.type,
                             oldImageCount: prev[existingIndex].images?.length || 0,
-                            newImageCount: transformedLocation.images?.length || 0
-                        });
-                        return updated;
+                                newImageCount: transformedLocation.images?.length || 0
+                    });
+                    return updated;
                     } else {
                         // Location not found - add it (this can happen if location was just created)
                         console.log('[ScreenplayContext] ⚠️ Location not found in state, adding it:', {
