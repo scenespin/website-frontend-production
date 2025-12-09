@@ -2212,9 +2212,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // 🔥 CRITICAL FIX: Only send poseReferences if explicitly provided from Production Hub
                     // Creation section updates should NEVER include poseReferences in the API call
                     // This ensures Production Hub data is preserved when Creation section updates characters
-                    if (updates.poseReferences !== undefined) {
+                    // Use type assertion since Character type doesn't include poseReferences (it's Production Hub only)
+                    if ((updates as any).poseReferences !== undefined) {
                         // This is a Production Hub update - send poseReferences
-                        const poseRefsArray = Array.isArray(updates.poseReferences) ? updates.poseReferences : [];
+                        const poseRefsArray = Array.isArray((updates as any).poseReferences) ? (updates as any).poseReferences : [];
                         apiUpdates.poseReferences = poseRefsArray.map((ref: any) => {
                             const s3Key = typeof ref === 'string' ? ref : (ref.s3Key || extractS3Key(ref));
                             if (!s3Key) return null;
@@ -2254,7 +2255,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 CRITICAL FIX: Remove poseReferences from apiUpdates if it's undefined or empty
                 // This ensures Creation section never sends poseReferences (even accidentally)
                 // Only Production Hub should send poseReferences updates
-                if (apiUpdates.poseReferences === undefined || (Array.isArray(apiUpdates.poseReferences) && apiUpdates.poseReferences.length === 0 && updates.poseReferences === undefined)) {
+                if (apiUpdates.poseReferences === undefined || (Array.isArray(apiUpdates.poseReferences) && apiUpdates.poseReferences.length === 0 && (updates as any).poseReferences === undefined)) {
                     delete apiUpdates.poseReferences;
                     console.log('[ScreenplayContext] 🛡️ Removed poseReferences from API update (Creation section should never send this)');
                 }
