@@ -940,7 +940,7 @@ export function CharacterDetailModal({
                                     {/* Regenerate option - only show for poses with poseId */}
                                     {(img.poseId || (img as any).metadata?.poseId) && (
                                       <DropdownMenuItem
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A]"
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           // 🔥 FIX: Extract poseId and s3Key from multiple possible locations
@@ -967,7 +967,6 @@ export function CharacterDetailModal({
                                           });
                                           setShowRegenerateModal(true);
                                         }}
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
                                         Regenerate...
