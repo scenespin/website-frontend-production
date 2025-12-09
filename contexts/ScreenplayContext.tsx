@@ -892,8 +892,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const handleRefreshCharacters = async () => {
             console.log('[ScreenplayContext] Refreshing characters due to refreshCharacters event');
             try {
-                // 🔥 FIX: Use production-hub context to get both referenceImages and poseReferences
-                const charactersData = await listCharacters(screenplayId, getToken, 'production-hub');
+                // 🔥 FIX: Use creation context - Creation section should ONLY see Creation images (not Production Hub images)
+                const charactersData = await listCharacters(screenplayId, getToken, 'creation');
                 // 🔥 FIX: Use charactersRef.current to avoid stale closures and remove transformCharactersFromAPI from deps
                 const transformedCharacters = transformCharactersFromAPI(charactersData, charactersRef.current);
                 // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
@@ -931,8 +931,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         const handleRefreshLocations = async () => {
             console.log('[ScreenplayContext] Refreshing locations due to refreshLocations event');
             try {
-                // 🔥 FIX: Use production-hub context to get both referenceImages and angleVariations
-                const locationsData = await listLocations(screenplayId, getToken, 'production-hub');
+                // 🔥 FIX: Use creation context - Creation section should ONLY see Creation images (not Production Hub images)
+                const locationsData = await listLocations(screenplayId, getToken, 'creation');
                 const transformedLocations = transformLocationsFromAPI(locationsData);
                 // 🔥 FIX: Defer state update with setTimeout + startTransition to prevent React error #300
                 setTimeout(() => {
@@ -1075,9 +1075,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Load scenes, characters, locations, and assets in parallel
                     const [scenesData, charactersData, locationsData, assetsData] = await Promise.all([
                         listScenes(screenplayId, getToken),
-                        listCharacters(screenplayId, getToken, 'production-hub'), // 🔥 FIX: Use production-hub context to get both referenceImages and poseReferences
-                        listLocations(screenplayId, getToken, 'production-hub'), // 🔥 FIX: Use production-hub context to get both referenceImages and angleVariations
-                        api.assetBank.list(screenplayId, 'production-hub').catch(() => ({ assets: [] })) // 🔥 FIX: Use production-hub context to get both Creation and Production Hub images (same pattern as characters/locations)
+                        listCharacters(screenplayId, getToken, 'creation'), // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
+                        listLocations(screenplayId, getToken, 'creation'), // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
+                        api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })) // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
                     ]);
                     
                     console.log('[ScreenplayContext] 📦 Raw API response:', {
