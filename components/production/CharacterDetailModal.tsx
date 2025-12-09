@@ -171,39 +171,42 @@ export function CharacterDetailModal({
   
   // 🔥 SIMPLIFIED: Get user-uploaded references directly from Character Bank API
   // Backend now returns all references (baseReference + references array) with presigned URLs
+  // 🔥 FIX: Memoize userReferences to prevent unnecessary recalculations
   const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
   
-  const userReferences = [
-    character.baseReference ? {
-      id: 'base',
-      imageUrl: character.baseReference.imageUrl || '',
-      s3Key: character.baseReference.s3Key,
-      label: 'Base Reference',
-      isBase: true,
-      isPose: false,
-      index: 0
-    } : null,
-    // Additional references from Character Bank API (user-uploaded in Creation section)
-    ...(character.references || [])
-      .filter(ref => {
-        // Exclude any references that are in poseReferences (AI-generated)
-        const refS3Key = ref.s3Key || ref.metadata?.s3Key;
-        const isInPoseReferences = allPoseRefs.some((poseRef: any) => {
-          const poseS3Key = typeof poseRef === 'string' ? poseRef : (poseRef.s3Key || poseRef.metadata?.s3Key);
-          return poseS3Key === refS3Key;
-        });
-        return !isInPoseReferences;
-      })
-      .map((ref, idx) => ({
-        id: ref.id || `ref-${idx}`,
-        imageUrl: ref.imageUrl || '',
-        s3Key: ref.s3Key || ref.metadata?.s3Key,
-        label: ref.label || 'Reference',
-        isBase: false,
+  const userReferences = useMemo(() => {
+    return [
+      character.baseReference ? {
+        id: 'base',
+        imageUrl: character.baseReference.imageUrl || '',
+        s3Key: character.baseReference.s3Key,
+        label: 'Base Reference',
+        isBase: true,
         isPose: false,
-        index: idx + 1
-      }))
-  ].filter(Boolean) as Array<{id: string; imageUrl: string; s3Key?: string; label: string; isBase: boolean; isPose: boolean; index: number}>;
+        index: 0
+      } : null,
+      // Additional references from Character Bank API (user-uploaded in Creation section)
+      ...(character.references || [])
+        .filter(ref => {
+          // Exclude any references that are in poseReferences (AI-generated)
+          const refS3Key = ref.s3Key || ref.metadata?.s3Key;
+          const isInPoseReferences = allPoseRefs.some((poseRef: any) => {
+            const poseS3Key = typeof poseRef === 'string' ? poseRef : (poseRef.s3Key || poseRef.metadata?.s3Key);
+            return poseS3Key === refS3Key;
+          });
+          return !isInPoseReferences;
+        })
+        .map((ref, idx) => ({
+          id: ref.id || `ref-${idx}`,
+          imageUrl: ref.imageUrl || '',
+          s3Key: ref.s3Key || ref.metadata?.s3Key,
+          label: ref.label || 'Reference',
+          isBase: false,
+          isPose: false,
+          index: idx + 1
+        }))
+    ].filter(Boolean) as Array<{id: string; imageUrl: string; s3Key?: string; label: string; isBase: boolean; isPose: boolean; index: number}>;
+  }, [character.baseReference, character.references, allPoseRefs]);
   
   /**
    * Extract outfit name from S3 key path
@@ -237,47 +240,45 @@ export function CharacterDetailModal({
   // 🔥 SIMPLIFIED: Get poseReferences directly from character prop (backend already provides presigned URLs and metadata)
   // Backend Character Bank API already enriches poseReferences with imageUrl, outfitName, poseId, etc.
   // 🔥 FIX: Backend returns angleReferences, not poseReferences! Check both fields.
+  // 🔥 FIX: Memoize poseReferences to prevent unnecessary recalculations and re-renders
   const rawPoseRefs = (character as any).angleReferences || character.poseReferences || [];
-  const poseReferences: PoseReferenceWithOutfit[] = rawPoseRefs.map((ref: any, idx: number) => {
-    // Handle both string and object formats for poseReferences (backend may return either)
-    const refObj = typeof ref === 'string' ? null : ref;
-    const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
-    // 🔥 FIX: Use s3Key as part of ID to ensure uniqueness for reimported images
-    // Recovery script may generate IDs with timestamps that could collide, so use s3Key as fallback
-    const refId = typeof ref === 'string' 
-      ? `pose_${refS3Key}` 
-      : (ref.id || (refS3Key ? `pose_${refS3Key}` : `pose-${idx}-${Date.now()}`));
-    const refImageUrl = typeof ref === 'string' ? '' : (ref.imageUrl || '');
-    
-    // 🔥 PRESERVE: Extract outfit from metadata (backend saves this during pose generation)
-    // Priority: ref.metadata.outfitName > S3 key path > 'default'
-    // Note: Backend may set outfitName at top-level, but we use metadata for consistency
-    const outfitFromMetadata = refObj?.metadata?.outfitName;
-    const outfitFromS3 = extractOutfitFromS3Key(refS3Key);
-    const outfitName = outfitFromMetadata || outfitFromS3 || 'default';
-    
-    // Extract poseId from ref metadata (backend saves this)
-    const poseId = refObj?.metadata?.poseId;
-    
-    // Check if this is a regenerated pose
-    const isRegenerated = refObj?.metadata?.isRegenerated || false;
-    const regeneratedFrom = refObj?.metadata?.regeneratedFrom;
-    
-    return {
-      id: refId,
-      imageUrl: refImageUrl, // Backend already provides presigned URL
-      s3Key: refS3Key,
-      label: (typeof ref === 'string' ? 'Pose' : ref.label) || refObj?.metadata?.poseName || 'Pose',
-      isBase: false,
-      isPose: true,
-      outfitName: outfitName, // Store outfit name for grouping
-      index: userReferences.length + idx, // Set index for display
-      poseId: poseId, // Store poseId for regeneration
-      isRegenerated: isRegenerated, // 🔥 NEW: Track if this is a regenerated pose
-      regeneratedFrom: regeneratedFrom, // 🔥 NEW: Track which pose this regenerated from
-      metadata: refObj?.metadata || {} // Preserve all metadata for deletion logic
-    };
-  });
+  const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
+    return rawPoseRefs.map((ref: any, idx: number) => {
+      // Handle both string and object formats for poseReferences (backend may return either)
+      const refObj = typeof ref === 'string' ? null : ref;
+      const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
+      const refId = typeof ref === 'string' ? `pose_${refS3Key}` : (ref.id || `pose-${idx}`);
+      const refImageUrl = typeof ref === 'string' ? '' : (ref.imageUrl || '');
+      
+      // 🔥 PRESERVE: Extract outfit from metadata (backend saves this during pose generation)
+      // Priority: ref.metadata.outfitName > S3 key path > 'default'
+      const outfitFromMetadata = refObj?.metadata?.outfitName;
+      const outfitFromS3 = extractOutfitFromS3Key(refS3Key);
+      const outfitName = outfitFromMetadata || outfitFromS3 || 'default';
+      
+      // Extract poseId from ref metadata (backend saves this)
+      const poseId = refObj?.metadata?.poseId;
+      
+      // Check if this is a regenerated pose
+      const isRegenerated = refObj?.metadata?.isRegenerated || false;
+      const regeneratedFrom = refObj?.metadata?.regeneratedFrom;
+      
+      return {
+        id: refId,
+        imageUrl: refImageUrl, // Backend already provides presigned URL
+        s3Key: refS3Key,
+        label: (typeof ref === 'string' ? 'Pose' : ref.label) || refObj?.metadata?.poseName || 'Pose',
+        isBase: false,
+        isPose: true,
+        outfitName: outfitName, // Store outfit name for grouping
+        index: userReferences.length + idx, // Set index for display
+        poseId: poseId, // Store poseId for regeneration
+        isRegenerated: isRegenerated, // 🔥 NEW: Track if this is a regenerated pose
+        regeneratedFrom: regeneratedFrom, // 🔥 NEW: Track which pose this regenerated from
+        metadata: refObj?.metadata || {} // Preserve all metadata for deletion logic
+      };
+    });
+  }, [rawPoseRefs, userReferences.length]);
   
   // 🔥 NEW: Group poses by outfit, and pair regenerated poses with originals
   const posesByOutfit = useMemo(() => {
@@ -375,17 +376,8 @@ export function CharacterDetailModal({
     const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
     const result = defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
     
-    // 🔥 DEBUG: Log outfit names for troubleshooting (especially for reimported images)
+    // 🔥 DEBUG: Log outfit names for troubleshooting
     if (isOpen && poseReferences.length > 0) {
-      // Check for poses without outfit names (reimported images might be missing this)
-      const posesWithoutOutfit = poseReferences.filter(p => !p.outfitName || p.outfitName === 'default');
-      const samplePoseOutfits = poseReferences.slice(0, 5).map(p => ({
-        id: p.id,
-        outfitName: p.outfitName,
-        hasMetadata: !!(p as any).metadata?.outfitName,
-        s3Key: p.s3Key?.substring(0, 50)
-      }));
-      
       console.log('[CharacterDetailModal] 🔍 Outfit organization:', {
         mediaLibraryOutfitNames: Array.from(mediaLibraryOutfitNames),
         posesByOutfitKeys: Object.keys(posesByOutfit),
@@ -393,8 +385,6 @@ export function CharacterDetailModal({
         outfitNames: result,
         outfitNamesCount: result.length,
         poseReferencesCount: poseReferences.length,
-        posesWithoutOutfitCount: posesWithoutOutfit.length,
-        samplePoseOutfits,
         posesByOutfit: Object.keys(posesByOutfit).reduce((acc, key) => {
           acc[key] = posesByOutfit[key].length;
           return acc;
@@ -411,7 +401,8 @@ export function CharacterDetailModal({
   const [selectedOutfitReferences, setSelectedOutfitReferences] = useState<string | null>(null);
   
   // Combined for main display (all images, not grouped)
-  const allImages = [...userReferences, ...poseReferences];
+  // 🔥 FIX: Memoize allImages to prevent unnecessary recalculations
+  const allImages = useMemo(() => [...userReferences, ...poseReferences], [userReferences, poseReferences]);
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -993,15 +984,6 @@ export function CharacterDetailModal({
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {(selectedOutfitReferences ? posesByOutfit[selectedOutfitReferences] || [] : poseReferences).map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
-                          // Debug logging for poseId
-                          if (img.poseId || (img as any).metadata?.poseId) {
-                            console.log('[CharacterDetailModal] Pose has poseId:', {
-                              imgId: img.id,
-                              poseId: img.poseId || (img as any).metadata?.poseId,
-                              s3Key: img.s3Key,
-                              metadata: (img as any).metadata
-                            });
-                          }
                           return (
                             <div
                               key={img.id}
@@ -1190,15 +1172,8 @@ export function CharacterDetailModal({
                                           // 🔥 ONE-WAY SYNC: Only update Production Hub backend
                                           // Production Hub images (createdIn: 'production-hub') should NOT sync back to Creation section
                                           
-                                          // Invalidate both media and characters queries to refresh the UI
-                                          // Use refetch instead of just invalidate to ensure immediate update
-                                          // 🔥 FIX: Only invalidate Production Hub context, not Creation section
-                                          await Promise.all([
-                                            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] }),
-                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] })
-                                          ]);
-                                          
-                                          console.log('[CharacterDetailModal] ✅ Queries invalidated and refetched');
+                                          // 🔥 FIX: Don't invalidate queries here - CharacterBankPanel.updateCharacter already handles refetch
+                                          // This prevents double refetches and re-render loops
                                           
                                           toast.success('Image deleted');
                                         } catch (error: any) {
