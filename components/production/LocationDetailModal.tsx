@@ -408,26 +408,25 @@ export function LocationDetailModal({
                         </div>
                       </div>
                       {/* 🔥 IMPROVED: Organized by Metadata Combinations - Visual Card-based Grouping */}
-                      {sortedMetadataKeys.length > 0 ? (
-                        <div className="space-y-6">
-                          {sortedMetadataKeys.map((displayName) => {
-                            const variations = anglesByMetadata[displayName];
-                            
-                            return (
-                              <div key={displayName} className="space-y-3">
-                                {/* Section Header with Metadata Badge */}
-                                <div className="flex items-center justify-between pb-2 border-b border-[#3F3F46]">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="text-sm font-semibold text-[#8B5CF6] capitalize">
-                                      {displayName}
-                                    </h4>
-                                    <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">
-                                      {variations.length} {variations.length === 1 ? 'image' : 'images'}
-                                    </span>
-                                  </div>
+                      <div className="space-y-6">
+                        {sortedMetadataKeys.map((displayName) => {
+                          const variations = anglesByMetadata[displayName];
+                          
+                          return (
+                            <div key={displayName} className="space-y-3">
+                              {/* Section Header with Metadata Badge */}
+                              <div className="flex items-center justify-between pb-2 border-b border-[#3F3F46]">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-semibold text-[#8B5CF6] capitalize">
+                                    {displayName}
+                                  </h4>
+                                  <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">
+                                    {variations.length} {variations.length === 1 ? 'image' : 'images'}
+                                  </span>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                  {variations.map((variation: any) => {
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {variations.map((variation: any) => {
                           const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
                           if (!img) return null;
                           
@@ -538,7 +537,6 @@ export function LocationDetailModal({
                             );
                           })}
                         </div>
-                      )}
                     </div>
                   )}
                   
