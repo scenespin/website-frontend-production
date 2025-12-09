@@ -45,9 +45,7 @@ export function RegeneratePoseModal({
   poseName = 'this pose',
   qualityTier = 'standard',
   screenplayId,
-  characterId,
-  outfitNames = [],
-  currentOutfitName
+  characterId
 }: RegeneratePoseModalProps) {
   const { getToken } = useAuth();
   const [models, setModels] = useState<Model[]>([]);
