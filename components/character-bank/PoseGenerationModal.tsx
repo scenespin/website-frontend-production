@@ -110,8 +110,8 @@ export default function PoseGenerationModal({
         const availableModels = data.data?.models || data.models || [];
         setModels(availableModels.filter((m: any) => m.enabled));
         
-        // Auto-select first model (always set, even if providerId exists, to ensure correct model is selected)
-        if (availableModels.length > 0) {
+        // Auto-select first model if providerId is empty (e.g., after quality change)
+        if (availableModels.length > 0 && !providerId) {
           setProviderId(availableModels[0].id);
         }
       } catch (error: any) {
