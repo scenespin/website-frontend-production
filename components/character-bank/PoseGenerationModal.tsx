@@ -580,7 +580,7 @@ export default function PoseGenerationModal({
                   </div>
 
                   {/* Clothing/Outfit Image Upload (only for models that support it) */}
-                  {supportsClothing && (
+                  {supportsClothing && selectedModel && (
                     <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                       <h3 className="text-sm font-semibold text-base-content mb-4">
                         Step 4: Clothing/Outfit Images (Optional)
