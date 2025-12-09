@@ -418,7 +418,7 @@ export function LocationDetailModal({
                                       className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
                                     >
                                       <DropdownMenuItem
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A]"
+                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           // Open regenerate modal with angle info
@@ -431,7 +431,6 @@ export function LocationDetailModal({
                                           });
                                           setShowRegenerateModal(true);
                                         }}
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
                                         Regenerate...
