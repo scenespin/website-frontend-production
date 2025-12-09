@@ -319,11 +319,10 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
                                 customFields: []
                             });
                             
-                            // 🔥 FIX: Refetch Production Hub character cache so new character appears immediately
-                            if (screenplayId) {
-                                // Use refetchQueries for immediate update (matches deletion pattern)
-                                queryClient.refetchQueries({ queryKey: ['characters', screenplayId] });
-                            }
+                            // 🔥 REMOVED: Don't refetch Production Hub query from Creation section
+                            // Production Hub manages its own data independently via useCharacters hook
+                            // Refetching here can cause Production Hub to lose poseReferences data
+                            // Production Hub will auto-refresh when user navigates to it or when it refetches naturally
                             
                             // Add pending images after character creation
                             // Images are already uploaded to S3 via presigned URLs, just need to register them
