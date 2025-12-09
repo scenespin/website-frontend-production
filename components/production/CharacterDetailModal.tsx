@@ -957,7 +957,6 @@ export function CharacterDetailModal({
                                           const link = document.createElement('a');
                                           link.href = img.imageUrl;
                                           link.download = `${character.name}_${img.label || 'image'}_${Date.now()}.jpg`;
-                                          link.target = '_blank';
                                           document.body.appendChild(link);
                                           link.click();
                                           document.body.removeChild(link);
@@ -1193,7 +1192,6 @@ export function CharacterDetailModal({
                     const link = document.createElement('a');
                     link.href = previewImage.url;
                     link.download = `${previewImage.label}_${Date.now()}.jpg`;
-                    link.target = '_blank';
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);

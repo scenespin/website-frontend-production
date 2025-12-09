@@ -508,7 +508,6 @@ export default function AssetDetailModal({
                                           const link = document.createElement('a');
                                           link.href = img.imageUrl;
                                           link.download = `${asset.name}_${img.metadata?.angle || 'angle'}_${Date.now()}.jpg`;
-                                          link.target = '_blank';
                                           document.body.appendChild(link);
                                           link.click();
                                           document.body.removeChild(link);
@@ -703,7 +702,6 @@ export default function AssetDetailModal({
                   const link = document.createElement('a');
                   link.href = previewImage.url;
                   link.download = `${previewImage.label}_${Date.now()}.jpg`;
-                  link.target = '_blank';
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);

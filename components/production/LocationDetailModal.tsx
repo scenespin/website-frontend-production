@@ -480,7 +480,6 @@ export function LocationDetailModal({
                                             const link = document.createElement('a');
                                             link.href = img.imageUrl;
                                             link.download = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
-                                            link.target = '_blank';
                                             document.body.appendChild(link);
                                             link.click();
                                             document.body.removeChild(link);
@@ -641,7 +640,6 @@ export function LocationDetailModal({
                   const link = document.createElement('a');
                   link.href = previewImage.url;
                   link.download = `${previewImage.label}_${Date.now()}.jpg`;
-                  link.target = '_blank';
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
