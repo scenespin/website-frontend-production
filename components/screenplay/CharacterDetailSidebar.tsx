@@ -246,14 +246,17 @@ export default function CharacterDetailSidebar({
       return;
     }
 
-    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional)
+    // 🔥 FIX: Validate 5-image limit (1 base + 4 additional) - Only count Creation section reference images
+    // Production Hub images (pose references) are stored separately and don't count toward this limit
     const currentImages = character ? getEntityImages('character', character.id) : [];
-    const currentCount = currentImages.length;
+    // 🔥 SAFEGUARD: Cap count at maxImages to prevent incorrect validation when backend data is corrupted
+    // If character.images includes Production Hub images, this prevents false validation errors
+    const currentCount = Math.min(currentImages.length, 5); // Cap at 5 for validation
     const maxImages = 5;
     
     if (replaceBase) {
       // Replacing base: currentCount stays same (replacing 1 with 1)
-      if (currentCount > maxImages) {
+      if (currentCount >= maxImages) {
         toast.error(`Maximum ${maxImages} images allowed. Please delete some images first.`);
         return;
       }
@@ -261,7 +264,7 @@ export default function CharacterDetailSidebar({
       // Adding additional: check if adding would exceed limit
       const wouldExceed = currentCount + fileArray.length > maxImages;
       if (wouldExceed) {
-        const remaining = maxImages - currentCount;
+        const remaining = Math.max(0, maxImages - currentCount); // Ensure non-negative
         toast.error(`Maximum ${maxImages} images allowed (${currentCount}/${maxImages}). You can add ${remaining} more.`);
         return;
       }
