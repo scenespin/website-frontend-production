@@ -58,12 +58,46 @@ export default function AssetDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{url: string; label: string} | null>(null);
+  const [previewImage, setPreviewImage] = useState<{url: string; label: string; s3Key?: string} | null>(null);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
-  const downloadImageAsBlob = async (imageUrl: string, filename: string) => {
+  // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
+  const downloadImageAsBlob = async (imageUrl: string, filename: string, s3Key?: string) => {
     try {
-      const response = await fetch(imageUrl);
+      let downloadUrl = imageUrl;
+      
+      // If we have an s3Key, fetch a fresh presigned URL (like MediaLibrary does)
+      if (s3Key) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600, // 1 hour
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[AssetDetailModal] Failed to get presigned URL, using original URL:', error);
+          // Fall back to original imageUrl if presigned URL fetch fails
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
@@ -517,7 +551,7 @@ export default function AssetDetailModal({
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setPreviewImage({ url: img.imageUrl, label: img.label });
+                                        setPreviewImage({ url: img.imageUrl, label: img.label, s3Key: img.s3Key });
                                       }}
                                     >
                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -528,8 +562,10 @@ export default function AssetDetailModal({
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         try {
-                                          const filename = `${asset.name}_${img.metadata?.angle || 'angle'}_${Date.now()}.jpg`;
-                                          await downloadImageAsBlob(img.imageUrl, filename);
+                                          // Generate filename from metadata
+                                          const angle = img.metadata?.angle || img.angle || 'angle';
+                                          const filename = `${asset.name}_${angle.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
+                                          await downloadImageAsBlob(img.imageUrl, filename, img.s3Key);
                                         } catch (error: any) {
                                           toast.error('Failed to download image');
                                         }
@@ -716,20 +752,21 @@ export default function AssetDetailModal({
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    const filename = `${previewImage.label}_${Date.now()}.jpg`;
-                    await downloadImageAsBlob(previewImage.url, filename);
-                  } catch (error: any) {
-                    toast.error('Failed to download image');
-                  }
-                }}
-                className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      // Generate filename from label
+                      const filename = `${previewImage.label.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
+                      await downloadImageAsBlob(previewImage.url, filename, previewImage.s3Key);
+                    } catch (error: any) {
+                      toast.error('Failed to download image');
+                    }
+                  }}
+                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();

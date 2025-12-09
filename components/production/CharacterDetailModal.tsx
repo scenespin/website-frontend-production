@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * image.pngCharacterDetailModal - Full-screen character detail view
+ * image.pngimage.pngCharacterDetailModal - Full-screen character detail view
  * 
  * Features:
  * - Image gallery (main + references)
@@ -83,7 +83,7 @@ export function CharacterDetailModal({
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{url: string; label: string} | null>(null);
+  const [previewImage, setPreviewImage] = useState<{url: string; label: string; s3Key?: string} | null>(null);
   // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
@@ -108,9 +108,43 @@ export function CharacterDetailModal({
   }
 
   // Helper function for downloading images via blob (more reliable than download attribute)
-  const downloadImageAsBlob = async (imageUrl: string, filename: string) => {
+  // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
+  const downloadImageAsBlob = async (imageUrl: string, filename: string, s3Key?: string) => {
     try {
-      const response = await fetch(imageUrl);
+      let downloadUrl = imageUrl;
+      
+      // If we have an s3Key, fetch a fresh presigned URL (like MediaLibrary does)
+      if (s3Key) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600, // 1 hour
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[CharacterDetailModal] Failed to get presigned URL, using original URL:', error);
+          // Fall back to original imageUrl if presigned URL fetch fails
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
@@ -967,7 +1001,7 @@ export function CharacterDetailModal({
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setPreviewImage({ url: img.imageUrl, label: img.label });
+                                        setPreviewImage({ url: img.imageUrl, label: img.label, s3Key: img.s3Key });
                                       }}
                                     >
                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -978,8 +1012,12 @@ export function CharacterDetailModal({
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         try {
-                                          const filename = `${character.name}_${img.label || 'image'}_${Date.now()}.jpg`;
-                                          await downloadImageAsBlob(img.imageUrl, filename);
+                                          // Generate filename from metadata
+                                          const poseName = img.poseId || (img as any).metadata?.poseId || img.label || 'pose';
+                                          const outfitName = img.outfitName || (img as any).metadata?.outfitName || '';
+                                          const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
+                                          const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
+                                          await downloadImageAsBlob(img.imageUrl, filename, img.s3Key);
                                         } catch (error: any) {
                                           toast.error('Failed to download image');
                                         }
@@ -1210,8 +1248,9 @@ export function CharacterDetailModal({
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
-                      const filename = `${previewImage.label}_${Date.now()}.jpg`;
-                      await downloadImageAsBlob(previewImage.url, filename);
+                      // Generate filename from label
+                      const filename = `${previewImage.label.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
+                      await downloadImageAsBlob(previewImage.url, filename, previewImage.s3Key);
                     } catch (error: any) {
                       toast.error('Failed to download image');
                     }

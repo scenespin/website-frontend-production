@@ -90,7 +90,7 @@ export function LocationDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{url: string; label: string} | null>(null);
+  const [previewImage, setPreviewImage] = useState<{url: string; label: string; s3Key?: string} | null>(null);
   const { getToken } = useAuth();
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
@@ -99,9 +99,43 @@ export function LocationDetailModal({
   }
 
   // Helper function for downloading images via blob (more reliable than download attribute)
-  const downloadImageAsBlob = async (imageUrl: string, filename: string) => {
+  // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
+  const downloadImageAsBlob = async (imageUrl: string, filename: string, s3Key?: string) => {
     try {
-      const response = await fetch(imageUrl);
+      let downloadUrl = imageUrl;
+      
+      // If we have an s3Key, fetch a fresh presigned URL (like MediaLibrary does)
+      if (s3Key) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600, // 1 hour
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[LocationDetailModal] Failed to get presigned URL, using original URL:', error);
+          // Fall back to original imageUrl if presigned URL fetch fails
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
@@ -490,7 +524,7 @@ export function LocationDetailModal({
                                         className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setPreviewImage({ url: img.imageUrl, label: img.label });
+                                          setPreviewImage({ url: img.imageUrl, label: img.label, s3Key: img.s3Key });
                                         }}
                                       >
                                         <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -501,8 +535,12 @@ export function LocationDetailModal({
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           try {
-                                            const filename = `${location.name}_${variation.angle}_${Date.now()}.jpg`;
-                                            await downloadImageAsBlob(img.imageUrl, filename);
+                                            // Generate filename from metadata
+                                            const angle = variation.angle || 'angle';
+                                            const timeOfDay = variation.timeOfDay ? `_${variation.timeOfDay}` : '';
+                                            const weather = variation.weather ? `_${variation.weather}` : '';
+                                            const filename = `${location.name}_${angle}${timeOfDay}${weather}_${Date.now()}.jpg`;
+                                            await downloadImageAsBlob(img.imageUrl, filename, img.s3Key);
                                           } catch (error: any) {
                                             toast.error('Failed to download image');
                                           }
@@ -658,8 +696,9 @@ export function LocationDetailModal({
                 onClick={async (e) => {
                   e.stopPropagation();
                   try {
-                    const filename = `${previewImage.label}_${Date.now()}.jpg`;
-                    await downloadImageAsBlob(previewImage.url, filename);
+                    // Generate filename from label
+                    const filename = `${previewImage.label.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
+                    await downloadImageAsBlob(previewImage.url, filename, previewImage.s3Key);
                   } catch (error: any) {
                     toast.error('Failed to download image');
                   }
