@@ -37,9 +37,10 @@ export function CharacterBankPanel({
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
-  // React Query for fetching characters
+  // React Query for fetching characters - Production Hub context
   const { data: characters = propsCharacters, isLoading: queryLoading } = useCharacters(
     screenplayId || '',
+    'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
 
@@ -153,8 +154,8 @@ export function CharacterBankPanel({
       });
 
       toast.success('Character updated successfully');
-      // Invalidate React Query cache and refetch immediately
-      await queryClient.refetchQueries({ queryKey: ['characters', screenplayId] });
+      // Invalidate React Query cache and refetch immediately - Production Hub context only
+      await queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       if (onCharactersUpdate) onCharactersUpdate();
     } catch (error: any) {
       console.error('[CharacterBank] Failed to update character:', error);
@@ -301,9 +302,9 @@ export function CharacterBankPanel({
             });
             setShowPoseModal(false);
             setPoseCharacter(null);
-            // Job started - refresh characters after delay
+            // Job started - refresh characters after delay - Production Hub context only
             setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+              queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
               if (onCharactersUpdate) onCharactersUpdate();
             }, 5000);
           }}

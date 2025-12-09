@@ -390,8 +390,8 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
         refJobs: completedCharacterRefJobs.length
       });
       
-      // Invalidate React Query cache for characters and media files
-      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId] });
+      // Invalidate React Query cache for characters and media files - Production Hub context only
+      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
     }
   }, [jobs, screenplayId, queryClient]);
@@ -412,8 +412,8 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     if (completedAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Angle generation completed, refreshing locations and assets...', completedAngleJobs.length);
       
-      // Invalidate React Query cache for locations, assets, and media files
-      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+      // Invalidate React Query cache for locations, assets, and media files - Production Hub context only
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
     }

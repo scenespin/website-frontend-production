@@ -36,9 +36,10 @@ export function LocationBankPanel({
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
-  // React Query for fetching locations
+  // React Query for fetching locations - Production Hub context
   const { data: locations = propsLocations, isLoading: queryLoading } = useLocations(
     screenplayId || '',
+    'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
 
@@ -100,8 +101,8 @@ export function LocationBankPanel({
       }
 
       toast.success('Location updated successfully');
-      // Invalidate React Query cache
-      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+      // Invalidate React Query cache - Production Hub context only
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       if (onLocationsUpdate) onLocationsUpdate();
     } catch (error: any) {
       console.error('[LocationBank] Failed to update location:', error);
@@ -225,9 +226,9 @@ export function LocationBankPanel({
           projectId={screenplayId}
           locationProfile={angleLocation}
           onComplete={async () => {
-            // Job started - refresh locations after delay
+            // Job started - refresh locations after delay - Production Hub context only
             setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['locations', screenplayId] });
+              queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
               if (onLocationsUpdate) onLocationsUpdate();
             }, 5000);
           }}

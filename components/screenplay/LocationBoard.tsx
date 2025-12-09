@@ -373,11 +373,10 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
                                 const { pendingImages, ...locationData } = data;
                                 const newLocation = await createLocation(locationData);
                                 
-                                // 🔥 FIX: Refetch Production Hub location cache so new location appears immediately
-                                if (screenplayId) {
-                                    // Use refetchQueries for immediate update (matches deletion pattern)
-                                    queryClient.refetchQueries({ queryKey: ['locations', screenplayId] });
-                                }
+                                // 🔥 REMOVED: Don't refetch Production Hub query from Creation section
+                                // Production Hub manages its own data independently via useLocations hook
+                                // Refetching here can cause Production Hub to lose angleVariations data
+                                // Production Hub will auto-refresh when user navigates to it or when it refetches naturally
                                 
                                 // Add pending images after location creation
                                 // Images are already uploaded to S3 via presigned URLs, just need to register them

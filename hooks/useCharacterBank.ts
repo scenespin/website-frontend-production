@@ -33,12 +33,15 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 
 /**
  * Query hook for fetching characters list
+ * @param screenplayId - The screenplay ID
+ * @param context - 'creation' or 'production-hub' (default: 'production-hub')
+ * @param enabled - Whether the query should run
  */
-export function useCharacters(screenplayId: string, enabled: boolean = true) {
+export function useCharacters(screenplayId: string, context: 'creation' | 'production-hub' = 'production-hub', enabled: boolean = true) {
   const { getToken } = useAuth();
 
   return useQuery<CharacterProfile[], Error>({
-    queryKey: ['characters', screenplayId],
+    queryKey: ['characters', screenplayId, context],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
@@ -100,23 +103,30 @@ export function useDeleteCharacter(screenplayId: string) {
       return characterId;
     },
     onMutate: async (characterId) => {
-      // Cancel outgoing refetches
+      // Cancel outgoing refetches for both contexts
       await queryClient.cancelQueries({ queryKey: ['characters', screenplayId] });
 
-      // Snapshot previous value
-      const previous = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId]);
+      // Snapshot previous values for both contexts
+      const previousProduction = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
+      const previousCreation = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'creation']);
 
-      // Optimistically update
-      queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId], (old) => {
+      // Optimistically update both contexts
+      queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub'], (old) => {
+        return old ? old.filter(c => c.id !== characterId) : [];
+      });
+      queryClient.setQueryData<CharacterProfile[]>(['characters', screenplayId, 'creation'], (old) => {
         return old ? old.filter(c => c.id !== characterId) : [];
       });
 
-      return { previous };
+      return { previousProduction, previousCreation };
     },
     onError: (err, characterId, context) => {
-      // Rollback on error
-      if (context?.previous) {
-        queryClient.setQueryData(['characters', screenplayId], context.previous);
+      // Rollback on error for both contexts
+      if (context?.previousProduction) {
+        queryClient.setQueryData(['characters', screenplayId, 'production-hub'], context.previousProduction);
+      }
+      if (context?.previousCreation) {
+        queryClient.setQueryData(['characters', screenplayId, 'creation'], context.previousCreation);
       }
       toast.error(`Failed to delete character: ${err instanceof Error ? err.message : 'Unknown error'}`);
     },

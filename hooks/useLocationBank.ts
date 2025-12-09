@@ -61,12 +61,15 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 
 /**
  * Query hook for fetching locations list
+ * @param screenplayId - The screenplay ID
+ * @param context - 'creation' or 'production-hub' (default: 'production-hub')
+ * @param enabled - Whether the query should run
  */
-export function useLocations(screenplayId: string, enabled: boolean = true) {
+export function useLocations(screenplayId: string, context: 'creation' | 'production-hub' = 'production-hub', enabled: boolean = true) {
   const { getToken } = useAuth();
 
   return useQuery<LocationProfile[], Error>({
-    queryKey: ['locations', screenplayId],
+    queryKey: ['locations', screenplayId, context],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
@@ -128,23 +131,30 @@ export function useDeleteLocation(screenplayId: string) {
       return locationId;
     },
     onMutate: async (locationId) => {
-      // Cancel outgoing refetches
+      // Cancel outgoing refetches for both contexts
       await queryClient.cancelQueries({ queryKey: ['locations', screenplayId] });
 
-      // Snapshot previous value
-      const previous = queryClient.getQueryData<LocationProfile[]>(['locations', screenplayId]);
+      // Snapshot previous values for both contexts
+      const previousProduction = queryClient.getQueryData<LocationProfile[]>(['locations', screenplayId, 'production-hub']);
+      const previousCreation = queryClient.getQueryData<LocationProfile[]>(['locations', screenplayId, 'creation']);
 
-      // Optimistically update
-      queryClient.setQueryData<LocationProfile[]>(['locations', screenplayId], (old) => {
+      // Optimistically update both contexts
+      queryClient.setQueryData<LocationProfile[]>(['locations', screenplayId, 'production-hub'], (old) => {
+        return old ? old.filter(l => l.locationId !== locationId) : [];
+      });
+      queryClient.setQueryData<LocationProfile[]>(['locations', screenplayId, 'creation'], (old) => {
         return old ? old.filter(l => l.locationId !== locationId) : [];
       });
 
-      return { previous };
+      return { previousProduction, previousCreation };
     },
     onError: (err, locationId, context) => {
-      // Rollback on error
-      if (context?.previous) {
-        queryClient.setQueryData(['locations', screenplayId], context.previous);
+      // Rollback on error for both contexts
+      if (context?.previousProduction) {
+        queryClient.setQueryData(['locations', screenplayId, 'production-hub'], context.previousProduction);
+      }
+      if (context?.previousCreation) {
+        queryClient.setQueryData(['locations', screenplayId, 'creation'], context.previousCreation);
       }
       toast.error(`Failed to delete location: ${err instanceof Error ? err.message : 'Unknown error'}`);
     },

@@ -1158,9 +1158,10 @@ export function CharacterDetailModal({
                                           
                                           // Invalidate both media and characters queries to refresh the UI
                                           // Use refetch instead of just invalidate to ensure immediate update
+                                          // 🔥 FIX: Only invalidate Production Hub context, not Creation section
                                           await Promise.all([
                                             queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] }),
-                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId] })
+                                            queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] })
                                           ]);
                                           
                                           console.log('[CharacterDetailModal] ✅ Queries invalidated and refetched');
