@@ -6,7 +6,7 @@
  * Part of Feature 0098: Complete Character & Location Consistency System
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, FileText, Wand2, Loader2, CheckCircle2, AlertCircle, Trash2, Image as ImageIcon } from 'lucide-react';
 import PosePackageSelector from './PosePackageSelector';
@@ -110,8 +110,8 @@ export default function PoseGenerationModal({
         const availableModels = data.data?.models || data.models || [];
         setModels(availableModels.filter((m: any) => m.enabled));
         
-        // Auto-select first model
-        if (availableModels.length > 0 && !providerId) {
+        // Auto-select first model (always set, even if providerId exists, to ensure correct model is selected)
+        if (availableModels.length > 0) {
           setProviderId(availableModels[0].id);
         }
       } catch (error: any) {
@@ -133,8 +133,10 @@ export default function PoseGenerationModal({
     }
   }, [quality, isOpen]);
 
-  // Get selected model for easier access
-  const selectedModel = models.find(m => m.id === providerId);
+  // Get selected model for easier access (useMemo to ensure it updates when models/providerId changes)
+  const selectedModel = useMemo(() => {
+    return models.find(m => m.id === providerId);
+  }, [models, providerId]);
   const supportsClothing = selectedModel?.supportsClothingImages ?? false;
   
   // Generation state
