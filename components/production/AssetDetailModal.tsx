@@ -747,7 +747,7 @@ export default function AssetDetailModal({
             url: img.imageUrl,
             label: img.label,
             s3Key: img.s3Key,
-            metadata: img.metadata || { angle: img.angle }
+            metadata: img.metadata || { angle: (img as any).angle }
           }))}
           currentIndex={previewImageIndex}
           isOpen={previewImageIndex !== null}
