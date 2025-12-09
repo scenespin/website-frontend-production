@@ -493,7 +493,7 @@ export default function AssetDetailModal({
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         // Open image in new tab for viewing
-                                        window.open(img.url || img.imageUrl, '_blank');
+                                        window.open(img.imageUrl, '_blank');
                                       }}
                                     >
                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -506,7 +506,7 @@ export default function AssetDetailModal({
                                         try {
                                           // Download image
                                           const link = document.createElement('a');
-                                          link.href = img.url || img.imageUrl;
+                                          link.href = img.imageUrl;
                                           link.download = `${asset.name}_${img.metadata?.angle || 'angle'}_${Date.now()}.jpg`;
                                           document.body.appendChild(link);
                                           link.click();
