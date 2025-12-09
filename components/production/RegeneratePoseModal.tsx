@@ -378,6 +378,56 @@ export function RegeneratePoseModal({
             )}
           </div>
 
+          {/* Outfit Selection */}
+          <div>
+            <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
+              Outfit (Optional)
+              <span className="ml-2 text-xs font-normal text-[#808080]">
+                - Select existing outfit or enter custom description
+              </span>
+            </label>
+            <div className="space-y-2">
+              <select
+                value={isCustomOutfit ? 'custom' : selectedOutfit}
+                onChange={(e) => {
+                  if (e.target.value === 'custom') {
+                    setIsCustomOutfit(true);
+                  } else {
+                    setIsCustomOutfit(false);
+                    setSelectedOutfit(e.target.value);
+                  }
+                }}
+                className="w-full px-4 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]/50 focus:border-[#DC143C]"
+              >
+                {outfitNames.length > 0 && outfitNames.map((outfit) => (
+                  <option key={outfit} value={outfit}>
+                    {outfit === 'default' ? 'Default Outfit' : outfit}
+                  </option>
+                ))}
+                {outfitNames.length === 0 && (
+                  <option value="default">Default Outfit</option>
+                )}
+                <option value="custom">Custom (Text Description)</option>
+              </select>
+              
+              {/* Custom outfit text input */}
+              {isCustomOutfit && (
+                <input
+                  type="text"
+                  value={customOutfitText}
+                  onChange={(e) => setCustomOutfitText(e.target.value)}
+                  placeholder="e.g., elegant red evening gown, casual jeans and t-shirt, formal business suit"
+                  className="w-full px-4 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]/50 focus:border-[#DC143C] placeholder:text-[#808080]"
+                />
+              )}
+            </div>
+            <p className="mt-2 text-xs text-[#808080]">
+              {isCustomOutfit 
+                ? 'Enter a text description of the outfit. This will be used in the generation prompt.'
+                : 'Select an existing outfit or choose "Custom" to enter a text description.'}
+            </p>
+          </div>
+
           {/* Clothing/Outfit Image Upload (only for models that support it) */}
           {supportsClothing && selectedModel && (
             <div>
