@@ -200,40 +200,45 @@ export function RegeneratePoseModal({
             const s3Response = await fetch(url, { method: 'POST', body: s3FormData });
             if (s3Response.ok) {
               console.log(`[RegeneratePoseModal] ✅ Successfully uploaded clothing image to S3: ${s3Key}`);
-              // Small delay to ensure S3 eventual consistency
-              await new Promise(resolve => setTimeout(resolve, 500));
               
-              // Get presigned download URL with retry logic
-              let downloadUrl: string | undefined;
-              for (let attempt = 0; attempt < 3; attempt++) {
-                if (attempt > 0) {
-                  console.log(`[RegeneratePoseModal] Retry ${attempt} getting presigned URL for: ${s3Key}`);
-                  await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
-                }
-                
-                const downloadResponse = await fetch(
-                  `/api/s3/get-download-url?s3Key=${encodeURIComponent(s3Key)}`,
-                  { headers: { 'Authorization': `Bearer ${token}` } }
+              // Step 3: Get presigned download URL immediately (same pattern as SceneBuilderPanel)
+              // Use POST /api/s3/download-url endpoint (not GET /api/s3/get-download-url)
+              const downloadUrlResponse = await fetch('/api/s3/download-url', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  s3Key,
+                  expiresIn: 3600 // 1 hour
+                }),
+              });
+              
+              if (!downloadUrlResponse.ok) {
+                const errorText = await downloadUrlResponse.text().catch(() => 'Unknown error');
+                console.error('[RegeneratePoseModal] Failed to generate download URL:', {
+                  status: downloadUrlResponse.status,
+                  statusText: downloadUrlResponse.statusText,
+                  error: errorText,
+                  s3Key
+                });
+                throw new Error(
+                  downloadUrlResponse.status === 401 
+                    ? 'Authentication failed. Please refresh and try again.'
+                    : downloadUrlResponse.status === 403
+                    ? 'Access denied. Please contact support if this persists.'
+                    : `Failed to generate image URL (${downloadUrlResponse.status}). Please try again.`
                 );
-                
-                if (downloadResponse.ok) {
-                  const result = await downloadResponse.json();
-                  downloadUrl = result.downloadUrl;
-                  console.log(`[RegeneratePoseModal] ✅ Got presigned URL for clothing image (attempt ${attempt + 1})`);
-                  break;
-                } else {
-                  const errorText = await downloadResponse.text();
-                  console.warn(`[RegeneratePoseModal] Failed to get presigned URL (attempt ${attempt + 1}): ${downloadResponse.status} - ${errorText}`);
-                  if (attempt === 2) {
-                    console.error(`[RegeneratePoseModal] ❌ Failed to get presigned URL after 3 attempts for: ${s3Key}`);
-                  }
-                }
               }
               
-              if (downloadUrl) {
-                presignedUrl = downloadUrl;
+              const downloadUrlData = await downloadUrlResponse.json();
+              
+              if (downloadUrlData.downloadUrl) {
+                presignedUrl = downloadUrlData.downloadUrl;
+                console.log(`[RegeneratePoseModal] ✅ Got presigned URL for clothing image`);
               } else {
-                console.error(`[RegeneratePoseModal] ❌ Could not get presigned URL for uploaded clothing image: ${s3Key}`);
+                console.error(`[RegeneratePoseModal] ❌ No download URL returned from API`);
               }
             } else {
               const errorText = await s3Response.text();
