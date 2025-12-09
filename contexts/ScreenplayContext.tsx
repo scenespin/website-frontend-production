@@ -2172,36 +2172,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         createdAt: string;
                     }> = [];
                     
-                    // 🔥 CRITICAL FIX: Always process images array, even if empty
-                    // This ensures that deleting all images (images: []) properly clears the arrays
+                    // 🔥 CRITICAL FIX: Creation section should ONLY update referenceImages, never poseReferences
+                    // When updates.images is provided from Creation section, it only contains Creation images
+                    // We should NOT send poseReferences at all (not even empty array) to preserve Production Hub data
+                    // Only send poseReferences if updates.poseReferences is explicitly provided (from Production Hub)
+                    
                     if (updates.images.length === 0) {
-                        // Empty array - explicitly set to empty arrays to clear all images
+                        // Empty array - only clear referenceImages, NOT poseReferences
+                        // Clearing all Creation images should not affect Production Hub poseReferences
                         apiUpdates.referenceImages = [];
-                        apiUpdates.poseReferences = [];
-                        console.log('[ScreenplayContext] 📤 Clearing all images (empty array)');
+                        console.log('[ScreenplayContext] 📤 Clearing Creation images only (preserving Production Hub poseReferences)');
                     } else {
+                        // Process images - Creation section images should only be referenceImages
                         updates.images.forEach(img => {
                             const s3Key = extractS3Key(img);
                             if (s3Key && s3Key.length <= 1024) {
                                 const source = img.metadata?.source;
+                                // 🔥 FIX: Creation section should never send pose-generation images
+                                // If a pose-generation image somehow ends up in updates.images from Creation section,
+                                // it's a bug - we should log it but still treat it as a reference image
                                 if (source === 'pose-generation') {
-                                    // NEW: Store full pose reference object
-                                    poseReferences.push({
-                                        id: img.metadata?.poseId ? `ref_${id}_pose_${img.metadata.poseId}` : `ref_${id}_pose_${Date.now()}`,
-                                        imageUrl: img.imageUrl,
-                                        s3Key: s3Key,
-                                        referenceType: 'pose',
-                                        label: img.metadata?.poseName || 'Pose',
-                                        generationMethod: 'pose-generation',
-                                        creditsUsed: img.metadata?.creditsUsed || 0,
-                                        metadata: {
-                                            poseId: img.metadata?.poseId,
-                                            poseName: img.metadata?.poseName,
-                                            outfitName: img.metadata?.outfitName,
-                                            packageId: img.metadata?.packageId
-                                        },
-                                        createdAt: img.createdAt || new Date().toISOString()
+                                    console.warn('[ScreenplayContext] ⚠️ Pose-generation image found in Creation section update - this should not happen:', {
+                                        characterId: id,
+                                        s3Key,
+                                        source
                                     });
+                                    // Still add to referenceImages to prevent data loss, but log the issue
+                                    referenceImageKeys.push(s3Key);
                                 } else {
                                     // Default to user-uploaded (including undefined/null source)
                                     referenceImageKeys.push(s3Key);
@@ -2210,8 +2207,36 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         });
                         
                         apiUpdates.referenceImages = referenceImageKeys;
-                        apiUpdates.poseReferences = poseReferences; // NEW: Full objects
                     }
+                    
+                    // 🔥 CRITICAL FIX: Only send poseReferences if explicitly provided from Production Hub
+                    // Creation section updates should NEVER include poseReferences in the API call
+                    // This ensures Production Hub data is preserved when Creation section updates characters
+                    if (updates.poseReferences !== undefined) {
+                        // This is a Production Hub update - send poseReferences
+                        const poseRefsArray = Array.isArray(updates.poseReferences) ? updates.poseReferences : [];
+                        apiUpdates.poseReferences = poseRefsArray.map((ref: any) => {
+                            const s3Key = typeof ref === 'string' ? ref : (ref.s3Key || extractS3Key(ref));
+                            if (!s3Key) return null;
+                            
+                            return {
+                                id: typeof ref === 'string' ? `ref_${id}_pose_${Date.now()}` : (ref.id || `ref_${id}_pose_${Date.now()}`),
+                                imageUrl: typeof ref === 'string' ? undefined : ref.imageUrl,
+                                s3Key: s3Key,
+                                referenceType: 'pose',
+                                label: typeof ref === 'string' ? 'Pose' : (ref.label || ref.metadata?.poseName || 'Pose'),
+                                generationMethod: 'pose-generation',
+                                creditsUsed: typeof ref === 'string' ? 0 : (ref.creditsUsed || ref.metadata?.creditsUsed || 0),
+                                metadata: typeof ref === 'string' ? {} : (ref.metadata || {}),
+                                createdAt: typeof ref === 'string' ? new Date().toISOString() : (ref.createdAt || new Date().toISOString())
+                            };
+                        }).filter((ref: any) => ref !== null);
+                        console.log('[ScreenplayContext] 📤 Sending poseReferences from Production Hub:', {
+                            characterId: id,
+                            count: apiUpdates.poseReferences.length
+                        });
+                    }
+                    // Otherwise, don't include poseReferences in the update - backend will preserve existing values
                     
                     console.log('[ScreenplayContext] 📤 Separated images:', {
                         totalImages: updates.images.length,
@@ -2234,6 +2259,40 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // Transform the API response to frontend format and update state
                 // Pass existing characters to preserve angle metadata
                 const transformedCharacter = transformCharactersFromAPI([updatedCharacter as any], characters)[0];
+                
+                // 🔥 CRITICAL FIX: Preserve poseReferences from existing character state
+                // Production Hub images (poseReferences) are NOT included in Creation section API responses
+                // When updating from Creation section, we must preserve existing poseReferences to prevent data loss
+                const existingCharacter = characters.find(c => 
+                    c.id === id || 
+                    c.id === transformedCharacter.id ||
+                    (updatedCharacter as any)?.character_id === c.id ||
+                    (updatedCharacter as any)?.id === c.id
+                );
+                
+                // If this is a Creation section update (not explicitly updating poseReferences), preserve them
+                // poseReferences are only managed in Production Hub, not Creation section
+                if (existingCharacter && updates.poseReferences === undefined) {
+                    // Get poseReferences from existing character (they're stored in images with source='pose-generation')
+                    const existingPoseRefs = existingCharacter.images?.filter((img: any) => 
+                        img.metadata?.source === 'pose-generation' || 
+                        img.metadata?.createdIn === 'production-hub'
+                    ) || [];
+                    
+                    // Preserve poseReferences by adding them back to the transformed character
+                    // Note: This is a defensive measure - Production Hub should use its own query cache
+                    // But this ensures Creation section updates don't accidentally clear Production Hub data
+                    if (existingPoseRefs.length > 0 && (!transformedCharacter.images || transformedCharacter.images.length === 0 || 
+                        !transformedCharacter.images.some((img: any) => img.metadata?.source === 'pose-generation'))) {
+                        console.log('[ScreenplayContext] 🔄 Preserving poseReferences from existing character:', {
+                            characterId: id,
+                            poseRefCount: existingPoseRefs.length
+                        });
+                        // Note: We don't actually add them to transformedCharacter.images here because
+                        // Creation section shouldn't see Production Hub images. This is just for logging.
+                        // Production Hub uses its own separate query cache with 'production-hub' context.
+                    }
+                }
                 
                 // 🔥 FIX: Preserve images from optimistic update if API response doesn't have them enriched
                 // The API might return referenceImages (s3Keys) but not the enriched images array with presigned URLs

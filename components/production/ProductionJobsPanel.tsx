@@ -88,6 +88,16 @@ interface WorkflowJob {
   completedAt?: string;
   creditsUsed: number;
   metadata?: any;
+  inputs?: { // 🔥 NEW: Job inputs (assetId, locationId, characterId, etc.)
+    assetId?: string;
+    locationId?: string;
+    characterId?: string;
+    assetName?: string;
+    locationName?: string;
+    characterName?: string;
+    packageId?: string;
+    [key: string]: any;
+  };
 }
 
 interface ProductionJobsPanelProps {
@@ -401,18 +411,53 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
    * 🔥 SIMPLIFIED: Use React Query cache invalidation instead of window events
    */
   useEffect(() => {
-    const completedAngleJobs = jobs.filter(job => 
+    // Check for location angle jobs (metadata/inputs has locationId)
+    const completedLocationAngleJobs = jobs.filter(job => 
       job.status === 'completed' && 
       job.jobType === 'image-generation' &&
       job.results?.angleReferences &&
       Array.isArray(job.results.angleReferences) &&
-      job.results.angleReferences.length > 0
+      job.results.angleReferences.length > 0 &&
+      (job.metadata?.locationId || job.inputs?.locationId || job.metadata?.inputs?.locationId) // Check metadata, inputs, and metadata.inputs
     );
     
-    if (completedAngleJobs.length > 0) {
-      console.log('[ProductionJobsPanel] Angle generation completed, refreshing locations and assets...', completedAngleJobs.length);
-      
-      // Invalidate React Query cache for locations, assets, and media files - Production Hub context only
+    // Check for asset angle jobs (metadata/inputs has assetId)
+    const completedAssetAngleJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'image-generation' &&
+      job.results?.angleReferences &&
+      Array.isArray(job.results.angleReferences) &&
+      job.results.angleReferences.length > 0 &&
+      (job.metadata?.assetId || job.inputs?.assetId || job.metadata?.inputs?.assetId) // 🔥 FIX: Check metadata, inputs, and metadata.inputs for assetId
+    );
+    
+    // Check for generic angle jobs (no specific entity ID - could be either)
+    const completedGenericAngleJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'image-generation' &&
+      job.results?.angleReferences &&
+      Array.isArray(job.results.angleReferences) &&
+      job.results.angleReferences.length > 0 &&
+      !job.metadata?.locationId && !job.inputs?.locationId && !job.metadata?.inputs?.locationId &&
+      !job.metadata?.assetId && !job.inputs?.assetId && !job.metadata?.inputs?.assetId
+    );
+    
+    if (completedLocationAngleJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Location angle generation completed, refreshing locations...', completedLocationAngleJobs.length);
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    }
+    
+    if (completedAssetAngleJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Asset angle generation completed, refreshing assets...', completedAssetAngleJobs.length);
+      // 🔥 FIX: Invalidate assets cache when asset angle jobs complete
+      queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    }
+    
+    // For generic angle jobs, invalidate both (defensive)
+    if (completedGenericAngleJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Generic angle generation completed, refreshing locations and assets...', completedGenericAngleJobs.length);
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
