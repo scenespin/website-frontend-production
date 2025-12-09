@@ -49,6 +49,7 @@ import {
   useBulkPresignedUrls,
   useMediaFolderTree
 } from '@/hooks/useMediaLibrary';
+import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useQueryClient } from '@tanstack/react-query';
 import { Folder, FolderOpen } from 'lucide-react';
 
@@ -218,6 +219,7 @@ export default function MediaLibrary({
   const [filterType, setFilterType] = useState<string>('all');
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   // Removed useDropdownCoordinator - using uncontrolled state like MusicLibrary
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
@@ -972,11 +974,20 @@ export default function MediaLibrary({
         return;
       }
       
-      // Update file with preview URL
-      setPreviewFile({
-        ...file,
-        fileUrl: previewUrl
-      });
+      // For images, use ImageViewer with navigation
+      if (file.fileType === 'image') {
+        const imageFiles = filteredFiles.filter(f => f.fileType === 'image');
+        const index = imageFiles.findIndex(f => f.id === file.id);
+        if (index >= 0) {
+          setPreviewImageIndex(index);
+        }
+      } else {
+        // For non-images, use the old modal
+        setPreviewFile({
+          ...file,
+          fileUrl: previewUrl
+        });
+      }
     } catch (error) {
       console.error('[MediaLibrary] Error getting preview URL:', error);
       toast.error('Failed to get preview URL');
@@ -2017,7 +2028,47 @@ export default function MediaLibrary({
         </div>
       </div>
 
-      {/* Preview Modal */}
+      {/* Image Viewer - For images only */}
+      {previewImageIndex !== null && (() => {
+        const imageFiles = filteredFiles.filter(f => f.fileType === 'image');
+        return (
+          <ImageViewer
+            images={imageFiles.map((file): ImageItem => ({
+              id: file.id,
+              url: file.fileUrl || file.thumbnailUrl || '',
+              label: file.fileName,
+              s3Key: file.s3Key,
+              metadata: { fileType: file.fileType, fileSize: file.fileSize }
+            }))}
+            currentIndex={previewImageIndex}
+            isOpen={previewImageIndex !== null}
+            onClose={() => setPreviewImageIndex(null)}
+            onDownload={async (image) => {
+              const file = imageFiles[previewImageIndex];
+              if (file) {
+                await handleDownloadFile(file);
+              }
+            }}
+            onDelete={async (image) => {
+              const file = imageFiles.find(f => f.id === image.id);
+              if (file && confirm('Are you sure you want to delete this file?')) {
+                await deleteFile(file.id);
+                // If we deleted the current image, close viewer or move to next
+                if (previewImageIndex >= imageFiles.length - 1) {
+                  if (previewImageIndex > 0) {
+                    setPreviewImageIndex(previewImageIndex - 1);
+                  } else {
+                    setPreviewImageIndex(null);
+                  }
+                }
+              }
+            }}
+            groupName={selectedFolderId ? `Folder: ${selectedFolderId}` : undefined}
+          />
+        );
+      })()}
+      
+      {/* Preview Modal - For videos, audio, and other file types */}
       {previewFile && (
         <div 
           className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"

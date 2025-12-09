@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ImageViewer, type ImageItem } from './ImageViewer';
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export default function AssetDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [showAngleModal, setShowAngleModal] = useState(false);
   const [isGeneratingAngles, setIsGeneratingAngles] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{url: string; label: string; s3Key?: string} | null>(null);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -551,7 +552,14 @@ export default function AssetDetailModal({
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setPreviewImage({ url: img.imageUrl, label: img.label, s3Key: img.s3Key });
+                                        // Find index in angleImageObjects (all angle images)
+                                        const allAngleImages = [...userImages, ...angleImageObjects];
+                                        const index = allAngleImages.findIndex(aImg => 
+                                          aImg.id === img.id || aImg.s3Key === img.s3Key
+                                        );
+                                        if (index >= 0) {
+                                          setPreviewImageIndex(index);
+                                        }
                                       }}
                                     >
                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -729,75 +737,33 @@ export default function AssetDetailModal({
       />
     )}
     
-    {/* Image Preview Modal */}
-    {previewImage && (
-      <div 
-        className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
-        onClick={() => setPreviewImage(null)}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            setPreviewImage(null);
-          }
-        }}
-        tabIndex={-1}
-      >
-        <div 
-          className="bg-[#0A0A0A] rounded-lg border border-[#3F3F46] max-w-4xl w-full max-h-[90vh] overflow-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="bg-[#141414] p-4 md:p-5 border-b border-[#3F3F46] flex items-center justify-between">
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-[#FFFFFF]">{previewImage.label}</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      // Generate filename from label
-                      const filename = `${previewImage.label.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
-                      await downloadImageAsBlob(previewImage.url, filename, previewImage.s3Key);
-                    } catch (error: any) {
-                      toast.error('Failed to download image');
-                    }
-                  }}
-                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPreviewImage(null);
-                }}
-                className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                aria-label="Close preview"
-              >
-                <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-4 md:p-5">
-            <div className="relative">
-              <img 
-                src={previewImage.url} 
-                alt={previewImage.label}
-                className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto bg-[#0A0A0A]"
-                onError={(e) => {
-                  console.error('[AssetDetailModal] Image failed to load:', previewImage.url);
-                  toast.error('Image failed to load. The file may be corrupted or the URL expired.');
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+    {/* Image Viewer */}
+    {previewImageIndex !== null && (() => {
+      const allAngleImages = [...userImages, ...angleImageObjects];
+      return (
+        <ImageViewer
+          images={allAngleImages.map((img): ImageItem => ({
+            id: img.id,
+            url: img.imageUrl,
+            label: img.label,
+            s3Key: img.s3Key,
+            metadata: img.metadata || { angle: img.angle }
+          }))}
+          currentIndex={previewImageIndex}
+          isOpen={previewImageIndex !== null}
+          onClose={() => setPreviewImageIndex(null)}
+          onDownload={async (image) => {
+            try {
+              const angle = image.metadata?.angle || 'angle';
+              const filename = `${asset.name}_${angle.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
+              await downloadImageAsBlob(image.url, filename, image.s3Key);
+            } catch (error: any) {
+              toast.error('Failed to download image');
+            }
+          }}
+        />
+      );
+    })()}
   </>
   );
 }

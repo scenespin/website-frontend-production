@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
+import { ImageViewer, type ImageItem } from './ImageViewer';
 // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
 
 interface CharacterDetailModalProps {
@@ -83,7 +84,8 @@ export function CharacterDetailModal({
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{url: string; label: string; s3Key?: string} | null>(null);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
+  const [previewGroupName, setPreviewGroupName] = useState<string | null>(null);
   // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
@@ -1001,7 +1003,26 @@ export function CharacterDetailModal({
                                       className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setPreviewImage({ url: img.imageUrl, label: img.label, s3Key: img.s3Key });
+                                        // Find which outfit group this image belongs to
+                                        const outfitName = img.outfitName || (img as any).metadata?.outfitName || 'default';
+                                        const groupImages = posesByOutfit[outfitName] || [];
+                                        const groupIndex = groupImages.findIndex(gImg => 
+                                          gImg.id === img.id || gImg.s3Key === img.s3Key
+                                        );
+                                        
+                                        if (groupIndex >= 0) {
+                                          setPreviewGroupName(outfitName);
+                                          setPreviewImageIndex(groupIndex);
+                                        } else {
+                                          // Fallback: find in allImages
+                                          const allIndex = allImages.findIndex(aImg => 
+                                            aImg.id === img.id || aImg.s3Key === img.s3Key
+                                          );
+                                          if (allIndex >= 0) {
+                                            setPreviewGroupName(null);
+                                            setPreviewImageIndex(allIndex);
+                                          }
+                                        }
                                       }}
                                     >
                                       <Eye className="w-4 h-4 mr-2 text-[#808080]" />
@@ -1222,74 +1243,55 @@ export function CharacterDetailModal({
       
       {/* 🔥 REMOVED: Individual pose regeneration modal - users must create pose packages (minimum 3 poses) */}
       
-      {/* Image Preview Modal */}
-      {previewImage && (
-        <div 
-          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
-          onClick={() => setPreviewImage(null)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setPreviewImage(null);
+      {/* Image Viewer */}
+      {previewImageIndex !== null && (
+        <ImageViewer
+          images={(() => {
+            // Get images for the current group (outfit)
+            if (previewGroupName && posesByOutfit[previewGroupName]) {
+              return posesByOutfit[previewGroupName].map((img): ImageItem => ({
+                id: img.id || img.s3Key || `img_${Date.now()}`,
+                url: img.imageUrl,
+                label: img.label,
+                s3Key: img.s3Key,
+                metadata: img.metadata || { outfitName: img.outfitName, poseId: img.poseId }
+              }));
+            }
+            // Fallback to all images
+            return allImages.map((img): ImageItem => ({
+              id: img.id,
+              url: img.imageUrl,
+              label: img.label,
+              s3Key: img.s3Key,
+              metadata: (img as any).metadata
+            }));
+          })()}
+          allImages={allImages.map((img): ImageItem => ({
+            id: img.id,
+            url: img.imageUrl,
+            label: img.label,
+            s3Key: img.s3Key,
+            metadata: (img as any).metadata
+          }))}
+          currentIndex={previewImageIndex}
+          isOpen={previewImageIndex !== null}
+          onClose={() => {
+            setPreviewImageIndex(null);
+            setPreviewGroupName(null);
+          }}
+          onDownload={async (image) => {
+            try {
+              const poseName = image.metadata?.poseId || image.label || 'pose';
+              const outfitName = image.metadata?.outfitName || '';
+              const outfitPart = outfitName ? `_${outfitName.replace(/[^a-zA-Z0-9]/g, '-')}` : '';
+              const filename = `${character.name}_${poseName.replace(/[^a-zA-Z0-9]/g, '-')}${outfitPart}_${Date.now()}.jpg`;
+              await downloadImageAsBlob(image.url, filename, image.s3Key);
+            } catch (error: any) {
+              toast.error('Failed to download image');
             }
           }}
-          tabIndex={-1}
-        >
-          <div 
-            className="bg-[#0A0A0A] rounded-lg border border-[#3F3F46] max-w-4xl w-full max-h-[90vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="bg-[#141414] p-4 md:p-5 border-b border-[#3F3F46] flex items-center justify-between">
-              <div>
-                <h3 className="text-xl md:text-2xl font-bold text-[#FFFFFF]">{previewImage.label}</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      // Generate filename from label
-                      const filename = `${previewImage.label.replace(/[^a-zA-Z0-9]/g, '-')}_${Date.now()}.jpg`;
-                      await downloadImageAsBlob(previewImage.url, filename, previewImage.s3Key);
-                    } catch (error: any) {
-                      toast.error('Failed to download image');
-                    }
-                  }}
-                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewImage(null);
-                  }}
-                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
-                  aria-label="Close preview"
-                >
-                  <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-4 md:p-5">
-              <div className="relative">
-                <img 
-                  src={previewImage.url} 
-                  alt={previewImage.label}
-                  className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto bg-[#0A0A0A]"
-                  onError={(e) => {
-                    console.error('[CharacterDetailModal] Image failed to load:', previewImage.url);
-                    toast.error('Image failed to load. The file may be corrupted or the URL expired.');
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+          groupName={previewGroupName || undefined}
+        />
       )}
     </AnimatePresence>
   );
