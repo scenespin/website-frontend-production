@@ -36,8 +36,6 @@ interface RegeneratePoseModalProps {
   qualityTier?: 'standard' | 'high-quality';
   screenplayId?: string;
   characterId?: string;
-  outfitNames?: string[]; // Available outfit names from character
-  currentOutfitName?: string; // Current outfit name for this pose
 }
 
 export function RegeneratePoseModal({
@@ -61,9 +59,7 @@ export function RegeneratePoseModal({
   const [isUploadingClothing, setIsUploadingClothing] = useState(false);
   const clothingFileInputRef = useRef<HTMLInputElement>(null);
   
-  // Outfit selection state
-  const [selectedOutfit, setSelectedOutfit] = useState<string>('default');
-  const [isCustomOutfit, setIsCustomOutfit] = useState(false);
+  // Outfit selection state - simple text input only
   const [customOutfitText, setCustomOutfitText] = useState<string>('');
 
   // Load available models
@@ -131,14 +127,9 @@ export function RegeneratePoseModal({
   useEffect(() => {
     if (!isOpen) {
       setClothingImages([]);
-      setSelectedOutfit(currentOutfitName || 'default');
-      setIsCustomOutfit(false);
       setCustomOutfitText('');
-    } else if (currentOutfitName) {
-      // Set initial outfit when modal opens
-      setSelectedOutfit(currentOutfitName);
     }
-  }, [isOpen, currentOutfitName]);
+  }, [isOpen]);
 
   const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -279,9 +270,9 @@ export function RegeneratePoseModal({
         }
       }
 
-      // Determine outfit name and typical clothing text
-      const finalOutfitName = isCustomOutfit ? undefined : selectedOutfit;
-      const finalTypicalClothing = isCustomOutfit ? customOutfitText : undefined;
+      // Only pass outfit if user explicitly entered text (empty string means use original)
+      const finalTypicalClothing = customOutfitText.trim() || undefined;
+      const finalOutfitName = undefined; // Let backend use original outfit from pose metadata
       
       await onRegenerate(selectedModelId, selectedQuality, clothingReferences, finalTypicalClothing, finalOutfitName);
       toast.success('Pose regeneration started');
@@ -378,53 +369,23 @@ export function RegeneratePoseModal({
             )}
           </div>
 
-          {/* Outfit Selection */}
+          {/* Outfit Selection - Simple text input (regeneration preserves original outfit unless changed) */}
           <div>
             <label className="block text-sm font-medium text-[#B3B3B3] mb-2">
-              Outfit (Optional)
+              Outfit Override (Optional)
               <span className="ml-2 text-xs font-normal text-[#808080]">
-                - Select existing outfit or enter custom description
+                - Leave empty to keep original outfit, or enter new description
               </span>
             </label>
-            <div className="space-y-2">
-              <select
-                value={isCustomOutfit ? 'custom' : selectedOutfit}
-                onChange={(e) => {
-                  if (e.target.value === 'custom') {
-                    setIsCustomOutfit(true);
-                  } else {
-                    setIsCustomOutfit(false);
-                    setSelectedOutfit(e.target.value);
-                  }
-                }}
-                className="w-full px-4 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]/50 focus:border-[#DC143C]"
-              >
-                {outfitNames.length > 0 && outfitNames.map((outfit) => (
-                  <option key={outfit} value={outfit}>
-                    {outfit === 'default' ? 'Default Outfit' : outfit}
-                  </option>
-                ))}
-                {outfitNames.length === 0 && (
-                  <option value="default">Default Outfit</option>
-                )}
-                <option value="custom">Custom (Text Description)</option>
-              </select>
-              
-              {/* Custom outfit text input */}
-              {isCustomOutfit && (
-                <input
-                  type="text"
-                  value={customOutfitText}
-                  onChange={(e) => setCustomOutfitText(e.target.value)}
-                  placeholder="e.g., elegant red evening gown, casual jeans and t-shirt, formal business suit"
-                  className="w-full px-4 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]/50 focus:border-[#DC143C] placeholder:text-[#808080]"
-                />
-              )}
-            </div>
+            <input
+              type="text"
+              value={customOutfitText}
+              onChange={(e) => setCustomOutfitText(e.target.value)}
+              placeholder="Leave empty to regenerate with original outfit, or enter new outfit description..."
+              className="w-full px-4 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C]/50 focus:border-[#DC143C] placeholder:text-[#808080]"
+            />
             <p className="mt-2 text-xs text-[#808080]">
-              {isCustomOutfit 
-                ? 'Enter a text description of the outfit. This will be used in the generation prompt.'
-                : 'Select an existing outfit or choose "Custom" to enter a text description.'}
+              By default, regeneration uses the same outfit as the original pose. Enter text here only if you want to change it.
             </p>
           </div>
 

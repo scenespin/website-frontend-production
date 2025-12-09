@@ -167,6 +167,8 @@ export function CharacterDetailModal({
     outfitName: string;
     index: number;
     poseId?: string; // Pose definition ID for regeneration
+    isRegenerated?: boolean; // 🔥 NEW: Track if this is a regenerated pose
+    regeneratedFrom?: string; // 🔥 NEW: Track which pose this regenerated from (s3Key)
     metadata?: any; // Preserve metadata for deletion logic
   };
 
@@ -190,6 +192,10 @@ export function CharacterDetailModal({
     // Extract poseId from ref metadata (backend saves this)
     const poseId = refObj?.metadata?.poseId;
     
+    // Check if this is a regenerated pose
+    const isRegenerated = refObj?.metadata?.isRegenerated || false;
+    const regeneratedFrom = refObj?.metadata?.regeneratedFrom;
+    
     return {
       id: refId,
       imageUrl: refImageUrl, // Backend already provides presigned URL
@@ -200,6 +206,8 @@ export function CharacterDetailModal({
       outfitName: outfitName, // Store outfit name for grouping
       index: userReferences.length + idx, // Set index for display
       poseId: poseId, // Store poseId for regeneration
+      isRegenerated: isRegenerated, // 🔥 NEW: Track if this is a regenerated pose
+      regeneratedFrom: regeneratedFrom, // 🔥 NEW: Track which pose this regenerated from
       metadata: refObj?.metadata || {} // Preserve all metadata for deletion logic
     };
   });
@@ -1152,15 +1160,13 @@ export function CharacterDetailModal({
             throw new Error(error.message || 'Failed to regenerate pose');
           }
           
-          toast.success('Pose regeneration started. Check the Jobs panel for progress.');
+          // Don't show toast here - job completion will show it
           queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
           await onUpdate(character.id, {});
         }}
         screenplayId={screenplayId}
         characterId={character.id}
         poseName={regeneratingPose?.poseId ? `Pose: ${regeneratingPose.poseId}` : 'this pose'}
-        outfitNames={outfitNames}
-        currentOutfitName={regeneratingPose?.outfitName}
       />
     </AnimatePresence>
   );
