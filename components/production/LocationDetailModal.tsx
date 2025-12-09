@@ -436,7 +436,7 @@ export function LocationDetailModal({
                                         Regenerate...
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
-                                        className="text-white hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                        className="text-red-500 hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           if (!confirm('Delete this angle image? This action cannot be undone.')) {
@@ -465,7 +465,6 @@ export function LocationDetailModal({
                                             toast.error(`Failed to delete image: ${error.message}`);
                                           }
                                         }}
-                                        className="text-red-500"
                                       >
                                         <Trash2 className="w-4 h-4 mr-2" />
                                         Delete
