@@ -199,15 +199,45 @@ export function RegeneratePoseModal({
 
             const s3Response = await fetch(url, { method: 'POST', body: s3FormData });
             if (s3Response.ok) {
-              // Get presigned download URL
-              const downloadResponse = await fetch(
-                `/api/s3/get-download-url?s3Key=${encodeURIComponent(s3Key)}`,
-                { headers: { 'Authorization': `Bearer ${token}` } }
-              );
-              if (downloadResponse.ok) {
-                const { downloadUrl } = await downloadResponse.json();
-                presignedUrl = downloadUrl;
+              console.log(`[RegeneratePoseModal] ✅ Successfully uploaded clothing image to S3: ${s3Key}`);
+              // Small delay to ensure S3 eventual consistency
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Get presigned download URL with retry logic
+              let downloadUrl: string | undefined;
+              for (let attempt = 0; attempt < 3; attempt++) {
+                if (attempt > 0) {
+                  console.log(`[RegeneratePoseModal] Retry ${attempt} getting presigned URL for: ${s3Key}`);
+                  await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+                }
+                
+                const downloadResponse = await fetch(
+                  `/api/s3/get-download-url?s3Key=${encodeURIComponent(s3Key)}`,
+                  { headers: { 'Authorization': `Bearer ${token}` } }
+                );
+                
+                if (downloadResponse.ok) {
+                  const result = await downloadResponse.json();
+                  downloadUrl = result.downloadUrl;
+                  console.log(`[RegeneratePoseModal] ✅ Got presigned URL for clothing image (attempt ${attempt + 1})`);
+                  break;
+                } else {
+                  const errorText = await downloadResponse.text();
+                  console.warn(`[RegeneratePoseModal] Failed to get presigned URL (attempt ${attempt + 1}): ${downloadResponse.status} - ${errorText}`);
+                  if (attempt === 2) {
+                    console.error(`[RegeneratePoseModal] ❌ Failed to get presigned URL after 3 attempts for: ${s3Key}`);
+                  }
+                }
               }
+              
+              if (downloadUrl) {
+                presignedUrl = downloadUrl;
+              } else {
+                console.error(`[RegeneratePoseModal] ❌ Could not get presigned URL for uploaded clothing image: ${s3Key}`);
+              }
+            } else {
+              const errorText = await s3Response.text();
+              console.error(`[RegeneratePoseModal] ❌ Failed to upload clothing image to S3: ${s3Response.status} - ${errorText}`);
             }
           }
         }
