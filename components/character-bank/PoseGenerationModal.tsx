@@ -500,7 +500,7 @@ export default function PoseGenerationModal({
                       showDefaultOption={true}
                     />
                     <p className="text-xs text-base-content/50 mt-2">
-                      All poses in the package will be generated wearing the selected outfit
+                      All poses in the package will be generated wearing the selected outfit. If you choose "Custom...", you can provide a detailed description that will guide the character's appearance, style, and outfit.
                     </p>
                   </div>
                   
