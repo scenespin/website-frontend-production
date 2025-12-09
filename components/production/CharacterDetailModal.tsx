@@ -854,6 +854,15 @@ export function CharacterDetailModal({
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {(selectedOutfit ? posesByOutfit[selectedOutfit] || [] : poseReferences).map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
+                          // Debug logging for poseId
+                          if (img.poseId || (img as any).metadata?.poseId) {
+                            console.log('[CharacterDetailModal] Pose has poseId:', {
+                              imgId: img.id,
+                              poseId: img.poseId || (img as any).metadata?.poseId,
+                              s3Key: img.s3Key,
+                              metadata: (img as any).metadata
+                            });
+                          }
                           return (
                             <div
                               key={img.id}

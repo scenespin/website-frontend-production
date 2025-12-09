@@ -108,11 +108,20 @@ export default function PoseGenerationModal({
 
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
-        setModels(availableModels.filter((m: any) => m.enabled));
+        const enabledModels = availableModels.filter((m: any) => m.enabled);
+        setModels(enabledModels);
+        
+        // Debug logging
+        console.log('[PoseGenerationModal] Loaded models:', enabledModels.map(m => ({
+          id: m.id,
+          name: m.name,
+          supportsClothing: m.supportsClothingImages
+        })));
         
         // Auto-select first model if providerId is empty (e.g., after quality change)
-        if (availableModels.length > 0 && !providerId) {
-          setProviderId(availableModels[0].id);
+        if (enabledModels.length > 0 && !providerId) {
+          console.log('[PoseGenerationModal] Auto-selecting model:', enabledModels[0].id);
+          setProviderId(enabledModels[0].id);
         }
       } catch (error: any) {
         console.error('[PoseGenerationModal] Failed to load models:', error);
@@ -135,9 +144,27 @@ export default function PoseGenerationModal({
 
   // Get selected model for easier access (useMemo to ensure it updates when models/providerId changes)
   const selectedModel = useMemo(() => {
-    return models.find(m => m.id === providerId);
+    const model = models.find(m => m.id === providerId);
+    console.log('[PoseGenerationModal] Selected model:', {
+      providerId,
+      model: model ? { id: model.id, name: model.name, supportsClothing: model.supportsClothingImages } : null,
+      modelsCount: models.length
+    });
+    return model;
   }, [models, providerId]);
   const supportsClothing = selectedModel?.supportsClothingImages ?? false;
+  
+  // Debug logging for clothing support
+  useEffect(() => {
+    if (isOpen && selectedModel) {
+      console.log('[PoseGenerationModal] Clothing support check:', {
+        modelId: selectedModel.id,
+        modelName: selectedModel.name,
+        supportsClothingImages: selectedModel.supportsClothingImages,
+        supportsClothing: supportsClothing
+      });
+    }
+  }, [isOpen, selectedModel, supportsClothing]);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
