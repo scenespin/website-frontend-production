@@ -169,13 +169,13 @@ export function RegeneratePoseModal({
         let presignedUrl: string | undefined;
 
         if (screenplayId && characterId) {
+          // Use same endpoint as annotation area (SceneBuilderPanel) - it's a general upload endpoint
           const presignedResponse = await fetch(
-            `/api/characters/upload/get-presigned-url?` +
+            `/api/video/upload/get-presigned-url?` +
             `fileName=${encodeURIComponent(file.name)}` +
             `&fileType=${encodeURIComponent(file.type)}` +
             `&fileSize=${file.size}` +
-            `&screenplayId=${encodeURIComponent(screenplayId)}` +
-            `&characterId=${encodeURIComponent(characterId)}`,
+            `&projectId=${encodeURIComponent(screenplayId)}`,
             {
               headers: {
                 'Authorization': `Bearer ${token}`,
