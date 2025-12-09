@@ -5,6 +5,8 @@
  * choose where to save the file.
  * 
  * Options: Google Drive, Dropbox, Download to device, or Keep temporary (7 days)
+ * 
+ * Phase 1: Cinema Theme Redesign - Compact layout, dark theme, no scrolling on large screens
  */
 
 'use client';
@@ -13,6 +15,7 @@ import { useState } from 'react';
 import { Cloud, Download, Clock, Check, Loader2, X, Image, Video, Film } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useStorageConnections } from '@/hooks/useStorageConnections';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type AssetType = 'image' | 'video' | 'composition' | 'audio';
 type StorageLocation = 'google-drive' | 'dropbox' | 'download' | 'temp';
@@ -181,11 +184,13 @@ export function StorageDecisionModal({
   const getAssetIcon = () => {
     switch (assetType) {
       case 'image':
-        return <Image className="w-8 h-8 text-blue-600" />;
+        return <Image className="w-6 h-6 text-[#4285F4]" />;
       case 'video':
-        return <Video className="w-8 h-8 text-purple-600" />;
+        return <Video className="w-6 h-6 text-[#9C27B0]" />;
       case 'composition':
-        return <Film className="w-8 h-8 text-pink-600" />;
+        return <Film className="w-6 h-6 text-[#E91E63]" />;
+      default:
+        return <Image className="w-6 h-6 text-[#4285F4]" />;
     }
   };
 
@@ -194,187 +199,267 @@ export function StorageDecisionModal({
       case 'image': return 'Image';
       case 'video': return 'Video';
       case 'composition': return 'Composition';
+      case 'audio': return 'Audio';
+      default: return 'Asset';
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-base-100 rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-base-content">Save Your {getAssetTypeLabel()}</h2>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="text-base-content/60 hover:text-base-content/40 transition-colors"
-            disabled={isSaving}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Asset Preview */}
-        <div className="bg-base-100 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-              {getAssetIcon()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-base-content truncate">
-                {assetName}
-              </h3>
-              <p className="text-sm text-base-content/40">
-                {getAssetTypeLabel()} • {formatFileSize(fileSize)}
-              </p>
-            </div>
-          </div>
+            className="fixed inset-0 bg-[#0A0A0A]/95 backdrop-blur-sm z-50"
+          />
           
-          {/* Preview thumbnail */}
-          {(assetType === 'image' || assetType === 'video' || assetType === 'composition') && s3TempUrl && (
-            <div className="mt-3">
-              {assetType === 'image' ? (
-                <img 
-                  src={s3TempUrl} 
-                  alt={assetName}
-                  className="w-full rounded-lg max-h-48 object-cover"
-                />
-              ) : (
-                <video 
-                  src={s3TempUrl}
-                  className="w-full rounded-lg max-h-48 object-cover"
-                  controls={false}
-                  muted
-                  playsInline
-                />
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Success Message */}
-        {saveSuccess && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
-            <div>
-              <p className="font-medium text-green-900">Saved Successfully!</p>
-              <p className="text-sm text-green-700">
-                Your {assetType} has been saved to {selectedStorage === 'google-drive' ? 'Google Drive' : 'Dropbox'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        )}
-
-        {/* Storage Options */}
-        {!saveSuccess && (
-          <div className="space-y-3">
-            <p className="text-sm text-base-content/40 mb-4">
-              Where would you like to save this {assetType}?
-            </p>
-
-            {/* Google Drive */}
-            <button
-              onClick={() => handleSaveToCloud('google-drive')}
-              disabled={isSaving || connectionsLoading || !googleDrive}
-              className={`w-full flex items-center gap-3 p-4 border-2 rounded-lg transition-all group ${
-                googleDrive
-                  ? 'border-base-content/20 hover:border-blue-500 hover:bg-blue-50'
-                  : 'border-base-content/20 bg-base-100 cursor-not-allowed opacity-60'
-              }`}
-            >
-              <Cloud className="w-5 h-5 text-blue-600" />
-              <div className="flex-1 text-left">
-                <div className="font-medium text-base-content group-hover:text-blue-900">
-                  Save to Google Drive
-                </div>
-                <div className="text-sm text-base-content/40">
-                  {googleDrive ? 'Free permanent storage' : 'Not connected - Click to connect'}
-                </div>
-              </div>
-              {isSaving && selectedStorage === 'google-drive' && (
-                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-              )}
-            </button>
-
-            {/* Dropbox */}
-            <button
-              onClick={() => handleSaveToCloud('dropbox')}
-              disabled={isSaving || connectionsLoading || !dropbox}
-              className={`w-full flex items-center gap-3 p-4 border-2 rounded-lg transition-all group ${
-                dropbox
-                  ? 'border-base-content/20 hover:border-indigo-500 hover:bg-indigo-50'
-                  : 'border-base-content/20 bg-base-100 cursor-not-allowed opacity-60'
-              }`}
-            >
-              <Cloud className="w-5 h-5 text-indigo-600" />
-              <div className="flex-1 text-left">
-                <div className="font-medium text-base-content group-hover:text-indigo-900">
-                  Save to Dropbox
-                </div>
-                <div className="text-sm text-base-content/40">
-                  {dropbox ? 'Free permanent storage' : 'Not connected - Click to connect'}
-                </div>
-              </div>
-              {isSaving && selectedStorage === 'dropbox' && (
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-              )}
-            </button>
-
-            {/* Download */}
-            <button
-              onClick={handleDownload}
-              disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              <Download className="w-5 h-5 text-green-600" />
-              <div className="flex-1 text-left">
-                <div className="font-medium text-base-content group-hover:text-green-900">
-                  Download to Device
-                </div>
-                <div className="text-sm text-base-content/40">
-                  Save to your computer
-                </div>
-              </div>
-              {isSaving && selectedStorage === 'download' && (
-                <Loader2 className="w-5 h-5 animate-spin text-green-600" />
-              )}
-            </button>
-
-            {/* Keep Temporary */}
-            <button
-              onClick={handleKeepTemp}
-              disabled={isSaving}
-              className="w-full flex items-center gap-3 p-4 border-2 border-base-content/20 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              <Clock className="w-5 h-5 text-orange-600" />
-              <div className="flex-1 text-left">
-                <div className="font-medium text-base-content group-hover:text-orange-900">
-                  Keep in Temporary Storage
-                </div>
-                <div className="text-sm text-base-content/40">
-                  Auto-deletes after 7 days
-                </div>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {/* Close Button (when success) */}
-        {saveSuccess && (
-          <button
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
             onClick={onClose}
-            className="w-full mt-4 px-4 py-2 bg-green-600 text-base-content rounded-lg hover:bg-green-700 transition-colors"
           >
-            Close
-          </button>
-        )}
-      </div>
-    </div>
+            <div 
+              className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex-shrink-0 px-6 py-4 border-b border-[#3F3F46] flex items-center justify-between bg-[#141414]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[#1F1F1F] rounded-lg border border-[#3F3F46]">
+                    {getAssetIcon()}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#FFFFFF]">Save Your {getAssetTypeLabel()}</h2>
+                    <p className="text-sm text-[#808080] mt-0.5">
+                      Choose where to store this file
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors text-[#808080] hover:text-[#FFFFFF]"
+                  disabled={isSaving}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6">
+                  {/* Asset Preview */}
+                  <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-4 mb-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-[#FFFFFF] truncate">
+                          {assetName}
+                        </h3>
+                        <p className="text-sm text-[#808080]">
+                          {getAssetTypeLabel()} • {formatFileSize(fileSize)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Preview thumbnail */}
+                    {(assetType === 'image' || assetType === 'video' || assetType === 'composition') && s3TempUrl && (
+                      <div className="mt-3 rounded-lg overflow-hidden border border-[#3F3F46]">
+                        {assetType === 'image' ? (
+                          <img 
+                            src={s3TempUrl} 
+                            alt={assetName}
+                            className="w-full h-32 object-cover"
+                          />
+                        ) : (
+                          <video 
+                            src={s3TempUrl}
+                            className="w-full h-32 object-cover"
+                            controls={false}
+                            muted
+                            playsInline
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Success Message */}
+                  {saveSuccess && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-[#10B981]/10 border border-[#10B981]/30 rounded-lg p-4 mb-6 flex items-center gap-3"
+                    >
+                      <Check className="w-5 h-5 text-[#10B981] flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-[#10B981]">Saved Successfully!</p>
+                        <p className="text-sm text-[#808080]">
+                          Your {assetType} has been saved to {selectedStorage === 'google-drive' ? 'Google Drive' : 'Dropbox'}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Error Message */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-4 mb-6"
+                    >
+                      <p className="text-sm text-[#EF4444]">{error}</p>
+                    </motion.div>
+                  )}
+
+                  {/* Storage Options */}
+                  {!saveSuccess && (
+                    <div>
+                      <p className="text-sm text-[#808080] mb-4">
+                        Where would you like to save this {assetType}?
+                      </p>
+
+                      {/* Grid Layout: 2 columns on desktop, 1 on mobile */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {/* Google Drive */}
+                        <button
+                          onClick={() => handleSaveToCloud('google-drive')}
+                          disabled={isSaving || connectionsLoading || !googleDrive}
+                          className={`relative flex flex-col items-start gap-3 p-4 border rounded-lg transition-all group ${
+                            googleDrive
+                              ? 'border-[#3F3F46] hover:border-[#4285F4] hover:bg-[#1F1F1F] bg-[#141414]'
+                              : 'border-[#3F3F46] bg-[#141414] cursor-not-allowed opacity-50'
+                          } ${isSaving && selectedStorage === 'google-drive' ? 'border-[#4285F4]' : ''}`}
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <div className={`p-2 rounded-lg ${
+                              googleDrive ? 'bg-[#4285F4]/10' : 'bg-[#3F3F46]'
+                            }`}>
+                              <Cloud className={`w-5 h-5 ${
+                                googleDrive ? 'text-[#4285F4]' : 'text-[#808080]'
+                              }`} />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <div className={`font-medium truncate ${
+                                googleDrive ? 'text-[#FFFFFF]' : 'text-[#808080]'
+                              }`}>
+                                Google Drive
+                              </div>
+                              <div className="text-xs text-[#808080] mt-0.5">
+                                {googleDrive ? 'Permanent storage' : 'Not connected'}
+                              </div>
+                            </div>
+                            {isSaving && selectedStorage === 'google-drive' && (
+                              <Loader2 className="w-4 h-4 animate-spin text-[#4285F4]" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Dropbox */}
+                        <button
+                          onClick={() => handleSaveToCloud('dropbox')}
+                          disabled={isSaving || connectionsLoading || !dropbox}
+                          className={`relative flex flex-col items-start gap-3 p-4 border rounded-lg transition-all group ${
+                            dropbox
+                              ? 'border-[#3F3F46] hover:border-[#0061FF] hover:bg-[#1F1F1F] bg-[#141414]'
+                              : 'border-[#3F3F46] bg-[#141414] cursor-not-allowed opacity-50'
+                          } ${isSaving && selectedStorage === 'dropbox' ? 'border-[#0061FF]' : ''}`}
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <div className={`p-2 rounded-lg ${
+                              dropbox ? 'bg-[#0061FF]/10' : 'bg-[#3F3F46]'
+                            }`}>
+                              <Cloud className={`w-5 h-5 ${
+                                dropbox ? 'text-[#0061FF]' : 'text-[#808080]'
+                              }`} />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <div className={`font-medium truncate ${
+                                dropbox ? 'text-[#FFFFFF]' : 'text-[#808080]'
+                              }`}>
+                                Dropbox
+                              </div>
+                              <div className="text-xs text-[#808080] mt-0.5">
+                                {dropbox ? 'Permanent storage' : 'Not connected'}
+                              </div>
+                            </div>
+                            {isSaving && selectedStorage === 'dropbox' && (
+                              <Loader2 className="w-4 h-4 animate-spin text-[#0061FF]" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Download */}
+                        <button
+                          onClick={handleDownload}
+                          disabled={isSaving}
+                          className={`relative flex flex-col items-start gap-3 p-4 border rounded-lg transition-all group ${
+                            'border-[#3F3F46] hover:border-[#10B981] hover:bg-[#1F1F1F] bg-[#141414]'
+                          } ${isSaving && selectedStorage === 'download' ? 'border-[#10B981]' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="p-2 rounded-lg bg-[#10B981]/10">
+                              <Download className="w-5 h-5 text-[#10B981]" />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="font-medium text-[#FFFFFF] truncate">
+                                Download
+                              </div>
+                              <div className="text-xs text-[#808080] mt-0.5">
+                                Save to device
+                              </div>
+                            </div>
+                            {isSaving && selectedStorage === 'download' && (
+                              <Loader2 className="w-4 h-4 animate-spin text-[#10B981]" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Keep Temporary */}
+                        <button
+                          onClick={handleKeepTemp}
+                          disabled={isSaving}
+                          className="relative flex flex-col items-start gap-3 p-4 border border-[#3F3F46] rounded-lg transition-all group hover:border-[#F59E0B] hover:bg-[#1F1F1F] bg-[#141414] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="p-2 rounded-lg bg-[#F59E0B]/10">
+                              <Clock className="w-5 h-5 text-[#F59E0B]" />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="font-medium text-[#FFFFFF] truncate">
+                                Keep Temporary
+                              </div>
+                              <div className="text-xs text-[#808080] mt-0.5">
+                                Auto-deletes in 7 days
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Close Button (when success) */}
+                  {saveSuccess && (
+                    <button
+                      onClick={onClose}
+                      className="w-full mt-6 px-4 py-2.5 bg-[#10B981] text-[#FFFFFF] rounded-lg hover:bg-[#059669] transition-colors font-medium"
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
