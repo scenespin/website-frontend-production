@@ -6,7 +6,7 @@
  * Part of Phase 0.5: Pose/Angle Regeneration with Model Selection
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Sparkles, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -82,11 +82,13 @@ export function RegeneratePoseModal({
 
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
-        setModels(availableModels.filter((m: Model) => m.enabled));
+        const enabledModels = availableModels.filter((m: Model) => m.enabled);
+        setModels(enabledModels);
         
-        // Auto-select first model
-        if (availableModels.length > 0 && !selectedModelId) {
-          setSelectedModelId(availableModels[0].id);
+        // Auto-select first model if no model is selected (always set on first load or after quality change)
+        if (enabledModels.length > 0) {
+          // Always auto-select when models load (handles quality change case)
+          setSelectedModelId(prev => prev || enabledModels[0].id);
         }
       } catch (error: any) {
         console.error('[RegeneratePoseModal] Failed to load models:', error);
@@ -99,15 +101,19 @@ export function RegeneratePoseModal({
     loadModels();
   }, [isOpen, selectedQuality, getToken]);
 
-  // Update models when quality changes
+  // Update models when quality changes - reset selection so auto-select happens
   useEffect(() => {
     if (isOpen) {
-      setSelectedModelId(''); // Reset selection
-      // loadModels will be called by the first useEffect
+      setSelectedModelId(''); // Reset selection - will be auto-selected when models load
+      setClothingImages([]); // Clear clothing images when quality changes
     }
-  }, [selectedQuality]);
+  }, [selectedQuality, isOpen]);
 
-  const selectedModel = models.find(m => m.id === selectedModelId);
+  // Use useMemo to ensure selectedModel updates reactively
+  const selectedModel = useMemo(() => {
+    return models.find(m => m.id === selectedModelId);
+  }, [models, selectedModelId]);
+  
   // Only show clothing upload for Gen-4 and Nano Banana Pro (not Photon)
   const supportsClothing = selectedModel?.supportsClothingImages ?? false;
   const maxClothingRefs = selectedModel && supportsClothing ? Math.min(selectedModel.referenceLimit - 1, 3) : 0; // Reserve 1 for character, max 3 for clothing

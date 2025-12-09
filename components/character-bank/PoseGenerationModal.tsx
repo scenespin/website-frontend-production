@@ -118,10 +118,17 @@ export default function PoseGenerationModal({
           supportsClothing: m.supportsClothingImages
         })));
         
-        // Auto-select first model if providerId is empty (e.g., after quality change)
-        if (enabledModels.length > 0 && !providerId) {
-          console.log('[PoseGenerationModal] Auto-selecting model:', enabledModels[0].id);
-          setProviderId(enabledModels[0].id);
+        // Auto-select first model if providerId is empty (always set on first load or after quality change)
+        if (enabledModels.length > 0) {
+          // Always auto-select when models load (handles quality change case)
+          // Use functional update to ensure we get the latest state
+          setProviderId(prev => {
+            if (!prev) {
+              console.log('[PoseGenerationModal] Auto-selecting model:', enabledModels[0].id, 'supportsClothing:', enabledModels[0].supportsClothingImages);
+              return enabledModels[0].id;
+            }
+            return prev;
+          });
         }
       } catch (error: any) {
         console.error('[PoseGenerationModal] Failed to load models:', error);
@@ -134,13 +141,13 @@ export default function PoseGenerationModal({
     loadModels();
   }, [isOpen, quality, getToken]);
 
-  // Reset providerId when quality changes
+  // Reset providerId when quality changes (but NOT when modal first opens - let auto-select handle that)
   useEffect(() => {
     if (isOpen) {
-      setProviderId('');
+      setProviderId(''); // Reset so auto-select will pick first model
       setClothingImages([]);
     }
-  }, [quality, isOpen]);
+  }, [quality]); // Only reset when quality changes, not when modal opens
 
   // Get selected model for easier access (useMemo to ensure it updates when models/providerId changes)
   const selectedModel = useMemo(() => {
