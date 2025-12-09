@@ -2251,7 +2251,21 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     console.log('[ScreenplayContext] 📤 Sending physicalAttributes to API:', updates.physicalAttributes);
                 }
                 
-                console.log('[ScreenplayContext] 📤 Sending character update to API:', { characterId: id, apiUpdates });
+                // 🔥 CRITICAL FIX: Remove poseReferences from apiUpdates if it's undefined or empty
+                // This ensures Creation section never sends poseReferences (even accidentally)
+                // Only Production Hub should send poseReferences updates
+                if (apiUpdates.poseReferences === undefined || (Array.isArray(apiUpdates.poseReferences) && apiUpdates.poseReferences.length === 0 && updates.poseReferences === undefined)) {
+                    delete apiUpdates.poseReferences;
+                    console.log('[ScreenplayContext] 🛡️ Removed poseReferences from API update (Creation section should never send this)');
+                }
+                
+                console.log('[ScreenplayContext] 📤 Sending character update to API:', { 
+                    characterId: id, 
+                    apiUpdates: {
+                        ...apiUpdates,
+                        poseReferences: apiUpdates.poseReferences ? `${apiUpdates.poseReferences.length} items` : 'not included'
+                    }
+                });
                 const updatedCharacter = await apiUpdateCharacter(screenplayId, id, apiUpdates, getToken);
                 console.log('[ScreenplayContext] 📥 Received updated character from API:', { characterId: id, arcStatus: (updatedCharacter as any)?.arcStatus });
                 
