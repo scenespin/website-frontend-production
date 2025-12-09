@@ -242,14 +242,32 @@ export function CharacterDetailModal({
     // Handle both string and object formats for poseReferences (backend may return either)
     const refObj = typeof ref === 'string' ? null : ref;
     const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
-    const refId = typeof ref === 'string' ? `pose_${refS3Key}` : (ref.id || `pose-${idx}`);
+    // 🔥 FIX: Use s3Key as part of ID to ensure uniqueness for reimported images
+    // Recovery script may generate IDs with timestamps that could collide, so use s3Key as fallback
+    const refId = typeof ref === 'string' 
+      ? `pose_${refS3Key}` 
+      : (ref.id || (refS3Key ? `pose_${refS3Key}` : `pose-${idx}-${Date.now()}`));
     const refImageUrl = typeof ref === 'string' ? '' : (ref.imageUrl || '');
     
     // 🔥 PRESERVE: Extract outfit from metadata (backend saves this during pose generation)
-    // Priority: ref.metadata.outfitName > S3 key path > 'default'
+    // Priority: ref.outfitName (top-level) > ref.metadata.outfitName > S3 key path > 'default'
+    // Recovery script sets outfitName at top level, so check both locations
+    const outfitFromTopLevel = refObj?.outfitName;
     const outfitFromMetadata = refObj?.metadata?.outfitName;
     const outfitFromS3 = extractOutfitFromS3Key(refS3Key);
-    const outfitName = outfitFromMetadata || outfitFromS3 || 'default';
+    const outfitName = outfitFromTopLevel || outfitFromMetadata || outfitFromS3 || 'default';
+    
+    // 🔥 DEBUG: Log outfit extraction for reimported images (if no outfit found)
+    if (!outfitFromTopLevel && !outfitFromMetadata && outfitName === 'default' && refS3Key) {
+      console.log('[CharacterDetailModal] ⚠️ Reimported image missing outfitName:', {
+        refId,
+        s3Key: refS3Key,
+        hasTopLevel: !!outfitFromTopLevel,
+        hasMetadata: !!outfitFromMetadata,
+        extractedFromS3: outfitFromS3 !== 'default',
+        refObj: refObj ? Object.keys(refObj) : null
+      });
+    }
     
     // Extract poseId from ref metadata (backend saves this)
     const poseId = refObj?.metadata?.poseId;
@@ -370,8 +388,17 @@ export function CharacterDetailModal({
     const otherOutfits = outfits.filter(o => o !== 'default' && o.toLowerCase() !== 'default').sort();
     const result = defaultOutfit ? [defaultOutfit, ...otherOutfits] : otherOutfits;
     
-    // 🔥 DEBUG: Log outfit names for troubleshooting
+    // 🔥 DEBUG: Log outfit names for troubleshooting (especially for reimported images)
     if (isOpen && poseReferences.length > 0) {
+      // Check for poses without outfit names (reimported images might be missing this)
+      const posesWithoutOutfit = poseReferences.filter(p => !p.outfitName || p.outfitName === 'default');
+      const samplePoseOutfits = poseReferences.slice(0, 5).map(p => ({
+        id: p.id,
+        outfitName: p.outfitName,
+        hasMetadata: !!(p as any).metadata?.outfitName,
+        s3Key: p.s3Key?.substring(0, 50)
+      }));
+      
       console.log('[CharacterDetailModal] 🔍 Outfit organization:', {
         mediaLibraryOutfitNames: Array.from(mediaLibraryOutfitNames),
         posesByOutfitKeys: Object.keys(posesByOutfit),
@@ -379,6 +406,8 @@ export function CharacterDetailModal({
         outfitNames: result,
         outfitNamesCount: result.length,
         poseReferencesCount: poseReferences.length,
+        posesWithoutOutfitCount: posesWithoutOutfit.length,
+        samplePoseOutfits,
         posesByOutfit: Object.keys(posesByOutfit).reduce((acc, key) => {
           acc[key] = posesByOutfit[key].length;
           return acc;
