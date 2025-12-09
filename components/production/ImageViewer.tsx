@@ -66,6 +66,17 @@ export function ImageViewer({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  
+  // Detect touch device
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    };
+    checkTouchDevice();
+    window.addEventListener('resize', checkTouchDevice);
+    return () => window.removeEventListener('resize', checkTouchDevice);
+  }, []);
   
   // Determine which image list to use
   const displayImages = viewAll && allImages ? allImages : images;
@@ -344,7 +355,7 @@ export function ImageViewer({
     <AnimatePresence>
       <div
         ref={fullscreenRef}
-        className="fixed inset-0 bg-black/95 z-[100] flex flex-col group"
+        className="fixed inset-0 bg-black/95 z-[100] flex flex-col group p-4"
         onClick={(e) => {
           // Close on background click (not on image or controls)
           if (e.target === e.currentTarget) {
@@ -352,9 +363,11 @@ export function ImageViewer({
           }
         }}
       >
+        {/* Container with border for visual containment */}
+        <div className="flex-1 flex flex-col bg-[#0A0A0A] border-2 border-[#3F3F46] rounded-lg overflow-hidden shadow-2xl relative">
         {/* Header - Minimal, shows on hover */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity group-hover:opacity-100 opacity-70">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity group-hover:opacity-100 opacity-70 rounded-t-lg">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-white truncate max-w-md">
                 {currentImage.label}
@@ -522,8 +535,8 @@ export function ImageViewer({
               </div>
             )}
 
-            {/* Zoom Controls */}
-            {enableZoom && zoom !== 1 && (
+            {/* Zoom Controls - Only show on touch devices (mobile/tablet) */}
+            {enableZoom && zoom !== 1 && isTouchDevice && (
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-2 bg-black/70 px-4 py-2 rounded-lg">
                 <button
                   onClick={(e) => {
@@ -570,9 +583,9 @@ export function ImageViewer({
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-4"
+              className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-4 rounded-b-lg"
             >
-              <div className="max-w-7xl mx-auto">
+              <div className="w-full">
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#3F3F46] scrollbar-track-transparent">
                   {displayImages.map((img, idx) => (
                     <button
@@ -605,8 +618,8 @@ export function ImageViewer({
         </AnimatePresence>
 
         {/* Bottom Controls Bar */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-lg">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
                 onClick={(e) => {
@@ -663,6 +676,8 @@ export function ImageViewer({
             </div>
           </div>
         </div>
+        </div>
+        {/* End of bordered container */}
       </div>
     </AnimatePresence>
   );
