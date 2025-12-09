@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -83,6 +83,7 @@ export function CharacterDetailModal({
   const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{url: string; label: string} | null>(null);
   // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
@@ -934,11 +935,42 @@ export function CharacterDetailModal({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end"
-                                    className="bg-[#1F1F1F] border border-[#3F3F46] text-white"
+                                    className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
+                                    style={{ backgroundColor: '#0A0A0A' }}
                                   >
-                                    {/* 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses) */}
                                     <DropdownMenuItem
-                                      className="text-red-500 hover:bg-[#2A2A2A] focus:bg-[#2A2A2A] cursor-pointer"
+                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPreviewImage({ url: img.imageUrl, label: img.label });
+                                      }}
+                                    >
+                                      <Eye className="w-4 h-4 mr-2 text-[#808080]" />
+                                      View
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          // Download image
+                                          const link = document.createElement('a');
+                                          link.href = img.imageUrl;
+                                          link.download = `${character.name}_${img.label || 'image'}_${Date.now()}.jpg`;
+                                          link.target = '_blank';
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        } catch (error: any) {
+                                          toast.error('Failed to download image');
+                                        }
+                                      }}
+                                    >
+                                      <Download className="w-4 h-4 mr-2 text-[#808080]" />
+                                      Download
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         if (!confirm('Delete this image? This action cannot be undone.')) {
@@ -1132,6 +1164,76 @@ export function CharacterDetailModal({
       )}
       
       {/* 🔥 REMOVED: Individual pose regeneration modal - users must create pose packages (minimum 3 poses) */}
+      
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setPreviewImage(null);
+            }
+          }}
+          tabIndex={-1}
+        >
+          <div 
+            className="bg-[#0A0A0A] rounded-lg border border-[#3F3F46] max-w-4xl w-full max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-[#141414] p-4 md:p-5 border-b border-[#3F3F46] flex items-center justify-between">
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-[#FFFFFF]">{previewImage.label}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const link = document.createElement('a');
+                    link.href = previewImage.url;
+                    link.download = `${previewImage.label}_${Date.now()}.jpg`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewImage(null);
+                  }}
+                  className="p-2 hover:bg-[#1F1F1F] rounded-lg transition-colors"
+                  aria-label="Close preview"
+                >
+                  <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 md:p-5">
+              <div className="relative">
+                <img 
+                  src={previewImage.url} 
+                  alt={previewImage.label}
+                  className="w-full h-auto rounded-lg max-h-[70vh] object-contain mx-auto bg-[#0A0A0A]"
+                  onError={(e) => {
+                    console.error('[CharacterDetailModal] Image failed to load:', previewImage.url);
+                    toast.error('Image failed to load. The file may be corrupted or the URL expired.');
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }
