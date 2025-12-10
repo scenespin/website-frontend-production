@@ -51,7 +51,7 @@ export function DeleteFolderModal({
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
         
         // Get child folders
-        const token = await getAuthToken(getToken);
+        const token = await getToken({ template: 'wryda-backend' });
         if (!token) throw new Error('Not authenticated');
         
         const childFoldersResponse = await fetch(
