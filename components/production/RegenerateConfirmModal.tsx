@@ -22,7 +22,7 @@ export function RegenerateConfirmModal({
   isOpen,
   onClose,
   onConfirm,
-  imageType = 'image'
+  imageType = 'angle'
 }: RegenerateConfirmModalProps) {
   if (!isOpen) return null;
 
