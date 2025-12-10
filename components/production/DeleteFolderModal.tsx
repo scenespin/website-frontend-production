@@ -32,6 +32,7 @@ export function DeleteFolderModal({
   const [confirmText, setConfirmText] = useState('');
   const [moveFilesToParent, setMoveFilesToParent] = useState(true); // Default: move files to parent
   const deleteFolder = useDeleteFolder(screenplayId);
+  const { getToken } = useAuth();
   
   // Check if folder has children
   const { data: childFolders = [] } = useMediaFolders(screenplayId, folder.folderId, isOpen);
