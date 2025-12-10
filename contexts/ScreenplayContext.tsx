@@ -4542,9 +4542,46 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Parse the content
             const parseResult = parseContentForImport(content);
             
-            // Validate parsing result
+            // 🔥 FIX: Handle empty scripts gracefully - delete all scenes if script has no scenes
             if (!parseResult || parseResult.scenes.length === 0) {
-                throw new Error('Failed to parse script or no scenes found');
+                console.log('[ScreenplayContext] Script has no scenes - deleting all existing scenes');
+                
+                // Get existing scenes count before deletion
+                const currentScenes = scenesRef.current.length > 0 ? scenesRef.current : scenes;
+                const existingSceneCount = currentScenes.length;
+                
+                // Delete all existing scenes from database and state
+                if (screenplayId && existingSceneCount > 0) {
+                    try {
+                        const { deleteAllScenes: apiDeleteAllScenes } = await import('@/utils/screenplayStorage');
+                        console.log('[ScreenplayContext] 🗑️ Deleting all existing scenes (script has no scenes)...');
+                        await apiDeleteAllScenes(screenplayId, getToken);
+                        console.log('[ScreenplayContext] ✅ Deleted all existing scenes from DynamoDB');
+                        
+                        // Clear scenes from state
+                        setScenes([]);
+                        scenesRef.current = [];
+                        
+                        // Rebuild relationships with empty scenes
+                        buildRelationshipsFromScenes([], beats, charactersRef.current.length > 0 ? charactersRef.current : characters, locationsRef.current.length > 0 ? locationsRef.current : locations);
+                        await updateRelationships();
+                        
+                        console.log('[ScreenplayContext] ✅ Re-scan complete: All scenes deleted (script has no scenes)');
+                    } catch (error) {
+                        console.error('[ScreenplayContext] ❌ Failed to delete scenes:', error);
+                        throw error;
+                    }
+                } else {
+                    console.log('[ScreenplayContext] ✅ Re-scan complete: No scenes to delete (script has no scenes, no existing scenes)');
+                }
+                
+                return {
+                    newCharacters: 0,
+                    newLocations: 0,
+                    newScenes: 0,
+                    updatedScenes: 0,
+                    preservedMetadata: 0
+                };
             }
             
             console.log('[ScreenplayContext] Parsed content:', {

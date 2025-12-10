@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { useSearchParams, usePathname } from 'next/navigation';
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
+import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { saveToGitHub } from '@/utils/github';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
@@ -778,6 +779,43 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             
             console.log('[EditorContext] Undoing. Undo stack:', newUndoStack.length, 'Redo stack:', newRedoStack.length);
             
+            // 🔥 FIX: Check if content after undo has no scenes, and delete scenes if so
+            // This ensures scenes are removed when user undoes an import
+            const contentAfterUndo = previousState.content;
+            if (contentAfterUndo && screenplay) {
+                try {
+                    const parseResult = parseContentForImport(contentAfterUndo);
+                    if (!parseResult || parseResult.scenes.length === 0) {
+                        // Content has no scenes - delete all scenes from ScreenplayContext
+                        console.log('[EditorContext] Content after undo has no scenes - deleting all scenes');
+                        const currentScenes = screenplay.scenes || [];
+                        if (currentScenes.length > 0 && screenplay.screenplayId) {
+                            // Delete all scenes asynchronously (don't block undo)
+                            (async () => {
+                                try {
+                                    const { deleteAllScenes } = await import('@/utils/screenplayStorage');
+                                    await deleteAllScenes(screenplay.screenplayId!, getToken);
+                                    console.log('[EditorContext] ✅ Deleted all scenes after undo');
+                                    
+                                    // Clear scenes from state
+                                    screenplay.setScenes?.([]);
+                                    
+                                    // Rebuild relationships with empty scenes
+                                    if (screenplay.updateRelationships) {
+                                        await screenplay.updateRelationships();
+                                    }
+                                } catch (error) {
+                                    console.error('[EditorContext] Failed to delete scenes after undo:', error);
+                                }
+                            })();
+                        }
+                    }
+                } catch (error) {
+                    // If parsing fails, don't block undo - just log the error
+                    console.warn('[EditorContext] Failed to parse content after undo:', error);
+                }
+            }
+            
             return {
                 ...prev,
                 content: previousState.content,
@@ -789,7 +827,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 isDirty: true
             };
         });
-    }, []);
+    }, [screenplay, getToken]);
     
     const redo = useCallback(() => {
         setState(prev => {
