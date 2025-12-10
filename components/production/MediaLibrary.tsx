@@ -333,8 +333,13 @@ export default function MediaLibrary({
   }, [hasConnectedProviders, isBannerDismissed]);
   
   const handleDismissBanner = () => {
+    console.log('[MediaLibrary] Dismissing banner');
     setIsBannerDismissed(true);
     localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
+    // Force a small delay to ensure state update
+    setTimeout(() => {
+      console.log('[MediaLibrary] Banner dismissed, isBannerDismissed:', localStorage.getItem('mediaLibraryAutoSyncBannerDismissed'));
+    }, 100);
   };
 
   // ============================================================================
@@ -1693,7 +1698,14 @@ export default function MediaLibrary({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                handleDismissBanner();
+                // Immediately update state and localStorage
+                const newDismissed = true;
+                setIsBannerDismissed(newDismissed);
+                localStorage.setItem('mediaLibraryAutoSyncBannerDismissed', 'true');
+                // Force immediate re-render by updating state again
+                setTimeout(() => {
+                  setIsBannerDismissed(true);
+                }, 0);
               }}
               className="absolute top-2 right-2 p-1.5 hover:bg-[#3F3F46] rounded transition-colors z-10"
               title="Dismiss"
@@ -1743,9 +1755,8 @@ export default function MediaLibrary({
           </div>
         )}
 
-        {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
-        {files.length > 0 && (
-          <div className="flex items-center justify-between mt-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
+        {/* Phase 2: Selection Mode Toggle & Bulk Actions - Always show, persist across navigation */}
+        <div className="flex items-center justify-between mt-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
@@ -1772,7 +1783,7 @@ export default function MediaLibrary({
             </div>
             {selectionMode && (
               <div className="flex items-center gap-2">
-                {selectedFiles.size > 0 && (
+                {(selectedFiles.size > 0 || selectedFolders.size > 0) && (
                   <>
                     <button
                       onClick={() => {
@@ -1802,7 +1813,6 @@ export default function MediaLibrary({
               </div>
             )}
           </div>
-        )}
 
         {/* Search & Filter */}
         <div className="flex gap-3 mt-4">
