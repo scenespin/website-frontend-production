@@ -363,7 +363,7 @@ export default function AssetDetailModal({
                 }`}
               >
                 <Box className="w-4 h-4 inline mr-2" />
-                References ({angleImageObjects.length})
+                References ({allImages.length})
               </button>
             </div>
 
