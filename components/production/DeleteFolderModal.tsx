@@ -12,6 +12,8 @@ import { X, Folder, Loader2, AlertTriangle } from 'lucide-react';
 import { useDeleteFolder, useMediaFolders } from '@/hooks/useMediaLibrary';
 import { MediaFolder } from '@/types/media';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/nextjs';
+import { getAuthToken } from '@/utils/auth';
 
 interface DeleteFolderModalProps {
   isOpen: boolean;
@@ -45,7 +47,38 @@ export function DeleteFolderModal({
     }
 
     try {
-      await deleteFolder.mutateAsync({ folderId: folder.folderId, moveFilesToParent });
+      // Recursively delete child folders first, then parent
+      const deleteFolderRecursively = async (folderId: string): Promise<void> => {
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        
+        // Get child folders
+        const token = await getAuthToken(getToken);
+        if (!token) throw new Error('Not authenticated');
+        
+        const childFoldersResponse = await fetch(
+          `${BACKEND_API_URL}/api/media/folders?screenplayId=${encodeURIComponent(screenplayId)}&parentFolderId=${encodeURIComponent(folderId)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        
+        if (childFoldersResponse.ok) {
+          const childFoldersData = await childFoldersResponse.json();
+          const childFolders = childFoldersData.folders || [];
+          
+          // Recursively delete all child folders first (depth-first)
+          for (const childFolder of childFolders) {
+            await deleteFolderRecursively(childFolder.folderId);
+          }
+        }
+        
+        // Now delete the parent folder
+        await deleteFolder.mutateAsync({ folderId, moveFilesToParent });
+      };
+      
+      await deleteFolderRecursively(folder.folderId);
       toast.success(`Folder "${folder.folderName}" deleted successfully`);
       setConfirmText('');
       onSuccess?.();
@@ -176,7 +209,7 @@ export function DeleteFolderModal({
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder={folder.folderName}
               className="w-full px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-              disabled={deleteFolder.isPending || hasChildren}
+              disabled={deleteFolder.isPending}
               autoFocus
             />
           </div>

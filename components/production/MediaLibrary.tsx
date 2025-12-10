@@ -938,10 +938,39 @@ export default function MediaLibrary({
         }
       }
 
-      // Delete folders
+      // Delete folders recursively (delete children first, then parent)
+      const deleteFolderRecursively = async (folderId: string): Promise<void> => {
+        // Get child folders
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) throw new Error('Not authenticated');
+        
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const childFoldersResponse = await fetch(
+          `${BACKEND_API_URL}/api/media/folders?screenplayId=${encodeURIComponent(projectId)}&parentFolderId=${encodeURIComponent(folderId)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+        
+        if (childFoldersResponse.ok) {
+          const childFoldersData = await childFoldersResponse.json();
+          const childFolders = childFoldersData.folders || [];
+          
+          // Recursively delete all child folders first (depth-first)
+          for (const childFolder of childFolders) {
+            await deleteFolderRecursively(childFolder.folderId);
+          }
+        }
+        
+        // Now delete the parent folder
+        await deleteFolderMutation.mutateAsync({ folderId, moveFilesToParent: true });
+      };
+      
       for (const folderId of folderIds) {
         try {
-          await deleteFolderMutation.mutateAsync({ folderId, moveFilesToParent: true });
+          await deleteFolderRecursively(folderId);
           successCount++;
         } catch (error) {
           console.error('[MediaLibrary] Failed to delete folder in bulk:', folderId, error);
