@@ -1931,28 +1931,6 @@ export default function MediaLibrary({
           
           {/* File Grid Content */}
           <div className="flex-1 overflow-y-auto">
-            {/* Drop Zone */}
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`m-6 p-8 border-2 border-dashed rounded-lg transition-colors ${
-                isDragging
-                  ? 'border-[#DC143C] bg-[#DC143C]/10'
-                  : 'border-[#3F3F46]'
-              }`}
-            >
-              <div className="text-center">
-                <Upload className="w-12 h-12 mx-auto text-[#808080] mb-3" />
-                <p className="text-[#B3B3B3] mb-1">
-                  Drag and drop files here, or click Upload Files
-                </p>
-                <p className="text-sm text-[#808080]">
-                  Max file size: {maxFileSize}MB
-                </p>
-              </div>
-            </div>
-
             {/* Files Grid/List */}
             <div className="p-6">
               {displayLoading || folderTreeLoading ? (
@@ -2298,6 +2276,28 @@ export default function MediaLibrary({
                   ))}
                 </div>
               )}
+            </div>
+            
+            {/* Drop Zone - Moved below folders and files */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`m-6 p-8 border-2 border-dashed rounded-lg transition-colors ${
+                isDragging
+                  ? 'border-[#DC143C] bg-[#DC143C]/10'
+                  : 'border-[#3F3F46]'
+              }`}
+            >
+              <div className="text-center">
+                <Upload className="w-12 h-12 mx-auto text-[#808080] mb-3" />
+                <p className="text-[#B3B3B3] mb-1">
+                  Drag and drop files here, or click Upload Files
+                </p>
+                <p className="text-sm text-[#808080]">
+                  Max file size: {maxFileSize}MB
+                </p>
+              </div>
             </div>
           </div>
         </div>
