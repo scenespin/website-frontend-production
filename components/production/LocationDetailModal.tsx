@@ -711,15 +711,16 @@ export function LocationDetailModal({
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </div>
+                                )}
                               </div>
                             </div>
                           );
                         })}
-                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                   
