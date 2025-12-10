@@ -273,6 +273,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const charactersRef = useRef<Character[]>([]);
     const locationsRef = useRef<Location[]>([]);
     const assetsRef = useRef<Asset[]>([]);
+    const relationshipsRef = useRef<Relationships | null>(null);
     // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
     // Will be initialized after screenplayId is declared
     const deletedAssetIdsRef = useRef<Set<string>>(new Set());
@@ -302,6 +303,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             (window as any).__debug_assets = assets;
         }
     }, [assets]);
+    useEffect(() => { 
+        relationshipsRef.current = relationships; 
+    }, [relationships]);
     
     // Relationships - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
@@ -690,13 +694,37 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🔍 Available locations:', locationsList.map(l => ({ id: l.id, name: l.name })));
         
         setRelationships(prev => {
+            // 🔥 FIX: Get set of valid scene IDs to clean up references to deleted scenes
+            const validSceneIds = new Set(scenes.map(s => s.id));
+            
             const newRels = {
                 beats: { ...prev.beats },
-                scenes: { ...prev.scenes },
+                scenes: {} as typeof prev.scenes, // Start fresh - only include scenes that exist
                 characters: { ...prev.characters },
                 locations: { ...prev.locations },
                 props: { ...prev.props }
             };
+            
+            // 🔥 FIX: Clean up character relationships - remove references to deleted scenes
+            for (const charId in newRels.characters) {
+                if (newRels.characters[charId]) {
+                    newRels.characters[charId] = {
+                        ...newRels.characters[charId],
+                        appearsInScenes: newRels.characters[charId].appearsInScenes.filter(sceneId => validSceneIds.has(sceneId)),
+                        relatedBeats: newRels.characters[charId].relatedBeats || []
+                    };
+                }
+            }
+            
+            // 🔥 FIX: Clean up location relationships - remove references to deleted scenes
+            for (const locId in newRels.locations) {
+                if (newRels.locations[locId]) {
+                    newRels.locations[locId] = {
+                        ...newRels.locations[locId],
+                        scenes: newRels.locations[locId].scenes.filter(sceneId => validSceneIds.has(sceneId))
+                    };
+                }
+            }
             
             // Build character and location maps for validation
             const characterMap = new Map<string, Character>();
@@ -800,6 +828,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 scenesWithCharacters: scenes.filter(s => (s.fountain?.tags?.characters || []).length > 0).length,
                 totalScenes: scenes.length
             });
+            
+            // 🔥 FIX: Store new relationships in a ref so updateRelationships can access them
+            relationshipsRef.current = newRels;
             
             return newRels;
         });
@@ -3381,8 +3412,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // Rebuild relationships using the same function used during initialization
         buildRelationshipsFromScenes(currentScenes, beats, currentCharacters, currentLocations);
         
+        // 🔥 FIX: Save cleaned relationships to database to persist the cleanup
+        if (screenplayId) {
+            try {
+                // Wait a bit for setRelationships to complete and relationshipsRef to be updated
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Get the cleaned relationships from ref (set by buildRelationshipsFromScenes)
+                const currentRels = relationshipsRef.current || relationships;
+                if (currentRels) {
+                    await apiUpdateRelationships(screenplayId, currentRels, getToken);
+                    console.log('[ScreenplayContext] ✅ Saved cleaned relationships to DynamoDB');
+                }
+            } catch (error) {
+                console.error('[ScreenplayContext] Failed to save relationships to DynamoDB:', error);
+                // Don't throw - relationships are still updated in local state
+            }
+        }
+        
         console.log('[ScreenplayContext] ✅ Relationships rebuilt');
-    }, [scenes, beats, characters, locations, buildRelationshipsFromScenes]);
+    }, [scenes, beats, characters, locations, buildRelationshipsFromScenes, screenplayId, getToken, relationships]);
     
     const getSceneCharacters = useCallback((sceneId: string): Character[] => {
         const sceneRels = relationships.scenes[sceneId];
