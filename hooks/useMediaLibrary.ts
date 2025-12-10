@@ -559,14 +559,18 @@ export function useDeleteFolder(screenplayId: string) {
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
 
-  return useMutation<void, Error, string>({
-    mutationFn: async (folderId) => {
+  return useMutation<void, Error, { folderId: string; moveFilesToParent?: boolean }>({
+    mutationFn: async ({ folderId, moveFilesToParent = true }) => {
       const token = await getAuthToken(getToken);
       if (!token) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/media/folders/${folderId}`, {
+      // Add moveFilesToParent query parameter
+      const url = new URL(`${BACKEND_API_URL}/api/media/folders/${folderId}`);
+      url.searchParams.set('moveFilesToParent', moveFilesToParent.toString());
+
+      const response = await fetch(url.toString(), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -575,7 +579,7 @@ export function useDeleteFolder(screenplayId: string) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.details || `Failed to delete folder: ${response.status} ${response.statusText}`);
+        throw new Error(errorData.details || errorData.error || `Failed to delete folder: ${response.status} ${response.statusText}`);
       }
     },
     onSuccess: () => {

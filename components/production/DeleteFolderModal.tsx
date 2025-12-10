@@ -29,6 +29,7 @@ export function DeleteFolderModal({
   onSuccess,
 }: DeleteFolderModalProps) {
   const [confirmText, setConfirmText] = useState('');
+  const [moveFilesToParent, setMoveFilesToParent] = useState(true); // Default: move files to parent
   const deleteFolder = useDeleteFolder(screenplayId);
   
   // Check if folder has children
@@ -44,7 +45,7 @@ export function DeleteFolderModal({
     }
 
     try {
-      await deleteFolder.mutateAsync(folder.folderId);
+      await deleteFolder.mutateAsync({ folderId: folder.folderId, moveFilesToParent });
       toast.success(`Folder "${folder.folderName}" deleted successfully`);
       setConfirmText('');
       onSuccess?.();
@@ -106,8 +107,44 @@ export function DeleteFolderModal({
 
           <div className="mb-4">
             <p className="text-sm text-[#B3B3B3] mb-4">
-              This action cannot be undone. All files in this folder will remain, but the folder structure will be removed.
+              This action cannot be undone. Choose what to do with files in this folder:
             </p>
+            
+            {/* Phase 2: File handling option */}
+            <div className="mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="fileHandling"
+                  checked={moveFilesToParent}
+                  onChange={() => setMoveFilesToParent(true)}
+                  className="mt-1 w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#FFFFFF]">Move files to parent folder</div>
+                  <div className="text-xs text-[#808080] mt-1">
+                    Files will be moved to the parent folder. Recommended option.
+                  </div>
+                </div>
+              </label>
+            </div>
+            <div className="mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="fileHandling"
+                  checked={!moveFilesToParent}
+                  onChange={() => setMoveFilesToParent(false)}
+                  className="mt-1 w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] focus:ring-2"
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#FFFFFF]">Delete all files</div>
+                  <div className="text-xs text-[#808080] mt-1">
+                    ⚠️ All files in this folder will be permanently deleted. This cannot be undone.
+                  </div>
+                </div>
+              </label>
+            </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-[#FFFFFF] mb-2">
                 Folder Path

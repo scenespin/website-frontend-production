@@ -23,7 +23,9 @@ import {
   Check,
   X,
   Eye,
-  FileAudio
+  FileAudio,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -220,6 +222,9 @@ export default function MediaLibrary({
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
+  // Phase 2: Multiple Delete Checkbox
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   // Removed useDropdownCoordinator - using uncontrolled state like MusicLibrary
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
@@ -868,6 +873,43 @@ export default function MediaLibrary({
     }
   };
 
+  // Phase 2: Bulk delete handler
+  const handleBulkDelete = async () => {
+    if (selectedFiles.size === 0) {
+      return;
+    }
+
+    const fileIds = Array.from(selectedFiles);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Delete each file sequentially (to avoid overwhelming the API)
+      for (const fileId of fileIds) {
+        try {
+          await deleteMediaMutation.mutateAsync(fileId);
+          successCount++;
+        } catch (error) {
+          console.error('[MediaLibrary] Failed to delete file in bulk:', fileId, error);
+          errorCount++;
+        }
+      }
+
+      // Clear selection and exit selection mode
+      setSelectedFiles(new Set());
+      setSelectionMode(false);
+
+      if (errorCount === 0) {
+        toast.success(`Successfully deleted ${successCount} file${successCount !== 1 ? 's' : ''}`);
+      } else {
+        toast.warning(`Deleted ${successCount} file${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
+      }
+    } catch (error) {
+      console.error('[MediaLibrary] Bulk deletion error:', error);
+      toast.error(`Failed to delete files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleViewFile = async (file: MediaFile) => {
     
     try {
@@ -1135,7 +1177,7 @@ export default function MediaLibrary({
   };
 
   const handleFileClick = (file: MediaFile) => {
-    if (allowMultiSelect) {
+    if (selectionMode || allowMultiSelect) {
       const newSelected = new Set(selectedFiles);
       if (newSelected.has(file.id)) {
         newSelected.delete(file.id);
@@ -1646,6 +1688,62 @@ export default function MediaLibrary({
           </div>
         )}
 
+        {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
+        {files.length > 0 && (
+          <div className="flex items-center justify-between mt-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setSelectionMode(!selectionMode);
+                  if (selectionMode) {
+                    setSelectedFiles(new Set()); // Clear selection when exiting
+                  }
+                }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  selectionMode
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                {selectionMode ? 'Selection Mode' : 'Select Multiple'}
+              </button>
+              {selectionMode && selectedFiles.size > 0 && (
+                <span className="text-sm text-[#808080]">
+                  {selectedFiles.size} selected
+                </span>
+              )}
+            </div>
+            {selectionMode && (
+              <div className="flex items-center gap-2">
+                {selectedFiles.size > 0 && (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (selectedFiles.size === filteredFiles.length) {
+                          setSelectedFiles(new Set());
+                        } else {
+                          setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {selectedFiles.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                    <button
+                      onClick={() => setShowBulkDeleteConfirm(true)}
+                      className="flex items-center gap-2 px-4 py-1.5 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Selected ({selectedFiles.size})
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Search & Filter */}
         <div className="flex gap-3 mt-4">
           <div className="flex-1 relative">
@@ -1886,13 +1984,45 @@ export default function MediaLibrary({
                         handleFileClick(file);
                       }}
                       className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
-                        selectedFiles.has(file.id)
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        selectionMode
+                          ? selectedFiles.has(file.id)
+                            ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50 bg-[#DC143C]/10'
+                            : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                          : selectedFiles.has(file.id)
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
                     >
-                      {/* Selected Checkmark */}
-                      {selectedFiles.has(file.id) && (
+                      {/* Phase 2: Checkbox overlay in selection mode */}
+                      {selectionMode && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newSelected = new Set(selectedFiles);
+                              if (selectedFiles.has(file.id)) {
+                                newSelected.delete(file.id);
+                              } else {
+                                newSelected.add(file.id);
+                              }
+                              setSelectedFiles(newSelected);
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              selectedFiles.has(file.id)
+                                ? 'bg-[#DC143C] text-white'
+                                : 'bg-[#0A0A0A]/80 text-[#808080] hover:bg-[#1F1F1F]'
+                            }`}
+                          >
+                            {selectedFiles.has(file.id) ? (
+                              <CheckSquare className="w-4 h-4" />
+                            ) : (
+                              <Square className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                      {/* Selected Checkmark (only show when not in selection mode) */}
+                      {!selectionMode && selectedFiles.has(file.id) && (
                         <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1 z-10">
                           <Check className="w-4 h-4" />
                         </div>
@@ -1949,7 +2079,8 @@ export default function MediaLibrary({
                         )}
                       </div>
 
-                      {/* Actions Menu */}
+                      {/* Actions Menu - only show when not in selection mode */}
+                      {!selectionMode && (
                       <div 
                         className="absolute top-2 right-2 z-50" 
                         onClick={(e) => e.stopPropagation()}
@@ -2019,6 +2150,7 @@ export default function MediaLibrary({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2264,6 +2396,40 @@ export default function MediaLibrary({
           }}
           screenplayId={projectId}
         />
+      )}
+
+      {/* Phase 2: Bulk Delete Confirmation Dialog */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-[#0A0A0A]/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 max-w-md w-full shadow-2xl"
+          >
+            <h3 className="text-lg font-semibold text-[#FFFFFF] mb-2">Delete Selected Files?</h3>
+            <p className="text-sm text-[#808080] mb-6">
+              Are you sure you want to delete {selectedFiles.size} file{selectedFiles.size !== 1 ? 's' : ''}? This action cannot be undone.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowBulkDeleteConfirm(false);
+                  await handleBulkDelete();
+                }}
+                className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Delete {selectedFiles.size} File{selectedFiles.size !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );
