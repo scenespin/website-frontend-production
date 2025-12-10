@@ -2423,7 +2423,7 @@ export default function MediaLibrary({
                 Delete {selectedFiles.size} File{selectedFiles.size !== 1 ? 's' : ''}
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
     </div>
