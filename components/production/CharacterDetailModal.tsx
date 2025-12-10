@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -94,6 +94,10 @@ export function CharacterDetailModal({
   const [isUploading, setIsUploading] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   const [previewGroupName, setPreviewGroupName] = useState<string | null>(null);
+  // Phase 2: Multiple Delete Checkbox
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
@@ -942,6 +946,67 @@ export function CharacterDetailModal({
 
               {activeTab === 'references' && (
                 <div className="p-6 space-y-6">
+                  {/* Phase 2: Selection Mode Toggle & Bulk Actions */}
+                  {poseReferences.length > 0 && (
+                    <div className="flex items-center justify-between mb-4 p-3 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setSelectionMode(!selectionMode);
+                            if (selectionMode) {
+                              setSelectedImageIds(new Set()); // Clear selection when exiting
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            selectionMode
+                              ? 'bg-[#DC143C] text-white'
+                              : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                          }`}
+                        >
+                          {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                          {selectionMode ? 'Selection Mode' : 'Select Multiple'}
+                        </button>
+                        {selectionMode && selectedImageIds.size > 0 && (
+                          <span className="text-sm text-[#808080]">
+                            {selectedImageIds.size} selected
+                          </span>
+                        )}
+                      </div>
+                      {selectionMode && (
+                        <div className="flex items-center gap-2">
+                          {selectedImageIds.size > 0 && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  const currentImages = selectedOutfitReferences 
+                                    ? posesByOutfit[selectedOutfitReferences] || []
+                                    : poseReferences;
+                                  if (selectedImageIds.size === currentImages.length) {
+                                    setSelectedImageIds(new Set());
+                                  } else {
+                                    setSelectedImageIds(new Set(currentImages.map(img => img.id)));
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+                              >
+                                {selectedImageIds.size === (selectedOutfitReferences ? posesByOutfit[selectedOutfitReferences]?.length || 0 : poseReferences.length)
+                                  ? 'Deselect All'
+                                  : 'Select All'}
+                              </button>
+                              <button
+                                onClick={() => setShowBulkDeleteConfirm(true)}
+                                className="flex items-center gap-2 px-4 py-1.5 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Selected ({selectedImageIds.size})
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* 🔥 SEPARATION: Production Hub Images - Organized by Outfit/Style (Editable/Deletable) */}
                   {poseReferences.length > 0 && (
                     <div className="p-4 bg-[#1A0F2E] rounded-lg border border-[#8B5CF6]/30">
@@ -991,22 +1056,73 @@ export function CharacterDetailModal({
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {(selectedOutfitReferences ? posesByOutfit[selectedOutfitReferences] || [] : poseReferences).map((img) => {
                           // All images in poseReferences are Production Hub images (editable/deletable)
+                          const isSelected = selectedImageIds.has(img.id);
                           return (
                             <div
                               key={img.id}
-                              className="relative group aspect-square bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden hover:border-[#DC143C] transition-colors"
+                              className={`relative group aspect-square bg-[#141414] border rounded-lg overflow-hidden transition-colors ${
+                                selectionMode
+                                  ? isSelected
+                                    ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50'
+                                    : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                                  : 'border-[#3F3F46] hover:border-[#DC143C]'
+                              }`}
                             >
+                              {/* Phase 2: Checkbox overlay in selection mode */}
+                              {selectionMode && (
+                                <div className="absolute top-2 left-2 z-10">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const newSelection = new Set(selectedImageIds);
+                                      if (isSelected) {
+                                        newSelection.delete(img.id);
+                                      } else {
+                                        newSelection.add(img.id);
+                                      }
+                                      setSelectedImageIds(newSelection);
+                                    }}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      isSelected
+                                        ? 'bg-[#DC143C] text-white'
+                                        : 'bg-[#0A0A0A]/80 text-[#808080] hover:bg-[#1F1F1F]'
+                                    }`}
+                                  >
+                                    {isSelected ? (
+                                      <CheckSquare className="w-4 h-4" />
+                                    ) : (
+                                      <Square className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
                               <img
                                 src={img.imageUrl}
                                 alt={img.label}
                                 className="w-full h-full object-cover"
+                                onClick={() => {
+                                  if (!selectionMode) {
+                                    // Original click behavior (view image)
+                                    const outfitName = img.outfitName || (img as any).metadata?.outfitName || 'default';
+                                    const groupImages = posesByOutfit[outfitName] || [];
+                                    const groupIndex = groupImages.findIndex(gImg => 
+                                      gImg.id === img.id || gImg.s3Key === img.s3Key
+                                    );
+                                    if (groupIndex >= 0) {
+                                      setPreviewGroupName(outfitName);
+                                      setPreviewImageIndex(groupIndex);
+                                    }
+                                  }
+                                }}
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
+                                selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+                              }`}>
                                 <div className="absolute bottom-2 left-2 right-2">
                                   <p className="text-xs text-[#FFFFFF] truncate">{img.label}</p>
                                 </div>
-                                {/* Delete button - all Production Hub images can be deleted */}
-                                {!img.isBase && (
+                                {/* Delete button - all Production Hub images can be deleted - only show when not in selection mode */}
+                                {!img.isBase && !selectionMode && (
                               <div className="absolute top-2 right-2">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
@@ -1314,6 +1430,107 @@ export function CharacterDetailModal({
           }}
           groupName={previewGroupName || undefined}
         />
+      )}
+
+      {/* Phase 2: Bulk Delete Confirmation Dialog */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-[#0A0A0A]/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 max-w-md w-full shadow-2xl"
+          >
+            <h3 className="text-lg font-semibold text-[#FFFFFF] mb-2">Delete Selected Images?</h3>
+            <p className="text-sm text-[#808080] mb-6">
+              Are you sure you want to delete {selectedImageIds.size} image{selectedImageIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setShowBulkDeleteConfirm(false);
+                  try {
+                    const selectedImages = poseReferences.filter(img => selectedImageIds.has(img.id));
+                    
+                    // Extract all s3Keys for selected images
+                    const s3KeysToDelete = new Set<string>();
+                    for (const img of selectedImages) {
+                      let imgS3Key = img.s3Key || (img as any).metadata?.s3Key;
+                      
+                      if (!imgS3Key && img.id) {
+                        const allPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+                        const poseRef = allPoseRefs.find((ref: any) => {
+                          const refId = typeof ref === 'string' ? `pose_${ref}` : ref.id;
+                          return refId === img.id;
+                        });
+                        if (poseRef) {
+                          imgS3Key = typeof poseRef === 'string' 
+                            ? poseRef 
+                            : (poseRef.s3Key || poseRef.metadata?.s3Key);
+                        }
+                      }
+                      
+                      if (!imgS3Key && img.id && typeof img.id === 'string' && img.id.startsWith('pose_')) {
+                        imgS3Key = img.id.replace(/^pose_/, '');
+                      }
+                      
+                      if (!imgS3Key && img.id && typeof img.id === 'string' && !img.id.startsWith('pose_') && !img.id.startsWith('ref_')) {
+                        imgS3Key = img.id;
+                      }
+                      
+                      if (imgS3Key) {
+                        s3KeysToDelete.add(imgS3Key);
+                      }
+                    }
+                    
+                    if (s3KeysToDelete.size === 0) {
+                      toast.error('No valid images to delete');
+                      return;
+                    }
+                    
+                    // Batch delete: Remove all selected pose references in one update
+                    const currentPoseReferences = (character as any).angleReferences || character.poseReferences || [];
+                    const currentReferences = character.references || [];
+                    
+                    const updatedPoseReferences = currentPoseReferences.filter((ref: any) => {
+                      const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                      return !s3KeysToDelete.has(refS3Key);
+                    });
+                    
+                    const updatedReferences = currentReferences.filter((ref: any) => {
+                      const refS3Key = typeof ref === 'string' ? ref : ref.s3Key;
+                      return !s3KeysToDelete.has(refS3Key);
+                    });
+                    
+                    // Single update call for all deletions
+                    await onUpdate(character.id, { 
+                      poseReferences: updatedPoseReferences,
+                      references: updatedReferences
+                    });
+                    
+                    // Clear selection and exit selection mode
+                    setSelectedImageIds(new Set());
+                    setSelectionMode(false);
+                    
+                    toast.success(`Successfully deleted ${s3KeysToDelete.size} image${s3KeysToDelete.size !== 1 ? 's' : ''}`);
+                  } catch (error: any) {
+                    console.error('[CharacterDetailModal] Bulk deletion error:', error);
+                    toast.error(`Failed to delete images: ${error.message}`);
+                  }
+                }}
+                className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Delete {selectedImageIds.size} Image{selectedImageIds.size !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
