@@ -36,7 +36,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         deleteCharacter, 
         getCharacterScenes, 
         beats, 
-        relationships, 
+        relationships,
+        scenes,
         isLoading, 
         hasInitializedFromDynamoDB, 
         isEntityInScript, 
@@ -135,8 +136,8 @@ export default function CharacterBoard({ showHeader = true, triggerAdd, initialD
         const character = characters.find(c => c.id === characterId);
         if (!character) return;
         
-        // Check dependencies
-        const dependencies = getCharacterDependencies(characterId, beats, relationships);
+        // Check dependencies - pass scenes directly (beats are frontend-only UI templates)
+        const dependencies = getCharacterDependencies(characterId, relationships, scenes, beats);
         const report = generateCharacterReport(characterId, character, dependencies);
         
         // Show delete confirmation dialog

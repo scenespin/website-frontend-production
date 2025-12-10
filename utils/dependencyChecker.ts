@@ -19,14 +19,16 @@ import type {
  * Check character dependencies across screenplay
  * 
  * @param characterId Character ID to check
- * @param beats All story beats
  * @param relationships Relationships data
+ * @param scenes Direct scenes array (scenes are stored directly, not in beats)
+ * @param beats Optional: Frontend-only UI templates (for beat relationships in reports)
  * @returns Character dependencies
  */
 export function getCharacterDependencies(
     characterId: string,
-    beats: StoryBeat[],
-    relationships: Relationships
+    relationships: Relationships,
+    scenes: Scene[],
+    beats?: StoryBeat[]
 ): CharacterDependencies {
     const charRels = relationships.characters[characterId];
     
@@ -38,22 +40,26 @@ export function getCharacterDependencies(
         };
     }
     
-    // Get all scenes
-    const allScenes = beats.flatMap(beat => beat.scenes);
+    // 🔥 FIX: Use scenes array directly (beats are frontend-only UI templates)
+    // This ensures we're checking against the actual current scenes
+    const validSceneIds = new Set(scenes.map(s => s.id));
     
-    // Find scenes where character appears
-    const scenes = charRels.appearsInScenes
-        .map(sceneId => allScenes.find(s => s.id === sceneId))
+    // Find scenes where character appears - filter by valid scene IDs
+    const scenesWhereAppears = charRels.appearsInScenes
+        .filter(sceneId => validSceneIds.has(sceneId)) // 🔥 FIX: Filter out deleted scene IDs
+        .map(sceneId => scenes.find(s => s.id === sceneId))
         .filter((s): s is Scene => s !== undefined);
     
-    // Find beats that contain those scenes
-    const uniqueBeatIds = new Set(charRels.relatedBeats);
-    const relatedBeats = beats.filter(beat => uniqueBeatIds.has(beat.id));
+    // Find beats that contain those scenes (optional - beats are frontend-only)
+    const relatedBeats = beats ? (() => {
+        const uniqueBeatIds = new Set(charRels.relatedBeats);
+        return beats.filter(beat => uniqueBeatIds.has(beat.id));
+    })() : [];
     
     return {
-        scenes,
+        scenes: scenesWhereAppears,
         beats: relatedBeats,
-        totalAppearances: scenes.length
+        totalAppearances: scenesWhereAppears.length
     };
 }
 
@@ -61,14 +67,14 @@ export function getCharacterDependencies(
  * Check location dependencies across screenplay
  * 
  * @param locationId Location ID to check
- * @param beats All story beats
  * @param relationships Relationships data
+ * @param scenes Direct scenes array (scenes are stored directly, not in beats)
  * @returns Location dependencies
  */
 export function getLocationDependencies(
     locationId: string,
-    beats: StoryBeat[],
-    relationships: Relationships
+    relationships: Relationships,
+    scenes: Scene[]
 ): LocationDependencies {
     const locRels = relationships.locations[locationId];
     
@@ -79,17 +85,19 @@ export function getLocationDependencies(
         };
     }
     
-    // Get all scenes
-    const allScenes = beats.flatMap(beat => beat.scenes);
+    // 🔥 FIX: Use scenes array directly (beats are frontend-only UI templates)
+    // This ensures we're checking against the actual current scenes
+    const validSceneIds = new Set(scenes.map(s => s.id));
     
-    // Find scenes that use this location
-    const scenes = locRels.scenes
-        .map(sceneId => allScenes.find(s => s.id === sceneId))
+    // Find scenes that use this location - filter by valid scene IDs
+    const scenesWhereUsed = locRels.scenes
+        .filter(sceneId => validSceneIds.has(sceneId)) // 🔥 FIX: Filter out deleted scene IDs
+        .map(sceneId => scenes.find(s => s.id === sceneId))
         .filter((s): s is Scene => s !== undefined);
     
     return {
-        scenes,
-        totalUsages: scenes.length
+        scenes: scenesWhereUsed,
+        totalUsages: scenesWhereUsed.length
     };
 }
 

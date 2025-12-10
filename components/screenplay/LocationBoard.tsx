@@ -36,7 +36,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         deleteLocation, 
         getLocationScenes, 
         beats, 
-        relationships, 
+        relationships,
+        scenes,
         isLoading, 
         hasInitializedFromDynamoDB, 
         isEntityInScript,
@@ -140,7 +141,8 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         if (!location) return;
         
         // Check dependencies
-        const dependencies = getLocationDependencies(locationId, beats, relationships);
+        // Check dependencies - pass scenes directly (beats are frontend-only UI templates)
+        const dependencies = getLocationDependencies(locationId, relationships, scenes);
         const report = generateLocationReport(locationId, location, dependencies);
         
         // Show delete confirmation dialog
