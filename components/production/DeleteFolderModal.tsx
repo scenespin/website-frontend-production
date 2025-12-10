@@ -13,7 +13,6 @@ import { useDeleteFolder, useMediaFolders } from '@/hooks/useMediaLibrary';
 import { MediaFolder } from '@/types/media';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
-import { getAuthToken } from '@/utils/auth';
 
 interface DeleteFolderModalProps {
   isOpen: boolean;
