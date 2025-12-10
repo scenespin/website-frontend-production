@@ -303,9 +303,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             (window as any).__debug_assets = assets;
         }
     }, [assets]);
-    useEffect(() => { 
-        relationshipsRef.current = relationships; 
-    }, [relationships]);
     
     // Relationships - START WITH EMPTY STATE
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount - DynamoDB is source of truth
@@ -316,6 +313,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         locations: {},
         props: {}
     });
+    
+    // Keep relationshipsRef in sync with relationships state
+    useEffect(() => { 
+        relationshipsRef.current = relationships; 
+    }, [relationships]);
 
     const [isLoading, setIsLoading] = useState(true); // Start true until DynamoDB loads
     const [error, setError] = useState<string | null>(null);
