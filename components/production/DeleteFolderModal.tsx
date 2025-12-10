@@ -47,7 +47,25 @@ export function DeleteFolderModal({
     }
 
     try {
-      // Recursively delete child folders first, then parent
+      // 🔥 FIX: Check if parent folder is protected BEFORE deleting any child folders
+      // Attempt to delete the parent folder first - this will fail immediately if entity exists
+      // Backend checks entity existence BEFORE checking for children, so this prevents
+      // deleting child folders when the parent entity folder is protected
+      try {
+        await deleteFolder.mutateAsync({ folderId: folder.folderId, moveFilesToParent });
+        // If parent deletion succeeds, entity doesn't exist - proceed with child folder cleanup
+      } catch (parentError: any) {
+        // If error is about entity still existing, stop here - don't delete child folders
+        if (parentError.message?.includes('still exists') || parentError.message?.includes('Cannot delete folder')) {
+          throw parentError; // Re-throw to show error to user
+        }
+        // If error is about having children, continue with recursive deletion
+        if (!parentError.message?.includes('contains subfolders')) {
+          throw parentError; // Re-throw other errors
+        }
+      }
+      
+      // Recursively delete child folders (only if parent deletion succeeded or had children)
       const deleteFolderRecursively = async (folderId: string): Promise<void> => {
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
         
@@ -68,16 +86,14 @@ export function DeleteFolderModal({
           const childFoldersData = await childFoldersResponse.json();
           const childFolders = childFoldersData.folders || [];
           
-          // Recursively delete all child folders first (depth-first)
+          // Recursively delete all child folders (depth-first)
           for (const childFolder of childFolders) {
             await deleteFolderRecursively(childFolder.folderId);
           }
         }
-        
-        // Now delete the parent folder
-        await deleteFolder.mutateAsync({ folderId, moveFilesToParent });
       };
       
+      // Clean up any remaining child folders (parent already deleted above)
       await deleteFolderRecursively(folder.folderId);
       toast.success(`Folder "${folder.folderName}" deleted successfully`);
       setConfirmText('');
