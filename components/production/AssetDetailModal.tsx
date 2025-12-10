@@ -898,20 +898,49 @@ export default function AssetDetailModal({
                   }
                   
                   // Batch delete: Remove all selected angle references in one update
-                  const updatedAngleReferences = asset.angleReferences.filter((ref: any) => 
+                  const updatedAngleReferences = (asset.angleReferences || []).filter((ref: any) => 
                     !s3KeysToDelete.has(ref.s3Key)
                   );
                   
-                  // Update asset via callback
+                  // Make API call to update asset (same pattern as single deletion)
+                  const token = await getToken({ template: 'wryda-backend' });
+                  if (!token) {
+                    toast.error('Authentication required');
+                    return;
+                  }
+                  
+                  const response = await fetch(`/api/asset-bank/${asset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      angleReferences: updatedAngleReferences
+                    }),
+                  });
+                  
+                  if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to delete images');
+                  }
+                  
+                  // Refetch queries for immediate UI update (same pattern as single deletion)
+                  await Promise.all([
+                    queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] }),
+                    queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] })
+                  ]);
+                  
+                  // Trigger parent update
+                  onUpdate();
+                  
+                  // Update asset via callback if provided
                   if (onAssetUpdate) {
                     onAssetUpdate({
                       ...asset,
                       angleReferences: updatedAngleReferences
                     });
                   }
-                  
-                  // Trigger parent update
-                  onUpdate();
                   
                   // Clear selection and exit selection mode
                   setSelectedImageIds(new Set());
