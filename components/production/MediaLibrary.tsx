@@ -2401,12 +2401,7 @@ export default function MediaLibrary({
       {/* Phase 2: Bulk Delete Confirmation Dialog */}
       {showBulkDeleteConfirm && (
         <div className="fixed inset-0 bg-[#0A0A0A]/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 max-w-md w-full shadow-2xl"
-          >
+          <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 max-w-md w-full shadow-2xl">
             <h3 className="text-lg font-semibold text-[#FFFFFF] mb-2">Delete Selected Files?</h3>
             <p className="text-sm text-[#808080] mb-6">
               Are you sure you want to delete {selectedFiles.size} file{selectedFiles.size !== 1 ? 's' : ''}? This action cannot be undone.
