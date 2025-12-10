@@ -19,6 +19,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, Trash2, Maximize2, Minimize2, ZoomIn, ZoomOut, Grid3x3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/nextjs';
 
 export interface ImageItem {
   id: string;
@@ -67,6 +68,55 @@ export function ImageViewer({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const { getToken } = useAuth();
+  
+  // Generate presigned URL from s3Key if URL is missing or fails
+  const getImageUrl = useCallback(async (image: ImageItem): Promise<string> => {
+    // If we already have a cached URL, use it
+    if (imageUrls.has(image.id)) {
+      return imageUrls.get(image.id)!;
+    }
+    
+    // If URL exists and looks valid, use it
+    if (image.url && image.url.startsWith('http')) {
+      return image.url;
+    }
+    
+    // If we have s3Key, generate presigned URL
+    if (image.s3Key) {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) throw new Error('Not authenticated');
+        
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const response = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            s3Key: image.s3Key,
+            expiresIn: 3600, // 1 hour
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.downloadUrl) {
+            setImageUrls(prev => new Map(prev).set(image.id, data.downloadUrl));
+            return data.downloadUrl;
+          }
+        }
+      } catch (error) {
+        console.error('[ImageViewer] Failed to generate presigned URL:', error);
+      }
+    }
+    
+    // Fallback to provided URL or empty string
+    return image.url || '';
+  }, [imageUrls, getToken]);
   
   // Detect touch device
   useEffect(() => {
@@ -115,6 +165,33 @@ export function ImageViewer({
       setIsLoading(true);
     }
   }, [isOpen, initialIndex, displayImages.length]);
+
+  // Get current image with resolved URL
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+
+  // Generate presigned URL when image changes or URL is missing/expired
+  useEffect(() => {
+    const currentImage = displayImages[currentIndex];
+    if (!isOpen || !currentImage) {
+      setCurrentImageUrl('');
+      return;
+    }
+
+    const loadImageUrl = async () => {
+      setIsLoading(true);
+      try {
+        const url = await getImageUrl(currentImage);
+        setCurrentImageUrl(url);
+      } catch (error) {
+        console.error('[ImageViewer] Failed to load image URL:', error);
+        setCurrentImageUrl(currentImage.url || '');
+      } finally {
+        // Image onLoad will set isLoading to false
+      }
+    };
+
+    loadImageUrl();
+  }, [isOpen, currentIndex, displayImages, getImageUrl]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -507,7 +584,7 @@ export function ImageViewer({
               <motion.img
                 key={currentImage.id}
                 ref={imageRef}
-                src={currentImage.url}
+                src={currentImageUrl || currentImage.url}
                 alt={currentImage.label}
                 className="max-w-full max-h-full object-contain select-none"
                 style={{
@@ -519,8 +596,20 @@ export function ImageViewer({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onLoad={() => setIsLoading(false)}
-                onError={(e) => {
-                  console.error('[ImageViewer] Image failed to load:', currentImage.url);
+                onError={async (e) => {
+                  console.error('[ImageViewer] Image failed to load:', currentImageUrl || currentImage.url);
+                  // Try to generate presigned URL if we have s3Key and URL failed
+                  if (currentImage.s3Key && !currentImageUrl.includes('presigned')) {
+                    try {
+                      const url = await getImageUrl(currentImage);
+                      if (url && url !== currentImageUrl) {
+                        setCurrentImageUrl(url);
+                        return; // Retry with new URL
+                      }
+                    } catch (error) {
+                      console.error('[ImageViewer] Failed to generate presigned URL on error:', error);
+                    }
+                  }
                   toast.error('Image failed to load');
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
