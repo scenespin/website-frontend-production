@@ -95,12 +95,12 @@ export function DeleteFolderModal({
         <form onSubmit={handleSubmit} className="p-4 md:p-5">
           {/* Warning Messages */}
           {hasChildren && (
-            <div className="mb-4 p-3 bg-[#DC143C]/20 border border-[#DC143C]/50 rounded-lg">
-              <p className="text-sm text-[#DC143C] font-medium">
+            <div className="mb-4 p-3 bg-[#FFA500]/20 border border-[#FFA500]/50 rounded-lg">
+              <p className="text-sm text-[#FFA500] font-medium">
                 ⚠️ This folder contains {childFolders.length} subfolder{childFolders.length !== 1 ? 's' : ''}
               </p>
               <p className="text-xs text-[#808080] mt-1">
-                You must delete or move all subfolders before deleting this folder.
+                All subfolders and their contents will also be deleted. This cannot be undone.
               </p>
             </div>
           )}
@@ -193,7 +193,7 @@ export function DeleteFolderModal({
             </button>
             <button
               type="submit"
-              disabled={deleteFolder.isPending || hasChildren || confirmText !== folder.folderName}
+              disabled={deleteFolder.isPending || confirmText !== folder.folderName}
               className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {deleteFolder.isPending ? (

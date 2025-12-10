@@ -49,7 +49,8 @@ import {
   useDeleteMedia,
   usePresignedUrl,
   useBulkPresignedUrls,
-  useMediaFolderTree
+  useMediaFolderTree,
+  useDeleteFolder
 } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useQueryClient } from '@tanstack/react-query';
@@ -225,6 +226,7 @@ export default function MediaLibrary({
   // Phase 2: Multiple Delete Checkbox
   const [selectionMode, setSelectionMode] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   // Removed useDropdownCoordinator - using uncontrolled state like MusicLibrary
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedFolderPath, setSelectedFolderPath] = useState<string[]>([]);
@@ -282,6 +284,7 @@ export default function MediaLibrary({
   // Mutations
   const uploadMediaMutation = useUploadMedia(projectId);
   const deleteMediaMutation = useDeleteMedia(projectId);
+  const deleteFolderMutation = useDeleteFolder(projectId);
   
   // Query client for on-demand presigned URL fetching
   const queryClient = useQueryClient();
@@ -564,16 +567,50 @@ export default function MediaLibrary({
     // loadFolderFiles will be called by useEffect when selectedFolderId changes (for cloud storage)
   };
 
-  const handleBreadcrumbClick = (index: number) => {
+  const handleBreadcrumbClick = async (index: number) => {
     if (index === -1) {
       // Navigate to root (All Files)
       setSelectedFolderId(null);
       setSelectedFolderPath([]);
+      setSelectedStorageType(null);
     } else {
       // Navigate to specific folder in path
       const newPath = selectedFolderPath.slice(0, index + 1);
       setSelectedFolderPath(newPath);
-      // TODO: Get folderId for this path segment and set it
+      
+      // Find folderId for this path by traversing the folder tree
+      // For S3 folders, we need to find the folderId from the folder tree
+      if (selectedStorageType === 's3' && folderTree && folderTree.length > 0) {
+        const findFolderByPath = (tree: any[], path: string[], currentIndex: number = 0): string | null => {
+          if (currentIndex >= path.length) return null;
+          
+          const targetName = path[currentIndex];
+          for (const folder of tree) {
+            if (folder.folderName === targetName) {
+              if (currentIndex === path.length - 1) {
+                // Found the target folder
+                return folder.folderId;
+              } else if (folder.children) {
+                // Continue searching in children
+                const found = findFolderByPath(folder.children, path, currentIndex + 1);
+                if (found) return found;
+              }
+            }
+          }
+          return null;
+        };
+        
+        const folderId = findFolderByPath(folderTree, newPath);
+        if (folderId) {
+          setSelectedFolderId(folderId);
+          setSelectedStorageType('s3');
+        }
+      } else if (selectedStorageType === 'cloud') {
+        // For cloud storage, we need to reconstruct the folderId from the path
+        // This is a simplified approach - in reality, cloud folders use different IDs
+        // For now, just update the path and let the folder selection handle it
+        setSelectedFolderPath(newPath);
+      }
     }
   };
   
@@ -873,18 +910,19 @@ export default function MediaLibrary({
     }
   };
 
-  // Phase 2: Bulk delete handler
+  // Phase 2: Bulk delete handler (files and folders)
   const handleBulkDelete = async () => {
-    if (selectedFiles.size === 0) {
+    if (selectedFiles.size === 0 && selectedFolders.size === 0) {
       return;
     }
 
     const fileIds = Array.from(selectedFiles);
+    const folderIds = Array.from(selectedFolders);
     let successCount = 0;
     let errorCount = 0;
 
     try {
-      // Delete each file sequentially (to avoid overwhelming the API)
+      // Delete files first
       for (const fileId of fileIds) {
         try {
           await deleteMediaMutation.mutateAsync(fileId);
@@ -895,18 +933,31 @@ export default function MediaLibrary({
         }
       }
 
+      // Delete folders
+      for (const folderId of folderIds) {
+        try {
+          await deleteFolderMutation.mutateAsync({ folderId, moveFilesToParent: true });
+          successCount++;
+        } catch (error) {
+          console.error('[MediaLibrary] Failed to delete folder in bulk:', folderId, error);
+          errorCount++;
+        }
+      }
+
       // Clear selection and exit selection mode
       setSelectedFiles(new Set());
+      setSelectedFolders(new Set());
       setSelectionMode(false);
 
+      const totalItems = fileIds.length + folderIds.length;
       if (errorCount === 0) {
-        toast.success(`Successfully deleted ${successCount} file${successCount !== 1 ? 's' : ''}`);
+        toast.success(`Successfully deleted ${successCount} item${successCount !== 1 ? 's' : ''}`);
       } else {
-        toast.warning(`Deleted ${successCount} file${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
+        toast.warning(`Deleted ${successCount} item${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
       }
     } catch (error) {
       console.error('[MediaLibrary] Bulk deletion error:', error);
-      toast.error(`Failed to delete files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to delete items: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -1639,7 +1690,11 @@ export default function MediaLibrary({
         {projectId && projectId.startsWith('screenplay_') && screenplayData && !hasConnectedProviders && !isBannerDismissed && (
           <div className="mt-4 p-3 rounded-lg border bg-[#3F3F46]/20 border-[#3F3F46] text-[#808080] relative">
             <button
-              onClick={handleDismissBanner}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDismissBanner();
+              }}
               className="absolute top-2 right-2 p-1.5 hover:bg-[#3F3F46] rounded transition-colors z-10"
               title="Dismiss"
               type="button"
@@ -1697,6 +1752,7 @@ export default function MediaLibrary({
                   setSelectionMode(!selectionMode);
                   if (selectionMode) {
                     setSelectedFiles(new Set()); // Clear selection when exiting
+                    setSelectedFolders(new Set()); // Clear folder selection too
                   }
                 }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -1708,9 +1764,9 @@ export default function MediaLibrary({
                 {selectionMode ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                 {selectionMode ? 'Selection Mode' : 'Select Multiple'}
               </button>
-              {selectionMode && selectedFiles.size > 0 && (
+              {selectionMode && (selectedFiles.size > 0 || selectedFolders.size > 0) && (
                 <span className="text-sm text-[#808080]">
-                  {selectedFiles.size} selected
+                  {selectedFiles.size + selectedFolders.size} selected
                 </span>
               )}
             </div>
@@ -1720,22 +1776,26 @@ export default function MediaLibrary({
                   <>
                     <button
                       onClick={() => {
-                        if (selectedFiles.size === filteredFiles.length) {
+                        const allFilesSelected = selectedFiles.size === filteredFiles.length;
+                        const allFoldersSelected = selectedFolders.size === filteredFolders.length;
+                        if (allFilesSelected && allFoldersSelected) {
                           setSelectedFiles(new Set());
+                          setSelectedFolders(new Set());
                         } else {
                           setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
+                          setSelectedFolders(new Set(filteredFolders.map(f => f.id)));
                         }
                       }}
                       className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                     >
-                      {selectedFiles.size === filteredFiles.length ? 'Deselect All' : 'Select All'}
+                      {selectedFiles.size === filteredFiles.length && selectedFolders.size === filteredFolders.length ? 'Deselect All' : 'Select All'}
                     </button>
                     <button
                       onClick={() => setShowBulkDeleteConfirm(true)}
                       className="flex items-center gap-2 px-4 py-1.5 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Delete Selected ({selectedFiles.size})
+                      Delete Selected ({selectedFiles.size + selectedFolders.size})
                     </button>
                   </>
                 )}
@@ -1887,15 +1947,59 @@ export default function MediaLibrary({
                     return (
                       <div
                         key={folder.id}
-                        onClick={() => {
-                          handleFolderSelect(folder.id, folder.path, storageType);
+                        onClick={(e) => {
+                          if (selectionMode) {
+                            // In selection mode, toggle folder selection
+                            const newSelected = new Set(selectedFolders);
+                            if (selectedFolders.has(folder.id)) {
+                              newSelected.delete(folder.id);
+                            } else {
+                              newSelected.add(folder.id);
+                            }
+                            setSelectedFolders(newSelected);
+                          } else {
+                            // Normal mode: navigate to folder
+                            handleFolderSelect(folder.id, folder.path, storageType);
+                          }
                         }}
                         className={`relative group cursor-pointer rounded-lg border-2 transition-all ${
-                          selectedFolderId === folder.id
-                            ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
-                            : 'border-[#3F3F46] hover:border-[#8B5CF6]/50 hover:bg-[#1F1F1F]'
+                          selectionMode
+                            ? selectedFolders.has(folder.id)
+                              ? 'border-[#DC143C] ring-2 ring-[#DC143C]/50 bg-[#DC143C]/10'
+                              : 'border-[#3F3F46] hover:border-[#DC143C]/50'
+                            : selectedFolderId === folder.id
+                              ? 'border-[#8B5CF6] bg-[#8B5CF6]/10'
+                              : 'border-[#3F3F46] hover:border-[#8B5CF6]/50 hover:bg-[#1F1F1F]'
                         } ${viewMode === 'grid' ? 'p-3' : 'p-4 flex items-center gap-4'}`}
                       >
+                        {/* Phase 2: Checkbox overlay in selection mode */}
+                        {selectionMode && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newSelected = new Set(selectedFolders);
+                                if (selectedFolders.has(folder.id)) {
+                                  newSelected.delete(folder.id);
+                                } else {
+                                  newSelected.add(folder.id);
+                                }
+                                setSelectedFolders(newSelected);
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                selectedFolders.has(folder.id)
+                                  ? 'bg-[#DC143C] text-white'
+                                  : 'bg-[#0A0A0A]/80 text-[#808080] hover:bg-[#1F1F1F]'
+                              }`}
+                            >
+                              {selectedFolders.has(folder.id) ? (
+                                <CheckSquare className="w-4 h-4" />
+                              ) : (
+                                <Square className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
                         {/* Folder Icon */}
                         <div className={`${viewMode === 'grid' ? 'mb-3' : ''} flex-shrink-0 relative`}>
                           <div className={`${viewMode === 'grid' ? 'w-full h-32' : 'w-16 h-16'} bg-[#1F1F1F] rounded flex items-center justify-center`}>
@@ -1921,8 +2025,8 @@ export default function MediaLibrary({
                           )}
                         </div>
                         
-                        {/* 🔥 NEW: Folder Actions Menu (for S3 folders with local files) */}
-                        {storageType === 's3' && hasConnectedProviders && (
+                        {/* 🔥 NEW: Folder Actions Menu (for S3 folders with local files) - only show when not in selection mode */}
+                        {!selectionMode && storageType === 's3' && hasConnectedProviders && (
                           <div 
                             className="absolute top-2 right-2 z-50" 
                             onClick={(e) => e.stopPropagation()}
@@ -2404,7 +2508,10 @@ export default function MediaLibrary({
           <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 max-w-md w-full shadow-2xl">
             <h3 className="text-lg font-semibold text-[#FFFFFF] mb-2">Delete Selected Files?</h3>
             <p className="text-sm text-[#808080] mb-6">
-              Are you sure you want to delete {selectedFiles.size} file{selectedFiles.size !== 1 ? 's' : ''}? This action cannot be undone.
+              Are you sure you want to delete {selectedFiles.size + selectedFolders.size} item{(selectedFiles.size + selectedFolders.size) !== 1 ? 's' : ''}?
+              {selectedFiles.size > 0 && ` ${selectedFiles.size} file${selectedFiles.size !== 1 ? 's' : ''}`}
+              {selectedFolders.size > 0 && ` ${selectedFolders.size} folder${selectedFolders.size !== 1 ? 's' : ''}`}
+              {' '}This action cannot be undone.
             </p>
             <div className="flex items-center gap-3 justify-end">
               <button
@@ -2420,7 +2527,7 @@ export default function MediaLibrary({
                 }}
                 className="px-4 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-sm font-medium transition-colors"
               >
-                Delete {selectedFiles.size} File{selectedFiles.size !== 1 ? 's' : ''}
+                Delete {selectedFiles.size + selectedFolders.size} Item{(selectedFiles.size + selectedFolders.size) !== 1 ? 's' : ''}
               </button>
             </div>
           </div>
