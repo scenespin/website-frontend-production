@@ -297,7 +297,7 @@ export function LocationDetailModal({
   });
   
   // Convert angleVariations to image objects for gallery
-  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [...allCreationImages];
+  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; metadata?: any }> = [...allCreationImages];
   
   angleVariations.forEach((variation: any) => {
     allImages.push({
@@ -305,7 +305,8 @@ export function LocationDetailModal({
       imageUrl: variation.imageUrl || '',
       label: `${location.name} - ${variation.angle} view`,
       isBase: false,
-      s3Key: variation.s3Key
+      s3Key: variation.s3Key,
+      metadata: variation.metadata || {} // Include metadata for provider labels
     });
   });
   
@@ -683,7 +684,7 @@ export function LocationDetailModal({
                               )}
                               {/* Top-right label: Angle/Regenerated */}
                               {(() => {
-                                const isRegenerated = img.metadata?.isRegenerated || variation.metadata?.isRegenerated || false;
+                                const isRegenerated = (img as any).metadata?.isRegenerated || variation.metadata?.isRegenerated || false;
                                 return (
                                   <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
                                     isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
@@ -694,7 +695,7 @@ export function LocationDetailModal({
                               })()}
                               {/* Bottom-right label: Provider */}
                               {(() => {
-                                const providerId = img.metadata?.providerId || variation.metadata?.providerId;
+                                const providerId = (img as any).metadata?.providerId || variation.metadata?.providerId;
                                 if (!providerId) return null;
                                 const providerLabel = getProviderLabel(providerId);
                                 if (!providerLabel) return null;
