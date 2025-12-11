@@ -21,6 +21,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useEditor } from '@/contexts/EditorContext';
 import { cn } from '@/lib/utils';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useCharacters } from '@/hooks/useCharacterBank';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,30 +63,20 @@ export function CharacterDetailModal({
   const { getToken } = useAuth();
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
-  const { updateCharacter, characters, isEntityInScript } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
+  const { updateCharacter, characters: contextCharacters, isEntityInScript } = screenplay; // Still needed for arcStatus, physicalAttributes, arcNotes, and script locking
   const { state: editorState } = useEditor();
   const queryClient = useQueryClient(); // 🔥 NEW: For invalidating Media Library cache
   
-  // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
-  const charactersRef = useRef(characters);
-  useEffect(() => {
-    charactersRef.current = characters;
-  }, [characters]);
+  // 🔥 FIX: Use React Query hook directly to get latest characters (same as CharacterBankPanel)
+  const { data: queryCharacters = [] } = useCharacters(
+    screenplayId || '',
+    'production-hub',
+    !!screenplayId && isOpen // Only fetch when modal is open
+  );
   
-  // 🔥 FIX: Track character prop changes to ensure memoized values update
-  // When character prop updates (from query refetch), force recalculation of memoized values
-  const characterRef = useRef(character);
-  useEffect(() => {
-    characterRef.current = character;
-  }, [character]);
-  
-  // Get the full Character from context (has arcStatus, physicalAttributes, arcNotes)
-  // 🔥 SIMPLIFIED: Only use context for Creation section fields, NOT for images
-  // 🔥 FIX: Always use the latest character from query, not stale prop
-  const contextCharacter = characters.find(c => c.id === character.id);
-  // 🔥 FIX: Use latest character from query if available, otherwise fall back to prop
-  // This ensures the modal updates when the query refetches after regeneration
-  const latestCharacter = contextCharacter || character;
+  // 🔥 FIX: Use query characters for images, context characters for script fields
+  const latestCharacter = queryCharacters.find(c => c.id === character.id) || character;
+  const contextCharacter = contextCharacters.find(c => c.id === character.id);
   
   // Check if character is in script (for locking mechanism)
   const isInScript = useMemo(() => {
