@@ -35,15 +35,10 @@
 
   @keyframes shimmer {
     0% { 
-      transform: translateX(-100%);
-      opacity: 0;
-    }
-    50% {
-      opacity: 1;
+      background-position: -200% 0;
     }
     100% { 
-      transform: translateX(100%);
-      opacity: 0;
+      background-position: 200% 0;
     }
   }
 
@@ -266,5 +261,7 @@ progress::-webkit-progress-value {
 
 /* Shimmer animation for regenerating images */
 .animate-shimmer {
-  animation: shimmer 2s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
