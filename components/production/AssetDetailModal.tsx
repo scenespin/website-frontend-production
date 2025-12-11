@@ -164,15 +164,6 @@ export default function AssetDetailModal({
 
       const result = await response.json();
       
-      // If async job, show job tracking
-      if (result.data?.jobId) {
-        toast.info('Angle regeneration started. Check Production Jobs panel for progress.', {
-          duration: 5000,
-        });
-      } else {
-        toast.success('Angle regenerated successfully');
-      }
-
       // Invalidate queries to refresh asset data
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });

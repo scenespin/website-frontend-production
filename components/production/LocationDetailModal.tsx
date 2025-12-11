@@ -175,9 +175,12 @@ export function LocationDetailModal({
       return;
     }
 
+    // 🔥 CRITICAL: Set regenerating state IMMEDIATELY before any async operations
+    // This ensures the UI updates synchronously before the fetch starts
+    const s3KeyToTrack = existingAngleS3Key.trim();
     setIsRegenerating(true);
-    setRegeneratingS3Key(existingAngleS3Key); // Track which image is regenerating
-    setRegenerateAngle(null); // Close modal
+    setRegeneratingS3Key(s3KeyToTrack); // Track which image is regenerating - set BEFORE closing modal
+    setRegenerateAngle(null); // Close modal AFTER state is set
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -737,29 +740,34 @@ export function LocationDetailModal({
                                         Download
                                       </DropdownMenuItem>
                                       {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
-                                      {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (
-                                        <DropdownMenuItem
-                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Don't allow if this specific image is already regenerating
-                                            if (regeneratingS3Key === variation.s3Key) {
-                                              return;
-                                            }
-                                            // Show warning modal before regenerating
-                                            setRegenerateAngle({
-                                              angleId: variation.id,
-                                              s3Key: variation.s3Key,
-                                              angle: variation.angle,
-                                              variation: variation,
-                                            });
-                                          }}
-                                          disabled={regeneratingS3Key === variation.s3Key}
-                                        >
-                                          <Sparkles className="w-4 h-4 mr-2" />
-                                          {regeneratingS3Key === variation.s3Key ? 'Regenerating...' : 'Regenerate'}
-                                        </DropdownMenuItem>
-                                      )}
+                                      {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (() => {
+                                        // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
+                                        const currentS3Key = (variation.s3Key || '').trim();
+                                        const isRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
+                                        return (
+                                          <DropdownMenuItem
+                                            className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              // Don't allow if this specific image is already regenerating
+                                              if (isRegenerating) {
+                                                return;
+                                              }
+                                              // Show warning modal before regenerating
+                                              setRegenerateAngle({
+                                                angleId: variation.id,
+                                                s3Key: currentS3Key,
+                                                angle: variation.angle,
+                                                variation: variation,
+                                              });
+                                            }}
+                                            disabled={isRegenerating}
+                                          >
+                                            <Sparkles className="w-4 h-4 mr-2" />
+                                            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                          </DropdownMenuItem>
+                                        );
+                                      })()}
                                       <DropdownMenuItem
                                         className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                         onClick={async (e) => {

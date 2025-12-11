@@ -128,11 +128,14 @@ export function CharacterDetailModal({
       return;
     }
 
-    console.log('[CharacterDetailModal] Starting regeneration for s3Key:', existingPoseS3Key);
+    // 🔥 CRITICAL: Set regenerating state IMMEDIATELY before any async operations
+    // This ensures the UI updates synchronously before the fetch starts
+    const s3KeyToTrack = existingPoseS3Key.trim();
+    console.log('[CharacterDetailModal] Starting regeneration for s3Key:', s3KeyToTrack);
     setIsRegenerating(true);
-    setRegeneratingS3Key(existingPoseS3Key); // Track which image is regenerating
-    setRegeneratePose(null); // Close modal
-    console.log('[CharacterDetailModal] Set regeneratingS3Key to:', existingPoseS3Key, 'Current state:', regeneratingS3Key);
+    setRegeneratingS3Key(s3KeyToTrack); // Track which image is regenerating - set BEFORE closing modal
+    setRegeneratePose(null); // Close modal AFTER state is set
+    console.log('[CharacterDetailModal] Set regeneratingS3Key to:', s3KeyToTrack);
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -1244,29 +1247,34 @@ export function CharacterDetailModal({
                                       Download
                                     </DropdownMenuItem>
                                     {/* 🔥 NEW: Regenerate option (only for poses with poseId) */}
-                                    {(img.poseId || img.metadata?.poseId) && img.s3Key && (
-                                      <DropdownMenuItem
-                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          // Don't allow if this specific image is already regenerating
-                                          if (regeneratingS3Key === img.s3Key) {
-                                            console.log('[CharacterDetailModal] Blocked duplicate click for s3Key:', img.s3Key);
-                                            return;
-                                          }
-                                          console.log('[CharacterDetailModal] Opening regenerate modal for s3Key:', img.s3Key);
-                                          // Show warning modal before regenerating
-                                          setRegeneratePose({
-                                            poseId: img.poseId || img.metadata?.poseId || '',
-                                            s3Key: img.s3Key!,
-                                          });
-                                        }}
-                                        disabled={regeneratingS3Key === img.s3Key}
-                                      >
-                                        <Sparkles className="w-4 h-4 mr-2" />
-                                        {regeneratingS3Key === img.s3Key ? 'Regenerating...' : 'Regenerate'}
-                                      </DropdownMenuItem>
-                                    )}
+                                    {(img.poseId || img.metadata?.poseId) && img.s3Key && (() => {
+                                      // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
+                                      const currentS3Key = (img.s3Key || '').trim();
+                                      const isRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
+                                      return (
+                                        <DropdownMenuItem
+                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Don't allow if this specific image is already regenerating
+                                            if (isRegenerating) {
+                                              console.log('[CharacterDetailModal] Blocked duplicate click for s3Key:', currentS3Key);
+                                              return;
+                                            }
+                                            console.log('[CharacterDetailModal] Opening regenerate modal for s3Key:', currentS3Key);
+                                            // Show warning modal before regenerating
+                                            setRegeneratePose({
+                                              poseId: img.poseId || img.metadata?.poseId || '',
+                                              s3Key: currentS3Key,
+                                            });
+                                          }}
+                                          disabled={isRegenerating}
+                                        >
+                                          <Sparkles className="w-4 h-4 mr-2" />
+                                          {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                        </DropdownMenuItem>
+                                      );
+                                    })()}
                                     <DropdownMenuItem
                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onClick={async (e) => {
