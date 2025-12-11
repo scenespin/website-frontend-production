@@ -313,16 +313,19 @@ export function LocationDetailModal({
   });
   
   // Convert angleVariations to image objects for gallery
-  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; metadata?: any }> = [...allCreationImages];
+  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; isRegenerated?: boolean; metadata?: any }> = [...allCreationImages];
   
   angleVariations.forEach((variation: any) => {
+    // Extract isRegenerated from metadata (like Characters do)
+    const isRegenerated = variation.metadata?.isRegenerated || false;
     allImages.push({
       id: variation.id || `ref_${variation.s3Key}`,
       imageUrl: variation.imageUrl || '',
       label: `${location.name} - ${variation.angle} view`,
       isBase: false,
       s3Key: variation.s3Key,
-      metadata: variation.metadata || {} // 🔥 FIX: Include metadata for provider labels
+      isRegenerated: isRegenerated, // 🔥 FIX: Extract as direct property like Characters
+      metadata: variation.metadata || {} // Include metadata for provider labels
     });
   });
   
@@ -699,16 +702,11 @@ export function LocationDetailModal({
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                               )}
                               {/* Top-right label: Angle/Regenerated */}
-                              {(() => {
-                                const isRegenerated = (img as any).metadata?.isRegenerated || variation.metadata?.isRegenerated || false;
-                                return (
-                                  <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
-                                    isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
-                                  }`}>
-                                    {isRegenerated ? 'Regenerated' : 'Angle'}
-                                  </div>
-                                );
-                              })()}
+                              <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                (img as any).isRegenerated || variation.metadata?.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                              }`}>
+                                {(img as any).isRegenerated || variation.metadata?.isRegenerated ? 'Regenerated' : 'Angle'}
+                              </div>
                               {/* Bottom-right label: Provider */}
                               {(() => {
                                 // Check multiple possible paths for providerId (backend may nest it differently)

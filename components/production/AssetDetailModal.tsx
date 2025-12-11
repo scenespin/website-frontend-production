@@ -246,6 +246,8 @@ export default function AssetDetailModal({
   const angleImageObjects = angleImages.map((img, idx) => {
     // Find the original angleReference to get the backend id
     const originalRef = angleReferences.find((ref: any) => ref.s3Key === img.s3Key);
+    // Extract isRegenerated from metadata (like Characters do)
+    const isRegenerated = img.metadata?.isRegenerated || originalRef?.metadata?.isRegenerated || false;
     return {
       id: originalRef?.id || `angle-${idx}`, // Use backend id if available
       imageUrl: img.url,
@@ -254,6 +256,7 @@ export default function AssetDetailModal({
       s3Key: img.s3Key || img.metadata?.s3Key,
       isAngleReference: true,
       angle: img.metadata?.angle,
+      isRegenerated: isRegenerated, // 🔥 FIX: Extract as direct property like Characters
       metadata: img.metadata
     };
   });
@@ -711,19 +714,16 @@ export default function AssetDetailModal({
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                               )}
                               {/* Top-right label: Angle/Regenerated */}
-                              {(() => {
-                                const isRegenerated = (img.metadata as any)?.isRegenerated || false;
-                                return (
-                                  <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
-                                    isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
-                                  }`}>
-                                    {isRegenerated ? 'Regenerated' : 'Angle'}
-                                  </div>
-                                );
-                              })()}
+                              <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                              }`}>
+                                {img.isRegenerated ? 'Regenerated' : 'Angle'}
+                              </div>
                               {/* Bottom-right label: Provider */}
                               {(() => {
-                                const providerId = (img.metadata as any)?.providerId;
+                                // Check multiple possible paths for providerId (like Locations do)
+                                const providerId = (img.metadata as any)?.providerId 
+                                  || (img.metadata as any)?.generationMetadata?.providerId;
                                 if (!providerId) return null;
                                 const providerLabel = getProviderLabel(providerId);
                                 if (!providerLabel) return null;
