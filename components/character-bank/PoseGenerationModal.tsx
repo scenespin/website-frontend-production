@@ -378,11 +378,14 @@ export default function PoseGenerationModal({
         }
       }
 
+      // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
+      const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
+      
       const requestBody = {
         characterName,
         packageId: packageId,
         quality: quality, // 🔥 NEW: Quality tier
-        providerId: providerId || undefined, // 🔥 NEW: Model selection
+        providerId: finalProviderId, // 🔥 FIX: Only send if actually selected
         headshotS3Key: baseReferenceS3Key || undefined,
         headshotUrl: headshotFile ? headshotPreview : undefined,
         screenplayContent: screenplayContent || undefined,
@@ -392,7 +395,12 @@ export default function PoseGenerationModal({
       };
       
       console.log('[PoseGeneration] 🔥 Calling API:', apiUrl);
-      console.log('[PoseGeneration] Request body:', requestBody);
+      console.log('[PoseGeneration] Request body:', {
+        quality,
+        providerId: finalProviderId,
+        hasProviderId: !!finalProviderId,
+        packageId
+      });
       
       const response = await fetch(apiUrl, {
         method: 'POST',
