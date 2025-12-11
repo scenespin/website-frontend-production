@@ -147,11 +147,14 @@ export default function LocationAngleGenerationModal({
       }
       
       const apiUrl = `/api/location-bank/generate-angles`;
+      // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
+      const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
+      
       const requestBody = {
         locationProfile: locationProfile,
         packageId: selectedPackageId,
         quality: quality,
-        providerId: providerId || undefined, // 🔥 NEW: Model selection
+        providerId: finalProviderId, // 🔥 FIX: Only send if actually selected
         // Apply timeOfDay and weather to all angles in the package
         angles: packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,
@@ -159,6 +162,12 @@ export default function LocationAngleGenerationModal({
           weather: weather || undefined
         }))
       };
+      
+      console.log('[LocationAngleGeneration] Request body:', {
+        quality,
+        providerId: finalProviderId,
+        hasProviderId: !!finalProviderId
+      });
       
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
       

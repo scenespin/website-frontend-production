@@ -136,6 +136,14 @@ export function CharacterDetailModal({
     setRegeneratingS3Key(s3KeyToTrack); // Track which image is regenerating - set BEFORE closing modal
     setRegeneratePose(null); // Close modal AFTER state is set
     console.log('[CharacterDetailModal] Set regeneratingS3Key to:', s3KeyToTrack);
+    
+    // 🔥 FIX: Find the pose reference to get metadata (providerId, quality)
+    const poseRef = rawPoseRefs.find((ref: any) => {
+      const refS3Key = typeof ref === 'string' ? ref : (ref.s3Key || ref.metadata?.s3Key || '');
+      return refS3Key.trim() === s3KeyToTrack;
+    });
+    const poseMetadata = typeof poseRef === 'object' && poseRef ? poseRef.metadata : null;
+    
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -150,6 +158,9 @@ export function CharacterDetailModal({
         body: JSON.stringify({
           poseId,
           existingPoseS3Key,
+          // 🔥 FIX: Send providerId and quality from stored metadata if available
+          providerId: poseMetadata?.providerId || undefined,
+          quality: poseMetadata?.quality || 'standard',
         }),
       });
 

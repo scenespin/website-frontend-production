@@ -66,7 +66,7 @@ export default function AssetDetailModal({
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   // 🔥 NEW: Regeneration state
-  const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string } | null>(null);
+  const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; metadata?: any } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
 
@@ -130,7 +130,7 @@ export default function AssetDetailModal({
   };
 
   // 🔥 NEW: Handle asset angle regeneration
-  const handleRegenerateAngle = async (angleId: string, existingAngleS3Key: string, angle: string) => {
+  const handleRegenerateAngle = async (angleId: string, existingAngleS3Key: string, angle: string, imgMetadata?: any) => {
     if (!angleId || !existingAngleS3Key || !angle) {
       toast.error('Missing angle information for regeneration');
       return;
@@ -154,6 +154,9 @@ export default function AssetDetailModal({
           angleId,
           existingAngleS3Key,
           angle,
+          // 🔥 FIX: Send providerId and quality from stored metadata if available
+          providerId: imgMetadata?.providerId || undefined,
+          quality: imgMetadata?.quality || 'standard',
         }),
       });
 
@@ -759,6 +762,7 @@ export default function AssetDetailModal({
                                             angleId: img.id,
                                             s3Key: img.s3Key!,
                                             angle: img.metadata?.angle || img.angle || 'angle',
+                                            metadata: img.metadata, // 🔥 FIX: Pass metadata for providerId/quality
                                           });
                                         }}
                                         disabled={isRegenerating}
@@ -932,7 +936,7 @@ export default function AssetDetailModal({
       }}
       onConfirm={() => {
         if (regenerateAngle && regeneratingS3Key === null) {
-          handleRegenerateAngle(regenerateAngle.angleId, regenerateAngle.s3Key, regenerateAngle.angle);
+          handleRegenerateAngle(regenerateAngle.angleId, regenerateAngle.s3Key, regenerateAngle.angle, regenerateAngle.metadata);
         }
       }}
       imageType="angle"

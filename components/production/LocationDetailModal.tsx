@@ -199,6 +199,9 @@ export function LocationDetailModal({
           cameraPosition: variation?.angle || angle,
           timeOfDay: variation?.timeOfDay,
           weather: variation?.weather,
+          // 🔥 FIX: Send providerId and quality from stored metadata if available, otherwise use defaults
+          providerId: variation?.metadata?.providerId || undefined,
+          quality: variation?.metadata?.quality || 'standard',
         }),
       });
 
