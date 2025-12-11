@@ -400,9 +400,14 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
         refJobs: completedCharacterRefJobs.length
       });
       
-      // Invalidate React Query cache for characters and media files - Production Hub context only
+      // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // Immediately refetch to update UI (like regeneration does)
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]).catch(err => console.error('[ProductionJobsPanel] Error refetching after job completion:', err));
     }
   }, [jobs, screenplayId, queryClient]);
   
@@ -444,23 +449,41 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     
     if (completedLocationAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Location angle generation completed, refreshing locations...', completedLocationAngleJobs.length);
+      // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // Immediately refetch to update UI (like regeneration does)
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]).catch(err => console.error('[ProductionJobsPanel] Error refetching locations after job completion:', err));
     }
     
     if (completedAssetAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Asset angle generation completed, refreshing assets...', completedAssetAngleJobs.length);
-      // 🔥 FIX: Invalidate assets cache when asset angle jobs complete
+      // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // Immediately refetch to update UI (like regeneration does)
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]).catch(err => console.error('[ProductionJobsPanel] Error refetching assets after job completion:', err));
     }
     
     // For generic angle jobs, invalidate both (defensive)
     if (completedGenericAngleJobs.length > 0) {
       console.log('[ProductionJobsPanel] Generic angle generation completed, refreshing locations and assets...', completedGenericAngleJobs.length);
+      // 🔥 FIX: Invalidate AND refetch to immediately update UI (matches regeneration pattern)
       queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // Immediately refetch to update UI (like regeneration does)
+      Promise.all([
+        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]).catch(err => console.error('[ProductionJobsPanel] Error refetching after generic job completion:', err));
     }
   }, [jobs, screenplayId, queryClient]);
   
