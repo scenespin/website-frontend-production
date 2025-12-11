@@ -209,22 +209,66 @@ export function LocationDetailModal({
 
       const result = await response.json();
       
-      // Immediately refetch to update UI (like assets do)
-      // 🔥 FIX: Use invalidateQueries first to mark as stale, then refetch
-      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
-        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-      ]);
-      
-      // No toast notification - silent update like assets
+      // 🔥 FIX: If jobId is returned, regeneration is async - keep state active
+      if (result.data?.jobId || result.jobId) {
+        const jobId = result.data?.jobId || result.jobId;
+        console.log('[LocationDetailModal] Regeneration started as async job:', jobId);
+        
+        // Invalidate queries - will auto-refetch and detect update
+        queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        
+        // Refetch and check for update
+        const checkForUpdate = async () => {
+          await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          const updatedLocations = queryClient.getQueryData(['locations', screenplayId, 'production-hub']) as any[];
+          const updatedLocation = updatedLocations?.find(l => l.locationId === location.locationId);
+          if (updatedLocation) {
+            const angleRef = updatedLocation.angleVariations?.find((ref: any) => ref.id === angleId);
+            // If angle has different s3Key, regeneration completed
+            if (angleRef && angleRef.s3Key !== existingAngleS3Key) {
+              setIsRegenerating(false);
+              setRegeneratingS3Key(null);
+              return true;
+            }
+          }
+          return false;
+        };
+        
+        // Check immediately, then poll every 2s for up to 30s
+        let attempts = 0;
+        const maxAttempts = 15;
+        const poll = setInterval(async () => {
+          attempts++;
+          const updated = await checkForUpdate();
+          if (updated || attempts >= maxAttempts) {
+            clearInterval(poll);
+            if (!updated) {
+              setIsRegenerating(false);
+              setRegeneratingS3Key(null);
+            }
+          }
+        }, 2000);
+        
+        checkForUpdate().then(updated => {
+          if (updated) clearInterval(poll);
+        });
+      } else {
+        // Synchronous response (legacy) - clear state immediately
+        setIsRegenerating(false);
+        setRegeneratingS3Key(null);
+        queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+          queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+        ]);
+      }
     } catch (error: any) {
       console.error('[LocationDetailModal] Failed to regenerate angle:', error);
       toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
-    } finally {
       setIsRegenerating(false);
-      setRegeneratingS3Key(null); // Clear regenerating state
+      setRegeneratingS3Key(null);
     }
   };
   

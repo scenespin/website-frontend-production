@@ -164,16 +164,66 @@ export default function AssetDetailModal({
 
       const result = await response.json();
       
-      // Invalidate queries to refresh asset data
-      queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      onUpdate(); // Refresh asset data
+      // 🔥 FIX: If jobId is returned, regeneration is async - keep state active
+      // Clear state after query refetch detects the update (or timeout as fallback)
+      if (result.jobId) {
+        console.log('[AssetDetailModal] Regeneration started as async job:', result.jobId);
+        
+        // Invalidate queries - will auto-refetch and detect update
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        
+        // Refetch and check for update
+        const checkForUpdate = async () => {
+          await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+          const updatedAssets = queryClient.getQueryData(['assets', screenplayId, 'production-hub']) as any[];
+          const updatedAsset = updatedAssets?.find(a => a.id === asset.id);
+          if (updatedAsset) {
+            const angleRef = updatedAsset.angleReferences?.find((ref: any) => ref.id === angleId);
+            // If angle has different s3Key, regeneration completed
+            if (angleRef && angleRef.s3Key !== existingAngleS3Key) {
+              setIsRegenerating(false);
+              setRegeneratingS3Key(null);
+              onUpdate();
+              return true;
+            }
+          }
+          return false;
+        };
+        
+        // Check immediately, then poll every 2s for up to 30s
+        let attempts = 0;
+        const maxAttempts = 15;
+        const poll = setInterval(async () => {
+          attempts++;
+          const updated = await checkForUpdate();
+          if (updated || attempts >= maxAttempts) {
+            clearInterval(poll);
+            if (!updated) {
+              // Timeout fallback - clear state anyway
+              setIsRegenerating(false);
+              setRegeneratingS3Key(null);
+            }
+          }
+        }, 2000);
+        
+        // Initial check
+        checkForUpdate().then(updated => {
+          if (updated) clearInterval(poll);
+        });
+      } else {
+        // Synchronous response (legacy) - clear state immediately
+        setIsRegenerating(false);
+        setRegeneratingS3Key(null);
+        queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+        queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+        onUpdate();
+      }
     } catch (error: any) {
       console.error('[AssetDetailModal] Failed to regenerate angle:', error);
       toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
-    } finally {
       setIsRegenerating(false);
-      setRegeneratingS3Key(null); // Clear regenerating state
+      setRegeneratingS3Key(null);
     }
   };
 
