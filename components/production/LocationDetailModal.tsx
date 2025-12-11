@@ -42,6 +42,14 @@ interface LocationReference {
   generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
   creditsUsed: number;
   createdAt: string;
+  // 🔥 NEW: Generation metadata for exact regeneration
+  metadata?: {
+    generationPrompt?: string;
+    providerId?: string;
+    quality?: 'standard' | 'high-quality';
+    referenceImageUrls?: string[];
+    generatedAt?: string;
+  };
 }
 
 interface LocationProfile {
