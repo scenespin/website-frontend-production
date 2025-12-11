@@ -322,7 +322,7 @@ export function LocationDetailModal({
       label: `${location.name} - ${variation.angle} view`,
       isBase: false,
       s3Key: variation.s3Key,
-      metadata: variation.metadata || {} // Include metadata for provider labels
+      metadata: variation.metadata || {} // 🔥 FIX: Include metadata for provider labels
     });
   });
   
@@ -711,7 +711,11 @@ export function LocationDetailModal({
                               })()}
                               {/* Bottom-right label: Provider */}
                               {(() => {
-                                const providerId = (img as any).metadata?.providerId || variation.metadata?.providerId;
+                                // Check multiple possible paths for providerId (backend may nest it differently)
+                                const providerId = (img as any).metadata?.providerId 
+                                  || variation.metadata?.providerId 
+                                  || variation.metadata?.generationMetadata?.providerId
+                                  || (img as any).metadata?.generationMetadata?.providerId;
                                 if (!providerId) return null;
                                 const providerLabel = getProviderLabel(providerId);
                                 if (!providerLabel) return null;

@@ -656,11 +656,6 @@ export function CharacterDetailModal({
                                 Base
                               </div>
                             )}
-                            {img.isPose && (
-                              <div className="absolute top-1 right-1 px-1.5 py-0.5 bg-[#8B5CF6] text-white text-[10px] rounded">
-                                Pose
-                              </div>
-                            )}
                           </button>
                         ))}
                       </div>
@@ -676,11 +671,6 @@ export function CharacterDetailModal({
                           {allImages[selectedImageIndex]?.isBase && (
                             <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
                               Base Reference
-                            </div>
-                          )}
-                          {allImages[selectedImageIndex]?.isPose && (
-                            <div className="absolute top-4 left-4 px-3 py-1 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded-full text-xs font-medium">
-                              Generated Pose
                             </div>
                           )}
                         </div>
@@ -818,22 +808,6 @@ export function CharacterDetailModal({
                                   {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                                   )}
-                                  {/* Top-right label: Pose/Regenerated */}
-                                  <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
-                                    img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
-                                  }`}>
-                                    {img.isRegenerated ? 'Regenerated' : 'Pose'}
-                                  </div>
-                                  {/* Bottom-right label: Provider */}
-                                  {img.metadata?.providerId && (() => {
-                                    const providerLabel = getProviderLabel(img.metadata.providerId);
-                                    if (!providerLabel) return null;
-                                    return (
-                                      <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
-                                        {providerLabel}
-                                      </div>
-                                    );
-                                  })()}
                                 </button>
                               </div>
                             );
@@ -1222,6 +1196,22 @@ export function CharacterDetailModal({
                                   }
                                 }}
                               />
+                              {/* Top-right label: Pose/Regenerated */}
+                              <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                              }`}>
+                                {img.isRegenerated ? 'Regenerated' : 'Pose'}
+                              </div>
+                              {/* Bottom-right label: Provider */}
+                              {img.metadata?.providerId && (() => {
+                                const providerLabel = getProviderLabel(img.metadata.providerId);
+                                if (!providerLabel) return null;
+                                return (
+                                  <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+                                    {providerLabel}
+                                  </div>
+                                );
+                              })()}
                               <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>
