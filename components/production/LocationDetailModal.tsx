@@ -207,6 +207,9 @@ export function LocationDetailModal({
       const result = await response.json();
       
       // Immediately refetch to update UI (like assets do)
+      // 🔥 FIX: Use invalidateQueries first to mark as stale, then refetch
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })

@@ -81,7 +81,11 @@ export function CharacterDetailModal({
   
   // Get the full Character from context (has arcStatus, physicalAttributes, arcNotes)
   // 🔥 SIMPLIFIED: Only use context for Creation section fields, NOT for images
+  // 🔥 FIX: Always use the latest character from query, not stale prop
   const contextCharacter = characters.find(c => c.id === character.id);
+  // 🔥 FIX: Use latest character from query if available, otherwise fall back to prop
+  // This ensures the modal updates when the query refetches after regeneration
+  const latestCharacter = contextCharacter || character;
   
   // Check if character is in script (for locking mechanism)
   const isInScript = useMemo(() => {
@@ -305,7 +309,8 @@ export function CharacterDetailModal({
   // Backend Character Bank API already enriches poseReferences with imageUrl, outfitName, poseId, etc.
   // 🔥 FIX: Backend returns angleReferences, not poseReferences! Check both fields.
   // 🔥 FIX: Memoize poseReferences to prevent unnecessary recalculations and re-renders
-  const rawPoseRefs = (character as any).angleReferences || character.poseReferences || [];
+  // 🔥 FIX: Use latestCharacter from query to ensure we get updated data after refetch
+  const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
     return rawPoseRefs.map((ref: any, idx: number) => {
       // Handle both string and object formats for poseReferences (backend may return either)
@@ -422,7 +427,7 @@ export function CharacterDetailModal({
     });
     
     return Array.from(outfitSet);
-  }, [mediaFiles, character.id, character.name]);
+  }, [mediaFiles, latestCharacter.id, latestCharacter.name]);
   
   // Get outfit names sorted (default first, then alphabetically)
   // Combine Media Library folder names with posesByOutfit keys
