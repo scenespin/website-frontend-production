@@ -147,14 +147,17 @@ export default function LocationAngleGenerationModal({
       }
       
       const apiUrl = `/api/location-bank/generate-angles`;
-      // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
-      const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
+      
+      // 🔥 FIX: Require providerId - no fallbacks (backend requires explicit providerId)
+      if (!providerId || providerId.trim() === '') {
+        throw new Error('Please select a model before generating angles.');
+      }
       
       const requestBody = {
         locationProfile: locationProfile,
         packageId: selectedPackageId,
         quality: quality,
-        providerId: finalProviderId, // 🔥 FIX: Only send if actually selected
+        providerId: providerId, // Required - no fallback
         // Apply timeOfDay and weather to all angles in the package
         angles: packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,
@@ -165,8 +168,8 @@ export default function LocationAngleGenerationModal({
       
       console.log('[LocationAngleGeneration] Request body:', {
         quality,
-        providerId: finalProviderId,
-        hasProviderId: !!finalProviderId
+        providerId: providerId,
+        hasProviderId: !!providerId
       });
       
       console.log('[LocationAngleGeneration] Calling API:', apiUrl);
@@ -425,7 +428,7 @@ export default function LocationAngleGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId}
+                      disabled={isGenerating || !selectedPackageId || !providerId}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isGenerating ? 'Generating...' : 'Generate Angle Package'}

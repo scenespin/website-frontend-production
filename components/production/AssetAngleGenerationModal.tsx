@@ -117,20 +117,22 @@ export default function AssetAngleGenerationModal({
       
       const apiUrl = `/api/asset-bank/${assetId}/generate-angles`;
       
-      // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
-      const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
+      // 🔥 FIX: Require providerId - no fallbacks (backend requires explicit providerId)
+      if (!providerId || providerId.trim() === '') {
+        throw new Error('Please select a model before generating angles.');
+      }
       
       const requestBody = {
         packageId: selectedPackageId,
         quality: quality,
-        providerId: finalProviderId, // 🔥 FIX: Only send if actually selected
+        providerId: providerId, // Required - no fallback
       };
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
       console.log('[AssetAngleGeneration] Request body:', {
         quality,
-        providerId: finalProviderId,
-        hasProviderId: !!finalProviderId
+        providerId: providerId,
+        hasProviderId: !!providerId
       });
       
       const response = await fetch(apiUrl, {
@@ -374,7 +376,7 @@ export default function AssetAngleGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId}
+                      disabled={isGenerating || !selectedPackageId || !providerId}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isGenerating ? 'Generating...' : 'Generate Angle Package'}
