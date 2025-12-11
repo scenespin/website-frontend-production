@@ -660,8 +660,16 @@ export function LocationDetailModal({
                               <img
                                 src={img.imageUrl}
                                 alt={img.label}
-                                className="w-full h-full object-cover"
+                                className={`w-full h-full object-cover ${
+                                  regeneratingS3Key && regeneratingS3Key.trim() === (variation.s3Key || '').trim()
+                                    ? 'animate-pulse opacity-75'
+                                    : ''
+                                }`}
                               />
+                              {/* Shimmer overlay for regenerating images */}
+                              {regeneratingS3Key && regeneratingS3Key.trim() === (variation.s3Key || '').trim() && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                              )}
                               <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>
@@ -742,13 +750,13 @@ export function LocationDetailModal({
                                       {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (() => {
                                         // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
                                         const currentS3Key = (variation.s3Key || '').trim();
-                                        const isRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
+                                        const isThisImageRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
                                         return (
                                           <DropdownMenuItem
                                             className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              // Don't allow if this specific image is already regenerating
+                                              // Don't allow if ANY regeneration is in progress
                                               if (isRegenerating) {
                                                 return;
                                               }
@@ -763,7 +771,7 @@ export function LocationDetailModal({
                                             disabled={isRegenerating}
                                           >
                                             <Sparkles className="w-4 h-4 mr-2" />
-                                            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                            {isThisImageRegenerating ? 'Regenerating...' : 'Regenerate'}
                                           </DropdownMenuItem>
                                         );
                                       })()}

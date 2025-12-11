@@ -677,8 +677,16 @@ export default function AssetDetailModal({
                               <img
                                 src={img.imageUrl}
                                 alt={img.label}
-                                className="w-full h-full object-cover"
+                                className={`w-full h-full object-cover ${
+                                  regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim()
+                                    ? 'animate-pulse opacity-75'
+                                    : ''
+                                }`}
                               />
+                              {/* Shimmer overlay for regenerating images */}
+                              {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                              )}
                               <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>
@@ -742,8 +750,8 @@ export default function AssetDetailModal({
                                         className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          // Don't allow if this specific image is already regenerating
-                                          if (regeneratingS3Key === img.s3Key) {
+                                          // Don't allow if ANY regeneration is in progress
+                                          if (isRegenerating) {
                                             return;
                                           }
                                           // Show warning modal before regenerating
@@ -753,7 +761,7 @@ export default function AssetDetailModal({
                                             angle: img.metadata?.angle || img.angle || 'angle',
                                           });
                                         }}
-                                        disabled={regeneratingS3Key === img.s3Key}
+                                        disabled={isRegenerating}
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
                                         {regeneratingS3Key === img.s3Key ? 'Regenerating...' : 'Regenerate'}
