@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { locationProfile, packageId, angles, quality } = body; // NEW: Include packageId and quality
+    const { locationProfile, packageId, angles, quality, providerId } = body; // 🔥 FIX: Include providerId
 
     if (!locationProfile) {
       return NextResponse.json(
@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       hasLocationProfile: !!locationProfile,
       packageId,
       quality,
+      providerId, // 🔥 FIX: Log providerId
       anglesCount: angles?.length || 0
     });
 
@@ -75,7 +76,8 @@ export async function POST(request: NextRequest) {
         locationProfile,
         packageId, // NEW: Forward packageId
         angles, // Keep for backward compatibility
-        quality // NEW: Forward quality tier
+        quality, // NEW: Forward quality tier
+        providerId // 🔥 FIX: Forward providerId to backend
       }),
     });
 

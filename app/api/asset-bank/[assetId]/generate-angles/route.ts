@@ -46,7 +46,7 @@ export async function POST(
 
     // Get request body
     const body = await request.json();
-    const { packageId, quality } = body;
+    const { packageId, quality, providerId } = body; // 🔥 FIX: Include providerId
 
     if (!packageId) {
       return NextResponse.json(
@@ -73,7 +73,8 @@ export async function POST(
       url, 
       assetId,
       packageId,
-      quality
+      quality,
+      providerId // 🔥 FIX: Log providerId
     });
 
     const response = await fetch(url, {
@@ -84,7 +85,8 @@ export async function POST(
       },
       body: JSON.stringify({
         packageId,
-        quality: quality || 'standard'
+        quality: quality || 'standard',
+        providerId // 🔥 FIX: Forward providerId to backend
       }),
     });
 
