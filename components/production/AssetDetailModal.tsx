@@ -31,6 +31,22 @@ import {
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 
+/**
+ * Get display label for provider ID
+ */
+function getProviderLabel(providerId: string | undefined): string | null {
+  if (!providerId) return null;
+  
+  const providerMap: Record<string, string> = {
+    'nano-banana-pro': 'Nano Banana Pro',
+    'runway-gen4-image': 'Gen4',
+    'luma-photon-1': 'Photon',
+    'luma-photon-flash': 'Photon',
+  };
+  
+  return providerMap[providerId] || null;
+}
+
 interface AssetDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -690,6 +706,29 @@ export default function AssetDetailModal({
                               {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                               )}
+                              {/* Top-right label: Angle/Regenerated */}
+                              {(() => {
+                                const isRegenerated = img.metadata?.isRegenerated || false;
+                                return (
+                                  <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                    isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                                  }`}>
+                                    {isRegenerated ? 'Regenerated' : 'Angle'}
+                                  </div>
+                                );
+                              })()}
+                              {/* Bottom-right label: Provider */}
+                              {(() => {
+                                const providerId = img.metadata?.providerId;
+                                if (!providerId) return null;
+                                const providerLabel = getProviderLabel(providerId);
+                                if (!providerLabel) return null;
+                                return (
+                                  <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+                                    {providerLabel}
+                                  </div>
+                                );
+                              })()}
                               <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>

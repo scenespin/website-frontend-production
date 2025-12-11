@@ -681,6 +681,29 @@ export function LocationDetailModal({
                               {regeneratingS3Key && regeneratingS3Key.trim() === (variation.s3Key || '').trim() && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                               )}
+                              {/* Top-right label: Angle/Regenerated */}
+                              {(() => {
+                                const isRegenerated = img.metadata?.isRegenerated || variation.metadata?.isRegenerated || false;
+                                return (
+                                  <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
+                                    isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
+                                  }`}>
+                                    {isRegenerated ? 'Regenerated' : 'Angle'}
+                                  </div>
+                                );
+                              })()}
+                              {/* Bottom-right label: Provider */}
+                              {(() => {
+                                const providerId = img.metadata?.providerId || variation.metadata?.providerId;
+                                if (!providerId) return null;
+                                const providerLabel = getProviderLabel(providerId);
+                                if (!providerLabel) return null;
+                                return (
+                                  <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+                                    {providerLabel}
+                                  </div>
+                                );
+                              })()}
                               <div className={`absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent transition-opacity ${
                                 selectionMode ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                               }`}>
