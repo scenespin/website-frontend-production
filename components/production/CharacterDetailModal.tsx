@@ -310,7 +310,7 @@ export function CharacterDetailModal({
   // 🔥 FIX: Backend returns angleReferences, not poseReferences! Check both fields.
   // 🔥 FIX: Memoize poseReferences to prevent unnecessary recalculations and re-renders
   // 🔥 FIX: Use latestCharacter from query to ensure we get updated data after refetch
-  const rawPoseRefs = (latestCharacter as any).angleReferences || latestCharacter.poseReferences || [];
+  const rawPoseRefs = (latestCharacter as any).angleReferences || (latestCharacter as any).poseReferences || [];
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
     return rawPoseRefs.map((ref: any, idx: number) => {
       // Handle both string and object formats for poseReferences (backend may return either)
