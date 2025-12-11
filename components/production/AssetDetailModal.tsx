@@ -223,7 +223,11 @@ export default function AssetDetailModal({
       angle: ref.angle,
       source: 'angle-generation', // Backend marks these as angle-generation
       createdIn: 'production-hub',
-      creditsUsed: ref.creditsUsed || 0
+      creditsUsed: ref.creditsUsed || 0,
+      // 🔥 NEW: Include providerId and isRegenerated from backend metadata
+      providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
+      quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
+      isRegenerated: ref.metadata?.isRegenerated || false
     }
   }));
   
@@ -708,7 +712,7 @@ export default function AssetDetailModal({
                               )}
                               {/* Top-right label: Angle/Regenerated */}
                               {(() => {
-                                const isRegenerated = img.metadata?.isRegenerated || false;
+                                const isRegenerated = (img.metadata as any)?.isRegenerated || false;
                                 return (
                                   <div className={`absolute top-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
                                     isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
@@ -719,7 +723,7 @@ export default function AssetDetailModal({
                               })()}
                               {/* Bottom-right label: Provider */}
                               {(() => {
-                                const providerId = img.metadata?.providerId;
+                                const providerId = (img.metadata as any)?.providerId;
                                 if (!providerId) return null;
                                 const providerLabel = getProviderLabel(providerId);
                                 if (!providerLabel) return null;
