@@ -30,6 +30,22 @@ import {
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 
+/**
+ * Get display label for provider ID
+ */
+function getProviderLabel(providerId: string | undefined): string | null {
+  if (!providerId) return null;
+  
+  const providerMap: Record<string, string> = {
+    'nano-banana-pro': 'Nano Banana Pro',
+    'runway-gen4-image': 'Gen4',
+    'luma-photon-1': 'Photon',
+    'luma-photon-flash': 'Photon',
+  };
+  
+  return providerMap[providerId] || null;
+}
+
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
   id: string;
