@@ -101,6 +101,7 @@ export function CharacterDetailModal({
   // 🔥 NEW: Regeneration state
   const [regeneratePose, setRegeneratePose] = useState<{ poseId: string; s3Key: string } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -133,6 +134,8 @@ export function CharacterDetailModal({
     }
 
     setIsRegenerating(true);
+    setRegeneratingS3Key(existingPoseS3Key); // Track which image is regenerating
+    setRegeneratePose(null); // Close modal
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -169,7 +172,7 @@ export function CharacterDetailModal({
       toast.error(`Failed to regenerate pose: ${error.message || 'Unknown error'}`);
     } finally {
       setIsRegenerating(false);
-      setRegeneratePose(null);
+      setRegeneratingS3Key(null); // Clear regenerating state
     }
   };
 
@@ -1239,19 +1242,23 @@ export function CharacterDetailModal({
                                     {/* 🔥 NEW: Regenerate option (only for poses with poseId) */}
                                     {(img.poseId || img.metadata?.poseId) && img.s3Key && (
                                       <DropdownMenuItem
-                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          // Don't allow if this specific image is already regenerating
+                                          if (regeneratingS3Key === img.s3Key) {
+                                            return;
+                                          }
                                           // Show warning modal before regenerating
                                           setRegeneratePose({
                                             poseId: img.poseId || img.metadata?.poseId || '',
                                             s3Key: img.s3Key!,
                                           });
                                         }}
-                                        disabled={isRegenerating}
+                                        disabled={regeneratingS3Key === img.s3Key}
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
-                                        {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                        {regeneratingS3Key === img.s3Key ? 'Regenerating...' : 'Regenerate'}
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem

@@ -102,6 +102,7 @@ export function LocationDetailModal({
   // 🔥 NEW: Regeneration state
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; variation?: LocationReference } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -175,6 +176,8 @@ export function LocationDetailModal({
     }
 
     setIsRegenerating(true);
+    setRegeneratingS3Key(existingAngleS3Key); // Track which image is regenerating
+    setRegenerateAngle(null); // Close modal
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -215,7 +218,7 @@ export function LocationDetailModal({
       toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
     } finally {
       setIsRegenerating(false);
-      setRegenerateAngle(null);
+      setRegeneratingS3Key(null); // Clear regenerating state
     }
   };
   
@@ -733,9 +736,13 @@ export function LocationDetailModal({
                                       {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
                                       {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (
                                         <DropdownMenuItem
-                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
                                           onClick={(e) => {
                                             e.stopPropagation();
+                                            // Don't allow if this specific image is already regenerating
+                                            if (regeneratingS3Key === variation.s3Key) {
+                                              return;
+                                            }
                                             // Show warning modal before regenerating
                                             setRegenerateAngle({
                                               angleId: variation.id,
@@ -744,10 +751,10 @@ export function LocationDetailModal({
                                               variation: variation,
                                             });
                                           }}
-                                          disabled={isRegenerating}
+                                          disabled={regeneratingS3Key === variation.s3Key}
                                         >
                                           <Sparkles className="w-4 h-4 mr-2" />
-                                          {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                          {regeneratingS3Key === variation.s3Key ? 'Regenerating...' : 'Regenerate'}
                                         </DropdownMenuItem>
                                       )}
                                       <DropdownMenuItem

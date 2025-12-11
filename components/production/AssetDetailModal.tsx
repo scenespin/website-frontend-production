@@ -68,6 +68,7 @@ export default function AssetDetailModal({
   // 🔥 NEW: Regeneration state
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -136,6 +137,8 @@ export default function AssetDetailModal({
     }
 
     setIsRegenerating(true);
+    setRegeneratingS3Key(existingAngleS3Key); // Track which image is regenerating
+    setRegenerateAngle(null); // Close modal
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -179,7 +182,7 @@ export default function AssetDetailModal({
       toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
     } finally {
       setIsRegenerating(false);
-      setRegenerateAngle(null);
+      setRegeneratingS3Key(null); // Clear regenerating state
     }
   };
 
@@ -745,9 +748,13 @@ export default function AssetDetailModal({
                                     {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
                                     {img.id && img.s3Key && (img.metadata?.angle || img.angle) && (
                                       <DropdownMenuItem
-                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          // Don't allow if this specific image is already regenerating
+                                          if (regeneratingS3Key === img.s3Key) {
+                                            return;
+                                          }
                                           // Show warning modal before regenerating
                                           setRegenerateAngle({
                                             angleId: img.id,
@@ -755,10 +762,10 @@ export default function AssetDetailModal({
                                             angle: img.metadata?.angle || img.angle || 'angle',
                                           });
                                         }}
-                                        disabled={isRegenerating}
+                                        disabled={regeneratingS3Key === img.s3Key}
                                       >
                                         <Sparkles className="w-4 h-4 mr-2" />
-                                        {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                        {regeneratingS3Key === img.s3Key ? 'Regenerating...' : 'Regenerate'}
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
@@ -918,10 +925,14 @@ export default function AssetDetailModal({
     
     {/* 🔥 NEW: Regenerate Confirmation Modal */}
     <RegenerateConfirmModal
-      isOpen={regenerateAngle !== null}
-      onClose={() => setRegenerateAngle(null)}
+      isOpen={regenerateAngle !== null && regeneratingS3Key === null}
+      onClose={() => {
+        if (regeneratingS3Key === null) {
+          setRegenerateAngle(null);
+        }
+      }}
       onConfirm={() => {
-        if (regenerateAngle) {
+        if (regenerateAngle && regeneratingS3Key === null) {
           handleRegenerateAngle(regenerateAngle.angleId, regenerateAngle.s3Key, regenerateAngle.angle);
         }
       }}
