@@ -203,18 +203,13 @@ export function LocationDetailModal({
 
       const result = await response.json();
       
-      // If async job, show job tracking
-      if (result.data?.jobId) {
-        toast.info('Angle regeneration started. Check Production Jobs panel for progress.', {
-          duration: 5000,
-        });
-      } else {
-        toast.success('Angle regenerated successfully');
-      }
-
-      // Invalidate queries to refresh location data
-      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // Immediately refetch to update UI (like assets do)
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]);
+      
+      // No toast notification - silent update like assets
     } catch (error: any) {
       console.error('[LocationDetailModal] Failed to regenerate angle:', error);
       toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);

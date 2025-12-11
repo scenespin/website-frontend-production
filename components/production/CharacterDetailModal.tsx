@@ -157,18 +157,13 @@ export function CharacterDetailModal({
 
       const result = await response.json();
       
-      // If async job, show job tracking
-      if (result.jobId) {
-        toast.info('Pose regeneration started. Check Production Jobs panel for progress.', {
-          duration: 5000,
-        });
-      } else {
-        toast.success('Pose regenerated successfully');
-      }
-
-      // Invalidate queries to refresh character data
-      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      // Immediately refetch to update UI (like assets do)
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
+        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+      ]);
+      
+      // No toast notification - silent update like assets
     } catch (error: any) {
       console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
       toast.error(`Failed to regenerate pose: ${error.message || 'Unknown error'}`);
