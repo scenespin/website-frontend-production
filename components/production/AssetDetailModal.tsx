@@ -171,8 +171,9 @@ export default function AssetDetailModal({
     } catch (error: any) {
       console.error('[AssetDetailModal] Failed to regenerate angle:', error);
       toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
+    } finally {
       setIsRegenerating(false);
-      setRegeneratingS3Key(null);
+      setRegeneratingS3Key(null); // Clear regenerating state
     }
   };
 

@@ -269,17 +269,17 @@ export function StorageDecisionModal({
                     
                     {/* Preview thumbnail */}
                     {(assetType === 'image' || assetType === 'video' || assetType === 'composition') && s3TempUrl && (
-                      <div className="mt-3 rounded-lg overflow-hidden border border-[#3F3F46]">
+                      <div className="mt-3 rounded-lg overflow-hidden border border-[#3F3F46] flex items-center justify-center bg-[#0A0A0A]">
                         {assetType === 'image' ? (
                           <img 
                             src={s3TempUrl} 
                             alt={assetName}
-                            className="w-full h-32 object-cover"
+                            className="max-w-full max-h-48 sm:max-h-64 md:max-h-80 w-auto h-auto object-contain"
                           />
                         ) : (
                           <video 
                             src={s3TempUrl}
-                            className="w-full h-32 object-cover"
+                            className="max-w-full max-h-48 sm:max-h-64 md:max-h-80 w-auto h-auto object-contain"
                             controls={false}
                             muted
                             playsInline
