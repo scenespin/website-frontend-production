@@ -247,7 +247,7 @@ export default function AssetDetailModal({
     // Find the original angleReference to get the backend id
     const originalRef = angleReferences.find((ref: any) => ref.s3Key === img.s3Key);
     // Extract isRegenerated from metadata (like Characters do)
-    const isRegenerated = img.metadata?.isRegenerated || originalRef?.metadata?.isRegenerated || false;
+    const isRegenerated = img.metadata?.isRegenerated || (originalRef as any)?.metadata?.isRegenerated || false;
     return {
       id: originalRef?.id || `angle-${idx}`, // Use backend id if available
       imageUrl: img.url,
