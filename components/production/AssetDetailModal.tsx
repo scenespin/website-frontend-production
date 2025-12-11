@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ImageViewer, type ImageItem } from './ImageViewer';
+import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 
 interface AssetDetailModalProps {
   isOpen: boolean;
@@ -64,6 +65,9 @@ export default function AssetDetailModal({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  // 🔥 NEW: Regeneration state
+  const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string } | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -124,6 +128,61 @@ export default function AssetDetailModal({
     }
   };
 
+  // 🔥 NEW: Handle asset angle regeneration
+  const handleRegenerateAngle = async (angleId: string, existingAngleS3Key: string, angle: string) => {
+    if (!angleId || !existingAngleS3Key || !angle) {
+      toast.error('Missing angle information for regeneration');
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${BACKEND_API_URL}/api/asset-bank/${asset.id}/regenerate-angle?screenplayId=${screenplayId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          angleId,
+          existingAngleS3Key,
+          angle,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to regenerate angle: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // If async job, show job tracking
+      if (result.data?.jobId) {
+        toast.info('Angle regeneration started. Check Production Jobs panel for progress.', {
+          duration: 5000,
+        });
+      } else {
+        toast.success('Angle regenerated successfully');
+      }
+
+      // Invalidate queries to refresh asset data
+      queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      onUpdate(); // Refresh asset data
+    } catch (error: any) {
+      console.error('[AssetDetailModal] Failed to regenerate angle:', error);
+      toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsRegenerating(false);
+      setRegenerateAngle(null);
+    }
+  };
+
   const categoryMeta = ASSET_CATEGORY_METADATA[asset.category];
   const assetImages = asset.images || []; // Safety check for undefined images
   
@@ -167,16 +226,20 @@ export default function AssetDetailModal({
   }));
   
   // Convert Production Hub angle images to gallery format
-  const angleImageObjects = angleImages.map((img, idx) => ({
-    id: `angle-${idx}`,
-    imageUrl: img.url,
-    label: `${asset.name} - ${img.metadata?.angle || 'Angle'} view`,
-    isBase: false,
-    s3Key: img.s3Key || img.metadata?.s3Key,
-    isAngleReference: true,
-    angle: img.metadata?.angle,
-    metadata: img.metadata
-  }));
+  const angleImageObjects = angleImages.map((img, idx) => {
+    // Find the original angleReference to get the backend id
+    const originalRef = angleReferences.find((ref: any) => ref.s3Key === img.s3Key);
+    return {
+      id: originalRef?.id || `angle-${idx}`, // Use backend id if available
+      imageUrl: img.url,
+      label: `${asset.name} - ${img.metadata?.angle || 'Angle'} view`,
+      isBase: false,
+      s3Key: img.s3Key || img.metadata?.s3Key,
+      isAngleReference: true,
+      angle: img.metadata?.angle,
+      metadata: img.metadata
+    };
+  });
   
   // 🔥 DEBUG: Log asset images for troubleshooting
   useEffect(() => {
@@ -679,6 +742,25 @@ export default function AssetDetailModal({
                                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                       Download
                                     </DropdownMenuItem>
+                                    {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
+                                    {img.id && img.s3Key && (img.metadata?.angle || img.angle) && (
+                                      <DropdownMenuItem
+                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Show warning modal before regenerating
+                                          setRegenerateAngle({
+                                            angleId: img.id,
+                                            s3Key: img.s3Key!,
+                                            angle: img.metadata?.angle || img.angle || 'angle',
+                                          });
+                                        }}
+                                        disabled={isRegenerating}
+                                      >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem
                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onClick={async (e) => {
@@ -833,6 +915,18 @@ export default function AssetDetailModal({
         }}
       />
     )}
+    
+    {/* 🔥 NEW: Regenerate Confirmation Modal */}
+    <RegenerateConfirmModal
+      isOpen={regenerateAngle !== null}
+      onClose={() => setRegenerateAngle(null)}
+      onConfirm={() => {
+        if (regenerateAngle) {
+          handleRegenerateAngle(regenerateAngle.angleId, regenerateAngle.s3Key, regenerateAngle.angle);
+        }
+      }}
+      imageType="angle"
+    />
     
     {/* Image Viewer */}
     {previewImageIndex !== null && (() => {

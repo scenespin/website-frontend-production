@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ImageViewer, type ImageItem } from './ImageViewer';
+import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
@@ -98,6 +99,9 @@ export function LocationDetailModal({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  // 🔥 NEW: Regeneration state
+  const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; variation?: LocationReference } | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -160,6 +164,63 @@ export function LocationDetailModal({
     } catch (error: any) {
       console.error('[LocationDetailModal] Failed to download image:', error);
       throw error;
+    }
+  };
+
+  // 🔥 NEW: Handle angle regeneration
+  const handleRegenerateAngle = async (angleId: string, existingAngleS3Key: string, angle: string, variation?: LocationReference) => {
+    if (!angleId || !existingAngleS3Key || !angle) {
+      toast.error('Missing angle information for regeneration');
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${BACKEND_API_URL}/api/location-bank/${location.locationId}/regenerate-angle?screenplayId=${screenplayId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          angleId,
+          existingAngleS3Key,
+          angle,
+          cameraPosition: variation?.angle || angle,
+          timeOfDay: variation?.timeOfDay,
+          weather: variation?.weather,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to regenerate angle: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // If async job, show job tracking
+      if (result.data?.jobId) {
+        toast.info('Angle regeneration started. Check Production Jobs panel for progress.', {
+          duration: 5000,
+        });
+      } else {
+        toast.success('Angle regenerated successfully');
+      }
+
+      // Invalidate queries to refresh location data
+      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    } catch (error: any) {
+      console.error('[LocationDetailModal] Failed to regenerate angle:', error);
+      toast.error(`Failed to regenerate angle: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsRegenerating(false);
+      setRegenerateAngle(null);
     }
   };
   
@@ -674,6 +735,26 @@ export function LocationDetailModal({
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                         Download
                                       </DropdownMenuItem>
+                                      {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
+                                      {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (
+                                        <DropdownMenuItem
+                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Show warning modal before regenerating
+                                            setRegenerateAngle({
+                                              angleId: variation.id,
+                                              s3Key: variation.s3Key,
+                                              angle: variation.angle,
+                                              variation: variation,
+                                            });
+                                          }}
+                                          disabled={isRegenerating}
+                                        >
+                                          <Sparkles className="w-4 h-4 mr-2" />
+                                          {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                        </DropdownMenuItem>
+                                      )}
                                       <DropdownMenuItem
                                         className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                         onClick={async (e) => {
@@ -795,6 +876,18 @@ export function LocationDetailModal({
         }}
       />
     )}
+    
+    {/* 🔥 NEW: Regenerate Confirmation Modal */}
+    <RegenerateConfirmModal
+      isOpen={regenerateAngle !== null}
+      onClose={() => setRegenerateAngle(null)}
+      onConfirm={() => {
+        if (regenerateAngle) {
+          handleRegenerateAngle(regenerateAngle.angleId, regenerateAngle.s3Key, regenerateAngle.angle, regenerateAngle.variation);
+        }
+      }}
+      imageType="angle"
+    />
     
     {/* Image Viewer */}
     {previewImageIndex !== null && (

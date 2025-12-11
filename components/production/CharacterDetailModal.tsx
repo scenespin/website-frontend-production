@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
-// 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
+import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 
 interface CharacterDetailModalProps {
   character: CharacterProfile;
@@ -98,7 +98,9 @@ export function CharacterDetailModal({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-  // 🔥 REMOVED: Individual pose regeneration - users must create pose packages (minimum 3 poses)
+  // 🔥 NEW: Regeneration state
+  const [regeneratePose, setRegeneratePose] = useState<{ poseId: string; s3Key: string } | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -123,6 +125,59 @@ export function CharacterDetailModal({
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
+  // 🔥 NEW: Handle pose regeneration
+  const handleRegeneratePose = async (poseId: string, existingPoseS3Key: string) => {
+    if (!poseId || !existingPoseS3Key) {
+      toast.error('Missing pose information for regeneration');
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${BACKEND_API_URL}/api/projects/${screenplayId}/characters/${character.id}/regenerate-pose`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          poseId,
+          existingPoseS3Key,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to regenerate pose: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // If async job, show job tracking
+      if (result.jobId) {
+        toast.info('Pose regeneration started. Check Production Jobs panel for progress.', {
+          duration: 5000,
+        });
+      } else {
+        toast.success('Pose regenerated successfully');
+      }
+
+      // Invalidate queries to refresh character data
+      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    } catch (error: any) {
+      console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
+      toast.error(`Failed to regenerate pose: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsRegenerating(false);
+      setRegeneratePose(null);
+    }
+  };
+
   const downloadImageAsBlob = async (imageUrl: string, filename: string, s3Key?: string) => {
     try {
       let downloadUrl = imageUrl;
@@ -1186,6 +1241,24 @@ export function CharacterDetailModal({
                                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                       Download
                                     </DropdownMenuItem>
+                                    {/* 🔥 NEW: Regenerate option (only for poses with poseId) */}
+                                    {(img.poseId || img.metadata?.poseId) && img.s3Key && (
+                                      <DropdownMenuItem
+                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Show warning modal before regenerating
+                                          setRegeneratePose({
+                                            poseId: img.poseId || img.metadata?.poseId || '',
+                                            s3Key: img.s3Key!,
+                                          });
+                                        }}
+                                        disabled={isRegenerating}
+                                      >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem
                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onClick={async (e) => {
@@ -1379,7 +1452,17 @@ export function CharacterDetailModal({
         </>
       )}
       
-      {/* 🔥 REMOVED: Individual pose regeneration modal - users must create pose packages (minimum 3 poses) */}
+      {/* 🔥 NEW: Regenerate Confirmation Modal */}
+      <RegenerateConfirmModal
+        isOpen={regeneratePose !== null}
+        onClose={() => setRegeneratePose(null)}
+        onConfirm={() => {
+          if (regeneratePose) {
+            handleRegeneratePose(regeneratePose.poseId, regeneratePose.s3Key);
+          }
+        }}
+        imageType="pose"
+      />
       
       {/* Image Viewer */}
       {previewImageIndex !== null && (
