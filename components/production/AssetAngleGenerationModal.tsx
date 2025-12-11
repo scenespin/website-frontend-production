@@ -116,13 +116,22 @@ export default function AssetAngleGenerationModal({
       }
       
       const apiUrl = `/api/asset-bank/${assetId}/generate-angles`;
+      
+      // 🔥 FIX: Ensure providerId is set - if empty string, use undefined to trigger quality-based fallback
+      const finalProviderId = providerId && providerId.trim() !== '' ? providerId : undefined;
+      
       const requestBody = {
         packageId: selectedPackageId,
         quality: quality,
-        providerId: providerId || undefined // 🔥 NEW: Model selection
+        providerId: finalProviderId, // 🔥 FIX: Only send if actually selected
       };
       
       console.log('[AssetAngleGeneration] Calling API:', apiUrl);
+      console.log('[AssetAngleGeneration] Request body:', {
+        quality,
+        providerId: finalProviderId,
+        hasProviderId: !!finalProviderId
+      });
       
       const response = await fetch(apiUrl, {
         method: 'POST',
