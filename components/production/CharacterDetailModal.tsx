@@ -137,9 +137,11 @@ export function CharacterDetailModal({
       return;
     }
 
+    console.log('[CharacterDetailModal] Starting regeneration for s3Key:', existingPoseS3Key);
     setIsRegenerating(true);
     setRegeneratingS3Key(existingPoseS3Key); // Track which image is regenerating
     setRegeneratePose(null); // Close modal
+    console.log('[CharacterDetailModal] Set regeneratingS3Key to:', existingPoseS3Key, 'Current state:', regeneratingS3Key);
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
@@ -165,10 +167,16 @@ export function CharacterDetailModal({
       const result = await response.json();
       
       // Immediately refetch to update UI (like assets do)
+      // 🔥 FIX: Use invalidateQueries first to mark as stale, then refetch (same as assets)
+      queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
       ]);
+      
+      // Note: onUpdate callback signature is different from assets, so we rely on query refetch
+      // The parent component (CharacterBankPanel) will get updated character from query
       
       // No toast notification - silent update like assets
     } catch (error: any) {
@@ -309,8 +317,8 @@ export function CharacterDetailModal({
   // Backend Character Bank API already enriches poseReferences with imageUrl, outfitName, poseId, etc.
   // 🔥 FIX: Backend returns angleReferences, not poseReferences! Check both fields.
   // 🔥 FIX: Memoize poseReferences to prevent unnecessary recalculations and re-renders
-  // 🔥 FIX: Use character prop (which updates after refetch) - latestCharacter might be undefined on initial render
-  const rawPoseRefs = (character as any).angleReferences || (character as any).poseReferences || [];
+  // 🔥 FIX: Use latestCharacter from query to ensure we get updated data after refetch (same pattern as assets)
+  const rawPoseRefs = (latestCharacter as any).angleReferences || (latestCharacter as any).poseReferences || [];
   const poseReferences: PoseReferenceWithOutfit[] = useMemo(() => {
     return rawPoseRefs.map((ref: any, idx: number) => {
       // Handle both string and object formats for poseReferences (backend may return either)
@@ -1252,8 +1260,10 @@ export function CharacterDetailModal({
                                           e.stopPropagation();
                                           // Don't allow if this specific image is already regenerating
                                           if (regeneratingS3Key === img.s3Key) {
+                                            console.log('[CharacterDetailModal] Blocked duplicate click for s3Key:', img.s3Key);
                                             return;
                                           }
+                                          console.log('[CharacterDetailModal] Opening regenerate modal for s3Key:', img.s3Key);
                                           // Show warning modal before regenerating
                                           setRegeneratePose({
                                             poseId: img.poseId || img.metadata?.poseId || '',
@@ -1461,10 +1471,14 @@ export function CharacterDetailModal({
       
       {/* 🔥 NEW: Regenerate Confirmation Modal */}
       <RegenerateConfirmModal
-        isOpen={regeneratePose !== null}
-        onClose={() => setRegeneratePose(null)}
+        isOpen={regeneratePose !== null && regeneratingS3Key === null}
+        onClose={() => {
+          if (regeneratingS3Key === null) {
+            setRegeneratePose(null);
+          }
+        }}
         onConfirm={() => {
-          if (regeneratePose) {
+          if (regeneratePose && regeneratingS3Key === null) {
             handleRegeneratePose(regeneratePose.poseId, regeneratePose.s3Key);
           }
         }}
