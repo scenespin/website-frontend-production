@@ -80,11 +80,15 @@ export default function LocationAngleGenerationModal({
 
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
-        setModels(availableModels.filter((m: any) => m.enabled));
+        const enabledModels = availableModels.filter((m: any) => m.enabled);
+        setModels(enabledModels);
         
-        // Auto-select first model
-        if (availableModels.length > 0 && !providerId) {
-          setProviderId(availableModels[0].id);
+        // 🔥 FIX: Always auto-select first model when models load (ensures providerId is set)
+        if (enabledModels.length > 0) {
+          setProviderId(enabledModels[0].id);
+        } else {
+          // No models available - clear providerId
+          setProviderId('');
         }
       } catch (error: any) {
         console.error('[LocationAngleGenerationModal] Failed to load models:', error);
@@ -97,12 +101,13 @@ export default function LocationAngleGenerationModal({
     loadModels();
   }, [isOpen, quality, getToken]);
 
-  // Reset providerId when quality changes
+  // 🔥 FIX: Reset providerId when quality changes (models will auto-select after loading)
+  // Note: Don't reset when modal opens - let the loadModels effect handle initial selection
   useEffect(() => {
-    if (isOpen) {
-      setProviderId('');
+    if (isOpen && quality) {
+      setProviderId(''); // Will be auto-selected when models load
     }
-  }, [quality, isOpen]);
+  }, [quality]); // Only reset on quality change, not on isOpen
   
   // Map package IDs to angle arrays
   const packageToAngles: Record<string, Array<{ angle: string }>> = {
