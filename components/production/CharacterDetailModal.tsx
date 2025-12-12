@@ -1635,8 +1635,49 @@ export function CharacterDetailModal({
                   )}
                 </div>
               )}
+
+              {activeTab === 'voice' && (
+                <div className="p-6">
+                  {isLoadingVoice ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-[#808080]">Loading voice profile...</div>
+                    </div>
+                  ) : (
+                    <VoiceAssignmentTab
+                      characterId={character.id}
+                      screenplayId={screenplayId || ''}
+                      character={character}
+                      voiceProfile={voiceProfile}
+                      onVoiceUpdate={fetchVoiceProfile}
+                      onOpenVoiceBrowser={() => setShowVoiceBrowser(true)}
+                      onOpenCustomVoiceForm={() => setShowCustomVoiceForm(true)}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
+
+          {/* Voice Browser Modal (Feature 0152) */}
+          <VoiceBrowserModal
+            isOpen={showVoiceBrowser}
+            onClose={() => setShowVoiceBrowser(false)}
+            onSelectVoice={handleVoiceSelected}
+            characterDemographics={getCharacterDemographics()}
+          />
+
+          {/* Custom Voice Form Modal (Feature 0152) */}
+          <CustomVoiceForm
+            isOpen={showCustomVoiceForm}
+            onClose={() => {
+              setShowCustomVoiceForm(false);
+              setPrefilledVoiceId(undefined); // Reset prefilled voice ID when closing
+            }}
+            onSubmit={handleCustomVoiceSubmit}
+            characterId={character.id}
+            screenplayId={screenplayId || ''}
+            prefilledVoiceId={prefilledVoiceId}
+          />
         </>
       )}
       
@@ -1806,52 +1847,6 @@ export function CharacterDetailModal({
             </div>
           </motion.div>
         </div>
-      )}
-
-              {activeTab === 'voice' && (
-                <div className="p-6">
-                  {isLoadingVoice ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="text-[#808080]">Loading voice profile...</div>
-                    </div>
-                  ) : (
-                    <VoiceAssignmentTab
-                      characterId={character.id}
-                      screenplayId={screenplayId || ''}
-                      character={character}
-                      voiceProfile={voiceProfile}
-                      onVoiceUpdate={fetchVoiceProfile}
-                      onOpenVoiceBrowser={() => setShowVoiceBrowser(true)}
-                      onOpenCustomVoiceForm={() => setShowCustomVoiceForm(true)}
-                    />
-                  )}
-                </div>
-              )}
-
-            </div>
-          </motion.div>
-
-          {/* Voice Browser Modal (Feature 0152) */}
-          <VoiceBrowserModal
-            isOpen={showVoiceBrowser}
-            onClose={() => setShowVoiceBrowser(false)}
-            onSelectVoice={handleVoiceSelected}
-            characterDemographics={getCharacterDemographics()}
-          />
-
-          {/* Custom Voice Form Modal (Feature 0152) */}
-          <CustomVoiceForm
-            isOpen={showCustomVoiceForm}
-            onClose={() => {
-              setShowCustomVoiceForm(false);
-              setPrefilledVoiceId(undefined); // Reset prefilled voice ID when closing
-            }}
-            onSubmit={handleCustomVoiceSubmit}
-            characterId={character.id}
-            screenplayId={screenplayId || ''}
-            prefilledVoiceId={prefilledVoiceId}
-          />
-        </>
       )}
     </AnimatePresence>
   );
