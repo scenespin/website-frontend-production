@@ -143,9 +143,13 @@ export function VoiceBrowserModal({
     if (previewingVoiceId === voiceId && previewAudioUrl) {
       // Replay existing preview
       const audio = new Audio(previewAudioUrl);
+      audio.addEventListener('ended', () => {
+        setPreviewingVoiceId(null);
+      });
       audio.play().catch(err => {
         console.error('Audio play failed:', err);
         toast.error('Failed to play audio preview');
+        setPreviewingVoiceId(null);
       });
       return;
     }
@@ -179,9 +183,16 @@ export function VoiceBrowserModal({
         setPreviewAudioUrl(data.audioUrl);
         // Auto-play preview
         const audio = new Audio(data.audioUrl);
+        audio.addEventListener('ended', () => {
+          setPreviewingVoiceId(null);
+        });
+        audio.addEventListener('error', () => {
+          setPreviewingVoiceId(null);
+        });
         audio.play().catch(err => {
           console.error('Audio play failed:', err);
           toast.error('Failed to play audio preview');
+          setPreviewingVoiceId(null);
         });
       } else {
         throw new Error('No audio URL returned');

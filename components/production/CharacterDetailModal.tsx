@@ -625,10 +625,43 @@ export function CharacterDetailModal({
 
   // Handle voice selection from browser (Feature 0152)
   const handleVoiceSelected = async (voiceId: string, voiceName: string) => {
-    // When a voice is selected from browser, pre-fill the voice ID and open custom voice form
-    setPrefilledVoiceId(voiceId);
-    setShowCustomVoiceForm(true);
-    toast.info(`Selected voice: ${voiceName}. Please enter your ElevenLabs API key to use this voice.`);
+    // When a voice is selected from browser, use /select endpoint (platform API key, charges credits)
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/select`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            characterId: character.id,
+            screenplayId: screenplayId,
+            voiceId: voiceId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to select voice');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Voice "${voiceName}" assigned successfully!`);
+        fetchVoiceProfile(); // Refresh voice profile
+        setShowVoiceBrowser(false); // Close browser modal
+      } else {
+        throw new Error(data.error || 'Voice selection failed');
+      }
+    } catch (error: any) {
+      console.error('Voice selection error:', error);
+      toast.error(error.message || 'Failed to select voice');
+    }
   };
   
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, angle?: string) => {

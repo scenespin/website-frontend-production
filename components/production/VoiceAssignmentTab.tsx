@@ -22,6 +22,7 @@ interface VoiceProfile {
   voiceName: string;
   voiceType: 'custom' | 'auto-matched';
   elevenLabsVoiceId?: string;
+  autoMatchedVoiceId?: string;
   matchScore?: number;
   createdAt: string;
 }
@@ -111,7 +112,12 @@ export function VoiceAssignmentTab({
 
   // Handle voice preview
   const handlePreviewVoice = async () => {
-    if (!voiceProfile?.elevenLabsVoiceId || !previewText.trim()) {
+    // Get voice ID based on voice type
+    const voiceId = voiceProfile?.voiceType === 'auto-matched' 
+      ? voiceProfile.autoMatchedVoiceId 
+      : voiceProfile?.elevenLabsVoiceId;
+    
+    if (!voiceId || !previewText.trim()) {
       toast.error('Please enter text to preview');
       return;
     }
@@ -129,7 +135,7 @@ export function VoiceAssignmentTab({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            voiceId: voiceProfile.elevenLabsVoiceId,
+            voiceId: voiceId,
             sampleText: previewText,
           }),
         }
@@ -331,7 +337,7 @@ export function VoiceAssignmentTab({
                 ) : (
                   <>
                     <Volume2 className="w-4 h-4" />
-                    Auto-Match Voice (10 credits)
+                    Auto-Match Voice
                   </>
                 )}
               </button>
