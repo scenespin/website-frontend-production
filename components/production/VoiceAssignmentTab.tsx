@@ -24,6 +24,7 @@ interface VoiceProfile {
   elevenLabsVoiceId?: string;
   autoMatchedVoiceId?: string;
   matchScore?: number;
+  isManualSelection?: boolean; // True if user manually selected from Browse
   createdAt: string;
 }
 
@@ -268,7 +269,11 @@ export function VoiceAssignmentTab({
                 <div>
                   <h3 className="text-lg font-semibold text-[#FFFFFF]">Voice Assigned</h3>
                   <p className="text-sm text-[#808080]">
-                    {voiceProfile.voiceType === 'auto-matched' ? 'Auto-matched voice' : 'Custom voice'}
+                    {voiceProfile.voiceType === 'custom' 
+                      ? 'Custom voice' 
+                      : voiceProfile.isManualSelection 
+                        ? 'User selected voice' 
+                        : 'Auto-matched voice'}
                   </p>
                 </div>
               </div>
@@ -284,7 +289,13 @@ export function VoiceAssignmentTab({
               </div>
               <div>
                 <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Voice Type</label>
-                <p className="text-[#FFFFFF] capitalize">{voiceProfile.voiceType || 'Custom'}</p>
+                <p className="text-[#FFFFFF]">
+                  {voiceProfile.voiceType === 'custom' 
+                    ? 'Custom' 
+                    : voiceProfile.isManualSelection 
+                      ? 'User Selected' 
+                      : 'Auto-Matched'}
+                </p>
               </div>
               {voiceProfile.matchScore && (
                 <div>
