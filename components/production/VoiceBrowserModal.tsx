@@ -218,6 +218,51 @@ export function VoiceBrowserModal({
     onClose();
   };
 
+  const handleRemoveFromBrowse = async (voice: Voice) => {
+    if (!voice.isCustom || !voice.voiceId || removingVoiceId) return;
+    
+    const confirmed = window.confirm(
+      `Remove "${voice.voiceName}" from Browse?\n\nThis will remove this voice from all characters and it will no longer appear in the Browse Voices list. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setRemovingVoiceId(voice.voiceId);
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/remove-from-browse/${voice.voiceId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove voice from Browse');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Voice removed from Browse. Deleted ${data.deletedCount} voice profile(s).`);
+        // Remove from local state and refresh
+        setVoices(voices.filter(v => v.voiceId !== voice.voiceId));
+        setFilteredVoices(filteredVoices.filter(v => v.voiceId !== voice.voiceId));
+      } else {
+        throw new Error(data.error || 'Remove failed');
+      }
+    } catch (error: any) {
+      console.error('Remove from browse error:', error);
+      toast.error(error.message || 'Failed to remove voice from Browse');
+    } finally {
+      setRemovingVoiceId(null);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
