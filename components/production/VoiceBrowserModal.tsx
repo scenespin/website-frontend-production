@@ -129,13 +129,19 @@ export function VoiceBrowserModal({
 
       const data = await response.json();
       if (data.success && data.voices) {
-        // Debug: Log voices to check isCustom flag
-        console.log('[VoiceBrowserModal] Fetched voices:', data.voices.map((v: any) => ({
+        // Debug: Log voices to check isCustom flag (expanded for visibility)
+        const voiceDebug = data.voices.map((v: any) => ({
           name: v.voiceName,
           isCustom: v.isCustom,
           category: v.category,
           voiceId: v.voiceId
-        })));
+        }));
+        console.log('[VoiceBrowserModal] Fetched voices:', voiceDebug);
+        // Also log Jeffrey specifically if present
+        const jeffreyVoice = voiceDebug.find((v: any) => v.name?.toLowerCase().includes('jeffrey') || v.name?.toLowerCase().includes('jp'));
+        if (jeffreyVoice) {
+          console.log('[VoiceBrowserModal] 🔍 Jeffrey voice in Browse:', jeffreyVoice);
+        }
         setVoices(data.voices);
       } else {
         throw new Error('Invalid response format');
