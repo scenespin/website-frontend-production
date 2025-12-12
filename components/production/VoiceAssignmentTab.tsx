@@ -299,28 +299,6 @@ export function VoiceAssignmentTab({
                 {isDeleting ? 'Deleting...' : 'Delete Voice'}
               </button>
             </div>
-            
-            {/* ElevenLabs Connection Management */}
-            {hasElevenLabsConnection && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-yellow-400 mb-1">Custom Voices Detected</h4>
-                    <p className="text-xs text-[#808080]">
-                      Custom voices are available in the browse list. Disconnect to remove voices from your ElevenLabs connection (voices from voice profiles will remain).
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleDisconnectApiKey}
-                    disabled={isDisconnecting}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:bg-[#3F3F46] disabled:text-[#808080] text-yellow-400 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Unlink className="w-4 h-4" />
-                    {isDisconnecting ? 'Disconnecting...' : 'Remove Custom Voices'}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </>
       ) : (
