@@ -11,8 +11,8 @@
  * - Delete/change voice assignment
  */
 
-import React, { useState } from 'react';
-import { Volume2, Play, Trash2, Edit, Mic, Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, Play, Trash2, Edit, Mic, Search, X, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 
@@ -52,6 +52,36 @@ export function VoiceAssignmentTab({
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [isAutoMatching, setIsAutoMatching] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [hasElevenLabsConnection, setHasElevenLabsConnection] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  // Check ElevenLabs connection status
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const token = await getToken();
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/elevenlabs/status`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setHasElevenLabsConnection(data.connected || false);
+        }
+      } catch (error) {
+        // Connection check failed, assume no connection
+        setHasElevenLabsConnection(false);
+      }
+    };
+    
+    checkConnection();
+  }, [getToken]);
 
   // Get character demographics for auto-match
   const getCharacterDemographics = () => {
@@ -63,6 +93,49 @@ export function VoiceAssignmentTab({
       age: physicalAttributes.age || metadata.age || 'unknown',
       accent: metadata.accent || undefined,
     };
+  };
+
+  // Handle disconnect ElevenLabs API key
+  const handleDisconnectApiKey = async () => {
+    const confirmed = window.confirm(
+      'Disconnect the associated ElevenLabs API key?\n\nThis will remove all custom voices associated with this API key from the browse list. The voices will remain in the associated ElevenLabs account, but you\'ll need to reconnect to see them again.'
+    );
+    
+    if (!confirmed) return;
+    
+    setIsDisconnecting(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/elevenlabs/disconnect`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to disconnect API key');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('ElevenLabs API key disconnected. All associated voices have been removed from the browse list.');
+        setHasElevenLabsConnection(false);
+        onVoiceUpdate(); // Refresh voice list
+      } else {
+        throw new Error(data.error || 'Disconnect failed');
+      }
+    } catch (error: any) {
+      console.error('Disconnect error:', error);
+      toast.error(error.message || 'Failed to disconnect API key');
+    } finally {
+      setIsDisconnecting(false);
+    }
   };
 
   // Handle auto-match voice assignment
@@ -298,6 +371,28 @@ export function VoiceAssignmentTab({
                 {isDeleting ? 'Deleting...' : 'Delete Voice'}
               </button>
             </div>
+            
+            {/* ElevenLabs Connection Management */}
+            {hasElevenLabsConnection && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-yellow-400 mb-1">ElevenLabs API Key Connected</h4>
+                    <p className="text-xs text-[#808080]">
+                      Custom voices from your API key are available in the browse list. Disconnect to remove them.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDisconnectApiKey}
+                    disabled={isDisconnecting}
+                    className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:bg-[#3F3F46] disabled:text-[#808080] text-yellow-400 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Unlink className="w-4 h-4" />
+                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect API Key'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       ) : (
