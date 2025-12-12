@@ -567,7 +567,7 @@ export function CharacterDetailModal({
   // Get character demographics for voice browser (Feature 0152)
   const getCharacterDemographics = () => {
     const physicalAttributes = character.physicalAttributes || {};
-    const metadata = character.metadata || {};
+    const metadata = (character as any).metadata || {};
     
     return {
       gender: physicalAttributes.gender || metadata.gender || 'unknown',
