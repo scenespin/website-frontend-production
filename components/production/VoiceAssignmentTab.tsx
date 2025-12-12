@@ -358,6 +358,20 @@ export function VoiceAssignmentTab({
               </div>
               
               {/* Remove from Browse - Only show for custom voices */}
+              {/* Debug: Log voice profile to check why button might not show */}
+              {(() => {
+                const isCustom = voiceProfile.voiceType === 'custom' && voiceProfile.elevenLabsVoiceId;
+                if (!isCustom && voiceProfile.voiceName) {
+                  console.log('[VoiceAssignmentTab] Voice profile debug:', {
+                    voiceType: voiceProfile.voiceType,
+                    hasElevenLabsVoiceId: !!voiceProfile.elevenLabsVoiceId,
+                    hasAutoMatchedVoiceId: !!voiceProfile.autoMatchedVoiceId,
+                    voiceName: voiceProfile.voiceName,
+                    isCustom: isCustom
+                  });
+                }
+                return null;
+              })()}
               {voiceProfile.voiceType === 'custom' && voiceProfile.elevenLabsVoiceId && (
                 <button
                   onClick={handleRemoveFromBrowse}
