@@ -564,9 +564,13 @@ export function CharacterDetailModal({
     }
   };
 
-  // Fetch voice profile when modal opens (Feature 0152)
+  // Fetch voice profile when modal opens or character changes (Feature 0152)
   useEffect(() => {
-    if (isOpen && screenplayId && character.id && !isLoadingVoice) {
+    if (isOpen && screenplayId && character.id) {
+      // Reset voice profile when character changes
+      setVoiceProfile(null);
+      setIsLoadingVoice(false);
+      // Fetch voice profile for the current character
       fetchVoiceProfile();
     }
   }, [isOpen, screenplayId, character.id]);
