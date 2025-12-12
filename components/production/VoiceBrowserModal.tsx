@@ -401,7 +401,14 @@ export function VoiceBrowserModal({
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-[#FFFFFF] mb-1">{voice.voiceName}</h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-semibold text-[#FFFFFF]">{voice.voiceName}</h3>
+                            {voice.isCustom && (
+                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs border border-yellow-500/30">
+                                Custom
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-[#808080] line-clamp-2">{voice.description}</p>
                         </div>
                         {selectedVoiceId === voice.voiceId && (
