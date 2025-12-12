@@ -564,6 +564,13 @@ export function CharacterDetailModal({
     }
   };
 
+  // Fetch voice profile when modal opens (Feature 0152)
+  useEffect(() => {
+    if (isOpen && screenplayId && character.id && !isLoadingVoice) {
+      fetchVoiceProfile();
+    }
+  }, [isOpen, screenplayId, character.id]);
+
   // Get character demographics for voice browser (Feature 0152)
   const getCharacterDemographics = () => {
     const physicalAttributes = character.physicalAttributes || {};
@@ -791,7 +798,7 @@ export function CharacterDetailModal({
                 <Volume2 className="w-4 h-4 inline mr-2" />
                 Voice
                 {voiceProfile && (
-                  <span className="ml-2 text-xs opacity-75">●</span>
+                  <span className={`ml-2 text-xs ${activeTab === 'voice' ? 'opacity-75' : 'text-green-400'}`}>●</span>
                 )}
               </button>
             </div>
