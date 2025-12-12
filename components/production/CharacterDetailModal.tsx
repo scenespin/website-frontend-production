@@ -570,8 +570,8 @@ export function CharacterDetailModal({
     const metadata = (character as any).metadata || {};
     
     return {
-      gender: physicalAttributes.gender || metadata.gender || 'unknown',
-      age: physicalAttributes.age || metadata.age || 'unknown',
+      gender: (physicalAttributes as any).gender || metadata.gender || 'unknown',
+      age: (physicalAttributes as any).age || metadata.age || 'unknown',
       accent: metadata.accent || undefined,
     };
   };
