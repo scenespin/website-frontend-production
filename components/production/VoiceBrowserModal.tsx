@@ -220,12 +220,12 @@ export function VoiceBrowserModal({
 
   const handleDeleteVoice = async (voice: Voice) => {
     if (!voice.isCustom) {
-      toast.error('Only custom voices can be deleted');
+      toast.error('Only custom voices can be removed');
       return;
     }
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${voice.voiceName}"? This will permanently delete the voice from your ElevenLabs account. This action cannot be undone.`
+      `Remove "${voice.voiceName}" from your account?\n\nThis will remove the voice from the browse list, but it will NOT be deleted from your ElevenLabs account. You can re-add it later by refreshing your connection.`
     );
     if (!confirmed) return;
 
@@ -251,16 +251,16 @@ export function VoiceBrowserModal({
 
       const data = await response.json();
       if (data.success) {
-        toast.success(`Voice "${voice.voiceName}" deleted successfully`);
+        toast.success(data.message || `Voice "${voice.voiceName}" removed from your account`);
         // Remove from local state
         setVoices(voices.filter(v => v.voiceId !== voice.voiceId));
         setFilteredVoices(filteredVoices.filter(v => v.voiceId !== voice.voiceId));
       } else {
-        throw new Error(data.error || 'Delete failed');
+        throw new Error(data.error || 'Remove failed');
       }
     } catch (error: any) {
-      console.error('Delete voice error:', error);
-      toast.error(error.message || 'Failed to delete voice');
+      console.error('Remove voice error:', error);
+      toast.error(error.message || 'Failed to remove voice');
     } finally {
       setDeletingVoiceId(null);
     }
@@ -458,7 +458,7 @@ export function VoiceBrowserModal({
                               onClick={() => handleDeleteVoice(voice)}
                               disabled={deletingVoiceId === voice.voiceId}
                               className="px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-xs font-medium transition-colors"
-                              title="Delete this custom voice from your ElevenLabs account"
+                              title="Remove this custom voice from your account (voice remains in ElevenLabs)"
                             >
                               <Trash2 className="w-3 h-3" />
                             </button>
