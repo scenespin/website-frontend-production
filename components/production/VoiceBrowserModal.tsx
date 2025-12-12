@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Search, Play, Volume2, Filter, Check } from 'lucide-react';
+import { X, Search, Play, Volume2, Filter, Check, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -27,6 +27,7 @@ interface Voice {
   useCase?: string;
   previewUrl?: string;
   category?: string;
+  isCustom?: boolean; // True if this is a custom voice (cloned/generated)
 }
 
 interface VoiceBrowserModalProps {
@@ -209,6 +210,54 @@ export function VoiceBrowserModal({
     onClose();
   };
 
+  const handleDeleteVoice = async (voice: Voice) => {
+    if (!voice.isCustom) {
+      toast.error('Only custom voices can be deleted');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${voice.voiceName}"? This will permanently delete the voice from your ElevenLabs account. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeletingVoiceId(voice.voiceId);
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/delete-voice/${voice.voiceId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete voice');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Voice "${voice.voiceName}" deleted successfully`);
+        // Remove from local state
+        setVoices(voices.filter(v => v.voiceId !== voice.voiceId));
+        setFilteredVoices(filteredVoices.filter(v => v.voiceId !== voice.voiceId));
+      } else {
+        throw new Error(data.error || 'Delete failed');
+      }
+    } catch (error: any) {
+      console.error('Delete voice error:', error);
+      toast.error(error.message || 'Failed to delete voice');
+    } finally {
+      setDeletingVoiceId(null);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -389,12 +438,31 @@ export function VoiceBrowserModal({
                           <Play className="w-3 h-3" />
                           {previewingVoiceId === voice.voiceId ? 'Playing...' : 'Preview'}
                         </button>
-                        <button
-                          onClick={() => handleSelectVoice(voice)}
-                          className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Select
-                        </button>
+                        {voice.isCustom ? (
+                          <>
+                            <button
+                              onClick={() => handleSelectVoice(voice)}
+                              className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
+                            >
+                              Select
+                            </button>
+                            <button
+                              onClick={() => handleDeleteVoice(voice)}
+                              disabled={deletingVoiceId === voice.voiceId}
+                              className="px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-xs font-medium transition-colors"
+                              title="Delete this custom voice from your ElevenLabs account"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectVoice(voice)}
+                            className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
+                          >
+                            Select
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
