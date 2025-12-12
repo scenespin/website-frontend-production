@@ -989,7 +989,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         mode: dialogueMode,
         characterImageUrl,
         autoMatchVoice: true, // Default to auto-match if no voice profile
-        duration: parseInt(duration.replace('s', '')) || 5
+        duration: parseInt(duration.replace('s', '')) || 5,
+        fountainContext: sceneDescription.trim() // Pass full Fountain context for enhancement
       };
       
       // Add driving video URL if Mode 2 selected
