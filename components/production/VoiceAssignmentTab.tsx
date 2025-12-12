@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from 'react';
-import { Volume2, Play, Trash2, Edit, Mic, Search, X } from 'lucide-react';
+import { Volume2, Play, Trash2, Edit, Mic, Search, X, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 
@@ -52,6 +52,7 @@ export function VoiceAssignmentTab({
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [isAutoMatching, setIsAutoMatching] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRemovingFromBrowse, setIsRemovingFromBrowse] = useState(false);
 
   // Get character demographics for auto-match
   const getCharacterDemographics = () => {
@@ -167,7 +168,7 @@ export function VoiceAssignmentTab({
     }
   };
 
-  // Handle delete voice
+  // Handle delete voice (removes from character only)
   const handleDeleteVoice = async () => {
     if (!voiceProfile || isDeleting) return;
     
@@ -206,6 +207,50 @@ export function VoiceAssignmentTab({
       toast.error(error.message || 'Failed to delete voice profile');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // Handle remove voice from Browse (removes from all characters and Browse list)
+  const handleRemoveFromBrowse = async () => {
+    if (!voiceProfile || !voiceProfile.elevenLabsVoiceId || isRemovingFromBrowse) return;
+    
+    const confirmed = window.confirm(
+      `Remove "${voiceProfile.voiceName}" from Browse?\n\nThis will remove this voice from all characters and it will no longer appear in the Browse Voices list. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setIsRemovingFromBrowse(true);
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/remove-from-browse/${voiceProfile.elevenLabsVoiceId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove voice from Browse');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success(`Voice removed from Browse. Deleted ${data.deletedCount} voice profile(s).`);
+        onVoiceUpdate();
+      } else {
+        throw new Error(data.error || 'Remove failed');
+      }
+    } catch (error: any) {
+      console.error('Remove from browse error:', error);
+      toast.error(error.message || 'Failed to remove voice from Browse');
+    } finally {
+      setIsRemovingFromBrowse(false);
     }
   };
 
@@ -282,22 +327,36 @@ export function VoiceAssignmentTab({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3 mt-6 pt-6 border-t border-[#3F3F46]">
-              <button
-                onClick={onOpenVoiceBrowser}
-                className="flex-1 px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
-              >
-                <Edit className="w-4 h-4 inline mr-2" />
-                Change Voice
-              </button>
-              <button
-                onClick={handleDeleteVoice}
-                disabled={isDeleting}
-                className="flex items-center gap-2 px-4 py-2 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                {isDeleting ? 'Deleting...' : 'Delete Voice'}
-              </button>
+            <div className="space-y-3 mt-6 pt-6 border-t border-[#3F3F46]">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={onOpenVoiceBrowser}
+                  className="flex-1 px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Edit className="w-4 h-4 inline mr-2" />
+                  Change Voice
+                </button>
+                <button
+                  onClick={handleDeleteVoice}
+                  disabled={isDeleting}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isDeleting ? 'Deleting...' : 'Delete Voice'}
+                </button>
+              </div>
+              
+              {/* Remove from Browse - Only show for custom voices */}
+              {voiceProfile.voiceType === 'custom' && voiceProfile.elevenLabsVoiceId && (
+                <button
+                  onClick={handleRemoveFromBrowse}
+                  disabled={isRemovingFromBrowse}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:bg-[#3F3F46] disabled:text-[#808080] text-yellow-400 rounded-lg text-sm font-medium transition-colors border border-yellow-500/30"
+                >
+                  <Unlink className="w-4 h-4" />
+                  {isRemovingFromBrowse ? 'Removing...' : 'Remove from Browse'}
+                </button>
+              )}
             </div>
           </div>
         </>
