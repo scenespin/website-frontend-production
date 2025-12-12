@@ -129,6 +129,13 @@ export function VoiceBrowserModal({
 
       const data = await response.json();
       if (data.success && data.voices) {
+        // Debug: Log voices to check isCustom flag
+        console.log('[VoiceBrowserModal] Fetched voices:', data.voices.map((v: any) => ({
+          name: v.voiceName,
+          isCustom: v.isCustom,
+          category: v.category,
+          voiceId: v.voiceId
+        })));
         setVoices(data.voices);
       } else {
         throw new Error('Invalid response format');
