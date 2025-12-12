@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -31,6 +31,9 @@ import {
 import { useMediaFiles } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { RegenerateConfirmModal } from './RegenerateConfirmModal';
+import { VoiceAssignmentTab } from './VoiceAssignmentTab';
+import { VoiceBrowserModal } from './VoiceBrowserModal';
+import { CustomVoiceForm } from './CustomVoiceForm';
 
 /**
  * Get display label for provider ID
@@ -100,7 +103,7 @@ export function CharacterDetailModal({
     return contextCharacter ? isEntityInScript(editorState.content, contextCharacter.name, 'character') : false;
   }, [contextCharacter, editorState.content, isEntityInScript]);
   
-  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references'>('gallery');
+  const [activeTab, setActiveTab] = useState<'gallery' | 'info' | 'references' | 'voice'>('gallery');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null); // 🔥 NEW: Track selected image by ID for Gallery section
   const [isUploading, setIsUploading] = useState(false);
@@ -114,6 +117,13 @@ export function CharacterDetailModal({
   const [regeneratePose, setRegeneratePose] = useState<{ poseId: string; s3Key: string } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
+  // Voice Profile Management (Feature 0152)
+  const [voiceProfile, setVoiceProfile] = useState<any | null>(null);
+  const [isLoadingVoice, setIsLoadingVoice] = useState(false);
+  const [showVoiceBrowser, setShowVoiceBrowser] = useState(false);
+  const [showCustomVoiceForm, setShowCustomVoiceForm] = useState(false);
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [prefilledVoiceId, setPrefilledVoiceId] = useState<string | undefined>(undefined);
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -519,6 +529,108 @@ export function CharacterDetailModal({
     { value: 'three-quarter', label: '3/4 Angle' }
   ];
   
+  // Fetch voice profile for character (Feature 0152)
+  const fetchVoiceProfile = async () => {
+    if (!screenplayId || !character.id) return;
+    
+    setIsLoadingVoice(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/${character.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch voice profile');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setVoiceProfile(data.voiceProfile);
+      } else {
+        setVoiceProfile(null);
+      }
+    } catch (error: any) {
+      console.error('Error fetching voice profile:', error);
+      setVoiceProfile(null);
+    } finally {
+      setIsLoadingVoice(false);
+    }
+  };
+
+  // Get character demographics for voice browser (Feature 0152)
+  const getCharacterDemographics = () => {
+    const physicalAttributes = character.physicalAttributes || {};
+    const metadata = character.metadata || {};
+    
+    return {
+      gender: physicalAttributes.gender || metadata.gender || 'unknown',
+      age: physicalAttributes.age || metadata.age || 'unknown',
+      accent: metadata.accent || undefined,
+    };
+  };
+
+  // Handle custom voice form submission (Feature 0152)
+  const handleCustomVoiceSubmit = async (formData: {
+    elevenLabsApiKey: string;
+    elevenLabsVoiceId: string;
+    voiceName: string;
+    rightsConfirmed: boolean;
+  }) => {
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/create`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            characterId: character.id,
+            projectId: screenplayId,
+            elevenLabsApiKey: formData.elevenLabsApiKey,
+            elevenLabsVoiceId: formData.elevenLabsVoiceId,
+            voiceName: formData.voiceName,
+            rightsConfirmed: formData.rightsConfirmed,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create voice profile');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Voice profile created successfully!');
+        fetchVoiceProfile(); // Refresh voice profile
+      } else {
+        throw new Error(data.error || 'Create failed');
+      }
+    } catch (error: any) {
+      console.error('Custom voice creation error:', error);
+      throw error; // Re-throw to let CustomVoiceForm handle the error display
+    }
+  };
+
+  // Handle voice selection from browser (Feature 0152)
+  const handleVoiceSelected = async (voiceId: string, voiceName: string) => {
+    // When a voice is selected from browser, pre-fill the voice ID and open custom voice form
+    setPrefilledVoiceId(voiceId);
+    setShowCustomVoiceForm(true);
+    toast.info(`Selected voice: ${voiceName}. Please enter your ElevenLabs API key to use this voice.`);
+  };
+  
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, angle?: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -629,6 +741,25 @@ export function CharacterDetailModal({
               >
                 <Box className="w-4 h-4 inline mr-2" />
                 References ({allImages.length})
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('voice');
+                  if (!voiceProfile && !isLoadingVoice) {
+                    fetchVoiceProfile();
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'voice'
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                }`}
+              >
+                <Volume2 className="w-4 h-4 inline mr-2" />
+                Voice
+                {voiceProfile && (
+                  <span className="ml-2 text-xs opacity-75">●</span>
+                )}
               </button>
             </div>
 
@@ -1675,6 +1806,52 @@ export function CharacterDetailModal({
             </div>
           </motion.div>
         </div>
+      )}
+
+              {activeTab === 'voice' && (
+                <div className="p-6">
+                  {isLoadingVoice ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-[#808080]">Loading voice profile...</div>
+                    </div>
+                  ) : (
+                    <VoiceAssignmentTab
+                      characterId={character.id}
+                      screenplayId={screenplayId || ''}
+                      character={character}
+                      voiceProfile={voiceProfile}
+                      onVoiceUpdate={fetchVoiceProfile}
+                      onOpenVoiceBrowser={() => setShowVoiceBrowser(true)}
+                      onOpenCustomVoiceForm={() => setShowCustomVoiceForm(true)}
+                    />
+                  )}
+                </div>
+              )}
+
+            </div>
+          </motion.div>
+
+          {/* Voice Browser Modal (Feature 0152) */}
+          <VoiceBrowserModal
+            isOpen={showVoiceBrowser}
+            onClose={() => setShowVoiceBrowser(false)}
+            onSelectVoice={handleVoiceSelected}
+            characterDemographics={getCharacterDemographics()}
+          />
+
+          {/* Custom Voice Form Modal (Feature 0152) */}
+          <CustomVoiceForm
+            isOpen={showCustomVoiceForm}
+            onClose={() => {
+              setShowCustomVoiceForm(false);
+              setPrefilledVoiceId(undefined); // Reset prefilled voice ID when closing
+            }}
+            onSubmit={handleCustomVoiceSubmit}
+            characterId={character.id}
+            screenplayId={screenplayId || ''}
+            prefilledVoiceId={prefilledVoiceId}
+          />
+        </>
       )}
     </AnimatePresence>
   );
