@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Search, Play, Volume2, Filter, Check } from 'lucide-react';
+import { X, Search, Play, Volume2, Filter, Check, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -61,6 +61,7 @@ export function VoiceBrowserModal({
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState('Hello, this is a preview of this voice. How does it sound?');
+  const [removingVoiceId, setRemovingVoiceId] = useState<string | null>(null);
 
   // Fetch voices on mount
   useEffect(() => {
@@ -388,21 +389,34 @@ export function VoiceBrowserModal({
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePreviewVoice(voice.voiceId)}
-                          disabled={previewingVoiceId === voice.voiceId}
-                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:bg-[#3F3F46] disabled:text-[#808080] text-[#FFFFFF] rounded-lg text-xs font-medium transition-colors"
-                        >
-                          <Play className="w-3 h-3" />
-                          {previewingVoiceId === voice.voiceId ? 'Playing...' : 'Preview'}
-                        </button>
-                        <button
-                          onClick={() => handleSelectVoice(voice)}
-                          className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Select
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handlePreviewVoice(voice.voiceId)}
+                            disabled={previewingVoiceId === voice.voiceId}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:bg-[#3F3F46] disabled:text-[#808080] text-[#FFFFFF] rounded-lg text-xs font-medium transition-colors"
+                          >
+                            <Play className="w-3 h-3" />
+                            {previewingVoiceId === voice.voiceId ? 'Playing...' : 'Preview'}
+                          </button>
+                          <button
+                            onClick={() => handleSelectVoice(voice)}
+                            className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
+                          >
+                            Select
+                          </button>
+                        </div>
+                        {/* Remove from Browse - Only show for custom voices */}
+                        {voice.isCustom && (
+                          <button
+                            onClick={() => handleRemoveFromBrowse(voice)}
+                            disabled={removingVoiceId === voice.voiceId}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:bg-[#3F3F46] disabled:text-[#808080] text-yellow-400 rounded-lg text-xs font-medium transition-colors border border-yellow-500/30"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            {removingVoiceId === voice.voiceId ? 'Removing...' : 'Remove from Browse'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
