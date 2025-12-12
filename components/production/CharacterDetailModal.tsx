@@ -200,13 +200,17 @@ export function CharacterDetailModal({
       // Note: onUpdate callback signature is different from assets, so we rely on query refetch
       // The parent component (CharacterBankPanel) will get updated character from query
       
-      // No toast notification - silent update like assets
+      // 🔥 FIX: Keep shimmer effect visible for a moment after refetch completes
+      // This ensures the user sees the shimmer even after the new image loads
+      setTimeout(() => {
+        setIsRegenerating(false);
+        setRegeneratingS3Key(null); // Clear regenerating state after a brief delay
+      }, 500); // 500ms delay to show shimmer effect
     } catch (error: any) {
       console.error('[CharacterDetailModal] Failed to regenerate pose:', error);
       toast.error(`Failed to regenerate pose: ${error.message || 'Unknown error'}`);
-    } finally {
       setIsRegenerating(false);
-      setRegeneratingS3Key(null); // Clear regenerating state
+      setRegeneratingS3Key(null); // Clear on error immediately
     }
   };
 
