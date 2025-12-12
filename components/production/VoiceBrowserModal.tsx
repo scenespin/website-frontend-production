@@ -61,6 +61,7 @@ export function VoiceBrowserModal({
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState('Hello, this is a preview of this voice. How does it sound?');
+  const [deletingVoiceId, setDeletingVoiceId] = useState<string | null>(null);
 
   // Fetch voices on mount
   useEffect(() => {
