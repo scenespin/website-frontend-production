@@ -635,8 +635,10 @@ export function CharacterDetailModal({
   };
 
   // Handle voice selection from browser (Feature 0152)
-  const handleVoiceSelected = async (voiceId: string, voiceName: string) => {
-    // When a voice is selected from browser, use /select endpoint (platform API key, charges credits)
+  const handleVoiceSelected = async (voiceId: string, voiceName: string, isCustom?: boolean) => {
+    // When a voice is selected from browser, use /select endpoint
+    // For custom voices, it will use the existing API key from voice profiles
+    // For premade voices, it uses platform API key
     try {
       const token = await getToken();
       
@@ -652,6 +654,7 @@ export function CharacterDetailModal({
             characterId: character.id,
             screenplayId: screenplayId,
             voiceId: voiceId,
+            isCustom: isCustom || false, // Pass isCustom flag to backend
           }),
         }
       );

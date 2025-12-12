@@ -33,7 +33,7 @@ interface Voice {
 interface VoiceBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectVoice: (voiceId: string, voiceName: string) => void;
+  onSelectVoice: (voiceId: string, voiceName: string, isCustom?: boolean) => void;
   characterDemographics?: {
     gender?: string;
     age?: string;
@@ -214,7 +214,7 @@ export function VoiceBrowserModal({
   };
 
   const handleSelectVoice = (voice: Voice) => {
-    onSelectVoice(voice.voiceId, voice.voiceName);
+    onSelectVoice(voice.voiceId, voice.voiceName, voice.isCustom);
     onClose();
   };
 
