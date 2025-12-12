@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Search, Play, Volume2, Filter, Check, Trash2 } from 'lucide-react';
+import { X, Search, Play, Volume2, Filter, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
@@ -61,7 +61,6 @@ export function VoiceBrowserModal({
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState('Hello, this is a preview of this voice. How does it sound?');
-  const [deletingVoiceId, setDeletingVoiceId] = useState<string | null>(null);
 
   // Fetch voices on mount
   useEffect(() => {
@@ -216,54 +215,6 @@ export function VoiceBrowserModal({
   const handleSelectVoice = (voice: Voice) => {
     onSelectVoice(voice.voiceId, voice.voiceName);
     onClose();
-  };
-
-  const handleDeleteVoice = async (voice: Voice) => {
-    if (!voice.isCustom) {
-      toast.error('Only custom voices can be removed');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Remove "${voice.voiceName}" from your account?\n\nThis will remove the voice from the browse list, but it will NOT be deleted from your ElevenLabs account. You can re-add it later by refreshing your connection.`
-    );
-    if (!confirmed) return;
-
-    setDeletingVoiceId(voice.voiceId);
-    try {
-      const token = await getToken();
-      
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/delete-voice/${voice.voiceId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete voice');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        toast.success(data.message || `Voice "${voice.voiceName}" removed from your account`);
-        // Remove from local state
-        setVoices(voices.filter(v => v.voiceId !== voice.voiceId));
-        setFilteredVoices(filteredVoices.filter(v => v.voiceId !== voice.voiceId));
-      } else {
-        throw new Error(data.error || 'Remove failed');
-      }
-    } catch (error: any) {
-      console.error('Remove voice error:', error);
-      toast.error(error.message || 'Failed to remove voice');
-    } finally {
-      setDeletingVoiceId(null);
-    }
   };
 
   if (!isOpen) return null;
@@ -446,31 +397,12 @@ export function VoiceBrowserModal({
                           <Play className="w-3 h-3" />
                           {previewingVoiceId === voice.voiceId ? 'Playing...' : 'Preview'}
                         </button>
-                        {voice.isCustom ? (
-                          <>
-                            <button
-                              onClick={() => handleSelectVoice(voice)}
-                              className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
-                            >
-                              Select
-                            </button>
-                            <button
-                              onClick={() => handleDeleteVoice(voice)}
-                              disabled={deletingVoiceId === voice.voiceId}
-                              className="px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg text-xs font-medium transition-colors"
-                              title="Remove this custom voice from your account (voice remains in ElevenLabs)"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => handleSelectVoice(voice)}
-                            className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
-                          >
-                            Select
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleSelectVoice(voice)}
+                          className="flex-1 px-3 py-2 bg-[#DC143C] hover:bg-[#B91C1C] text-white rounded-lg text-xs font-medium transition-colors"
+                        >
+                          Select
+                        </button>
                       </div>
                     </div>
                   ))}
