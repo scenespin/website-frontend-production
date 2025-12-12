@@ -55,12 +55,14 @@ export function VoiceAssignmentTab({
   const [hasElevenLabsConnection, setHasElevenLabsConnection] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  // Check ElevenLabs connection status
+  // Check if user has custom voices (from connection OR voice profiles)
   useEffect(() => {
-    const checkConnection = async () => {
+    const checkCustomVoices = async () => {
       try {
         const token = await getToken();
-        const response = await fetch(
+        
+        // Check 1: ElevenLabs connection status
+        const statusResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/elevenlabs/status`,
           {
             headers: {
@@ -70,17 +72,42 @@ export function VoiceAssignmentTab({
           }
         );
         
-        if (response.ok) {
-          const data = await response.json();
-          setHasElevenLabsConnection(data.connected || false);
+        let hasConnection = false;
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          hasConnection = statusData.connected || false;
         }
+        
+        // Check 2: Browse voices to see if there are any custom voices
+        // (This catches voices from voice profiles with API keys)
+        const browseResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/browse?limit=100`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+        let hasCustomVoices = false;
+        if (browseResponse.ok) {
+          const browseData = await browseResponse.json();
+          if (browseData.success && browseData.voices) {
+            // Check if any voices are marked as custom
+            hasCustomVoices = browseData.voices.some((v: any) => v.isCustom === true);
+          }
+        }
+        
+        // Show disconnect option if there's a connection OR custom voices from profiles
+        setHasElevenLabsConnection(hasConnection || hasCustomVoices);
       } catch (error) {
-        // Connection check failed, assume no connection
+        console.error('Error checking custom voices:', error);
         setHasElevenLabsConnection(false);
       }
     };
     
-    checkConnection();
+    checkCustomVoices();
   }, [getToken]);
 
   // Get character demographics for auto-match
@@ -98,7 +125,7 @@ export function VoiceAssignmentTab({
   // Handle disconnect ElevenLabs API key
   const handleDisconnectApiKey = async () => {
     const confirmed = window.confirm(
-      'Disconnect the associated ElevenLabs API key?\n\nThis will remove all custom voices associated with this API key from the browse list. The voices will remain in the associated ElevenLabs account, but you\'ll need to reconnect to see them again.'
+      'Remove custom voices from browse list?\n\nThis will disconnect your ElevenLabs connection and remove all custom voices associated with that API key from the browse list. Voices added via the custom voice form (different API keys) will remain. The voices will NOT be deleted from your ElevenLabs account - you can reconnect to see them again.'
     );
     
     if (!confirmed) return;
@@ -119,12 +146,19 @@ export function VoiceAssignmentTab({
 
       if (!response.ok) {
         const errorData = await response.json();
+        // If no connection exists, that's okay - just refresh the voice list
+        if (errorData.error === 'NO_CONNECTION') {
+          toast.info('No active connection found. Custom voices may be from voice profiles.');
+          setHasElevenLabsConnection(false);
+          onVoiceUpdate();
+          return;
+        }
         throw new Error(errorData.message || 'Failed to disconnect API key');
       }
 
       const data = await response.json();
       if (data.success) {
-        toast.success('ElevenLabs API key disconnected. All associated voices have been removed from the browse list.');
+        toast.success('ElevenLabs connection disconnected. Associated voices removed from browse list.');
         setHasElevenLabsConnection(false);
         onVoiceUpdate(); // Refresh voice list
       } else {
@@ -377,9 +411,9 @@ export function VoiceAssignmentTab({
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-semibold text-yellow-400 mb-1">ElevenLabs API Key Connected</h4>
+                    <h4 className="text-sm font-semibold text-yellow-400 mb-1">Custom Voices Detected</h4>
                     <p className="text-xs text-[#808080]">
-                      Custom voices from your API key are available in the browse list. Disconnect to remove them.
+                      Custom voices are available in the browse list. Disconnect to remove voices from your ElevenLabs connection (voices from voice profiles will remain).
                     </p>
                   </div>
                   <button
@@ -388,7 +422,7 @@ export function VoiceAssignmentTab({
                     className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 disabled:bg-[#3F3F46] disabled:text-[#808080] text-yellow-400 rounded-lg text-sm font-medium transition-colors"
                   >
                     <Unlink className="w-4 h-4" />
-                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect API Key'}
+                    {isDisconnecting ? 'Disconnecting...' : 'Remove Custom Voices'}
                   </button>
                 </div>
               </div>
