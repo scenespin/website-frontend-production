@@ -981,13 +981,22 @@ export function CharacterDetailModal({
                                     src={img.imageUrl}
                                     alt={img.label}
                                     className={`w-full h-full object-cover ${
-                                      regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim()
+                                      regeneratingS3Key && (
+                                        regeneratingS3Key.trim() === (img.s3Key || '').trim() ||
+                                        regeneratingS3Key.trim() === (img.regeneratedFrom || '').trim()
+                                      )
                                         ? 'animate-pulse opacity-75'
                                         : ''
                                     }`}
                                   />
                                   {/* Shimmer overlay for regenerating images */}
-                                  {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
+                                  {/* 🔥 FIX: Compare against regeneratedFrom metadata instead of just s3Key
+                                      After refetch, the NEW image has regeneratedFrom set to the OLD s3Key,
+                                      so we can match it even though s3Key changed */}
+                                  {regeneratingS3Key && (
+                                    regeneratingS3Key.trim() === (img.s3Key || '').trim() ||
+                                    regeneratingS3Key.trim() === (img.regeneratedFrom || '').trim()
+                                  ) && (
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                                   )}
                                 </button>
