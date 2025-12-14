@@ -37,6 +37,9 @@ export function MarkdownRenderer({ content, className = '' }) {
   }, [content]);
 
   // Add copy buttons to code blocks after HTML is rendered
+  // Use a ref to track which buttons we've already created to prevent re-creation during streaming
+  const buttonsCreatedRef = useRef(new Set());
+  
   useEffect(() => {
     if (!htmlContent || !containerRef.current) return;
 
@@ -44,8 +47,21 @@ export function MarkdownRenderer({ content, className = '' }) {
     const preElements = container.querySelectorAll('pre');
 
     preElements.forEach((pre, index) => {
+      // Create a stable ID for this code block based on its content hash
+      const codeElement = pre.querySelector('code');
+      const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
+      const blockId = `code-block-${codeText.substring(0, 50).replace(/\s/g, '')}-${index}`;
+      
+      // Skip if we've already created a button for this block
+      if (buttonsCreatedRef.current.has(blockId)) {
+        return;
+      }
+      
       // Skip if already has a copy button
-      if (pre.parentElement?.querySelector('.code-block-copy-btn')) return;
+      if (pre.parentElement?.querySelector('.code-block-copy-btn')) {
+        buttonsCreatedRef.current.add(blockId);
+        return;
+      }
       
       // Skip if already wrapped (but check if button exists)
       const existingWrapper = pre.parentElement?.classList.contains('code-block-wrapper') 
@@ -67,6 +83,7 @@ export function MarkdownRenderer({ content, className = '' }) {
         const copyButton = document.createElement('button');
         copyButton.className = 'code-block-copy-btn absolute top-2 right-2 p-1.5 rounded-md bg-base-300/80 hover:bg-base-300 text-base-content/70 hover:text-base-content transition-all opacity-60 hover:opacity-100 z-10';
         copyButton.setAttribute('data-index', index.toString());
+        copyButton.setAttribute('data-block-id', blockId);
         copyButton.innerHTML = `
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -74,10 +91,6 @@ export function MarkdownRenderer({ content, className = '' }) {
         `;
         copyButton.title = 'Copy code';
         
-        // Get code content
-        const codeElement = pre.querySelector('code');
-        const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
-
         // Add click handler
         copyButton.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -104,6 +117,7 @@ export function MarkdownRenderer({ content, className = '' }) {
         });
 
         wrapper.appendChild(copyButton);
+        buttonsCreatedRef.current.add(blockId);
       }
     });
 

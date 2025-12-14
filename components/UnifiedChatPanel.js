@@ -569,29 +569,32 @@ function UnifiedChatPanelInner({
   }, [isDrawerOpen, pathname, state.selectedTextContext, setMode]); // Trigger when drawer opens or page changes
 
   // Auto-scroll to latest message (throttled to prevent vibrating during streaming)
+  // NOTE: ChatModePanel has its own scroll handler for streaming, so we only handle non-streaming here
   const scrollTimeoutRef = useRef(null);
   useEffect(() => {
+    // Only handle non-streaming scrolls here (ChatModePanel handles streaming)
+    // This prevents double-scrolling and flickering
+    if (state.isStreaming) {
+      // ChatModePanel will handle streaming scrolls
+      return;
+    }
+    
     // Clear any pending scroll
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
     
-    // Only auto-scroll if streaming, and throttle it to prevent vibrating
-    if (state.isStreaming) {
-      scrollTimeoutRef.current = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-      }, 200);
-    } else {
-      // When not streaming, only scroll on new messages (not on every text update)
+    // When not streaming, only scroll on new messages (throttled)
+    scrollTimeoutRef.current = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    }
+    }, 100);
     
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [state.messages.length, state.isStreaming]); // Only trigger on message count change or streaming state, not on every text update
+  }, [state.messages.length, state.isStreaming]); // Only trigger on message count change or streaming state
 
   // ============================================================================
   // MODE RENDERING
@@ -1172,10 +1175,15 @@ function UnifiedChatPanelInner({
 
   // Handle clicks to close menus, but allow text selection
   const handleContainerClick = (e) => {
-    // Don't close menus if user is selecting text
+    // Don't close menus if user is selecting text (check both ways)
     const selection = window.getSelection();
-    if (selection && selection.toString().length > 0) {
-      return; // User is selecting text, don't interfere
+    const hasSelection = selection && selection.toString().length > 0;
+    
+    // Also check if user is in the middle of a selection (mouse is down)
+    if (hasSelection || e.type === 'mousedown') {
+      // If there's a selection or mouse is down, don't interfere
+      // Wait to see if this becomes a text selection
+      return;
     }
     
     // Don't close menus if clicking on interactive elements
@@ -1185,16 +1193,34 @@ function UnifiedChatPanelInner({
         target.closest('button') || 
         target.closest('a') ||
         target.closest('pre') || // Code blocks should allow selection
-        target.closest('.code-block-copy-btn')) {
+        target.closest('code') || // Code elements should allow selection
+        target.closest('.code-block-copy-btn') ||
+        target.closest('.markdown-chat-content')) { // Markdown content should allow selection
       return;
     }
     
     // Close menus only when clicking on empty space
     closeMenus();
   };
+  
+  // Also handle mousedown to prevent interference during text selection
+  const handleContainerMouseDown = (e) => {
+    // Don't interfere with text selection - let it happen naturally
+    const target = e.target;
+    if (target.closest('pre') || 
+        target.closest('code') || 
+        target.closest('.markdown-chat-content') ||
+        target.closest('.chat-message-content')) {
+      return; // Allow text selection in these areas
+    }
+  };
 
   return (
-    <div className="flex flex-col h-full bg-base-100" onClick={handleContainerClick}>
+    <div 
+      className="flex flex-col h-full bg-base-100" 
+      onClick={handleContainerClick}
+      onMouseDown={handleContainerMouseDown}
+    >
 
       {/* Selected Text Context Banner - Shows rewrite context */}
       {state.selectedTextContext && (

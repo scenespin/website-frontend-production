@@ -577,7 +577,7 @@ Tip:
                     isOpen={isReadingModalOpen}
                     onClose={() => setIsReadingModalOpen(false)}
                     screenplayId={screenplayId}
-                    screenplayTitle={screenplay.title || state.title}
+                    screenplayTitle={state.title}
                 />
             )}
         </div>
