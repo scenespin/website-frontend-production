@@ -423,11 +423,11 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                     {/* Story Advisor: Render markdown content (no insert buttons) */}
                     <div className="chat-message-content">
                       {isUser ? (
-                        <div className="whitespace-pre-wrap break-words text-base-content text-sm sm:text-base leading-relaxed">
+                        <div className="whitespace-pre-wrap break-words text-base-content text-xs sm:text-sm leading-relaxed">
                           {message.content}
                         </div>
                       ) : (
-                        <div className="text-base-content text-sm sm:text-base leading-relaxed">
+                        <div className="text-base-content text-xs sm:text-sm leading-relaxed">
                           <MarkdownRenderer content={message.content} />
                         </div>
                       )}
@@ -444,10 +444,10 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             <div className="w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5">
               {/* Streaming Content */}
               <div className="w-full space-y-2">
-                <div className="text-base-content text-sm sm:text-base leading-relaxed">
+                <div className="text-base-content text-xs sm:text-sm leading-relaxed">
                   <MarkdownRenderer content={state.streamingText} />
                   {state.isStreaming && (
-                    <span className="inline-block w-0.5 h-4 sm:h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                    <span className="inline-block w-0.5 h-3 sm:h-4 ml-1 bg-purple-500 animate-pulse"></span>
                   )}
                 </div>
               </div>
