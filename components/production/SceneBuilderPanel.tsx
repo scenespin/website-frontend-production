@@ -1965,9 +1965,8 @@ You are a professional screenplay director helping develop full scenes. Your rol
    - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
    - Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
    - Proper spacing between elements
-   - CRITICAL: Do NOT add timing metadata, pause durations, or audio generation instructions. Fountain format uses ellipses (...) for pauses - the system handles timing automatically. Do NOT write "meta pause secs", "pause 0.7", "hashtag meta pause", or any timing information.
 
-5. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary. Do NOT add timing metadata or audio generation instructions.
+5. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary.
 
 Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         
