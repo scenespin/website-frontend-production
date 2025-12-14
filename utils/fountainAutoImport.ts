@@ -102,8 +102,28 @@ export function parseContentForImport(content: string): AutoImportResult {
             // Extract synopsis text (remove = prefix and trim)
             const synopsisText = trimmed.replace(/^=\s*/, '').trim();
             if (synopsisText) {
-                pendingSynopsis = synopsisText;
-                console.log('[AutoImport] ✓ Synopsis:', pendingSynopsis);
+                // If we have a current scene, check if next non-empty line is a scene heading
+                // If next non-empty line is scene heading, synopsis applies to next scene (keep as pending)
+                // If next non-empty line is NOT scene heading, synopsis applies to current scene
+                let nextNonEmptyLine = '';
+                for (let j = lineIndex + 1; j < lines.length; j++) {
+                    const nextTrimmed = lines[j].trim();
+                    if (nextTrimmed) {
+                        nextNonEmptyLine = nextTrimmed;
+                        break;
+                    }
+                }
+                const nextIsSceneHeading = /^(INT|EXT|EST|INT\.?\/EXT|I\/E)[\.\s]/i.test(nextNonEmptyLine);
+                
+                if (currentScene && !nextIsSceneHeading) {
+                    // Synopsis after scene heading (not before next scene) - apply to current scene
+                    currentScene.synopsis = synopsisText;
+                    console.log('[AutoImport] ✓ Synopsis (after scene):', synopsisText);
+                } else {
+                    // Synopsis before scene heading - store as pending for next scene
+                    pendingSynopsis = synopsisText;
+                    console.log('[AutoImport] ✓ Synopsis (pending):', pendingSynopsis);
+                }
             }
             previousType = elementType;
             continue;
