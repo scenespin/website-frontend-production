@@ -280,7 +280,10 @@ export function VoiceBrowserModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent event from bubbling to parent Dialog
+              onClose();
+            }}
             className="fixed inset-0 bg-[#0A0A0A]/95 backdrop-blur-sm z-[60]"
           />
           
@@ -289,6 +292,7 @@ export function VoiceBrowserModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
+            onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from bubbling to parent
             className="fixed inset-4 md:inset-8 lg:inset-12 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg shadow-2xl z-[60] flex flex-col overflow-hidden"
           >
             {/* Header */}
