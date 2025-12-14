@@ -446,6 +446,94 @@ export function stripTagsForDisplay(content: string): string {
 }
 
 /**
+ * Maps a character position from displayContent (without tags) to state.content (with tags)
+ * This is needed because tags are entire lines that are filtered out for display
+ * 
+ * @param displayContent Content without tags (what user sees)
+ * @param fullContent Content with tags (actual state)
+ * @param displayPosition Character position in displayContent
+ * @returns Character position in fullContent
+ */
+export function mapDisplayPositionToFullContent(
+    displayContent: string,
+    fullContent: string,
+    displayPosition: number
+): number {
+    // Clamp position to valid range
+    const clampedPosition = Math.max(0, Math.min(displayPosition, displayContent.length));
+    
+    // If positions are the same length, they're already aligned (no tags)
+    if (displayContent.length === fullContent.length) {
+        return clampedPosition;
+    }
+    
+    // Split both into lines
+    const displayLines = displayContent.split('\n');
+    const fullLines = fullContent.split('\n');
+    
+    // Find which line and character position in displayContent
+    let charCount = 0;
+    let displayLineIndex = 0;
+    let charInLine = 0;
+    
+    for (let i = 0; i < displayLines.length; i++) {
+        const lineLength = displayLines[i].length;
+        const lineLengthWithNewline = lineLength + (i < displayLines.length - 1 ? 1 : 0); // Last line has no newline
+        
+        if (charCount + lineLengthWithNewline > clampedPosition) {
+            displayLineIndex = i;
+            charInLine = Math.min(clampedPosition - charCount, lineLength);
+            break;
+        }
+        
+        charCount += lineLengthWithNewline;
+    }
+    
+    // If position is at the end, use last line
+    if (clampedPosition >= displayContent.length) {
+        displayLineIndex = displayLines.length - 1;
+        charInLine = displayLines[displayLineIndex]?.length || 0;
+    }
+    
+    // Find corresponding line in fullContent (accounting for tag lines)
+    let fullLineIndex = 0;
+    let displayLineCount = 0;
+    
+    for (let i = 0; i < fullLines.length; i++) {
+        if (isFountainTag(fullLines[i])) {
+            // Skip tag lines
+            continue;
+        }
+        
+        if (displayLineCount === displayLineIndex) {
+            fullLineIndex = i;
+            break;
+        }
+        
+        displayLineCount++;
+    }
+    
+    // If we didn't find a match, use the last non-tag line
+    if (displayLineCount !== displayLineIndex) {
+        for (let i = fullLines.length - 1; i >= 0; i--) {
+            if (!isFountainTag(fullLines[i])) {
+                fullLineIndex = i;
+                break;
+            }
+        }
+    }
+    
+    // Calculate position in fullContent
+    let fullPosition = 0;
+    for (let i = 0; i < fullLineIndex; i++) {
+        fullPosition += fullLines[i].length + 1; // +1 for newline
+    }
+    fullPosition += Math.min(charInLine, fullLines[fullLineIndex]?.length || 0);
+    
+    return Math.min(fullPosition, fullContent.length);
+}
+
+/**
  * Counts lines that aren't tags (for accurate line number display)
  */
 export function getVisibleLineNumber(content: string, position: number): number {

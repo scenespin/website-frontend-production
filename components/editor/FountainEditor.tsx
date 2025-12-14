@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useLayoutEffect, useMemo, ChangeEvent } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { stripTagsForDisplay, getVisibleLineNumber } from '@/utils/fountain';
+import { stripTagsForDisplay, getVisibleLineNumber, mapDisplayPositionToFullContent } from '@/utils/fountain';
 import { AutoSaveManager } from '@/utils/AutoSaveManager';
 
 // Custom hooks
@@ -49,7 +49,7 @@ export default function FountainEditor({
     onSelectionStateChange
 }: FountainEditorProps) {
     // Context hooks
-    const { state, setContent, setCursorPosition, setCurrentLine, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent } = useEditor();
+    const { state, setContent, setCursorPosition, setCurrentLine, insertText, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent } = useEditor();
     const screenplay = useScreenplay();
     
     // Contextual Navigation - Update global context as user moves cursor
@@ -290,6 +290,86 @@ export default function FountainEditor({
         }
     }, [state.content, state.cursorPosition, setGlobalCursor, setCurrentScene]);
     
+    // Handle paste events - ensures paste operations are tracked in undo stack
+    // Uses insertText/replaceSelection (same as AI agents) for consistent undo/redo behavior
+    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const textarea = e.currentTarget;
+        const displaySelectionStart = textarea.selectionStart; // Position in displayContent
+        const displaySelectionEnd = textarea.selectionEnd; // Position in displayContent
+        const hasSelection = displaySelectionStart !== displaySelectionEnd;
+        
+        // Get pasted text from clipboard
+        const pastedText = e.clipboardData.getData('text/plain');
+        
+        if (!pastedText) {
+            // If no text, allow default paste behavior
+            return;
+        }
+        
+        // Prevent default paste to handle it ourselves
+        e.preventDefault();
+        
+        // Clear highlight when user pastes
+        if (state.highlightRange) {
+            clearHighlight();
+        }
+        
+        // Map positions from displayContent (what user sees) to state.content (with tags)
+        // This is necessary because tags are entire lines that are filtered out for display
+        const fullSelectionStart = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionStart);
+        const fullSelectionEnd = hasSelection 
+            ? mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd)
+            : fullSelectionStart;
+        
+        // Calculate new content (with tags) for auto-save - matches what insertText/replaceSelection will do
+        const newContent = hasSelection
+            ? state.content.substring(0, fullSelectionStart) + pastedText + state.content.substring(fullSelectionEnd)
+            : state.content.substring(0, fullSelectionStart) + pastedText + state.content.substring(fullSelectionStart);
+        
+        // Use replaceSelection if there's a selection, otherwise use insertText
+        // Both functions properly push to undo stack immediately (not debounced)
+        // This ensures paste operations are undoable just like AI agent insertions
+        if (hasSelection) {
+            replaceSelection(pastedText, fullSelectionStart, fullSelectionEnd);
+        } else {
+            insertText(pastedText, fullSelectionStart);
+        }
+        
+        // Schedule auto-save (same pattern as handleChange)
+        // Use the calculated newContent which includes tags
+        autoSaveManager.current.scheduleSave(
+            newContent,
+            true, // isDirty
+            screenplay.beats,
+            screenplay.characters,
+            screenplay.locations,
+            screenplay.relationships,
+            (content, markDirty) => {
+                setContent(content, markDirty);
+            },
+            markSaved
+        );
+        
+        // Calculate new cursor position in displayContent for immediate textarea update
+        const newDisplayCursorPos = displaySelectionStart + pastedText.length;
+        
+        // Calculate line number for immediate update
+        const newDisplayContent = hasSelection
+            ? displayContent.substring(0, displaySelectionStart) + pastedText + displayContent.substring(displaySelectionEnd)
+            : displayContent.substring(0, displaySelectionStart) + pastedText + displayContent.substring(displaySelectionStart);
+        const visibleLineNumber = getVisibleLineNumber(newDisplayContent, newDisplayCursorPos);
+        setCurrentLine(visibleLineNumber);
+        
+        // Update textarea cursor position immediately (before React re-render)
+        // This provides immediate visual feedback
+        setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.selectionStart = newDisplayCursorPos;
+                textareaRef.current.selectionEnd = newDisplayCursorPos;
+            }
+        }, 0);
+    };
+    
     // Handle text changes
     const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
         const newContent = e.target.value;
@@ -430,6 +510,7 @@ export default function FountainEditor({
                     }}
                     value={displayContent}
                     onChange={handleChange}
+                    onPaste={handlePaste}
                     onKeyDown={formatting.handleKeyDown}
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}

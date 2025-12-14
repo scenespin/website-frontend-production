@@ -32,6 +32,7 @@
   --animate-filmRoll: filmRoll 20s linear infinite;
   --animate-bounce-in: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-pulse-subtle: pulse-subtle 3s ease-in-out infinite;
 
   @keyframes shimmer {
     0% { 
@@ -96,6 +97,15 @@
     100% {
       opacity: 1;
       transform: scale(1);
+    }
+  }
+  
+  @keyframes pulse-subtle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.85;
     }
   }
 }

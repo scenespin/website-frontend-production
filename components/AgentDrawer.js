@@ -195,10 +195,14 @@ export default function AgentDrawer({ children }) {
       {!isDrawerOpen && (
         <button
           onClick={() => openDrawer()}
-          className="fixed top-1/2 right-0 -translate-y-1/2 btn bg-cinema-red hover:opacity-90 text-base-content btn-sm rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none"
-          style={{ writingMode: 'vertical-rl' }}
+          className="fixed top-1/2 right-0 -translate-y-1/2 bg-cinema-red hover:opacity-90 text-base-content text-sm font-medium rounded-l-lg rounded-r-none shadow-lg hidden md:flex z-30 border-none px-4 py-3 transition-all duration-300"
+          style={{ 
+            writingMode: 'vertical-rl', 
+            textOrientation: 'mixed',
+            animation: 'pulse-subtle 3s ease-in-out infinite'
+          }}
         >
-          AI Assistant
+          STORY ADVISOR
         </button>
       )}
     </>
