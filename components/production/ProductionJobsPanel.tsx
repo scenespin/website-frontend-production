@@ -33,7 +33,7 @@ interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
-  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment';
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading';
   status: 'queued' | 'running' | 'completed' | 'failed';
   progress: number;
   results?: {
@@ -61,6 +61,26 @@ interface WorkflowJob {
       creditsUsed: number;
       label?: string;
     }>;
+    screenplayReading?: {
+      audioUrl: string;
+      s3Key: string;
+      subtitleUrl?: string;
+      subtitleS3Key?: string;
+      scenesProcessed: string[];
+      scenesFailed?: Array<{
+        sceneId: string;
+        error: string;
+      }>;
+      sceneAudios?: Array<{
+        sceneId: string;
+        audioUrl: string;
+        s3Key: string;
+        heading?: string;
+        creditsUsed: number;
+      }>;
+      characterVoiceMapping: Record<string, string>;
+      creditsUsed: number;
+    };
     totalCreditsUsed: number;
     executionTime: number;
     failedPoses?: Array<{
@@ -818,6 +838,12 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                         Experiment completed
                       </span>
                     )}
+                    {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
+                      <span className="flex items-center gap-1">
+                        <Play className="w-3 h-3" />
+                        {job.results.screenplayReading.scenesProcessed.length} scene(s)
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {Math.round(job.results.executionTime / 60)}m {Math.round(job.results.executionTime % 60)}s
@@ -1047,6 +1073,136 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                         )}
                       </div>
                     )}
+                    
+                    {/* Screenplay Reading: Display audio player and downloads */}
+                    {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (() => {
+                      const reading = job.results.screenplayReading!;
+                      return (
+                        <div className="space-y-3 mt-3">
+                          {/* Audio Player */}
+                          <div className="p-3 rounded-lg bg-slate-900/50 border border-slate-700/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-slate-200">Complete Audio</span>
+                              <span className="text-xs text-slate-400">
+                                {reading.scenesProcessed.length} scene(s) · {reading.creditsUsed} credits
+                              </span>
+                            </div>
+                            <audio
+                              controls
+                              src={reading.audioUrl}
+                              className="w-full h-8 mt-2"
+                            >
+                              Your browser does not support the audio element.
+                            </audio>
+                          </div>
+                          
+                          {/* Download Buttons */}
+                          <div className="flex flex-wrap gap-2">
+                            <a
+                              href={reading.audioUrl}
+                              download
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                       bg-[#DC143C] text-white text-xs font-medium
+                                       hover:bg-[#B91238] transition-colors"
+                            >
+                              <Download className="w-3 h-3" />
+                              Download Audio
+                            </a>
+                            {reading.subtitleUrl && (
+                              <a
+                                href={reading.subtitleUrl}
+                                download
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                         bg-slate-700 text-white text-xs font-medium
+                                         hover:bg-slate-600 transition-colors"
+                              >
+                                <Download className="w-3 h-3" />
+                                Download Subtitles
+                              </a>
+                            )}
+                            <button
+                              onClick={() => {
+                                setSelectedAsset({
+                                  url: reading.audioUrl,
+                                  s3Key: reading.s3Key,
+                                  name: 'Screenplay Reading - Complete',
+                                  type: 'audio',
+                                  metadata: {
+                                    screenplayId: job.metadata?.inputs?.screenplayId,
+                                    scenesProcessed: reading.scenesProcessed,
+                                    sceneAudios: reading.sceneAudios
+                                  }
+                                });
+                                setShowStorageModal(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                       bg-[#8B5CF6] text-white text-xs font-medium
+                                       hover:bg-[#7C4DCC] transition-colors"
+                            >
+                              <Save className="w-3 h-3" />
+                              Save to Media Library
+                            </button>
+                          </div>
+                          
+                          {/* Individual Scene Audio Files */}
+                          {reading.sceneAudios && reading.sceneAudios.length > 0 && (
+                            <div className="mt-3">
+                              <div className="text-xs font-medium text-slate-300 mb-2">
+                                Individual Scene Audio Files ({reading.sceneAudios.length})
+                              </div>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {reading.sceneAudios.map((sceneAudio, index) => (
+                                  <div
+                                    key={sceneAudio.sceneId || index}
+                                    className="p-2 rounded-lg bg-slate-900/30 border border-slate-700/30"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-slate-200 truncate">
+                                          {sceneAudio.heading || `Scene ${index + 1}`}
+                                        </div>
+                                        <div className="text-xs text-slate-400">
+                                          {sceneAudio.creditsUsed} credits
+                                        </div>
+                                      </div>
+                                      <a
+                                        href={sceneAudio.audioUrl}
+                                        download
+                                        className="ml-2 p-1.5 rounded hover:bg-slate-700 transition-colors"
+                                        title="Download scene audio"
+                                      >
+                                        <Download className="w-3 h-3 text-slate-400" />
+                                      </a>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Failed Scenes */}
+                          {reading.scenesFailed && reading.scenesFailed.length > 0 && (
+                            <div className="mt-3 p-3 rounded-lg bg-red-900/20 border border-red-800">
+                              <div className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <div className="text-xs font-medium text-red-300 mb-1">
+                                    {reading.scenesFailed.length} scene(s) failed
+                                  </div>
+                                  <div className="space-y-1">
+                                    {reading.scenesFailed.map((failed, index) => (
+                                      <div key={failed.sceneId || index} className="text-xs text-red-400">
+                                        Scene {failed.sceneId}: {failed.error}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
