@@ -453,13 +453,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                   {/* Message Content - Full Width */}
                   <div className="w-full space-y-2">
                     {/* Story Advisor: Render markdown content (no insert buttons) */}
-                    <div className="chat-message-content">
+                    <div className="chat-message-content select-text">
                       {isUser ? (
-                        <div className="whitespace-pre-wrap break-words text-base-content text-xs sm:text-sm leading-relaxed">
+                        <div className="whitespace-pre-wrap break-words text-base-content text-xs sm:text-sm leading-relaxed select-text">
                           {message.content}
                         </div>
                       ) : (
-                        <div className="text-base-content text-xs sm:text-sm leading-relaxed">
+                        <div className="text-base-content text-xs sm:text-sm leading-relaxed select-text">
                           <MarkdownRenderer content={message.content} />
                         </div>
                       )}

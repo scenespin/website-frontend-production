@@ -116,6 +116,10 @@ export function MarkdownRenderer({ content, className = '' }) {
           color: inherit;
           font-size: 0.75rem;
           line-height: 1.5;
+          user-select: text;
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
         }
         @media (min-width: 640px) {
           .markdown-chat-content {
@@ -165,6 +169,24 @@ export function MarkdownRenderer({ content, className = '' }) {
         .markdown-chat-content p {
           margin-top: 0.5em;
           margin-bottom: 0.5em;
+          user-select: text;
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+        }
+        .markdown-chat-content * {
+          user-select: text;
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+        }
+        /* Ensure code blocks are also selectable */
+        .markdown-chat-content pre,
+        .markdown-chat-content code {
+          user-select: text;
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
         }
         .markdown-chat-content ul,
         .markdown-chat-content ol {

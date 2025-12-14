@@ -1094,8 +1094,31 @@ function UnifiedChatPanelInner({
     );
   }
 
+  // Handle clicks to close menus, but allow text selection
+  const handleContainerClick = (e) => {
+    // Don't close menus if user is selecting text
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return; // User is selecting text, don't interfere
+    }
+    
+    // Don't close menus if clicking on interactive elements
+    const target = e.target;
+    if (target.tagName === 'A' || 
+        target.tagName === 'BUTTON' || 
+        target.closest('button') || 
+        target.closest('a') ||
+        target.closest('pre') || // Code blocks should allow selection
+        target.closest('.code-block-copy-btn')) {
+      return;
+    }
+    
+    // Close menus only when clicking on empty space
+    closeMenus();
+  };
+
   return (
-    <div className="flex flex-col h-full bg-base-100" onClick={closeMenus}>
+    <div className="flex flex-col h-full bg-base-100" onClick={handleContainerClick}>
 
       {/* Selected Text Context Banner - Shows rewrite context */}
       {state.selectedTextContext && (
