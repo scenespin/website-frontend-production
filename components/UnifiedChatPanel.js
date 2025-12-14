@@ -568,10 +568,30 @@ function UnifiedChatPanelInner({
     }
   }, [isDrawerOpen, pathname, state.selectedTextContext, setMode]); // Trigger when drawer opens or page changes
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message (throttled to prevent vibrating during streaming)
+  const scrollTimeoutRef = useRef(null);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  }, [state.messages, state.streamingText]);
+    // Clear any pending scroll
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    
+    // Only auto-scroll if streaming, and throttle it to prevent vibrating
+    if (state.isStreaming) {
+      scrollTimeoutRef.current = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }, 200);
+    } else {
+      // When not streaming, only scroll on new messages (not on every text update)
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+    
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [state.messages.length, state.isStreaming]); // Only trigger on message count change or streaming state, not on every text update
 
   // ============================================================================
   // MODE RENDERING

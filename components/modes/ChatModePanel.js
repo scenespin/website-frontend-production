@@ -30,11 +30,26 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
   
   // Auto-scroll to bottom ONLY while streaming (so user can see new content)
   // Once streaming stops, don't auto-scroll (allows copy/paste without chat jumping)
+  // Use throttling to prevent "vibrating" effect during rapid text updates
+  const scrollTimeoutRef = useRef(null);
   useEffect(() => {
     if (state.isStreaming) {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Clear any pending scroll
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      // Throttle scroll to every 200ms to prevent vibrating
+      scrollTimeoutRef.current = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 200);
     }
-  }, [state.isStreaming, state.streamingText]); // Only trigger when streaming state or streaming text changes
+    
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [state.isStreaming]); // Only trigger when streaming state changes, not on every text update
   
   // Story Advisor: No auto-send for selected text (consultation only)
   

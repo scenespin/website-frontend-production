@@ -41,72 +41,74 @@ export function MarkdownRenderer({ content, className = '' }) {
     if (!htmlContent || !containerRef.current) return;
 
     const container = containerRef.current;
-    const preElements = container.querySelectorAll('pre:not(.code-block-wrapper pre)');
+    const preElements = container.querySelectorAll('pre');
 
     preElements.forEach((pre, index) => {
-      // Skip if already wrapped
-      if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
-
-      // Create wrapper for pre element
-      const wrapper = document.createElement('div');
-      wrapper.className = 'code-block-wrapper relative group';
-      pre.parentNode.insertBefore(wrapper, pre);
-      wrapper.appendChild(pre);
-
-      // Create copy button
-      const copyButton = document.createElement('button');
-      copyButton.className = 'code-block-copy-btn absolute top-2 right-2 p-1.5 rounded-md bg-base-300/80 hover:bg-base-300 text-base-content/70 hover:text-base-content transition-all opacity-0 group-hover:opacity-100 z-10';
-      copyButton.setAttribute('data-index', index.toString());
-      copyButton.innerHTML = `
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-        </svg>
-      `;
-      copyButton.title = 'Copy code';
+      // Skip if already has a copy button
+      if (pre.parentElement?.querySelector('.code-block-copy-btn')) return;
       
-      // Get code content
-      const codeElement = pre.querySelector('code');
-      const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
+      // Skip if already wrapped (but check if button exists)
+      const existingWrapper = pre.parentElement?.classList.contains('code-block-wrapper') 
+        ? pre.parentElement 
+        : null;
+      
+      let wrapper = existingWrapper;
+      
+      // Create wrapper if it doesn't exist
+      if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper relative group';
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+      }
 
-      // Add click handler
-      copyButton.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        try {
-          await navigator.clipboard.writeText(codeText);
-          // Update button to show checkmark temporarily
-          const originalHTML = copyButton.innerHTML;
-          copyButton.innerHTML = `
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          `;
-          copyButton.classList.add('text-green-500');
-          toast.success('Copied to clipboard!', { duration: 2000 });
-          setTimeout(() => {
-            copyButton.innerHTML = originalHTML;
-            copyButton.classList.remove('text-green-500');
-          }, 2000);
-        } catch (err) {
-          console.error('Failed to copy:', err);
-          toast.error('Failed to copy');
-        }
-      });
+      // Create copy button (only if it doesn't exist)
+      if (!wrapper.querySelector('.code-block-copy-btn')) {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'code-block-copy-btn absolute top-2 right-2 p-1.5 rounded-md bg-base-300/80 hover:bg-base-300 text-base-content/70 hover:text-base-content transition-all opacity-60 hover:opacity-100 z-10';
+        copyButton.setAttribute('data-index', index.toString());
+        copyButton.innerHTML = `
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+        `;
+        copyButton.title = 'Copy code';
+        
+        // Get code content
+        const codeElement = pre.querySelector('code');
+        const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
 
-      wrapper.appendChild(copyButton);
+        // Add click handler
+        copyButton.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          try {
+            await navigator.clipboard.writeText(codeText);
+            // Update button to show checkmark temporarily
+            const originalHTML = copyButton.innerHTML;
+            copyButton.innerHTML = `
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            `;
+            copyButton.classList.add('text-green-500');
+            toast.success('Copied to clipboard!', { duration: 2000 });
+            setTimeout(() => {
+              copyButton.innerHTML = originalHTML;
+              copyButton.classList.remove('text-green-500');
+            }, 2000);
+          } catch (err) {
+            console.error('Failed to copy:', err);
+            toast.error('Failed to copy');
+          }
+        });
+
+        wrapper.appendChild(copyButton);
+      }
     });
 
-    // Cleanup function
-    return () => {
-      // Remove wrappers on unmount
-      const wrappers = container.querySelectorAll('.code-block-wrapper');
-      wrappers.forEach(wrapper => {
-        const pre = wrapper.querySelector('pre');
-        if (pre && wrapper.parentNode) {
-          wrapper.parentNode.insertBefore(pre, wrapper);
-          wrapper.remove();
-        }
-      });
-    };
+    // No cleanup - buttons persist even when content updates
+    // This ensures copy buttons remain available after streaming completes
   }, [htmlContent]);
 
   return (
