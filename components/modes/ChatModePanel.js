@@ -138,6 +138,14 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
 - Use examples and explanations
 - Be encouraging and constructive`;
       
+      // Debug: Log editorContent status
+      console.log('[ChatModePanel] Editor content status:', {
+        hasEditorContent: !!editorContent,
+        editorContentLength: editorContent?.length || 0,
+        editorContentPreview: editorContent?.substring(0, 200) || 'EMPTY',
+        cursorPosition: cursorPosition
+      });
+      
       // Build intelligent context using new context builder
       const contextData = buildStoryAdvisorContext(
         editorContent,
@@ -147,6 +155,15 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         conversationHistory,
         systemPromptBase
       );
+      
+      console.log('[ChatModePanel] Context builder result:', {
+        type: contextData.type,
+        estimatedPages: contextData.estimatedPages,
+        hasCurrentScene: !!contextData.currentScene,
+        currentSceneHeading: contextData.currentScene?.heading,
+        hasRelevantScenes: contextData.relevantScenes?.length || 0,
+        hasContent: !!contextData.content
+      });
       
       // Update global scene context state (for banner display) if we have current scene
       if (contextData.currentScene) {
@@ -165,12 +182,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       // Build context prompt string from context data
       const contextPromptString = buildContextPromptString(contextData);
       
-      console.log('[ChatModePanel] Context strategy:', {
-        type: contextData.type,
-        estimatedPages: contextData.estimatedPages,
-        editorContentLength: editorContent?.length || 0,
-        hasCurrentScene: !!contextData.currentScene,
-        hasRelevantScenes: contextData.relevantScenes?.length || 0
+      console.log('[ChatModePanel] Context prompt string:', {
+        contextStringLength: contextPromptString.length,
+        contextStringPreview: contextPromptString.substring(0, 500)
       });
       
       // Build final system prompt with context

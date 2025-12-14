@@ -27,7 +27,16 @@ const MEDIUM_SCREENPLAY_PAGES = 120;
  * @returns {Object} Context object with type and content
  */
 export function buildStoryAdvisorContext(editorContent, cursorPosition, query, modelId, conversationHistory, systemPromptBase) {
+  console.log('[screenplayContextBuilder] buildStoryAdvisorContext called:', {
+    hasEditorContent: !!editorContent,
+    editorContentLength: editorContent?.length || 0,
+    cursorPosition: cursorPosition,
+    modelId: modelId,
+    conversationHistoryLength: conversationHistory?.length || 0
+  });
+  
   if (!editorContent || editorContent.length === 0) {
+    console.warn('[screenplayContextBuilder] editorContent is empty!');
     return {
       type: 'empty',
       content: null,
@@ -38,9 +47,20 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
   // Calculate screenplay length
   const screenplayLength = editorContent.length;
   const estimatedPages = Math.ceil(screenplayLength / CHARS_PER_PAGE);
+  
+  console.log('[screenplayContextBuilder] Screenplay stats:', {
+    screenplayLength,
+    estimatedPages
+  });
 
   // Detect current scene (always needed)
   const currentScene = detectCurrentScene(editorContent, cursorPosition);
+  
+  console.log('[screenplayContextBuilder] Scene detection:', {
+    hasCurrentScene: !!currentScene,
+    sceneHeading: currentScene?.heading,
+    sceneAct: currentScene?.act
+  });
 
   // Calculate available capacity
   const maxContentChars = calculateMaxContentChars(
@@ -49,11 +69,18 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
     systemPromptBase || '',
     query || ''
   );
+  
+  console.log('[screenplayContextBuilder] Token calculation:', {
+    maxContentChars,
+    canFitFull: screenplayLength <= maxContentChars
+  });
 
   // Determine strategy based on length and capacity
+  let result;
   if (estimatedPages < SHORT_SCREENPLAY_PAGES && screenplayLength <= maxContentChars) {
     // Short screenplay that fits in context window
-    return {
+    console.log('[screenplayContextBuilder] Using FULL content strategy');
+    result = {
       type: 'full',
       content: editorContent,
       currentScene: currentScene,
@@ -61,8 +88,9 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
     };
   } else if (estimatedPages < MEDIUM_SCREENPLAY_PAGES) {
     // Medium screenplay: structured summary + current scene
+    console.log('[screenplayContextBuilder] Using STRUCTURED summary strategy');
     const structure = extractScreenplayStructure(editorContent);
-    return {
+    result = {
       type: 'structured',
       content: structure,
       currentScene: currentScene,
@@ -70,9 +98,10 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
     };
   } else {
     // Long screenplay: RAG-style retrieval
+    console.log('[screenplayContextBuilder] Using RETRIEVAL strategy');
     const structure = extractScreenplayStructure(editorContent);
     const relevantScenes = retrieveRelevantScenes(editorContent, query, currentScene, maxContentChars);
-    return {
+    result = {
       type: 'retrieval',
       content: structure,
       currentScene: currentScene,
@@ -80,6 +109,15 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
       estimatedPages: estimatedPages
     };
   }
+  
+  console.log('[screenplayContextBuilder] Final result:', {
+    type: result.type,
+    hasContent: !!result.content,
+    contentType: typeof result.content,
+    hasCurrentScene: !!result.currentScene
+  });
+  
+  return result;
 }
 
 /**
@@ -355,7 +393,13 @@ function isSceneRelevant(scene, mentionedCharacters, actMentions, locationKeywor
  * @returns {string} Formatted context string for system prompt
  */
 export function buildContextPromptString(contextData) {
+  console.log('[screenplayContextBuilder] buildContextPromptString called:', {
+    hasContextData: !!contextData,
+    type: contextData?.type
+  });
+  
   if (!contextData || contextData.type === 'empty') {
+    console.warn('[screenplayContextBuilder] No context data or empty type - returning empty string');
     return '';
   }
 
