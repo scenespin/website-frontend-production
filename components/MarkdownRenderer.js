@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { remark } from 'remark';
 import html from 'remark-html';
 import remarkGfm from 'remark-gfm';
+import toast from 'react-hot-toast';
 
 /**
  * MarkdownRenderer - Renders markdown text as HTML
@@ -12,6 +13,7 @@ import remarkGfm from 'remark-gfm';
  */
 export function MarkdownRenderer({ content, className = '' }) {
   const [htmlContent, setHtmlContent] = useState('');
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!content) {
@@ -33,6 +35,79 @@ export function MarkdownRenderer({ content, className = '' }) {
         setHtmlContent(content);
       });
   }, [content]);
+
+  // Add copy buttons to code blocks after HTML is rendered
+  useEffect(() => {
+    if (!htmlContent || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const preElements = container.querySelectorAll('pre:not(.code-block-wrapper pre)');
+
+    preElements.forEach((pre, index) => {
+      // Skip if already wrapped
+      if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
+
+      // Create wrapper for pre element
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper relative group';
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+
+      // Create copy button
+      const copyButton = document.createElement('button');
+      copyButton.className = 'code-block-copy-btn absolute top-2 right-2 p-1.5 rounded-md bg-base-300/80 hover:bg-base-300 text-base-content/70 hover:text-base-content transition-all opacity-0 group-hover:opacity-100 z-10';
+      copyButton.setAttribute('data-index', index.toString());
+      copyButton.innerHTML = `
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+      `;
+      copyButton.title = 'Copy code';
+      
+      // Get code content
+      const codeElement = pre.querySelector('code');
+      const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
+
+      // Add click handler
+      copyButton.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(codeText);
+          // Update button to show checkmark temporarily
+          const originalHTML = copyButton.innerHTML;
+          copyButton.innerHTML = `
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          `;
+          copyButton.classList.add('text-green-500');
+          toast.success('Copied to clipboard!', { duration: 2000 });
+          setTimeout(() => {
+            copyButton.innerHTML = originalHTML;
+            copyButton.classList.remove('text-green-500');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          toast.error('Failed to copy');
+        }
+      });
+
+      wrapper.appendChild(copyButton);
+    });
+
+    // Cleanup function
+    return () => {
+      // Remove wrappers on unmount
+      const wrappers = container.querySelectorAll('.code-block-wrapper');
+      wrappers.forEach(wrapper => {
+        const pre = wrapper.querySelector('pre');
+        if (pre && wrapper.parentNode) {
+          wrapper.parentNode.insertBefore(pre, wrapper);
+          wrapper.remove();
+        }
+      });
+    };
+  }, [htmlContent]);
 
   return (
     <>
@@ -114,10 +189,30 @@ export function MarkdownRenderer({ content, className = '' }) {
           padding: 0.75rem 1rem;
           border-radius: 0.5rem;
           background-color: rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 2px solid rgba(0, 0, 0, 0.15);
           overflow-x: auto;
+          overflow-y: visible;
           font-size: 0.75rem;
           line-height: 1.5;
+          white-space: pre;
+          position: relative;
+          /* Hide scrollbar but keep scrolling functionality */
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
+        }
+        .markdown-chat-content pre::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+        .code-block-wrapper {
+          position: relative;
+          margin-top: 0.75em;
+          margin-bottom: 0.75em;
+        }
+        .code-block-copy-btn {
+          backdrop-filter: blur(4px);
+        }
+        .code-block-copy-btn svg {
+          display: block;
         }
         .markdown-chat-content pre code {
           padding: 0;
@@ -140,6 +235,7 @@ export function MarkdownRenderer({ content, className = '' }) {
         }
       ` }} />
       <div 
+        ref={containerRef}
         className={`prose prose-sm sm:prose-base max-w-none dark:prose-invert markdown-chat-content ${className}`}
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
