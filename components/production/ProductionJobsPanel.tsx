@@ -940,7 +940,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                     {job.jobType === 'screenplay-reading' && job.results.screenplayReading && (
                       <span className="flex items-center gap-1">
                         <Play className="w-3 h-3" />
-                        {job.results.screenplayReading.scenesProcessed.length} scene(s)
+                        {job.results.screenplayReading.sceneAudios?.length || job.results.screenplayReading.scenesProcessed?.length || 0} scene(s)
                       </span>
                     )}
                     <span className="flex items-center gap-1">
