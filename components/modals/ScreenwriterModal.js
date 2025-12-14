@@ -125,7 +125,13 @@ Rules:
 - Character names in ALL CAPS when speaking
 - Action lines in normal case
 - Just 1-3 lines total
-- Each line should be a complete thought or action`;
+- Each line should be a complete thought or action
+
+CRITICAL SPACING RULES (Fountain.io spec):
+- Character: ONE blank line BEFORE, NO blank line AFTER
+- Dialogue: NO blank line before, ONE blank line AFTER
+- Parenthetical: NO blank lines before/after
+- Action: ONE blank line BEFORE Character (if next is Character)`;
 
       // Call API
       let accumulatedText = '';

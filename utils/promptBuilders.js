@@ -86,7 +86,7 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
   }
 
   // 🔥 CODE BLOCK APPROACH: Request Fountain format in code blocks (STRENGTHENED)
-  const codeBlockInstruction = `\n\n🚫 DO NOT provide analysis, options, or explanations.\n\n✅ REQUIRED: Put your Fountain format output in a code block:\n\n\`\`\`fountain\n[your screenplay content here - 1-3 lines only]\n\`\`\`\n\nCRITICAL: The code block must contain ONLY the screenplay text. No analysis outside the code block.`;
+  const codeBlockInstruction = `\n\n🚫 DO NOT provide analysis, options, or explanations.\n\n✅ REQUIRED: Put your Fountain format output in a code block:\n\n\`\`\`fountain\n[your screenplay content here - 1-3 lines only]\n\`\`\`\n\nCRITICAL: The code block must contain ONLY the screenplay text. No analysis outside the code block.\n\nCRITICAL SPACING RULES (Fountain.io spec):\n- Character: ONE blank line BEFORE, NO blank line AFTER\n- Dialogue: NO blank line before, ONE blank line AFTER\n- Parenthetical: NO blank lines before/after\n- Action: ONE blank line BEFORE Character (if next is Character)`;
 
   // User's request + minimal context + code block instruction
   return `${message}${continuationContext}${codeBlockInstruction}`;
@@ -127,7 +127,13 @@ Rules:
 - NO markdown formatting
 - Character names in ALL CAPS when speaking
 - Action lines in normal case
-- Just 1-3 lines total`;
+- Just 1-3 lines total
+
+CRITICAL SPACING RULES (Fountain.io spec):
+- Character: ONE blank line BEFORE, NO blank line AFTER
+- Dialogue: NO blank line before, ONE blank line AFTER
+- Parenthetical: NO blank lines before/after
+- Action: ONE blank line BEFORE Character (if next is Character)`;
   }
   
   return prompt;
@@ -282,6 +288,13 @@ Rules:
 - Create ONLY NEW scenes that come AFTER the current scene
 - Write in Fountain format with proper newlines
 
+CRITICAL SPACING RULES (Fountain.io spec - MUST FOLLOW):
+- Character: ONE blank line BEFORE, NO blank line AFTER
+- Dialogue: NO blank line before (follows Character/Parenthetical immediately)
+- Dialogue: ONE blank line AFTER (before next Action/Character)
+- Parenthetical: NO blank line before/after (flows directly)
+- Action: ONE blank line BEFORE Character (if next is Character)
+
 EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
 {
   "content": [
@@ -358,12 +371,24 @@ You are a professional screenplay director helping develop full scenes. Your rol
    - Dialogue in plain text below character name
    - Action lines in normal case
    - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
-   - Proper spacing between elements
    - Scene headings in ALL CAPS: INT. LOCATION - TIME
-   - Example format:
-     SARAH
-     (examining the USB drive)
-     What does that mean?
+   
+   CRITICAL SPACING RULES (Fountain.io spec - MUST FOLLOW):
+   - Character: ONE blank line BEFORE, NO blank line AFTER
+   - Dialogue: NO blank line before (follows Character/Parenthetical immediately)
+   - Dialogue: ONE blank line AFTER (before next Action/Character)
+   - Parenthetical: NO blank line before/after (flows directly)
+   - Action: ONE blank line BEFORE Character (if next is Character)
+   
+   Example format (note spacing):
+   
+   Action line here.
+   
+   SARAH
+   (examining the USB drive)
+   What does that mean?
+   
+   More action.
 
 8. THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
 
