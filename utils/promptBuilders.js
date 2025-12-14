@@ -124,10 +124,14 @@ export function buildScreenwriterPrompt(userMessage, sceneContext, contextBefore
 
 Rules:
 - NO scene headings (INT./EXT.) - this is a continuation
-- NO markdown formatting
 - Character names in ALL CAPS when speaking
+- Character extensions are valid: CHARACTER (O.S.), CHARACTER (V.O.), CHARACTER (CONT'D)
 - Action lines in normal case
-- Just 1-3 lines total
+- Emphasis: Fountain uses *italics*, **bold**, _underline_ for emphasis (use sparingly)
+- NO markdown formatting (no # headers, no ---, no markdown syntax)
+- Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
+- Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
+- Just 1-3 content elements (can include blank lines for proper spacing, up to 10 items total)
 
 CRITICAL SPACING RULES (Fountain.io spec):
 - Character: ONE blank line BEFORE, NO blank line AFTER
@@ -278,7 +282,7 @@ Rules:
 - NO markdown formatting (no **, no #, no ---)
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
 - Double dashes (--) are valid in Fountain (see official spec example) but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
-- NO "CUT TO:" - Fountain format doesn't use transitions between scenes
+- Transitions (CUT TO:, FADE OUT.) are valid but use sparingly - modern screenwriting typically omits them except at act breaks
 - NO "FADE OUT" or "THE END" unless user requests ending
 - 🚫 ABSOLUTELY FORBIDDEN: NO "REVISED SCENE", "REVISION", "REWRITTEN SCENE", or any revision headers
 - 🚫 ABSOLUTELY FORBIDDEN: Do NOT rewrite, revise, or modify the current scene "${sceneContext?.heading || 'current scene'}"
@@ -365,16 +369,19 @@ You are a professional screenplay director helping develop full scenes. Your rol
    - Characters available: ${sceneContext?.characters?.join(', ') || 'introduce new ones if needed'}
    ${generationLength === 'multiple' ? '   - You MAY add new scene headings to create multiple scenes' : '   - Do NOT add scene headings unless explicitly changing location'}
 
-7. FOUNTAIN FORMAT (CRITICAL - NO MARKDOWN):
-   - Character names in ALL CAPS (NOT bold/markdown)
-   - Example: SARAH (NOT **SARAH** or *SARAH*)
-   - Parentheticals in parentheses: (examining the USB drive) (NOT italics/markdown)
+7. FOUNTAIN FORMAT (CRITICAL):
+   - Character names in ALL CAPS
+   - Example: SARAH (NOT **SARAH** or *SARAH* - those are for emphasis, not character names)
+   - Character extensions are valid: CHARACTER (O.S.), CHARACTER (V.O.), CHARACTER (CONT'D)
+   - Parentheticals in parentheses: (examining the USB drive)
    - Dialogue in plain text below character name
    - Action lines in normal case
-   - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
-   - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
-- Double dashes (--) are valid in Fountain (see official spec example) but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
    - Scene headings in ALL CAPS: INT. LOCATION - TIME
+   - Transitions are valid but use sparingly: CUT TO:, FADE OUT. (modern screenwriting typically omits them except at act breaks)
+   - Emphasis: Fountain uses *italics*, **bold**, _underline_ for emphasis (use sparingly)
+   - NO markdown formatting (no # headers, no ---, no markdown syntax)
+   - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
+   - Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
    
    CRITICAL SPACING RULES (Fountain.io spec - MUST FOLLOW):
    - Character: ONE blank line BEFORE, NO blank line AFTER
@@ -493,9 +500,11 @@ Respond with JSON:
 
 Rules:
 - NO scene headings
-- NO markdown (no **, no #)
+- Character extensions are valid: CHARACTER (O.S.), CHARACTER (V.O.), CHARACTER (CONT'D)
+- Emphasis: Fountain uses *italics*, **bold**, _underline_ for emphasis (use sparingly)
+- NO markdown formatting (no # headers, no ---, no markdown syntax)
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
-- Double dashes (--) are valid in Fountain (see official spec example) but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
+- Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
 - Match Fountain format with proper newlines
 - Blend with surrounding text
 

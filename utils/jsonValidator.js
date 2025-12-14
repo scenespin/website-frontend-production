@@ -70,8 +70,8 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
     errors.push('Field "content" must be an array');
   } else if (parsedJson.content.length < 1) {
     errors.push('Field "content" must have at least 1 item');
-  } else if (parsedJson.content.length > 5) {
-    errors.push('Field "content" must have at most 5 items');
+  } else if (parsedJson.content.length > 10) {
+    errors.push('Field "content" must have at most 10 items (allows for proper Fountain spacing with blank lines)');
   } else {
     // Validate each line in content array
     // Note: Empty strings are ALLOWED for screenplay spacing/formatting (blank lines)

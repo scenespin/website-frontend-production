@@ -113,23 +113,26 @@ export default function ScreenwriterModal({
       const builtPrompt = buildScreenwriterPrompt(userPrompt, sceneContext, contextBefore, true);
 
       // System prompt for screenwriter
-      const systemPrompt = `You are a professional screenwriting assistant. Generate 1-3 lines of Fountain format screenplay text that continue the scene.
+      const systemPrompt = `You are a professional screenwriting assistant. Generate 1-3 content elements (action, character, dialogue) of Fountain format screenplay text that continue the scene.
 
 CRITICAL: Respond with ONLY valid JSON. No explanations, no markdown, just JSON:
 {
-  "content": ["line 1", "line 2", "line 3"],
-  "lineCount": 3
+  "content": ["action line", "", "CHARACTER", "(parenthetical)", "dialogue", ""],
+  "lineCount": 6
 }
+
+Note: The content array can include blank lines (empty strings) for proper Fountain spacing. Up to 10 items total allowed.
 
 Rules:
 - NO scene headings (INT./EXT.) - this is a continuation
 - NO markdown formatting
 - Character names in ALL CAPS when speaking
 - Action lines in normal case
-- Just 1-3 lines total
-- Each line should be a complete thought or action
+- Generate 1-3 content elements (action, character/dialogue, or both)
+- Include blank lines for proper Fountain spacing (empty strings in array)
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
 - Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
+- Character extensions are valid: CHARACTER (O.S.), CHARACTER (V.O.), CHARACTER (CONT'D)
 
 CRITICAL SPACING RULES (Fountain.io spec):
 - Character: ONE blank line BEFORE, NO blank line AFTER
