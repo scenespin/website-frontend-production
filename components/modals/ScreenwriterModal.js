@@ -19,9 +19,10 @@ const LLM_MODELS = [
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' }, // Good for dialogue & scenes
   { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google' }, // Latest - Enhanced narratives
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' }, // Complex narratives
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' }, // Fast & efficient
+  { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google' }, // Fastest & most economical
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic' }, // Fast & economical
   { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
   { id: 'o3', name: 'O3', provider: 'OpenAI' }, // Reasoning - best for analysis
   { id: 'o1', name: 'O1', provider: 'OpenAI' }, // Reasoning - best for analysis
 ];

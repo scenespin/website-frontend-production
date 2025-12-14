@@ -94,6 +94,7 @@ const LLM_MODELS = [
   { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Enhanced reasoning & narratives' },
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Advanced reasoning - Complex narratives' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
+  { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Fastest & most economical' },
 ];
 
 // ============================================================================

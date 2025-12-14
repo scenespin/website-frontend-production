@@ -21,9 +21,10 @@ const LLM_MODELS = [
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
   { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google' }, // Latest
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' }, // Fast & efficient
+  { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google' }, // Fastest & most economical
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic' }, // Fast & economical
   { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
   { id: 'o3', name: 'O3', provider: 'OpenAI' }, // Reasoning - best for analysis
   { id: 'o1', name: 'O1', provider: 'OpenAI' }, // Reasoning - best for analysis
 ];
