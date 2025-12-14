@@ -37,40 +37,24 @@ export function MarkdownRenderer({ content, className = '' }) {
   }, [content]);
 
   // Add copy buttons to code blocks after HTML is rendered
-  // Use a ref to track which buttons we've already created to prevent re-creation during streaming
-  const buttonsCreatedRef = useRef(new Set());
-  
+  // Use MutationObserver to ensure buttons persist even during streaming updates
   useEffect(() => {
-    if (!htmlContent || !containerRef.current) return;
+    if (!containerRef.current) return;
 
     const container = containerRef.current;
-    const preElements = container.querySelectorAll('pre');
-
-    preElements.forEach((pre, index) => {
-      // Create a stable ID for this code block based on its content hash
-      const codeElement = pre.querySelector('code');
-      const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
-      const blockId = `code-block-${codeText.substring(0, 50).replace(/\s/g, '')}-${index}`;
-      
-      // Skip if we've already created a button for this block
-      if (buttonsCreatedRef.current.has(blockId)) {
-        return;
-      }
-      
+    
+    // Function to add copy button to a pre element
+    const addCopyButton = (pre, index) => {
       // Skip if already has a copy button
       if (pre.parentElement?.querySelector('.code-block-copy-btn')) {
-        buttonsCreatedRef.current.add(blockId);
         return;
       }
       
-      // Skip if already wrapped (but check if button exists)
-      const existingWrapper = pre.parentElement?.classList.contains('code-block-wrapper') 
+      // Get or create wrapper
+      let wrapper = pre.parentElement?.classList.contains('code-block-wrapper') 
         ? pre.parentElement 
         : null;
       
-      let wrapper = existingWrapper;
-      
-      // Create wrapper if it doesn't exist
       if (!wrapper) {
         wrapper = document.createElement('div');
         wrapper.className = 'code-block-wrapper relative group';
@@ -78,51 +62,92 @@ export function MarkdownRenderer({ content, className = '' }) {
         wrapper.appendChild(pre);
       }
 
-      // Create copy button (only if it doesn't exist)
-      if (!wrapper.querySelector('.code-block-copy-btn')) {
-        const copyButton = document.createElement('button');
-        copyButton.className = 'code-block-copy-btn absolute top-2 right-2 p-1.5 rounded-md bg-base-300/80 hover:bg-base-300 text-base-content/70 hover:text-base-content transition-all opacity-60 hover:opacity-100 z-10';
-        copyButton.setAttribute('data-index', index.toString());
-        copyButton.setAttribute('data-block-id', blockId);
-        copyButton.innerHTML = `
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-          </svg>
-        `;
-        copyButton.title = 'Copy code';
-        
-        // Add click handler
-        copyButton.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          try {
-            await navigator.clipboard.writeText(codeText);
-            // Update button to show checkmark temporarily
-            const originalHTML = copyButton.innerHTML;
-            copyButton.innerHTML = `
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            `;
-            copyButton.classList.add('text-green-500');
-            toast.success('Copied to clipboard!', { duration: 2000 });
-            setTimeout(() => {
-              copyButton.innerHTML = originalHTML;
-              copyButton.classList.remove('text-green-500');
-            }, 2000);
-          } catch (err) {
-            console.error('Failed to copy:', err);
-            toast.error('Failed to copy');
+      // Create copy button
+      const copyButton = document.createElement('button');
+      copyButton.className = 'code-block-copy-btn absolute top-2 right-2 p-1.5 rounded-md bg-base-300/80 hover:bg-base-300 text-base-content/70 hover:text-base-content transition-all opacity-60 hover:opacity-100 z-10 pointer-events-auto';
+      copyButton.setAttribute('data-index', index.toString());
+      copyButton.innerHTML = `
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+      `;
+      copyButton.title = 'Copy code';
+      
+      // Get code content
+      const codeElement = pre.querySelector('code');
+      const codeText = codeElement ? codeElement.textContent || codeElement.innerText : pre.textContent || pre.innerText;
+      
+      // Add click handler
+      copyButton.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        try {
+          await navigator.clipboard.writeText(codeText);
+          // Update button to show checkmark temporarily
+          const originalHTML = copyButton.innerHTML;
+          copyButton.innerHTML = `
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          `;
+          copyButton.classList.add('text-green-500');
+          toast.success('Copied to clipboard!', { duration: 2000 });
+          setTimeout(() => {
+            copyButton.innerHTML = originalHTML;
+            copyButton.classList.remove('text-green-500');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          toast.error('Failed to copy');
+        }
+      });
+
+      wrapper.appendChild(copyButton);
+    };
+    
+    // Initial setup - add buttons to all existing pre elements
+    const preElements = container.querySelectorAll('pre');
+    preElements.forEach((pre, index) => {
+      addCopyButton(pre, index);
+    });
+    
+    // Use MutationObserver to watch for new pre elements added during streaming
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) { // Element node
+            // Check if the added node is a pre element
+            if (node.tagName === 'PRE' && !node.parentElement?.querySelector('.code-block-copy-btn')) {
+              const allPres = container.querySelectorAll('pre');
+              const index = Array.from(allPres).indexOf(node);
+              addCopyButton(node, index);
+            }
+            // Check if any pre elements were added inside this node
+            const newPres = node.querySelectorAll?.('pre');
+            if (newPres) {
+              newPres.forEach((pre, i) => {
+                if (!pre.parentElement?.querySelector('.code-block-copy-btn')) {
+                  const allPres = container.querySelectorAll('pre');
+                  const index = Array.from(allPres).indexOf(pre);
+                  addCopyButton(pre, index);
+                }
+              });
+            }
           }
         });
-
-        wrapper.appendChild(copyButton);
-        buttonsCreatedRef.current.add(blockId);
-      }
+      });
     });
-
-    // No cleanup - buttons persist even when content updates
-    // This ensures copy buttons remain available after streaming completes
+    
+    // Start observing
+    observer.observe(container, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Cleanup
+    return () => {
+      observer.disconnect();
+    };
   }, [htmlContent]);
 
   return (
