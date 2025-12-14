@@ -69,11 +69,9 @@ export function getDirectorSchema(sceneCount = 3) {
         minItems: sceneCount,
         maxItems: sceneCount,
         description: `Array of exactly ${sceneCount} scene(s)`
-      },
-      totalLines: {
-        type: "number",
-        description: "Total lines across all scenes (optional metadata)"
       }
+      // Note: totalLines removed - OpenAI requires all properties in 'required' array
+      // If needed, it can be added back but must be in required array
     },
     required: ["scenes"],
     additionalProperties: false
