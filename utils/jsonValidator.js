@@ -74,13 +74,15 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
     errors.push('Field "content" must have at most 5 items');
   } else {
     // Validate each line in content array
+    // Note: Empty strings are ALLOWED for screenplay spacing/formatting (blank lines)
     parsedJson.content.forEach((line, index) => {
       if (typeof line !== 'string') {
         errors.push(`Content item ${index} must be a string`);
       } else if (line.trim().length === 0) {
-        errors.push(`Content item ${index} is empty`);
+        // Empty strings are allowed - they create spacing in screenplay format
+        // Only check for forbidden patterns if line has content
       } else {
-        // Check for forbidden patterns
+        // Check for forbidden patterns (only on non-empty lines)
         if (/^(INT\.|EXT\.|I\/E\.|#\s*INT\.|#\s*EXT\.)/i.test(line.trim())) {
           errors.push(`Content item ${index} contains a scene heading (forbidden)`);
         }
