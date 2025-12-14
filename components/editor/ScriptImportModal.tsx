@@ -171,9 +171,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         // Feature 0117: beatId removed - scenes use global order
                         number: globalIndex + 1,
                         heading: scene.heading,
-                        synopsis: `Imported from script`,
+                        synopsis: scene.synopsis || `Imported from script`, // 🔥 NEW: Use extracted synopsis from Fountain
                         status: 'draft' as const,
                         order: 0, // Will be set to global order (1, 2, 3...)
+                        group_label: scene.group_label, // 🔥 NEW: Use extracted section from Fountain
                         fountain: {
                             startLine: scene.startLine,
                             endLine: scene.endLine,
@@ -190,20 +191,24 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 console.log('[ScriptImportModal] ✅ Built', allScenes.length, 'complete Scene objects');
                 
                 // 🔥 Feature 0117: Simplified - assign global order (1, 2, 3, 4...)
-                // Optionally assign group_label based on scene count or beat template
+                // Use group_label from Fountain sections if available, otherwise assign based on scene position
                 scenesWithOrder = allScenes.map((scene, index) => {
-                    // Optionally assign group_label based on scene position
-                    // For 8-beat template, divide scenes into 8 groups
-                    const beatTitles = ['Setup', 'Inciting Incident', 'First Plot Point', 'First Pinch Point', 
-                                      'Midpoint', 'Second Pinch Point', 'Second Plot Point', 'Resolution'];
-                    const scenesPerGroup = Math.ceil(allScenes.length / 8);
-                    const groupIndex = Math.floor(index / scenesPerGroup);
-                    const group_label = groupIndex < beatTitles.length ? beatTitles[groupIndex] : undefined;
+                    // If scene already has group_label from Fountain section, use it
+                    // Otherwise, optionally assign based on scene position (fallback)
+                    let group_label = scene.group_label;
+                    if (!group_label) {
+                        // Fallback: For 8-beat template, divide scenes into 8 groups
+                        const beatTitles = ['Setup', 'Inciting Incident', 'First Plot Point', 'First Pinch Point', 
+                                          'Midpoint', 'Second Pinch Point', 'Second Plot Point', 'Resolution'];
+                        const scenesPerGroup = Math.ceil(allScenes.length / 8);
+                        const groupIndex = Math.floor(index / scenesPerGroup);
+                        group_label = groupIndex < beatTitles.length ? beatTitles[groupIndex] : undefined;
+                    }
                     
                     return {
                         ...scene,
                         order: index + 1, // Global order (1, 2, 3, 4...)
-                        group_label // Optional grouping for UI organization
+                        group_label // Use Fountain section or fallback assignment
                     };
                 });
                 

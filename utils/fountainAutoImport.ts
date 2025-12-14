@@ -28,6 +28,8 @@ export interface AutoImportResult {
         characters: string[];
         startLine: number;
         endLine: number;
+        group_label?: string; // 🔥 NEW: Section from Fountain (# Section)
+        synopsis?: string; // 🔥 NEW: Synopsis from Fountain (= Synopsis)
     }>;
     
     // Items that don't match spec - show in review modal
@@ -50,7 +52,8 @@ export function parseContentForImport(content: string): AutoImportResult {
     
     let currentScene: AutoImportResult['scenes'][0] | null = null;
     let previousType: FountainElementType | undefined;
-    let currentCharacterForDescription: string | null = null;
+    let currentSection: string | null = null; // Track current section (# Section)
+    let pendingSynopsis: string | null = null; // Track synopsis before next scene (= Synopsis)
     
     console.log('[AutoImport] Parsing', lines.length, 'lines...');
     
@@ -72,37 +75,38 @@ export function parseContentForImport(content: string): AutoImportResult {
             continue;
         }
         
-        // Skip section headings (= Characters =)
-        if (trimmed.startsWith('=') && trimmed.endsWith('=')) {
+        // Skip application-specific section headings (e.g., = Characters =, = Act I =)
+        // Note: These are NOT part of Fountain spec - they're custom metadata
+        // Standard Fountain synopses (= Synopsis) are handled below
+        if (trimmed.startsWith('=') && trimmed.endsWith('=') && trimmed.length > 2) {
             previousType = elementType;
             continue;
         }
         
-        // Handle @CHARACTER notation (Fountain forced character with description)
-        if (trimmed.startsWith('@')) {
-            const characterName = trimmed.substring(1).trim().toUpperCase();
-            if (characterName && characterName.length > 0 && characterName.length < 40) {
-                currentCharacterForDescription = characterName;
-                characters.add(characterName);
-                characterDescriptions.set(characterName, '');
-                console.log('[AutoImport] ✓ Character (forced):', characterName);
+        // Extract Section (# Section) - Standard Fountain syntax
+        // Sections are organizational markers that don't appear in formatted output
+        if (elementType === 'section') {
+            // Extract section text (remove # prefix and trim)
+            const sectionText = trimmed.replace(/^#+\s*/, '').trim();
+            if (sectionText) {
+                currentSection = sectionText;
+                console.log('[AutoImport] ✓ Section:', currentSection);
             }
             previousType = elementType;
             continue;
         }
         
-        // Collect character description lines
-        if (currentCharacterForDescription && !elementType.includes('heading')) {
-            const existingDesc = characterDescriptions.get(currentCharacterForDescription) || '';
-            const newDesc = existingDesc + (existingDesc ? ' ' : '') + trimmed;
-            characterDescriptions.set(currentCharacterForDescription, newDesc);
+        // Extract Synopsis (= Synopsis) - Standard Fountain syntax
+        // Synopses are single-line descriptions that don't appear in formatted output
+        if (elementType === 'synopsis') {
+            // Extract synopsis text (remove = prefix and trim)
+            const synopsisText = trimmed.replace(/^=\s*/, '').trim();
+            if (synopsisText) {
+                pendingSynopsis = synopsisText;
+                console.log('[AutoImport] ✓ Synopsis:', pendingSynopsis);
+            }
             previousType = elementType;
             continue;
-        }
-        
-        // Reset description collection
-        if (currentCharacterForDescription && (elementType === 'scene_heading' || elementType === 'empty')) {
-            currentCharacterForDescription = null;
         }
         
         // STRICT: Scene heading must match proper format
@@ -140,8 +144,13 @@ export function parseContentForImport(content: string): AutoImportResult {
                     locationType: locationType, // 🔥 NEW: Include type in scene data
                     characters: [],
                     startLine: lineIndex,
-                    endLine: lineIndex
+                    endLine: lineIndex,
+                    group_label: currentSection || undefined, // 🔥 NEW: Apply current section to scene
+                    synopsis: pendingSynopsis || undefined // 🔥 NEW: Apply pending synopsis to scene
                 };
+                
+                // Clear pending synopsis after applying to scene (synopsis applies to next scene)
+                pendingSynopsis = null;
             } else {
                 // Missing time of day - questionable
                 questionableItems.push({

@@ -4191,7 +4191,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     const preserveSceneMetadata = useCallback((
         oldScenes: Scene[],
-        newScenes: Array<{ heading: string; startLine: number; endLine: number }>
+        newScenes: Array<{ heading: string; startLine: number; endLine: number; synopsis?: string; group_label?: string }>
     ): Map<number, PreservedMetadata> => {
         const metadataMap = new Map<number, PreservedMetadata>();
         const matchedOldScenes = new Set<string>(); // Track which old scenes have been matched
@@ -4927,7 +4927,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     number: index + 1, // ← Sequential based on script order (always correct!)
                     order: index + 1,
                     heading: parsedScene.heading,
-                    synopsis: preserved?.synopsis || `Imported from script`,
+                    // 🔥 NEW: Use Fountain synopsis if available, otherwise preserve existing or use default
+                    synopsis: parsedScene.synopsis || preserved?.synopsis || `Imported from script`,
                     status: preserved?.status || 'draft',
                     fountain: {
                         startLine: parsedScene.startLine,
@@ -4941,7 +4942,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     videoAssets: preserved?.videoAssets,
                     timing: preserved?.timing,
                     estimatedPageCount: preserved?.estimatedPageCount,
-                    group_label: preserved?.group_label,
+                    // 🔥 NEW: Use Fountain section (group_label) if available, otherwise preserve existing
+                    group_label: parsedScene.group_label || preserved?.group_label,
                     createdAt: now,
                     updatedAt: now
                 };
