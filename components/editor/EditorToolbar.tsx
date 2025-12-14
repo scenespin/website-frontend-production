@@ -131,7 +131,7 @@ function ExportToGitHubButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, onReadScreenplay }: EditorToolbarProps) {
     const { state, setContent, toggleFocusMode, setFontSize, undo, redo, saveNow } = useEditor();
     const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner } = useScreenplay();
     
