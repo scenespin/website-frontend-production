@@ -259,23 +259,12 @@ export function MarkdownRenderer({ content, className = '' }) {
           line-height: 1.5;
           white-space: pre;
           position: relative;
-          /* Allow horizontal scrolling - show scrollbar on hover or when scrolling */
-          scrollbar-width: thin; /* Firefox - show thin scrollbar */
-          scrollbar-color: rgba(0, 0, 0, 0.3) transparent; /* Firefox */
-          -ms-overflow-style: auto; /* IE and Edge - show scrollbar */
+          /* Hide scrollbar but keep scrolling functionality */
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
         }
         .markdown-chat-content pre::-webkit-scrollbar {
-          height: 8px; /* Chrome, Safari, Opera - show scrollbar */
-        }
-        .markdown-chat-content pre::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .markdown-chat-content pre::-webkit-scrollbar-thumb {
-          background-color: rgba(0, 0, 0, 0.3);
-          border-radius: 4px;
-        }
-        .markdown-chat-content pre::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(0, 0, 0, 0.5);
+          display: none; /* Chrome, Safari, Opera */
         }
         .code-block-wrapper {
           position: relative;
