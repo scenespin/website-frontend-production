@@ -837,6 +837,14 @@ function UnifiedChatPanelInner({
 - Be encouraging and constructive`;
           
           // Build intelligent context using new context builder
+          console.log('[UnifiedChatPanel] 🔍 Building Story Advisor context...', {
+            hasEditorContent: !!editorContent,
+            editorContentLength: editorContent?.length || 0,
+            cursorPosition,
+            messageLength: message?.length || 0,
+            modelId: state.selectedModel || 'claude-sonnet-4-5-20250929'
+          });
+          
           const contextData = buildStoryAdvisorContext(
             editorContent,
             cursorPosition,
@@ -845,6 +853,16 @@ function UnifiedChatPanelInner({
             conversationHistory,
             systemPromptBase
           );
+          
+          console.log('[UnifiedChatPanel] ✅ Context data received from builder:', {
+            type: contextData.type,
+            estimatedPages: contextData.estimatedPages,
+            hasCurrentScene: !!contextData.currentScene,
+            hasContent: !!contextData.content,
+            contentLength: contextData.content?.length || 0,
+            hasStructure: !!contextData.structure,
+            hasRelevantScenes: !!contextData.relevantScenes
+          });
           
           // Update scene context state for banner display
           if (contextData.currentScene) {
@@ -856,19 +874,27 @@ function UnifiedChatPanelInner({
               pageNumber: contextData.currentScene.pageNumber,
               totalPages: contextData.currentScene.totalPages
             });
+            console.log('[UnifiedChatPanel] ✅ Scene context updated for banner:', contextData.currentScene.heading);
+          } else {
+            console.warn('[UnifiedChatPanel] ⚠️ No currentScene in contextData');
           }
           
           // Build context prompt string
           const contextPromptString = buildContextPromptString(contextData);
           
+          console.log('[UnifiedChatPanel] ✅ Context prompt string built:', {
+            length: contextPromptString.length,
+            preview: contextPromptString.substring(0, 200) + (contextPromptString.length > 200 ? '...' : '')
+          });
+          
           // Build final system prompt
           systemPrompt = systemPromptBase + contextPromptString;
           
-          console.log('[UnifiedChatPanel] Story Advisor context built:', {
-            type: contextData.type,
-            estimatedPages: contextData.estimatedPages,
-            editorContentLength: editorContent?.length || 0,
-            contextStringLength: contextPromptString.length
+          console.log('[UnifiedChatPanel] ✅ Final system prompt built:', {
+            baseLength: systemPromptBase.length,
+            contextLength: contextPromptString.length,
+            totalLength: systemPrompt.length,
+            estimatedTokens: Math.ceil(systemPrompt.length / 4) // Rough estimate: ~4 chars per token
           });
           
         } else {
@@ -934,13 +960,25 @@ function UnifiedChatPanelInner({
           }
         }
         
-        // Build context data for API
-        const contextData = currentSceneContext ? {
+        // Build scene context data for API (separate from contextData to avoid collision)
+        const apiSceneContext = currentSceneContext ? {
           heading: currentSceneContext.heading,
           act: currentSceneContext.act,
           characters: currentSceneContext.characters,
           pageNumber: currentSceneContext.pageNumber
         } : null;
+        
+        // 🔥 DIAGNOSTIC: Log what we're sending to the API
+        console.log('[UnifiedChatPanel] 📤 Sending to API:', {
+          mode: state.activeMode,
+          systemPromptLength: systemPrompt.length,
+          systemPromptPreview: systemPrompt.substring(0, 500) + (systemPrompt.length > 500 ? '...' : ''),
+          userPromptLength: finalUserPrompt.length,
+          hasSceneContext: !!apiSceneContext,
+          sceneContext: apiSceneContext,
+          conversationHistoryLength: conversationHistory.length,
+          modelId: state.selectedModel || 'claude-sonnet-4-5-20250929'
+        });
         
         // Call streaming chat API
         await api.chat.generateStream(
@@ -949,7 +987,7 @@ function UnifiedChatPanelInner({
             systemPrompt: systemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
             conversationHistory,
-            sceneContext: contextData,
+            sceneContext: apiSceneContext,
             attachments: attachedFiles.length > 0 ? attachedFiles : undefined
           },
           // onChunk - update streaming text
