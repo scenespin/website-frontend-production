@@ -140,6 +140,19 @@ CRITICAL SPACING RULES (Fountain.io spec):
 - Parenthetical: NO blank lines before/after
 - Action: ONE blank line BEFORE Character (if next is Character)`;
 
+      // Build structured output format if model supports it
+      const { getScreenwriterSchema } = await import('../../utils/jsonSchemas');
+      const { supportsStructuredOutputs } = await import('../../utils/jsonValidator');
+      
+      const responseFormat = supportsStructuredOutputs(selectedModel) ? {
+        type: "json_schema",
+        json_schema: {
+          name: "screenwriter_content",
+          schema: getScreenwriterSchema(),
+          strict: true
+        }
+      } : undefined;
+
       // Call API
       let accumulatedText = '';
 
@@ -154,7 +167,8 @@ CRITICAL SPACING RULES (Fountain.io spec):
             act: sceneContext.act,
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
-          } : null
+          } : null,
+          responseFormat: responseFormat // Structured output format (if supported)
         },
         // onChunk
         (chunk) => {

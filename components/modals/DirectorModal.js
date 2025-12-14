@@ -173,6 +173,19 @@ Rules:
 - Each scene: 5-30 lines
 - Total: ${sceneCount === 1 ? '5-30' : sceneCount === 2 ? '10-60' : '15-90'} lines across all scenes`;
 
+      // Build structured output format if model supports it
+      const { getDirectorSchema } = await import('../../utils/jsonSchemas');
+      const { supportsStructuredOutputs } = await import('../../utils/jsonValidator');
+      
+      const responseFormat = supportsStructuredOutputs(selectedModel) ? {
+        type: "json_schema",
+        json_schema: {
+          name: "director_content",
+          schema: getDirectorSchema(sceneCount),
+          strict: true
+        }
+      } : undefined;
+
       // Call API
       let accumulatedText = '';
 
@@ -187,7 +200,8 @@ Rules:
             act: sceneContext.act,
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
-          } : null
+          } : null,
+          responseFormat: responseFormat // Structured output format (if supported)
         },
         // onChunk
         (chunk) => {

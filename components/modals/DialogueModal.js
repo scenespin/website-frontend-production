@@ -198,6 +198,19 @@ Rules:
       // Call API
       let accumulatedText = '';
 
+      // Build structured output format if model supports it
+      const { getDialogSchema } = await import('../../utils/jsonSchemas');
+      const { supportsStructuredOutputs } = await import('../../utils/jsonValidator');
+      
+      const responseFormat = supportsStructuredOutputs(selectedModel) ? {
+        type: "json_schema",
+        json_schema: {
+          name: "dialog_content",
+          schema: getDialogSchema(),
+          strict: true
+        }
+      } : undefined;
+
       await api.chat.generateStream(
         {
           userPrompt: builtPrompt,
@@ -209,7 +222,8 @@ Rules:
             act: sceneContext.act,
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
-          } : null
+          } : null,
+          responseFormat: responseFormat // Structured output format (if supported)
         },
         // onChunk
         (chunk) => {

@@ -23,35 +23,43 @@ export function validateScreenplayContent(jsonResponse, contextBeforeCursor = nu
   let parsedJson = null;
   let rawJsonString = jsonResponse.trim();
 
-  // Step 1: Try to extract JSON from markdown code blocks
-  // Some models wrap JSON in ```json ... ``` blocks
-  const jsonBlockMatch = rawJsonString.match(/```json\s*([\s\S]*?)\s*```/i);
-  if (jsonBlockMatch) {
-    rawJsonString = jsonBlockMatch[1].trim();
-  }
-
-  // Also try generic code blocks
-  const codeBlockMatch = rawJsonString.match(/```\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch && codeBlockMatch[1].trim().startsWith('{')) {
-    rawJsonString = codeBlockMatch[1].trim();
-  }
-
-  // Step 2: Try to find JSON object in the response
-  // Some models add explanations before/after JSON
-  const jsonObjectMatch = rawJsonString.match(/\{[\s\S]*\}/);
-  if (jsonObjectMatch) {
-    rawJsonString = jsonObjectMatch[0];
-  }
-
-  // Step 3: Parse JSON
+  // With structured outputs, JSON should always be valid and clean
+  // However, we keep extraction logic as fallback for unsupported models
+  
+  // Step 1: Try direct parse first (structured outputs should work this way)
   try {
     parsedJson = JSON.parse(rawJsonString);
-  } catch (error) {
-    return {
-      valid: false,
-      content: '',
-      errors: [`JSON parsing failed: ${error.message}`, `Attempted to parse: ${rawJsonString.substring(0, 200)}...`]
-    };
+  } catch (directParseError) {
+    // Step 2: Fallback - Try to extract JSON from markdown code blocks
+    // Some models (without structured outputs) wrap JSON in ```json ... ``` blocks
+    const jsonBlockMatch = rawJsonString.match(/```json\s*([\s\S]*?)\s*```/i);
+    if (jsonBlockMatch) {
+      rawJsonString = jsonBlockMatch[1].trim();
+    } else {
+      // Also try generic code blocks
+      const codeBlockMatch = rawJsonString.match(/```\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch && codeBlockMatch[1].trim().startsWith('{')) {
+        rawJsonString = codeBlockMatch[1].trim();
+      }
+    }
+
+    // Step 3: Try to find JSON object in the response
+    // Some models add explanations before/after JSON
+    const jsonObjectMatch = rawJsonString.match(/\{[\s\S]*\}/);
+    if (jsonObjectMatch) {
+      rawJsonString = jsonObjectMatch[0];
+    }
+
+    // Step 4: Try parsing again after extraction
+    try {
+      parsedJson = JSON.parse(rawJsonString);
+    } catch (error) {
+      return {
+        valid: false,
+        content: '',
+        errors: [`JSON parsing failed: ${error.message}`, `Attempted to parse: ${rawJsonString.substring(0, 200)}...`]
+      };
+    }
   }
 
   // Step 4: Validate schema
@@ -185,6 +193,47 @@ export function supportsNativeJSON(modelId) {
   
   // Anthropic models don't have native JSON mode, but we can still use structured prompts
   // Return false so we use prompt engineering instead
+  return false;
+}
+
+/**
+ * Checks if a model supports structured outputs (JSON Schema with strict mode)
+ * This is the modern approach used by Cursor/Windsurf for reliable JSON generation
+ * @param {string} modelId - Model identifier
+ * @returns {boolean} True if model supports structured outputs via response_format parameter
+ */
+export function supportsStructuredOutputs(modelId) {
+  if (!modelId) return false;
+  
+  const modelLower = modelId.toLowerCase();
+  
+  // Claude 3.5+ (all current Claude models support structured outputs)
+  if (modelLower.includes('claude-3-5') || 
+      modelLower.includes('claude-sonnet-4') || 
+      modelLower.includes('claude-opus-4') ||
+      modelLower.includes('claude-haiku-4') ||
+      modelLower.includes('claude-3-opus') ||
+      modelLower.includes('claude-3-sonnet') ||
+      modelLower.includes('claude-3-haiku')) {
+    return true;
+  }
+  
+  // GPT-4o-2024-08-06+ and GPT-5.x (OpenAI structured outputs)
+  if (modelLower.includes('gpt-4o') || 
+      modelLower.includes('gpt-5') ||
+      modelLower.startsWith('o1') ||
+      modelLower.startsWith('o3') ||
+      modelLower.includes('gpt-4-turbo')) {
+    return true;
+  }
+  
+  // Gemini 2.5+ (Google structured outputs)
+  if (modelLower.includes('gemini-2.5') || 
+      modelLower.includes('gemini-3') ||
+      modelLower.includes('gemini-2.0')) {
+    return true;
+  }
+  
   return false;
 }
 

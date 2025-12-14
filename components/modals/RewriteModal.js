@@ -269,6 +269,24 @@ export default function RewriteModal({
         ? "You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. You MUST respond with valid JSON only. No explanations, no markdown, just JSON with the rewritten text."
         : "You are a professional screenwriting assistant. The user has selected text and wants to rewrite it. Provide only the rewritten text in Fountain format.";
       
+      // Build structured output format if model supports it and using JSON format
+      let responseFormat = undefined;
+      if (useJSONFormat) {
+        const { getRewriteSchema } = await import('../../utils/jsonSchemas');
+        const { supportsStructuredOutputs } = await import('../../utils/jsonValidator');
+        
+        if (supportsStructuredOutputs(selectedModel)) {
+          responseFormat = {
+            type: "json_schema",
+            json_schema: {
+              name: "rewrite_content",
+              schema: getRewriteSchema(),
+              strict: true
+            }
+          };
+        }
+      }
+
       // Call API
       let accumulatedText = '';
       
@@ -283,7 +301,8 @@ export default function RewriteModal({
             act: sceneContext.act,
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
-          } : null
+          } : null,
+          responseFormat: responseFormat // Structured output format (if supported and using JSON)
         },
         // onChunk
         (chunk) => {
