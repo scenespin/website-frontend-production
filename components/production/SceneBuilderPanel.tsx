@@ -1958,7 +1958,8 @@ You are a professional screenplay director helping develop full scenes. Your rol
    - Dialogue in plain text below character name
    - Action lines in normal case
    - NO markdown formatting (no **, no *, no ---)
-   - 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
+   - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
+   - Double dashes (--) are valid in Fountain (see official spec example) but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
    - Proper spacing between elements
    - Scene headings in ALL CAPS: INT. LOCATION - TIME
 

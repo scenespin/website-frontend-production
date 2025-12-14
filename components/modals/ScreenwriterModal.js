@@ -128,7 +128,8 @@ Rules:
 - Action lines in normal case
 - Just 1-3 lines total
 - Each line should be a complete thought or action
-- 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
+- Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
+- Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
 
 CRITICAL SPACING RULES (Fountain.io spec):
 - Character: ONE blank line BEFORE, NO blank line AFTER
@@ -256,16 +257,21 @@ CRITICAL SPACING RULES (Fountain.io spec):
             // Check if next line is action (not character, not dialogue, not parenthetical)
             const nextIsAction = nextLine && !nextIsCharacterName && !nextIsDialogue && !nextIsParenthetical;
             
-            console.log(`[ScreenwriterModal] Line ${i}: "${line}" | isChar:${isCharacterName} isParen:${isParenthetical} isDial:${isDialogue} isAction:${isAction} | nextIsChar:${nextIsCharacterName} nextIsParen:${nextIsParenthetical} nextIsDial:${nextIsDialogue}`);
+            // Check if previous line was action (not character, not dialogue, not parenthetical)
+            const prevIsAction = prevLine && !prevIsCharacterName && !prevIsParenthetical && 
+                                !/^\(.+\)$/.test(prevLine) && // Not parenthetical
+                                !(/^[A-Z][A-Z\s#0-9']+$/.test(prevLine) && prevLine.length >= 2 && prevLine.length <= 50 && !/^(INT\.|EXT\.|I\/E\.)/i.test(prevLine)); // Not character
+            
+            console.log(`[ScreenwriterModal] Line ${i}: "${line}" | isChar:${isCharacterName} isParen:${isParenthetical} isDial:${isDialogue} isAction:${isAction} | prevIsAction:${prevIsAction} nextIsChar:${nextIsCharacterName} nextIsParen:${nextIsParenthetical} nextIsDial:${nextIsDialogue}`);
             
             // FOUNTAIN SPEC: Character has blank line BEFORE, NO blank line AFTER
-            // Add blank line BEFORE character name if previous was action
+            // Add blank line BEFORE character name if previous was action (or any non-character, non-parenthetical line)
             // We add it BEFORE the character (not after action) to avoid duplicates
-            if (isCharacterName && prevLine && !prevIsCharacterName && !prevIsParenthetical) {
+            if (isCharacterName && prevLine && (prevIsAction || (!prevIsCharacterName && !prevIsParenthetical))) {
               // Only add if last line in formattedLines is not already empty
               if (formattedLines.length === 0 || formattedLines[formattedLines.length - 1] !== '') {
                 formattedLines.push('');
-                console.log(`[ScreenwriterModal] ✅ Added blank line BEFORE character name`);
+                console.log(`[ScreenwriterModal] ✅ Added blank line BEFORE character name (prev was action/non-character)`);
               } else {
                 console.log(`[ScreenwriterModal] ℹ️ Skipped blank line BEFORE character (already exists)`);
               }
