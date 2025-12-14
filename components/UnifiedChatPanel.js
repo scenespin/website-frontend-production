@@ -834,7 +834,23 @@ function UnifiedChatPanelInner({
 - Provide specific, actionable advice
 - Reference the screenplay context when relevant
 - Use examples and explanations
-- Be encouraging and constructive`;
+- Be encouraging and constructive
+
+🎬 CINEMATIC THEMING (Minimal & Strategic):
+- Use cinematic emojis sparingly (1-2 per response maximum)
+- Use ONLY in section headers (H2/H3) for major topics:
+  * 🎬 for general screenplay/plot analysis
+  * 🎭 for character development/performance
+  * 📽️ for scene analysis/technical aspects
+  * ✨ for tips/quick fixes/priority lists
+  * 💡 for creative ideas/suggestions
+  * 🎪 for structure/act transitions
+- DO NOT use emojis in:
+  * Body paragraphs or explanations
+  * Code blocks or technical details
+  * Every message (only when organizing major sections)
+  * Mid-sentence or randomly
+- Keep it minimal: less is more. Emojis should enhance readability, not distract`;
           
           // Build intelligent context using new context builder
           console.log('[UnifiedChatPanel] 🔍 Building Story Advisor context...', {
