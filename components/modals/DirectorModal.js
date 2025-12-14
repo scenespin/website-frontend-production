@@ -275,15 +275,25 @@ Rules:
             const formattedContent = formatFountainSpacing(contentArray);
             
             // Format: scene heading + double newline + formatted content
+            // Ensure formattedContent doesn't have trailing newlines (formatFountainSpacing already trims)
+            // So we get: heading + \n\n + content (no trailing newline)
             formattedScenes.push(`${scene.heading}\n\n${formattedContent}`);
           }
 
-          // Join all scenes with double newline between them
+          // Join all scenes with DOUBLE newline between them (Fountain spec: 2 blank lines between scenes)
+          // This ensures: scene1_content\n\n\n\nscene2_heading\n\nscene2_content
+          // Which becomes: scene1_content\n\n\n\nscene2_heading (correct spacing)
           let formattedContent = formattedScenes.join('\n\n');
 
-          // Check spacing context around cursor
+          // Check spacing context around cursor for proper scene separation
           const textBeforeCursor = editorContent.substring(0, cursorPosition);
           const textAfterCursor = editorContent.substring(cursorPosition);
+          
+          // Check if cursor is at end of a scene (look for scene heading pattern before cursor)
+          const textBeforeTrimmed = textBeforeCursor.trimEnd();
+          const endsWithSceneHeading = /(INT\.|EXT\.|I\/E\.)\s+[A-Z\s]+-\s+(DAY|NIGHT|CONTINUOUS|LATER|MOMENTS LATER)/i.test(
+            textBeforeTrimmed.substring(Math.max(0, textBeforeTrimmed.length - 100))
+          );
           
           const lastNewlineIndex = textBeforeCursor.lastIndexOf('\n');
           const textOnCurrentLine = lastNewlineIndex >= 0 
@@ -291,19 +301,42 @@ Rules:
             : textBeforeCursor;
           const hasTextOnCurrentLine = textOnCurrentLine.trim().length > 0;
           
+          // Check if text after cursor starts with a scene heading
+          const textAfterTrimmed = textAfterCursor.trimStart();
+          const afterStartsWithSceneHeading = /^(INT\.|EXT\.|I\/E\.)\s+[A-Z\s]+-\s+(DAY|NIGHT|CONTINUOUS|LATER|MOMENTS LATER)/i.test(textAfterTrimmed);
+          
           const hasTextAfter = textAfterCursor.trim().length > 0;
           const textAfterStartsWithNewline = textAfterCursor.startsWith('\n') || textAfterCursor.startsWith('\r\n');
 
-          // Add newline BEFORE if there's text on the current line
+          // FOUNTAIN SPEC: Two blank lines between scenes
+          // Add spacing BEFORE insertion
           if (hasTextOnCurrentLine) {
+            // If there's text on current line, we need double newline before first scene heading
+            formattedContent = '\n\n' + formattedContent;
+          } else if (endsWithSceneHeading) {
+            // If cursor is after a scene heading, we need double newline to separate scenes
             formattedContent = '\n\n' + formattedContent;
           } else {
-            formattedContent = '\n' + formattedContent;
+            // Otherwise, single newline is fine (we're continuing or starting fresh)
+            formattedContent = '\n\n' + formattedContent;
           }
 
-          // Add newline AFTER if there's text after cursor and it doesn't start with newline
-          if (hasTextAfter && !textAfterStartsWithNewline) {
-            formattedContent = formattedContent + '\n';
+          // Add spacing AFTER insertion
+          if (hasTextAfter) {
+            if (afterStartsWithSceneHeading) {
+              // If next text is a scene heading, ensure double newline separation
+              if (!textAfterStartsWithNewline) {
+                formattedContent = formattedContent + '\n\n';
+              } else if (textAfterCursor.match(/^\n\n/)) {
+                // Already has double newline, don't add more
+              } else {
+                // Has single newline, add one more
+                formattedContent = formattedContent + '\n';
+              }
+            } else if (!textAfterStartsWithNewline) {
+              // Regular text after, add single newline
+              formattedContent = formattedContent + '\n';
+            }
           }
 
           // Insert content

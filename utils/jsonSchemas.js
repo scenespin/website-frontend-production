@@ -60,7 +60,7 @@ export function getDirectorSchema(sceneCount = 3) {
               },
               minItems: 5,
               maxItems: 50,
-              description: "Array of 5-50 screenplay lines (action, dialogue, character names)"
+              description: "Array of 5-50 screenplay lines (action, dialogue, character names). Each scene's content should end without trailing newlines - spacing between scenes is handled by the formatter."
             }
           },
           required: ["heading", "content"],

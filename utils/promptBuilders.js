@@ -299,6 +299,7 @@ CRITICAL SPACING RULES (Fountain.io spec - MUST FOLLOW):
 - Dialogue: ONE blank line AFTER (before next Action/Character)
 - Parenthetical: NO blank line before/after (flows directly)
 - Action: ONE blank line BEFORE Character (if next is Character)
+- SCENE SEPARATION: TWO blank lines between scenes (this is handled automatically by the formatter, but ensure each scene's content array ends cleanly without trailing empty strings)
 
 EXAMPLE JSON RESPONSE (for ${generationLength === 'short' ? 'short' : generationLength === 'multiple' ? 'multiple scenes' : 'full scene'}):
 {
