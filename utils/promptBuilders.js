@@ -293,6 +293,16 @@ Rules:
 - Create ONLY NEW scenes that come AFTER the current scene
 - Write in Fountain format with proper newlines
 
+CRITICAL FORMATTING RULES (Fountain.io spec - MUST FOLLOW):
+- Character names: ALL CAPS, 2-50 characters, NO lowercase letters, NO descriptions (e.g., "SARAH", "DR. MARTINEZ")
+- Character introductions: NORMAL CASE (e.g., "DR. MARTINEZ, 50s, weathered zookeeper, exits" - this is ACTION, not character name)
+- Action lines: NORMAL CASE (mixed case, can contain lowercase letters)
+- Dialogue: Normal case (can contain lowercase letters)
+- Character name line should ONLY be the name (e.g., "DR. MARTINEZ"), NOT "DR. MARTINEZ, 50s, weathered zookeeper"
+- If introducing a character, use ACTION line: "DR. MARTINEZ, 50s, weathered zookeeper, exits" (normal case)
+- Then use CHARACTER line: "DR. MARTINEZ" (ALL CAPS, just the name)
+- Then use DIALOGUE line: "Sasha. Good girl, Sasha." (normal case)
+
 CRITICAL SPACING RULES (Fountain.io spec - MUST FOLLOW):
 - Character: ONE blank line BEFORE, NO blank line AFTER
 - Dialogue: NO blank line before (follows Character/Parenthetical immediately)

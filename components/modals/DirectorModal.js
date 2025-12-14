@@ -271,7 +271,39 @@ Rules:
           const formattedScenes = [];
           for (const scene of scenesToUse) {
             // Apply spacing formatting to scene content
-            const contentArray = scene.content || [];
+            let contentArray = scene.content || [];
+            
+            // Fix incorrectly capitalized action lines (lines that should be action but are in ALL CAPS)
+            // Character introductions like "DR. MARTINEZ, 50s, weathered zookeeper" should be normal case
+            contentArray = contentArray.map(line => {
+              if (typeof line !== 'string') return line;
+              
+              const trimmed = line.trim();
+              if (!trimmed) return line;
+              
+              // If line is ALL CAPS but contains description patterns (commas with age, descriptive words)
+              // and it's not a scene heading or pure character name, it's likely an action line
+              const isAllCaps = /^[A-Z\s.,'!?:;-]+$/.test(trimmed) && trimmed.length > 0;
+              const hasDescriptionPattern = /,\s*\d+s|\d+\s*years|weathered|exits|enters|walks|runs|sits|stands|grabs|takes|opens|closes/i.test(trimmed);
+              const isSceneHeading = /^(INT\.|EXT\.|I\/E\.)/i.test(trimmed);
+              const isPureCharacterName = /^[A-Z][A-Z\s#0-9']+$/.test(trimmed) && 
+                                         trimmed.length >= 2 && 
+                                         trimmed.length <= 50 &&
+                                         !/[a-z]/.test(trimmed) &&
+                                         !/\([^)]+\)/.test(trimmed);
+              
+              // If it's ALL CAPS, has description pattern, and is NOT a scene heading or pure character name
+              // Convert to proper sentence case (first letter capitalized, rest lowercase, but preserve proper nouns)
+              if (isAllCaps && hasDescriptionPattern && !isSceneHeading && !isPureCharacterName) {
+                // Convert to sentence case: first letter capitalized, rest lowercase
+                // But preserve common proper nouns and titles
+                const converted = trimmed.charAt(0) + trimmed.slice(1).toLowerCase();
+                return converted;
+              }
+              
+              return line;
+            });
+            
             const formattedContent = formatFountainSpacing(contentArray);
             
             // Format: scene heading + double newline + formatted content
