@@ -20,6 +20,7 @@ import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperb
 import toast from 'react-hot-toast';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
+import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
 
@@ -796,66 +797,141 @@ function UnifiedChatPanelInner({
           content: m.content
         }));
         
-        // Re-detect scene context on each message (cursor might have moved)
-        let currentSceneContext = state.sceneContext;
-        if (editorContent && cursorPosition !== undefined) {
-          const detectedContext = detectCurrentScene(editorContent, cursorPosition);
-          if (detectedContext) {
-            currentSceneContext = detectedContext;
-            setSceneContext(detectedContext); // Update state
-          }
-        }
-        
         // Build prompt - use rewrite prompt builder if selected text exists
         let finalUserPrompt = message;
-        let systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+        let systemPrompt = '';
+        let currentSceneContext = null;
         
-        // If rewrite mode (selected text exists), build comprehensive rewrite prompt
-        if (state.selectedTextContext && state.selectionRange && editorContent) {
-          // Extract surrounding text for seamless integration
-          const selectionContext = extractSelectionContext(
+        // STORY ADVISOR MODE: Use new intelligent context builder
+        if (state.activeMode === 'chat') {
+          // Base system prompt for Story Advisor
+          const systemPromptBase = `You are a professional screenplay consultant. Provide advice, analysis, and creative guidance. Do NOT generate Fountain format — that's handled by other tools.
+
+✅ YOUR ROLE:
+- Provide expert screenplay consultation and feedback
+- Analyze scenes, characters, structure, pacing, and themes
+- Brainstorm solutions to story problems
+- Answer industry questions about screenwriting
+- Offer creative guidance and development suggestions
+
+✅ YOU CAN DISCUSS:
+- Character development and arcs
+- Plot structure and pacing
+- Scene analysis and sequencing
+- Genre conventions and best practices
+- Story problems and plot holes
+- Industry questions and professional advice
+- Creative brainstorming and ideation
+
+🚫 ABSOLUTELY FORBIDDEN:
+- Do NOT generate Fountain format screenplay text
+- Do NOT write scenes or dialogue
+- Do NOT create screenplay content
+- Content generation is handled by other tools (FAB buttons)
+
+✅ RESPONSE STYLE:
+- Be conversational and helpful
+- Provide specific, actionable advice
+- Reference the screenplay context when relevant
+- Use examples and explanations
+- Be encouraging and constructive`;
+          
+          // Build intelligent context using new context builder
+          const contextData = buildStoryAdvisorContext(
             editorContent,
-            state.selectionRange.start,
-            state.selectionRange.end
+            cursorPosition,
+            message,
+            state.selectedModel || 'claude-sonnet-4-5-20250929',
+            conversationHistory,
+            systemPromptBase
           );
           
-          if (selectionContext) {
-            // 🔥 PHASE 4: Use JSON format for rewrite (structured output)
-            const useJSONFormat = true;
-            // Build rewrite prompt with surrounding text
-            finalUserPrompt = buildRewritePrompt(
-              message,
-              state.selectedTextContext,
-              currentSceneContext,
-              {
-                before: selectionContext.beforeContext,
-                after: selectionContext.afterContext
-              },
-              useJSONFormat
-            );
-            
-            // System prompt for rewrite mode
-            if (useJSONFormat) {
-              systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
-              systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. You MUST respond with valid JSON only. No explanations, no markdown, just JSON with the rewritten text.`;
-            } else {
-              systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
-              systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+          // Update scene context state for banner display
+          if (contextData.currentScene) {
+            currentSceneContext = contextData.currentScene;
+            setSceneContext({
+              heading: contextData.currentScene.heading,
+              act: contextData.currentScene.act,
+              characters: contextData.currentScene.characters,
+              pageNumber: contextData.currentScene.pageNumber,
+              totalPages: contextData.currentScene.totalPages
+            });
+          }
+          
+          // Build context prompt string
+          const contextPromptString = buildContextPromptString(contextData);
+          
+          // Build final system prompt
+          systemPrompt = systemPromptBase + contextPromptString;
+          
+          console.log('[UnifiedChatPanel] Story Advisor context built:', {
+            type: contextData.type,
+            estimatedPages: contextData.estimatedPages,
+            editorContentLength: editorContent?.length || 0,
+            contextStringLength: contextPromptString.length
+          });
+          
+        } else {
+          // OTHER AGENT MODES: Use existing logic
+          systemPrompt = `You are a professional screenwriting assistant helping a screenwriter with their screenplay.`;
+          
+          // Re-detect scene context on each message (cursor might have moved)
+          currentSceneContext = state.sceneContext;
+          if (editorContent && cursorPosition !== undefined) {
+            const detectedContext = detectCurrentScene(editorContent, cursorPosition);
+            if (detectedContext) {
+              currentSceneContext = detectedContext;
+              setSceneContext(detectedContext); // Update state
             }
           }
-        }
-        
-        // Add scene context to system prompt
-        if (currentSceneContext) {
-          systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
-          systemPrompt += `Current Scene: ${currentSceneContext.heading}\n`;
-          systemPrompt += `Act: ${currentSceneContext.act}\n`;
-          systemPrompt += `Page: ${currentSceneContext.pageNumber} of ${currentSceneContext.totalPages}\n`;
-          if (currentSceneContext.characters && currentSceneContext.characters.length > 0) {
-            systemPrompt += `Characters in scene: ${currentSceneContext.characters.join(', ')}\n`;
+          
+          // If rewrite mode (selected text exists), build comprehensive rewrite prompt
+          if (state.selectedTextContext && state.selectionRange && editorContent) {
+            // Extract surrounding text for seamless integration
+            const selectionContext = extractSelectionContext(
+              editorContent,
+              state.selectionRange.start,
+              state.selectionRange.end
+            );
+            
+            if (selectionContext) {
+              // 🔥 PHASE 4: Use JSON format for rewrite (structured output)
+              const useJSONFormat = true;
+              // Build rewrite prompt with surrounding text
+              finalUserPrompt = buildRewritePrompt(
+                message,
+                state.selectedTextContext,
+                currentSceneContext,
+                {
+                  before: selectionContext.beforeContext,
+                  after: selectionContext.afterContext
+                },
+                useJSONFormat
+              );
+              
+              // System prompt for rewrite mode
+              if (useJSONFormat) {
+                systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
+                systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. You MUST respond with valid JSON only. No explanations, no markdown, just JSON with the rewritten text.`;
+              } else {
+                systemPrompt += `\n\n[REWRITE MODE - User wants to rewrite selected text]\n`;
+                systemPrompt += `IMPORTANT: The user has selected text and wants to rewrite it. Provide ONLY the rewritten selection that blends seamlessly with surrounding text.`;
+              }
+            }
           }
-          systemPrompt += `\nScene Content:\n${currentSceneContext.content.substring(0, 1000)}${currentSceneContext.content.length > 1000 ? '...' : ''}\n`;
-          systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+          
+          // Add scene context to system prompt (for non-chat modes)
+          if (currentSceneContext) {
+            systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
+            systemPrompt += `Current Scene: ${currentSceneContext.heading}\n`;
+            systemPrompt += `Act: ${currentSceneContext.act}\n`;
+            systemPrompt += `Page: ${currentSceneContext.pageNumber} of ${currentSceneContext.totalPages}\n`;
+            if (currentSceneContext.characters && currentSceneContext.characters.length > 0) {
+              systemPrompt += `Characters in scene: ${currentSceneContext.characters.join(', ')}\n`;
+            }
+            systemPrompt += `\nScene Content:\n${currentSceneContext.content?.substring(0, 1000) || ''}${currentSceneContext.content && currentSceneContext.content.length > 1000 ? '...' : ''}\n`;
+            systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
+          }
         }
         
         // Build context data for API
