@@ -158,8 +158,16 @@ export function StorageDecisionModal({
     }
   };
 
-  const handleKeepTemp = () => {
-    // Just close modal - file stays in S3 for 7 days
+  const handleKeepTemp = async () => {
+    // File is already in S3 and registered to Media Library by backend
+    // Just refresh Media Library UI and close modal
+    try {
+      // Trigger a custom event that parent components can listen to
+      // This allows Media Library to refresh without tight coupling
+      window.dispatchEvent(new CustomEvent('mediaLibraryRefresh'));
+    } catch (error) {
+      console.error('[StorageDecisionModal] Error refreshing Media Library:', error);
+    }
     onClose();
   };
 

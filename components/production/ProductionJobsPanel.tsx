@@ -240,6 +240,68 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     type: 'image' | 'video' | 'audio';
     metadata?: any;
   } | null>(null);
+
+  /**
+   * Helper function for downloading audio files via blob (more reliable than download attribute)
+   * Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
+   */
+  const downloadAudioAsBlob = async (audioUrl: string, filename: string, s3Key?: string) => {
+    try {
+      let downloadUrl = audioUrl;
+      
+      // If we have an s3Key, fetch a fresh presigned URL (like MediaLibrary does)
+      if (s3Key) {
+        try {
+          const token = await getToken({ template: 'wryda-backend' });
+          if (!token) throw new Error('Not authenticated');
+          
+          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key: s3Key,
+              expiresIn: 3600, // 1 hour
+            }),
+          });
+          
+          if (!presignedResponse.ok) {
+            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+          }
+          
+          const presignedData = await presignedResponse.json();
+          downloadUrl = presignedData.downloadUrl;
+        } catch (error) {
+          console.error('[ProductionJobsPanel] Failed to get presigned URL, using original URL:', error);
+          // Fall back to original audioUrl if presigned URL fetch fails
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error: any) {
+      console.error('[ProductionJobsPanel] Failed to download audio:', error);
+      toast.error('Failed to download audio', { description: error.message });
+      throw error;
+    }
+  };
   
   // Safety error dialog state
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -431,6 +493,43 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     }
   }, [jobs, screenplayId, queryClient]);
   
+  /**
+   * Watch for completed screenplay-reading jobs and refresh Media Library
+   * Files are already registered to Media Library by backend, just need to refresh UI
+   */
+  useEffect(() => {
+    const completedScreenplayReadingJobs = jobs.filter(job => 
+      job.status === 'completed' && 
+      job.jobType === 'screenplay-reading' &&
+      job.results?.screenplayReading
+    );
+    
+    if (completedScreenplayReadingJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Screenplay reading completed, refreshing Media Library...', completedScreenplayReadingJobs.length);
+      // 🔥 FIX: Invalidate AND refetch Media Library to show newly registered files
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+        .catch(err => console.error('[ProductionJobsPanel] Error refetching Media Library after screenplay reading:', err));
+    }
+  }, [jobs, screenplayId, queryClient]);
+
+  /**
+   * Listen for Media Library refresh events (from StorageDecisionModal)
+   */
+  useEffect(() => {
+    const handleMediaLibraryRefresh = () => {
+      console.log('[ProductionJobsPanel] Media Library refresh event received');
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
+        .catch(err => console.error('[ProductionJobsPanel] Error refetching Media Library:', err));
+    };
+
+    window.addEventListener('mediaLibraryRefresh', handleMediaLibraryRefresh);
+    return () => {
+      window.removeEventListener('mediaLibraryRefresh', handleMediaLibraryRefresh);
+    };
+  }, [screenplayId, queryClient]);
+
   /**
    * Watch for completed location/asset angle generation jobs and refresh data
    * 🔥 SIMPLIFIED: Use React Query cache invalidation instead of window events
@@ -1098,27 +1197,39 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                           
                           {/* Download Buttons */}
                           <div className="flex flex-wrap gap-2">
-                            <a
-                              href={reading.audioUrl}
-                              download
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const filename = `Screenplay Reading - Complete.mp3`;
+                                  await downloadAudioAsBlob(reading.audioUrl, filename, reading.s3Key);
+                                } catch (error) {
+                                  // Error already handled in downloadAudioAsBlob
+                                }
+                              }}
                               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
                                        bg-[#DC143C] text-white text-xs font-medium
                                        hover:bg-[#B91238] transition-colors"
                             >
                               <Download className="w-3 h-3" />
                               Download Audio
-                            </a>
+                            </button>
                             {reading.subtitleUrl && (
-                              <a
-                                href={reading.subtitleUrl}
-                                download
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const filename = `Screenplay Reading - Subtitles.srt`;
+                                    await downloadAudioAsBlob(reading.subtitleUrl!, filename, reading.subtitleS3Key);
+                                  } catch (error) {
+                                    // Error already handled in downloadAudioAsBlob
+                                  }
+                                }}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
                                          bg-slate-700 text-white text-xs font-medium
                                          hover:bg-slate-600 transition-colors"
                               >
                                 <Download className="w-3 h-3" />
                                 Download Subtitles
-                              </a>
+                              </button>
                             )}
                             <button
                               onClick={() => {
@@ -1165,14 +1276,20 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                                           {sceneAudio.creditsUsed} credits
                                         </div>
                                       </div>
-                                      <a
-                                        href={sceneAudio.audioUrl}
-                                        download
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            const filename = `${sceneAudio.heading || `Scene ${index + 1}`}.mp3`.replace(/[^a-zA-Z0-9-_.]/g, '-');
+                                            await downloadAudioAsBlob(sceneAudio.audioUrl, filename, sceneAudio.s3Key);
+                                          } catch (error) {
+                                            // Error already handled in downloadAudioAsBlob
+                                          }
+                                        }}
                                         className="ml-2 p-1.5 rounded hover:bg-slate-700 transition-colors"
                                         title="Download scene audio"
                                       >
                                         <Download className="w-3 h-3 text-slate-400" />
-                                      </a>
+                                      </button>
                                     </div>
                                   </div>
                                 ))}
