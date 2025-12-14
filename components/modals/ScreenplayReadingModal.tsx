@@ -99,7 +99,7 @@ export default function ScreenplayReadingModal({
           id: scene.id,
           heading: scene.heading || '',
           synopsis: scene.synopsis,
-          characterCount: scene.characters?.length || 0,
+          characterCount: 0, // Scene type doesn't have characters array - will be calculated if needed
           hasDialogue: true // Assume true if scene exists
         }));
         setScenes(transformedScenes);
