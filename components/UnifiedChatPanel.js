@@ -1173,53 +1173,52 @@ function UnifiedChatPanelInner({
     );
   }
 
-  // Handle clicks to close menus, but allow text selection
+  // Handle clicks to close menus, but COMPLETELY allow text selection
+  // Don't interfere with text selection at all - only close menus on empty space
   const handleContainerClick = (e) => {
-    // Don't close menus if user is selecting text (check both ways)
-    const selection = window.getSelection();
-    const hasSelection = selection && selection.toString().length > 0;
+    const target = e.target;
     
-    // Also check if user is in the middle of a selection (mouse is down)
-    if (hasSelection || e.type === 'mousedown') {
-      // If there's a selection or mouse is down, don't interfere
-      // Wait to see if this becomes a text selection
+    // NEVER interfere with text content areas - allow full text selection
+    if (target.closest('.markdown-chat-content') ||
+        target.closest('.chat-message-content') ||
+        target.closest('pre') ||
+        target.closest('code') ||
+        target.closest('p') ||
+        target.closest('div') && target.closest('.chat-message-content') ||
+        target.closest('span') ||
+        target.closest('strong') ||
+        target.closest('em') ||
+        target.closest('ul') ||
+        target.closest('ol') ||
+        target.closest('li')) {
+      // This is text content - don't interfere at all
+      return;
+    }
+    
+    // Check if user has text selected
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      // User has text selected - don't interfere
       return;
     }
     
     // Don't close menus if clicking on interactive elements
-    const target = e.target;
     if (target.tagName === 'A' || 
         target.tagName === 'BUTTON' || 
         target.closest('button') || 
         target.closest('a') ||
-        target.closest('pre') || // Code blocks should allow selection
-        target.closest('code') || // Code elements should allow selection
-        target.closest('.code-block-copy-btn') ||
-        target.closest('.markdown-chat-content')) { // Markdown content should allow selection
+        target.closest('.code-block-copy-btn')) {
       return;
     }
     
-    // Close menus only when clicking on empty space
+    // Only close menus when clicking on truly empty space (background)
     closeMenus();
-  };
-  
-  // Also handle mousedown to prevent interference during text selection
-  const handleContainerMouseDown = (e) => {
-    // Don't interfere with text selection - let it happen naturally
-    const target = e.target;
-    if (target.closest('pre') || 
-        target.closest('code') || 
-        target.closest('.markdown-chat-content') ||
-        target.closest('.chat-message-content')) {
-      return; // Allow text selection in these areas
-    }
   };
 
   return (
     <div 
       className="flex flex-col h-full bg-base-100" 
       onClick={handleContainerClick}
-      onMouseDown={handleContainerMouseDown}
     >
 
       {/* Selected Text Context Banner - Shows rewrite context */}
