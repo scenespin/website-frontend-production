@@ -466,6 +466,13 @@ CRITICAL INSTRUCTIONS:
 11. Each option should be clearly separated and labeled
 12. 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
 
+CRITICAL SPACING RULES (Fountain.io spec):
+- Character: ONE blank line BEFORE, NO blank line AFTER
+- Dialogue: NO blank line before (follows Character/Parenthetical immediately)
+- Dialogue: ONE blank line AFTER (before next Action/Character)
+- Parenthetical: NO blank line before/after (flows directly)
+- Action: ONE blank line BEFORE Character (if next is Character)
+
 Output: 3 distinct rewrite options in the format above.`;
   }
   
@@ -486,7 +493,14 @@ Rules:
 - NO markdown (no **, no #)
 - NO dashes (-- or -) in action lines
 - Match Fountain format with proper newlines
-- Blend with surrounding text`;
+- Blend with surrounding text
+
+CRITICAL SPACING RULES (Fountain.io spec):
+- Character: ONE blank line BEFORE, NO blank line AFTER
+- Dialogue: NO blank line before (follows Character/Parenthetical immediately)
+- Dialogue: ONE blank line AFTER (before next Action/Character)
+- Parenthetical: NO blank line before/after (flows directly)
+- Action: ONE blank line BEFORE Character (if next is Character)`;
   }
   
   // Fallback: Simplified text format (primary reliable path)
@@ -502,7 +516,14 @@ Rules:
 - NO dashes (-- or -) in action lines
 - Match Fountain format with proper newlines
 - Blend with surrounding text
-- Output only the rewritten text`;
+- Output only the rewritten text
+
+CRITICAL SPACING RULES (Fountain.io spec):
+- Character: ONE blank line BEFORE, NO blank line AFTER
+- Dialogue: NO blank line before (follows Character/Parenthetical immediately)
+- Dialogue: ONE blank line AFTER (before next Action/Character)
+- Parenthetical: NO blank line before/after (flows directly)
+- Action: ONE blank line BEFORE Character (if next is Character)`;
   
   return fullPrompt;
 }

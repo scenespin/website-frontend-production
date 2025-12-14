@@ -89,6 +89,8 @@ export default function ScreenwriterModal({
 
     setIsLoading(true);
 
+    setIsLoading(true);
+
     try {
       // Detect context: use selection if available, otherwise use scene detection
       let contextBefore = '';
