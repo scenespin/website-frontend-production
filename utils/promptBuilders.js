@@ -276,7 +276,7 @@ ${useJSON ? `Respond with JSON:
 Rules:
 - NO analysis, suggestions, or questions - just write scenes
 - NO markdown formatting (no **, no #, no ---)
-- NO dashes (-- or -) in action lines
+- 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
 - NO "CUT TO:" - Fountain format doesn't use transitions between scenes
 - NO "FADE OUT" or "THE END" unless user requests ending
 - 🚫 ABSOLUTELY FORBIDDEN: NO "REVISED SCENE", "REVISION", "REWRITTEN SCENE", or any revision headers
@@ -371,6 +371,7 @@ You are a professional screenplay director helping develop full scenes. Your rol
    - Dialogue in plain text below character name
    - Action lines in normal case
    - NO markdown formatting (no **, no *, no ---, no markdown of any kind)
+   - 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
    - Scene headings in ALL CAPS: INT. LOCATION - TIME
    
    CRITICAL SPACING RULES (Fountain.io spec - MUST FOLLOW):
@@ -464,7 +465,7 @@ CRITICAL INSTRUCTIONS:
 9. Character names in ALL CAPS only when speaking
 10. NO markdown formatting (no **, no *, no ---)
 11. Each option should be clearly separated and labeled
-12. 🚫 NO DASHES: Do NOT use double dashes (--) or single dashes (-) in action lines. Avoid dashes entirely unless absolutely necessary for clarity. Very rare exception only.
+12. 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
 
 CRITICAL SPACING RULES (Fountain.io spec):
 - Character: ONE blank line BEFORE, NO blank line AFTER
@@ -491,7 +492,7 @@ Respond with JSON:
 Rules:
 - NO scene headings
 - NO markdown (no **, no #)
-- NO dashes (-- or -) in action lines
+- 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
 - Match Fountain format with proper newlines
 - Blend with surrounding text
 
@@ -513,7 +514,7 @@ Rules:
 - Write what the user requested
 - NO scene headings
 - NO markdown (no **, no #)
-- NO dashes (-- or -) in action lines
+- 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
 - Match Fountain format with proper newlines
 - Blend with surrounding text
 - Output only the rewritten text

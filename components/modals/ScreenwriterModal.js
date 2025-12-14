@@ -128,6 +128,7 @@ Rules:
 - Action lines in normal case
 - Just 1-3 lines total
 - Each line should be a complete thought or action
+- 🚫 ABSOLUTELY FORBIDDEN: NO double dashes (--) or single dashes (-) in dialogue or action lines. Fountain format does NOT use dashes. Use ellipses (...) for pauses or interruptions instead.
 
 CRITICAL SPACING RULES (Fountain.io spec):
 - Character: ONE blank line BEFORE, NO blank line AFTER
@@ -203,7 +204,11 @@ CRITICAL SPACING RULES (Fountain.io spec):
           
           for (let i = 0; i < contentArray.length; i++) {
             const line = contentArray[i].trim();
-            if (!line) continue;
+            // Handle empty strings (blank lines) - preserve them
+            if (!line) {
+              formattedLines.push('');
+              continue;
+            }
             
             const prevLine = i > 0 ? contentArray[i - 1].trim() : '';
             const nextLine = i < contentArray.length - 1 ? contentArray[i + 1].trim() : '';
