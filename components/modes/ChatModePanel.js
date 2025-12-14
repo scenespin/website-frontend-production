@@ -9,6 +9,7 @@ import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { calculateMaxContentChars, includeContentUpToLimit } from '@/utils/tokenCalculator';
+import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
 import toast from 'react-hot-toast';
 
 // Story Advisor: No Fountain parsing needed (consultation only, no content generation)
@@ -91,61 +92,6 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
     setIsSending(true);
     
     try {
-      // ALWAYS detect current scene for context (re-detect on each message)
-      let sceneContext = detectCurrentScene(editorContent, cursorPosition);
-      
-      // Fallback to state scene context if detection fails
-      if (!sceneContext && state.sceneContext) {
-        console.log('[ChatModePanel] Using state scene context as fallback');
-        // Try to extract actual scene content from editorContent based on scene heading
-        let sceneContent = '';
-        if (editorContent && state.sceneContext.heading) {
-          const lines = editorContent.split('\n');
-          const headingIndex = lines.findIndex(line => 
-            line.trim().toUpperCase().includes(state.sceneContext.heading.toUpperCase())
-          );
-          if (headingIndex >= 0) {
-            // Extract content from this scene heading to the next scene heading (or end)
-            const sceneLines = [];
-            for (let i = headingIndex; i < lines.length; i++) {
-              const line = lines[i];
-              // Stop at next scene heading (but not the current one)
-              if (i > headingIndex && /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i.test(line)) {
-                break;
-              }
-              sceneLines.push(line);
-            }
-            sceneContent = sceneLines.join('\n').substring(0, 1000);
-          } else {
-            // Fallback to first 1000 chars if scene heading not found
-            sceneContent = editorContent.substring(0, 1000);
-          }
-        }
-        // Reconstruct full scene context from state (we need content for the prompt)
-        sceneContext = {
-          heading: state.sceneContext.heading,
-          act: state.sceneContext.act,
-          characters: state.sceneContext.characters || [],
-          pageNumber: state.sceneContext.pageNumber,
-          totalPages: state.sceneContext.totalPages || 100,
-          content: sceneContent
-        };
-      }
-      
-      // Update global scene context state (for banner display)
-      if (sceneContext) {
-        setSceneContext({
-          heading: sceneContext.heading,
-          act: sceneContext.act,
-          characters: sceneContext.characters,
-          pageNumber: sceneContext.pageNumber,
-          totalPages: sceneContext.totalPages
-        });
-        console.log('[ChatModePanel] Scene context:', sceneContext.heading, 'Act:', sceneContext.act, 'Characters:', sceneContext.characters?.length || 0);
-      } else {
-        console.warn('[ChatModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
-      }
-      
       // Story Advisor: Clear selected text context if present (not used for consultation)
       if (state.selectedTextContext) {
         console.log('[ChatModePanel] Clearing selectedTextContext - Story Advisor focuses on consultation, not rewriting');
@@ -192,64 +138,43 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
 - Use examples and explanations
 - Be encouraging and constructive`;
       
-      // Build scene context metadata string (for token calculation)
-      let sceneContextMetadata = '';
-      if (sceneContext) {
-        sceneContextMetadata = `\n\nCURRENT SCREENPLAY CONTEXT:
-- Current Scene: ${sceneContext.heading}`;
-        if (sceneContext.act) {
-          sceneContextMetadata += `\n- Act: ${sceneContext.act}`;
-        }
-        if (sceneContext.characters && sceneContext.characters.length > 0) {
-          sceneContextMetadata += `\n- Characters in scene: ${sceneContext.characters.join(', ')}`;
-        }
-        if (sceneContext.pageNumber) {
-          sceneContextMetadata += `\n- Page: ${sceneContext.pageNumber} of ${sceneContext.totalPages || '?'}`;
-        }
-      }
-      
-      // Calculate how much content we can include based on model and conversation history
-      // Include scene context metadata in the base prompt for accurate calculation
-      const systemPromptWithMetadata = systemPromptBase + sceneContextMetadata;
-      const maxContentChars = calculateMaxContentChars(
+      // Build intelligent context using new context builder
+      const contextData = buildStoryAdvisorContext(
+        editorContent,
+        cursorPosition,
+        prompt,
         selectedModel,
         conversationHistory,
-        systemPromptWithMetadata,
-        prompt
+        systemPromptBase
       );
       
-      console.log('[ChatModePanel] Token calculation:', {
-        model: selectedModel,
-        maxContentChars,
-        conversationHistoryLength: conversationHistory.length,
+      // Update global scene context state (for banner display) if we have current scene
+      if (contextData.currentScene) {
+        setSceneContext({
+          heading: contextData.currentScene.heading,
+          act: contextData.currentScene.act,
+          characters: contextData.currentScene.characters,
+          pageNumber: contextData.currentScene.pageNumber,
+          totalPages: contextData.currentScene.totalPages
+        });
+        console.log('[ChatModePanel] Scene context:', contextData.currentScene.heading, 'Act:', contextData.currentScene.act, 'Characters:', contextData.currentScene.characters?.length || 0);
+      } else {
+        console.warn('[ChatModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
+      }
+      
+      // Build context prompt string from context data
+      const contextPromptString = buildContextPromptString(contextData);
+      
+      console.log('[ChatModePanel] Context strategy:', {
+        type: contextData.type,
+        estimatedPages: contextData.estimatedPages,
         editorContentLength: editorContent?.length || 0,
-        sceneContextAvailable: !!sceneContext
+        hasCurrentScene: !!contextData.currentScene,
+        hasRelevantScenes: contextData.relevantScenes?.length || 0
       });
       
-      // Build system prompt with dynamically calculated content limits
-      let systemPrompt = systemPromptBase;
-      
-      // Add scene context if available for context-aware advice
-      if (sceneContext) {
-        systemPrompt += sceneContextMetadata;
-        
-        // Include scene content - dynamically calculated to maximize content while staying within limits
-        if (sceneContext.content) {
-          const sceneContent = sceneContext.content;
-          const contentPreview = includeContentUpToLimit(sceneContent, maxContentChars);
-          systemPrompt += `\n\nCURRENT SCENE CONTENT:\n${contentPreview}`;
-        } else if (editorContent) {
-          // Fallback: include screenplay preview if scene content not available
-          const preview = includeContentUpToLimit(editorContent, maxContentChars);
-          systemPrompt += `\n\nSCREENPLAY PREVIEW:\n${preview}`;
-        }
-        
-        systemPrompt += `\n\nUse this context to provide relevant, specific advice about the screenplay. You can reference specific scenes, characters, and plot points when giving advice.`;
-      } else if (editorContent) {
-        // Even without scene context, include screenplay preview for general analysis
-        const preview = includeContentUpToLimit(editorContent, maxContentChars);
-        systemPrompt += `\n\nSCREENPLAY CONTENT (for reference):\n${preview}\n\nUse this content to provide specific, relevant advice about the screenplay.`;
-      }
+      // Build final system prompt with context
+      const systemPrompt = systemPromptBase + contextPromptString;
       
       // Add user message
       addMessage({
@@ -275,11 +200,11 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
           conversationHistory,
-          sceneContext: sceneContext ? {
-            heading: sceneContext.heading,
-            act: sceneContext.act,
-            characters: sceneContext.characters,
-            pageNumber: sceneContext.pageNumber
+          sceneContext: contextData.currentScene ? {
+            heading: contextData.currentScene.heading,
+            act: contextData.currentScene.act,
+            characters: contextData.currentScene.characters,
+            pageNumber: contextData.currentScene.pageNumber
           } : null
       };
       
