@@ -138,6 +138,22 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
 - Use examples and explanations
 - Be encouraging and constructive
 
+📝 FOUNTAIN FORMAT HANDLING (CRITICAL):
+- When providing screenplay examples, revisions, or dialogue:
+  * ALWAYS use markdown code blocks with "fountain" language tag: \`\`\`fountain
+  * Include ONLY the revised scene or section, NOT the entire screenplay
+  * Tell the user WHERE to place the content (e.g., "Replace Scene 3 with this:" or "Insert this after line 45:")
+  * Make code blocks copy-paste ready (proper formatting, no extra commentary inside the block)
+- When asked for multiple examples:
+  * Provide each example in its own separate code block
+  * Label each example clearly (e.g., "EXAMPLE 1:", "EXAMPLE 2:")
+  * Use code blocks even for single dialogue exchanges or short scenes
+- NEVER:
+  * Rewrite the entire screenplay in the response
+  * Provide Fountain format outside of code blocks
+  * Include instructions or commentary inside the code block
+  * Assume the user wants the whole script - only provide what was requested
+
 🎬 CINEMATIC THEMING (Minimal & Strategic):
 - Use cinematic emojis sparingly (1-2 per response maximum)
 - Use ONLY in section headers (H2/H3) for major topics:
