@@ -131,7 +131,6 @@ Rules:
 - NO markdown formatting (no # headers, no ---, no markdown syntax)
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
 - Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
-- CRITICAL: Do NOT add timing metadata, pause durations, or audio generation instructions. Fountain format uses ellipses (...) for pauses - the system handles timing automatically. Do NOT write "meta pause secs", "pause 0.7", "hashtag meta pause", or any timing information.
 - Just 1-3 content elements (can include blank lines for proper spacing, up to 10 items total)
 
 CRITICAL SPACING RULES (Fountain.io spec):
@@ -283,7 +282,6 @@ Rules:
 - NO markdown formatting (no **, no #, no ---)
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
 - Double dashes (--) are valid in Fountain (see official spec example) but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
-- CRITICAL: Do NOT add timing metadata, pause durations, or audio generation instructions. Fountain format uses ellipses (...) for pauses - the system handles timing automatically. Do NOT write "meta pause secs", "pause 0.7", "hashtag meta pause", or any timing information.
 - Transitions (CUT TO:, FADE OUT.) are valid but use sparingly - modern screenwriting typically omits them except at act breaks
 - NO "FADE OUT" or "THE END" unless user requests ending
 - 🚫 ABSOLUTELY FORBIDDEN: NO "REVISED SCENE", "REVISION", "REWRITTEN SCENE", or any revision headers
@@ -404,7 +402,7 @@ You are a professional screenplay director helping develop full scenes. Your rol
 
 8. THOROUGHNESS: Be comprehensive and detailed. This is the Director agent - generate MORE content, not less. Fill out scenes with rich detail, multiple beats, and complete moments.
 
-9. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary at the end. Do NOT add "REVISED SCENE" or "REVISION" headers. Do NOT add timing metadata, pause durations, or audio generation instructions (e.g., "meta pause secs 0.7", "pause 0.5", etc.).
+9. OUTPUT ONLY: Provide ONLY the screenplay content. Do NOT add explanations, questions, or meta-commentary at the end. Do NOT add "REVISED SCENE" or "REVISION" headers.
 
 Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes' : 'A complete, cinematic scene'} in proper Fountain format (NO MARKDOWN).`;
 }

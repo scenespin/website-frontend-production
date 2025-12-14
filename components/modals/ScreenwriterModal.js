@@ -132,7 +132,6 @@ Rules:
 - Include blank lines for proper Fountain spacing (empty strings in array)
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
 - Double dashes (--) are valid in Fountain but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
-- CRITICAL: Do NOT add timing metadata, pause durations, or audio generation instructions. Fountain format uses ellipses (...) for pauses - the system handles timing automatically. Do NOT write "meta pause secs", "pause 0.7", "hashtag meta pause", or any timing information.
 - Character extensions are valid: CHARACTER (O.S.), CHARACTER (V.O.), CHARACTER (CONT'D)
 
 CRITICAL SPACING RULES (Fountain.io spec):
