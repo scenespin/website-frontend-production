@@ -15,9 +15,8 @@ import toast from 'react-hot-toast';
 const LLM_MODELS = [
   { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', recommended: true }, // Best for scene generation
   { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI' }, // Latest - great for scenes
-  { id: 'claude-opus-4-5-20251124', name: 'Claude Opus 4.5', provider: 'Anthropic' }, // Most powerful
+  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' }, // Most powerful
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
-  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
   { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google' }, // Latest
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },

@@ -13,8 +13,7 @@ import toast from 'react-hot-toast';
 // LLM Models for selection
 const LLM_MODELS = [
   { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', recommended: true }, // Best for creative writing
-  { id: 'claude-opus-4-5-20251124', name: 'Claude Opus 4.5', provider: 'Anthropic' }, // Most powerful
-  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' },
+  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' }, // Most powerful
   { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI' }, // Excellent for creative writing
   { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' }, // Great for storytelling
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' }, // Good for dialogue & scenes

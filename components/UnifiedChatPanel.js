@@ -81,8 +81,7 @@ function getAvailableModesForPage(pathname) {
 const LLM_MODELS = [
   // Claude (Anthropic) - Best for Creative Writing
   { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
-  { id: 'claude-opus-4-5-20251124', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
-  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic', description: 'Powerful analysis & creative tasks' },
+  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
   { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
   // GPT (OpenAI) - Good for Creative Writing
   { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
@@ -1090,6 +1089,7 @@ function UnifiedChatPanelInner({
         // Check for specific error types and show user-friendly messages
         let errorMessage = error.response?.data?.message || error.message || 'Failed to get AI response';
         let userMessage = '❌ Sorry, I encountered an error. Please try again.';
+        let shouldFallbackModel = false;
         
         if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
           errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';
@@ -1097,6 +1097,20 @@ function UnifiedChatPanelInner({
         } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
           errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
           userMessage = '⏱️ Rate limit reached. Please wait a moment and try again.';
+        } else if (errorMessage.includes('not_found') || errorMessage.includes('404') || errorMessage.includes('model:')) {
+          // Model not found - fallback to default
+          errorMessage = 'The selected AI model is not available. Switching to default model.';
+          userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.5. Please try again.';
+          shouldFallbackModel = true;
+        }
+        
+        // Fallback to default model if model not found
+        if (shouldFallbackModel) {
+          const defaultModel = 'claude-sonnet-4-5-20250929';
+          if (state.selectedModel !== defaultModel) {
+            setModel(defaultModel);
+            toast.info('Switched to Claude Sonnet 4.5');
+          }
         }
         
         toast.error(errorMessage);

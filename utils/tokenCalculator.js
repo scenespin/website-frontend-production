@@ -12,7 +12,6 @@
 // These are conservative estimates - actual windows may be larger
 const MODEL_CONTEXT_WINDOWS = {
   // Claude (Anthropic) - typically 200K tokens
-  'claude-opus-4-5-20251124': 200000,  // Latest Opus (Nov 2025)
   'claude-sonnet-4-5-20250929': 200000,
   'claude-opus-4-1-20250805': 200000,
   'claude-haiku-4-5-20251001': 200000,
