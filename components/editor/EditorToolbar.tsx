@@ -13,6 +13,7 @@ interface EditorToolbarProps {
     onExportPDF?: () => void;
     onOpenCollaboration?: () => void;
     onSave?: () => void;
+    onReadScreenplay?: () => void;
 }
 
 /**
@@ -575,6 +576,20 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+                
+                {/* Read Screenplay button - Icon only */}
+                {onReadScreenplay && (
+                    <div className="tooltip tooltip-bottom" data-tip="Read Screenplay • Generate audio with character voices">
+                        <button
+                            onClick={onReadScreenplay}
+                            className="px-2 py-2 bg-green-600/10 hover:bg-green-600/20 border border-green-500/30 text-green-500 rounded min-w-[40px] min-h-[40px] flex items-center justify-center transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                             </svg>
                         </button>
                     </div>

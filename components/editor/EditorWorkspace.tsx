@@ -18,6 +18,7 @@ import RewriteModal from '../modals/RewriteModal';
 import ScreenwriterModal from '../modals/ScreenwriterModal';
 import DirectorModal from '../modals/DirectorModal';
 import DialogueModal from '../modals/DialogueModal';
+import ScreenplayReadingModal from '../modals/ScreenplayReadingModal';
 import { saveToGitHub } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -57,6 +58,9 @@ export default function EditorWorkspace() {
     
     // Dialogue modal state
     const [isDialogueModalOpen, setIsDialogueModalOpen] = useState(false);
+    
+    // Screenplay Reading modal state
+    const [isReadingModalOpen, setIsReadingModalOpen] = useState(false);
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -402,6 +406,7 @@ export default function EditorWorkspace() {
                         onExportPDF={() => setShowExportModal(true)}
                         onOpenCollaboration={() => setShowCollaborationModal(true)}
                         onSave={handleManualSave}
+                        onReadScreenplay={() => setIsReadingModalOpen(true)}
                     />
                     
                     {/* Editor */}
@@ -565,6 +570,16 @@ Tip:
                 selectionRange={selectionRange}
                 onInsert={handleDialogueInsert}
             />
+            
+            {/* Screenplay Reading Modal */}
+            {screenplayId && (
+                <ScreenplayReadingModal
+                    isOpen={isReadingModalOpen}
+                    onClose={() => setIsReadingModalOpen(false)}
+                    screenplayId={screenplayId}
+                    screenplayTitle={screenplay.title || state.title}
+                />
+            )}
         </div>
     );
 }
