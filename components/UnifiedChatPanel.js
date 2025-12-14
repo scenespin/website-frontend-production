@@ -1060,11 +1060,24 @@ function UnifiedChatPanelInner({
           (error) => {
             console.error('Chat streaming error:', error);
             setStreaming(false, '');
-            toast.error(error.message || 'Failed to get AI response');
+            
+            // Check for specific error types and show user-friendly messages
+            let errorMessage = error.message || 'Failed to get AI response';
+            let userMessage = '❌ Sorry, I encountered an error. Please try again.';
+            
+            if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
+              errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';
+              userMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
+            } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+              errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
+              userMessage = '⏱️ Rate limit reached. Please wait a moment and try again.';
+            }
+            
+            toast.error(errorMessage);
             
             addMessage({
               role: 'assistant',
-              content: '❌ Sorry, I encountered an error. Please try again.',
+              content: userMessage,
               mode: state.activeMode
             });
           }
@@ -1073,11 +1086,24 @@ function UnifiedChatPanelInner({
       } catch (error) {
         console.error('Chat error:', error);
         setStreaming(false, '');
-        toast.error(error.response?.data?.message || error.message || 'Failed to get AI response');
+        
+        // Check for specific error types and show user-friendly messages
+        let errorMessage = error.response?.data?.message || error.message || 'Failed to get AI response';
+        let userMessage = '❌ Sorry, I encountered an error. Please try again.';
+        
+        if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
+          errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';
+          userMessage = '⚠️ The AI service is temporarily busy. Please wait a moment and try again.';
+        } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+          errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
+          userMessage = '⏱️ Rate limit reached. Please wait a moment and try again.';
+        }
+        
+        toast.error(errorMessage);
         
         addMessage({
           role: 'assistant',
-          content: '❌ Sorry, I encountered an error. Please try again.',
+          content: userMessage,
           mode: state.activeMode
         });
       }
