@@ -280,6 +280,8 @@ ${useJSON ? `Respond with JSON:
 Rules:
 - NO analysis, suggestions, or questions - just write scenes
 - NO markdown formatting (no **, no #, no ---)
+- 🚫 FORBIDDEN: NO synopses (lines starting with =) - synopses are organizational tools, not scene content
+- 🚫 FORBIDDEN: NO act breaks (lines starting with #) - act breaks are organizational tools, not scene content
 - Use ellipses (...) for pauses, hesitations, or trailing off in dialogue
 - Double dashes (--) are valid in Fountain (see official spec example) but should be used sparingly, primarily in action lines for dramatic pauses. Prefer ellipses (...) in dialogue.
 - Transitions (CUT TO:, FADE OUT.) are valid but use sparingly - modern screenwriting typically omits them except at act breaks
@@ -292,6 +294,7 @@ Rules:
 - Do NOT repeat the current scene "${sceneContext?.heading || 'current scene'}" - create NEW scenes
 - Create ONLY NEW scenes that come AFTER the current scene
 - Write in Fountain format with proper newlines
+- Generate ONLY scene content: scene headings (INT./EXT.), action lines, character names, dialogue, and parentheticals
 
 CRITICAL FORMATTING RULES (Fountain.io spec - MUST FOLLOW):
 - Character names: ALL CAPS, 2-50 characters, NO lowercase letters, NO descriptions (e.g., "SARAH", "DR. MARTINEZ")
