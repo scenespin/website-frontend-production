@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
-import { Sparkles, User, Bot, RotateCcw } from 'lucide-react';
+import { Sparkles, RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -376,23 +376,23 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       
       {/* Instruction Messages */}
       {state.messages.filter(m => m.mode === 'chat').length === 0 && !state.input && (
-        <div className="flex-1 flex items-center justify-center px-4 py-8">
-          <div className="max-w-md text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center mx-auto">
-              <Sparkles className="w-8 h-8 text-purple-500" />
+        <div className="flex-1 flex items-center justify-center px-3 sm:px-4 py-6 sm:py-8">
+          <div className="max-w-md w-full text-center space-y-3 sm:space-y-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center mx-auto">
+              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-base-content mb-2">Story Advisor</h3>
-              <p className="text-sm text-base-content/70 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-base-content mb-1.5 sm:mb-2">Story Advisor</h3>
+              <p className="text-xs sm:text-sm text-base-content/70 mb-3 sm:mb-4 px-2">
                 Your professional screenplay consultant. Get advice, analysis, and creative guidance for your story. I don't generate Fountain format — that's handled by other tools.
               </p>
-              <div className="text-xs text-base-content/50 space-y-1 mb-3">
+              <div className="text-xs text-base-content/50 space-y-0.5 sm:space-y-1 mb-2 sm:mb-3 px-2">
                 <p>Try: "I'm stuck on Act 2. What should happen next?"</p>
                 <p>or "Is Sarah's motivation clear enough?"</p>
                 <p>or "Should I cut the warehouse scene?"</p>
                 <p>or "How can I make this character more compelling?"</p>
               </div>
-              <div className="text-xs text-base-content/40 pt-3 border-t border-base-300">
+              <div className="text-xs text-base-content/40 pt-2 sm:pt-3 border-t border-base-300 px-2">
                 <p>💡 <strong>Tip:</strong> I can analyze scenes, characters, structure, pacing, and themes. Ask me anything about your screenplay!</p>
               </div>
             </div>
@@ -415,33 +415,22 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
             return (
               <div
                 key={index}
-                className={`group w-full ${isUser ? 'bg-transparent' : 'bg-base-200/30'} hover:bg-base-200/50 transition-colors`}
+                className={`group w-full ${isUser ? 'bg-base-100/50' : 'bg-transparent'} border-b border-base-300/30 transition-colors`}
               >
-                <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8 relative">
-                  <div className="flex gap-4 md:gap-6">
-                    {/* Avatar */}
-                    <div className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center ${
-                      isUser 
-                        ? 'bg-gradient-to-br from-cinema-red to-cinema-red/80 text-base-content' 
-                        : 'bg-gradient-to-br from-purple-500 to-purple-600 text-base-content'
-                    }`}>
-                      {isUser ? <User className="w-4 h-4 md:w-5 md:h-5" /> : <Bot className="w-4 h-4 md:w-5 md:h-5" />}
-                    </div>
-                    
-                    {/* Message Content */}
-                    <div className="flex-1 min-w-0 space-y-3">
-                      {/* Story Advisor: Render markdown content (no insert buttons) */}
-                      <div className="chat-message-content">
-                        {isUser ? (
-                          <div className="whitespace-pre-wrap break-words text-base-content text-sm leading-relaxed">
-                            {message.content}
-                          </div>
-                        ) : (
-                          <div className="text-base-content text-sm leading-relaxed whitespace-pre-wrap">
-                            <MarkdownRenderer content={message.content} />
-                          </div>
-                        )}
-                      </div>
+                <div className="w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5 relative">
+                  {/* Message Content - Full Width */}
+                  <div className="w-full space-y-2">
+                    {/* Story Advisor: Render markdown content (no insert buttons) */}
+                    <div className="chat-message-content">
+                      {isUser ? (
+                        <div className="whitespace-pre-wrap break-words text-base-content text-sm sm:text-base leading-relaxed">
+                          {message.content}
+                        </div>
+                      ) : (
+                        <div className="text-base-content text-sm sm:text-base leading-relaxed">
+                          <MarkdownRenderer content={message.content} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -451,22 +440,15 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         
         {/* Streaming text - show insert button while streaming AND after streaming completes if it's screenplay content */}
         {state.streamingText && state.streamingText.trim().length > 0 && (
-          <div className="group w-full bg-base-200/30">
-            <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 md:py-8">
-              <div className="flex gap-4 md:gap-6">
-                {/* Avatar */}
-                <div className="flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600 text-base-content">
-                  <Bot className="w-4 h-4 md:w-5 md:h-5" />
-                </div>
-                
-                {/* Streaming Content */}
-                <div className="flex-1 min-w-0 space-y-3">
-                  <div className="text-base-content text-sm leading-relaxed whitespace-pre-wrap">
-                    <MarkdownRenderer content={state.streamingText} />
-                    {state.isStreaming && (
-                      <span className="inline-block w-0.5 h-5 ml-1 bg-purple-500 animate-pulse"></span>
-                    )}
-                  </div>
+          <div className="group w-full bg-transparent border-b border-base-300/30">
+            <div className="w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5">
+              {/* Streaming Content */}
+              <div className="w-full space-y-2">
+                <div className="text-base-content text-sm sm:text-base leading-relaxed">
+                  <MarkdownRenderer content={state.streamingText} />
+                  {state.isStreaming && (
+                    <span className="inline-block w-0.5 h-4 sm:h-5 ml-1 bg-purple-500 animate-pulse"></span>
+                  )}
                 </div>
               </div>
             </div>
@@ -477,9 +459,9 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Placeholder Info with New Chat button */}
-      <div className="px-4 py-2 border-t border-base-300 flex items-center justify-between">
-        <span className="text-xs text-base-content/60">
+      {/* Placeholder Info with New Chat button - Compact */}
+      <div className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 border-t border-base-300 flex items-center justify-between">
+        <span className="text-xs text-base-content/60 truncate pr-2">
           {activeWorkflow ? (
             'Answer the question to continue the interview...'
           ) : (
@@ -489,11 +471,11 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         {state.messages.filter(m => m.mode === 'chat').length > 0 && (
           <button
             onClick={() => clearMessagesForMode('chat')}
-            className="btn btn-xs btn-ghost gap-1.5 text-base-content/60 hover:text-base-content"
+            className="btn btn-xs btn-ghost gap-1 sm:gap-1.5 text-base-content/60 hover:text-base-content flex-shrink-0"
             title="Start new chat"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="text-xs">New Chat</span>
+            <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="text-xs hidden sm:inline">New Chat</span>
           </button>
         )}
       </div>

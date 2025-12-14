@@ -1064,42 +1064,6 @@ function UnifiedChatPanelInner({
 
   return (
     <div className="flex flex-col h-full bg-base-100" onClick={closeMenus}>
-      {/* Context Banner - Shows screenplay position for AI agents */}
-      {(() => {
-        const isAgent = MODE_CONFIG[state.activeMode]?.isAgent;
-        const hasContext = !!state.sceneContext;
-        console.log('[UnifiedChatPanel] Banner render check:', {
-          activeMode: state.activeMode,
-          isAgent,
-          hasContext,
-          sceneContext: state.sceneContext
-        });
-        return isAgent && hasContext;
-      })() && (
-        <div className="px-4 py-2 bg-base-200 border-b border-base-300 flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <MapPin className="w-4 h-4 text-cinema-gold flex-shrink-0" />
-            <div className="flex flex-col min-w-0 flex-1">
-              <div className="font-medium text-sm text-base-content truncate">
-                {state.sceneContext.heading}
-              </div>
-              <div className="text-xs text-base-content/60">
-                Act {state.sceneContext.act} • Page {state.sceneContext.pageNumber}
-                {state.sceneContext.characters?.length > 0 && (
-                  <span> • {state.sceneContext.characters.join(', ')}</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => clearContext()}
-            className="p-1 rounded hover:bg-base-300 text-base-content/60 hover:text-base-content flex-shrink-0"
-            title="Clear context"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* Selected Text Context Banner - Shows rewrite context */}
       {state.selectedTextContext && (
@@ -1180,9 +1144,9 @@ function UnifiedChatPanelInner({
             </div>
           )}
           
-          {/* Main Input Area - ChatGPT/Claude Style */}
-          <div className="max-w-3xl mx-auto px-3 md:px-4 py-2">
-            <div className="relative bg-base-200 rounded-2xl shadow-sm border border-base-300/50 focus-within:border-cinema-red/30 focus-within:shadow-md transition-all duration-200">
+          {/* Main Input Area - Compact ChatGPT/Claude Style */}
+          <div className="w-full px-2 sm:px-3 md:px-4 py-2">
+            <div className="relative bg-base-200 rounded-lg sm:rounded-xl border border-base-300 focus-within:border-cinema-red/50 focus-within:ring-1 focus-within:ring-cinema-red/20 transition-all">
               <textarea
                 value={state.input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1194,54 +1158,54 @@ function UnifiedChatPanelInner({
                 }}
                 placeholder={state.inputPlaceholder}
                 disabled={state.isStreaming || isUploading}
-                className="w-full min-h-[52px] max-h-[200px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none px-3 md:px-4 py-3 text-base pr-28"
+                className="w-full min-h-[44px] sm:min-h-[48px] max-h-[160px] sm:max-h-[200px] resize-none bg-transparent text-base-content placeholder:text-base-content/40 focus:outline-none px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 text-sm sm:text-base pr-20 sm:pr-24"
                 rows={1}
                 style={{ 
                   border: 'none',
                   boxShadow: 'none'
                 }}
               />
-              {/* Action Buttons - Vertically centered, aligned with textarea */}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {/* Action Buttons - Compact, vertically centered */}
+              <div className="absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
                 <button
                   onClick={handleAttachment}
-                  className={`p-2.5 rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
+                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isUploading ? 'opacity-50' : ''}`}
                   disabled={state.isStreaming || isUploading}
                   title="Attach files"
                 >
                   {isUploading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   ) : (
-                    <Paperclip className="w-5 h-5" />
+                    <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
                 <button
                   onClick={handleVoiceInput}
-                  className={`p-2.5 rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isRecording ? 'bg-cinema-red/20 text-cinema-red animate-pulse' : ''}`}
+                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-base-300 text-base-content/50 hover:text-base-content transition-all duration-200 ${isRecording ? 'bg-cinema-red/20 text-cinema-red animate-pulse' : ''}`}
                   disabled={state.isStreaming || isUploading}
                   title={isRecording ? "Stop recording" : "Voice input"}
                 >
-                  <Mic className={`w-5 h-5 ${isRecording ? 'text-cinema-red' : ''}`} />
+                  <Mic className={`w-4 h-4 sm:w-5 sm:h-5 ${isRecording ? 'text-cinema-red' : ''}`} />
                 </button>
                 <button
                   onClick={() => handleSend(state.input)}
                   disabled={!state.input.trim() || state.isStreaming || isUploading}
-                  className={`p-2.5 rounded-lg transition-all duration-200 ${
+                  className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg transition-all duration-200 ${
                     state.input.trim() && !state.isStreaming && !isUploading
                       ? 'bg-cinema-red hover:bg-cinema-red/90 text-base-content shadow-sm'
                       : 'bg-base-300 text-base-content/30 cursor-not-allowed'
                   }`}
                   title="Send message"
                 >
-                  {state.isStreaming ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {state.isStreaming ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-      {/* Bottom Controls - Mode & Model Selector */}
-      <div className="px-3 md:px-4 pb-2 flex items-center gap-3 text-xs">
+      {/* Bottom Controls - Mode & Model Selector - Compact */}
+      <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center gap-2 sm:gap-3 text-xs">
         <ModeSelector />
         {/* Only show LLM selector for AI Agents */}
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
