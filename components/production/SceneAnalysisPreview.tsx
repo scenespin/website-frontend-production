@@ -49,6 +49,10 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
     );
   }
 
+  if (!analysis) {
+    return null;
+  }
+
   const { shotBreakdown, characters, location, assets, workflowRecommendations, sceneType } = analysis;
 
   // Count shot types
