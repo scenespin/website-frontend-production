@@ -25,8 +25,8 @@ const LLM_MODELS = [
   { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
   { id: 'o1', name: 'O1', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
   // Gemini (Google) - Good for Complex Narratives
-  { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Enhanced reasoning & narratives' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Advanced reasoning - Complex narratives' },
+  // Note: gemini-3-pro not available yet - using gemini-2.5-pro as latest
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Latest - Advanced reasoning & narratives' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
   { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Fastest & most economical' },
 ];

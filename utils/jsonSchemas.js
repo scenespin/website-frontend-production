@@ -21,13 +21,9 @@ export function getScreenwriterSchema() {
         minItems: 1,
         maxItems: 3,
         description: "Array of 1-3 screenplay lines (action or dialogue). No scene headings (INT./EXT.)."
-      },
-      lineCount: {
-        type: "number",
-        minimum: 1,
-        maximum: 3,
-        description: "Number of lines (must match content.length)"
       }
+      // Note: lineCount removed - OpenAI requires all properties in 'required' array
+      // If needed, it can be added back but must be in required array
     },
     required: ["content"],
     additionalProperties: false
