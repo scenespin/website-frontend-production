@@ -59,6 +59,7 @@ import { SceneSelector } from './SceneSelector';
 import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
+import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -163,6 +164,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [isUploadingFirstFrame, setIsUploadingFirstFrame] = useState(false);
   const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
   const [showAnnotationPanel, setShowAnnotationPanel] = useState(false);
+  
+  // Scene Analyzer state (Feature 0158)
+  const [sceneAnalysisResult, setSceneAnalysisResult] = useState<any>(null);
+  const [confirmedDialogue, setConfirmedDialogue] = useState<any>(null);
+  const [dialogueReviewPreference, setDialogueReviewPreference] = useState<'always-review' | 'review-issues-only'>(
+    () => {
+      // Load from localStorage
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('dialogueReviewPreference');
+        return (saved === 'always-review' || saved === 'review-issues-only') ? saved : 'review-issues-only';
+      }
+      return 'review-issues-only';
+    }
+  );
   
   // Note: Mobile no longer forces defaults - users can choose any options
   
@@ -2601,6 +2616,34 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         <span>Annotations will be applied to generation</span>
                       </div>
                     </div>
+                  )}
+
+                  {/* Dialogue Review Panel (Feature 0158) */}
+                  {sceneAnalysisResult?.dialogue && (
+                    (sceneAnalysisResult.dialogue.needsReview || dialogueReviewPreference === 'always-review') && (
+                      <div className="mt-4">
+                        <DialogueConfirmationPanel
+                          dialogue={sceneAnalysisResult.dialogue}
+                          mode={dialogueReviewPreference === 'always-review' ? 'full-review' : 'issue-detection'}
+                          userPreference={dialogueReviewPreference}
+                          onConfirm={(confirmedDialogue) => {
+                            setConfirmedDialogue(confirmedDialogue);
+                            toast.success('Dialogue confirmed!');
+                          }}
+                          onSkip={() => {
+                            setConfirmedDialogue(null);
+                            toast.info('Using all dialogue blocks as-is');
+                          }}
+                          onToggleMode={() => {
+                            const newPreference = dialogueReviewPreference === 'always-review' ? 'review-issues-only' : 'always-review';
+                            setDialogueReviewPreference(newPreference);
+                            if (typeof window !== 'undefined') {
+                              localStorage.setItem('dialogueReviewPreference', newPreference);
+                            }
+                          }}
+                        />
+                      </div>
+                    )
                   )}
 
                   {/* Action Buttons */}
