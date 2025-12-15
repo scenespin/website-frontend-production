@@ -207,15 +207,20 @@ export function supportsStructuredOutputs(modelId) {
   
   const modelLower = modelId.toLowerCase();
   
-  // Claude 3.5+ (all current Claude models support structured outputs)
+  // Claude 3.5+ (Sonnet and Opus support structured outputs)
+  // NOTE: Haiku 4.5 does NOT support structured outputs - it works without response_format
   if (modelLower.includes('claude-3-5') || 
       modelLower.includes('claude-sonnet-4') || 
       modelLower.includes('claude-opus-4') ||
-      modelLower.includes('claude-haiku-4') ||
       modelLower.includes('claude-3-opus') ||
-      modelLower.includes('claude-3-sonnet') ||
-      modelLower.includes('claude-3-haiku')) {
+      modelLower.includes('claude-3-sonnet')) {
     return true;
+  }
+  
+  // Explicitly exclude Haiku - it doesn't support structured outputs
+  // Haiku works fine without response_format (falls back to prompt-based JSON)
+  if (modelLower.includes('claude-haiku-4') || modelLower.includes('claude-3-haiku')) {
+    return false;
   }
   
   // GPT-4o-2024-08-06+ and GPT-5.x (OpenAI structured outputs)
