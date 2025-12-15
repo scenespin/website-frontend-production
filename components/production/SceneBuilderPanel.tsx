@@ -172,6 +172,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [sceneAnalysisResult, setSceneAnalysisResult] = useState<SceneAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [characterReferenceUrls, setCharacterReferenceUrls] = useState<string[]>([]); // Pre-populated from analysis
   const [confirmedDialogue, setConfirmedDialogue] = useState<any>(null);
   const [dialogueReviewPreference, setDialogueReviewPreference] = useState<'always-review' | 'review-issues-only'>(
     () => {
@@ -239,6 +240,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Clear analysis if no scene selected
       setSceneAnalysisResult(null);
       setAnalysisError(null);
+      setCharacterReferenceUrls([]);
       return;
     }
 
@@ -255,7 +257,20 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         
         if (result.success && result.data) {
           setSceneAnalysisResult(result.data);
+          
+          // Task 5: Pre-populate character reference URLs from analysis
+          const allCharacterRefs: string[] = [];
+          result.data.characters.forEach(char => {
+            if (char.hasReferences && char.references.length > 0) {
+              allCharacterRefs.push(...char.references);
+            }
+          });
+          
+          // Limit to 3 references (max supported)
+          setCharacterReferenceUrls(allCharacterRefs.slice(0, 3));
+          
           console.log('[SceneBuilderPanel] Scene analysis complete:', result.data);
+          console.log('[SceneBuilderPanel] Pre-populated character references:', allCharacterRefs.slice(0, 3));
         } else {
           throw new Error(result.message || 'Analysis failed');
         }
@@ -1188,12 +1203,15 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
       
-      // Upload character reference images if any
-      const referenceImageUrls: string[] = [];
+      // Task 5: Pre-populate character references from Scene Analyzer (Feature 0136 Phase 2.2)
+      // Start with URLs from analysis (already URLs, no upload needed)
+      const referenceImageUrls: string[] = [...characterReferenceUrls];
+      
+      // Upload any manually uploaded character reference images (merge with analysis URLs)
       const uploadedImages = referenceImages.filter(img => img !== null) as File[];
       
       if (uploadedImages.length > 0) {
-        toast.info('Uploading character references...');
+        toast.info('Uploading additional character references...');
         
         for (const file of uploadedImages) {
           // Use presigned POST upload (same as first frame upload)
@@ -1245,6 +1263,13 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         }
       }
       
+      // Limit to 3 references total (max supported by workflows)
+      const finalCharacterRefs = referenceImageUrls.slice(0, 3);
+      
+      if (characterReferenceUrls.length > 0) {
+        console.log('[SceneBuilderPanel] Using pre-populated character references from Scene Analyzer:', characterReferenceUrls.length);
+      }
+      
       // Start workflow execution with authentication
       
       // Get style profile data if selected
@@ -1254,16 +1279,25 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       // Prepare workflow inputs - backend expects flat structure, not nested in 'inputs'
       // Backend expects: workflowId, sceneDescription, characterRefs (not characterReferences), etc.
+      // Task 5: Use workflow recommendations from Scene Analyzer if available (Feature 0136 Phase 2.2)
+      // Default to 'complete-scene' if no recommendations
+      const recommendedWorkflowId = sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId || 'complete-scene';
+      
       const workflowRequest: any = {
-        workflowId: 'complete-scene',
+        workflowId: recommendedWorkflowId, // Use recommended workflow from Scene Analyzer
         sceneDescription: sceneDescription.trim(),
-        characterRefs: referenceImageUrls, // Backend expects 'characterRefs', not 'characterReferences'
+        characterRefs: finalCharacterRefs, // Pre-populated from analysis + manual uploads (max 3)
         aspectRatio: '16:9',
         duration,
         qualityTier,
         // Note: enableSound removed - sound is handled separately via audio workflows
         // Backend has enableSound = false as default, so we don't need to send it
       };
+      
+      // Log workflow selection
+      if (recommendedWorkflowId !== 'complete-scene') {
+        console.log('[SceneBuilderPanel] Using recommended workflow from Scene Analyzer:', recommendedWorkflowId);
+      }
       
       // Add optional fields if available
       if (selectedSceneId) {
@@ -2366,14 +2400,17 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   <CardHeader>
                     <CardTitle className="text-lg text-[#FFFFFF]">🎭 Character References (Optional)</CardTitle>
                     <CardDescription className="text-[#808080]">
-                      Upload headshots for consistent character appearance
+                      {characterReferenceUrls.length > 0 
+                        ? `Pre-populated from Scene Analyzer (${characterReferenceUrls.length}). You can add more or replace.`
+                        : 'Upload headshots for consistent character appearance'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className={`grid gap-3 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
                       {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => {
                         const file = referenceImages[index];
-                        const preview = file ? URL.createObjectURL(file) : null;
+                        const analysisUrl = characterReferenceUrls[index] || null; // Pre-populated from analysis
+                        const preview = file ? URL.createObjectURL(file) : analysisUrl; // Show analysis URL if no file uploaded
                         
                         return (
                           <div key={index}>
@@ -2382,13 +2419,25 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                                 <img
                                   src={preview}
                                   alt={`Character ${index + 1}`}
-                                  className={`w-full object-cover rounded border-2 border-[#DC143C] ${isMobile || simplified ? 'h-20' : 'h-20'}`}
+                                  className={`w-full object-cover rounded border-2 ${file ? 'border-[#DC143C]' : 'border-green-500'} ${isMobile || simplified ? 'h-20' : 'h-20'}`}
                                 />
+                                {analysisUrl && !file && (
+                                  <Badge className="absolute top-1 left-1 bg-green-500/90 text-white text-[10px] px-1 py-0">
+                                    Auto
+                                  </Badge>
+                                )}
                                 <button
                                   onClick={() => {
-                                    const newImages = [...referenceImages];
-                                    newImages[index] = null;
-                                    setReferenceImages(newImages);
+                                    if (file) {
+                                      // Remove manually uploaded file
+                                      const newImages = [...referenceImages];
+                                      newImages[index] = null;
+                                      setReferenceImages(newImages);
+                                    } else if (analysisUrl) {
+                                      // Remove pre-populated URL (create new array without this index)
+                                      const newUrls = characterReferenceUrls.filter((_, i) => i !== index);
+                                      setCharacterReferenceUrls(newUrls);
+                                    }
                                   }}
                                   className="absolute top-1 right-1 p-1 bg-[#0A0A0A]/90 rounded-full hover:bg-[#DC143C] shadow-lg"
                                 >
@@ -2396,6 +2445,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                                 </button>
                                 <div className="text-[10px] text-center text-[#808080] mt-1 font-medium">
                                   Character {isMobile || simplified ? 'Ref' : index + 1}
+                                  {analysisUrl && !file && ' (from analysis)'}
                                 </div>
                               </div>
                             ) : (
