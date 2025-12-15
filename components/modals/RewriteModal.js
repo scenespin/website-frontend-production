@@ -300,6 +300,10 @@ export default function RewriteModal({
       isCancelledRef.current = true;
     });
     
+    // Track when building stage started for minimum duration
+    const buildingStartTime = Date.now();
+    const MIN_BUILDING_DURATION = 2000; // 2 seconds minimum for visual balance
+    
     try {
       // Detect scene context
       const sceneContext = detectCurrentScene(editorContent, selectionRange.start);
@@ -369,7 +373,16 @@ export default function RewriteModal({
         }
       }
 
-      // Check if cancelled before API call
+      // Ensure minimum duration for building stage (for visual balance)
+      const buildingElapsed = Date.now() - buildingStartTime;
+      const remainingTime = Math.max(0, MIN_BUILDING_DURATION - buildingElapsed);
+      
+      if (remainingTime > 0) {
+        // Wait for remaining time before transitioning
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      // Check if cancelled during wait
       if (controller.signal.aborted) {
         setIsLoading(false);
         setLoadingStage(null);
@@ -461,6 +474,15 @@ export default function RewriteModal({
               }
               
               console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+              
+              // Final safety check: if cancelled during processing, don't apply changes
+              if (controller.signal.aborted || isCancelledRef.current) {
+                setIsLoading(false);
+                setLoadingStage(null);
+                setAbortController(null);
+                toast.info('Rewrite cancelled - changes not applied');
+                return;
+              }
               
               // Replace the selected text
               onReplace(cleaned);
@@ -797,17 +819,43 @@ export default function RewriteModal({
                       <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-lg shadow-xl max-w-sm w-full mx-4">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
                         
-                        {/* Two-stage loading indicator */}
+                        {/* Two-stage loading indicator with smooth animations */}
                         <div className="flex flex-col items-center gap-2 w-full">
                           <div className="flex items-center gap-2 w-full">
-                            <div className={`h-2 flex-1 rounded-full ${loadingStage === 'building' ? 'bg-primary' : 'bg-primary/30'}`} />
-                            <div className={`h-2 flex-1 rounded-full ${loadingStage === 'generating' ? 'bg-primary' : 'bg-base-300'}`} />
+                            {/* Building stage progress bar - CSS handles smooth animation */}
+                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-[2000ms] ease-out ${
+                                  loadingStage === 'building' || loadingStage === 'generating' 
+                                    ? 'bg-primary w-full' 
+                                    : 'bg-primary/30 w-0'
+                                }`}
+                              />
+                            </div>
+                            {/* Generating stage progress bar - CSS handles smooth animation */}
+                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                                  loadingStage === 'generating' 
+                                    ? 'bg-primary w-full' 
+                                    : 'bg-base-300 w-0'
+                                }`}
+                              />
+                            </div>
                           </div>
                           <div className="flex justify-between w-full text-xs text-base-content/60">
-                            <span className={loadingStage === 'building' ? 'text-primary font-medium' : ''}>
+                            <span className={`transition-all duration-300 ${
+                              loadingStage === 'building' || loadingStage === 'generating' 
+                                ? 'text-primary font-medium' 
+                                : ''
+                            }`}>
                               Building context...
                             </span>
-                            <span className={loadingStage === 'generating' ? 'text-primary font-medium' : ''}>
+                            <span className={`transition-all duration-300 ${
+                              loadingStage === 'generating' 
+                                ? 'text-primary font-medium' 
+                                : ''
+                            }`}>
                               Generating...
                             </span>
                           </div>
