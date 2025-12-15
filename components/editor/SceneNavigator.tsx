@@ -3,7 +3,7 @@
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useContextStore } from '@/lib/contextStore';
 import type { Scene } from '@/types/screenplay';
-import { MapPin, Users } from 'lucide-react';
+import { MapPin, Users, Package } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -107,6 +107,16 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
         return location?.name || null;
     };
 
+    // Get asset names for a scene (from scene.fountain.tags.props)
+    const getSceneAssets = (scene: Scene): string[] => {
+        const assetIds = scene.fountain?.tags?.props || [];
+        if (assetIds.length === 0) return [];
+        
+        return assetIds
+            .map(assetId => screenplay.assets.find(a => a.id === assetId)?.name)
+            .filter(Boolean) as string[];
+    };
+
     if (!allScenes || allScenes.length === 0) {
         return (
             <div className={cn("w-full rounded-lg border border-base-300 bg-base-100 p-4", className)}>
@@ -127,6 +137,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                     const isCurrent = scene.id === currentSceneId;
                     const characters = getSceneCharacters(scene);
                     const location = getSceneLocation(scene);
+                    const assets = getSceneAssets(scene);
 
                     return (
                         <button
@@ -167,7 +178,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                             )}
 
                             {/* Badges */}
-                            {(location || characters.length > 0) && (
+                            {(location || characters.length > 0 || assets.length > 0) && (
                                 <div className="flex flex-wrap w-full gap-1 mt-1">
                                     {location && (
                                         <span className="badge badge-sm badge-secondary gap-1">
@@ -179,6 +190,12 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                                         <span className="badge badge-sm badge-warning gap-1">
                                             <Users className="w-3 h-3" />
                                             <span>{characters.length}</span>
+                                        </span>
+                                    )}
+                                    {assets.length > 0 && (
+                                        <span className="badge badge-sm badge-info gap-1">
+                                            <Package className="w-3 h-3" />
+                                            <span>{assets.length}</span>
                                         </span>
                                     )}
                                 </div>
