@@ -40,7 +40,7 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
       }
       // Throttle scroll to every 200ms to prevent vibrating
       scrollTimeoutRef.current = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 200);
     }
     
@@ -224,8 +224,8 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         console.log('[ChatModePanel] Scene context:', contextData.currentScene.heading, 'Act:', contextData.currentScene.act, 'Characters:', contextData.currentScene.characters?.length || 0);
       } else {
         console.warn('[ChatModePanel] No scene context detected. editorContent:', !!editorContent, 'cursorPosition:', cursorPosition);
-      }
-      
+        }
+        
       // Build context prompt string from context data
       const contextPromptString = buildContextPromptString(contextData);
       
@@ -467,17 +467,17 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
                 <div className="w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5 relative">
                   {/* Message Content - Full Width */}
                   <div className="w-full space-y-2">
-                    {/* Story Advisor: Render markdown content (no insert buttons) */}
+                      {/* Story Advisor: Render markdown content (no insert buttons) */}
                     <div className="chat-message-content select-text">
-                      {isUser ? (
+                        {isUser ? (
                         <div className="whitespace-pre-wrap break-words text-base-content text-xs sm:text-sm leading-relaxed select-text">
-                          {message.content}
-                        </div>
-                      ) : (
+                            {message.content}
+                          </div>
+                        ) : (
                         <div className="text-base-content text-xs sm:text-sm leading-relaxed select-text">
-                          <MarkdownRenderer content={message.content} />
-                        </div>
-                      )}
+                            <MarkdownRenderer content={message.content} />
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -489,13 +489,13 @@ export function ChatModePanel({ onInsert, onWorkflowComplete, editorContent, cur
         {state.streamingText && state.streamingText.trim().length > 0 && (
           <div className="group w-full bg-transparent border-b border-base-300/30">
             <div className="w-full px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-5">
-              {/* Streaming Content */}
+                {/* Streaming Content */}
               <div className="w-full space-y-2">
                 <div className="text-base-content text-xs sm:text-sm leading-relaxed">
-                  <MarkdownRenderer content={state.streamingText} />
-                  {state.isStreaming && (
+                    <MarkdownRenderer content={state.streamingText} />
+                    {state.isStreaming && (
                     <span className="inline-block w-0.5 h-3 sm:h-4 ml-1 bg-purple-500 animate-pulse"></span>
-                  )}
+                    )}
                 </div>
               </div>
             </div>
