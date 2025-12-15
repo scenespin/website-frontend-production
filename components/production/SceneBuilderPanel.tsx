@@ -60,6 +60,9 @@ import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
+import { SceneAnalysisPreview } from './SceneAnalysisPreview';
+import { api } from '@/lib/api';
+import { SceneAnalysisResult } from '@/types/screenplay';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -165,8 +168,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [visualAnnotations, setVisualAnnotations] = useState<any>(null);
   const [showAnnotationPanel, setShowAnnotationPanel] = useState(false);
   
-  // Scene Analyzer state (Feature 0158)
-  const [sceneAnalysisResult, setSceneAnalysisResult] = useState<any>(null);
+  // Scene Analyzer state (Feature 0136 Phase 2.2)
+  const [sceneAnalysisResult, setSceneAnalysisResult] = useState<SceneAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [confirmedDialogue, setConfirmedDialogue] = useState<any>(null);
   const [dialogueReviewPreference, setDialogueReviewPreference] = useState<'always-review' | 'review-issues-only'>(
     () => {
@@ -227,6 +232,46 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       }
     }
   }, [contextStore.context.currentSceneId, contextStore.context.projectId, screenplay.scenes, projectId]);
+
+  // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
+  useEffect(() => {
+    if (!selectedSceneId || !projectId) {
+      // Clear analysis if no scene selected
+      setSceneAnalysisResult(null);
+      setAnalysisError(null);
+      return;
+    }
+
+    // Auto-analyze the selected scene
+    const analyzeScene = async () => {
+      setIsAnalyzing(true);
+      setAnalysisError(null);
+      
+      try {
+        const result = await api.sceneAnalyzer.analyze({
+          screenplayId: projectId,
+          sceneId: selectedSceneId
+        });
+        
+        if (result.success && result.data) {
+          setSceneAnalysisResult(result.data);
+          console.log('[SceneBuilderPanel] Scene analysis complete:', result.data);
+        } else {
+          throw new Error(result.message || 'Analysis failed');
+        }
+      } catch (error: any) {
+        console.error('[SceneBuilderPanel] Scene analysis failed:', error);
+        setAnalysisError(error.message || 'Failed to analyze scene');
+        toast.error('Failed to analyze scene', {
+          description: error.message || 'Please try again'
+        });
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+
+    analyzeScene();
+  }, [selectedSceneId, projectId]);
   
   // Load style profiles for this project (Feature 0109)
   useEffect(() => {
@@ -2044,17 +2089,23 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             {/* Step 2: Configuration */}
             {currentStep === 2 && (
               <>
+                {/* Scene Analysis Preview (Feature 0136 Phase 2.2) */}
+                {selectedSceneId && (isAnalyzing || analysisError || sceneAnalysisResult) && (
+                  <SceneAnalysisPreview
+                    analysis={sceneAnalysisResult!}
+                    isAnalyzing={isAnalyzing}
+                    error={analysisError}
+                  />
+                )}
+
                 {/* Generation Options - REQUIRED (First) */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
                   <CardHeader>
                     <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Step 2: Generation Options</CardTitle>
                     <CardDescription className="text-[#808080]">
-                      Configure quality and duration for your scene
-                      {selectedSceneId && (
-                        <span className="block mt-2 text-xs text-[#DC143C]">
-                          💡 Note: Scene Analyzer integration coming soon. For now, please configure these options manually.
-                        </span>
-                      )}
+                      {selectedSceneId && sceneAnalysisResult
+                        ? 'Review analysis above and configure quality settings'
+                        : 'Configure quality and duration for your scene'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
