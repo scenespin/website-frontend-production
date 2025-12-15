@@ -11,6 +11,27 @@ import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import toast from 'react-hot-toast';
 
+// LLM Models - Same order and list as UnifiedChatPanel for consistency
+// Order: Anthropic (Claude) → OpenAI (GPT) → Google (Gemini)
+const LLM_MODELS = [
+  // Claude (Anthropic) - Best for Creative Writing
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
+  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
+  // GPT (OpenAI) - Good for Creative Writing
+  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
+  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', description: 'Advanced - Great for storytelling' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
+  { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI', description: 'Fast and capable' },
+  { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
+  { id: 'o1', name: 'O1', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
+  // Gemini (Google) - Good for Complex Narratives
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Most intelligent, advanced reasoning' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Advanced reasoning - Complex narratives' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
+  { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Fastest & most economical' },
+];
+
 // Helper to clean AI output: strip markdown and remove writing notes
 // Same function as ChatModePanel for consistency
 function cleanFountainOutput(text) {
@@ -195,9 +216,21 @@ export default function RewriteModal({
   const [isLoading, setIsLoading] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(() => {
+    // Get from localStorage or default
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('rewrite-selected-model');
+      if (saved) return saved;
+    }
+    return chatState.selectedModel || 'claude-sonnet-4-5-20250929';
+  });
   
-  // Get selected model from ChatContext (last used model)
-  const selectedModel = chatState.selectedModel || 'claude-sonnet-4-5-20250929';
+  // Save model selection to localStorage
+  useEffect(() => {
+    if (selectedModel && typeof window !== 'undefined') {
+      localStorage.setItem('rewrite-selected-model', selectedModel);
+    }
+  }, [selectedModel]);
   
   // Reset state when modal closes
   useEffect(() => {
