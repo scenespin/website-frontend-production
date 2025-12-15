@@ -94,22 +94,18 @@ export function getDialogSchema() {
             line: {
               type: "string",
               description: "Dialogue line"
-            },
-            subtext: {
-              type: "string",
-              description: "Optional parenthetical/subtext"
             }
+            // Note: subtext removed - OpenAI requires all properties in 'required' array
+            // If subtext is needed, it must be added to required array
           },
           required: ["character", "line"],
           additionalProperties: false
         },
         minItems: 1,
         description: "Array of dialogue exchanges"
-      },
-      breakdown: {
-        type: "string",
-        description: "Optional breakdown/analysis of the dialogue"
       }
+      // Note: breakdown removed - OpenAI requires all properties in 'required' array
+      // If breakdown is needed, it must be added to required array
     },
     required: ["dialogue"],
     additionalProperties: false
