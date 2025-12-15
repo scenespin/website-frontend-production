@@ -551,22 +551,55 @@ export default function RewriteModal({
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cinema-red to-red-800">
                       <Sparkles className="h-5 w-5 text-white" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <Dialog.Title as="h3" className="text-lg font-semibold text-base-content">
                         Rewrite Selected Text
                       </Dialog.Title>
                       <p className="text-xs text-base-content/60">
-                        Using {selectedModel.replace('claude-', '').replace('gpt-', '').replace('gemini-', '').split('-')[0]}
+                        Rewrite selected text with AI assistance
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={onClose}
-                    disabled={isLoading}
-                    className="btn btn-ghost btn-sm btn-circle"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Model Selector */}
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      disabled={isLoading}
+                      className="select select-bordered select-sm text-xs max-w-[140px]"
+                      title="Select AI model"
+                    >
+                      {/* Group by provider for better organization */}
+                      <optgroup label="Anthropic (Claude)">
+                        {LLM_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name} {model.recommended ? '⭐' : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="OpenAI (GPT)">
+                        {LLM_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Google (Gemini)">
+                        {LLM_MODELS.filter(m => m.provider === 'Google').map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    <button
+                      onClick={onClose}
+                      disabled={isLoading}
+                      className="btn btn-ghost btn-sm btn-circle"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Content */}
