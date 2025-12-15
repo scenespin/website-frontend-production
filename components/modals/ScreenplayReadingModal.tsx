@@ -22,6 +22,7 @@ interface CharacterVoice {
   characterName: string;
   voiceName: string | null;
   voiceType: 'custom' | 'auto-matched' | null;
+  isManualSelection?: boolean; // True if user manually selected the voice
   hasVoice: boolean;
 }
 
@@ -197,6 +198,7 @@ export default function ScreenplayReadingModal({
             characterName: char.name,
             voiceName: data.voiceProfile?.voiceName || data.voiceProfile?.autoMatchedVoiceName || null,
             voiceType: data.voiceProfile?.voiceType || null,
+            isManualSelection: data.voiceProfile?.isManualSelection || false,
             hasVoice: !!data.voiceProfile
           };
         } catch (error) {
@@ -206,6 +208,7 @@ export default function ScreenplayReadingModal({
             characterName: char.name,
             voiceName: null,
             voiceType: null,
+            isManualSelection: false,
             hasVoice: false
           };
         }
