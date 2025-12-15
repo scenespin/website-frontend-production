@@ -882,7 +882,13 @@ export default function ScreenplayReadingModal({
                                     <div className="text-xs text-base-content/60">
                                       {voice.hasVoice ? (
                                         <span>
-                                          {voice.voiceType === 'custom' ? 'Custom' : voice.voiceType === 'auto-matched' ? 'Auto-matched' : 'Assigned'}: {voice.voiceName}
+                                          {voice.voiceType === 'custom' 
+                                            ? 'Custom' 
+                                            : voice.isManualSelection 
+                                              ? 'User selected' 
+                                              : voice.voiceType === 'auto-matched' 
+                                                ? 'Auto-matched' 
+                                                : 'Assigned'}: {voice.voiceName}
                                         </span>
                                       ) : (
                                         <span className="text-yellow-600">Will auto-match</span>
