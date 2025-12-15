@@ -241,16 +241,20 @@ Rules:
       let accumulatedText = '';
 
       // Build structured output format if model supports it
+      // Use same pattern as RewriteModal (working with Anthropic beta)
+      let responseFormat = undefined;
       const { getDialogSchema } = await import('../../utils/jsonSchemas');
       const { supportsStructuredOutputs } = await import('../../utils/jsonValidator');
       
-      const responseFormat = supportsStructuredOutputs(selectedModel) ? {
-        type: "json_schema",
-        json_schema: {
-          schema: getDialogSchema(),
-          strict: true
-        }
-      } : undefined;
+      if (supportsStructuredOutputs(selectedModel)) {
+        responseFormat = {
+          type: "json_schema",
+          json_schema: {
+            schema: getDialogSchema(),
+            strict: true
+          }
+        };
+      }
 
       // Ensure minimum duration for building stage (for visual balance)
       const buildingElapsed = Date.now() - buildingStartTime;

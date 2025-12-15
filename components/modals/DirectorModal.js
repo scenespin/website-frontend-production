@@ -229,16 +229,20 @@ Rules:
 - Total: ${sceneCount === 1 ? '5-30' : sceneCount === 2 ? '10-60' : '15-90'} lines across all scenes`;
 
       // Build structured output format if model supports it
+      // Use same pattern as RewriteModal (working with Anthropic beta)
+      let responseFormat = undefined;
       const { getDirectorSchema } = await import('../../utils/jsonSchemas');
       const { supportsStructuredOutputs } = await import('../../utils/jsonValidator');
       
-      const responseFormat = supportsStructuredOutputs(selectedModel) ? {
-        type: "json_schema",
-        json_schema: {
-          schema: getDirectorSchema(sceneCount),
-          strict: true
-        }
-      } : undefined;
+      if (supportsStructuredOutputs(selectedModel)) {
+        responseFormat = {
+          type: "json_schema",
+          json_schema: {
+            schema: getDirectorSchema(sceneCount),
+            strict: true
+          }
+        };
+      }
 
       // Ensure minimum duration for building stage (for visual balance)
       const buildingElapsed = Date.now() - buildingStartTime;
