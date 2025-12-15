@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Headphones, CheckCircle2, AlertCircle, Download, Play, Pause, Volume2 } from 'lucide-react';
+import { X, Loader2, Headphones, CheckCircle2, AlertCircle, Download, Play, Pause, Volume2, Clock, ExternalLink } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
@@ -82,6 +82,13 @@ export default function ScreenplayReadingModal({
   const [isAsyncJob, setIsAsyncJob] = useState(false);
   const [isLoadingScenes, setIsLoadingScenes] = useState(false);
   const [isLoadingVoices, setIsLoadingVoices] = useState(false);
+  const [completedJobs, setCompletedJobs] = useState<Array<{
+    jobId: string;
+    completedAt: string;
+    scenesProcessed: number;
+    creditsUsed: number;
+  }>>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   
   // Audio player state
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
