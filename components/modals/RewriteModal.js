@@ -5,10 +5,12 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { X, Loader2, Sparkles, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
+import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import toast from 'react-hot-toast';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
@@ -213,6 +215,7 @@ export default function RewriteModal({
   onReplace
 }) {
   const { state: chatState } = useChatContext();
+  const { characters } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -278,16 +281,35 @@ export default function RewriteModal({
     setIsLoading(true);
     
     try {
-      // Extract surrounding context (200 chars before/after)
-      const beforeStart = Math.max(0, selectionRange.start - 200);
-      const afterEnd = Math.min(editorContent.length, selectionRange.end + 200);
-      const textBefore = editorContent.substring(beforeStart, selectionRange.start).trim();
-      const textAfter = editorContent.substring(selectionRange.end, afterEnd).trim();
-      
       // Detect scene context
       const sceneContext = detectCurrentScene(editorContent, selectionRange.start);
       
-      // Build rewrite prompt
+      // Enhanced context: Dynamic surrounding text (2x selection length, min 200, max 2000 chars)
+      const selectionLength = selectedText.length;
+      const dynamicContextLength = Math.max(200, Math.min(2000, selectionLength * 2));
+      
+      const beforeStart = Math.max(0, selectionRange.start - dynamicContextLength);
+      const afterEnd = Math.min(editorContent.length, selectionRange.end + dynamicContextLength);
+      const textBefore = editorContent.substring(beforeStart, selectionRange.start).trim();
+      const textAfter = editorContent.substring(selectionRange.end, afterEnd).trim();
+      
+      // Get full current scene for broader context
+      const fullCurrentScene = sceneContext?.content || '';
+      
+      // Get character summaries if characters appear in selection
+      let characterSummaries = '';
+      if (sceneContext && sceneContext.characters && sceneContext.characters.length > 0) {
+        // Check if any character names appear in selected text
+        const selectedTextUpper = selectedText.toUpperCase();
+        const charactersInSelection = (characters || []).filter(char => 
+          char.name && selectedTextUpper.includes(char.name.toUpperCase())
+        );
+        if (charactersInSelection.length > 0) {
+          characterSummaries = buildCharacterSummaries(charactersInSelection, sceneContext);
+        }
+      }
+      
+      // Build rewrite prompt with enhanced context
       const surroundingText = {
         before: textBefore,
         after: textAfter
@@ -295,7 +317,15 @@ export default function RewriteModal({
       
       // 🔥 PHASE 4: Use JSON format for rewrite (structured output)
       const useJSONFormat = true;
-      const builtPrompt = buildRewritePrompt(prompt, selectedText, sceneContext, surroundingText, useJSONFormat);
+      const builtPrompt = buildRewritePrompt(
+        prompt, 
+        selectedText, 
+        sceneContext, 
+        surroundingText, 
+        fullCurrentScene,
+        characterSummaries,
+        useJSONFormat
+      );
       
       // System prompt for rewrite
       const systemPrompt = useJSONFormat

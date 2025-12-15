@@ -96,16 +96,39 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
  * Build screenwriter prompt for modal-based generation (JSON format)
  * @param {string} userMessage - User's prompt describing what to generate
  * @param {Object} sceneContext - Scene context from detectCurrentScene
- * @param {string} contextBefore - Optional text before cursor/selection for context
+ * @param {string} fullCurrentSceneUpToCursor - Full current scene content up to cursor
+ * @param {Array} recentDialogue - Array of recent dialogue exchanges {character, line}
+ * @param {string} characterSummaries - Formatted character summaries string
  * @param {boolean} useJSON - Whether to request JSON format (default: true)
  * @returns {string} Formatted prompt for screenwriter generation
  */
-export function buildScreenwriterPrompt(userMessage, sceneContext, contextBefore = '', useJSON = true) {
+export function buildScreenwriterPrompt(userMessage, sceneContext, fullCurrentSceneUpToCursor = '', recentDialogue = [], characterSummaries = '', useJSON = true) {
   let prompt = userMessage;
   
-  // Add context information if available
-  if (contextBefore) {
-    prompt += `\n\nContext from screenplay (what comes before):\n${contextBefore.substring(0, 200)}`;
+  // Enhanced context section
+  let enhancedContext = '';
+  
+  // Full current scene up to cursor
+  if (fullCurrentSceneUpToCursor) {
+    enhancedContext += `\n\n[CURRENT SCENE - Full Content Up to Cursor]\n${fullCurrentSceneUpToCursor}\n`;
+  }
+  
+  // Recent dialogue for tone consistency
+  if (recentDialogue && recentDialogue.length > 0) {
+    enhancedContext += `\n\n[RECENT DIALOGUE - For Tone Consistency]\n`;
+    recentDialogue.forEach(exchange => {
+      enhancedContext += `${exchange.character}\n${exchange.line}\n\n`;
+    });
+  }
+  
+  // Character summaries
+  if (characterSummaries) {
+    enhancedContext += `\n\n[CHARACTERS IN SCENE]\n${characterSummaries}\n`;
+  }
+  
+  // Add enhanced context
+  if (enhancedContext) {
+    prompt += enhancedContext;
   }
   
   if (sceneContext) {
@@ -165,7 +188,7 @@ Note: The user is asking for advice or discussion. Keep your response concise an
  * @param {boolean} useJSON - Whether to use JSON format (structured output)
  * @returns {string} Formatted prompt for Director modal
  */
-export function buildDirectorModalPrompt(sceneDirections, sceneContext, contextBefore = '', useJSON = true) {
+export function buildDirectorModalPrompt(sceneDirections, sceneContext, fullCurrentScene = '', previousScene = null, characterSummaries = '', useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
   
   // Build scene direction prompts
@@ -180,13 +203,27 @@ export function buildDirectorModalPrompt(sceneDirections, sceneContext, contextB
     scenePrompts += '\n';
   });
 
-  // Add context if available
+  // Enhanced context section
   let contextSection = '';
-  if (contextBefore) {
-    contextSection = `\n\nContext from screenplay:\n${contextBefore.substring(0, 200)}...\n`;
+  
+  // Full current scene
+  if (fullCurrentScene) {
+    contextSection += `\n\n[CURRENT SCENE - Full Content]\n${fullCurrentScene}\n`;
   }
+  
+  // Previous scene for continuity
+  if (previousScene && previousScene.content) {
+    contextSection += `\n\n[PREVIOUS SCENE - For Continuity]\n${previousScene.heading}\n${previousScene.content}\n`;
+  }
+  
+  // Character summaries
+  if (characterSummaries) {
+    contextSection += `\n\n[CHARACTERS IN SCENE]\n${characterSummaries}\n`;
+  }
+  
+  // Scene metadata
   if (sceneContext?.heading) {
-    contextSection += `Current scene: ${sceneContext.heading}\n`;
+    contextSection += `\nCurrent scene: ${sceneContext.heading}\n`;
   }
 
   if (useJSON) {
@@ -213,7 +250,9 @@ Rules:
 - Character names in ALL CAPS when speaking
 - Action lines in normal case
 - Create NEW scenes that come AFTER the current scene "${sceneContext?.heading || 'current scene'}"
-- Do NOT repeat or rewrite the current scene`;
+- Do NOT repeat or rewrite the current scene
+- Use the current scene and previous scene context to maintain continuity and character consistency
+- Reference character summaries to understand character motivations and relationships`;
   }
 
   // Fallback (not used in modal, but for consistency)
@@ -426,15 +465,36 @@ Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes
  * @param {string} message - User's rewrite request
  * @param {string} selectedText - Selected text to rewrite
  * @param {Object} sceneContext - Scene context from detectCurrentScene
- * @param {Object} surroundingText - { before: string, after: string } - Text before/after selection
+ * @param {Object} surroundingText - { before: string, after: string } - Dynamic text before/after selection
+ * @param {string} fullCurrentScene - Full current scene content for broader context
+ * @param {string} characterSummaries - Formatted character summaries string (if characters appear in selection)
+ * @param {boolean} useJSON - Whether to use JSON format
  * @returns {string} Formatted prompt for rewrite
  */
-export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null, useJSON = false) {
+export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null, fullCurrentScene = '', characterSummaries = '', useJSON = false) {
   let contextInfo = '';
+  
+  // Enhanced context section
+  let enhancedContext = '';
+  
+  // Full current scene for broader context
+  if (fullCurrentScene) {
+    enhancedContext += `\n\n[CURRENT SCENE - Full Content for Context]\n${fullCurrentScene}\n`;
+  }
+  
+  // Character summaries if characters appear in selection
+  if (characterSummaries) {
+    enhancedContext += `\n\n[CHARACTERS IN SELECTION]\n${characterSummaries}\n`;
+  }
+  
+  // Add enhanced context
+  if (enhancedContext) {
+    contextInfo += enhancedContext;
+  }
   
   // Add surrounding text for seamless integration
   if (surroundingText?.before) {
-    contextInfo += `Text BEFORE the selected section (maintain continuity with this):\n"${surroundingText.before}"\n\n`;
+    contextInfo += `\n\nText BEFORE the selected section (maintain continuity with this):\n"${surroundingText.before}"\n\n`;
   }
   
   contextInfo += `Selected text to rewrite:\n"${selectedText}"\n\n`;
@@ -560,14 +620,44 @@ CRITICAL SPACING RULES (Fountain.io spec):
  * Build dialogue prompt (for modal-based UI with form data)
  * @param {Object} formData - Form data object with sceneHeading, act, characters, conflict, tone, subtext, etc.
  * @param {Object} sceneContext - Scene context from detectCurrentScene
+ * @param {string} fullCurrentScene - Full current scene content
+ * @param {Array} recentDialogue - Array of recent dialogue exchanges {character, line}
+ * @param {Array} sceneAction - Array of action lines from scene
+ * @param {string} characterSummaries - Formatted character summaries string
  * @param {boolean} useJSON - Whether to use JSON format (structured output)
  * @returns {string} Formatted prompt for Dialogue modal
  */
-export function buildDialoguePrompt(formData, sceneContext, useJSON = true) {
+export function buildDialoguePrompt(formData, sceneContext, fullCurrentScene = '', recentDialogue = [], sceneAction = [], characterSummaries = '', useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
   
+  // Enhanced context section
+  let enhancedContext = '';
+  
+  // Full current scene
+  if (fullCurrentScene) {
+    enhancedContext += `\n\n[CURRENT SCENE - Full Content]\n${fullCurrentScene}\n`;
+  }
+  
+  // Recent dialogue for tone/pattern consistency
+  if (recentDialogue && recentDialogue.length > 0) {
+    enhancedContext += `\n\n[RECENT DIALOGUE - For Tone Consistency]\n`;
+    recentDialogue.forEach(exchange => {
+      enhancedContext += `${exchange.character}\n${exchange.line}\n\n`;
+    });
+  }
+  
+  // Scene action context
+  if (sceneAction && sceneAction.length > 0) {
+    enhancedContext += `\n\n[SCENE ACTION - What's Happening]\n${sceneAction.join('\n')}\n`;
+  }
+  
+  // Character summaries
+  if (characterSummaries) {
+    enhancedContext += `\n\n[CHARACTERS]\n${characterSummaries}\n`;
+  }
+  
   // Build prompt from form data
-  let prompt = `${contextInfo}Generate compelling screenplay dialogue based on the following context:\n\n`;
+  let prompt = `${contextInfo}Generate compelling screenplay dialogue based on the following context:${enhancedContext}\n\n`;
   
   if (formData.sceneHeading) {
     prompt += `Scene: ${formData.sceneHeading}\n`;

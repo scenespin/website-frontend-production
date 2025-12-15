@@ -6,8 +6,9 @@ import { X, Loader2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react'
 import { useChatContext } from '@/contexts/ChatContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
-import { detectCurrentScene } from '@/utils/sceneDetection';
+import { detectCurrentScene, extractRecentDialogue, extractSceneAction } from '@/utils/sceneDetection';
 import { buildDialoguePrompt } from '@/utils/promptBuilders';
+import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import toast from 'react-hot-toast';
@@ -164,6 +165,17 @@ export default function DialogueModal({
         sceneContext = detectCurrentScene(editorContent, cursorPosition);
       }
 
+      // Enhanced context: Get full current scene, recent dialogue, scene action, and character summaries
+      const fullCurrentScene = sceneContext?.content || '';
+      const recentDialogue = fullCurrentScene ? extractRecentDialogue(fullCurrentScene, 5) : [];
+      const sceneAction = fullCurrentScene ? extractSceneAction(fullCurrentScene) : [];
+      
+      // Get character summaries for selected characters
+      const selectedCharacterObjects = (characters || []).filter(char => 
+        selectedCharacters.includes(char.name)
+      );
+      const characterSummaries = buildCharacterSummaries(selectedCharacterObjects, sceneContext);
+
       // Build form data
       const formData = {
         sceneHeading: sceneHeading || sceneContext?.heading || '',
@@ -177,8 +189,16 @@ export default function DialogueModal({
         specificLines: specificLines
       };
 
-      // Build prompt
-      const builtPrompt = buildDialoguePrompt(formData, sceneContext, true);
+      // Build prompt with enhanced context
+      const builtPrompt = buildDialoguePrompt(
+        formData, 
+        sceneContext, 
+        fullCurrentScene,
+        recentDialogue,
+        sceneAction,
+        characterSummaries,
+        true
+      );
 
       // System prompt for dialogue
       const systemPrompt = `You are a professional screenwriting dialogue assistant. Generate compelling dialogue with subtext.

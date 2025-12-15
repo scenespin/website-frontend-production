@@ -4,10 +4,12 @@ import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Edit3 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
-import { detectCurrentScene } from '@/utils/sceneDetection';
+import { detectCurrentScene, extractRecentDialogue } from '@/utils/sceneDetection';
 import { buildScreenwriterPrompt } from '@/utils/promptBuilders';
 import { validateScreenwriterContent } from '@/utils/jsonValidator';
+import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import toast from 'react-hot-toast';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
@@ -40,6 +42,7 @@ export default function ScreenwriterModal({
   onInsert
 }) {
   const { state: chatState } = useChatContext();
+  const { characters } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState(() => {
@@ -97,24 +100,46 @@ export default function ScreenwriterModal({
 
     try {
       // Detect context: use selection if available, otherwise use scene detection
-      let contextBefore = '';
       let sceneContext = null;
 
       if (selectionRange && selectionRange.start !== selectionRange.end) {
-        // User selected text - use as context
-        const beforeStart = Math.max(0, selectionRange.start - 200);
-        contextBefore = editorContent.substring(beforeStart, selectionRange.start).trim();
         sceneContext = detectCurrentScene(editorContent, selectionRange.start);
       } else {
-        // No selection - use scene detection
         sceneContext = detectCurrentScene(editorContent, cursorPosition);
-        if (sceneContext) {
-          contextBefore = sceneContext.contextBeforeCursor || '';
-        }
       }
 
-      // Build prompt
-      const builtPrompt = buildScreenwriterPrompt(userPrompt, sceneContext, contextBefore, true);
+      // Enhanced context: Get full current scene up to cursor, recent dialogue, and character summaries
+      let fullCurrentSceneUpToCursor = '';
+      if (sceneContext && sceneContext.content) {
+        // Calculate cursor position relative to scene start
+        const sceneStartPosition = sceneContext.startLine !== undefined 
+          ? editorContent.split('\n').slice(0, sceneContext.startLine).join('\n').length + 1
+          : 0;
+        const cursorInScene = cursorPosition - sceneStartPosition;
+        
+        // Get full scene content up to cursor
+        if (cursorInScene > 0 && cursorInScene <= sceneContext.content.length) {
+          fullCurrentSceneUpToCursor = sceneContext.content.substring(0, cursorInScene);
+        } else {
+          fullCurrentSceneUpToCursor = sceneContext.content;
+        }
+      }
+      
+      const recentDialogue = fullCurrentSceneUpToCursor ? extractRecentDialogue(fullCurrentSceneUpToCursor, 3) : [];
+      
+      // Get character summaries for characters in scene
+      const sceneCharacters = getCharactersInScene(characters || [], sceneContext);
+      const characterSummaries = buildCharacterSummaries(sceneCharacters, sceneContext);
+
+      // Build prompt with enhanced context
+      const builtPrompt = buildScreenwriterPrompt(
+        userPrompt, 
+        sceneContext, 
+        fullCurrentSceneUpToCursor,
+        recentDialogue,
+        characterSummaries,
+        true
+      );
 
       // System prompt for screenwriter
       const systemPrompt = `You are a professional screenwriting assistant. Generate 1-3 content elements (action, character, dialogue) of Fountain format screenplay text that continue the scene.

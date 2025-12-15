@@ -4,11 +4,13 @@ import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Film, Plus, Minus } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
-import { detectCurrentScene } from '@/utils/sceneDetection';
+import { detectCurrentScene, extractPreviousScene } from '@/utils/sceneDetection';
 import { buildDirectorModalPrompt } from '@/utils/promptBuilders';
 import { validateDirectorModalContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
+import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import toast from 'react-hot-toast';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
@@ -41,6 +43,7 @@ export default function DirectorModal({
   onInsert
 }) {
   const { state: chatState } = useChatContext();
+  const { characters } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [sceneCount, setSceneCount] = useState(1);
   const [scenes, setScenes] = useState([
@@ -137,22 +140,33 @@ export default function DirectorModal({
 
     try {
       // Detect context: use selection if available, otherwise use scene detection
-      let contextBefore = '';
       let sceneContext = null;
 
       if (selectionRange && selectionRange.start !== selectionRange.end) {
-        const beforeStart = Math.max(0, selectionRange.start - 200);
-        contextBefore = editorContent.substring(beforeStart, selectionRange.start).trim();
         sceneContext = detectCurrentScene(editorContent, selectionRange.start);
       } else {
         sceneContext = detectCurrentScene(editorContent, cursorPosition);
-        if (sceneContext) {
-          contextBefore = sceneContext.contextBeforeCursor || '';
-        }
       }
 
-      // Build prompt
-      const builtPrompt = buildDirectorModalPrompt(scenes, sceneContext, contextBefore, true);
+      // Enhanced context: Get full current scene, previous scene, and character summaries
+      const fullCurrentScene = sceneContext?.content || '';
+      const previousScene = sceneContext?.startLine !== undefined 
+        ? extractPreviousScene(editorContent, sceneContext.startLine)
+        : null;
+      
+      // Get character summaries for characters in scene
+      const sceneCharacters = getCharactersInScene(characters || [], sceneContext);
+      const characterSummaries = buildCharacterSummaries(sceneCharacters, sceneContext);
+
+      // Build prompt with enhanced context
+      const builtPrompt = buildDirectorModalPrompt(
+        scenes, 
+        sceneContext, 
+        fullCurrentScene, 
+        previousScene, 
+        characterSummaries, 
+        true
+      );
 
       // System prompt for director
       const systemPrompt = `You are a professional screenplay director. Generate complete scenes (5-30 lines each) in Fountain format.

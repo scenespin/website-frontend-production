@@ -197,3 +197,174 @@ export function buildContextPrompt(sceneContext) {
   return context;
 }
 
+/**
+ * Extracts the scene immediately before the current scene
+ * @param {string} content - Full screenplay content
+ * @param {number} currentSceneStartLine - Line number where current scene starts
+ * @returns {Object|null} Previous scene with content, heading, and characters, or null if no previous scene
+ */
+export function extractPreviousScene(content, currentSceneStartLine) {
+  if (!content || currentSceneStartLine === undefined || currentSceneStartLine <= 0) {
+    return null;
+  }
+
+  const lines = content.split('\n');
+  const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
+
+  // Find the scene heading before currentSceneStartLine
+  let previousSceneStartLine = -1;
+  let previousSceneHeading = null;
+
+  for (let i = currentSceneStartLine - 1; i >= 0; i--) {
+    if (sceneHeadingRegex.test(lines[i])) {
+      previousSceneStartLine = i;
+      previousSceneHeading = lines[i].trim();
+      break;
+    }
+  }
+
+  // If no previous scene found, return null
+  if (previousSceneStartLine === -1) {
+    return null;
+  }
+
+  // Find the end of the previous scene (current scene start - 1)
+  const previousSceneEndLine = currentSceneStartLine - 1;
+
+  // Extract previous scene content
+  const previousSceneLines = lines.slice(previousSceneStartLine, previousSceneEndLine + 1);
+  const previousSceneContent = previousSceneLines.join('\n');
+
+  // Extract characters from previous scene
+  const characters = extractCharacters(previousSceneContent);
+
+  return {
+    heading: previousSceneHeading,
+    content: previousSceneContent,
+    characters: characters,
+    startLine: previousSceneStartLine,
+    endLine: previousSceneEndLine
+  };
+}
+
+/**
+ * Extracts the last N dialogue exchanges from scene content
+ * @param {string} sceneContent - Full scene content
+ * @param {number} count - Number of dialogue exchanges to extract (default: 5)
+ * @returns {Array<{character: string, line: string}>} Array of dialogue exchanges
+ */
+export function extractRecentDialogue(sceneContent, count = 5) {
+  if (!sceneContent) return [];
+
+  const lines = sceneContent.split('\n');
+  const dialogueExchanges = [];
+  const characterRegex = /^([A-Z][A-Z\s#0-9']+)$/;
+  const nonCharacterWords = ['INT', 'EXT', 'FADE', 'CUT', 'DISSOLVE', 'TO', 'BLACK', 'CONTINUED', 'THE END', 'I/E', 'INT/EXT'];
+
+  let currentCharacter = null;
+  let currentDialogue = [];
+
+  // Parse scene content to find character-dialogue pairs
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check if line is a character name (ALL CAPS, not a scene heading)
+    if (characterRegex.test(line)) {
+      const trimmed = line.trim();
+      const isSceneHeading = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i.test(trimmed);
+      const isNonCharacter = nonCharacterWords.some(word => trimmed.startsWith(word));
+      
+      if (!isSceneHeading && !isNonCharacter && trimmed.length >= 2 && trimmed.length <= 30) {
+        // Save previous dialogue exchange if exists
+        if (currentCharacter && currentDialogue.length > 0) {
+          dialogueExchanges.push({
+            character: currentCharacter,
+            line: currentDialogue.join(' ').trim()
+          });
+        }
+        
+        // Start new dialogue exchange
+        currentCharacter = trimmed;
+        currentDialogue = [];
+      }
+    } else if (currentCharacter && line.length > 0) {
+      // This is dialogue following a character name
+      // Skip parentheticals (lines in parentheses)
+      if (!line.startsWith('(') || !line.endsWith(')')) {
+        currentDialogue.push(line);
+      }
+    }
+  }
+
+  // Add final dialogue exchange if exists
+  if (currentCharacter && currentDialogue.length > 0) {
+    dialogueExchanges.push({
+      character: currentCharacter,
+      line: currentDialogue.join(' ').trim()
+    });
+  }
+
+  // Return last N exchanges
+  return dialogueExchanges.slice(-count);
+}
+
+/**
+ * Extracts action lines from scene content (non-dialogue, non-character content)
+ * @param {string} sceneContent - Full scene content
+ * @returns {Array<string>} Array of action lines
+ */
+export function extractSceneAction(sceneContent) {
+  if (!sceneContent) return [];
+
+  const lines = sceneContent.split('\n');
+  const actionLines = [];
+  const sceneHeadingRegex = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i;
+  const characterRegex = /^([A-Z][A-Z\s#0-9']+)$/;
+  const nonCharacterWords = ['INT', 'EXT', 'FADE', 'CUT', 'DISSOLVE', 'TO', 'BLACK', 'CONTINUED', 'THE END', 'I/E', 'INT/EXT'];
+
+  let isInDialogue = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Skip empty lines
+    if (!line) continue;
+
+    // Skip scene headings
+    if (sceneHeadingRegex.test(line)) continue;
+
+    // Check if line is a character name
+    if (characterRegex.test(line)) {
+      const trimmed = line.trim();
+      const isSceneHeading = /^(INT\.|EXT\.|INT\/EXT\.|I\/E\.)\s+/i.test(trimmed);
+      const isNonCharacter = nonCharacterWords.some(word => trimmed.startsWith(word));
+      
+      if (!isSceneHeading && !isNonCharacter && trimmed.length >= 2 && trimmed.length <= 30) {
+        isInDialogue = true;
+        continue;
+      }
+    }
+
+    // Check if line is dialogue (following a character name)
+    if (isInDialogue) {
+      // Check if this is a parenthetical (in parentheses)
+      if (line.startsWith('(') && line.endsWith(')')) {
+        continue; // Skip parentheticals
+      }
+      // If line doesn't look like dialogue continuation, we've left the dialogue block
+      if (line.length > 0 && !line.match(/^[a-z]/)) {
+        isInDialogue = false;
+      } else {
+        continue; // Skip dialogue lines
+      }
+    }
+
+    // This is an action line
+    if (line.length > 0) {
+      actionLines.push(line);
+    }
+  }
+
+  return actionLines;
+}
+
