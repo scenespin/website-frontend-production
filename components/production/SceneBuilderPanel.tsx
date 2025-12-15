@@ -269,6 +269,34 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           // Limit to 3 references (max supported)
           setCharacterReferenceUrls(allCharacterRefs.slice(0, 3));
           
+          // Auto-suggest quality tier based on analysis
+          const shotBreakdown = result.data.shotBreakdown;
+          const totalShots = shotBreakdown?.totalShots || 0;
+          const totalCredits = shotBreakdown?.totalCredits || 0;
+          // Check for VFX in shot breakdown (shots with type 'vfx')
+          const hasVFX = shotBreakdown?.shots?.some(shot => shot.type === 'vfx') || false;
+          const characterCount = result.data.characters?.length || 0;
+          
+          // Complex scene indicators:
+          // - High shot count (>3 shots)
+          // - High credit cost (>300 credits)
+          // - VFX requirements
+          // - Multiple characters (>2)
+          const isComplex = 
+            totalShots > 3 ||
+            totalCredits > 300 ||
+            hasVFX ||
+            characterCount > 2;
+          
+          // Auto-suggest Premium for complex scenes, Professional for simple scenes
+          if (isComplex) {
+            setQualityTier('premium');
+            console.log('[SceneBuilderPanel] Auto-suggested Premium tier (complex scene)');
+          } else {
+            setQualityTier('professional');
+            console.log('[SceneBuilderPanel] Auto-suggested Professional tier (simple scene)');
+          }
+          
           console.log('[SceneBuilderPanel] Scene analysis complete:', result.data);
           console.log('[SceneBuilderPanel] Pre-populated character references:', allCharacterRefs.slice(0, 3));
         } else {
