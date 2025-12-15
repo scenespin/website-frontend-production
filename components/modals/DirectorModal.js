@@ -11,6 +11,7 @@ import { buildDirectorModalPrompt } from '@/utils/promptBuilders';
 import { validateDirectorModalContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
+import { getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
@@ -45,6 +46,8 @@ export default function DirectorModal({
   const { state: chatState } = useChatContext();
   const { characters } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
+  const [abortController, setAbortController] = useState(null);
   const [sceneCount, setSceneCount] = useState(1);
   const [scenes, setScenes] = useState([
     { location: '', scenario: '', direction: '' }
@@ -63,8 +66,24 @@ export default function DirectorModal({
       setSceneCount(1);
       setScenes([{ location: '', scenario: '', direction: '' }]);
       setIsLoading(false);
+      setLoadingStage(null);
+      // Cancel any ongoing request
+      if (abortController) {
+        abortController.abort();
+        setAbortController(null);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, abortController]);
+  
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort();
+      setIsLoading(false);
+      setLoadingStage(null);
+      setAbortController(null);
+      toast.info('Generation cancelled');
+    }
+  };
 
   // Auto-detect scene context when modal opens
   useEffect(() => {
@@ -137,6 +156,21 @@ export default function DirectorModal({
     }
 
     setIsLoading(true);
+    setLoadingStage('building');
+    
+    // Create abort controller for cancellation
+    const controller = new AbortController();
+    setAbortController(controller);
+    const isCancelledRef = { current: false };
+    
+    // Set up abort handler
+    controller.signal.addEventListener('abort', () => {
+      isCancelledRef.current = true;
+    });
+    
+    // Track when building stage started for minimum duration
+    const buildingStartTime = Date.now();
+    const MIN_BUILDING_DURATION = 2000; // 2 seconds minimum for visual balance
 
     try {
       // Detect context: use selection if available, otherwise use scene detection
@@ -203,6 +237,26 @@ Rules:
         }
       } : undefined;
 
+      // Ensure minimum duration for building stage (for visual balance)
+      const buildingElapsed = Date.now() - buildingStartTime;
+      const remainingTime = Math.max(0, MIN_BUILDING_DURATION - buildingElapsed);
+      
+      if (remainingTime > 0) {
+        // Wait for remaining time before transitioning
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      // Check if cancelled during wait
+      if (controller.signal.aborted) {
+        setIsLoading(false);
+        setLoadingStage(null);
+        setAbortController(null);
+        return;
+      }
+      
+      // Move to generating stage
+      setLoadingStage('generating');
+
       // Call API
       let accumulatedText = '';
 
@@ -222,6 +276,8 @@ Rules:
         },
         // onChunk
         (chunk) => {
+          // Ignore chunks if cancelled
+          if (controller.signal.aborted || isCancelledRef.current) return;
           accumulatedText += chunk;
         },
         // onComplete
@@ -399,16 +455,34 @@ Rules:
         },
         // onError
         (error) => {
+          // Don't show error if cancelled
+          if (controller.signal.aborted || isCancelledRef.current) {
+            setIsLoading(false);
+            setLoadingStage(null);
+            setAbortController(null);
+            return;
+          }
           console.error('[DirectorModal] Error:', error);
           toast.error(error.message || 'Failed to generate content');
           setIsLoading(false);
+          setLoadingStage(null);
+          setAbortController(null);
         }
       );
 
     } catch (error) {
+      // Don't show error if cancelled
+      if (controller.signal.aborted || isCancelledRef.current) {
+        setIsLoading(false);
+        setLoadingStage(null);
+        setAbortController(null);
+        return;
+      }
       console.error('[DirectorModal] Error:', error);
       toast.error(error.message || 'Failed to generate content');
       setIsLoading(false);
+      setLoadingStage(null);
+      setAbortController(null);
     }
   };
 
@@ -504,7 +578,7 @@ Rules:
                 </div>
                 
                 {/* Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div className="relative flex-1 overflow-y-auto px-6 py-6">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Scene Count Selector */}
                     <div>
@@ -606,6 +680,71 @@ Rules:
                       </button>
                     </div>
                   </form>
+                  
+                  {/* Enhanced Loading Overlay */}
+                  {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-base-100/90 backdrop-blur-sm z-10">
+                      <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                        
+                        {/* Two-stage loading indicator with smooth animations */}
+                        <div className="flex flex-col items-center gap-2 w-full">
+                          <div className="flex items-center gap-2 w-full">
+                            {/* Building stage progress bar - CSS handles smooth animation */}
+                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-[2000ms] ease-out ${
+                                  loadingStage === 'building' || loadingStage === 'generating' 
+                                    ? 'bg-primary w-full' 
+                                    : 'bg-primary/30 w-0'
+                                }`}
+                              />
+                            </div>
+                            {/* Generating stage progress bar - CSS handles smooth animation */}
+                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ease-out ${
+                                  loadingStage === 'generating' 
+                                    ? 'bg-primary w-full' 
+                                    : 'bg-base-300 w-0'
+                                }`}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-between w-full text-xs text-base-content/60">
+                            <span className={`transition-all duration-300 ${
+                              loadingStage === 'building' || loadingStage === 'generating' 
+                                ? 'text-primary font-medium' 
+                                : ''
+                            }`}>
+                              Building context...
+                            </span>
+                            <span className={`transition-all duration-300 ${
+                              loadingStage === 'generating' 
+                                ? 'text-primary font-medium' 
+                                : ''
+                            }`}>
+                              Generating...
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Model-specific timing */}
+                        <p className="text-xs text-base-content/50 text-center">
+                          {getTimingMessage(selectedModel)}
+                        </p>
+                        
+                        {/* Cancel button */}
+                        <button
+                          onClick={handleCancel}
+                          className="btn btn-ghost btn-sm mt-2"
+                          disabled={!isLoading}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>
