@@ -77,7 +77,7 @@ export default function ScreenwriterModal({
       setIsLoading(false);
       setLoadingStage(null);
       setAbortController(null);
-      toast.info('Generation cancelled');
+      toast('Generation cancelled');
     }
   };
 
@@ -263,7 +263,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
             setIsLoading(false);
             setLoadingStage(null);
             setAbortController(null);
-            toast.info('Generation cancelled - changes not applied');
+            toast('Generation cancelled - changes not applied');
             return;
           }
           

@@ -81,7 +81,7 @@ export default function DirectorModal({
       setIsLoading(false);
       setLoadingStage(null);
       setAbortController(null);
-      toast.info('Generation cancelled');
+      toast('Generation cancelled');
     }
   };
 

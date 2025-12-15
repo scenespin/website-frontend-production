@@ -423,7 +423,7 @@ export default function RewriteModal({
             setIsLoading(false);
             setLoadingStage(null);
             setAbortController(null);
-            toast.info('Rewrite cancelled - you will only be charged for tokens already processed');
+            toast('Rewrite cancelled - you will only be charged for tokens already processed');
             return;
           }
           
@@ -480,7 +480,7 @@ export default function RewriteModal({
                 setIsLoading(false);
                 setLoadingStage(null);
                 setAbortController(null);
-                toast.info('Rewrite cancelled - changes not applied');
+                toast('Rewrite cancelled - changes not applied');
                 return;
               }
               
@@ -627,7 +627,7 @@ export default function RewriteModal({
     }
     setIsLoading(false);
     setLoadingStage(null);
-    toast.info('Rewrite cancelled. You will only be charged for tokens already processed.');
+    toast('Rewrite cancelled. You will only be charged for tokens already processed.');
   };
   
   const handleQuickAction = (action) => {
