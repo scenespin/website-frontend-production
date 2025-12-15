@@ -142,6 +142,7 @@ export default function ScreenwriterModal({
 
       // Enhanced context: Get full current scene up to cursor, recent dialogue, and character summaries
       let fullCurrentSceneUpToCursor = '';
+      let contextBefore = null; // For validation (content before cursor)
       if (sceneContext && sceneContext.content) {
         // Calculate cursor position relative to scene start
         const sceneStartPosition = sceneContext.startLine !== undefined 
@@ -155,6 +156,9 @@ export default function ScreenwriterModal({
         } else {
           fullCurrentSceneUpToCursor = sceneContext.content;
         }
+        
+        // Extract context before cursor for duplicate checking
+        contextBefore = editorContent.substring(0, cursorPosition);
       }
       
       const recentDialogue = fullCurrentSceneUpToCursor ? extractRecentDialogue(fullCurrentSceneUpToCursor, 3) : [];
