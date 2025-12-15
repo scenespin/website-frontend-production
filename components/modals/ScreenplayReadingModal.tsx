@@ -679,6 +679,84 @@ export default function ScreenplayReadingModal({
                         </div>
                       </div>
 
+                      {/* Recent Completed Jobs */}
+                      {completedJobs.length > 0 && (
+                        <div className="bg-base-200 rounded-lg p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              Recent Completed Jobs
+                            </h3>
+                            <button
+                              onClick={() => router.push('/production?tab=jobs')}
+                              className="text-sm text-primary hover:underline flex items-center gap-1"
+                            >
+                              View All
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {completedJobs.slice(0, 3).map((job) => (
+                              <div
+                                key={job.jobId}
+                                onClick={() => router.push(`/production?tab=jobs&jobId=${job.jobId}`)}
+                                className="p-3 bg-base-100 rounded cursor-pointer hover:bg-base-300 transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                    <span className="text-sm font-medium">
+                                      {job.scenesProcessed} scene(s) • {job.creditsUsed.toLocaleString()} credits
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-base-content/60">
+                                    {new Date(job.completedAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-base-content/60 pt-2 border-t border-base-300">
+                            💡 Completed jobs are saved to Media Library. Files are also available in the Jobs tab for download.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Async Job Message */}
+                      {isAsyncJob && jobId && (
+                        <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4 space-y-3">
+                          <div className="flex items-center gap-2 text-blue-300">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span className="font-semibold">Job Started</span>
+                          </div>
+                          <p className="text-sm text-blue-200">
+                            Your screenplay reading is processing. This will take approximately {estimatedTime} minutes.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => router.push(`/production?tab=jobs&jobId=${jobId}`)}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
+                            >
+                              View Job Progress
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setIsAsyncJob(false);
+                                setJobId(null);
+                                setEstimatedTime(null);
+                              }}
+                              className="px-4 py-2 bg-base-300 hover:bg-base-400 rounded-lg transition-colors text-sm"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                          <p className="text-xs text-blue-300/80">
+                            💡 When complete, files will be saved to Media Library and available in the Jobs tab.
+                          </p>
+                        </div>
+                      )}
+
                       {/* Options */}
                       <div>
                         <h3 className="font-semibold mb-3 flex items-center gap-2">
