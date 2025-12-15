@@ -562,3 +562,98 @@ export interface ScreenplaySummary {
     updatedAt: string;
 }
 
+// ============================================================================
+// Scene Analyzer Types (Feature 0136)
+// ============================================================================
+
+/**
+ * Dialogue block extracted from Fountain format
+ */
+export interface DialogueBlock {
+    character: string;
+    parenthetical?: string;
+    dialogue: string;
+    precedingAction?: string;
+    lineNumber?: number;
+}
+
+/**
+ * Workflow recommendation from Scene Analyzer
+ */
+export interface WorkflowRecommendation {
+    workflowId: string;
+    shotType: 'close-up' | 'medium' | 'wide' | 'establishing' | 'auto';
+    reasoning: string;
+    confidence: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Scene Analysis Result from Scene Analyzer API
+ * Feature 0136: Complete Scene Analyzer Integration
+ */
+export interface SceneAnalysisResult {
+    sceneId: string;
+    sceneType: 'dialogue' | 'action' | 'establishing' | 'transition' | 'montage';
+    
+    // Extracted entities
+    characters: Array<{
+        id: string;
+        name: string;
+        references: string[]; // 0-3 image URLs from Character Bank
+        hasReferences: boolean;
+    }>;
+    location: {
+        id: string | null;
+        name: string | null;
+        reference: string | null; // 0-1 image URL from Location Bank
+        hasReference: boolean;
+    };
+    assets: Array<{
+        id: string;
+        name: string;
+        reference: string | null; // 0-1 image URL from Asset Bank
+        hasReference: boolean;
+    }>;
+    
+    // Shot breakdown
+    shotBreakdown: {
+        totalShots: number;
+        shots: Array<{
+            slot: number;
+            type: 'establishing' | 'character' | 'vfx' | 'broll' | 'dialogue';
+            workflow: string;
+            description: string;
+            characterId?: string;
+            credits: number;
+        }>;
+        totalCredits: number;
+        estimatedTime: string; // e.g., "~12 minutes"
+    };
+    
+    // Visual style analysis
+    visualStyle: 'realistic' | 'cinematic' | 'noir' | 'vibrant' | 'fantasy' | 'horror';
+    lightingMood: 'bright' | 'moody' | 'dramatic' | 'natural' | 'dark';
+    colorPalette: 'warm' | 'cool' | 'neutral' | 'desaturated' | 'vibrant';
+    
+    // Dialogue analysis (Feature 0158)
+    dialogue?: {
+        hasDialogue: boolean;
+        blocks: DialogueBlock[];
+        characterMapping: Array<{
+            characterId: string;
+            characterName: string;
+            blocks: DialogueBlock[];
+            totalLength: number;
+            matchingConfidence: 'exact' | 'fuzzy' | 'uncertain';
+            hasDuplicates: boolean;
+            duplicateBlocks?: Array<{ blockIndex: number; duplicateOf: number }>;
+            hasActionLines: boolean;
+            actionLineBlocks?: Array<{ blockIndex: number; reason: string }>;
+        }>;
+        needsReview: boolean;
+    };
+    
+    // Workflow recommendations (Phase 1.2)
+    workflowRecommendations?: WorkflowRecommendation[];
+}
+
