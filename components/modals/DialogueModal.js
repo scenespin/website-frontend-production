@@ -12,21 +12,25 @@ import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import toast from 'react-hot-toast';
 
-// LLM Models for selection
+// LLM Models - Same order and list as UnifiedChatPanel for consistency
+// Order: Anthropic (Claude) → OpenAI (GPT) → Google (Gemini)
 const LLM_MODELS = [
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', recommended: true }, // Best for dialogue
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' }, // Excellent for natural dialogue
-  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI' }, // Latest - great dialogue
-  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic' }, // Most powerful
-  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI' },
-  { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google' }, // Latest
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' }, // Fast & efficient
-  { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google' }, // Fastest & most economical
-  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic' }, // Fast & economical
-  { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI' },
-  { id: 'o3', name: 'O3', provider: 'OpenAI' }, // Reasoning - best for analysis
-  { id: 'o1', name: 'O1', provider: 'OpenAI' }, // Reasoning - best for analysis
+  // Claude (Anthropic) - Best for Creative Writing
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
+  { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
+  // GPT (OpenAI) - Good for Creative Writing
+  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
+  { id: 'gpt-5', name: 'GPT-5', provider: 'OpenAI', description: 'Advanced - Great for storytelling' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
+  { id: 'gpt-4.5-turbo', name: 'GPT-4.5 Turbo', provider: 'OpenAI', description: 'Fast and capable' },
+  { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
+  { id: 'o1', name: 'O1', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
+  // Gemini (Google) - Good for Complex Narratives
+  { id: 'gemini-3-pro', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Enhanced reasoning & narratives' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', description: 'Advanced reasoning - Complex narratives' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
+  { id: 'gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'Google', description: 'Fastest & most economical' },
 ];
 
 const TONE_OPTIONS = [
@@ -381,11 +385,28 @@ Rules:
                       className="select select-bordered select-sm text-xs max-w-[140px]"
                       title="Select AI model"
                     >
-                      {LLM_MODELS.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
-                      ))}
+                      {/* Group by provider for better organization */}
+                      <optgroup label="Anthropic (Claude)">
+                        {LLM_MODELS.filter(m => m.provider === 'Anthropic').map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name} {model.recommended ? '⭐' : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="OpenAI (GPT)">
+                        {LLM_MODELS.filter(m => m.provider === 'OpenAI').map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Google (Gemini)">
+                        {LLM_MODELS.filter(m => m.provider === 'Google').map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                     <button
                       onClick={onClose}
