@@ -176,7 +176,6 @@ CRITICAL SPACING RULES (Fountain.io spec):
       const responseFormat = supportsStructuredOutputs(selectedModel) ? {
         type: "json_schema",
         json_schema: {
-          name: "screenwriter_content",
           schema: getScreenwriterSchema(),
           strict: true
         }

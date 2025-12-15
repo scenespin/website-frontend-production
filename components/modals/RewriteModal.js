@@ -11,6 +11,7 @@ import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetect
 import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
+import { getModelTiming, getTimingMessage } from '@/utils/modelTiming';
 import toast from 'react-hot-toast';
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
@@ -217,6 +218,8 @@ export default function RewriteModal({
   const { state: chatState } = useChatContext();
   const { characters } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
+  const [abortController, setAbortController] = useState(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [selectedModel, setSelectedModel] = useState(() => {
@@ -241,8 +244,14 @@ export default function RewriteModal({
       setCustomPrompt('');
       setShowCustomInput(false);
       setIsLoading(false);
+      setLoadingStage(null);
+      // Cancel any ongoing request
+      if (abortController) {
+        abortController.abort();
+        setAbortController(null);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, abortController]);
   
   // Handle Escape key to close modal
   useEffect(() => {
@@ -279,6 +288,17 @@ export default function RewriteModal({
     }
     
     setIsLoading(true);
+    setLoadingStage('building');
+    
+    // Create abort controller for cancellation
+    const controller = new AbortController();
+    setAbortController(controller);
+    const isCancelledRef = { current: false };
+    
+    // Set up abort handler
+    controller.signal.addEventListener('abort', () => {
+      isCancelledRef.current = true;
+    });
     
     try {
       // Detect scene context
@@ -342,7 +362,6 @@ export default function RewriteModal({
           responseFormat = {
             type: "json_schema",
             json_schema: {
-              name: "rewrite_content",
               schema: getRewriteSchema(),
               strict: true
             }
@@ -350,6 +369,17 @@ export default function RewriteModal({
         }
       }
 
+      // Check if cancelled before API call
+      if (controller.signal.aborted) {
+        setIsLoading(false);
+        setLoadingStage(null);
+        setAbortController(null);
+        return;
+      }
+      
+      // Move to generating stage
+      setLoadingStage('generating');
+      
       // Call API
       let accumulatedText = '';
       
@@ -369,10 +399,21 @@ export default function RewriteModal({
         },
         // onChunk
         (chunk) => {
+          // Ignore chunks if cancelled
+          if (controller.signal.aborted || isCancelledRef.current) return;
           accumulatedText += chunk;
         },
         // onComplete
         async (fullContent) => {
+          // CRITICAL: Check if cancelled FIRST - even if API completed, don't process if user cancelled
+          if (controller.signal.aborted || isCancelledRef.current) {
+            setIsLoading(false);
+            setLoadingStage(null);
+            setAbortController(null);
+            toast.info('Rewrite cancelled - you will only be charged for tokens already processed');
+            return;
+          }
+          
           // 🔥 DEBUG: Log raw AI response to diagnose sentence splitting issues
           console.log('[RewriteModal] 📝 RAW AI RESPONSE (first 500 chars):', fullContent.substring(0, 500));
           console.log('[RewriteModal] 📝 RAW AI RESPONSE (last 200 chars):', fullContent.substring(Math.max(0, fullContent.length - 200)));
@@ -512,6 +553,11 @@ export default function RewriteModal({
             onReplace(cleaned);
           }
           
+          // Reset loading state
+          setIsLoading(false);
+          setLoadingStage(null);
+          setAbortController(null);
+          
           // Close modal
           onClose();
           
@@ -520,17 +566,46 @@ export default function RewriteModal({
         },
         // onError
         (error) => {
+          // Don't show error if cancelled
+          if (controller.signal.aborted || isCancelledRef.current) {
+            setIsLoading(false);
+            setLoadingStage(null);
+            setAbortController(null);
+            return;
+          }
           console.error('[RewriteModal] Error:', error);
           toast.error(error.message || 'Failed to rewrite text');
           setIsLoading(false);
+          setLoadingStage(null);
+          setAbortController(null);
         }
       );
       
     } catch (error) {
+      // Don't show error if cancelled
+      if (controller.signal.aborted || isCancelledRef.current) {
+        setIsLoading(false);
+        setLoadingStage(null);
+        setAbortController(null);
+        return;
+      }
       console.error('[RewriteModal] Error:', error);
       toast.error(error.message || 'Failed to rewrite text');
       setIsLoading(false);
+      setLoadingStage(null);
+      setAbortController(null);
     }
+  };
+  
+  // Cancel handler
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
+    setIsLoading(false);
+    setLoadingStage(null);
+    toast.info('Rewrite cancelled. You will only be charged for tokens already processed.');
   };
   
   const handleQuickAction = (action) => {
@@ -716,12 +791,41 @@ export default function RewriteModal({
                     </form>
                   )}
                   
-                  {/* Loading Overlay */}
+                  {/* Enhanced Loading Overlay */}
                   {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-base-100/80 backdrop-blur-sm">
-                      <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-sm text-base-content/60">Rewriting text...</p>
+                    <div className="absolute inset-0 flex items-center justify-center bg-base-100/90 backdrop-blur-sm z-10">
+                      <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                        
+                        {/* Two-stage loading indicator */}
+                        <div className="flex flex-col items-center gap-2 w-full">
+                          <div className="flex items-center gap-2 w-full">
+                            <div className={`h-2 flex-1 rounded-full ${loadingStage === 'building' ? 'bg-primary' : 'bg-primary/30'}`} />
+                            <div className={`h-2 flex-1 rounded-full ${loadingStage === 'generating' ? 'bg-primary' : 'bg-base-300'}`} />
+                          </div>
+                          <div className="flex justify-between w-full text-xs text-base-content/60">
+                            <span className={loadingStage === 'building' ? 'text-primary font-medium' : ''}>
+                              Building context...
+                            </span>
+                            <span className={loadingStage === 'generating' ? 'text-primary font-medium' : ''}>
+                              Generating...
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Model-specific timing */}
+                        <p className="text-xs text-base-content/50 text-center">
+                          {getTimingMessage(selectedModel)}
+                        </p>
+                        
+                        {/* Cancel button */}
+                        <button
+                          onClick={handleCancel}
+                          className="btn btn-ghost btn-sm mt-2"
+                          disabled={!isLoading}
+                        >
+                          Cancel
+                        </button>
                       </div>
                     </div>
                   )}

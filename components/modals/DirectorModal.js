@@ -198,7 +198,6 @@ Rules:
       const responseFormat = supportsStructuredOutputs(selectedModel) ? {
         type: "json_schema",
         json_schema: {
-          name: "director_content",
           schema: getDirectorSchema(sceneCount),
           strict: true
         }

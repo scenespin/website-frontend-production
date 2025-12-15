@@ -229,7 +229,6 @@ Rules:
       const responseFormat = supportsStructuredOutputs(selectedModel) ? {
         type: "json_schema",
         json_schema: {
-          name: "dialog_content",
           schema: getDialogSchema(),
           strict: true
         }
