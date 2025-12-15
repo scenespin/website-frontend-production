@@ -71,6 +71,7 @@ export default function ScreenplayReadingModal({
   const [narratorVoiceId, setNarratorVoiceId] = useState<string | null>(null);
   const [narratorVoiceName, setNarratorVoiceName] = useState<string | null>(null);
   const [showVoiceBrowser, setShowVoiceBrowser] = useState(false);
+  const [characterVoiceBrowserOpen, setCharacterVoiceBrowserOpen] = useState<string | null>(null); // characterId when open
   const [includeNarration, setIncludeNarration] = useState(false);
   const [includeTimestamps, setIncludeTimestamps] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -216,6 +217,72 @@ export default function ScreenplayReadingModal({
       console.error('[ScreenplayReadingModal] Failed to fetch character voices:', error);
     } finally {
       setIsLoadingVoices(false);
+    }
+  };
+
+  // Get character demographics for voice browser
+  const getCharacterDemographics = (characterId: string) => {
+    const character = characters?.find(c => c.id === characterId);
+    if (!character) return undefined;
+    
+    const physicalAttributes = (character as any).physicalAttributes || {};
+    const metadata = (character as any).metadata || {};
+    
+    return {
+      gender: physicalAttributes.gender || metadata.gender || undefined,
+      age: physicalAttributes.age || metadata.age || undefined,
+      accent: metadata.accent || undefined,
+    };
+  };
+
+  // Handle character voice assignment
+  const handleCharacterVoiceSelected = async (
+    characterId: string,
+    voiceId: string,
+    voiceName: string,
+    isCustom?: boolean
+  ) => {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Authentication failed');
+        return;
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/select`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            characterId,
+            screenplayId,
+            voiceId,
+            isCustom: isCustom || false,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to assign voice');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        const character = characters?.find(c => c.id === characterId);
+        toast.success(`Voice "${voiceName}" assigned to ${character?.name || 'character'}!`);
+        fetchCharacterVoices(); // Refresh the list
+        setCharacterVoiceBrowserOpen(null); // Close browser modal
+      } else {
+        throw new Error(data.error || 'Voice assignment failed');
+      }
+    } catch (error: any) {
+      console.error('[ScreenplayReadingModal] Voice assignment error:', error);
+      toast.error(error.message || 'Failed to assign voice');
     }
   };
 
@@ -800,24 +867,34 @@ export default function ScreenplayReadingModal({
                         ) : (
                           <div className="space-y-2 bg-base-200 rounded-lg p-4">
                             {characterVoices.map((voice) => (
-                              <div key={voice.characterId} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
+                              <div key={voice.characterId} className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
                                   {voice.hasVoice ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
                                   ) : (
-                                    <AlertCircle className="w-4 h-4 text-yellow-600" />
+                                    <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
                                   )}
-                                  <span className="font-medium">{voice.characterName}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium block truncate">{voice.characterName}</span>
+                                    <div className="text-xs text-base-content/60">
+                                      {voice.hasVoice ? (
+                                        <span>
+                                          {voice.voiceType === 'custom' ? 'Custom' : voice.voiceType === 'auto-matched' ? 'Auto-matched' : 'Assigned'}: {voice.voiceName}
+                                        </span>
+                                      ) : (
+                                        <span className="text-yellow-600">Will auto-match</span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="text-sm text-base-content/60">
-                                  {voice.hasVoice ? (
-                                    <span>
-                                      {voice.voiceType === 'custom' ? 'Custom' : voice.voiceType === 'auto-matched' ? 'Auto-matched' : 'Assigned'}: {voice.voiceName}
-                                    </span>
-                                  ) : (
-                                    <span className="text-yellow-600">Will auto-match</span>
-                                  )}
-                                </div>
+                                <button
+                                  onClick={() => setCharacterVoiceBrowserOpen(voice.characterId)}
+                                  className="px-3 py-1.5 bg-primary text-primary-content rounded hover:bg-primary-focus transition-colors text-sm flex items-center gap-1.5 flex-shrink-0"
+                                  title={voice.hasVoice ? 'Change voice' : 'Assign voice'}
+                                >
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                  {voice.hasVoice ? 'Change' : 'Assign'}
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -890,7 +967,7 @@ export default function ScreenplayReadingModal({
           </div>
         </div>
         
-        {/* Voice Browser Modal */}
+        {/* Voice Browser Modal - Narrator */}
         <VoiceBrowserModal
           isOpen={showVoiceBrowser}
           onClose={() => setShowVoiceBrowser(false)}
@@ -901,6 +978,20 @@ export default function ScreenplayReadingModal({
             toast.success(`Narrator voice set to ${voiceName}`);
           }}
         />
+
+        {/* Voice Browser Modal - Character */}
+        {characterVoiceBrowserOpen && (
+          <VoiceBrowserModal
+            isOpen={!!characterVoiceBrowserOpen}
+            onClose={() => setCharacterVoiceBrowserOpen(null)}
+            onSelectVoice={(voiceId, voiceName, isCustom) => {
+              if (characterVoiceBrowserOpen) {
+                handleCharacterVoiceSelected(characterVoiceBrowserOpen, voiceId, voiceName, isCustom);
+              }
+            }}
+            characterDemographics={characterVoiceBrowserOpen ? getCharacterDemographics(characterVoiceBrowserOpen) : undefined}
+          />
+        )}
       </Dialog>
     </Transition>
   );
