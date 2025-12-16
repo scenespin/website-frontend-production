@@ -2111,9 +2111,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const baseCredits = sceneAnalysisResult.shotBreakdown.totalCredits;
       
       // Add quality tier adjustment (Premium = 4K upscaling)
-      // Note: Dialogue scenes don't get upscaled (lip sync is already high quality)
-      if (qualityTier === 'premium' && !sceneAnalysisResult?.dialogue?.hasDialogue) {
-        return baseCredits + 100; // Add 4K upscaling cost
+      // For dialogue scenes: Upscale establishing shot only (+100 credits)
+      // For workflow scenes: Upscale all videos (+100 credits)
+      if (qualityTier === 'premium') {
+        return baseCredits + 100; // Add 4K upscaling cost (establishing shot for dialogue, all videos for workflow)
       }
       
       return baseCredits;
@@ -2467,10 +2468,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       <div className="text-xs text-[#808080] mt-1">
                         {sceneAnalysisResult?.shotBreakdown?.totalCredits 
                           ? sceneAnalysisResult?.dialogue?.hasDialogue
-                            ? `${sceneAnalysisResult.shotBreakdown.totalCredits} credits`  // Dialogue: no upscaling
+                            ? `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Dialogue: add upscaling for establishing shot
                             : `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Workflow: add upscaling
                           : sceneAnalysisResult?.dialogue?.hasDialogue 
-                            ? '105 credits'  // Fallback: dialogue scenes
+                            ? '205 credits'  // Fallback: dialogue scenes (105 + 100 upscaling)
                             : '200-225 credits'  // Fallback: workflow scenes
                         }
                       </div>
@@ -2519,8 +2520,17 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
                     <div className="text-xs font-medium mb-1.5 text-[#FFFFFF]">What You'll Get:</div>
                     <ul className="text-[10px] text-[#808080] space-y-0.5">
-                      <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
-                      <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
+                      {sceneAnalysisResult?.dialogue?.hasDialogue ? (
+                        <>
+                          <li>• {sceneAnalysisResult.shotBreakdown?.totalShots || 3} videos ({sceneAnalysisResult.shotBreakdown?.shots?.filter((s: any) => s.type === 'establishing').length || 1} establishing + {sceneAnalysisResult.shotBreakdown?.shots?.filter((s: any) => s.type === 'dialogue').length || 2} dialogue shots)</li>
+                          <li>• {qualityTier === 'premium' ? 'Premium 4K establishing shot, optimized dialogue videos' : 'Professional 1080p quality'}</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
+                          <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
+                        </>
+                      )}
                       <li>• {duration} each</li>
                       <li>• Perfect consistency across all clips</li>
                     </ul>
