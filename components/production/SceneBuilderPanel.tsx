@@ -1086,7 +1086,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       return;
     }
     
-    // Check if this is a dialogue scene
+    // PRIORITY 1: Check Scene Analyzer result (most accurate - uses backend analysis)
+    if (sceneAnalysisResult?.dialogue?.hasDialogue) {
+      // Scene Analyzer detected dialogue - use dialogue generation endpoint
+      console.log('[SceneBuilderPanel] Scene Analyzer detected dialogue, routing to /api/dialogue/generate');
+      await handleDialogueGeneration({
+        hasDialogue: true,
+        characterName: sceneAnalysisResult.characters?.[0]?.name,
+        dialogue: sceneDescription.trim() // Use full scene description for dialogue extraction
+      });
+      return;
+    }
+    
+    // PRIORITY 2: Fallback to simple dialogue detection (for manual entry without analysis)
     const dialogueInfo = detectDialogue(sceneDescription);
     
     if (dialogueInfo.hasDialogue) {
@@ -1103,22 +1115,33 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
    * Handle dialogue video generation (Phase 1: Core Integration)
    */
   async function handleDialogueGeneration(dialogueInfo: { hasDialogue: boolean; characterName?: string; dialogue?: string }) {
+    // Get character ID from scene analyzer or selected character
+    const characterId = sceneAnalysisResult?.characters?.[0]?.id || selectedCharacterId;
+    
     // Validate character selection
-    if (!selectedCharacterId) {
+    if (!characterId) {
       toast.error('Please select a character for dialogue generation', {
         description: 'Dialogue scenes require a character to be selected'
       });
       return;
     }
     
-    // Validate character image (required for dialogue)
-    const characterImageUrl = referenceImages[0] 
-      ? await uploadCharacterImage(referenceImages[0] as File)
-      : null;
+    // Get character image from scene analyzer references or manual upload
+    let characterImageUrl: string | null = null;
+    
+    // PRIORITY 1: Use references from Scene Analyzer (already have presigned URLs)
+    if (sceneAnalysisResult?.characters?.[0]?.references && sceneAnalysisResult.characters[0].references.length > 0) {
+      characterImageUrl = sceneAnalysisResult.characters[0].references[0];
+      console.log('[SceneBuilderPanel] Using character reference from Scene Analyzer');
+    } 
+    // PRIORITY 2: Use manually uploaded image
+    else if (referenceImages[0]) {
+      characterImageUrl = await uploadCharacterImage(referenceImages[0] as File);
+    }
     
     if (!characterImageUrl) {
       toast.error('Character image required', {
-        description: 'Please upload a character reference image for dialogue generation'
+        description: 'Please ensure character has references in Character Bank or upload a character reference image'
       });
       return;
     }
@@ -1129,12 +1152,32 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
       
-      // Extract dialogue text (use detected or full scene description)
-      const dialogueText = dialogueInfo.dialogue || sceneDescription.trim();
+      // Extract dialogue text from Scene Analyzer dialogue blocks or fallback
+      let dialogueText: string;
+      if (sceneAnalysisResult?.dialogue?.blocks && sceneAnalysisResult.dialogue.blocks.length > 0) {
+        // Use dialogue blocks from Scene Analyzer (most accurate)
+        const characterDialogueBlocks = sceneAnalysisResult.dialogue.blocks.filter((block: any) => {
+          const blockCharName = block.character?.toUpperCase().trim();
+          const charName = sceneAnalysisResult.characters?.[0]?.name?.toUpperCase().trim();
+          return blockCharName === charName || blockCharName?.includes(charName || '') || charName?.includes(blockCharName || '');
+        });
+        
+        if (characterDialogueBlocks.length > 0) {
+          // Combine all dialogue for this character
+          dialogueText = characterDialogueBlocks.map((block: any) => block.dialogue || '').join(' ').trim();
+          console.log(`[SceneBuilderPanel] Using ${characterDialogueBlocks.length} dialogue blocks from Scene Analyzer`);
+        } else {
+          // Fallback to full scene description
+          dialogueText = sceneDescription.trim();
+        }
+      } else {
+        // Fallback to detected dialogue or full scene description
+        dialogueText = dialogueInfo.dialogue || sceneDescription.trim();
+      }
       
       // Prepare dialogue generation request
       const dialogueRequest: any = {
-        characterId: selectedCharacterId,
+        characterId: characterId, // Use character from scene analyzer or selected
         screenplayId: projectId,
         dialogue: dialogueText,
         mode: dialogueMode,
