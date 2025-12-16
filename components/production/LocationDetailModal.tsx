@@ -13,7 +13,7 @@
  * Consistent with CharacterDetailModal for scene consistency and AI generation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -270,33 +270,6 @@ export function LocationDetailModal({
     }
   };
   
-  // 🔥 SIMPLIFIED: Get Creation images directly from location prop (backend already provides this)
-  const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
-  
-  // Add baseReference (first Creation image)
-  if (location.baseReference) {
-    allCreationImages.push({
-      id: location.baseReference.id,
-      imageUrl: location.baseReference.imageUrl,
-      label: `${location.name} - Base Reference`,
-      isBase: true,
-      s3Key: location.baseReference.s3Key
-    });
-  }
-  
-  // Add additional Creation images from Location Bank API
-  if (location.creationImages && Array.isArray(location.creationImages)) {
-    location.creationImages.forEach((img: LocationReference) => {
-      allCreationImages.push({
-        id: img.id,
-        imageUrl: img.imageUrl,
-        label: `${location.name} - Reference`,
-        isBase: false,
-        s3Key: img.s3Key
-      });
-    });
-  }
-  
   // 🔥 SIMPLIFIED: Get angleVariations directly from location prop (backend already provides this with presigned URLs)
   // Backend LocationBankService already enriches angleVariations with imageUrl and all metadata
   const angleVariations = location.angleVariations || [];
@@ -328,44 +301,78 @@ export function LocationDetailModal({
     return a.localeCompare(b);
   });
   
-  // Convert angleVariations to image objects for gallery
-  const allImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; isRegenerated?: boolean; metadata?: any }> = [...allCreationImages];
-  
-  angleVariations.forEach((variation: any) => {
-    // Extract isRegenerated from metadata (like Characters do)
-    const isRegenerated = variation.metadata?.isRegenerated || false;
+  // 🔥 FIX: Make allImages reactive to viewMode changes using useMemo
+  // This ensures the image URLs update when user toggles between square and cropped views
+  const allImages = useMemo(() => {
+    const images: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; isRegenerated?: boolean; metadata?: any }> = [];
     
-    // 🔥 NEW: Get image URL based on view mode (cropped 16:9 or original square)
-    // Priority: user-cropped > auto-cropped > original
-    const getImageUrl = () => {
-      if (viewMode === 'original') {
-        // Show original square version
-        return variation.metadata?.originalImageUrl || variation.imageUrl || '';
-      } else {
-        // Show cropped 16:9 version
-        // Priority: user-cropped > auto-cropped > original
-        return variation.metadata?.cropped16_9ImageUrl || // User-cropped (if exists)
-               variation.metadata?.croppedImageUrl || // User-cropped fallback
-               variation.metadata?.autoCropped16_9ImageUrl || // Auto-cropped fallback
-               variation.imageUrl || ''; // Original fallback
-      }
-    };
+    // Add Creation images (baseReference + creationImages)
+    if (location.baseReference) {
+      images.push({
+        id: location.baseReference.id,
+        imageUrl: location.baseReference.imageUrl,
+        label: `${location.name} - Base Reference`,
+        isBase: true,
+        s3Key: location.baseReference.s3Key
+      });
+    }
     
-    allImages.push({
-      id: variation.id || `ref_${variation.s3Key}`,
-      imageUrl: getImageUrl(),
-      label: `${location.name} - ${variation.angle} view`,
-      isBase: false,
-      s3Key: variation.s3Key,
-      isRegenerated: isRegenerated,
-      metadata: {
-        ...variation.metadata,
-        originalImageUrl: variation.metadata?.originalImageUrl || variation.imageUrl,
-        croppedImageUrl: variation.metadata?.croppedImageUrl || variation.imageUrl,
-        variation: variation // Store full variation for crop modal
-      }
+    if (location.creationImages && Array.isArray(location.creationImages)) {
+      location.creationImages.forEach((img: LocationReference) => {
+        images.push({
+          id: img.id,
+          imageUrl: img.imageUrl,
+          label: `${location.name} - Reference`,
+          isBase: false,
+          s3Key: img.s3Key
+        });
+      });
+    }
+    
+    // Add angle variations with viewMode-aware URLs
+    angleVariations.forEach((variation: any) => {
+      // Extract isRegenerated from metadata (like Characters do)
+      const isRegenerated = variation.metadata?.isRegenerated || false;
+      
+      // 🔥 FIX: Get image URL based on view mode (cropped 16:9 or original square)
+      // Note: variation.imageUrl is the PRIMARY display URL (cropped 16:9 after auto-crop)
+      // So we need to use metadata to get the original square version
+      const getImageUrl = () => {
+        if (viewMode === 'original') {
+          // Show original square version
+          // 🔥 FIX: Don't fallback to variation.imageUrl - that's the cropped version!
+          // Only use originalImageUrl from metadata, or empty string if not available
+          return variation.metadata?.originalImageUrl || '';
+        } else {
+          // Show cropped 16:9 version
+          // Priority: user-cropped > auto-cropped > primary display (variation.imageUrl)
+          return variation.metadata?.cropped16_9ImageUrl || // User-cropped (if exists)
+                 variation.metadata?.croppedImageUrl || // User-cropped fallback
+                 variation.metadata?.autoCropped16_9ImageUrl || // Auto-cropped fallback
+                 variation.imageUrl || ''; // Primary display (already cropped 16:9)
+        }
+      };
+      
+      images.push({
+        id: variation.id || `ref_${variation.s3Key}`,
+        imageUrl: getImageUrl(),
+        label: `${location.name} - ${variation.angle} view`,
+        isBase: false,
+        s3Key: variation.s3Key,
+        isRegenerated: isRegenerated,
+        metadata: {
+          ...variation.metadata,
+          // 🔥 FIX: Store correct URLs - don't use variation.imageUrl as fallback for original
+          // variation.imageUrl is the cropped 16:9 version (primary display)
+          originalImageUrl: variation.metadata?.originalImageUrl, // Only use metadata, no fallback
+          croppedImageUrl: variation.metadata?.cropped16_9ImageUrl || variation.metadata?.autoCropped16_9ImageUrl || variation.imageUrl,
+          variation: variation // Store full variation for crop modal
+        }
+      });
     });
-  });
+    
+    return images;
+  }, [viewMode, location.angleVariations, location.baseReference, location.creationImages, location.name]);
   
   // Convert type for display
   const typeLabel = location.type === 'interior' ? 'INT.' : 
