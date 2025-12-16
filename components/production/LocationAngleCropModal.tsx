@@ -186,7 +186,7 @@ export function LocationAngleCropModal({
                   image={originalImageUrl}
                   crop={crop}
                   zoom={zoom}
-                  aspect={aspectRatio === '21:9' ? 21 / 9 : 16 / 9} // Dynamic aspect ratio
+                  aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
                   onCropChange={setCrop}
                   onZoomChange={setZoom}
                   onCropComplete={onCropCompleteCallback}
