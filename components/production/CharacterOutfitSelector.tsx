@@ -32,7 +32,6 @@ export function CharacterOutfitSelector({
   className = ''
 }: CharacterOutfitSelectorProps) {
   const [localSelectedOutfit, setLocalSelectedOutfit] = useState<string>(selectedOutfit || 'default');
-  const [customOutfit, setCustomOutfit] = useState<string>('');
 
   // Initialize with selectedOutfit or default
   useEffect(() => {
@@ -41,14 +40,12 @@ export function CharacterOutfitSelector({
       const isPreset = availableOutfits.includes(selectedOutfit);
       if (isPreset) {
         setLocalSelectedOutfit(selectedOutfit);
-        setCustomOutfit('');
       } else {
-        setLocalSelectedOutfit('custom');
-        setCustomOutfit(selectedOutfit);
+        // If not a preset, use default
+        setLocalSelectedOutfit('default');
       }
     } else {
       setLocalSelectedOutfit('default');
-      setCustomOutfit('');
     }
   }, [selectedOutfit, availableOutfits]);
 
@@ -56,21 +53,9 @@ export function CharacterOutfitSelector({
     setLocalSelectedOutfit(value);
     if (value === 'default') {
       onOutfitChange(characterId, undefined); // undefined means use default
-    } else if (value === 'custom') {
-      // Keep custom outfit value if already entered
-      if (customOutfit) {
-        onOutfitChange(characterId, customOutfit);
-      } else {
-        onOutfitChange(characterId, undefined);
-      }
     } else {
       onOutfitChange(characterId, value);
     }
-  };
-
-  const handleCustomOutfitChange = (value: string) => {
-    setCustomOutfit(value);
-    onOutfitChange(characterId, value || undefined);
   };
 
   // Determine if we should show dropdown or just display
@@ -88,62 +73,32 @@ export function CharacterOutfitSelector({
       </Label>
       
       {hasAnyOutfits ? (
-        <>
-          {hasMultipleOutfits ? (
-            // Multiple outfits - show dropdown
-            <select
-              value={localSelectedOutfit}
-              onChange={(e) => handleOutfitChange(e.target.value)}
-              className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-            >
-              <option value="default">
-                Use Default {defaultOutfit ? `(${defaultOutfit})` : ''}
+        hasMultipleOutfits ? (
+          // Multiple outfits - show dropdown
+          <select
+            value={localSelectedOutfit}
+            onChange={(e) => handleOutfitChange(e.target.value)}
+            className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+          >
+            <option value="default">
+              Use Default {defaultOutfit ? `(${defaultOutfit})` : ''}
+            </option>
+            {availableOutfits.map((outfit) => (
+              <option key={outfit} value={outfit}>
+                {outfit}
               </option>
-              {availableOutfits.map((outfit) => (
-                <option key={outfit} value={outfit}>
-                  {outfit}
-                </option>
-              ))}
-              <option value="custom">Custom Outfit...</option>
-            </select>
-          ) : (
-            // Single outfit - show as read-only with option to override
-            <div className="flex items-center gap-2">
-              <div className="flex-1 px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
-                {defaultOutfit || availableOutfits[0] || 'No outfit set'}
-              </div>
-              <button
-                onClick={() => handleOutfitChange('custom')}
-                className="px-2 py-1 text-[10px] text-[#DC143C] hover:text-[#B91238] transition-colors"
-              >
-                Override
-              </button>
-            </div>
-          )}
-          
-          {localSelectedOutfit === 'custom' && (
-            <input
-              type="text"
-              value={customOutfit}
-              onChange={(e) => handleCustomOutfitChange(e.target.value)}
-              placeholder="Enter custom outfit description..."
-              className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] placeholder-[#3F3F46] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-            />
-          )}
-        </>
+            ))}
+          </select>
+        ) : (
+          // Single outfit - show as read-only
+          <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
+            {defaultOutfit || availableOutfits[0] || 'No outfit set'}
+          </div>
+        )
       ) : (
         // No outfits available
-        <div className="space-y-2">
-          <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
-            No outfits available - using default references
-          </div>
-          <input
-            type="text"
-            value={customOutfit}
-            onChange={(e) => handleCustomOutfitChange(e.target.value)}
-            placeholder="Enter custom outfit for virtual try-on..."
-            className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] placeholder-[#3F3F46] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-          />
+        <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
+          No outfits available - using default references
         </div>
       )}
     </div>
