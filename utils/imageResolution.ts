@@ -23,7 +23,7 @@ export async function checkImageResolution(imageUrl: string): Promise<'4K' | '10
       if (width >= 3840 || height >= 2160) {
         resolve('4K');
       }
-      // 1080p is typically 1920x1080 (Full HD) or 2048x2048
+      // 1080p is typically 1920x1080 (Full HD) - Note: Runway Gen-4 maxes out at 1920x1080, not 2K
       else if (width >= 1920 || height >= 1080) {
         resolve('1080p');
       }
