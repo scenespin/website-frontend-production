@@ -22,7 +22,8 @@ interface LocationAngleCropModalProps {
   locationId: string;
   screenplayId: string;
   onCropComplete: () => void; // Callback to refresh location data
-  defaultAspectRatio?: '16:9' | '21:9'; // Default aspect ratio (defaults to 16:9)
+  // 🔥 FUTURE: 21:9 support - commented out until ultrawide is fully supported
+  // defaultAspectRatio?: '16:9' | '21:9'; // Default aspect ratio (defaults to 16:9)
 }
 
 interface CropArea {
@@ -39,8 +40,8 @@ export function LocationAngleCropModal({
   originalImageUrl,
   locationId,
   screenplayId,
-  onCropComplete,
-  defaultAspectRatio = '16:9'
+  onCropComplete
+  // 🔥 FUTURE: defaultAspectRatio = '16:9' - commented out until 21:9 is fully supported
 }: LocationAngleCropModalProps) {
   const { getToken } = useAuth();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -48,7 +49,9 @@ export function LocationAngleCropModal({
   const [isCropping, setIsCropping] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9'>(defaultAspectRatio);
+  // 🔥 FUTURE: 21:9 support - commented out until ultrawide is fully supported
+  // const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9'>(defaultAspectRatio);
+  const aspectRatio: '16:9' | '21:9' = '16:9'; // Only 16:9 supported for now
 
   // Store crop area when user adjusts it
   const onCropCompleteCallback = useCallback((croppedArea: CropArea, croppedAreaPixels: CropArea) => {
@@ -88,8 +91,9 @@ export function LocationAngleCropModal({
             cropX,
             cropY,
             cropWidth,
-            cropHeight,
-            aspectRatio // Include aspect ratio in request
+            cropHeight
+            // 🔥 FUTURE: aspectRatio - commented out until 21:9 is fully supported
+            // aspectRatio
           })
         }
       );
@@ -136,9 +140,9 @@ export function LocationAngleCropModal({
               <div className="flex items-center justify-between p-4 border-b border-[#3F3F46]">
                 <div className="flex items-center gap-4">
                   <h2 className="text-lg font-semibold text-[#FFFFFF]">
-                    Custom Crop
+                    Custom Crop - 16:9
                   </h2>
-                  {/* Aspect Ratio Selector */}
+                  {/* 🔥 FUTURE: Aspect Ratio Selector - commented out until 21:9 ultrawide is fully supported
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setAspectRatio('16:9')}
@@ -161,6 +165,7 @@ export function LocationAngleCropModal({
                       21:9
                     </button>
                   </div>
+                  */}
                 </div>
                 <button
                   onClick={onClose}
@@ -226,7 +231,8 @@ export function LocationAngleCropModal({
                   </button>
                 </div>
                 <p className="text-xs text-[#6B7280] text-center">
-                  Drag to reposition • Use zoom to fine-tune • Crop area: {aspectRatio} ({aspectRatio === '21:9' ? 'Ultrawide' : 'Widescreen'})
+                  Drag to reposition • Use zoom to fine-tune • Crop area: 16:9 (Widescreen)
+                  {/* 🔥 FUTURE: {aspectRatio === '21:9' ? 'Ultrawide' : 'Widescreen'} */}
                 </p>
               </div>
             </motion.div>

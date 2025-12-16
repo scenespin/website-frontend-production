@@ -322,17 +322,19 @@ export function LocationDetailModal({
     // Extract isRegenerated from metadata (like Characters do)
     const isRegenerated = variation.metadata?.isRegenerated || false;
     
-    // 🔥 NEW: Get image URL based on view mode (cropped 16:9/21:9 or original square)
+    // 🔥 NEW: Get image URL based on view mode (cropped 16:9 or original square)
+    // Priority: user-cropped > auto-cropped > original
     const getImageUrl = () => {
       if (viewMode === 'original') {
         // Show original square version
         return variation.metadata?.originalImageUrl || variation.imageUrl || '';
       } else {
-        // Show cropped version (16:9 or 21:9, default to 16:9)
-        // Check if 21:9 version exists, otherwise use 16:9
-        const cropped21_9 = variation.metadata?.cropped21_9ImageUrl;
-        const cropped16_9 = variation.metadata?.croppedImageUrl;
-        return cropped21_9 || cropped16_9 || variation.imageUrl || '';
+        // Show cropped 16:9 version
+        // Priority: user-cropped > auto-cropped > original
+        return variation.metadata?.cropped16_9ImageUrl || // User-cropped (if exists)
+               variation.metadata?.croppedImageUrl || // User-cropped fallback
+               variation.metadata?.autoCropped16_9ImageUrl || // Auto-cropped fallback
+               variation.imageUrl || ''; // Original fallback
       }
     };
     
