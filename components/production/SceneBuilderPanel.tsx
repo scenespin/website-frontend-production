@@ -1353,11 +1353,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         workflowRequest.sceneId = selectedSceneId;
       }
       
-      // Phase 3: Add outfit selection if character is selected
-      if (selectedCharacterId && selectedOutfit !== undefined) {
-        // undefined means use character default, otherwise use selected outfit
-        workflowRequest.typicalClothing = selectedOutfit;
-      }
+      // Note: Outfit selection is now handled per-character in the scene analysis phase
+      // Character references are already filtered by outfit when fetched from the backend
       
       // Feature 0109: Style matching support (if backend supports it)
       if (selectedProfile) {
