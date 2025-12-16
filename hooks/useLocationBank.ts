@@ -25,6 +25,27 @@ export interface LocationReference {
   generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
   creditsUsed: number;
   createdAt: string;
+  // 🔥 NEW: Generation metadata for exact regeneration
+  metadata?: {
+    generationPrompt?: string;
+    providerId?: string;
+    quality?: 'standard' | 'high-quality';
+    referenceImageUrls?: string[];
+    generatedAt?: string;
+    isRegenerated?: boolean;
+    // 🔥 NEW: Crop-related metadata for location images
+    originalS3Key?: string; // Original square 4096x4096 version S3 key
+    originalImageUrl?: string; // Original square URL (for UI toggle)
+    autoCropped16_9S3Key?: string; // Auto-cropped 16:9 version S3 key
+    autoCropped16_9ImageUrl?: string; // Auto-cropped 16:9 URL (for fallback)
+    cropped16_9S3Key?: string; // Cropped 16:9 version S3 key (user or auto)
+    cropped16_9ImageUrl?: string; // Cropped 16:9 URL (user or auto)
+    croppedImageUrl?: string; // Legacy field for cropped URL (deprecated, use cropped16_9ImageUrl)
+    userCropped?: boolean; // Flag indicating if this was user-defined crop
+    cropMethod?: 'center' | 'user-defined'; // Crop method used
+    aspectRatio?: '16:9' | '21:9'; // Final aspect ratio shown to user
+    autoCropped?: boolean; // Flag indicating this was auto-cropped
+  };
 }
 
 export interface LocationProfile {

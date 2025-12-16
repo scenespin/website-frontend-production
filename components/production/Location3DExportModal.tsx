@@ -24,6 +24,27 @@ interface LocationReference {
   generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
   creditsUsed: number;
   createdAt: string;
+  // 🔥 NEW: Generation metadata for exact regeneration
+  metadata?: {
+    generationPrompt?: string;
+    providerId?: string;
+    quality?: 'standard' | 'high-quality';
+    referenceImageUrls?: string[];
+    generatedAt?: string;
+    isRegenerated?: boolean;
+    // 🔥 NEW: Crop-related metadata for location images
+    originalS3Key?: string;
+    originalImageUrl?: string;
+    autoCropped16_9S3Key?: string;
+    autoCropped16_9ImageUrl?: string;
+    cropped16_9S3Key?: string;
+    cropped16_9ImageUrl?: string;
+    croppedImageUrl?: string;
+    userCropped?: boolean;
+    cropMethod?: 'center' | 'user-defined';
+    aspectRatio?: '16:9' | '21:9';
+    autoCropped?: boolean;
+  };
 }
 
 interface LocationProfile {

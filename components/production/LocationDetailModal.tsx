@@ -66,6 +66,19 @@ interface LocationReference {
     quality?: 'standard' | 'high-quality';
     referenceImageUrls?: string[];
     generatedAt?: string;
+    isRegenerated?: boolean;
+    // 🔥 NEW: Crop-related metadata for location images
+    originalS3Key?: string; // Original square 4096x4096 version S3 key
+    originalImageUrl?: string; // Original square URL (for UI toggle)
+    autoCropped16_9S3Key?: string; // Auto-cropped 16:9 version S3 key
+    autoCropped16_9ImageUrl?: string; // Auto-cropped 16:9 URL (for fallback)
+    cropped16_9S3Key?: string; // Cropped 16:9 version S3 key (user or auto)
+    cropped16_9ImageUrl?: string; // Cropped 16:9 URL (user or auto)
+    croppedImageUrl?: string; // Legacy field for cropped URL (deprecated, use cropped16_9ImageUrl)
+    userCropped?: boolean; // Flag indicating if this was user-defined crop
+    cropMethod?: 'center' | 'user-defined'; // Crop method used
+    aspectRatio?: '16:9' | '21:9'; // Final aspect ratio shown to user
+    autoCropped?: boolean; // Flag indicating this was auto-cropped
   };
 }
 
@@ -1045,8 +1058,10 @@ export function LocationDetailModal({
         screenplayId={screenplayId}
         onCropComplete={async () => {
           // Refresh location data
-          queryClient.invalidateQueries(['location-bank', screenplayId]);
-          queryClient.invalidateQueries(['location', location.locationId]);
+          queryClient.invalidateQueries({ queryKey: ['location-bank', screenplayId] });
+          queryClient.invalidateQueries({ queryKey: ['location', location.locationId] });
+          queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
           if (onUpdate) {
             const token = await getToken({ template: 'wryda-backend' });
             if (token) {
@@ -1055,7 +1070,8 @@ export function LocationDetailModal({
                 `${BACKEND_API_URL}/api/location-bank/${location.locationId}?screenplayId=${screenplayId}`,
                 { headers: { 'Authorization': `Bearer ${token}` } }
               ).then(r => r.json());
-              onUpdate(updatedLocation);
+              // onUpdate expects (locationId, updates) signature
+              onUpdate(location.locationId, updatedLocation);
             }
           }
         }}
