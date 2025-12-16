@@ -91,10 +91,10 @@ export function SceneSelector({
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {/* Scene Dropdown */}
       <div>
-        <label className="text-sm font-medium mb-2 block">
+        <label className="text-xs font-medium mb-1 block text-[#808080]">
           Select Scene
         </label>
         {isMobile ? (
@@ -102,7 +102,7 @@ export function SceneSelector({
           <select
             value={selectedSceneId || ''}
             onChange={(e) => onSceneSelect(e.target.value)}
-            className="w-full px-4 py-3 bg-[#141414] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+            className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
             style={{ colorScheme: 'dark' }}
           >
             {scenes.map((scene) => (
@@ -117,7 +117,7 @@ export function SceneSelector({
             <select
               value={selectedSceneId || ''}
               onChange={(e) => onSceneSelect(e.target.value)}
-              className="w-full px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] appearance-none pr-10"
+              className="w-full px-3 py-1.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] appearance-none pr-8"
               style={{ colorScheme: 'dark' }}
             >
               {scenes.map((scene) => (
@@ -126,25 +126,25 @@ export function SceneSelector({
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#808080] pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#808080] pointer-events-none" />
           </div>
         )}
       </div>
 
       {/* Selected Scene Display */}
       {selectedScene && (
-        <Card className="border-2 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-4">
+        <Card className="border border-purple-700/50 bg-[#0A0A0A]">
+          <CardContent className="p-2.5">
             {/* Scene Header */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-1">
+            <div className="flex items-start justify-between mb-1.5">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-xs mb-0.5 text-[#FFFFFF] truncate">
                   {selectedScene.heading || 'Untitled Scene'}
                 </h3>
                 {selectedScene.fountain?.tags?.location && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <MapPin className="w-4 h-4" />
-                    <span>
+                  <div className="flex items-center gap-1 text-[10px] text-[#808080]">
+                    <MapPin className="w-2.5 h-2.5" />
+                    <span className="truncate">
                       {(() => {
                         const location = screenplay.locations?.find(l => l.id === selectedScene.fountain?.tags?.location);
                         return location ? location.name : selectedScene.heading?.split(' - ')[0] || 'Unknown';
@@ -154,7 +154,7 @@ export function SceneSelector({
                 )}
               </div>
               {selectedScene.order && (
-                <Badge variant="secondary" className="flex-shrink-0">
+                <Badge variant="secondary" className="flex-shrink-0 text-[9px] px-1 py-0 h-4">
                   Scene {selectedScene.order}
                 </Badge>
               )}
@@ -162,27 +162,27 @@ export function SceneSelector({
 
             {/* Scene Synopsis Preview */}
             {selectedScene.synopsis && (
-              <div className="mb-3">
-                <p className="text-sm text-muted-foreground mb-1">Scene Synopsis:</p>
-                <div className="p-3 bg-muted/50 rounded-lg text-sm max-h-32 overflow-y-auto">
-                  {selectedScene.synopsis.substring(0, 300)}
-                  {selectedScene.synopsis.length > 300 && '...'}
+              <div className="mb-1.5">
+                <p className="text-[10px] text-[#808080] mb-0.5">Synopsis:</p>
+                <div className="p-2 bg-[#141414] rounded text-[10px] max-h-20 overflow-y-auto text-[#808080]">
+                  {selectedScene.synopsis.substring(0, 200)}
+                  {selectedScene.synopsis.length > 200 && '...'}
                 </div>
               </div>
             )}
 
             {/* Characters in Scene */}
             {selectedScene.fountain?.tags?.characters && selectedScene.fountain.tags.characters.length > 0 && (
-              <div className="mb-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Characters:</span>
+              <div className="mb-1.5">
+                <div className="flex items-center gap-1 mb-1">
+                  <Users className="w-2.5 h-2.5 text-[#808080]" />
+                  <span className="text-[10px] font-medium text-[#808080]">Characters:</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {selectedScene.fountain.tags.characters.map((charId) => {
                     const character = screenplay.characters?.find(c => c.id === charId);
                     return character ? (
-                      <Badge key={charId} variant="outline" className="text-xs">
+                      <Badge key={charId} variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080]">
                         {character.name}
                       </Badge>
                     ) : null;
@@ -192,22 +192,23 @@ export function SceneSelector({
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-2 mt-4">
+            <div className="flex items-center gap-1.5 mt-2">
               <Button
                 onClick={() => onUseScene(selectedScene)}
-                className="flex-1"
+                className="flex-1 h-6 text-[10px]"
                 size="sm"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
+                <CheckCircle className="w-3 h-3 mr-1" />
                 Use This Scene
               </Button>
               <Button
                 onClick={handleEditScene}
                 variant="outline"
                 size="sm"
+                className="h-6 text-[10px] px-2"
               >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Scene
+                <Edit className="w-3 h-3 mr-1" />
+                Edit
               </Button>
             </div>
           </CardContent>

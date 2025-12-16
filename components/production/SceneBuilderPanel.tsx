@@ -1964,38 +1964,38 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             {/* Step 1: Scene Selection */}
             {currentStep === 1 && (
               <Card className="bg-[#141414] border-[#3F3F46]">
-                <CardHeader>
-                  <CardTitle className="text-lg text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
-                  <CardDescription className="text-[#808080]">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
+                  <CardDescription className="text-[10px] text-[#808080]">
                     Choose a scene from your screenplay or enter one manually
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2 pt-2">
                 {/* Input Method Toggle */}
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium">Input Method:</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-[#808080]">Input Method:</label>
                   <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-1 cursor-pointer">
                       <input
                         type="radio"
                         name="inputMethod"
                         value="database"
                         checked={inputMethod === 'database'}
                         onChange={() => setInputMethod('database')}
-                        className="w-4 h-4"
+                        className="w-3 h-3"
                       />
-                      <span className="text-sm">From Database</span>
+                      <span className="text-xs">From Database</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-1 cursor-pointer">
                       <input
                         type="radio"
                         name="inputMethod"
                         value="manual"
                         checked={inputMethod === 'manual'}
                         onChange={() => setInputMethod('manual')}
-                        className="w-4 h-4"
+                        className="w-3 h-3"
                       />
-                      <span className="text-sm">Manual Entry</span>
+                      <span className="text-xs">Manual Entry</span>
                     </label>
                   </div>
                 </div>
@@ -2129,7 +2129,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   />
                 )}
                 </CardContent>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 pb-3">
                   <Button
                     onClick={() => {
                       if (!sceneDescription.trim()) {
@@ -2139,10 +2139,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       setCurrentStep(2);
                     }}
                     disabled={!sceneDescription.trim()}
-                    className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white"
+                    className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-8 text-xs"
                   >
                     Continue to Step 2
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-3 h-3 ml-1.5" />
                   </Button>
                 </CardContent>
               </Card>

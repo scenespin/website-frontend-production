@@ -63,61 +63,34 @@ export function ScreenplayStatusBanner({
     );
   }
 
-  // Connected State
+  // Connected State - Streamlined
   return (
-    <div className={`bg-green-900/30 border border-green-700/50 rounded-md p-2 md:p-3 ${className}`}>
-      <div className="flex items-start gap-2">
-        <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <h3 className="text-xs md:text-sm font-medium text-green-200">
-              Connected to screenplay
-            </h3>
-            {title && (
-              <span className="text-sm text-green-300/80 font-medium">
-                "{title}"
-              </span>
-            )}
-          </div>
-          
-          {/* Stats */}
-          <div className="flex items-center gap-3 text-xs md:text-sm text-green-300/90 mb-2">
-            <div className="flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              <span>{sceneCount} {sceneCount === 1 ? 'scene' : 'scenes'}</span>
-            </div>
-            <span>•</span>
-            <span>{characterCount} {characterCount === 1 ? 'character' : 'characters'}</span>
-            <span>•</span>
-            <span>{locationCount} {locationCount === 1 ? 'location' : 'locations'}</span>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            {onViewEditor && (
-              <Button
-                onClick={onViewEditor}
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs bg-green-900/50 border-green-700 text-green-200 hover:bg-green-900/70"
-              >
-                <ExternalLink className="w-3 h-3 mr-1" />
-                View Editor
-              </Button>
-            )}
-            {onRescan && (
-              <Button
-                onClick={onRescan}
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-green-300 hover:text-green-200 hover:bg-green-900/30"
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Rescan
-              </Button>
-            )}
+    <div className={`bg-green-900/30 border border-green-700/50 rounded-md p-1.5 ${className}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
+          <div className="flex items-center gap-1 text-[10px] text-green-200/90 flex-wrap">
+            <span className="font-medium">Connected</span>
+            {title && <span className="text-green-300/80">"{title}"</span>}
+            <span className="text-green-300/70">•</span>
+            <span className="text-green-300/80">{sceneCount} scenes</span>
+            <span className="text-green-300/70">•</span>
+            <span className="text-green-300/80">{characterCount} characters</span>
+            <span className="text-green-300/70">•</span>
+            <span className="text-green-300/80">{locationCount} locations</span>
           </div>
         </div>
+        {onViewEditor && (
+          <Button
+            onClick={onViewEditor}
+            variant="outline"
+            size="sm"
+            className="h-5 px-1.5 text-[10px] bg-green-900/50 border-green-700 text-green-200 hover:bg-green-900/70 flex-shrink-0"
+          >
+            <ExternalLink className="w-2.5 h-2.5 mr-0.5" />
+            View Editor
+          </Button>
+        )}
       </div>
     </div>
   );
