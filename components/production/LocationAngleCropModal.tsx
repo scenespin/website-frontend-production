@@ -57,17 +57,69 @@ export function LocationAngleCropModal({
   // const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9'>(defaultAspectRatio);
   const aspectRatio: '16:9' | '21:9' = '16:9'; // Only 16:9 supported for now
 
-  // Reset state when modal opens/closes or image URL changes
+  // Fetch fresh presigned URL from S3 if originalImageUrl is missing or expired
   useEffect(() => {
     if (isOpen) {
-      setImageUrl(originalImageUrl || '');
-      setImageLoaded(false);
-      setImageError(false);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setCroppedAreaPixels(null);
+      const fetchImageUrl = async () => {
+        setImageLoaded(false);
+        setImageError(false);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+        setCroppedAreaPixels(null);
+
+        // If we have originalImageUrl, try it first
+        if (originalImageUrl) {
+          setImageUrl(originalImageUrl);
+          return;
+        }
+
+        // If no originalImageUrl but we have originalS3Key, fetch fresh presigned URL
+        if (originalS3Key && !originalImageUrl) {
+          try {
+            const token = await getToken({ template: 'wryda-backend' });
+            if (!token) {
+              setImageError(true);
+              return;
+            }
+
+            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+            // Use S3 download-url endpoint to get fresh presigned URL
+            const response = await fetch(
+              `${BACKEND_API_URL}/api/s3/download-url`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  s3Key: originalS3Key,
+                  expiresIn: 3600 // 1 hour
+                })
+              }
+            );
+
+            if (response.ok) {
+              const data = await response.json();
+              setImageUrl(data.downloadUrl || '');
+            } else {
+              const errorData = await response.json().catch(() => ({ message: 'Failed to fetch presigned URL' }));
+              console.error('Failed to fetch presigned URL:', errorData.message || response.statusText);
+              setImageError(true);
+            }
+          } catch (error) {
+            console.error('Error fetching presigned URL:', error);
+            setImageError(true);
+          }
+        } else if (!originalImageUrl && !originalS3Key) {
+          // No URL and no S3 key - show error
+          setImageError(true);
+        }
+      };
+
+      fetchImageUrl();
     }
-  }, [isOpen, originalImageUrl]);
+  }, [isOpen, originalImageUrl, originalS3Key, getToken]);
 
   // Store crop area when user adjusts it
   const onCropCompleteCallback = useCallback((croppedArea: CropArea, croppedAreaPixels: CropArea) => {
@@ -205,12 +257,45 @@ export function LocationAngleCropModal({
                 )}
                 {imageUrl && !imageError && (
                   <>
-                    {/* Hidden image to detect load errors */}
+                    {/* Hidden image to detect load errors and fetch fresh URL if expired */}
                     <img
                       src={imageUrl}
                       alt=""
-                      onError={() => {
-                        console.error('Failed to load image:', imageUrl);
+                      onError={async () => {
+                        console.error('Failed to load image, attempting to fetch fresh presigned URL:', imageUrl);
+                        // If image fails to load and we have originalS3Key, try fetching fresh URL
+                        if (originalS3Key) {
+                          try {
+                            const token = await getToken({ template: 'wryda-backend' });
+                            if (token) {
+                              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                              const response = await fetch(
+                                `${BACKEND_API_URL}/api/s3/download-url`,
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({
+                                    s3Key: originalS3Key,
+                                    expiresIn: 3600
+                                  })
+                                }
+                              );
+
+                              if (response.ok) {
+                                const data = await response.json();
+                                setImageUrl(data.downloadUrl || '');
+                                setImageError(false);
+                                return; // Retry with fresh URL
+                              }
+                            }
+                          } catch (error) {
+                            console.error('Error fetching fresh presigned URL:', error);
+                          }
+                        }
+                        // If we get here, couldn't fetch fresh URL or no S3 key
                         setImageError(true);
                         setImageLoaded(false);
                       }}

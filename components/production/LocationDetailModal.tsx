@@ -495,15 +495,12 @@ export function LocationDetailModal({
                   {/* Main Image Display */}
                   {allImages.length > 0 ? (
                     <div className="mb-6">
+                      {/* 🔥 Force 16:9 aspect ratio - square images will show black bars on top/bottom */}
                       <div className="relative aspect-video bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] mb-4">
                         <img
                           src={allImages[selectedImageIndex]?.imageUrl}
                           alt={allImages[selectedImageIndex]?.label}
-                          className={`w-full h-full ${
-                            viewMode === 'cropped' 
-                              ? 'object-cover' // Cropped 16:9 fills the frame
-                              : 'object-contain' // Square original fits within frame
-                          }`}
+                          className="w-full h-full object-contain" // Always contain - square images will have black bars
                         />
                         {/* Aspect ratio indicator */}
                         <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 text-white text-xs rounded">
@@ -1062,7 +1059,7 @@ export function LocationDetailModal({
         isOpen={cropAngle !== null}
         onClose={() => setCropAngle(null)}
         angleId={cropAngle.angleId}
-        originalImageUrl={cropAngle.variation.metadata?.originalImageUrl || cropAngle.variation.imageUrl || ''}
+        originalImageUrl={cropAngle.variation.metadata?.originalImageUrl || ''}
         originalS3Key={cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key}
         locationId={location.locationId}
         screenplayId={screenplayId}
