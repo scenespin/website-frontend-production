@@ -37,7 +37,8 @@ export function CharacterOutfitSelector({
   useEffect(() => {
     if (selectedOutfit && selectedOutfit !== 'default') {
       // Check if it's a preset outfit
-      const isPreset = availableOutfits.includes(selectedOutfit);
+      const outfitsArray = availableOutfits || [];
+      const isPreset = outfitsArray.includes(selectedOutfit);
       if (isPreset) {
         setLocalSelectedOutfit(selectedOutfit);
       } else {
@@ -59,19 +60,36 @@ export function CharacterOutfitSelector({
   };
 
   // Determine if we should show dropdown or just display
-  const hasMultipleOutfits = availableOutfits.length > 1;
-  const hasAnyOutfits = availableOutfits.length > 0 || defaultOutfit;
+  // Use actual prop value, not default parameter, to detect if data has loaded
+  const outfitsArray = availableOutfits || [];
+  const hasMultipleOutfits = outfitsArray.length > 1;
+  const hasAnyOutfits = outfitsArray.length > 0 || defaultOutfit;
   
   // Debug logging
   useEffect(() => {
     console.log(`[CharacterOutfitSelector] ${characterName}:`, {
       availableOutfits,
-      availableOutfitsLength: availableOutfits?.length,
+      availableOutfitsProp: availableOutfits, // Show actual prop value
+      outfitsArray,
+      outfitsArrayLength: outfitsArray.length,
       defaultOutfit,
       hasMultipleOutfits,
-      hasAnyOutfits
+      hasAnyOutfits,
+      willShowDropdown: hasAnyOutfits && hasMultipleOutfits,
+      willShowNoOutfits: !hasAnyOutfits
     });
-  }, [characterName, availableOutfits, defaultOutfit, hasMultipleOutfits, hasAnyOutfits]);
+  }, [characterName, availableOutfits, defaultOutfit, hasMultipleOutfits, hasAnyOutfits, outfitsArray]);
+
+  // Log what will be rendered
+  useEffect(() => {
+    if (hasAnyOutfits && hasMultipleOutfits) {
+      console.log(`[CharacterOutfitSelector] ${characterName} RENDERING: Dropdown with ${outfitsArray.length} outfits`);
+    } else if (hasAnyOutfits && !hasMultipleOutfits) {
+      console.log(`[CharacterOutfitSelector] ${characterName} RENDERING: Single outfit display`);
+    } else {
+      console.warn(`[CharacterOutfitSelector] ${characterName} RENDERING: "No outfits available" message (hasAnyOutfits=${hasAnyOutfits}, outfitsArray.length=${outfitsArray.length})`);
+    }
+  }, [characterName, hasAnyOutfits, hasMultipleOutfits, outfitsArray.length]);
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -94,7 +112,7 @@ export function CharacterOutfitSelector({
             <option value="default">
               Use Default {defaultOutfit ? `(${defaultOutfit})` : ''}
             </option>
-            {availableOutfits.map((outfit) => (
+            {outfitsArray.map((outfit) => (
               <option key={outfit} value={outfit}>
                 {outfit}
               </option>
@@ -103,7 +121,7 @@ export function CharacterOutfitSelector({
         ) : (
           // Single outfit - show as read-only
           <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
-            {defaultOutfit || availableOutfits[0] || 'No outfit set'}
+            {defaultOutfit || outfitsArray[0] || 'No outfit set'}
           </div>
         )
       ) : (
