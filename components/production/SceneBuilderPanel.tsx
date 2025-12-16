@@ -2396,7 +2396,12 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       }`}
                     >
                       <div className="font-medium text-sm">Professional 1080p</div>
-                      <div className="text-xs text-[#808080] mt-1">100-125 credits</div>
+                      <div className="text-xs text-[#808080] mt-1">
+                        {sceneAnalysisResult?.dialogue?.hasDialogue 
+                          ? '105 credits'  // Dialogue scenes: fixed cost
+                          : '100-125 credits'  // Workflow scenes: base cost
+                        }
+                      </div>
                     </button>
                     
                     <button
@@ -2411,7 +2416,12 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         Premium 4K
                         <Sparkles className="w-4 h-4" />
                       </div>
-                      <div className="text-xs text-[#808080] mt-1">200-225 credits</div>
+                      <div className="text-xs text-[#808080] mt-1">
+                        {sceneAnalysisResult?.dialogue?.hasDialogue 
+                          ? '105 credits'  // Dialogue scenes: fixed cost (no 4K upscaling)
+                          : '200-225 credits'  // Workflow scenes: base + upscaling
+                        }
+                      </div>
                     </button>
                   </div>
                 </div>
