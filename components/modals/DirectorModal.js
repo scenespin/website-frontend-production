@@ -188,8 +188,8 @@ export default function DirectorModal({
         ? extractPreviousScene(editorContent, sceneContext.startLine)
         : null;
       
-      // Extract context before cursor for duplicate checking
-      const contextBefore = editorContent.substring(0, cursorPosition);
+      // Always extract context before cursor for duplicate checking (even if sceneContext is null)
+      const contextBefore = editorContent ? editorContent.substring(0, cursorPosition) : null;
       
       // Get character summaries for characters in scene
       const sceneCharacters = getCharactersInScene(characters || [], sceneContext);

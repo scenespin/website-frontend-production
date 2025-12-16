@@ -132,6 +132,16 @@ export default function DialogueModal({
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, isLoading, onClose]);
+  
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort();
+      setIsLoading(false);
+      setLoadingStage(null);
+      setAbortController(null);
+      toast('Generation cancelled');
+    }
+  };
 
   const toggleCharacter = (characterName) => {
     setSelectedCharacters(prev => 
