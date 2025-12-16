@@ -1201,23 +1201,45 @@ export function CharacterDetailModal({
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-2 block">
                           Default Outfit <span className="text-[#6B7280] normal-case">(for Scene Builder)</span>
                         </label>
-                        <input
-                          type="text"
-                          value={displayPhysicalAttributes.typicalClothing || ''}
-                          onChange={async (e) => {
-                            const newValue = e.target.value.trim() || undefined;
-                            await onUpdate(character.id, {
-                              physicalAttributes: {
-                                ...displayPhysicalAttributes,
-                                typicalClothing: newValue
-                              }
-                            });
-                          }}
-                          placeholder="e.g., business-casual, casual, formal"
-                          className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] placeholder-[#3F3F46] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-                        />
+                        {(() => {
+                          // Extract unique outfit names from character's references
+                          const outfitSet = new Set<string>();
+                          poseReferences.forEach(ref => {
+                            if (ref.outfitName && ref.outfitName !== 'default') {
+                              outfitSet.add(ref.outfitName);
+                            }
+                          });
+                          const availableOutfits = Array.from(outfitSet).sort();
+                          
+                          return availableOutfits.length > 0 ? (
+                            <select
+                              value={displayPhysicalAttributes.typicalClothing || ''}
+                              onChange={async (e) => {
+                                const newValue = e.target.value || undefined;
+                                await onUpdate(character.id, {
+                                  physicalAttributes: {
+                                    ...displayPhysicalAttributes,
+                                    typicalClothing: newValue
+                                  }
+                                });
+                              }}
+                              className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                            >
+                              <option value="">None (no default)</option>
+                              {availableOutfits.map((outfit) => (
+                                <option key={outfit} value={outfit}>
+                                  {outfit}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#808080]">
+                              No outfits available. Generate pose packages to create outfits.
+                            </div>
+                          );
+                        })()}
                         <p className="text-[10px] text-[#6B7280] mt-1">
-                          This will be used as the default outfit in Scene Builder. Should match one of the outfit names from your character's references.
+                          Select the default outfit to use in Scene Builder. New outfits are added when you create pose packages.
                         </p>
                       </div>
                       <div>
