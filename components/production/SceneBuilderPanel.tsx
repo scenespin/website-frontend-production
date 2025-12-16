@@ -556,6 +556,70 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     }
   }, [sceneAnalysisResult]);
   
+  // 🔥 NEW: Recover workflow execution on mount (if user navigated away and came back)
+  useEffect(() => {
+    async function recoverWorkflowExecution() {
+      // Only recover if we don't already have a workflowExecutionId
+      if (workflowExecutionId || isGenerating) return;
+      
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        
+        // Check localStorage for saved workflowExecutionId
+        const savedExecutionId = localStorage.getItem(`scene-builder-execution-${projectId}`);
+        if (savedExecutionId) {
+          console.log('[SceneBuilderPanel] Found saved workflow execution ID:', savedExecutionId);
+          
+          // Verify it still exists and is running
+          const response = await fetch(`/api/workflows/${savedExecutionId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.execution) {
+              const execution = data.execution;
+              
+              // Only recover if it's still running
+              if (execution.status === 'running' || execution.status === 'queued' || execution.status === 'awaiting_user_decision') {
+                console.log('[SceneBuilderPanel] ✅ Recovered workflow execution:', savedExecutionId, execution.status);
+                setWorkflowExecutionId(savedExecutionId);
+                setIsGenerating(true);
+                setWorkflowStatus({
+                  id: execution.executionId,
+                  status: execution.status,
+                  currentStep: execution.currentStep || 1,
+                  totalSteps: execution.totalSteps || 5,
+                  stepResults: execution.stepResults || [],
+                  totalCreditsUsed: execution.totalCreditsUsed || 0,
+                  finalOutputs: execution.finalOutputs || []
+                });
+                setCurrentStep(3); // Show progress view
+                toast.info('Resuming workflow generation...', {
+                  description: 'Your previous generation is still running'
+                });
+              } else {
+                // Execution completed or failed, remove from localStorage
+                localStorage.removeItem(`scene-builder-execution-${projectId}`);
+              }
+            }
+          } else {
+            // Execution not found, remove from localStorage
+            localStorage.removeItem(`scene-builder-execution-${projectId}`);
+          }
+        }
+      } catch (error) {
+        console.error('[SceneBuilderPanel] Failed to recover workflow execution:', error);
+      }
+    }
+    
+    // Only run recovery on mount (when component first loads)
+    if (projectId) {
+      recoverWorkflowExecution();
+    }
+  }, [projectId]); // Only run when projectId changes (on mount)
+  
   // Poll workflow status every 3 seconds
   useEffect(() => {
     if (!workflowExecutionId || !isGenerating) return;
@@ -626,12 +690,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         if (data.execution.status === 'completed') {
           handleGenerationComplete(data.execution);
           clearInterval(interval);
+          // 🔥 NEW: Remove from localStorage when completed
+          localStorage.removeItem(`scene-builder-execution-${projectId}`);
         }
         
         // Check if failed
         if (data.execution.status === 'failed') {
           handleGenerationFailed(data.execution);
           clearInterval(interval);
+          // 🔥 NEW: Remove from localStorage when failed
+          localStorage.removeItem(`scene-builder-execution-${projectId}`);
         }
       } catch (error) {
         console.error('[SceneBuilderPanel] Failed to poll workflow:', error);
@@ -1470,6 +1538,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (data.success && data.executionId) {
         setWorkflowExecutionId(data.executionId);
+        
+        // 🔥 NEW: Save workflowExecutionId to localStorage for recovery
+        localStorage.setItem(`scene-builder-execution-${projectId}`, data.executionId);
+        
         // Set initial workflow status to show progress immediately
         setWorkflowStatus({
           id: data.executionId,
@@ -1867,6 +1939,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setWorkflowExecutionId(null);
     setWorkflowStatus(null);
     
+    // 🔥 NEW: Clear localStorage when manually cancelled
+    localStorage.removeItem(`scene-builder-execution-${projectId}`);
+    
     // Callback
     if (onVideoGenerated) {
       onVideoGenerated(historyItem.outputs);
@@ -1988,6 +2063,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     
     setWorkflowExecutionId(null);
     setWorkflowStatus(null);
+    
+    // 🔥 NEW: Clear localStorage when generation fails
+    localStorage.removeItem(`scene-builder-execution-${projectId}`);
   }
   
   /**
