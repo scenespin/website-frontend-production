@@ -204,27 +204,39 @@ export function LocationAngleCropModal({
                   </div>
                 )}
                 {imageUrl && !imageError && (
-                  <Cropper
-                    image={imageUrl}
-                    crop={crop}
-                    zoom={zoom}
-                    aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
-                    onCropChange={setCrop}
-                    onZoomChange={setZoom}
-                    onCropComplete={onCropCompleteCallback}
-                    onMediaLoaded={() => setImageLoaded(true)}
-                    onError={() => {
-                      console.error('Cropper failed to load image:', imageUrl);
-                      setImageError(true);
-                    }}
-                    style={{
-                      containerStyle: {
-                        width: '100%',
-                        height: '100%',
-                        position: 'relative'
-                      }
-                    }}
-                  />
+                  <>
+                    {/* Hidden image to detect load errors */}
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      onError={() => {
+                        console.error('Failed to load image:', imageUrl);
+                        setImageError(true);
+                        setImageLoaded(false);
+                      }}
+                      onLoad={() => setImageLoaded(true)}
+                      style={{ display: 'none' }}
+                    />
+                    {imageLoaded && (
+                      <Cropper
+                        image={imageUrl}
+                        crop={crop}
+                        zoom={zoom}
+                        aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                        onCropComplete={onCropCompleteCallback}
+                        onMediaLoaded={() => setImageLoaded(true)}
+                        style={{
+                          containerStyle: {
+                            width: '100%',
+                            height: '100%',
+                            position: 'relative'
+                          }
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               </div>
 
