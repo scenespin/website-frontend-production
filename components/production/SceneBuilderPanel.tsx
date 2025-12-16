@@ -1261,19 +1261,73 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         return;
       }
       
+      // Validate all required fields before building request
+      if (!characterId || typeof characterId !== 'string') {
+        toast.error('Invalid character ID', {
+          description: 'Character ID is required and must be a valid string'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
+      if (!projectId || typeof projectId !== 'string') {
+        toast.error('Invalid screenplay ID', {
+          description: 'Screenplay ID is required and must be a valid string'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
+      if (!dialogueText || typeof dialogueText !== 'string' || dialogueText.trim().length === 0) {
+        toast.error('Invalid dialogue text', {
+          description: 'Dialogue text is required and cannot be empty'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Parse duration safely
+      let parsedDuration = 5; // Default
+      if (duration && typeof duration === 'string') {
+        const parsed = parseInt(duration.replace('s', ''), 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 10) {
+          parsedDuration = parsed;
+        }
+      } else if (typeof duration === 'number' && duration >= 1 && duration <= 10) {
+        parsedDuration = duration;
+      }
+      
+      // Validate characterImageUrl format if provided
+      if (characterImageUrl && typeof characterImageUrl !== 'string') {
+        toast.error('Invalid character image URL', {
+          description: 'Character image URL must be a valid string'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Validate characterImageUrl is a valid URL if provided
+      if (characterImageUrl && !characterImageUrl.startsWith('http://') && !characterImageUrl.startsWith('https://')) {
+        toast.error('Invalid character image URL format', {
+          description: 'Character image URL must be a valid HTTP/HTTPS URL'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
       // Prepare dialogue generation request
       const dialogueRequest: any = {
         characterId: characterId, // Use character from scene analyzer or selected
         screenplayId: projectId,
         dialogue: dialogueText.trim(), // Ensure trimmed
-        mode: dialogueMode,
+        mode: dialogueMode || 'talking-head', // Ensure mode is set
         autoMatchVoice: true, // Default to auto-match if no voice profile
-        duration: parseInt(duration.replace('s', '')) || 5,
+        duration: parsedDuration,
         fountainContext: sceneDescription.trim() // Pass full Fountain context for enhancement
       };
       
       // Only include characterImageUrl if it's actually set (service can fetch from Character Bank if not provided)
-      if (characterImageUrl) {
+      if (characterImageUrl && typeof characterImageUrl === 'string') {
         dialogueRequest.characterImageUrl = characterImageUrl;
       }
       
@@ -1289,7 +1343,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         dialogueLength: dialogueRequest.dialogue?.length,
         mode: dialogueRequest.mode,
         hasCharacterImageUrl: !!dialogueRequest.characterImageUrl,
-        duration: dialogueRequest.duration
+        characterImageUrl: dialogueRequest.characterImageUrl ? dialogueRequest.characterImageUrl.substring(0, 50) + '...' : 'none',
+        duration: dialogueRequest.duration,
+        hasFountainContext: !!dialogueRequest.fountainContext
       });
       
       const response = await fetch('/api/dialogue/generate', {
@@ -1303,7 +1359,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Dialogue generation failed: ${response.status}`);
+        const errorMessage = errorData.error || errorData.message || `Dialogue generation failed: ${response.status}`;
+        console.error('[SceneBuilderPanel] Dialogue generation error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage,
+          errorData: errorData,
+          requestBody: {
+            characterId: dialogueRequest.characterId,
+            screenplayId: dialogueRequest.screenplayId,
+            dialogueLength: dialogueRequest.dialogue?.length,
+            mode: dialogueRequest.mode,
+            hasCharacterImageUrl: !!dialogueRequest.characterImageUrl
+          }
+        });
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
