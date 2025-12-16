@@ -227,9 +227,17 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         setEditorContextSceneName(sceneFromContext.heading || sceneFromContext.synopsis || 'Current Scene');
         setShowEditorContextBanner(true);
         
-        console.log('[SceneBuilderPanel] Auto-selected scene from editor context:', sceneFromContext.id);
+        console.log('[SceneBuilderPanel] Auto-selected scene from editor context:', {
+          sceneId: sceneFromContext.id,
+          heading: sceneFromContext.heading,
+          foundInDatabase: true
+        });
       } else {
-        console.log('[SceneBuilderPanel] Scene from editor context not found in database:', editorSceneId);
+        console.warn('[SceneBuilderPanel] ⚠️ Scene from editor context not found in database:', {
+          editorSceneId,
+          availableSceneIds: screenplay.scenes?.map(s => s.id).slice(0, 5),
+          totalScenes: screenplay.scenes?.length || 0
+        });
       }
     }
   }, [contextStore.context.currentSceneId, contextStore.context.projectId, screenplay.scenes, projectId]);
@@ -256,13 +264,29 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         });
         
         if (result.success && result.data) {
+          const characterDetails = result.data.characters?.map(c => ({
+            id: c.id,
+            name: c.name,
+            hasReferences: c.hasReferences,
+            referencesCount: c.references?.length || 0
+          })) || [];
+          
           console.log('[SceneBuilderPanel] ✅ Analysis result received:', {
             sceneType: result.data.sceneType,
             characterCount: result.data.characters?.length || 0,
-            characters: result.data.characters?.map(c => ({ id: c.id, name: c.name, hasReferences: c.hasReferences })),
+            characters: characterDetails,
+            characterNames: characterDetails.map(c => c.name).join(', '),
             location: result.data.location?.name,
             shotBreakdown: result.data.shotBreakdown?.totalShots
           });
+          
+          // Log if Sarah is missing
+          const hasSarah = characterDetails.some(c => 
+            c.name.toLowerCase().includes('sarah') || c.name.toUpperCase() === 'SARAH'
+          );
+          if (!hasSarah && characterDetails.length > 0) {
+            console.warn('[SceneBuilderPanel] ⚠️ Sarah not found in characters. Found:', characterDetails.map(c => c.name).join(', '));
+          }
           
           setSceneAnalysisResult(result.data);
           
