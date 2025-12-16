@@ -59,6 +59,7 @@ import { SceneSelector } from './SceneSelector';
 import { ManualSceneEntry } from './ManualSceneEntry';
 import { useContextStore } from '@/lib/contextStore';
 import { OutfitSelector } from './OutfitSelector';
+import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
 import { SceneAnalysisPreview } from './SceneAnalysisPreview';
 import { api } from '@/lib/api';
@@ -136,9 +137,8 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   const [dialogueText, setDialogueText] = useState('');
   const [drivingVideoUrl, setDrivingVideoUrl] = useState<string | null>(null);
   
-  // Outfit selection state (Phase 3)
-  const [selectedOutfit, setSelectedOutfit] = useState<string | undefined>(undefined);
-  const [characterDefaultOutfit, setCharacterDefaultOutfit] = useState<string | undefined>(undefined);
+  // Per-character outfit selection state (NEW: Phase 3 - Outfit Integration)
+  const [characterOutfits, setCharacterOutfits] = useState<Record<string, string>>({});
   
   // Wizard flow state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -258,9 +258,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       setAnalysisError(null);
       
       try {
+        // Build characterOutfits mapping (only include defined outfits, not undefined)
+        const characterOutfitsToSend: Record<string, string> = {};
+        Object.entries(characterOutfits).forEach(([charId, outfit]) => {
+          if (outfit) {
+            characterOutfitsToSend[charId] = outfit;
+          }
+        });
+        
         const result = await api.sceneAnalyzer.analyze({
           screenplayId: projectId,
-          sceneId: selectedSceneId
+          sceneId: selectedSceneId,
+          characterOutfits: Object.keys(characterOutfitsToSend).length > 0 ? characterOutfitsToSend : undefined
         });
         
         if (result.success && result.data) {
@@ -496,46 +505,29 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     checkVoiceProfile();
   }, [selectedCharacterId, projectId, getToken]);
   
-  // Fetch character's default outfit when character is selected (Phase 3)
+  // Initialize character outfits when analysis result is received
   useEffect(() => {
-    async function fetchCharacterOutfit() {
-      if (!selectedCharacterId || !projectId) {
-        setCharacterDefaultOutfit(undefined);
-        setSelectedOutfit(undefined);
-        return;
-      }
-      
-      try {
-        const token = await getToken({ template: 'wryda-backend' });
-        if (!token) return;
+    if (sceneAnalysisResult?.characters) {
+      setCharacterOutfits(prev => {
+        const updated: Record<string, string> = { ...prev };
+        let hasChanges = false;
         
-        const response = await fetch(`/api/screenplays/${projectId}/characters/${selectedCharacterId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        sceneAnalysisResult.characters.forEach(char => {
+          // Only set default if character doesn't have an outfit selected yet
+          if (!prev[char.id] && char.defaultOutfit) {
+            updated[char.id] = char.defaultOutfit;
+            hasChanges = true;
+          } else if (!prev[char.id]) {
+            // Mark as using default (undefined means use default)
+            updated[char.id] = undefined as any;
+            hasChanges = true;
           }
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          const outfit = data.data?.physicalAttributes?.typicalClothing;
-          if (outfit) {
-            setCharacterDefaultOutfit(outfit);
-            // Auto-select default outfit if none selected
-            if (!selectedOutfit) {
-              setSelectedOutfit(undefined); // undefined means use character default
-            }
-          } else {
-            setCharacterDefaultOutfit(undefined);
-          }
-        }
-      } catch (error) {
-        console.error('[SceneBuilder] Failed to fetch character outfit:', error);
-        // Non-fatal - continue without default
-      }
+        return hasChanges ? updated : prev;
+      });
     }
-    
-    fetchCharacterOutfit();
-  }, [selectedCharacterId, projectId, getToken, selectedOutfit]);
+  }, [sceneAnalysisResult]);
   
   // Poll workflow status every 3 seconds
   useEffect(() => {
@@ -2205,6 +2197,31 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-2">
+                {/* Character Outfit Selection (NEW) */}
+                {sceneAnalysisResult?.characters && sceneAnalysisResult.characters.length > 0 && (
+                  <div>
+                    <Label className="text-xs font-medium mb-3 block text-[#808080]">Character Outfits</Label>
+                    <div className="space-y-3">
+                      {sceneAnalysisResult.characters.map((char) => (
+                        <CharacterOutfitSelector
+                          key={char.id}
+                          characterId={char.id}
+                          characterName={char.name}
+                          availableOutfits={char.availableOutfits}
+                          defaultOutfit={char.defaultOutfit}
+                          selectedOutfit={characterOutfits[char.id]}
+                          onOutfitChange={(charId, outfitName) => {
+                            setCharacterOutfits(prev => ({
+                              ...prev,
+                              [charId]: outfitName || undefined
+                            }));
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Quality Tier - Compact */}
                 <div>
                   <Label className="text-xs font-medium mb-4 block text-[#808080]">Quality Tier</Label>

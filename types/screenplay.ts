@@ -601,6 +601,8 @@ export interface SceneAnalysisResult {
         name: string;
         references: string[]; // 0-3 image URLs from Character Bank
         hasReferences: boolean;
+        availableOutfits?: string[]; // NEW: Available outfits for this character (from angleReferences)
+        defaultOutfit?: string; // NEW: Character's default outfit (from physicalAttributes.typicalClothing)
     }>;
     location: {
         id: string | null;
