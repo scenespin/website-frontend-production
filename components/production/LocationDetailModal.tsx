@@ -932,12 +932,24 @@ export function LocationDetailModal({
                                         Download
                                       </DropdownMenuItem>
                                       {/* 🔥 NEW: Custom Crop option (only if original square image exists) */}
-                                      {/* Show if originalImageUrl exists OR originalS3Key exists (can fetch from S3) */}
-                                      {variation.id && (variation.metadata?.originalImageUrl || variation.metadata?.originalS3Key || variation.s3Key) && (
+                                      {/* Show if we have any S3 key (originalS3Key from metadata, or fallback to variation.s3Key) */}
+                                      {/* For older images without metadata.originalS3Key, we'll try to use variation.s3Key */}
+                                      {variation.id && variation.s3Key && (
                                         <DropdownMenuItem
                                           className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
                                           onClick={(e) => {
                                             e.stopPropagation();
+                                            // 🔥 DEBUG: Log what we're passing to crop modal
+                                            if (process.env.NODE_ENV === 'development') {
+                                              console.log('[LocationDetailModal] 🔍 DEBUG: Opening crop modal for variation:', {
+                                                angleId: variation.id,
+                                                hasMetadata: !!variation.metadata,
+                                                originalS3Key: variation.metadata?.originalS3Key || 'MISSING',
+                                                variationS3Key: variation.s3Key || 'MISSING',
+                                                originalImageUrl: variation.metadata?.originalImageUrl ? 'EXISTS' : 'MISSING',
+                                                metadataKeys: variation.metadata ? Object.keys(variation.metadata) : []
+                                              });
+                                            }
                                             setCropAngle({
                                               angleId: variation.id,
                                               variation: variation

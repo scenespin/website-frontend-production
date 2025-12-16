@@ -135,11 +135,49 @@ export function LocationAngleCropModal({
           // No S3 key but we have a valid URL - use it
           console.log('[LocationAngleCropModal] 🔍 DEBUG: Using originalImageUrl directly:', originalImageUrl.substring(0, 50));
           setImageUrl(originalImageUrl);
+        } else if (originalS3Key) {
+          // 🔥 FIX: If we have originalS3Key but didn't try fetching yet (shouldn't happen, but safety check)
+          console.log('[LocationAngleCropModal] 🔍 DEBUG: Retrying with originalS3Key:', originalS3Key.substring(0, 50));
+          // This will be handled by the S3 fetch logic above, but adding as fallback
+          // Actually, if we get here, originalS3Key should have been handled above
+          // So this is just for safety - try to fetch one more time
+          try {
+            const token = await getToken({ template: 'wryda-backend' });
+            if (token) {
+              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+              const response = await fetch(
+                `${BACKEND_API_URL}/api/s3/download-url`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    s3Key: originalS3Key,
+                    expiresIn: 3600
+                  })
+                }
+              );
+              if (response.ok) {
+                const data = await response.json();
+                setImageUrl(data.downloadUrl || '');
+              } else {
+                setImageError(true);
+              }
+            } else {
+              setImageError(true);
+            }
+          } catch (error) {
+            console.error('[LocationAngleCropModal] Error in fallback fetch:', error);
+            setImageError(true);
+          }
         } else {
           // No URL and no S3 key - show error
           console.error('[LocationAngleCropModal] ❌ DEBUG: No image URL or S3 key available', {
             originalImageUrl: originalImageUrl || 'empty',
-            originalS3Key: originalS3Key || 'empty'
+            originalS3Key: originalS3Key || 'empty',
+            angleId
           });
           setImageError(true);
         }
