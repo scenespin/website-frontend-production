@@ -2152,7 +2152,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             {currentStep === 2 && (
               <>
                 {/* Scene Analysis Preview (Feature 0136 Phase 2.2) */}
-                {selectedSceneId && (isAnalyzing || analysisError || sceneAnalysisResult) && (
+                {selectedSceneId && (
                   <SceneAnalysisPreview
                     analysis={sceneAnalysisResult!}
                     isAnalyzing={isAnalyzing}
@@ -2202,15 +2202,15 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   </div>
                 </div>
                 
-                {/* Duration - Compact */}
+                {/* Duration - Compact (5s and 10s only) */}
                 <div>
                   <Label className="text-xs font-medium mb-1.5 block text-[#808080]">Duration</Label>
-                  <div className="flex gap-1.5">
-                    {['4s', '5s', '6s', '8s', '10s'].map((dur) => (
+                  <div className="flex gap-2">
+                    {['5s', '10s'].map((dur) => (
                       <button
                         key={dur}
                         onClick={() => setDuration(dur)}
-                        className={`flex-1 py-1.5 px-2 rounded border text-xs font-medium transition-all ${
+                        className={`flex-1 py-1.5 px-3 rounded border text-xs font-medium transition-all ${
                           duration === dur
                             ? 'bg-[#DC143C] text-white border-[#DC143C]'
                             : 'bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'

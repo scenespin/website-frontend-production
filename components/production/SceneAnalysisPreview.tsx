@@ -23,6 +23,7 @@ interface SceneAnalysisPreviewProps {
 export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: SceneAnalysisPreviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Show loading state
   if (isAnalyzing) {
     return (
       <Card className="bg-[#141414] border-[#3F3F46]">
@@ -52,6 +53,24 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
     );
   }
 
+  // Show error state
+  if (error) {
+    return (
+      <Card className="bg-[#141414] border-[#DC143C]/50">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-[#DC143C] text-sm">
+            <AlertCircle className="w-4 h-4" />
+            <div>
+              <div className="font-medium">Analysis Error</div>
+              <div className="text-xs text-[#808080] mt-0.5">{error}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show nothing if no analysis yet
   if (!analysis) {
     return null;
   }
