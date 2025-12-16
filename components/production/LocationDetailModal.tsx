@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
+import { LocationAngleCropModal } from './LocationAngleCropModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import {
@@ -127,6 +128,8 @@ export function LocationDetailModal({
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; variation?: LocationReference } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
+  const [viewMode, setViewMode] = useState<'cropped' | 'original'>('cropped'); // Toggle between 16:9 cropped and square original
+  const [cropAngle, setCropAngle] = useState<{ angleId: string; variation: LocationReference } | null>(null); // Angle to crop
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -318,14 +321,34 @@ export function LocationDetailModal({
   angleVariations.forEach((variation: any) => {
     // Extract isRegenerated from metadata (like Characters do)
     const isRegenerated = variation.metadata?.isRegenerated || false;
+    
+    // 🔥 NEW: Get image URL based on view mode (cropped 16:9/21:9 or original square)
+    const getImageUrl = () => {
+      if (viewMode === 'original') {
+        // Show original square version
+        return variation.metadata?.originalImageUrl || variation.imageUrl || '';
+      } else {
+        // Show cropped version (16:9 or 21:9, default to 16:9)
+        // Check if 21:9 version exists, otherwise use 16:9
+        const cropped21_9 = variation.metadata?.cropped21_9ImageUrl;
+        const cropped16_9 = variation.metadata?.croppedImageUrl;
+        return cropped21_9 || cropped16_9 || variation.imageUrl || '';
+      }
+    };
+    
     allImages.push({
       id: variation.id || `ref_${variation.s3Key}`,
-      imageUrl: variation.imageUrl || '',
+      imageUrl: getImageUrl(),
       label: `${location.name} - ${variation.angle} view`,
       isBase: false,
       s3Key: variation.s3Key,
-      isRegenerated: isRegenerated, // 🔥 FIX: Extract as direct property like Characters
-      metadata: variation.metadata || {} // Include metadata for provider labels
+      isRegenerated: isRegenerated,
+      metadata: {
+        ...variation.metadata,
+        originalImageUrl: variation.metadata?.originalImageUrl || variation.imageUrl,
+        croppedImageUrl: variation.metadata?.croppedImageUrl || variation.imageUrl,
+        variation: variation // Store full variation for crop modal
+      }
     });
   });
   
@@ -360,6 +383,8 @@ export function LocationDetailModal({
     // Open angle generation modal
     setShowAngleModal(true);
   };
+
+  // 🔥 REMOVED: handleReframeAngles - Luma reframe removed (Photon maxes at 1080p, not worth it)
 
   if (!isOpen) return null;
 
@@ -505,7 +530,7 @@ export function LocationDetailModal({
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-3 items-center">
                     <button
                       onClick={handleGenerateAngles}
                       disabled={isGeneratingAngles}
@@ -514,6 +539,35 @@ export function LocationDetailModal({
                       <Sparkles className="w-4 h-4" />
                       {isGeneratingAngles ? 'Generating...' : 'Generate Angle Package'}
                     </button>
+                    
+                    {/* 🔥 NEW: Toggle between square, 16:9, and 21:9 views */}
+                    {angleVariations.length > 0 && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                        <span className="text-xs text-[#808080]">View:</span>
+                        <button
+                          onClick={() => setViewMode('cropped')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            viewMode === 'cropped'
+                              ? 'bg-[#DC143C] text-white'
+                              : 'text-[#808080] hover:text-[#FFFFFF]'
+                          }`}
+                          title="Cropped (16:9 or 21:9)"
+                        >
+                          Cropped
+                        </button>
+                        <button
+                          onClick={() => setViewMode('original')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            viewMode === 'original'
+                              ? 'bg-[#DC143C] text-white'
+                              : 'text-[#808080] hover:text-[#FFFFFF]'
+                          }`}
+                          title="Original square (4096x4096)"
+                        >
+                          Square
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -799,6 +853,22 @@ export function LocationDetailModal({
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                         Download
                                       </DropdownMenuItem>
+                                      {/* 🔥 NEW: Custom Crop option (only if original square image exists) */}
+                                      {variation.id && variation.metadata?.originalImageUrl && (
+                                        <DropdownMenuItem
+                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCropAngle({
+                                              angleId: variation.id,
+                                              variation: variation
+                                            });
+                                          }}
+                                        >
+                                          <Camera className="w-4 h-4 mr-2" />
+                                          Custom Crop
+                                        </DropdownMenuItem>
+                                      )}
                                       {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
                                       {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (() => {
                                         // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
@@ -961,6 +1031,34 @@ export function LocationDetailModal({
       }}
       imageType="angle"
     />
+
+    {/* 🔥 NEW: Location Angle Crop Modal */}
+    {cropAngle && (
+      <LocationAngleCropModal
+        isOpen={cropAngle !== null}
+        onClose={() => setCropAngle(null)}
+        angleId={cropAngle.angleId}
+        originalImageUrl={cropAngle.variation.metadata?.originalImageUrl || cropAngle.variation.imageUrl}
+        locationId={location.locationId}
+        screenplayId={screenplayId}
+        onCropComplete={async () => {
+          // Refresh location data
+          queryClient.invalidateQueries(['location-bank', screenplayId]);
+          queryClient.invalidateQueries(['location', location.locationId]);
+          if (onUpdate) {
+            const token = await getToken({ template: 'wryda-backend' });
+            if (token) {
+              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+              const updatedLocation = await fetch(
+                `${BACKEND_API_URL}/api/location-bank/${location.locationId}?screenplayId=${screenplayId}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+              ).then(r => r.json());
+              onUpdate(updatedLocation);
+            }
+          }
+        }}
+      />
+    )}
     
     {/* Image Viewer */}
     {previewImageIndex !== null && (
