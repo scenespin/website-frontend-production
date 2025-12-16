@@ -495,12 +495,13 @@ export function LocationDetailModal({
                   {/* Main Image Display */}
                   {allImages.length > 0 ? (
                     <div className="mb-6">
-                      {/* 🔥 Force 16:9 aspect ratio - square images will show black bars on top/bottom */}
-                      <div className="relative aspect-video bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] mb-4">
+                      {/* 🔥 Gallery viewer: Always 16:9 (landscape) - 16:9 images fill it, square images show black bars on top/bottom */}
+                      {/* Future: Will support 21:9 when ultrawide is available */}
+                      <div className="relative w-full aspect-video bg-[#1F1F1F] rounded-lg overflow-hidden border border-[#3F3F46] mb-4">
                         <img
                           src={allImages[selectedImageIndex]?.imageUrl}
                           alt={allImages[selectedImageIndex]?.label}
-                          className="w-full h-full object-contain" // Always contain - square images will have black bars
+                          className="w-full h-full object-contain" // Always contain - 16:9 fills frame, square shows top/bottom bars
                         />
                         {/* Aspect ratio indicator */}
                         <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 text-white text-xs rounded">
