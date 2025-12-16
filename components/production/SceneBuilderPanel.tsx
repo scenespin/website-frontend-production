@@ -1939,7 +1939,7 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     setWorkflowExecutionId(null);
     setWorkflowStatus(null);
     
-    // 🔥 NEW: Clear localStorage when manually cancelled
+    // 🔥 NEW: Clear localStorage when generation completes
     localStorage.removeItem(`scene-builder-execution-${projectId}`);
     
     // Callback
