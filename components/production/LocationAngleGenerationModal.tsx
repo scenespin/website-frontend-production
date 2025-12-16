@@ -164,10 +164,11 @@ export default function LocationAngleGenerationModal({
         quality: quality,
         providerId: providerId, // Required - no fallback
         // Apply timeOfDay and weather to all angles in the package
+        // 🔥 FIX: Only include timeOfDay/weather if they have actual values (not empty strings)
         angles: packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,
-          timeOfDay: timeOfDay || undefined,
-          weather: weather || undefined
+          ...(timeOfDay && timeOfDay.trim() !== '' && { timeOfDay: timeOfDay.trim() as 'morning' | 'afternoon' | 'evening' | 'night' }),
+          ...(weather && weather.trim() !== '' && { weather: weather.trim() as 'sunny' | 'cloudy' | 'rainy' | 'snowy' })
         }))
       };
       
