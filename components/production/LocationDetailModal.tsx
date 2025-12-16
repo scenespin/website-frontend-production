@@ -274,6 +274,34 @@ export function LocationDetailModal({
   // Backend LocationBankService already enriches angleVariations with imageUrl and all metadata
   const angleVariations = location.angleVariations || [];
   
+  // 🔥 FIX: Create allCreationImages as separate variable (used in JSX for Creation section display)
+  // This is separate from allImages which is used for the gallery viewer
+  const allCreationImages: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string }> = [];
+  
+  // Add baseReference (first Creation image)
+  if (location.baseReference) {
+    allCreationImages.push({
+      id: location.baseReference.id,
+      imageUrl: location.baseReference.imageUrl,
+      label: `${location.name} - Base Reference`,
+      isBase: true,
+      s3Key: location.baseReference.s3Key
+    });
+  }
+  
+  // Add additional Creation images from Location Bank API
+  if (location.creationImages && Array.isArray(location.creationImages)) {
+    location.creationImages.forEach((img: LocationReference) => {
+      allCreationImages.push({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        label: `${location.name} - Reference`,
+        isBase: false,
+        s3Key: img.s3Key
+      });
+    });
+  }
+  
   // 🔥 IMPROVED: Organize angles by metadata combinations (timeOfDay + weather) for better visual grouping
   // Group all angles by their metadata combinations - no tag-based filtering, just visual organization
   const anglesByMetadata: Record<string, any[]> = {};
@@ -303,10 +331,11 @@ export function LocationDetailModal({
   
   // 🔥 FIX: Make allImages reactive to viewMode changes using useMemo
   // This ensures the image URLs update when user toggles between square and cropped views
+  // Note: allCreationImages is separate and used for the Creation section display
   const allImages = useMemo(() => {
     const images: Array<{ id: string; imageUrl: string; label: string; isBase: boolean; s3Key?: string; isRegenerated?: boolean; metadata?: any }> = [];
     
-    // Add Creation images (baseReference + creationImages)
+    // Add Creation images (baseReference + creationImages) - same as allCreationImages but for gallery
     if (location.baseReference) {
       images.push({
         id: location.baseReference.id,
