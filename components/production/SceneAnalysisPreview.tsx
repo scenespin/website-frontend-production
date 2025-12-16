@@ -131,9 +131,7 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
             <div className="flex items-center gap-1">
               <Coins className="w-3 h-3 text-[#DC143C]" />
               <span className="text-[#FFFFFF] font-medium">
-                {analysis.sceneType === 'dialogue' && analysis.dialogue?.hasDialogue 
-                  ? 105  // Dialogue scenes: fixed cost (~105 credits for talking-head)
-                  : shotBreakdown.totalCredits  // Workflow scenes: use scene analyzer estimate
+                {shotBreakdown.totalCredits  // Use Scene Analyzer's detailed calculation for all scene types
                 }
               </span>
               <span className="text-[#808080]">credits</span>
