@@ -322,14 +322,24 @@ export function ImageViewer({
     }
   };
 
-  // Wheel zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!enableZoom) return;
-    e.preventDefault();
+  // Wheel zoom - use ref and addEventListener to make it non-passive
+  useEffect(() => {
+    if (!enableZoom || !containerRef.current) return;
     
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setZoom(prev => Math.max(0.5, Math.min(5, prev + delta)));
-  };
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom(prev => Math.max(0.5, Math.min(5, prev + delta)));
+    };
+    
+    const container = containerRef.current;
+    // Add event listener with { passive: false } to allow preventDefault
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [enableZoom]);
 
   // Drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -564,7 +574,6 @@ export function ImageViewer({
           <div
             ref={containerRef}
             className="relative w-full h-full flex items-center justify-center overflow-hidden"
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

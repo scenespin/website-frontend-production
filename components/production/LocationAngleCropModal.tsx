@@ -67,17 +67,17 @@ export function LocationAngleCropModal({
         setZoom(1);
         setCroppedAreaPixels(null);
 
-        // If we have originalImageUrl, try it first
-        if (originalImageUrl) {
-          setImageUrl(originalImageUrl);
-          return;
-        }
-
-        // If no originalImageUrl but we have originalS3Key, fetch fresh presigned URL
-        if (originalS3Key && !originalImageUrl) {
+        // 🔥 FIX: Always try to fetch from S3 if we have originalS3Key, even if originalImageUrl exists
+        // originalImageUrl might be expired or empty, so prefer fetching fresh URL from S3
+        if (originalS3Key) {
           try {
             const token = await getToken({ template: 'wryda-backend' });
             if (!token) {
+              // Fallback to originalImageUrl if token fetch fails
+              if (originalImageUrl && originalImageUrl.startsWith('http')) {
+                setImageUrl(originalImageUrl);
+                return;
+              }
               setImageError(true);
               return;
             }
@@ -104,14 +104,29 @@ export function LocationAngleCropModal({
               setImageUrl(data.downloadUrl || '');
             } else {
               const errorData = await response.json().catch(() => ({ message: 'Failed to fetch presigned URL' }));
-              console.error('Failed to fetch presigned URL:', errorData.message || response.statusText);
-              setImageError(true);
+              console.error('[LocationAngleCropModal] Failed to fetch presigned URL:', errorData.message || response.statusText);
+              // Fallback to originalImageUrl if S3 fetch fails
+              if (originalImageUrl && originalImageUrl.startsWith('http')) {
+                console.log('[LocationAngleCropModal] Falling back to originalImageUrl');
+                setImageUrl(originalImageUrl);
+              } else {
+                setImageError(true);
+              }
             }
           } catch (error) {
-            console.error('Error fetching presigned URL:', error);
-            setImageError(true);
+            console.error('[LocationAngleCropModal] Error fetching presigned URL:', error);
+            // Fallback to originalImageUrl if error occurs
+            if (originalImageUrl && originalImageUrl.startsWith('http')) {
+              console.log('[LocationAngleCropModal] Falling back to originalImageUrl after error');
+              setImageUrl(originalImageUrl);
+            } else {
+              setImageError(true);
+            }
           }
-        } else if (!originalImageUrl && !originalS3Key) {
+        } else if (originalImageUrl && originalImageUrl.startsWith('http')) {
+          // No S3 key but we have a valid URL - use it
+          setImageUrl(originalImageUrl);
+        } else {
           // No URL and no S3 key - show error
           setImageError(true);
         }
