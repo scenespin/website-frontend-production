@@ -1357,10 +1357,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Backend expects: workflowId, sceneDescription, characterRefs (not characterReferences), etc.
       // Task 5: Use workflow recommendations from Scene Analyzer if available (Feature 0136 Phase 2.2)
       // Default to 'complete-scene' if no recommendations
+      // NOTE: Backend currently only supports 'complete-scene', so map other workflows to it
       const recommendedWorkflowId = sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId || 'complete-scene';
+      const supportedWorkflowId = recommendedWorkflowId === 'voice-consistency-system' || recommendedWorkflowId === 'complete-scene' 
+        ? 'complete-scene' 
+        : 'complete-scene'; // Fallback to complete-scene for any other workflow
       
       const workflowRequest: any = {
-        workflowId: recommendedWorkflowId, // Use recommended workflow from Scene Analyzer
+        workflowId: supportedWorkflowId, // Use supported workflow (map voice-consistency-system to complete-scene)
         sceneDescription: sceneDescription.trim(),
         characterRefs: finalCharacterRefs, // Pre-populated from analysis + manual uploads (max 3)
         aspectRatio: '16:9',
@@ -1371,7 +1375,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       };
       
       // Log workflow selection
-      if (recommendedWorkflowId !== 'complete-scene') {
+      if (recommendedWorkflowId !== supportedWorkflowId) {
+        console.log(`[SceneBuilderPanel] Scene Analyzer recommended "${recommendedWorkflowId}", using "${supportedWorkflowId}" (backend supported workflow)`);
+      } else if (recommendedWorkflowId !== 'complete-scene') {
         console.log('[SceneBuilderPanel] Using recommended workflow from Scene Analyzer:', recommendedWorkflowId);
       }
       
