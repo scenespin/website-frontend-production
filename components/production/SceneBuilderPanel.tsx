@@ -1908,10 +1908,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   return (
     <div className="h-full overflow-auto bg-[#0A0A0A]">
-      <div className="p-4 md:p-5 space-y-4 md:space-y-5">
+      <div className="p-3 md:p-4 space-y-3">
         {/* Sticky Editor Context Banner (when scene auto-selected) */}
         {showEditorContextBanner && editorContextSceneName && (
-          <div className="sticky top-0 z-10 -mx-4 md:-mx-5 px-4 md:px-5 pt-4 md:pt-5 pb-2 bg-[#0A0A0A]">
+          <div className="sticky top-0 z-10 -mx-3 md:-mx-4 px-3 md:px-4 pt-3 md:pt-4 pb-1.5 bg-[#0A0A0A]">
             <EditorContextBanner
               sceneName={editorContextSceneName}
               onDismiss={() => setShowEditorContextBanner(false)}
@@ -1927,10 +1927,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         />
         
         {/* Content */}
-        <div className="space-y-4 md:space-y-5">
+        <div className="space-y-3">
         {/* Step Indicator */}
         {!isGenerating && !workflowStatus && (
-          <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <div className={`flex items-center gap-2 ${currentStep >= 1 ? 'text-[#DC143C]' : 'text-[#808080]'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep >= 1 ? 'border-[#DC143C] bg-[#DC143C]/10' : 'border-[#3F3F46] bg-[#141414]'}`}>
                 {currentStep > 1 ? <CheckCircle2 className="w-5 h-5 text-[#DC143C]" /> : <span className="text-sm font-bold">1</span>}
@@ -1959,18 +1959,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
+            className="space-y-3"
           >
             {/* Step 1: Scene Selection */}
             {currentStep === 1 && (
               <Card className="bg-[#141414] border-[#3F3F46]">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1.5">
                   <CardTitle className="text-sm text-[#FFFFFF]">📝 Step 1: Scene Selection</CardTitle>
                   <CardDescription className="text-[10px] text-[#808080]">
                     Choose a scene from your screenplay or enter one manually
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 pt-2">
+                <CardContent className="space-y-1.5 pt-1.5">
                 {/* Input Method Toggle */}
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-medium text-[#808080]">Input Method:</label>
@@ -2129,7 +2129,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   />
                 )}
                 </CardContent>
-                <CardContent className="pt-0 pb-3">
+                <CardContent className="pt-0 pb-2">
                   <Button
                     onClick={() => {
                       if (!sceneDescription.trim()) {
@@ -2162,13 +2162,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
 
                 {/* Optional Overrides - Compact */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardHeader>
-                    <CardTitle className="text-base text-[#FFFFFF]">⚙️ Optional Overrides</CardTitle>
-                    <CardDescription className="text-[#808080] text-xs">
+                  <CardHeader className="pb-1.5">
+                    <CardTitle className="text-sm text-[#FFFFFF]">⚙️ Step 2: Configure</CardTitle>
+                    <CardDescription className="text-[10px] text-[#808080]">
                       All settings are auto-configured. Override only if needed.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-2 pt-1.5">
                 {/* Quality Tier - Compact */}
                 <div>
                   <Label className="text-xs font-medium mb-1.5 block text-[#808080]">Quality Tier</Label>
@@ -2207,7 +2207,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
 
                 {/* Continue to Step 3 Button */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardContent className="pt-3 pb-3">
+                  <CardContent className="pt-2 pb-2">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Button
                         onClick={() => setCurrentStep(1)}
@@ -2232,13 +2232,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             {/* Step 3: Review & Generate */}
             {currentStep === 3 && (
               <Card className="bg-[#141414] border-[#3F3F46]">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1.5">
                   <CardTitle className="text-sm text-[#FFFFFF]">✨ Step 3: Review & Generate</CardTitle>
                   <CardDescription className="text-[10px] text-[#808080]">
                     Review your selections and generate your scene package
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 pt-2">
+                <CardContent className="space-y-1.5 pt-1.5">
                   {/* What You'll Get Preview */}
                   <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
                     <div className="text-xs font-medium mb-1.5 text-[#FFFFFF]">What You'll Get:</div>
@@ -2317,7 +2317,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1.5">
                     <Button
                       onClick={() => setCurrentStep(2)}
                       variant="outline"

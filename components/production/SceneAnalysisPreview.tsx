@@ -103,45 +103,45 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
 
   return (
     <Card className="bg-[#141414] border-[#3F3F46]">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-1.5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base text-[#FFFFFF] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#DC143C]" />
+          <CardTitle className="text-sm text-[#FFFFFF] flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#DC143C]" />
             Scene Analysis
           </CardTitle>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-[#808080] hover:text-[#FFFFFF] transition-colors"
           >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 pt-0">
+      <CardContent className="space-y-2 pt-0">
         {/* Compact View - Always Visible */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Scene Type */}
           <Badge variant="outline" className="border-[#DC143C] text-[#DC143C] text-xs">
             {sceneType.charAt(0).toUpperCase() + sceneType.slice(1)}
           </Badge>
           
           {/* Credits & Time */}
-          <div className="flex items-center gap-3 text-sm">
-            <div className="flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-[#DC143C]" />
+          <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <Coins className="w-3 h-3 text-[#DC143C]" />
               <span className="text-[#FFFFFF] font-medium">{shotBreakdown.totalCredits}</span>
               <span className="text-[#808080]">credits</span>
             </div>
             <span className="text-[#3F3F46]">•</span>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-[#DC143C]" />
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3 text-[#DC143C]" />
               <span className="text-[#FFFFFF]">{shotBreakdown.estimatedTime}</span>
             </div>
           </div>
         </div>
 
         {/* References - Compact List */}
-        <div className="flex flex-wrap gap-2 text-xs">
+        <div className="flex flex-wrap gap-1.5 text-xs">
           {/* Characters */}
           {characters.map((char) => (
             <div key={char.id} className="flex items-center gap-1.5 px-2 py-1 bg-[#0A0A0A] rounded border border-[#3F3F46]">

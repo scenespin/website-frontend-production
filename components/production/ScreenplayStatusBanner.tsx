@@ -65,11 +65,11 @@ export function ScreenplayStatusBanner({
 
   // Connected State - Streamlined
   return (
-    <div className={`bg-green-900/30 border border-green-700/50 rounded-md p-1.5 ${className}`}>
+    <div className={`bg-green-900/30 border border-green-700/50 rounded-md p-2 ${className}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-          <div className="flex items-center gap-1 text-[10px] text-green-200/90 flex-wrap">
+          <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+          <div className="flex items-center gap-1 text-xs text-green-200/90 flex-wrap">
             <span className="font-medium">Connected</span>
             {title && <span className="text-green-300/80">"{title}"</span>}
             <span className="text-green-300/70">•</span>
@@ -85,9 +85,9 @@ export function ScreenplayStatusBanner({
             onClick={onViewEditor}
             variant="outline"
             size="sm"
-            className="h-5 px-1.5 text-[10px] bg-green-900/50 border-green-700 text-green-200 hover:bg-green-900/70 flex-shrink-0"
+            className="h-6 px-2 text-xs bg-green-900/50 border-green-700 text-green-200 hover:bg-green-900/70 flex-shrink-0"
           >
-            <ExternalLink className="w-2.5 h-2.5 mr-0.5" />
+            <ExternalLink className="w-3 h-3 mr-1" />
             View Editor
           </Button>
         )}

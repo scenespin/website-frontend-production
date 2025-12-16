@@ -192,7 +192,7 @@ export function SceneSelector({
             )}
 
             {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 mt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 mt-1.5">
               <Button
                 onClick={() => onUseScene(selectedScene)}
                 className="flex-1 h-6 text-[10px]"
