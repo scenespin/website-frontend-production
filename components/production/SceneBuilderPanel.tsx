@@ -2148,7 +2148,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
               </Card>
             )}
 
-            {/* Step 2: Configuration */}
+            {/* Step 2: Review Analysis */}
             {currentStep === 2 && (
               <>
                 {/* Scene Analysis Preview (Feature 0136 Phase 2.2) */}
@@ -2160,172 +2160,60 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   />
                 )}
 
-                {/* Generation Options - REQUIRED (First) */}
+                {/* Optional Overrides - Compact */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
                   <CardHeader>
-                    <CardTitle className="text-lg text-[#FFFFFF]">⚙️ Step 2: Generation Options</CardTitle>
-                    <CardDescription className="text-[#808080]">
-                      {selectedSceneId && sceneAnalysisResult
-                        ? 'Review analysis above and configure quality settings'
-                        : 'Configure quality and duration for your scene'}
+                    <CardTitle className="text-base text-[#FFFFFF]">⚙️ Optional Overrides</CardTitle>
+                    <CardDescription className="text-[#808080] text-xs">
+                      All settings are auto-configured. Override only if needed.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                {/* Quality Tier */}
+                  <CardContent className="space-y-3">
+                {/* Quality Tier - Compact */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Quality Tier</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <Label className="text-xs font-medium mb-1.5 block text-[#808080]">Quality Tier</Label>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setQualityTier('professional')}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      className={`p-2 rounded border text-left transition-all ${
                         qualityTier === 'professional'
                           ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                          : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
+                          : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
-                      <div className="font-semibold text-sm">Professional 1080p</div>
-                      <div className="text-xs text-[#808080] mt-1">100-125 credits</div>
+                      <div className="font-medium text-xs">Professional 1080p</div>
+                      <div className="text-[10px] text-[#808080] mt-0.5">100-125 credits</div>
                     </button>
                     
                     <button
                       onClick={() => setQualityTier('premium')}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                      className={`p-2 rounded border text-left transition-all ${
                         qualityTier === 'premium'
                           ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                          : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
+                          : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
-                      <div className="font-semibold text-sm flex items-center gap-2">
+                      <div className="font-medium text-xs flex items-center gap-1">
                         Premium 4K
-                        <Sparkles className="w-3 h-3" />
+                        <Sparkles className="w-2.5 h-2.5" />
                       </div>
-                      <div className="text-xs text-[#808080] mt-1">200-225 credits</div>
+                      <div className="text-[10px] text-[#808080] mt-0.5">200-225 credits</div>
                     </button>
                   </div>
                 </div>
                 
-                {/* Dialogue Detection & Configuration (Phase 1: Core Integration) */}
-                {hasDialogue && (
-                  <div className="p-4 bg-[#DC143C]/10 border-2 border-[#DC143C]/50 rounded-lg space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Film className="w-5 h-5 text-[#DC143C]" />
-                      <div>
-                        <div className="font-semibold text-sm text-[#FFFFFF]">Dialogue Scene Detected</div>
-                        <div className="text-xs text-[#808080]">Configure character and voice settings</div>
-                      </div>
-                    </div>
-                    
-                    {/* Character Selection */}
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block text-[#FFFFFF]">Character *</Label>
-                      <select
-                        value={selectedCharacterId || ''}
-                        onChange={(e) => setSelectedCharacterId(e.target.value || null)}
-                        className="w-full p-2 bg-[#141414] border border-[#3F3F46] rounded text-[#FFFFFF] text-sm"
-                      >
-                        <option value="">Select a character...</option>
-                        {characters.map((char) => (
-                          <option key={char.id} value={char.id}>
-                            {char.name}
-                          </option>
-                        ))}
-                      </select>
-                      {!selectedCharacterId && (
-                        <p className="text-xs text-[#DC143C] mt-1">Character selection required for dialogue</p>
-                      )}
-                    </div>
-                    
-                    {/* Voice Profile Status */}
-                    {selectedCharacterId && voiceProfileStatus && (
-                      <div className="p-3 bg-[#141414] rounded border border-[#3F3F46]">
-                        <div className="flex items-center gap-2">
-                          {voiceProfileStatus.hasVoice ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
-                              <span className="text-xs text-[#FFFFFF]">
-                                Voice: {voiceProfileStatus.voiceName || 'Configured'} ({voiceProfileStatus.voiceType || 'custom'})
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <AlertCircle className="w-4 h-4 text-yellow-500" />
-                              <span className="text-xs text-yellow-500">
-                                No voice profile. Will auto-match voice (10 credits)
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Outfit Selection (Phase 3) */}
-                    {selectedCharacterId && (
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block text-[#FFFFFF]">Character Outfit</Label>
-                        <OutfitSelector
-                          value={selectedOutfit}
-                          defaultValue={characterDefaultOutfit}
-                          onChange={(outfit) => setSelectedOutfit(outfit)}
-                          label=""
-                          showDefaultOption={true}
-                        />
-                        <p className="text-xs text-[#808080] mt-2">
-                          Select the outfit the character should wear in this scene
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Mode Selection */}
-                    {selectedCharacterId && (
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block text-[#FFFFFF]">Generation Mode</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            onClick={() => setDialogueMode('talking-head')}
-                            className={`p-3 rounded-lg border-2 text-left transition-all ${
-                              dialogueMode === 'talking-head'
-                                ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                                : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
-                            }`}
-                          >
-                            <div className="font-semibold text-xs">Talking Head</div>
-                            <div className="text-xs text-[#808080] mt-1">Static portrait, perfect lip-sync</div>
-                          </button>
-                          
-                          <button
-                            onClick={() => setDialogueMode('user-video')}
-                            className={`p-3 rounded-lg border-2 text-left transition-all ${
-                              dialogueMode === 'user-video'
-                                ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                                : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
-                            }`}
-                          >
-                            <div className="font-semibold text-xs">Video-to-Video</div>
-                            <div className="text-xs text-[#808080] mt-1">Motion + performance transfer</div>
-                          </button>
-                        </div>
-                        {dialogueMode === 'user-video' && (
-                          <p className="text-xs text-[#808080] mt-2">
-                            ⚠️ Requires driving video upload (coming in Phase 2)
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Duration */}
+                {/* Duration - Compact */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Duration</Label>
-                  <div className="flex gap-2">
+                  <Label className="text-xs font-medium mb-1.5 block text-[#808080]">Duration</Label>
+                  <div className="flex gap-1.5">
                     {['4s', '5s', '6s', '8s', '10s'].map((dur) => (
                       <button
                         key={dur}
                         onClick={() => setDuration(dur)}
-                        className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-all ${
+                        className={`flex-1 py-1.5 px-2 rounded border text-xs font-medium transition-all ${
                           duration === dur
                             ? 'bg-[#DC143C] text-white border-[#DC143C]'
-                            : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
+                            : 'bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                         }`}
                       >
                         {dur}
@@ -2333,336 +2221,8 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     ))}
                   </div>
                 </div>
-                
-                {/* Audio Toggle - REMOVED: Sound is handled separately via audio workflows */}
-                
-                {/* Style Matching (Feature 0109) */}
-                {styleProfiles.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block flex items-center gap-2 text-[#FFFFFF]">
-                      🎨 Style Matching
-                      <Badge variant="secondary" className="text-xs">NEW</Badge>
-                    </Label>
-                    <div className="space-y-3">
-                      <div className="text-xs text-[#808080]">
-                        Match the visual style of your uploaded footage ({styleProfiles.length} profile{styleProfiles.length > 1 ? 's' : ''} available)
-                      </div>
-                      
-                      {!showStyleSelector ? (
-                        <button
-                          onClick={() => setShowStyleSelector(true)}
-                          className="w-full p-3 rounded-lg border-2 border-dashed border-[#3F3F46] hover:border-[#DC143C] hover:bg-[#DC143C]/10 transition-all text-sm text-[#808080]"
-                        >
-                          Click to select style profile
-                        </button>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="max-h-48 overflow-y-auto space-y-2 p-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg">
-                            {styleProfiles.map((profile) => (
-                              <button
-                                key={profile.profileId}
-                                onClick={() => {
-                                  setSelectedStyleProfile(profile.profileId);
-                                  setShowStyleSelector(false);
-                                }}
-                                className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                                  selectedStyleProfile === profile.profileId
-                                    ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
-                                    : 'border-[#3F3F46] bg-[#141414] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
-                                }`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  {profile.extractedFrames?.[0] && (
-                                    <img 
-                                      src={profile.extractedFrames[0]} 
-                                      alt="Style preview" 
-                                      className="w-16 h-16 object-cover rounded"
-                                    />
-                                  )}
-                                  <div className="flex-1">
-                                    <div className="font-semibold text-sm">
-                                      {profile.sceneId || 'Default Style'}
-                                    </div>
-                                    <div className="text-xs text-[#808080]">
-                                      Confidence: {profile.confidence}%
-                                    </div>
-                                  </div>
-                                  {selectedStyleProfile === profile.profileId && (
-                                    <CheckCircle2 className="w-5 h-5 text-[#DC143C]" />
-                                  )}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                          
-                          {selectedStyleProfile && (
-                            <div className="p-3 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-lg">
-                              <div className="flex items-start gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-[#DC143C] flex-shrink-0 mt-0.5" />
-                                <div className="text-xs text-[#FFFFFF]">
-                                  Style profile selected! Your generated videos will match the visual style of your uploaded footage.
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <button
-                            onClick={() => {
-                              setShowStyleSelector(false);
-                              setSelectedStyleProfile(null);
-                            }}
-                            className="text-xs text-[#808080] hover:text-[#FFFFFF] transition-colors"
-                          >
-                            Clear selection
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
                   </CardContent>
                 </Card>
-
-                {/* Character References (Optional) */}
-                <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-[#FFFFFF]">🎭 Character References (Optional)</CardTitle>
-                    <CardDescription className="text-[#808080]">
-                      {characterReferenceUrls.length > 0 
-                        ? `Pre-populated from Scene Analyzer (${characterReferenceUrls.length}). You can add more or replace.`
-                        : 'Upload headshots for consistent character appearance'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`grid gap-3 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                      {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => {
-                        const file = referenceImages[index];
-                        const analysisUrl = characterReferenceUrls[index] || null; // Pre-populated from analysis
-                        const preview = file ? URL.createObjectURL(file) : analysisUrl; // Show analysis URL if no file uploaded
-                        
-                        return (
-                          <div key={index}>
-                            {preview ? (
-                              <div className="relative">
-                                <img
-                                  src={preview}
-                                  alt={`Character ${index + 1}`}
-                                  className={`w-full object-cover rounded border-2 ${file ? 'border-[#DC143C]' : 'border-green-500'} ${isMobile || simplified ? 'h-20' : 'h-20'}`}
-                                />
-                                {analysisUrl && !file && (
-                                  <Badge className="absolute top-1 left-1 bg-green-500/90 text-white text-[10px] px-1 py-0">
-                                    Auto
-                                  </Badge>
-                                )}
-                                <button
-                                  onClick={() => {
-                                    if (file) {
-                                      // Remove manually uploaded file
-                                      const newImages = [...referenceImages];
-                                      newImages[index] = null;
-                                      setReferenceImages(newImages);
-                                    } else if (analysisUrl) {
-                                      // Remove pre-populated URL (create new array without this index)
-                                      const newUrls = characterReferenceUrls.filter((_, i) => i !== index);
-                                      setCharacterReferenceUrls(newUrls);
-                                    }
-                                  }}
-                                  className="absolute top-1 right-1 p-1 bg-[#0A0A0A]/90 rounded-full hover:bg-[#DC143C] shadow-lg"
-                                >
-                                  <X className="w-3 h-3 text-[#FFFFFF]" />
-                                </button>
-                                <div className="text-[10px] text-center text-[#808080] mt-1 font-medium">
-                                  Character {isMobile || simplified ? 'Ref' : index + 1}
-                                  {analysisUrl && !file && ' (from analysis)'}
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  const input = document.createElement('input');
-                                  input.type = 'file';
-                                  input.accept = SUPPORTED_IMAGE_TYPES.join(',');
-                                  input.onchange = (e: any) => {
-                                    const selectedFile = e.target?.files?.[0];
-                                    if (selectedFile) {
-                                      if (selectedFile.size > MAX_IMAGE_SIZE_BYTES) {
-                                        toast.error(`Image too large. Max ${MAX_IMAGE_SIZE_MB}MB`);
-                                        return;
-                                      }
-                                      if (!SUPPORTED_IMAGE_TYPES.includes(selectedFile.type)) {
-                                        toast.error('Unsupported format. Use JPG, PNG, GIF, or WebP.');
-                                        return;
-                                      }
-                                      const newImages = [...referenceImages];
-                                      newImages[index] = selectedFile;
-                                      setReferenceImages(newImages);
-                                    }
-                                  };
-                                  input.click();
-                                }}
-                                className={`w-full border-2 border-dashed border-[#3F3F46] rounded flex flex-col items-center justify-center hover:border-[#DC143C] hover:bg-[#DC143C]/10 transition-colors ${isMobile || simplified ? 'h-20' : 'h-20'}`}
-                              >
-                                <Upload className="w-4 h-4 text-[#808080] mb-1" />
-                                <span className="text-[10px] text-[#808080] font-medium">
-                                  {isMobile || simplified ? 'Headshot' : `Headshot ${index + 1}`}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    
-                    <div className="mt-3 p-2 rounded-lg bg-[#1F1F1F] border border-[#3F3F46]">
-                      <p className="text-xs text-[#808080]">
-                        💡 <strong className="text-[#FFFFFF]">With character refs:</strong> 4 videos (establishing + 3 character angles)<br />
-                        <strong className="text-[#FFFFFF]">Without character refs:</strong> 4 videos (establishing + 3 scene variations)
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Media Uploads (Optional) */}
-                <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardHeader>
-                    <CardTitle className="text-lg text-[#FFFFFF]">📁 Media Uploads (Optional)</CardTitle>
-                    <CardDescription className="text-[#808080]">
-                      Upload video, audio, or images to include in your scene
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`grid gap-3 ${isMobile || simplified ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                      {(isMobile || simplified ? [0] : [0, 1, 2]).map((index) => (
-                        <MediaUploadSlot
-                          key={index}
-                          index={index}
-                          file={mediaUploads[index]}
-                          onUpload={(file) => handleMediaUpload(index, file)}
-                          onRemove={() => handleRemoveMedia(index)}
-                          isMobile={isMobile || simplified}
-                          uploading={uploadingMedia[index]}
-                        />
-                      ))}
-                    </div>
-                    
-                    <div className="mt-3 p-2 rounded-lg bg-[#1F1F1F] border border-[#3F3F46]">
-                      <p className="text-xs text-[#808080]">
-                        💡 <strong className="text-[#FFFFFF]">Tip:</strong> Uploaded media can be used as reference material or incorporated directly into your generated scene
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Preview & Annotate (Optional) */}
-                {!firstFrameUrl && !isGeneratingFirstFrame && !isUploadingFirstFrame && (
-                  <Card className="bg-[#141414] border-2 border-dashed border-[#3F3F46]">
-                    <CardHeader>
-                      <CardTitle className="text-lg text-[#FFFFFF]">👁️ Preview & Annotate (Optional)</CardTitle>
-                      <CardDescription className="text-[#808080]">
-                        Generate a first frame preview or upload your own image, then add camera motion or action annotations
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleGenerateFirstFrame}
-                          disabled={!sceneDescription.trim() || isGenerating}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Generate Preview
-                        </Button>
-                        <label className="flex-1">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                handleUploadFirstFrame(file);
-                              }
-                            }}
-                            className="hidden"
-                            disabled={isGenerating}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-full bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
-                            disabled={isGenerating}
-                            asChild
-                          >
-                            <span>
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload Image
-                            </span>
-                          </Button>
-                        </label>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {/* First Frame Generation/Upload Progress */}
-                {(isGeneratingFirstFrame || isUploadingFirstFrame) && (
-                  <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#DC143C]" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-[#FFFFFF]">
-                            {isGeneratingFirstFrame ? 'Generating first frame...' : 'Uploading image...'}
-                          </p>
-                          <p className="text-xs text-[#808080]">
-                            {isGeneratingFirstFrame ? 'This will take a few seconds' : 'Please wait'}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {/* Annotation Panel */}
-                {showAnnotationPanel && firstFrameUrl && (
-                  <Card className="bg-[#141414] border-2 border-[#DC143C]/50">
-                    <CardContent className="p-4">
-                      <VisualAnnotationPanel
-                        imageUrl={firstFrameUrl}
-                        onAnnotationsComplete={(annotations) => {
-                          setVisualAnnotations(annotations);
-                          toast.success('Annotations saved! They will be used in video generation.');
-                        }}
-                        disabled={isGenerating}
-                        defaultExpanded={true}
-                      />
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          onClick={() => {
-                            setFirstFrameUrl(null);
-                            setVisualAnnotations(null);
-                            setShowAnnotationPanel(false);
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C]"
-                        >
-                          Clear & Regenerate
-                        </Button>
-                        <Button
-                          onClick={() => setShowAnnotationPanel(false)}
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 text-[#808080] hover:text-[#FFFFFF]"
-                        >
-                          Hide Panel
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* Continue to Step 3 Button */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
