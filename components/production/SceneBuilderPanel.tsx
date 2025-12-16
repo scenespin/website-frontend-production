@@ -2070,18 +2070,32 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   /**
    * Calculate credit estimate
-   * For dialogue scenes: ~105-110 credits (audio + lip sync)
-   * For workflow scenes: Base credits + premium upscaling
+   * Uses Scene Analyzer's detailed breakdown as source of truth
+   * Adds quality tier adjustment (Premium = +100 credits for 4K upscaling)
    */
   function calculateEstimate(): number {
-    // If this is a dialogue scene, use dialogue-specific pricing
+    // If Scene Analyzer has calculated credits, use that as source of truth
+    if (sceneAnalysisResult?.shotBreakdown?.totalCredits) {
+      const baseCredits = sceneAnalysisResult.shotBreakdown.totalCredits;
+      
+      // Add quality tier adjustment (Premium = 4K upscaling)
+      // Note: Dialogue scenes don't get upscaled (lip sync is already high quality)
+      if (qualityTier === 'premium' && !sceneAnalysisResult?.dialogue?.hasDialogue) {
+        return baseCredits + 100; // Add 4K upscaling cost
+      }
+      
+      return baseCredits;
+    }
+    
+    // Fallback: If no Scene Analyzer result, use simplified calculation
+    // This should rarely happen, but provides a fallback
     if (sceneAnalysisResult?.dialogue?.hasDialogue) {
       // Dialogue generation: ~5-10 credits (audio) + 100 credits (lip sync) = ~105-110 credits
       // Premium tier doesn't affect dialogue scenes (no 4K upscaling for lip sync)
       return 105; // Fixed cost for talking-head dialogue generation
     }
     
-    // Workflow-based scene generation
+    // Workflow-based scene generation (fallback)
     const hasCharacterRefs = referenceImages.some(img => img !== null);
     const baseCredits = hasCharacterRefs ? 125 : 100; // Master + 3 angles
     const premiumCredits = qualityTier === 'premium' ? 100 : 0; // 4K upscaling
@@ -2397,9 +2411,11 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     >
                       <div className="font-medium text-sm">Professional 1080p</div>
                       <div className="text-xs text-[#808080] mt-1">
-                        {sceneAnalysisResult?.dialogue?.hasDialogue 
-                          ? '105 credits'  // Dialogue scenes: fixed cost
-                          : '100-125 credits'  // Workflow scenes: base cost
+                        {sceneAnalysisResult?.shotBreakdown?.totalCredits 
+                          ? `${sceneAnalysisResult.shotBreakdown.totalCredits} credits`  // Use Scene Analyzer's calculation
+                          : sceneAnalysisResult?.dialogue?.hasDialogue 
+                            ? '105 credits'  // Fallback: dialogue scenes
+                            : '100-125 credits'  // Fallback: workflow scenes
                         }
                       </div>
                     </button>
@@ -2417,9 +2433,13 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                         <Sparkles className="w-4 h-4" />
                       </div>
                       <div className="text-xs text-[#808080] mt-1">
-                        {sceneAnalysisResult?.dialogue?.hasDialogue 
-                          ? '105 credits'  // Dialogue scenes: fixed cost (no 4K upscaling)
-                          : '200-225 credits'  // Workflow scenes: base + upscaling
+                        {sceneAnalysisResult?.shotBreakdown?.totalCredits 
+                          ? sceneAnalysisResult?.dialogue?.hasDialogue
+                            ? `${sceneAnalysisResult.shotBreakdown.totalCredits} credits`  // Dialogue: no upscaling
+                            : `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Workflow: add upscaling
+                          : sceneAnalysisResult?.dialogue?.hasDialogue 
+                            ? '105 credits'  // Fallback: dialogue scenes
+                            : '200-225 credits'  // Fallback: workflow scenes
                         }
                       </div>
                     </button>
