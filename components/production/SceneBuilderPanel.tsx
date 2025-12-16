@@ -2070,8 +2070,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   
   /**
    * Calculate credit estimate
+   * For dialogue scenes: ~105-110 credits (audio + lip sync)
+   * For workflow scenes: Base credits + premium upscaling
    */
   function calculateEstimate(): number {
+    // If this is a dialogue scene, use dialogue-specific pricing
+    if (sceneAnalysisResult?.dialogue?.hasDialogue) {
+      // Dialogue generation: ~5-10 credits (audio) + 100 credits (lip sync) = ~105-110 credits
+      // Premium tier doesn't affect dialogue scenes (no 4K upscaling for lip sync)
+      return 105; // Fixed cost for talking-head dialogue generation
+    }
+    
+    // Workflow-based scene generation
     const hasCharacterRefs = referenceImages.some(img => img !== null);
     const baseCredits = hasCharacterRefs ? 125 : 100; // Master + 3 angles
     const premiumCredits = qualityTier === 'premium' ? 100 : 0; // 4K upscaling

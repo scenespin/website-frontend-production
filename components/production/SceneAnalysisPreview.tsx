@@ -130,13 +130,23 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
           <div className="flex items-center gap-2 text-xs">
             <div className="flex items-center gap-1">
               <Coins className="w-3 h-3 text-[#DC143C]" />
-              <span className="text-[#FFFFFF] font-medium">{shotBreakdown.totalCredits}</span>
+              <span className="text-[#FFFFFF] font-medium">
+                {analysis.sceneType === 'dialogue' && analysis.dialogue?.hasDialogue 
+                  ? 105  // Dialogue scenes: fixed cost (~105 credits for talking-head)
+                  : shotBreakdown.totalCredits  // Workflow scenes: use scene analyzer estimate
+                }
+              </span>
               <span className="text-[#808080]">credits</span>
             </div>
             <span className="text-[#3F3F46]">•</span>
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-[#DC143C]" />
-              <span className="text-[#FFFFFF]">{shotBreakdown.estimatedTime}</span>
+              <span className="text-[#FFFFFF]">
+                {analysis.sceneType === 'dialogue' && analysis.dialogue?.hasDialogue 
+                  ? '~2-5 min'  // Dialogue scenes are faster
+                  : shotBreakdown.estimatedTime  // Workflow scenes: use scene analyzer estimate
+                }
+              </span>
             </div>
           </div>
         </div>
