@@ -53,7 +53,7 @@ interface LocationReference {
   locationId: string;
   imageUrl: string;
   s3Key: string;
-  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail' | 'corner' | 'low-angle' | 'entrance' | 'foreground-framing' | 'pov' | 'atmospheric' | 'golden-hour' | 'back-view' | 'close-up' | 'establishing';
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
   weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
   generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
@@ -499,8 +499,16 @@ export function LocationDetailModal({
                         <img
                           src={allImages[selectedImageIndex]?.imageUrl}
                           alt={allImages[selectedImageIndex]?.label}
-                          className="w-full h-full object-contain"
+                          className={`w-full h-full ${
+                            viewMode === 'cropped' 
+                              ? 'object-cover' // Cropped 16:9 fills the frame
+                              : 'object-contain' // Square original fits within frame
+                          }`}
                         />
+                        {/* Aspect ratio indicator */}
+                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 text-white text-xs rounded">
+                          {viewMode === 'cropped' ? '16:9' : '1:1'}
+                        </div>
                         {allImages[selectedImageIndex]?.isBase && (
                           <div className="absolute top-4 left-4 px-3 py-1 bg-[#DC143C]/20 text-[#DC143C] rounded-full text-xs font-medium">
                             Base Reference
@@ -869,7 +877,8 @@ export function LocationDetailModal({
                                         Download
                                       </DropdownMenuItem>
                                       {/* 🔥 NEW: Custom Crop option (only if original square image exists) */}
-                                      {variation.id && variation.metadata?.originalImageUrl && (
+                                      {/* Show if originalImageUrl exists OR originalS3Key exists (can fetch from S3) */}
+                                      {variation.id && (variation.metadata?.originalImageUrl || variation.metadata?.originalS3Key || variation.s3Key) && (
                                         <DropdownMenuItem
                                           className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
                                           onClick={(e) => {
@@ -881,7 +890,7 @@ export function LocationDetailModal({
                                           }}
                                         >
                                           <Camera className="w-4 h-4 mr-2" />
-                                          Custom Crop
+                                          Custom Crop (16:9)
                                         </DropdownMenuItem>
                                       )}
                                       {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
@@ -1053,7 +1062,8 @@ export function LocationDetailModal({
         isOpen={cropAngle !== null}
         onClose={() => setCropAngle(null)}
         angleId={cropAngle.angleId}
-        originalImageUrl={cropAngle.variation.metadata?.originalImageUrl || cropAngle.variation.imageUrl}
+        originalImageUrl={cropAngle.variation.metadata?.originalImageUrl || cropAngle.variation.imageUrl || ''}
+        originalS3Key={cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key}
         locationId={location.locationId}
         screenplayId={screenplayId}
         onCropComplete={async () => {

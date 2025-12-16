@@ -7,7 +7,7 @@
  * Uses react-easy-crop for interactive crop selection
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cropper from 'react-easy-crop';
@@ -19,6 +19,7 @@ interface LocationAngleCropModalProps {
   onClose: () => void;
   angleId: string;
   originalImageUrl: string; // Square 4096x4096 image
+  originalS3Key?: string; // S3 key to fetch original if URL not available
   locationId: string;
   screenplayId: string;
   onCropComplete: () => void; // Callback to refresh location data
@@ -38,6 +39,7 @@ export function LocationAngleCropModal({
   onClose,
   angleId,
   originalImageUrl,
+  originalS3Key,
   locationId,
   screenplayId,
   onCropComplete
@@ -48,10 +50,24 @@ export function LocationAngleCropModal({
   const [zoom, setZoom] = useState(1);
   const [isCropping, setIsCropping] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageUrl, setImageUrl] = useState(originalImageUrl);
+  const [imageError, setImageError] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
   // 🔥 FUTURE: 21:9 support - commented out until ultrawide is fully supported
   // const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9'>(defaultAspectRatio);
   const aspectRatio: '16:9' | '21:9' = '16:9'; // Only 16:9 supported for now
+
+  // Reset state when modal opens/closes or image URL changes
+  useEffect(() => {
+    if (isOpen) {
+      setImageUrl(originalImageUrl || '');
+      setImageLoaded(false);
+      setImageError(false);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+    }
+  }, [isOpen, originalImageUrl]);
 
   // Store crop area when user adjusts it
   const onCropCompleteCallback = useCallback((croppedArea: CropArea, croppedAreaPixels: CropArea) => {
@@ -177,28 +193,39 @@ export function LocationAngleCropModal({
 
               {/* Crop Area */}
               <div className="flex-1 relative bg-[#141414] min-h-[400px]">
-                {!imageLoaded && (
+                {imageError && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-[#DC143C]">Failed to load image. Please try again.</div>
+                  </div>
+                )}
+                {!imageLoaded && !imageError && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-[#808080]">Loading image...</div>
                   </div>
                 )}
-                <Cropper
-                  image={originalImageUrl}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropCompleteCallback}
-                  onMediaLoaded={() => setImageLoaded(true)}
-                  style={{
-                    containerStyle: {
-                      width: '100%',
-                      height: '100%',
-                      position: 'relative'
-                    }
-                  }}
-                />
+                {imageUrl && !imageError && (
+                  <Cropper
+                    image={imageUrl}
+                    crop={crop}
+                    zoom={zoom}
+                    aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
+                    onCropChange={setCrop}
+                    onZoomChange={setZoom}
+                    onCropComplete={onCropCompleteCallback}
+                    onMediaLoaded={() => setImageLoaded(true)}
+                    onError={() => {
+                      console.error('Cropper failed to load image:', imageUrl);
+                      setImageError(true);
+                    }}
+                    style={{
+                      containerStyle: {
+                        width: '100%',
+                        height: '100%',
+                        position: 'relative'
+                      }
+                    }}
+                  />
+                )}
               </div>
 
               {/* Controls */}

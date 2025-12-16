@@ -51,7 +51,7 @@ export default function LocationAnglePackageSelector({
     {
       id: 'basic',
       name: 'Basic Package',
-      angles: ['front', 'side', 'wide'],
+      angles: ['front', 'corner', 'wide'],
       credits: 60,
       consistencyRating: 70,
       description: 'Essential 3 angles for quick tests',
@@ -61,20 +61,20 @@ export default function LocationAnglePackageSelector({
     {
       id: 'standard',
       name: 'Standard Package',
-      angles: ['front', 'side', 'aerial', 'wide', 'detail', 'interior'],
+      angles: ['front', 'corner', 'wide', 'low-angle', 'entrance', 'foreground-framing'],
       credits: 120,
       consistencyRating: 85,
-      description: '6 essential angles for multi-scene films',
+      description: '6 cinematic angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
       discount: 0
     },
     {
       id: 'premium',
       name: 'Premium Package',
-      angles: ['front', 'side', 'aerial', 'wide', 'detail', 'interior', 'exterior', 'back-view', 'close-up', 'establishing'],
-      credits: 200,
+      angles: ['front', 'corner', 'wide', 'low-angle', 'entrance', 'foreground-framing', 'aerial', 'pov', 'detail', 'atmospheric', 'golden-hour'],
+      credits: 220,
       consistencyRating: 92,
-      description: '10 angles for professional productions',
+      description: '11 cinematic angles for professional productions',
       bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
       discount: 0
     }

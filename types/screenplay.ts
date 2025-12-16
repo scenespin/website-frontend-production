@@ -216,7 +216,7 @@ export interface Location {
         id: string;
         imageUrl?: string;
         s3Key: string;
-        angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+        angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail' | 'corner' | 'low-angle' | 'entrance' | 'foreground-framing' | 'pov' | 'atmospheric' | 'golden-hour' | 'back-view' | 'close-up' | 'establishing';
         timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
         weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
         season?: 'spring' | 'summer' | 'fall' | 'winter';
@@ -228,7 +228,7 @@ export interface Location {
         baseReferenceS3Key?: string;
         angleVariations?: Array<{
             s3Key: string;
-            angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+            angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail' | 'corner' | 'low-angle' | 'entrance' | 'foreground-framing' | 'pov' | 'atmospheric' | 'golden-hour' | 'back-view' | 'close-up' | 'establishing';
             timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
             weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
             season?: 'spring' | 'summer' | 'fall' | 'winter';

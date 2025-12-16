@@ -18,7 +18,7 @@ interface LocationReference {
   locationId: string;
   imageUrl: string;
   s3Key: string;
-  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail';
+  angle: 'front' | 'side' | 'aerial' | 'interior' | 'exterior' | 'wide' | 'detail' | 'corner' | 'low-angle' | 'entrance' | 'foreground-framing' | 'pov' | 'atmospheric' | 'golden-hour' | 'back-view' | 'close-up' | 'establishing';
   timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
   weather?: 'sunny' | 'cloudy' | 'rainy' | 'snowy';
   generationMethod: 'upload' | 'ai-generated' | 'angle-variation';
