@@ -1323,7 +1323,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         mode: dialogueMode || 'talking-head', // Ensure mode is set
         autoMatchVoice: true, // Default to auto-match if no voice profile
         duration: parsedDuration,
-        fountainContext: sceneDescription.trim() // Pass full Fountain context for enhancement
+        fountainContext: sceneDescription.trim(), // Pass full Fountain context for enhancement
+        sceneDescription: sceneDescription.trim(), // For establishing shot prompt
+        qualityTier: qualityTier || 'premium', // Quality tier for establishing shot
+        aspectRatio: '16:9' // Default aspect ratio (can be made configurable later)
       };
       
       // Only include characterImageUrl if it's actually set (service can fetch from Character Bank if not provided)
@@ -1334,6 +1337,19 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
       // Add driving video URL if Mode 2 selected
       if (dialogueMode === 'user-video' && drivingVideoUrl) {
         dialogueRequest.drivingVideoUrl = drivingVideoUrl;
+      }
+      
+      // Add location and assets for establishing shot generation
+      if (sceneAnalysisResult?.location?.id) {
+        dialogueRequest.locationId = sceneAnalysisResult.location.id;
+        console.log('[SceneBuilderPanel] Including location for establishing shot:', sceneAnalysisResult.location.id);
+      }
+      
+      if (sceneAnalysisResult?.assets && sceneAnalysisResult.assets.length > 0) {
+        dialogueRequest.assetIds = sceneAnalysisResult.assets
+          .filter((asset: any) => asset.hasReference)
+          .map((asset: any) => asset.id);
+        console.log('[SceneBuilderPanel] Including assets for establishing shot:', dialogueRequest.assetIds);
       }
       
       // Log request for debugging
