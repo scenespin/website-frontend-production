@@ -1243,22 +1243,54 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         dialogueText = dialogueInfo.dialogue || sceneDescription.trim();
       }
       
+      // Validate dialogue text is not empty
+      if (!dialogueText || dialogueText.trim().length === 0) {
+        toast.error('Dialogue text required', {
+          description: 'Please ensure the scene contains dialogue or provide dialogue text'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Validate character image URL is provided
+      if (!characterImageUrl) {
+        toast.error('Character image required', {
+          description: 'Please ensure character has references in Character Bank or upload a character reference image'
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
       // Prepare dialogue generation request
       const dialogueRequest: any = {
         characterId: characterId, // Use character from scene analyzer or selected
         screenplayId: projectId,
-        dialogue: dialogueText,
+        dialogue: dialogueText.trim(), // Ensure trimmed
         mode: dialogueMode,
-        characterImageUrl,
         autoMatchVoice: true, // Default to auto-match if no voice profile
         duration: parseInt(duration.replace('s', '')) || 5,
         fountainContext: sceneDescription.trim() // Pass full Fountain context for enhancement
       };
       
+      // Only include characterImageUrl if it's actually set (service can fetch from Character Bank if not provided)
+      if (characterImageUrl) {
+        dialogueRequest.characterImageUrl = characterImageUrl;
+      }
+      
       // Add driving video URL if Mode 2 selected
       if (dialogueMode === 'user-video' && drivingVideoUrl) {
         dialogueRequest.drivingVideoUrl = drivingVideoUrl;
       }
+      
+      // Log request for debugging
+      console.log('[SceneBuilderPanel] Dialogue request:', {
+        characterId: dialogueRequest.characterId,
+        screenplayId: dialogueRequest.screenplayId,
+        dialogueLength: dialogueRequest.dialogue?.length,
+        mode: dialogueRequest.mode,
+        hasCharacterImageUrl: !!dialogueRequest.characterImageUrl,
+        duration: dialogueRequest.duration
+      });
       
       const response = await fetch('/api/dialogue/generate', {
         method: 'POST',
