@@ -2202,45 +2202,26 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   </div>
                 </div>
                 
-                {/* Duration - Compact (5s and 10s only) */}
-                <div>
-                  <Label className="text-xs font-medium mb-1.5 block text-[#808080]">Duration</Label>
-                  <div className="flex gap-2">
-                    {['5s', '10s'].map((dur) => (
-                      <button
-                        key={dur}
-                        onClick={() => setDuration(dur)}
-                        className={`flex-1 py-1.5 px-3 rounded border text-xs font-medium transition-all ${
-                          duration === dur
-                            ? 'bg-[#DC143C] text-white border-[#DC143C]'
-                            : 'bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
-                        }`}
-                      >
-                        {dur}
-                      </button>
-                    ))}
-                  </div>
-                </div>
                   </CardContent>
                 </Card>
 
                 {/* Continue to Step 3 Button */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardContent className="pt-6">
-                    <div className="flex gap-3">
+                  <CardContent className="pt-3 pb-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button
                         onClick={() => setCurrentStep(1)}
                         variant="outline"
-                        className="flex-1 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
+                        className="flex-1 h-8 text-xs bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
                       >
                         ← Back
                       </Button>
                       <Button
                         onClick={() => setCurrentStep(3)}
-                        className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white"
+                        className="flex-1 h-8 text-xs bg-[#DC143C] hover:bg-[#B91238] text-white"
                       >
                         Continue to Step 3
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                        <ArrowRight className="w-3 h-3 ml-1.5" />
                       </Button>
                     </div>
                   </CardContent>
@@ -2250,18 +2231,18 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
 
             {/* Step 3: Review & Generate */}
             {currentStep === 3 && (
-              <Card className="bg-gradient-to-r from-[#DC143C] to-[#B01030] text-white border-none">
-                <CardHeader>
-                  <CardTitle className="text-xl text-white">✨ Step 3: Review & Generate</CardTitle>
-                  <CardDescription className="text-white/80">
+              <Card className="bg-[#141414] border-[#3F3F46]">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-[#FFFFFF]">✨ Step 3: Review & Generate</CardTitle>
+                  <CardDescription className="text-[10px] text-[#808080]">
                     Review your selections and generate your scene package
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2 pt-2">
                   {/* What You'll Get Preview */}
-                  <div className="p-4 bg-white/10 rounded-lg border border-white/20">
-                    <div className="text-sm font-semibold mb-3 text-white">What You'll Get:</div>
-                    <ul className="text-xs opacity-90 space-y-1 mb-3 text-white">
+                  <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
+                    <div className="text-xs font-medium mb-1.5 text-[#FFFFFF]">What You'll Get:</div>
+                    <ul className="text-[10px] text-[#808080] space-y-0.5">
                       <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
                       <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
                       <li>• {duration} each</li>
@@ -2270,39 +2251,39 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   </div>
 
                   {/* Selected Options Summary */}
-                  <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-2">
-                    <div className="text-sm font-semibold text-white mb-2">Your Selections:</div>
-                    <div className="text-xs opacity-90 space-y-1 text-white">
-                      <div><strong>Scene:</strong> {sceneDescription.split('\n')[0] || 'Custom scene'}</div>
-                      <div><strong>Quality:</strong> {qualityTier === 'premium' ? 'Premium 4K' : 'Professional 1080p'}</div>
-                      <div><strong>Duration:</strong> {duration}</div>
-                      <div><strong>Character References:</strong> {referenceImages.filter(img => img !== null).length} uploaded</div>
+                  <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46] space-y-1">
+                    <div className="text-xs font-medium text-[#FFFFFF] mb-1">Your Selections:</div>
+                    <div className="text-[10px] text-[#808080] space-y-0.5">
+                      <div><strong className="text-[#FFFFFF]">Scene:</strong> {sceneDescription.split('\n')[0]?.substring(0, 60) || 'Custom scene'}{sceneDescription.split('\n')[0]?.length > 60 ? '...' : ''}</div>
+                      <div><strong className="text-[#FFFFFF]">Quality:</strong> {qualityTier === 'premium' ? 'Premium 4K' : 'Professional 1080p'}</div>
+                      <div><strong className="text-[#FFFFFF]">Duration:</strong> {duration}</div>
+                      <div><strong className="text-[#FFFFFF]">Character References:</strong> {referenceImages.filter(img => img !== null).length} uploaded</div>
                       {mediaUploads.some(m => m !== null) && (
-                        <div><strong>Media Files:</strong> {mediaUploads.filter(m => m !== null).length} uploaded</div>
+                        <div><strong className="text-[#FFFFFF]">Media Files:</strong> {mediaUploads.filter(m => m !== null).length} uploaded</div>
                       )}
                       {visualAnnotations && (
-                        <div><strong>Annotations:</strong> ✓ Applied</div>
+                        <div><strong className="text-[#FFFFFF]">Annotations:</strong> ✓ Applied</div>
                       )}
                     </div>
                   </div>
 
                   {/* Cost & Time */}
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center justify-between p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
                     <div>
-                      <div className="text-sm opacity-90 text-white">Estimated Cost</div>
-                      <div className="text-3xl font-bold text-white">{calculateEstimate()} credits</div>
+                      <div className="text-[10px] text-[#808080] mb-0.5">Estimated Cost</div>
+                      <div className="text-lg font-bold text-[#DC143C]">{calculateEstimate()} credits</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm opacity-90 text-white">Estimated Time</div>
-                      <div className="text-xl font-semibold text-white">8-15 min</div>
+                      <div className="text-[10px] text-[#808080] mb-0.5">Estimated Time</div>
+                      <div className="text-sm font-semibold text-[#FFFFFF]">8-15 min</div>
                     </div>
                   </div>
 
                   {visualAnnotations && (
-                    <div className="p-3 bg-white/20 rounded-lg text-sm text-white">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Annotations will be applied to generation</span>
+                    <div className="p-2 bg-[#DC143C]/10 rounded-lg border border-[#DC143C]/20">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3 h-3 text-[#DC143C]" />
+                        <span className="text-[10px] text-[#FFFFFF]">Annotations will be applied to generation</span>
                       </div>
                     </div>
                   )}
@@ -2336,23 +2317,22 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
                     <Button
                       onClick={() => setCurrentStep(2)}
                       variant="outline"
-                      className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      className="flex-1 h-8 text-xs bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
                     >
                       ← Back
                     </Button>
                     <Button
                       onClick={handleGenerate}
                       disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
-                      className="flex-1 bg-white text-[#DC143C] hover:bg-gray-100 font-bold text-lg h-12"
-                      size="lg"
+                      className="flex-1 h-8 text-xs bg-[#DC143C] hover:bg-[#B91238] text-white font-medium"
                     >
-                      <Sparkles className="w-5 h-5 mr-2" />
+                      <Sparkles className="w-3 h-3 mr-1.5" />
                       Generate Complete Scene
-                      <ArrowRight className="w-5 h-5 ml-2" />
+                      <ArrowRight className="w-3 h-3 ml-1.5" />
                     </Button>
                   </div>
                 </CardContent>
