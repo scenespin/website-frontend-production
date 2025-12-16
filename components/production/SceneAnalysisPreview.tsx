@@ -111,9 +111,10 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
           </CardTitle>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-[#808080] hover:text-[#FFFFFF] transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-[#808080] hover:text-[#FFFFFF] hover:bg-[#1F1F1F] rounded transition-colors"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
           >
-            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
       </CardHeader>

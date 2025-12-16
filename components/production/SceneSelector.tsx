@@ -192,22 +192,22 @@ export function SceneSelector({
             )}
 
             {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 mt-1.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-2">
               <Button
                 onClick={() => onUseScene(selectedScene)}
-                className="flex-1 h-6 text-[10px]"
-                size="sm"
+                className="flex-1 h-11 text-xs px-4 py-2.5"
+                size="default"
               >
-                <CheckCircle className="w-2.5 h-2.5 mr-1" />
+                <CheckCircle className="w-4 h-4 mr-1.5" />
                 Use This Scene
               </Button>
               <Button
                 onClick={handleEditScene}
                 variant="outline"
-                size="sm"
-                className="h-6 text-[10px] px-2 sm:flex-shrink-0"
+                size="default"
+                className="h-11 text-xs px-4 py-2.5 sm:flex-shrink-0"
               >
-                <Edit className="w-2.5 h-2.5 mr-1" />
+                <Edit className="w-4 h-4 mr-1.5" />
                 Edit
               </Button>
             </div>

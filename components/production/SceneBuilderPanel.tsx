@@ -1975,9 +1975,9 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
                     Choose a scene from your screenplay or enter one manually
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-1.5 pt-1.5">
+                <CardContent className="space-y-3 pt-2">
                 {/* Input Method Toggle */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <label className="text-xs font-medium text-[#808080]">Input Method:</label>
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-1 cursor-pointer">
@@ -2134,7 +2134,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   />
                 )}
                 </CardContent>
-                <CardContent className="pt-0 pb-2">
+                <CardContent className="pt-0 pb-3">
                   <Button
                     onClick={() => {
                       if (!sceneDescription.trim()) {
@@ -2144,10 +2144,10 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       setCurrentStep(2);
                     }}
                     disabled={!sceneDescription.trim()}
-                    className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-8 text-xs"
+                    className="w-full bg-[#DC143C] hover:bg-[#B91238] text-white h-11 text-sm px-4 py-2.5"
                   >
                     Continue to Step 2
-                    <ArrowRight className="w-3 h-3 ml-1.5" />
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </CardContent>
               </Card>
@@ -2180,36 +2180,36 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       All settings are auto-configured. Override only if needed.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-2 pt-1.5">
+                  <CardContent className="space-y-3 pt-2">
                 {/* Quality Tier - Compact */}
                 <div>
-                  <Label className="text-xs font-medium mb-1.5 block text-[#808080]">Quality Tier</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <Label className="text-xs font-medium mb-4 block text-[#808080]">Quality Tier</Label>
+                  <div className="grid grid-cols-2 gap-4">
                     <button
                       onClick={() => setQualityTier('professional')}
-                      className={`p-2 rounded border text-left transition-all ${
+                      className={`h-14 px-4 py-3 rounded border text-left transition-all ${
                         qualityTier === 'professional'
                           ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
                           : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
-                      <div className="font-medium text-xs">Professional 1080p</div>
-                      <div className="text-[10px] text-[#808080] mt-0.5">100-125 credits</div>
+                      <div className="font-medium text-sm">Professional 1080p</div>
+                      <div className="text-xs text-[#808080] mt-1">100-125 credits</div>
                     </button>
                     
                     <button
                       onClick={() => setQualityTier('premium')}
-                      className={`p-2 rounded border text-left transition-all ${
+                      className={`h-14 px-4 py-3 rounded border text-left transition-all ${
                         qualityTier === 'premium'
                           ? 'border-[#DC143C] bg-[#DC143C]/10 text-[#FFFFFF]'
                           : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
-                      <div className="font-medium text-xs flex items-center gap-1">
+                      <div className="font-medium text-sm flex items-center gap-1.5">
                         Premium 4K
-                        <Sparkles className="w-2.5 h-2.5" />
+                        <Sparkles className="w-4 h-4" />
                       </div>
-                      <div className="text-[10px] text-[#808080] mt-0.5">200-225 credits</div>
+                      <div className="text-xs text-[#808080] mt-1">200-225 credits</div>
                     </button>
                   </div>
                 </div>
@@ -2219,21 +2219,21 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
 
                 {/* Continue to Step 3 Button */}
                 <Card className="bg-[#141414] border-[#3F3F46]">
-                  <CardContent className="pt-2 pb-2">
-                    <div className="flex flex-col sm:flex-row gap-2">
+                  <CardContent className="pt-3 pb-3">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <Button
                         onClick={() => setCurrentStep(1)}
                         variant="outline"
-                        className="flex-1 h-8 text-xs bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
+                        className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
                       >
                         ← Back
                       </Button>
                       <Button
                         onClick={() => setCurrentStep(3)}
-                        className="flex-1 h-8 text-xs bg-[#DC143C] hover:bg-[#B91238] text-white"
+                        className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-white"
                       >
                         Continue to Step 3
-                        <ArrowRight className="w-3 h-3 ml-1.5" />
+                        <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
                   </CardContent>
@@ -2250,7 +2250,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     Review your selections and generate your scene package
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-1.5 pt-1.5">
+                <CardContent className="space-y-3 pt-2">
                   {/* What You'll Get Preview */}
                   <div className="p-2.5 bg-[#0A0A0A] rounded-lg border border-[#3F3F46]">
                     <div className="text-xs font-medium mb-1.5 text-[#FFFFFF]">What You'll Get:</div>
@@ -2329,18 +2329,18 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-2 pt-1.5">
+                  <div className="flex flex-col sm:flex-row gap-4 pt-3">
                     <Button
                       onClick={() => setCurrentStep(2)}
                       variant="outline"
-                      className="flex-1 h-8 text-xs bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
+                      className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10"
                     >
                       ← Back
                     </Button>
                     <Button
                       onClick={handleGenerate}
                       disabled={!sceneDescription.trim() || isGenerating || isGeneratingFirstFrame}
-                      className="flex-1 h-8 text-xs bg-[#DC143C] hover:bg-[#B91238] text-white font-medium"
+                      className="flex-1 h-11 text-sm px-4 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-white font-medium"
                     >
                       <Sparkles className="w-3 h-3 mr-1.5" />
                       Generate Complete Scene
