@@ -35,20 +35,33 @@ export function CharacterOutfitSelector({
 
   // Initialize with selectedOutfit or default
   useEffect(() => {
+    const outfitsArray = availableOutfits || [];
+    
     if (selectedOutfit && selectedOutfit !== 'default') {
       // Check if it's a preset outfit
-      const outfitsArray = availableOutfits || [];
       const isPreset = outfitsArray.includes(selectedOutfit);
       if (isPreset) {
         setLocalSelectedOutfit(selectedOutfit);
       } else {
-        // If not a preset, use default
-        setLocalSelectedOutfit('default');
+        // If not a preset, use default or first available
+        if (defaultOutfit && outfitsArray.includes(defaultOutfit)) {
+          setLocalSelectedOutfit('default');
+        } else if (outfitsArray.length > 0) {
+          setLocalSelectedOutfit(outfitsArray[0]);
+        } else {
+          setLocalSelectedOutfit('default');
+        }
       }
+    } else if (defaultOutfit && outfitsArray.includes(defaultOutfit)) {
+      // Use default outfit if available
+      setLocalSelectedOutfit('default');
+    } else if (outfitsArray.length > 0) {
+      // Auto-select first outfit if no default is set
+      setLocalSelectedOutfit(outfitsArray[0]);
     } else {
       setLocalSelectedOutfit('default');
     }
-  }, [selectedOutfit, availableOutfits]);
+  }, [selectedOutfit, availableOutfits, defaultOutfit]);
 
   const handleOutfitChange = (value: string) => {
     setLocalSelectedOutfit(value);
@@ -109,9 +122,11 @@ export function CharacterOutfitSelector({
             onChange={(e) => handleOutfitChange(e.target.value)}
             className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
           >
-            <option value="default">
-              Use Default {defaultOutfit ? `(${defaultOutfit})` : ''}
-            </option>
+            {defaultOutfit ? (
+              <option value="default">
+                Use Default ({defaultOutfit})
+              </option>
+            ) : null}
             {outfitsArray.map((outfit) => (
               <option key={outfit} value={outfit}>
                 {outfit}

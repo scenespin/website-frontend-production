@@ -533,14 +533,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         let hasChanges = false;
         
         sceneAnalysisResult.characters.forEach(char => {
-          // Only set default if character doesn't have an outfit selected yet
-          if (!prev[char.id] && char.defaultOutfit) {
-            updated[char.id] = char.defaultOutfit;
-            hasChanges = true;
-          } else if (!prev[char.id]) {
-            // Mark as using default (undefined means use default)
-            updated[char.id] = undefined as any;
-            hasChanges = true;
+          // Only set if character doesn't have an outfit selected yet
+          if (!prev[char.id]) {
+            if (char.defaultOutfit) {
+              // Use default outfit if set
+              updated[char.id] = char.defaultOutfit;
+              hasChanges = true;
+            } else if (char.availableOutfits && char.availableOutfits.length > 0) {
+              // Auto-select first outfit if no default is set
+              updated[char.id] = char.availableOutfits[0];
+              hasChanges = true;
+            } else {
+              // No outfits available - mark as using default (undefined)
+              updated[char.id] = undefined as any;
+              hasChanges = true;
+            }
           }
         });
         
