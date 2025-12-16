@@ -277,7 +277,10 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             id: c.id,
             name: c.name,
             hasReferences: c.hasReferences,
-            referencesCount: c.references?.length || 0
+            referencesCount: c.references?.length || 0,
+            availableOutfits: c.availableOutfits,
+            availableOutfitsCount: c.availableOutfits?.length || 0,
+            defaultOutfit: c.defaultOutfit
           })) || [];
           
           console.log('[SceneBuilderPanel] ✅ Analysis result received:', {
@@ -287,6 +290,16 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             characterNames: characterDetails.map(c => c.name).join(', '),
             location: result.data.location?.name,
             shotBreakdown: result.data.shotBreakdown?.totalShots
+          });
+          
+          // Log outfit information for each character
+          characterDetails.forEach((char: any) => {
+            console.log(`[SceneBuilderPanel] Character ${char.name} outfit info:`, {
+              availableOutfits: char.availableOutfits,
+              availableOutfitsCount: char.availableOutfitsCount,
+              defaultOutfit: char.defaultOutfit,
+              rawCharacterData: result.data.characters?.find((c: any) => c.id === char.id)
+            });
           });
           
           // Log if Sarah is missing

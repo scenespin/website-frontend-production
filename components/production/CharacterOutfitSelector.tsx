@@ -61,6 +61,17 @@ export function CharacterOutfitSelector({
   // Determine if we should show dropdown or just display
   const hasMultipleOutfits = availableOutfits.length > 1;
   const hasAnyOutfits = availableOutfits.length > 0 || defaultOutfit;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log(`[CharacterOutfitSelector] ${characterName}:`, {
+      availableOutfits,
+      availableOutfitsLength: availableOutfits?.length,
+      defaultOutfit,
+      hasMultipleOutfits,
+      hasAnyOutfits
+    });
+  }, [characterName, availableOutfits, defaultOutfit, hasMultipleOutfits, hasAnyOutfits]);
 
   return (
     <div className={`space-y-2 ${className}`}>
