@@ -61,6 +61,11 @@ export function LocationAngleCropModal({
   useEffect(() => {
     if (isOpen) {
       const fetchImageUrl = async () => {
+        console.log('[LocationAngleCropModal] 🔍 DEBUG: Starting fetchImageUrl', {
+          hasOriginalImageUrl: !!originalImageUrl,
+          hasOriginalS3Key: !!originalS3Key
+        });
+        
         setImageLoaded(false);
         setImageError(false);
         setCrop({ x: 0, y: 0 });
@@ -70,6 +75,7 @@ export function LocationAngleCropModal({
         // 🔥 FIX: Always try to fetch from S3 if we have originalS3Key, even if originalImageUrl exists
         // originalImageUrl might be expired or empty, so prefer fetching fresh URL from S3
         if (originalS3Key) {
+          console.log('[LocationAngleCropModal] 🔍 DEBUG: Fetching from S3 with key:', originalS3Key.substring(0, 100));
           try {
             const token = await getToken({ template: 'wryda-backend' });
             if (!token) {
@@ -101,7 +107,9 @@ export function LocationAngleCropModal({
 
             if (response.ok) {
               const data = await response.json();
-              setImageUrl(data.downloadUrl || '');
+              const newUrl = data.downloadUrl || '';
+              console.log('[LocationAngleCropModal] ✅ DEBUG: Got presigned URL from S3:', newUrl ? `${newUrl.substring(0, 50)}...` : 'empty');
+              setImageUrl(newUrl);
             } else {
               const errorData = await response.json().catch(() => ({ message: 'Failed to fetch presigned URL' }));
               console.error('[LocationAngleCropModal] Failed to fetch presigned URL:', errorData.message || response.statusText);
@@ -125,9 +133,14 @@ export function LocationAngleCropModal({
           }
         } else if (originalImageUrl && originalImageUrl.startsWith('http')) {
           // No S3 key but we have a valid URL - use it
+          console.log('[LocationAngleCropModal] 🔍 DEBUG: Using originalImageUrl directly:', originalImageUrl.substring(0, 50));
           setImageUrl(originalImageUrl);
         } else {
           // No URL and no S3 key - show error
+          console.error('[LocationAngleCropModal] ❌ DEBUG: No image URL or S3 key available', {
+            originalImageUrl: originalImageUrl || 'empty',
+            originalS3Key: originalS3Key || 'empty'
+          });
           setImageError(true);
         }
       };
@@ -260,12 +273,28 @@ export function LocationAngleCropModal({
 
               {/* Crop Area */}
               <div className="flex-1 relative bg-[#141414] min-h-[400px]">
-                {imageError && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-[#DC143C]">Failed to load image. Please try again.</div>
+                {/* 🔥 DEBUG: Show state info */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="absolute top-2 left-2 z-50 bg-black/80 text-white text-xs p-2 rounded">
+                    <div>imageUrl: {imageUrl ? 'SET' : 'EMPTY'}</div>
+                    <div>imageLoaded: {imageLoaded ? 'YES' : 'NO'}</div>
+                    <div>imageError: {imageError ? 'YES' : 'NO'}</div>
+                    <div>originalS3Key: {originalS3Key ? 'SET' : 'EMPTY'}</div>
+                    <div>originalImageUrl: {originalImageUrl ? 'SET' : 'EMPTY'}</div>
                   </div>
                 )}
-                {!imageLoaded && !imageError && (
+                {imageError && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-[#DC143C]">
+                      Failed to load image. Please try again.
+                      <br />
+                      <span className="text-xs text-[#808080] mt-2 block">
+                        S3 Key: {originalS3Key ? originalS3Key.substring(0, 50) : 'None'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {!imageLoaded && !imageError && !imageUrl && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-[#808080]">Loading image...</div>
                   </div>
@@ -314,27 +343,41 @@ export function LocationAngleCropModal({
                         setImageError(true);
                         setImageLoaded(false);
                       }}
-                      onLoad={() => setImageLoaded(true)}
+                      onLoad={() => {
+                        console.log('[LocationAngleCropModal] ✅ DEBUG: Hidden image loaded successfully');
+                        setImageLoaded(true);
+                      }}
                       style={{ display: 'none' }}
                     />
                     {imageLoaded && (
                       <Cropper
-                        image={imageUrl}
-                        crop={crop}
-                        zoom={zoom}
-                        aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
-                        onCropChange={setCrop}
-                        onZoomChange={setZoom}
-                        onCropComplete={onCropCompleteCallback}
-                        onMediaLoaded={() => setImageLoaded(true)}
-                        style={{
-                          containerStyle: {
-                            width: '100%',
-                            height: '100%',
-                            position: 'relative'
-                          }
-                        }}
-                      />
+                          image={imageUrl}
+                          crop={crop}
+                          zoom={zoom}
+                          aspect={16 / 9} // Fixed 16:9 aspect ratio (21:9 commented out)
+                          onCropChange={setCrop}
+                          onZoomChange={setZoom}
+                          onCropComplete={onCropCompleteCallback}
+                          onMediaLoaded={() => {
+                            console.log('[LocationAngleCropModal] ✅ DEBUG: Cropper media loaded');
+                            setImageLoaded(true);
+                          }}
+                          style={{
+                            containerStyle: {
+                              width: '100%',
+                              height: '100%',
+                              position: 'relative'
+                            }
+                          }}
+                        />
+                      </>
+                    )}
+                    {!imageLoaded && imageUrl && !imageError && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-[#808080]">
+                          Loading image... ({imageUrl ? 'URL set' : 'No URL'})
+                        </div>
+                      </div>
                     )}
                   </>
                 )}

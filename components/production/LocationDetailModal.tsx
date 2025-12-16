@@ -1117,7 +1117,21 @@ export function LocationDetailModal({
         isOpen={cropAngle !== null}
         onClose={() => setCropAngle(null)}
         angleId={cropAngle.angleId}
-        originalImageUrl={cropAngle.variation.metadata?.originalImageUrl || ''}
+        originalImageUrl={(() => {
+          const url = cropAngle.variation.metadata?.originalImageUrl || '';
+          // 🔥 DEBUG: Log props when crop modal is rendered
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[LocationDetailModal] 🔍 DEBUG: Passing props to crop modal:', {
+              angleId: cropAngle.angleId,
+              originalImageUrl: url ? `${url.substring(0, 80)}...` : 'EMPTY',
+              originalS3Key: (cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key) ? `${(cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key).substring(0, 80)}...` : 'EMPTY',
+              hasMetadata: !!cropAngle.variation.metadata,
+              metadataKeys: cropAngle.variation.metadata ? Object.keys(cropAngle.variation.metadata) : [],
+              variationKeys: Object.keys(cropAngle.variation)
+            });
+          }
+          return url;
+        })()}
         originalS3Key={cropAngle.variation.metadata?.originalS3Key || cropAngle.variation.s3Key}
         locationId={location.locationId}
         screenplayId={screenplayId}
