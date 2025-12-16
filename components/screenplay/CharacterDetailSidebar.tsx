@@ -855,7 +855,7 @@ export default function CharacterDetailSidebar({
             </div>
             
             {/* Hair Style */}
-            <div className="col-span-2">
+            <div>
               <input
                 type="text"
                 value={formData.physicalAttributes?.hairStyle || ''}
