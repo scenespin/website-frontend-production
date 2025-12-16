@@ -256,6 +256,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
         });
         
         if (result.success && result.data) {
+          console.log('[SceneBuilderPanel] ✅ Analysis result received:', {
+            sceneType: result.data.sceneType,
+            characterCount: result.data.characters?.length || 0,
+            characters: result.data.characters?.map(c => ({ id: c.id, name: c.name, hasReferences: c.hasReferences })),
+            location: result.data.location?.name,
+            shotBreakdown: result.data.shotBreakdown?.totalShots
+          });
+          
           setSceneAnalysisResult(result.data);
           
           // Task 5: Pre-populate character reference URLs from analysis
@@ -296,9 +304,6 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             setQualityTier('professional');
             console.log('[SceneBuilderPanel] Auto-suggested Professional tier (simple scene)');
           }
-          
-          console.log('[SceneBuilderPanel] Scene analysis complete:', result.data);
-          console.log('[SceneBuilderPanel] Pre-populated character references:', allCharacterRefs.slice(0, 3));
         } else {
           throw new Error(result.message || 'Analysis failed');
         }
@@ -2152,12 +2157,19 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
             {currentStep === 2 && (
               <>
                 {/* Scene Analysis Preview (Feature 0136 Phase 2.2) */}
-                {selectedSceneId && (
+                {selectedSceneId && sceneAnalysisResult && (
                   <SceneAnalysisPreview
-                    analysis={sceneAnalysisResult!}
+                    analysis={sceneAnalysisResult}
                     isAnalyzing={isAnalyzing}
                     error={analysisError}
                   />
+                )}
+                {selectedSceneId && !sceneAnalysisResult && !isAnalyzing && !analysisError && (
+                  <Card className="bg-[#141414] border-[#3F3F46]">
+                    <CardContent className="p-3">
+                      <div className="text-xs text-[#808080]">No analysis available. Please select a scene.</div>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {/* Optional Overrides - Compact */}

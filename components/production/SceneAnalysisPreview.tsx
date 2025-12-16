@@ -143,19 +143,23 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
         {/* References - Compact List */}
         <div className="flex flex-wrap gap-1.5 text-xs">
           {/* Characters */}
-          {characters.map((char) => (
-            <div key={char.id} className="flex items-center gap-1.5 px-2 py-1 bg-[#0A0A0A] rounded border border-[#3F3F46]">
-              {char.hasReferences ? (
-                <CheckCircle2 className="w-3 h-3 text-green-500" />
-              ) : (
-                <AlertCircle className="w-3 h-3 text-yellow-500" />
-              )}
-              <span className="text-[#FFFFFF]">{char.name}</span>
-              {char.hasReferences && (
-                <span className="text-[#808080]">({char.references.length})</span>
-              )}
-            </div>
-          ))}
+          {characters.length > 0 ? (
+            characters.map((char) => (
+              <div key={char.id} className="flex items-center gap-1.5 px-2 py-1 bg-[#0A0A0A] rounded border border-[#3F3F46]">
+                {char.hasReferences ? (
+                  <CheckCircle2 className="w-3 h-3 text-green-500" />
+                ) : (
+                  <AlertCircle className="w-3 h-3 text-yellow-500" />
+                )}
+                <span className="text-[#FFFFFF]">{char.name}</span>
+                {char.hasReferences && (
+                  <span className="text-[#808080]">({char.references.length})</span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-[10px] text-[#808080] italic">No characters found in scene</div>
+          )}
           
           {/* Location */}
           {location.id && (
