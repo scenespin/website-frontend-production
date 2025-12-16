@@ -292,14 +292,21 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
             shotBreakdown: result.data.shotBreakdown?.totalShots
           });
           
-          // Log outfit information for each character
+          // Log outfit information for each character (explicit logging)
           characterDetails.forEach((char: any) => {
-            console.log(`[SceneBuilderPanel] Character ${char.name} outfit info:`, {
-              availableOutfits: char.availableOutfits,
-              availableOutfitsCount: char.availableOutfitsCount,
-              defaultOutfit: char.defaultOutfit,
-              rawCharacterData: result.data.characters?.find((c: any) => c.id === char.id)
+            const rawChar = result.data.characters?.find((c: any) => c.id === char.id);
+            console.log(`[SceneBuilderPanel] 👔 OUTFIT INFO for ${char.name}:`, {
+              availableOutfits: rawChar?.availableOutfits || 'NOT FOUND',
+              availableOutfitsCount: rawChar?.availableOutfits?.length || 0,
+              defaultOutfit: rawChar?.defaultOutfit || 'NOT SET',
+              hasOutfits: (rawChar?.availableOutfits?.length || 0) > 0,
+              fullCharacterObject: rawChar
             });
+            
+            // Explicit warning if outfits should exist but don't
+            if (char.name === 'SARAH' && (!rawChar?.availableOutfits || rawChar.availableOutfits.length === 0)) {
+              console.error(`[SceneBuilderPanel] ❌ SARAH has NO OUTFITS in API response!`, rawChar);
+            }
           });
           
           // Log if Sarah is missing
