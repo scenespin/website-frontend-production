@@ -1193,11 +1193,32 @@ export function CharacterDetailModal({
                           {displayPhysicalAttributes.hairColor && <p className="text-[#808080] text-sm">Hair Color: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.hairColor}</span></p>}
                           {displayPhysicalAttributes.hairLength && <p className="text-[#808080] text-sm">Hair Length: <span className="text-[#FFFFFF] capitalize">{displayPhysicalAttributes.hairLength}</span></p>}
                           {displayPhysicalAttributes.hairStyle && <p className="text-[#808080] text-sm">Hair Style: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.hairStyle}</span></p>}
-                          {displayPhysicalAttributes.typicalClothing && <p className="text-[#808080] text-sm">Typical Clothing: <span className="text-[#FFFFFF]">{displayPhysicalAttributes.typicalClothing}</span></p>}
-                          {!displayPhysicalAttributes.height && !displayPhysicalAttributes.bodyType && !displayPhysicalAttributes.eyeColor && !displayPhysicalAttributes.hairColor && !displayPhysicalAttributes.hairLength && !displayPhysicalAttributes.hairStyle && !displayPhysicalAttributes.typicalClothing && (
-                            <p className="text-[#808080] text-sm">No physical attributes set</p>
-                          )}
                         </div>
+                      </div>
+                      
+                      {/* Default Outfit (Typical Clothing) - Editable in Production Hub */}
+                      <div>
+                        <label className="text-xs text-[#808080] uppercase tracking-wide mb-2 block">
+                          Default Outfit <span className="text-[#6B7280] normal-case">(for Scene Builder)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={displayPhysicalAttributes.typicalClothing || ''}
+                          onChange={async (e) => {
+                            const newValue = e.target.value.trim() || undefined;
+                            await onUpdate(character.id, {
+                              physicalAttributes: {
+                                ...displayPhysicalAttributes,
+                                typicalClothing: newValue
+                              }
+                            });
+                          }}
+                          placeholder="e.g., business-casual, casual, formal"
+                          className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-sm text-[#FFFFFF] placeholder-[#3F3F46] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                        />
+                        <p className="text-[10px] text-[#6B7280] mt-1">
+                          This will be used as the default outfit in Scene Builder. Should match one of the outfit names from your character's references.
+                        </p>
                       </div>
                       <div>
                         <label className="text-xs text-[#808080] uppercase tracking-wide mb-1 block">Arc Notes</label>
