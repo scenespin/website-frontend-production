@@ -2103,18 +2103,18 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
   /**
    * Calculate credit estimate
    * Uses Scene Analyzer's detailed breakdown as source of truth
-   * Adds quality tier adjustment (Premium = +100 credits for 4K upscaling)
+   * Adds quality tier adjustment (Premium = +100 credits for enhanced quality)
    */
   function calculateEstimate(): number {
     // If Scene Analyzer has calculated credits, use that as source of truth
     if (sceneAnalysisResult?.shotBreakdown?.totalCredits) {
       const baseCredits = sceneAnalysisResult.shotBreakdown.totalCredits;
       
-      // Add quality tier adjustment (Premium = 4K upscaling)
-      // For dialogue scenes: Upscale establishing shot only (+100 credits)
-      // For workflow scenes: Upscale all videos (+100 credits)
+      // Add quality tier adjustment (Premium = enhanced quality)
+      // For dialogue scenes: Enhanced quality for establishing shot only (+100 credits)
+      // For workflow scenes: Enhanced quality for all videos (+100 credits)
       if (qualityTier === 'premium') {
-        return baseCredits + 100; // Add 4K upscaling cost (establishing shot for dialogue, all videos for workflow)
+        return baseCredits + 100; // Add premium quality cost (establishing shot for dialogue, all videos for workflow)
       }
       
       return baseCredits;
@@ -2124,14 +2124,14 @@ export function SceneBuilderPanel({ projectId, onVideoGenerated, isMobile = fals
     // This should rarely happen, but provides a fallback
     if (sceneAnalysisResult?.dialogue?.hasDialogue) {
       // Dialogue generation: ~5-10 credits (audio) + 100 credits (lip sync) = ~105-110 credits
-      // Premium tier doesn't affect dialogue scenes (no 4K upscaling for lip sync)
+      // Premium tier adds enhanced quality for establishing shot
       return 105; // Fixed cost for talking-head dialogue generation
     }
     
     // Workflow-based scene generation (fallback)
     const hasCharacterRefs = referenceImages.some(img => img !== null);
     const baseCredits = hasCharacterRefs ? 125 : 100; // Master + 3 angles
-    const premiumCredits = qualityTier === 'premium' ? 100 : 0; // 4K upscaling
+    const premiumCredits = qualityTier === 'premium' ? 100 : 0; // Premium quality enhancement
     return baseCredits + premiumCredits;
   }
   
@@ -2442,7 +2442,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                           : 'border-[#3F3F46] bg-[#0A0A0A] text-[#FFFFFF] hover:border-[#DC143C] hover:bg-[#DC143C]/10'
                       }`}
                     >
-                      <div className="font-medium text-sm">Professional 1080p</div>
+                      <div className="font-medium text-sm">Professional</div>
                       <div className="text-xs text-[#808080] mt-1">
                         {sceneAnalysisResult?.shotBreakdown?.totalCredits 
                           ? `${sceneAnalysisResult.shotBreakdown.totalCredits} credits`  // Use Scene Analyzer's calculation
@@ -2462,16 +2462,16 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       }`}
                     >
                       <div className="font-medium text-sm flex items-center gap-1.5">
-                        Premium 4K
+                        Premium
                         <Sparkles className="w-4 h-4" />
                       </div>
                       <div className="text-xs text-[#808080] mt-1">
                         {sceneAnalysisResult?.shotBreakdown?.totalCredits 
                           ? sceneAnalysisResult?.dialogue?.hasDialogue
-                            ? `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Dialogue: add upscaling for establishing shot
-                            : `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Workflow: add upscaling
+                            ? `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Dialogue: add premium quality for establishing shot
+                            : `${sceneAnalysisResult.shotBreakdown.totalCredits + 100} credits`  // Workflow: add premium quality
                           : sceneAnalysisResult?.dialogue?.hasDialogue 
-                            ? '205 credits'  // Fallback: dialogue scenes (105 + 100 upscaling)
+                            ? '205 credits'  // Fallback: dialogue scenes (105 + 100 premium)
                             : '200-225 credits'  // Fallback: workflow scenes
                         }
                       </div>
@@ -2523,12 +2523,12 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                       {sceneAnalysisResult?.dialogue?.hasDialogue ? (
                         <>
                           <li>• {sceneAnalysisResult.shotBreakdown?.totalShots || 3} videos ({sceneAnalysisResult.shotBreakdown?.shots?.filter((s: any) => s.type === 'establishing').length || 1} establishing + {sceneAnalysisResult.shotBreakdown?.shots?.filter((s: any) => s.type === 'dialogue').length || 2} dialogue shots)</li>
-                          <li>• {qualityTier === 'premium' ? 'Premium 4K establishing shot, optimized dialogue videos' : 'Professional 1080p quality'}</li>
+                          <li>• {qualityTier === 'premium' ? 'Premium quality establishing shot, optimized dialogue videos' : 'Professional quality'}</li>
                         </>
                       ) : (
                         <>
                           <li>• {referenceImages.some(img => img !== null) ? '4 videos (establishing + 3 character angles)' : '4 videos (establishing + 3 scene variations)'}</li>
-                          <li>• {qualityTier === 'premium' ? 'Premium 4K quality' : 'Professional 1080p quality'}</li>
+                          <li>• {qualityTier === 'premium' ? 'Premium quality' : 'Professional quality'}</li>
                         </>
                       )}
                       <li>• {duration} each</li>
@@ -2541,7 +2541,7 @@ Output: A complete, cinematic scene in proper Fountain format (NO MARKDOWN).`;
                     <div className="text-xs font-medium text-[#FFFFFF] mb-1">Your Selections:</div>
                     <div className="text-[10px] text-[#808080] space-y-0.5">
                       <div><strong className="text-[#FFFFFF]">Scene:</strong> {sceneDescription.split('\n')[0]?.substring(0, 60) || 'Custom scene'}{sceneDescription.split('\n')[0]?.length > 60 ? '...' : ''}</div>
-                      <div><strong className="text-[#FFFFFF]">Quality:</strong> {qualityTier === 'premium' ? 'Premium 4K' : 'Professional 1080p'}</div>
+                      <div><strong className="text-[#FFFFFF]">Quality:</strong> {qualityTier === 'premium' ? 'Premium' : 'Professional'}</div>
                       <div><strong className="text-[#FFFFFF]">Duration:</strong> {duration}</div>
                       <div><strong className="text-[#FFFFFF]">Character References:</strong> {referenceImages.filter(img => img !== null).length} uploaded</div>
                       {mediaUploads.some(m => m !== null) && (
