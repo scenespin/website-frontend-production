@@ -310,7 +310,7 @@ export function LocationAngleCropModal({
               </div>
 
               {/* Crop Area */}
-              <div className="flex-1 relative bg-[#141414] min-h-[400px]">
+              <div className="flex-1 relative bg-[#141414] min-h-[500px] h-[500px]">
                 {/* 🔥 DEBUG: Show state info */}
                 {process.env.NODE_ENV === 'development' && (
                   <div className="absolute top-2 left-2 z-50 bg-black/80 text-white text-xs p-2 rounded">
@@ -387,8 +387,9 @@ export function LocationAngleCropModal({
                       }}
                       style={{ display: 'none' }}
                     />
-                    {imageLoaded && (
-                      <Cropper
+                    {imageLoaded && imageUrl && (
+                      <div className="absolute inset-0">
+                        <Cropper
                           image={imageUrl}
                           crop={crop}
                           zoom={zoom}
@@ -400,14 +401,8 @@ export function LocationAngleCropModal({
                             console.log('[LocationAngleCropModal] ✅ DEBUG: Cropper media loaded');
                             setImageLoaded(true);
                           }}
-                          style={{
-                            containerStyle: {
-                              width: '100%',
-                              height: '100%',
-                              position: 'relative'
-                            }
-                          }}
                         />
+                      </div>
                     )}
                     {!imageLoaded && imageUrl && !imageError && (
                       <div className="absolute inset-0 flex items-center justify-center">

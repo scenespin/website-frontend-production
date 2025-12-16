@@ -158,17 +158,25 @@ export default function LocationAngleGenerationModal({
         throw new Error('Please select a model before generating angles.');
       }
       
+      // 🔥 DEFAULT VALUES: Use "afternoon" and "sunny" if user didn't select anything
+      const defaultTimeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' = timeOfDay && timeOfDay.trim() !== '' 
+        ? (timeOfDay.trim() as 'morning' | 'afternoon' | 'evening' | 'night')
+        : 'afternoon'; // Default to afternoon (daytime)
+      
+      const defaultWeather: 'sunny' | 'cloudy' | 'rainy' | 'snowy' = weather && weather.trim() !== ''
+        ? (weather.trim() as 'sunny' | 'cloudy' | 'rainy' | 'snowy')
+        : 'sunny'; // Default to sunny (clear)
+
       const requestBody = {
         locationProfile: locationProfile,
         packageId: selectedPackageId,
         quality: quality,
         providerId: providerId, // Required - no fallback
-        // Apply timeOfDay and weather to all angles in the package
-        // 🔥 FIX: Only include timeOfDay/weather if they have actual values (not empty strings)
+        // Apply timeOfDay and weather to all angles in the package (with defaults)
         angles: packageToAngles[selectedPackageId].map(angle => ({
           angle: angle.angle,
-          ...(timeOfDay && timeOfDay.trim() !== '' && { timeOfDay: timeOfDay.trim() as 'morning' | 'afternoon' | 'evening' | 'night' }),
-          ...(weather && weather.trim() !== '' && { weather: weather.trim() as 'sunny' | 'cloudy' | 'rainy' | 'snowy' })
+          timeOfDay: defaultTimeOfDay,
+          weather: defaultWeather
         }))
       };
       
