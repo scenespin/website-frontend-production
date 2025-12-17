@@ -50,14 +50,16 @@ export function LocationAngleCropModal({
   const [zoom, setZoom] = useState(1);
   const [isCropping, setIsCropping] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageUrl, setImageUrl] = useState(originalImageUrl);
+  const [imageUrl, setImageUrl] = useState('');
   const [imageError, setImageError] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
+  const [showZoomWarning, setShowZoomWarning] = useState(false);
   // 🔥 FUTURE: 21:9 support - commented out until ultrawide is fully supported
   // const [aspectRatio, setAspectRatio] = useState<'16:9' | '21:9'>(defaultAspectRatio);
   const aspectRatio: '16:9' | '21:9' = '16:9'; // Only 16:9 supported for now
 
-  // Fetch fresh presigned URL from S3 if originalImageUrl is missing or expired
+  // 🔥 CRITICAL: Always fetch the original 4096x4096 square image from originalS3Key
+  // Never use the cropped version - users need to crop from the full square image
   useEffect(() => {
     if (isOpen) {
       const fetchImageUrl = async () => {
@@ -71,25 +73,23 @@ export function LocationAngleCropModal({
         setCrop({ x: 0, y: 0 });
         setZoom(1);
         setCroppedAreaPixels(null);
+        setShowZoomWarning(false);
 
-        // 🔥 FIX: Always try to fetch from S3 if we have originalS3Key, even if originalImageUrl exists
-        // originalImageUrl might be expired or empty, so prefer fetching fresh URL from S3
+        // 🔥 CRITICAL: Always fetch from originalS3Key to get the original 4096x4096 square image
+        // originalImageUrl might be expired, wrong (pointing to cropped version), or missing
+        // We MUST use the original square image for cropping, not the pre-cropped 16:9 version
         if (originalS3Key) {
-          console.log('[LocationAngleCropModal] 🔍 DEBUG: Fetching from S3 with key:', originalS3Key.substring(0, 100));
+          console.log('[LocationAngleCropModal] 🔍 DEBUG: Fetching ORIGINAL 4096x4096 square image from S3 with key:', originalS3Key.substring(0, 100));
           try {
             const token = await getToken({ template: 'wryda-backend' });
             if (!token) {
-              // Fallback to originalImageUrl if token fetch fails
-              if (originalImageUrl && originalImageUrl.startsWith('http')) {
-                setImageUrl(originalImageUrl);
-                return;
-              }
+              console.error('[LocationAngleCropModal] ❌ Failed to get auth token');
               setImageError(true);
               return;
             }
 
             const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-            // Use S3 download-url endpoint to get fresh presigned URL
+            // Use S3 download-url endpoint to get fresh presigned URL for ORIGINAL square image
             const response = await fetch(
               `${BACKEND_API_URL}/api/s3/download-url`,
               {
@@ -99,7 +99,7 @@ export function LocationAngleCropModal({
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                  s3Key: originalS3Key,
+                  s3Key: originalS3Key, // This should be the original 4096x4096 square image
                   expiresIn: 3600 // 1 hour
                 })
               }
@@ -108,73 +108,24 @@ export function LocationAngleCropModal({
             if (response.ok) {
               const data = await response.json();
               const newUrl = data.downloadUrl || '';
-              console.log('[LocationAngleCropModal] ✅ DEBUG: Got presigned URL from S3:', newUrl ? `${newUrl.substring(0, 50)}...` : 'empty');
+              console.log('[LocationAngleCropModal] ✅ DEBUG: Got presigned URL for ORIGINAL square image from S3:', newUrl ? `${newUrl.substring(0, 50)}...` : 'empty');
               setImageUrl(newUrl);
             } else {
               const errorData = await response.json().catch(() => ({ message: 'Failed to fetch presigned URL' }));
-              console.error('[LocationAngleCropModal] Failed to fetch presigned URL:', errorData.message || response.statusText);
-              // Fallback to originalImageUrl if S3 fetch fails
-              if (originalImageUrl && originalImageUrl.startsWith('http')) {
-                console.log('[LocationAngleCropModal] Falling back to originalImageUrl');
-                setImageUrl(originalImageUrl);
-              } else {
-                setImageError(true);
-              }
-            }
-          } catch (error) {
-            console.error('[LocationAngleCropModal] Error fetching presigned URL:', error);
-            // Fallback to originalImageUrl if error occurs
-            if (originalImageUrl && originalImageUrl.startsWith('http')) {
-              console.log('[LocationAngleCropModal] Falling back to originalImageUrl after error');
-              setImageUrl(originalImageUrl);
-            } else {
-              setImageError(true);
-            }
-          }
-        } else if (originalImageUrl && originalImageUrl.startsWith('http')) {
-          // No S3 key but we have a valid URL - use it
-          console.log('[LocationAngleCropModal] 🔍 DEBUG: Using originalImageUrl directly:', originalImageUrl.substring(0, 50));
-          setImageUrl(originalImageUrl);
-        } else if (originalS3Key) {
-          // 🔥 FIX: If we have originalS3Key but didn't try fetching yet (shouldn't happen, but safety check)
-          console.log('[LocationAngleCropModal] 🔍 DEBUG: Retrying with originalS3Key:', originalS3Key.substring(0, 50));
-          // This will be handled by the S3 fetch logic above, but adding as fallback
-          // Actually, if we get here, originalS3Key should have been handled above
-          // So this is just for safety - try to fetch one more time
-          try {
-            const token = await getToken({ template: 'wryda-backend' });
-            if (token) {
-              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-              const response = await fetch(
-                `${BACKEND_API_URL}/api/s3/download-url`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    s3Key: originalS3Key,
-                    expiresIn: 3600
-                  })
-                }
-              );
-              if (response.ok) {
-                const data = await response.json();
-                setImageUrl(data.downloadUrl || '');
-              } else {
-                setImageError(true);
-              }
-            } else {
+              console.error('[LocationAngleCropModal] ❌ Failed to fetch presigned URL from S3:', errorData.message || response.statusText);
               setImageError(true);
             }
           } catch (error) {
-            console.error('[LocationAngleCropModal] Error in fallback fetch:', error);
+            console.error('[LocationAngleCropModal] ❌ Error fetching presigned URL from S3:', error);
             setImageError(true);
           }
+        } else if (originalImageUrl && originalImageUrl.startsWith('http')) {
+          // Fallback: No S3 key but we have a URL - use it (but warn that it might be wrong)
+          console.warn('[LocationAngleCropModal] ⚠️ WARNING: Using originalImageUrl as fallback (no originalS3Key). This might be the cropped version!', originalImageUrl.substring(0, 50));
+          setImageUrl(originalImageUrl);
         } else {
           // No URL and no S3 key - show error
-          console.error('[LocationAngleCropModal] ❌ DEBUG: No image URL or S3 key available', {
+          console.error('[LocationAngleCropModal] ❌ DEBUG: No originalS3Key or originalImageUrl available', {
             originalImageUrl: originalImageUrl || 'empty',
             originalS3Key: originalS3Key || 'empty',
             angleId
@@ -422,12 +373,23 @@ export function LocationAngleCropModal({
                   <input
                     type="range"
                     min={1}
-                    max={3}
+                    max={2}
                     step={0.1}
                     value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newZoom = Number(e.target.value);
+                      setZoom(newZoom);
+                      // Show warning if zoom exceeds 1.5x (approaching quality degradation)
+                      setShowZoomWarning(newZoom > 1.5);
+                    }}
                     className="w-full"
                   />
+                </div>
+                {showZoomWarning && (
+                  <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2 text-xs text-yellow-200">
+                    ⚠️ High zoom may degrade video quality. Maximum recommended: 2x to maintain 1080p resolution.
+                  </div>
+                )}
                 </div>
                 <div className="flex gap-3">
                   <button
