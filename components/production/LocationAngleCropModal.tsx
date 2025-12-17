@@ -390,7 +390,6 @@ export function LocationAngleCropModal({
                     ⚠️ High zoom may degrade video quality. Maximum recommended: 2x to maintain 1080p resolution.
                   </div>
                 )}
-                </div>
                 <div className="flex gap-3">
                   <button
                     onClick={onClose}
