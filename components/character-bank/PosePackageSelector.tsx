@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Star, Crown } from 'lucide-react';
+import { Check, Sparkles, Zap, Star, Crown, MessageCircle } from 'lucide-react';
 
 interface PosePackage {
   id: string;
@@ -33,7 +33,8 @@ const PACKAGE_ICONS: Record<string, any> = {
   standard: Check,
   premium: Star,
   cinematic: Sparkles,
-  master: Crown
+  master: Crown,
+  dialogue: MessageCircle
 };
 
 const PACKAGE_COLORS: Record<string, string> = {
@@ -41,7 +42,8 @@ const PACKAGE_COLORS: Record<string, string> = {
   standard: 'from-blue-500 to-blue-600',
   premium: 'from-purple-500 to-purple-600',
   cinematic: 'from-pink-500 to-red-600',
-  master: 'from-yellow-500 to-orange-600'
+  master: 'from-yellow-500 to-orange-600',
+  dialogue: 'from-green-500 to-emerald-600'
 };
 
 export default function PosePackageSelector({
@@ -55,52 +57,62 @@ export default function PosePackageSelector({
     {
       id: 'basic',
       name: 'Basic Package',
-      poses: ['front-facing', 'three-quarter-left', 'full-body-front'],
+      poses: ['front-facing', 'three-quarter-left', 'close-up'],
       credits: 60,
-      consistencyRating: 70,
-      description: 'Essential 3 poses for quick tests',
-      bestFor: ['Quick tests', 'Simple scenes', 'Single locations'],
+      consistencyRating: 75,
+      description: 'Essential 3 poses for quick tests (includes headshot for dialogue)',
+      bestFor: ['Quick tests', 'Simple scenes', 'Dialogue scenes', 'Single locations'],
       discount: 17
     },
     {
       id: 'standard',
       name: 'Standard Package',
-      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'full-body-front', 'full-body-three-quarter', 'close-up'],
-      credits: 120,
-      consistencyRating: 85,
-      description: '6 essential angles for multi-scene films',
+      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'full-body-front', 'full-body-three-quarter', 'close-up', 'back-view-upper'],
+      credits: 140,
+      consistencyRating: 87,
+      description: '7 essential angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
-      discount: 17
+      discount: 0
     },
     {
       id: 'premium',
       name: 'Premium Package',
-      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'full-body-front', 'full-body-three-quarter', 'walking-forward', 'standing-casual', 'close-up', 'neutral-expression'],
-      credits: 200,
-      consistencyRating: 92,
-      description: '10 poses for professional productions',
+      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'full-body-front', 'full-body-three-quarter', 'back-view-full-body', 'walking-forward', 'standing-casual', 'close-up', 'neutral-expression'],
+      credits: 220,
+      consistencyRating: 93,
+      description: '11 poses for professional productions',
       bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
       discount: 0
     },
     {
       id: 'cinematic',
       name: 'Cinematic Package',
-      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-confident', 'high-angle', 'low-angle'],
-      credits: 300,
-      consistencyRating: 96,
-      description: '15 poses for high-end productions',
-      bestFor: ['High-end films', 'Multiple angles', 'Camera variety'],
+      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'back-view-full-body', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-confident', 'high-angle', 'low-angle', 'close-up'],
+      credits: 360,
+      consistencyRating: 98,
+      description: '18 poses for high-end productions (includes headshot for dialogue)',
+      bestFor: ['High-end films', 'Multiple angles', 'Dialogue scenes', 'Camera variety'],
       discount: 0
     },
     {
       id: 'master',
       name: 'Master Package',
-      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-casual', 'standing-confident', 'neutral-expression', 'smiling', 'serious', 'determined', 'high-angle', 'low-angle', 'close-up', 'extreme-close-up'],
-      credits: 500,
-      consistencyRating: 98,
-      description: 'Complete 22-pose set for maximum coverage',
-      bestFor: ['Feature films', 'Complete coverage', 'Professional studios'],
-      discount: 9
+      poses: ['front-facing', 'three-quarter-left', 'three-quarter-right', 'side-profile-left', 'side-profile-right', 'back-view', 'back-view-full-body', 'back-view-upper', 'three-quarter-back', 'full-body-front', 'full-body-three-quarter', 'full-body-side', 'walking-forward', 'running', 'sitting', 'standing-casual', 'standing-confident', 'neutral-expression', 'smiling', 'serious', 'determined', 'high-angle', 'low-angle', 'close-up', 'extreme-close-up', 'close-up-three-quarter'],
+      credits: 540,
+      consistencyRating: 99,
+      description: 'Complete 27-pose set for maximum coverage (includes dialogue variations)',
+      bestFor: ['Feature films', 'Complete coverage', 'Professional studios', 'Dialogue scenes'],
+      discount: 0
+    },
+    {
+      id: 'dialogue',
+      name: 'Dialogue Package',
+      poses: ['close-up', 'extreme-close-up', 'extreme-close-up-mouth', 'close-up-three-quarter', 'front-facing', 'close-up-profile'],
+      credits: 120,
+      consistencyRating: 96,
+      description: '6 headshot variations optimized for dialogue and lip sync scenes',
+      bestFor: ['Dialogue scenes', 'Lip sync', 'Talking head videos', 'Voice-over work', 'Dramatic mouth focus'],
+      discount: 0
     }
   ]);
   
