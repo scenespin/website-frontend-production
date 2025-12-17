@@ -5,6 +5,9 @@
  * 
  * Allows users to set custom 16:9 crop area from square (4096x4096) images
  * Uses react-easy-crop for interactive crop selection
+ * 
+ * NOTE: This modal is ONLY shown for square images (1:1 aspect ratio).
+ * Runway Gen-4 images (1920x1080, already 16:9) cannot be cropped and this option is hidden.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -18,7 +21,7 @@ interface LocationAngleCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   angleId: string;
-  originalImageUrl: string; // Square 4096x4096 image
+  originalImageUrl: string; // Square 4096x4096 image (only square images can be cropped)
   originalS3Key?: string; // S3 key to fetch original if URL not available
   locationId: string;
   screenplayId: string;
