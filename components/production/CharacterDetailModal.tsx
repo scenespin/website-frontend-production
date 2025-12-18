@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2 } from 'lucide-react';
+import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2, Crop } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ import { RegenerateConfirmModal } from './RegenerateConfirmModal';
 import { VoiceAssignmentTab } from './VoiceAssignmentTab';
 import { VoiceBrowserModal } from './VoiceBrowserModal';
 import { CustomVoiceForm } from './CustomVoiceForm';
+import { CharacterPoseCropModal } from './CharacterPoseCropModal';
 
 /**
  * Get display label for provider ID
@@ -117,6 +118,8 @@ export function CharacterDetailModal({
   const [regeneratePose, setRegeneratePose] = useState<{ poseId: string; s3Key: string } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
+  // 🔥 NEW: Crop modal state
+  const [cropPose, setCropPose] = useState<{ poseId: string; poseS3Key: string } | null>(null);
   // Voice Profile Management (Feature 0152)
   const [voiceProfile, setVoiceProfile] = useState<any | null>(null);
   const [isLoadingVoice, setIsLoadingVoice] = useState(false);
@@ -1517,6 +1520,22 @@ export function CharacterDetailModal({
                                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                       Download
                                     </DropdownMenuItem>
+                                    {/* 🔥 NEW: Crop option (all poses can be cropped) */}
+                                    {img.s3Key && (
+                                      <DropdownMenuItem
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCropPose({
+                                            poseId: img.id || img.poseId || (img as any).metadata?.poseId || '',
+                                            poseS3Key: img.s3Key
+                                          });
+                                        }}
+                                      >
+                                        <Crop className="w-4 h-4 mr-2 text-[#808080]" />
+                                        Crop
+                                      </DropdownMenuItem>
+                                    )}
                                     {/* 🔥 NEW: Regenerate option (only for poses with poseId) */}
                                     {(img.poseId || img.metadata?.poseId) && img.s3Key && (() => {
                                       // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
@@ -1795,6 +1814,23 @@ export function CharacterDetailModal({
         }}
         imageType="pose"
       />
+      
+      {/* 🔥 NEW: Crop Pose Modal */}
+      {cropPose && screenplayId && (
+        <CharacterPoseCropModal
+          isOpen={cropPose !== null}
+          onClose={() => setCropPose(null)}
+          poseId={cropPose.poseId}
+          poseS3Key={cropPose.poseS3Key}
+          characterId={character.id}
+          screenplayId={screenplayId}
+          onCropComplete={async () => {
+            // Refresh character data after crop
+            await queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+            setCropPose(null);
+          }}
+        />
+      )}
       
       {/* Image Viewer */}
       {previewImageIndex !== null && (
