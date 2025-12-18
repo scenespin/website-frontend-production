@@ -49,6 +49,7 @@ export function CharacterPoseCropModal({
   const [imageUrl, setImageUrl] = useState('');
   const [imageError, setImageError] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<number | undefined>(undefined); // undefined = free resize
 
   // Fetch image URL from S3 key
   useEffect(() => {
@@ -278,26 +279,23 @@ export function CharacterPoseCropModal({
                           image={imageUrl}
                           crop={crop}
                           zoom={zoom}
-                          // No aspect prop = allows free resizing of crop area
+                          aspect={aspectRatio} // undefined = free resize (if supported)
                           onCropChange={setCrop}
                           onCropComplete={onCropCompleteCallback}
                           cropShape="rect"
                           showGrid={true}
-                          restrictPosition={true}
+                          restrictPosition={false}
+                          minZoom={1}
+                          maxZoom={1}
                           style={{
                             containerStyle: {
                               width: '100%',
                               height: '100%',
-                              position: 'relative',
-                              cursor: 'grab'
+                              position: 'relative'
                             },
                             cropAreaStyle: {
                               border: '2px solid #DC143C',
-                              borderRadius: '4px',
-                              cursor: 'move'
-                            },
-                            mediaStyle: {
-                              cursor: 'grab'
+                              borderRadius: '4px'
                             }
                           }}
                         />
@@ -315,21 +313,54 @@ export function CharacterPoseCropModal({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-3 p-4 border-t border-[#3F3F46]">
-                <button
-                  onClick={onClose}
-                  disabled={isCropping}
-                  className="px-4 py-2 text-[#808080] hover:text-[#FFFFFF] transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCrop}
-                  disabled={isCropping || !croppedAreaPixels}
-                  className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91C1C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCropping ? 'Cropping...' : 'Apply Crop'}
-                </button>
+              <div className="flex items-center justify-between p-4 border-t border-[#3F3F46]">
+                {/* Aspect Ratio Selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#808080]">Aspect:</span>
+                  <select
+                    value={aspectRatio === undefined ? 'free' : (aspectRatio === 1 ? '1' : aspectRatio === 16/9 ? '16/9' : aspectRatio === 4/3 ? '4/3' : aspectRatio === 3/4 ? '3/4' : 'free')}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === 'free') {
+                        setAspectRatio(undefined);
+                      } else if (value === '1') {
+                        setAspectRatio(1);
+                      } else if (value === '16/9') {
+                        setAspectRatio(16 / 9);
+                      } else if (value === '4/3') {
+                        setAspectRatio(4 / 3);
+                      } else if (value === '3/4') {
+                        setAspectRatio(3 / 4);
+                      }
+                      // Reset crop position when aspect changes
+                      setCrop({ x: 0, y: 0 });
+                      setCroppedAreaPixels(null);
+                    }}
+                    className="bg-[#1F1F1F] border border-[#3F3F46] text-[#FFFFFF] text-xs px-2 py-1 rounded"
+                  >
+                    <option value="free">Free (resize freely)</option>
+                    <option value="1">1:1 (Square)</option>
+                    <option value="16/9">16:9 (Widescreen)</option>
+                    <option value="4/3">4:3 (Standard)</option>
+                    <option value="3/4">3:4 (Portrait)</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={onClose}
+                    disabled={isCropping}
+                    className="px-4 py-2 text-[#808080] hover:text-[#FFFFFF] transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCrop}
+                    disabled={isCropping || !croppedAreaPixels}
+                    className="px-4 py-2 bg-[#DC143C] text-white rounded-lg hover:bg-[#B91C1C] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCropping ? 'Cropping...' : 'Apply Crop'}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
