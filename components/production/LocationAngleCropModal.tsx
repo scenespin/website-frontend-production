@@ -152,8 +152,14 @@ export function LocationAngleCropModal({
 
     // Verify we have the original square image (4096x4096)
     if (naturalWidth !== 4096 || naturalHeight !== 4096) {
-      console.warn('[LocationAngleCropModal] ⚠️ Image is not 4096x4096! Got:', naturalWidth, 'x', naturalHeight);
-      toast.error('Expected 4096x4096 square image. Please ensure originalS3Key points to the original square image.');
+      console.error('[LocationAngleCropModal] ❌ Image is not 4096x4096! Got:', naturalWidth, 'x', naturalHeight);
+      console.error('[LocationAngleCropModal] ❌ This image cannot be cropped. originalS3Key may be pointing to a resized/cropped version.');
+      console.error('[LocationAngleCropModal] ❌ originalS3Key:', originalS3Key?.substring(0, 100));
+      toast.error(`Image is ${naturalWidth}x${naturalHeight}, expected 4096x4096. This image may have been generated with an older version. Please regenerate the angle.`, {
+        duration: 10000
+      });
+      setImageError(true);
+      return; // Don't initialize crop if image is wrong size
     }
 
     // Initialize 16:9 crop area (centered, 80% of image size)
