@@ -8,11 +8,12 @@
  * 
  * Rules:
  * - Fixed 16:9 aspect ratio (no free resize)
- * - No zoom (prevents quality loss, maintains 1080p max)
- * - Output: 1920x1080 (1080p) from 4096x4096 square source
+ * - No zoom (preserves 4K quality, no downscaling)
+ * - Output: 4096x2160 (4K 16:9) from 4096x4096 square source
+ * - Future: Support for 21:9 ultrawide and 8K resolution
  * 
- * NOTE: This modal is ONLY shown for square images (1:1 aspect ratio).
- * Runway Gen-4 images (1920x1080, already 16:9) cannot be cropped and this option is hidden.
+ * NOTE: This modal is ONLY shown for Nano Banana Pro images (4096x4096 square, High Quality).
+ * Runway Gen-4 images (1920x1080, already 16:9, Standard Quality) cannot be cropped and this option is hidden.
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -250,7 +251,7 @@ export function LocationAngleCropModal({
                   <div className="flex items-center gap-2 text-xs text-[#808080]">
                     <span>Drag corners/edges to resize • Drag crop area to move</span>
                     <span className="text-[#DC143C]">•</span>
-                    <span>No zoom (prevents quality loss, maintains 1080p)</span>
+                    <span>No zoom (preserves 4K quality)</span>
                   </div>
                 </div>
                 <button
@@ -356,7 +357,7 @@ export function LocationAngleCropModal({
                 {imageLoaded && !completedCrop && (
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-3 py-2 rounded-lg pointer-events-none text-center z-10">
                     <div>Drag crop corners/edges to resize • Drag crop area to move</div>
-                    <div className="text-[#DC143C] mt-1">16:9 aspect ratio • Output: 1920x1080 (1080p)</div>
+                    <div className="text-[#DC143C] mt-1">16:9 aspect ratio • Output: 4096x2160 (4K)</div>
                   </div>
                 )}
               </div>
@@ -379,8 +380,8 @@ export function LocationAngleCropModal({
                   </button>
                 </div>
                 <p className="text-xs text-[#6B7280] text-center">
-                  Drag to reposition • Drag corners/edges to resize • Crop area: 16:9 (Widescreen) • Max output: 1080p
-                  {/* 🔥 FUTURE: {aspectRatio === '21:9' ? 'Ultrawide' : 'Widescreen'} */}
+                  Drag to reposition • Drag corners/edges to resize • Crop area: 16:9 (Widescreen) • Output: 4K (4096x2160)
+                  {/* 🔥 FUTURE: {aspectRatio === '21:9' ? 'Ultrawide' : 'Widescreen'} • Future: 8K support */}
                 </p>
               </div>
             </motion.div>
