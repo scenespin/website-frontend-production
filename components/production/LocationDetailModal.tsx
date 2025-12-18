@@ -934,7 +934,7 @@ export function LocationDetailModal({
                                       {/* 🔥 Custom Crop option - ONLY for square images (1:1 aspect ratio) */}
                                       {/* Only show if originalS3Key exists AND it's NOT a Gen4 image (Nano Banana Pro only) */}
                                       {/* Runway Gen-4 images (1920x1080, already 16:9) don't need cropping */}
-                                      {variation.id && variation.metadata?.originalS3Key && variation.metadata?.providerId !== 'runway-gen-4' && (
+                                      {variation.id && variation.metadata?.originalS3Key && variation.metadata?.providerId !== 'runway-gen4-image' && variation.metadata?.providerId !== 'runway-gen-4' && (
                                         <DropdownMenuItem
                                           className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
                                           onClick={(e) => {
